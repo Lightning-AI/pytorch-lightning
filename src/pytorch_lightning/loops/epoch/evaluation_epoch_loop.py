@@ -14,21 +14,13 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, Dict, Optional, Union
-
-from torch.utils.data import DataLoader
+from typing import Any, Optional, Union
 
 from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.loops.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.auto_restart import (
-    _collect_states_on_rank_zero_over_collection,
-    _reload_dataloader_state_dict,
-)
-from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
+from pytorch_lightning.utilities.exceptions import SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
@@ -47,7 +39,6 @@ class _EvaluationEpochLoop(_Loop):
         self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches: Union[int, float] = 0
         self._data_fetcher: Optional[AbstractDataFetcher] = None
-        self._dataloader_state_dict: Dict[str, Any] = {}
         self._dl_batch_idx = [0]
 
     @property
@@ -95,7 +86,6 @@ class _EvaluationEpochLoop(_Loop):
             kwargs: the kwargs passed down to the hooks.
         """
         self._dl_max_batches = dl_max_batches
-        self._reload_dataloader_state_dict(data_fetcher)
         # creates the iterator inside the fetcher but returns `self`
         self._data_fetcher = iter(data_fetcher)
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -180,44 +170,6 @@ class _EvaluationEpochLoop(_Loop):
     def teardown(self) -> None:
         # in case the model changes
         self._should_track_batch_outputs_for_epoch_end.cache_clear()
-
-    def on_save_checkpoint(self) -> Dict:
-        state_dict = super().on_save_checkpoint()
-
-        trainer = self._trainer
-        if (
-            trainer is not None
-            and trainer.state._fault_tolerant_mode.is_enabled
-            and self._data_fetcher is not None
-            and not self._num_completed_batches_reached()  # did not finish
-            and self.batch_progress.current.ready  # did start
-        ):
-            state = CombinedLoader._state_dict_fn(self._data_fetcher.dataloader_iter, self._has_completed())
-            if state:
-                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
-
-        return state_dict
-
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
-        # cache the dataloader state dict until the dataloader objects are available
-        # dataset states are collected across all ranks
-        dataloader_state_dict = state_dict.get("dataloader_state_dict", None)
-        if not _fault_tolerant_training() or not dataloader_state_dict:
-            return
-        self._dataloader_state_dict = dataloader_state_dict[self.trainer.global_rank]
-
-    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
-        if self.trainer.sanity_checking or not self._dataloader_state_dict:
-            return
-        dataloader = data_fetcher.dataloader
-        if isinstance(dataloader, CombinedLoader):
-            raise MisconfigurationException(
-                "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
-                " in `https://github.com/Lightning-AI/lightning/issues`."
-            )
-        assert isinstance(dataloader, DataLoader)
-        _reload_dataloader_state_dict(dataloader, self._dataloader_state_dict)
-        self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches

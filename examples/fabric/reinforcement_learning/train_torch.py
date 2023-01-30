@@ -6,7 +6,7 @@ Adapted from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py
 Based on the paper: https://arxiv.org/abs/1707.06347
 
 Requirements:
-- gymnasium
+- gymnasium[box2d]>=0.27.1
 - moviepy
 - lightning
 - torchmetrics
@@ -139,7 +139,7 @@ def train(
         seed=args.seed,
     )
     sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
-
+    per_epoch_losses = torch.tensor([0.0, 0.0, 0.0], device=data["obs"].device)
     for epoch in range(args.update_epochs):
         sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
@@ -153,6 +153,7 @@ def train(
 
             # Policy loss
             pg_loss = policy_loss(advantages, ratio, args.clip_coef)
+            per_epoch_losses[0] += pg_loss.detach()
 
             # Value loss
             v_loss = value_loss(
@@ -163,9 +164,11 @@ def train(
                 args.clip_vloss,
                 args.vf_coef,
             )
+            per_epoch_losses[1] += v_loss.detach()
 
             # Entropy loss
             ent_loss = entropy_loss(entropy, args.ent_coef)
+            per_epoch_losses[2] += ent_loss.detach()
 
             # Overall loss
             loss = pg_loss + ent_loss + v_loss
@@ -175,16 +178,19 @@ def train(
             nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
             optimizer.step()
 
-            # Log
-            if logger is not None:
-                logger.add_scalar("Loss/value_loss", v_loss, global_step)
-                logger.add_scalar("Loss/policy_loss", pg_loss, global_step)
-                logger.add_scalar("Loss/entropy", ent_loss, global_step)
+        # Log
+        distributed.reduce(per_epoch_losses, dst=0)
+        if logger is not None:
+            per_epoch_losses = per_epoch_losses / (len(sampler) * distributed.get_world_size())
+            logger.add_scalar("Loss/policy_loss", per_epoch_losses[0], global_step)
+            logger.add_scalar("Loss/value_loss", per_epoch_losses[1], global_step)
+            logger.add_scalar("Loss/entropy_loss", per_epoch_losses[2], global_step)
+        per_epoch_losses.fill_(0)
 
 
 @torch.no_grad()
 def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: argparse.Namespace):
-    env = make_env(args.env_id, args.seed, 0, args.capture_video, logger.log_dir)()
+    env = make_env(args.env_id, args.seed, 0, args.capture_video, logger.log_dir, "test")()
     step = 0
     done = False
     cumulative_rew = 0
@@ -205,7 +211,7 @@ def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: arg
 
 def main(args: argparse.Namespace):
     # Init distributed environment
-    is_cuda_available = torch.cuda.is_available()
+    is_cuda_available = torch.cuda.is_available() and args.cuda
     backend = "nccl" if is_cuda_available else "gloo"
     local_rank = int(os.environ["LOCAL_RANK"])
     global_rank = int(os.environ["RANK"])
@@ -213,8 +219,6 @@ def main(args: argparse.Namespace):
     if is_cuda_available:
         torch.cuda.set_device(local_rank)
     device = torch.device(f"cuda:{local_rank}" if is_cuda_available else "cpu")
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12345"
     distributed.init_process_group(backend=backend)
 
     # Seed everything
@@ -222,13 +226,14 @@ def main(args: argparse.Namespace):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = args.torch_deterministic
 
     # Logger
     log_dir = None
     logger = None
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
     if global_rank == 0:
-        log_dir = os.path.join("torch_logs", run_name)
+        log_dir = os.path.join("logs", "torch_logs", run_name)
         logger = SummaryWriter(log_dir=log_dir)
 
     # Log hyperparameters
@@ -241,7 +246,7 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + global_rank, global_rank, args.capture_video, log_dir)
+            make_env(args.env_id, args.seed + global_rank, global_rank, args.capture_video, log_dir, "train")
             for _ in range(args.per_rank_num_envs)
         ]
     )
@@ -254,7 +259,7 @@ def main(args: argparse.Namespace):
         device_ids=[local_rank] if is_cuda_available else None,
         output_device=local_rank if is_cuda_available else None,
     )
-    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
+    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-4)
 
     # Local data
     obs = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_observation_space.shape, device=device)
@@ -263,6 +268,9 @@ def main(args: argparse.Namespace):
     rewards = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
     dones = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
     values = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
+    local_rew = 0
+    local_ep_len = 0
+    local_num_episodes = 0
 
     # Global variables
     global_step = 0
@@ -303,19 +311,23 @@ def main(args: argparse.Namespace):
             if global_rank == 0 and "final_info" in info:
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        print(
-                            f"global_step={global_step}, reward_agent_{agent_id}={agent_final_info['episode']['r'][0]}"
-                        )
-                        logger.add_scalar(
-                            f"Rewards/agent_{agent_id}",
-                            agent_final_info["episode"]["r"][0],
-                            global_step,
-                        )
-                        logger.add_scalar(
-                            f"Game/episode_length_agent_{agent_id}",
-                            agent_final_info["episode"]["l"][0],
-                            global_step,
-                        )
+                        if agent_id == 0:
+                            print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
+                        local_num_episodes += 1
+                        local_rew += agent_final_info["episode"]["r"][0]
+                        local_ep_len += agent_final_info["episode"]["l"][0]
+
+        # Sync the metrics
+        global_stats = torch.tensor([local_rew, local_ep_len, local_num_episodes], device=device)
+        distributed.reduce(global_stats, dst=0)
+        if global_rank == 0:
+            logger.add_scalar("Rewards/rew_avg", global_stats[0] / global_stats[2], global_step)
+            logger.add_scalar("Game/ep_len_avg", global_stats[1] / global_stats[2], global_step)
+
+        # Reset metrics
+        local_rew = 0
+        local_ep_len = 0
+        local_num_episodes = 0
 
         # Estimate returns with GAE (https://arxiv.org/abs/1506.02438)
         returns, advantages = agent.module.estimate_returns_and_advantages(
