@@ -2,7 +2,7 @@ import os
 
 from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 
-from lightning.store import download_from_cloud, upload_to_cloud
+from lightning.store import download_from_cloud, upload_model
 from lightning.store.save import __STORAGE_DIR_NAME
 from pytorch_lightning.demos.boring_classes import BoringModel
 
