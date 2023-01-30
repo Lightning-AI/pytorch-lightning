@@ -115,9 +115,9 @@ def test_1_optimizer_toggle_model():
 
     assert not model._param_requires_grad_state
     # toggle optimizer was failing with a single optimizer
-    model.toggle_optimizer(optimizer, 0)
+    model.toggle_optimizer(optimizer)
     assert model._param_requires_grad_state
-    model.untoggle_optimizer(0)
+    model.untoggle_optimizer(optimizer)
     assert not model._param_requires_grad_state
 
 
