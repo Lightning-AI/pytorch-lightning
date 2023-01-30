@@ -25,8 +25,11 @@ from lightning.app import components  # noqa: E402, F401
 
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
     from lightning.app.__about__ import *  # noqa: F401, F403
-if "__version__" not in locals() and os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
-    from lightning.app.__version__ import version as __version__  # noqa: F401
+if "__version__" not in locals():
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
+        from lightning.app.__version__ import version as __version__
+    elif module_available("lightning"):
+        from lightning import __version__  # noqa: F401
 
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
