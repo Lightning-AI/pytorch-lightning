@@ -28,7 +28,7 @@ from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
-from lightning.app import __version__ as ver
+from lightning import __version__ as ver
 from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
 from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
