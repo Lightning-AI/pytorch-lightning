@@ -590,10 +590,12 @@ def test_lr_scheduler_step_hook(tmpdir):
     )
     with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch, mock.patch.object(
         torch.optim.lr_scheduler.StepLR, "step"
-    ):
+    ) as mock_method_step:
         trainer.fit(model)
 
     assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
+    # first step is called by PyTorch LRScheduler
+    assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
 
 
 def test_invalid_scheduler_missing_state_dict():
