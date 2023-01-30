@@ -736,7 +736,7 @@ def test_lr_scheduler_step_hook(tmpdir):
         limit_val_batches=0,
     )
     with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch, mock.patch.object(
-            torch.optim.lr_scheduler.StepLR, "step"
+        torch.optim.lr_scheduler.StepLR, "step"
     ) as mock_method_step:
         trainer.fit(model)
 
