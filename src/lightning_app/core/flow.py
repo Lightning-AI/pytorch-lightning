@@ -21,6 +21,7 @@ from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, 
 
 from deepdiff import DeepHash
 
+from lightning_app.core.plugin import Plugin
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
@@ -739,6 +740,22 @@ class LightningFlow:
         under the ``/docs`` route.
         """
         raise NotImplementedError
+
+    def configure_plugins(self) -> Optional[List[Dict[str, Plugin]]]:
+        """Configure the plugins of this LightningFlow.
+
+        Returns a list of dictionaries mapping a plugin name to a :class:`lightning_app.core.plugin.Plugin`.
+
+        .. code-block:: python
+
+            class Flow(LightningFlow):
+                def __init__(self):
+                    super().__init__()
+
+                def configure_plugins(self):
+                    return [{"my_plugin_name": MyPlugin()}]
+        """
+        pass
 
     def state_dict(self):
         """Returns the current flow state but not its children."""
