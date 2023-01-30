@@ -636,7 +636,7 @@ def test_unsupported_tpu_choice(_, tpu_available):
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
     ):
         _Connector(accelerator="tpu", precision=16, strategy="ddp")
 
@@ -759,13 +759,11 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
 
 
 def test_precision_selection_16_on_cpu_warns():
-    with pytest.warns(
-        UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
-    ):
+    with pytest.warns(UserWarning, match=r"precision=16\)` but AMP is not supported on CPU. Using `precision='bf16"):
         _Connector(precision=16)
 
 
-class MyNativeAMP(MixedPrecision):
+class MyAMP(MixedPrecision):
     pass
 
 
@@ -773,7 +771,7 @@ class MyNativeAMP(MixedPrecision):
 @pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "is_custom_plugin,plugin_cls",
-    [(False, MixedPrecision), (True, MyNativeAMP)],
+    [(False, MixedPrecision), (True, MyAMP)],
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None

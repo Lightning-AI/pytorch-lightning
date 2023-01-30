@@ -18,20 +18,20 @@ Find the documentation: https://pytorch-lightning.readthedocs.io/en/stable/advan
 
 RUN WITHOUT FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py`.
+    1. Launch `python examples/pl_fault_tolerant/automatic.py`.
         - You should see `[-1.1343,  0.0186]` in the logs.
 
 RUN WITH SIMULATED FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_kill_signal`.
+    1. Launch `python examples/pl_fault_tolerant/automatic.py --emulate_kill_signal`.
         - You should see `kill -SIGTERM {PID}` in the logs.
     2. Run this command within another terminal.
-        - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
-    3. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_kill_signal` again.
-        - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
+        - You should see `Received signal 15.` in the logs.
+    3. Launch `python examples/pl_fault_tolerant/automatic.py --emulate_kill_signal` again.
+        - You should see `Restored all states from the checkpoint file at ./on_exception.ckpt`
         - And you should see `[-1.1343,  0.0186]` in the logs.
 
-    To restart the process, just run `rm .pl_auto_save.ckpt` to delete the auto restart checkpoint.
+    To restart the process, just run `rm on_exception.ckpt` to delete the auto restart checkpoint.
 
 This example shows that the weights trained with failure matches the weight trained without failure,
 thus the training has been properly resumed whilst being fully reproducible.
@@ -79,11 +79,9 @@ class SimpleMLP(LightningModule):
 
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
-            log.info(
-                f"READY TO BE KILLED WITH SIGTERM SIGNAL. " f"Run `kill -SIGTERM {os.getpid()}` in another terminal."
-            )
+            log.info(f"READY TO BE KILLED WITH SIGTERM SIGNAL. Run `kill -SIGTERM {os.getpid()}` in another terminal.")
             # this line is used to wait for you to send the signal to exit gracefully.
-            while not self.trainer._terminate_gracefully:
+            while not self.trainer.received_sigterm:
                 sleep(0.1)
         batch = batch["data"] if isinstance(batch, dict) else batch
         self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
@@ -97,10 +95,10 @@ class SimpleMLP(LightningModule):
         return DataLoader(RandomGetItemDataset(3, 1))
 
 
-def _run_training(default_root_dir=".", max_epochs=3, fail_on_step: int = -1, ckpt_path=None):
+def _run_training(default_root_dir=".", max_epochs=3, fail_on_step: int = -1):
     model = SimpleMLP(fail_on_step=fail_on_step)
     trainer = Trainer(default_root_dir=default_root_dir, max_epochs=max_epochs)
-    trainer.fit(model, ckpt_path=ckpt_path)
+    trainer.fit(model, ckpt_path="last")
     return model.seen_batches, model.parameters()
 
 
@@ -108,7 +106,7 @@ def main(args):
     seed_everything(42)
     os.environ["PL_FAULT_TOLERANT_TRAINING"] = "automatic"  # active fault tolerant automatic
 
-    ckpt_path = ".pl_auto_save.ckpt"
+    ckpt_path = "on_exception.ckpt"
     auto_restart_ckpt_path_exists = os.path.exists(ckpt_path)
     if args.emulate_kill_signal:
         fail_on_step = -1 if auto_restart_ckpt_path_exists else 4

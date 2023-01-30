@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ from torch import Tensor
 from pytorch_lightning.core.optimizer import do_nothing_closure
 from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
+from pytorch_lightning.loops.progress import Progress, ReadyCompletedTracker
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs
-from pytorch_lightning.trainer.progress import Progress, ReadyCompletedTracker
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 

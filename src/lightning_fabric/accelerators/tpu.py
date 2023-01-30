@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from multiprocessing import Process, Queue
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.utilities.device_parser import _check_data_type
@@ -117,7 +117,7 @@ def _is_device_tpu() -> bool:
     return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
 
 
-_XLA_AVAILABLE = RequirementCache("torch_xla")
+_XLA_AVAILABLE = ModuleAvailableCache("torch_xla")
 
 
 def _tpu_distributed() -> bool:

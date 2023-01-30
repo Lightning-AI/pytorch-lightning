@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,14 +51,14 @@ from pytorch_lightning.plugins import (
     TPUPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments import BaguaEnvironment
-from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
-from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
+from pytorch_lightning.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
     ColossalAIStrategy,
-    DDPFullyShardedNativeStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     HPUParallelStrategy,
     IPUStrategy,
     ParallelStrategy,
@@ -154,7 +154,7 @@ class AcceleratorConnector:
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
-        self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
+        self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
 
         self._check_config_and_set_final_flags(
@@ -285,13 +285,13 @@ class AcceleratorConnector:
                     self._cluster_environment_flag = plugin
                     plugins_flags_types[ClusterEnvironment.__name__] += 1
                 elif isinstance(plugin, LayerSync):
-                    if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
+                    if sync_batchnorm and not isinstance(plugin, TorchSyncBatchNorm):
                         raise MisconfigurationException(
                             f"You set `Trainer(sync_batchnorm=True)` and provided a `{plugin.__class__.__name__}`"
                             " plugin, but this is not allowed. Choose one or the other."
                         )
                     self._layer_sync = plugin
-                    plugins_flags_types[NativeSyncBatchNorm.__name__] += 1
+                    plugins_flags_types[TorchSyncBatchNorm.__name__] += 1
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
@@ -505,12 +505,10 @@ class AcceleratorConnector:
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
         if (
-            strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
-            or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
+            strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise MisconfigurationException(
-                f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-                "but GPU accelerator is not used."
+                f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
@@ -562,7 +560,7 @@ class AcceleratorConnector:
 
         if self._precision_flag == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                "You passed `Trainer(accelerator='cpu', precision=16)` but AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_flag = "bf16"
@@ -573,8 +571,8 @@ class AcceleratorConnector:
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
-            if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
+            if isinstance(self.strategy, FSDPStrategy):
+                return FSDPMixedPrecisionPlugin(self._precision_flag, device)
             return MixedPrecisionPlugin(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
@@ -659,7 +657,7 @@ class AcceleratorConnector:
             return self.strategy.is_distributed
         distributed_strategy = (
             DDPStrategy,
-            DDPFullyShardedNativeStrategy,
+            FSDPStrategy,
             DDPSpawnStrategy,
             DeepSpeedStrategy,
             TPUSpawnStrategy,

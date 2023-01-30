@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -154,6 +154,11 @@ class DDPStrategy(ParallelStrategy):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        if isinstance(module, DistributedDataParallel):
+            module = module.module
+        return super().get_module_state_dict(module)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

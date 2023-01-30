@@ -152,7 +152,6 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             optimizer,
             optimizer_idx,
             closure,
-            on_tpu=False,
             using_lbfgs=False,
         ):
             if optimizer_idx == 0:
@@ -215,7 +214,6 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             optimizer,
             optimizer_idx,
             closure,
-            on_tpu=False,
             using_lbfgs=False,
         ):
             if optimizer_idx == 0:
@@ -465,39 +463,35 @@ def test_fabric_reference_recursively():
     assert inner.fabric is weakref.proxy(fabric)
 
 
-# TODO: replace with 1.14 when it is released
-@RunIf(min_torch="1.14.0.dev20221202")
+@RunIf(min_torch="2.0.0")
 def test_compile_uncompile():
-
-    lit_model = BoringModel()
-    model_compiled = torch.compile(lit_model)
-
-    lit_model_compiled = LightningModule.from_compiled(model_compiled)
+    model = BoringModel()
+    compiled_model = torch.compile(model)
 
     def has_dynamo(fn):
         return any(el for el in dir(fn) if el.startswith("_torchdynamo"))
 
-    assert isinstance(lit_model_compiled, LightningModule)
-    assert lit_model_compiled._compiler_ctx is not None
-    assert has_dynamo(lit_model_compiled.forward)
-    assert has_dynamo(lit_model_compiled.training_step)
-    assert has_dynamo(lit_model_compiled.validation_step)
-    assert has_dynamo(lit_model_compiled.test_step)
-    assert has_dynamo(lit_model_compiled.predict_step)
+    from_compiled_model = LightningModule.from_compiled(compiled_model)
+    assert isinstance(from_compiled_model, LightningModule)
+    assert from_compiled_model._compiler_ctx is not None
+    assert has_dynamo(from_compiled_model.forward)
+    assert has_dynamo(from_compiled_model.training_step)
+    assert has_dynamo(from_compiled_model.validation_step)
+    assert has_dynamo(from_compiled_model.test_step)
+    assert has_dynamo(from_compiled_model.predict_step)
 
-    lit_model_orig = LightningModule.to_uncompiled(lit_model)
-
-    assert lit_model_orig._compiler_ctx is None
-    assert lit_model_orig.forward == lit_model.forward
-    assert lit_model_orig.training_step == lit_model.training_step
-    assert lit_model_orig.validation_step == lit_model.validation_step
-    assert lit_model_orig.test_step == lit_model.test_step
-    assert lit_model_orig.predict_step == lit_model.predict_step
-    assert not has_dynamo(lit_model_orig.forward)
-    assert not has_dynamo(lit_model_orig.training_step)
-    assert not has_dynamo(lit_model_orig.validation_step)
-    assert not has_dynamo(lit_model_orig.test_step)
-    assert not has_dynamo(lit_model_orig.predict_step)
+    to_uncompiled_model = LightningModule.to_uncompiled(model)
+    assert to_uncompiled_model._compiler_ctx is None
+    assert to_uncompiled_model.forward == model.forward
+    assert to_uncompiled_model.training_step == model.training_step
+    assert to_uncompiled_model.validation_step == model.validation_step
+    assert to_uncompiled_model.test_step == model.test_step
+    assert to_uncompiled_model.predict_step == model.predict_step
+    assert not has_dynamo(to_uncompiled_model.forward)
+    assert not has_dynamo(to_uncompiled_model.training_step)
+    assert not has_dynamo(to_uncompiled_model.validation_step)
+    assert not has_dynamo(to_uncompiled_model.test_step)
+    assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
 def test_fabric_attributes():

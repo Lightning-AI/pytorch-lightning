@@ -111,10 +111,10 @@ def clean_import():
         (
             "lightning_utilities.core.imports.compare_version",
             _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
-            "pytorch_lightning.strategies.fully_sharded_native",
+            "pytorch_lightning.strategies.fsdp",
         ),
     ],
-    ids=["ProcessGroup", "neptune", "cli", "fully_sharded_native"],
+    ids=["ProcessGroup", "neptune", "cli", "fsdp"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
     """This tests simulates unavailability of certain modules by patching the functions that check for their

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from typing import Sequence
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.loop import _Loop
-from pytorch_lightning.trainer.progress import DataLoaderProgress
+from pytorch_lightning.loops.progress import DataLoaderProgress
 
 
 class _DataLoaderLoop(_Loop):

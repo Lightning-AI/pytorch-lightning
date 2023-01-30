@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,23 +44,24 @@ if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
 log = logging.getLogger(__name__)
 
 
-def _determine_lr_attr_name(trainer: "pl.Trainer", model: "pl.LightningModule") -> str:
-    if isinstance(trainer.auto_lr_find, str):
-        if not lightning_hasattr(model, trainer.auto_lr_find):
-            raise MisconfigurationException(
-                f"`auto_lr_find` was set to {trainer.auto_lr_find}, however"
+def _determine_lr_attr_name(model: "pl.LightningModule", attr_name: str = "") -> str:
+    if attr_name:
+        if not lightning_hasattr(model, attr_name):
+            raise AttributeError(
+                f"The attribute name for the learning rate was set to {attr_name}, but"
                 " could not find this as a field in `model` or `model.hparams`."
             )
-        return trainer.auto_lr_find
+        return attr_name
 
     attr_options = ("lr", "learning_rate")
     for attr in attr_options:
         if lightning_hasattr(model, attr):
             return attr
 
-    raise MisconfigurationException(
-        "When `auto_lr_find=True`, either `model` or `model.hparams` should"
-        f" have one of these fields: {attr_options} overridden."
+    raise AttributeError(
+        "When using the learning rate finder, either `model` or `model.hparams` should"
+        f" have one of these fields: {attr_options}. If your model has a different name for the learning rate, set"
+        f" it with `.lr_find(attr_name=...)`."
     )
 
 
@@ -201,7 +202,7 @@ class _LRFinder:
         return self.results["lr"][self._optimal_idx]
 
 
-def lr_find(
+def _lr_find(
     trainer: "pl.Trainer",
     model: "pl.LightningModule",
     min_lr: float = 1e-8,
@@ -210,15 +211,36 @@ def lr_find(
     mode: str = "exponential",
     early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
+    attr_name: str = "",
 ) -> Optional[_LRFinder]:
-    """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
+    """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
+    picking a good starting learning rate.
+
+    Args:
+        trainer: A Trainer instance.
+        model: Model to tune.
+        min_lr: minimum learning rate to investigate
+        max_lr: maximum learning rate to investigate
+        num_training: number of learning rates to test
+        mode: Search strategy to update learning rate after each batch:
+
+            - ``'exponential'``: Increases the learning rate exponentially.
+            - ``'linear'``: Increases the learning rate linearly.
+
+        early_stop_threshold: Threshold for stopping the search. If the
+            loss at any point is larger than early_stop_threshold*best_loss
+            then the search is stopped. To disable, set to None.
+        update_attr: Whether to update the learning rate attribute or not.
+        attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
+            automatically detected. Otherwise, set the name here.
+    """
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
         return None
 
     # Determine lr attr
     if update_attr:
-        lr_attr_name = _determine_lr_attr_name(trainer, model)
+        attr_name = _determine_lr_attr_name(model, attr_name)
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
@@ -266,7 +288,7 @@ def lr_find(
 
         # TODO: log lr.results to self.logger
         if lr is not None:
-            lightning_setattr(model, lr_attr_name, lr)
+            lightning_setattr(model, attr_name, lr)
             log.info(f"Learning rate set to {lr}")
 
     # Restore initial state of model
@@ -284,8 +306,6 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
         "optimizer_frequencies": trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
         "loggers": trainer.loggers,
-        # TODO: check if this is required
-        "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
         "limit_val_batches": trainer.limit_val_batches,
         "loop_state_dict": deepcopy(trainer.fit_loop.state_dict()),
@@ -297,8 +317,6 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
 
     trainer.strategy.lr_scheduler_configs = []
     trainer.strategy.optimizer_frequencies = []
-    # avoid lr find being called multiple times
-    trainer.auto_lr_find = False
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
@@ -312,7 +330,6 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.strategy.optimizer_frequencies = params["optimizer_frequencies"]
-    trainer.auto_lr_find = params["auto_lr_find"]
     trainer.callbacks = params["callbacks"]
     trainer.loggers = params["loggers"]
     trainer.fit_loop.max_steps = params["max_steps"]

@@ -21,10 +21,19 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
+
+
+def assert_emtpy_grad(grad):
+    if _TORCH_GREATER_EQUAL_2_0:
+        assert grad is None
+    else:
+        if grad is not None:  # backward has been called
+            assert torch.all(grad == 0)
 
 
 class ManualOptModel(BoringModel):
@@ -36,14 +45,13 @@ class ManualOptModel(BoringModel):
         opt_a, opt_b = self.optimizers()
 
         # make sure there are no grads
-        if batch_idx > 0:
-            assert torch.all(self.layer.weight.grad == 0)
+        assert_emtpy_grad(self.layer.weight.grad)
 
         loss_1 = self.step(batch[0])
         self.manual_backward(loss_1)
         opt_a.step()
         opt_a.zero_grad()
-        assert torch.all(self.layer.weight.grad == 0)
+        assert_emtpy_grad(self.layer.weight.grad)
 
         loss_2 = self.step(batch[0])
         # ensure we forward the correct params to the optimizer
@@ -53,7 +61,7 @@ class ManualOptModel(BoringModel):
         assert self.layer.weight.grad is not None
         opt_b.step()
         opt_b.zero_grad()
-        assert torch.all(self.layer.weight.grad == 0)
+        assert_emtpy_grad(self.layer.weight.grad)
 
         return loss_2
 
@@ -166,7 +174,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
 
 # precision = 16 not yet working properly with mps backend
 @pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
-def test_multiple_optimizers_manual_native_amp(tmpdir, accelerator):
+def test_multiple_optimizers_manual_amp(tmpdir, accelerator):
     model = ManualOptModel()
     model.val_dataloader = None
 
@@ -238,7 +246,7 @@ class ManualOptimizationExtendedModel(BoringModel):
             except Exception:
                 # almost no diff between before and after
                 assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
-        assert torch.all(self.layer.weight.grad == 0)
+        assert_emtpy_grad(self.layer.weight.grad)
         self.count += 1
 
     def on_train_end(self):
@@ -323,12 +331,12 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
                 assert not torch.equal(self.weight_before, after_before), self.count
-                assert torch.all(self.layer.weight.grad == 0)
+                assert_emtpy_grad(self.layer.weight.grad)
             else:
                 assert torch.equal(self.weight_before, after_before)
                 if self.count > 1:
                     if self.count % 4 == 1:
-                        assert torch.all(self.layer.weight.grad == 0)
+                        assert_emtpy_grad(self.layer.weight.grad)
                     else:
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
@@ -368,8 +376,7 @@ def test_multiple_optimizers_step(tmpdir):
             loss_1 = self.loss(loss_1, loss_1)
 
             # make sure there are no grads
-            if self.layer.weight.grad is not None:
-                assert torch.all(self.layer.weight.grad == 0)
+            assert_emtpy_grad(self.layer.weight.grad)
 
             self.manual_backward(loss_1)
             opt_a.step()
@@ -455,8 +462,7 @@ def test_step_with_optimizer_closure(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # make sure there are no grads
-            if self.layer.weight.grad is not None:
-                assert torch.all(self.layer.weight.grad == 0)
+            assert_emtpy_grad(self.layer.weight.grad)
 
             opt = self.optimizers()
 

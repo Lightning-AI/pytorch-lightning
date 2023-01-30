@@ -4,7 +4,7 @@
 Communication between distributed processes
 ###########################################
 
-With Fabric you can easily access information about a process or send data between processes with a standardized API and agnostic to the distributed strategy.
+With Fabric, you can easily access information about a process or send data between processes with a standardized API and agnostic to the distributed strategy.
 
 
 ----
@@ -15,11 +15,11 @@ Rank and world size
 *******************
 
 The rank assigned to a process is a zero-based index in the range of *0, ..., world size - 1*, where *world size* is the total number of distributed processes.
-If you are using multi-GPU, think of the rank as the *GPU ID* or *GPU index*, although rank extends to distributed processing in general.
+If you are using multi-GPU, think of the rank as the *GPU ID* or *GPU index*, although rank generally extends to distributed processing.
 
 The rank is unique across all processes, regardless of how they are distributed across machines, and it is therefore also called **global rank**.
-We can also identify processes by their **local rank**, which is only unique among processes runing on the same machine, but is not unique globally across all machines.
-Finally, each process is associated with a **node rank** in the range *0, ..., num nodes - 1*, which identifies on which machine (node) the process is running on.
+We can also identify processes by their **local rank**, which is unique among processes running on the same machine but is not unique globally across all machines.
+Finally, each process is associated with a **node rank** in the range *0, ..., num nodes - 1*, which identifies which machine (node) the process is running on.
 
 .. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric_collectives_ranks.jpeg
    :alt: The different type of process ranks: Local, global, node.
@@ -63,7 +63,7 @@ Avoid race conditions
 =====================
 
 Access to the rank information helps you avoid *race conditions* which could crash your script or lead to corrupted data.
-Such conditions can occur when multiple processes are trying to write to the same file all at the same time, for example, in the case of writing a checkpoint file or downloading a dataset.
+Such conditions can occur when multiple processes try to write to the same file simultaneously, for example, writing a checkpoint file or downloading a dataset.
 Avoid this from happening by guarding your logic with a rank check:
 
 .. code-block:: python
@@ -235,7 +235,7 @@ Reduce
 
 
 The reduction is an operation that takes multiple values (tensors) as input and returns a single value.
-An example for a reduction is *summation*, e.g., ``torch.sum()``.
+An example of a reduction is *summation*, e.g., ``torch.sum()``.
 The :meth:`~lightning_fabric.fabric.Fabric.all_reduce` operation allows you to apply a reduction across multiple processes:
 
 .. code-block:: python
@@ -252,7 +252,7 @@ The :meth:`~lightning_fabric.fabric.Fabric.all_reduce` operation allows you to a
     collection = {"loss": torch.tensor(...), "data": ...}
     reduced_collection = fabric.all_reduce(collection)
 
-The support of options for ``reduce_op`` depends on the strategy being used, but all strategies support *sum* and *mean*.
+The support of options for ``reduce_op`` depends on the strategy used, but all strategies support *sum* and *mean*.
 
 Full example:
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import torch
 
@@ -48,3 +48,23 @@ def test_data_parallel_module_to_device():
     module = Mock()
     strategy.module_to_device(module)
     module.to.assert_called_with(torch.device("cuda", 2))
+
+
+def test_dp_module_state_dict():
+    """Test that the module state dict gets retrieved without the prefixed wrapper keys from DP."""
+
+    class DataParallelMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make the strategy's `isinstance(model, DataParallel)` pass with a mock as class
+            return True
+
+    strategy = DataParallelStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")])
+
+    # Without DP applied (no setup call)
+    original_module = torch.nn.Linear(2, 3)
+    assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
+
+    # With DP applied (setup called)
+    with mock.patch("lightning_fabric.strategies.dp.DataParallel", DataParallelMock):
+        wrapped_module = strategy.setup_module(original_module)
+        assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()

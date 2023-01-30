@@ -20,6 +20,7 @@ import torch
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
@@ -208,7 +209,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        enable_checkpointing=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -230,7 +231,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         logger=False,
         enable_checkpointing=False,
     )
-    trainer.fit(model, ckpt_path=str(tmpdir / ".pl_auto_save.ckpt"))
+    trainer.fit(model, ckpt_path=str(tmpdir / "on_exception.ckpt"))
     weights_resumed = model.parameters()
 
     # check that the final weights of a resumed run match the weights of a run that never failed

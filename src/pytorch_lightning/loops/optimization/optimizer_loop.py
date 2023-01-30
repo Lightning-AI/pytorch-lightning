@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,11 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import OrderedDict
 
-from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
+from pytorch_lightning.loops.progress import OptimizationProgress
 from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior, _build_training_step_kwargs
-from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import WarningCache
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -356,7 +355,6 @@ class _OptimizerLoop(_Loop):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
             using_lbfgs=is_lbfgs,
         )
 

@@ -28,7 +28,7 @@ GPU Training
 Lightning supports a variety of plugins to speed up distributed GPU training. Most notably:
 
 * :class:`~pytorch_lightning.strategies.DDPStrategy`
-* :class:`~pytorch_lightning.strategies.DDPFullyShardedNativeStrategy`
+* :class:`~pytorch_lightning.strategies.FSDPStrategy`
 * :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
@@ -426,6 +426,7 @@ In order to improve performance, you can override :meth:`~pytorch_lightning.core
 
 For a more detailed explanation of the pros / cons of this technique,
 read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.
+This is enabled by default on ``torch>=2.0.0``.
 
 .. testcode::
 

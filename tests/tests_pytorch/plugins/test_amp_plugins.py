@@ -25,7 +25,7 @@ from pytorch_lightning.plugins import MixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
-class MyNativeAMP(MixedPrecisionPlugin):
+class MyAMP(MixedPrecisionPlugin):
     pass
 
 
@@ -48,7 +48,7 @@ class MyNativeAMP(MixedPrecisionPlugin):
     "custom_plugin,plugin_cls",
     [
         (False, MixedPrecisionPlugin),
-        (True, MyNativeAMP),
+        (True, MyAMP),
     ],
 )
 def test_amp_ddp(cuda_count_2, strategy, devices, custom_plugin, plugin_cls):

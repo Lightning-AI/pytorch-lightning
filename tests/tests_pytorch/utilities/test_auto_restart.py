@@ -35,6 +35,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -54,9 +55,8 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import DataFetcher
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -830,6 +830,7 @@ def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, m
         enable_progress_bar=False,
         enable_model_summary=False,
         multiple_trainloader_mode=multiple_trainloader_mode,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
@@ -840,7 +841,7 @@ def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, m
     complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
     assert len(complete_batches) == 4
 
-    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    checkpoint_path = os.path.join(tmpdir, "on_exception.ckpt")
     assert os.path.exists(checkpoint_path)
 
     # Resume after failure
@@ -923,12 +924,13 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
         model = ValidationLoopTestModel(should_fail)
 
-        ckpt_path = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
+        ckpt_path = str(tmpdir / "on_exception.ckpt") if resume else None
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
             val_check_interval=val_check_interval,
             num_sanity_val_steps=0,
+            callbacks=OnExceptionCheckpoint(tmpdir),
         )
         if should_fail:
             with pytest.raises(CustomException):
@@ -959,7 +961,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
     def _signal(self):
         if self.should_signal:
             # simulate `os.kill(os.getpid(), signal.SIGTERM)`
-            self.trainer._terminate_gracefully = True
+            self.trainer._signal_connector.received_sigterm = True
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
@@ -999,33 +1001,32 @@ def _fit_model(
     seed_everything(42)
     model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
 
-    trainer_kwargs = dict(
+    class MyTestCallback(Callback):
+        raising_function = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            if isinstance(exception, SIGTERMException):
+                caller = inspect.trace()[-1]
+                class_name = caller[0].f_locals["self"].__class__.__name__
+                self.raising_method = f"{class_name}:{caller.function}"
+
+    test_callback = MyTestCallback()
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=4,
         limit_val_batches=4,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
+        callbacks=[test_callback, OnExceptionCheckpoint(tmpdir)],
     )
-
-    class ExitGracefullyException(Exception):
-        pass
-
-    class TestTrainer(Trainer):
-        def _exit_gracefully_on_signal(self) -> None:
-            if not _fault_tolerant_training() or not self._should_terminate_gracefully():
-                return
-            caller = inspect.stack()[1]
-            class_name = caller[0].f_locals["self"].__class__.__name__
-            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
-
-    trainer = TestTrainer(**trainer_kwargs)
     if should_signal:
-        with pytest.raises(ExitGracefullyException, match=status):
+        with pytest.raises(SIGTERMException):
             trainer.fit(model)
+        assert test_callback.raising_method == status
     else:
         trainer.fit(model)
-    assert trainer._terminate_gracefully == should_signal
+    assert trainer.received_sigterm == should_signal
 
     return model
 
@@ -1047,24 +1048,24 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
             if failure_on_training:
                 # Breaking on first validation batch.
                 # This is done to capture the random state of the validation dataloader.
-                status = "EvaluationEpochLoop:advance"
+                status = "_EvaluationEpochLoop:advance"
             else:
                 # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
-                status = "FitLoop:on_advance_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
+                status = "_FitLoop:on_advance_end" if val_check_interval == 1.0 else "_TrainingEpochLoop:on_advance_end"
         else:
-            status = "TrainingEpochLoop:on_advance_end" if failure_on_training else "EvaluationEpochLoop:advance"
+            status = "_TrainingEpochLoop:on_advance_end" if failure_on_training else "_EvaluationEpochLoop:advance"
     else:
         if val_check_interval == 1.0:
-            status = "FitLoop:on_advance_end"
+            status = "_FitLoop:on_advance_end"
         else:
             # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
-            status = "FitLoop:on_advance_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
+            status = "_FitLoop:on_advance_end" if failure_on_training else "_TrainingEpochLoop:on_advance_end"
 
     model_signaled = _fit_model(
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
     )
     # we saved a ft-checkpoint
-    signaled_ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    signaled_ckpt_path = str(tmpdir / "on_exception.ckpt")
     assert os.path.exists(signaled_ckpt_path)
     # load for later as the next fit call will delete it
     checkpoint = torch.load(signaled_ckpt_path)["loops"]["fit_loop"]
@@ -1461,14 +1462,19 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel(should_fail=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        callbacks=OnExceptionCheckpoint(tmpdir),
+    )
     with pytest.raises(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
     failed_batches = model.batches
     failed_weight = deepcopy(model.layer.weight)
 
-    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
+    checkpoint_path = str(tmpdir / "on_exception.ckpt")
     assert os.path.exists(checkpoint_path)
 
     seed_everything(42)

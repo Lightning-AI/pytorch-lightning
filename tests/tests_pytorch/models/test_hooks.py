@@ -344,7 +344,7 @@ class HookedModel(BoringModel):
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
-                        kwargs=dict(on_tpu=False, using_lbfgs=False),
+                        kwargs=dict(using_lbfgs=False),
                     ),
                     *(
                         [dict(name="lr_scheduler_step", args=(ANY, 0, None))]
@@ -800,9 +800,6 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="teardown", kwargs=dict(stage="predict")),
     ]
     assert called == expected
-
-
-# TODO: add test for tune
 
 
 def test_hooks_with_different_argument_names(tmpdir):

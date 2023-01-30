@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -468,7 +468,7 @@ class _Connector:
 
         if self._precision_input == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Fabric(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                "You passed `Fabric(accelerator='cpu', precision=16)` but AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_input = "bf16"

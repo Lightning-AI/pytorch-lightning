@@ -22,7 +22,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
+from pytorch_lightning.tuner.batch_size_scaling import _scale_batch_size
 from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -165,7 +165,7 @@ class BatchSizeFinder(Callback):
             )
 
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        new_size = scale_batch_size(
+        new_size = _scale_batch_size(
             trainer,
             pl_module,
             self._mode,

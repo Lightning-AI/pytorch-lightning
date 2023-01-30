@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from lightning_fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
-class ExitGracefullyException(SystemExit):
-    """Exception used when a ``signal.SIGTERM`` is sent to the process.
+class SIGTERMException(SystemExit):
+    """Exception used when a :class:`signal.SIGTERM` is sent to a process.
 
-    This signals Lightning to try to create a fault-tolerance checkpoint once the current batch or epoch is reached
-    (assuming it can be done under 30 sec). After the checkpoint is saved, Lightning will exit.
+    This exception is raised by the loops at specific points. It can be used to write custom logic in the
+    :meth:`pytorch_lightning.callbacks.callback.Callback.on_exception` method.
+
+    For example, you could use the :class:`pytorch_lightning.callbacks.fault_tolerance.OnExceptionCheckpoint` callback
+    that saves a checkpoint for you when this exception is raised.
     """
 
 

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass
 from functools import partial, wraps
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
@@ -181,25 +181,6 @@ class _Metadata:
     def is_custom_reduction(self) -> bool:
         return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
-    def __getstate__(self) -> dict:
-        # drop the `sync.fn` to avoid potential pickle errors
-        # need to drop `fn` first otherwise `asdict` produces a `RecursionError`
-        copy = replace(self, _sync=replace(self.sync, fn=None))
-        d = asdict(copy)
-        # delete the `None` value so it does not override
-        del d["_sync"]["fn"]
-        return d
-
-    def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
-        d = {**state, "_sync": _Sync(**state["_sync"], fn=sync_fn)}
-        self.__dict__.update(d)
-
-    @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "_Metadata":
-        meta = cls(state["fx"], state["name"])
-        meta.__setstate__(state, sync_fn=sync_fn)
-        return meta
-
 
 class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
@@ -309,28 +290,6 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
         if self.is_tensor and self.meta.is_mean_reduction:
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
-
-    def __getstate__(self, drop_value: bool = False) -> dict:
-        skip = ["update", "compute", "_update_signature", "_cache"]
-        if not self.is_tensor and drop_value:
-            # Avoid serializing ResultMetrics which are passed Metrics
-            skip.append("value")
-        d = {k: v for k, v in self.__dict__.items() if k not in skip}
-        d["meta"] = d["meta"].__getstate__()
-        d["_is_synced"] = False  # don't consider the state as synced on reload
-        return d
-
-    def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
-        d = {**state, "meta": _Metadata._reconstruct(state["meta"], sync_fn=sync_fn)}
-        super().__setstate__(d)
-
-    @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "_ResultMetric":
-        # need to reconstruct twice because `meta` is used in `__init__`
-        meta = _Metadata._reconstruct(state["meta"])
-        result_metric = cls(meta, state["is_tensor"])
-        result_metric.__setstate__(state, sync_fn=sync_fn)
-        return result_metric
 
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
         self.__dict__.update(apply_to_collection(self.__dict__, (Tensor, Metric), move_data_to_device, *args, **kwargs))
@@ -564,16 +523,6 @@ class _ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def sync(self) -> None:
-        for result_metric in self.result_metrics:
-            if result_metric.is_tensor and not result_metric._is_synced:
-                result_metric.sync(should_sync=not result_metric.meta.sync.rank_zero_only)
-
-    def unsync(self) -> None:
-        for result_metric in self.result_metrics:
-            if result_metric.is_tensor and result_metric._is_synced:
-                result_metric.unsync()
-
     def __str__(self) -> str:
         # remove empty values
         self_str = str({k: v for k, v in self.items() if v})
@@ -581,47 +530,3 @@ class _ResultCollection(dict):
 
     def __repr__(self) -> str:
         return f"{{{self.training}, {repr(self.device)}, {super().__repr__()}}}"
-
-    def __getstate__(self, drop_value: bool = True) -> dict:
-        d = self.__dict__.copy()
-        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items()}
-        return {**d, "items": items}
-
-    def __setstate__(
-        self, state: dict, map_location: Optional[Union[str, torch.device]] = None, sync_fn: Optional[Callable] = None
-    ) -> None:
-        self.__dict__.update({k: v for k, v in state.items() if k != "items"})
-
-        def setstate(k: str, item: dict) -> _ResultMetric:
-            if not isinstance(item, dict):
-                raise ValueError(f"Unexpected value: {item}")
-            _sync_fn = sync_fn or (self[k].meta.sync.fn if k in self else None)
-            return _ResultMetric._reconstruct(item, sync_fn=_sync_fn)
-
-        items = {k: setstate(k, v) for k, v in state["items"].items()}
-        self.update(items)
-
-        device = map_location or self.device
-        self.to(device)
-
-    def state_dict(self, drop_value: bool = True) -> dict:
-        return self.__getstate__(drop_value)
-
-    def load_state_dict(
-        self,
-        state_dict: dict,
-        map_location: Optional[Union[str, torch.device]] = None,
-        sync_fn: Optional[Callable] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
-    ) -> None:
-        self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
-
-        if not metrics:
-            return
-
-        # iterate through result metrics and re-attached Metric references on reload.
-        result_metrics = self.result_metrics
-        for metric_attribute, metric in metrics.items():
-            for result_metric in result_metrics:
-                if result_metric.meta.metric_attribute == metric_attribute:
-                    result_metric.value = metric

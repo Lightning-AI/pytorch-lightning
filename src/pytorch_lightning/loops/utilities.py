@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import _Loop
+from pytorch_lightning.loops.progress import BaseProgress
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature

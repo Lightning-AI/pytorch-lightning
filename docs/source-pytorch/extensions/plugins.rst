@@ -55,7 +55,7 @@ The full list of built-in precision plugins is listed below.
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FullyShardedNativeNativeMixedPrecisionPlugin
+    FSDPMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin

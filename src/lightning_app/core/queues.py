@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
@@ -7,6 +21,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urljoin
+
+import requests
+from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -346,6 +364,21 @@ class HTTPQueue(BaseQueue):
         self.default_timeout = default_timeout
         self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
 
+    @property
+    def is_running(self) -> bool:
+        """Pinging the http redis server to see if it is alive."""
+        try:
+            url = urljoin(HTTP_QUEUE_URL, "health")
+            resp = requests.get(
+                url,
+                headers={"Authorization": f"Bearer {HTTP_QUEUE_TOKEN}"},
+                timeout=1,
+            )
+            if resp.status_code == 200:
+                return True
+        except (ConnectionError, ConnectTimeout, ReadTimeout):
+            return False
+
     def get(self, timeout: int = None) -> Any:
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
@@ -378,10 +411,15 @@ class HTTPQueue(BaseQueue):
                 pass
 
     def _get(self):
-        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
-        if resp.status_code == 204:
+        try:
+            resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
+            if resp.status_code == 204:
+                raise queue.Empty
+            return pickle.loads(resp.content)
+        except ConnectionError:
+            # Note: If the Http Queue service isn't available,
+            # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
-        return pickle.loads(resp.content)
 
     def put(self, item: Any) -> None:
         if not self.app_id:

@@ -12,7 +12,7 @@ subprojects:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
-      - "tests/legacy/back-compatible-versions.txt"
+      - "tests/legacy/**"
       - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -201,7 +201,7 @@ subprojects:
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
       - "tests/tests_fabric/run_standalone_*.sh"
-      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
+      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Fabric through a symlink
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
@@ -242,6 +242,7 @@ subprojects:
       - ".github/workflows/ci-examples-app.yml"
       - "src/lightning_app/**"
       - "tests/integrations_app/**"
+      - "!tests/integrations_app/flagship/**"
       - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
@@ -259,6 +260,24 @@ subprojects:
       - "app-examples (windows-2022, app, 3.9, oldest)"
       - "app-examples (windows-2022, lightning, 3.9, latest)"
 
+  - id: "lightning: Flagships"
+    paths:
+      - ".github/workflows/ci-flagship-apps.yml"
+      - "github/actions/prep-apps/action.yml"
+      - "tests/integrations_app/flagship/**"
+    checks:
+      - "app-flagships (flashy, Lightning-Universe/Flashy-app)"
+
+  - id: "lightning: Store"
+    paths:
+      - ".azure/app-cloud-store.yml"
+      - "src/lightning/store/**"
+      - "tests/tests_cloud/**"
+    checks:
+      - "Store.cloud (test_store Linux)"
+      - "Store.cloud (test_store Mac)"
+      - "Store.cloud (test_store Windows)"
+
   - id: "lightning_app: Azure"
     paths:
       - ".actions/**"
@@ -266,6 +285,7 @@ subprojects:
       - "src/lightning_app/**"
       - "requirements/app/**"
       - "tests/integrations_app/**"
+      - "!tests/integrations_app/flagship/**"
       - "setup.py"
       - "!requirements/*/docs.txt"
       - "!*.md"

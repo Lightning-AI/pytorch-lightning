@@ -23,10 +23,10 @@ import torch
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import _Loop
-from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.loops.progress import BaseProgress
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -197,7 +197,6 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
@@ -225,13 +224,14 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     # simulate a failure
     with pytest.raises(CustomException):
         trainer.fit(model)
 
-    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    ckpt_path = str(tmpdir / "on_exception.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
     total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
@@ -266,7 +266,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 @pytest.mark.parametrize("stop_epoch", (1, 2))
@@ -309,14 +308,14 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        enable_checkpointing=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     # simulate a failure
     with pytest.raises(CustomException):
         trainer.fit(model)
 
-    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    ckpt_path = str(tmpdir / "on_exception.ckpt")
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
@@ -428,8 +427,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
-        "epoch_loop.val_loop._results": ANY,
-        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -596,8 +593,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
-        "epoch_loop.val_loop._results": ANY,
-        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -688,7 +683,6 @@ def test_fit_loop_reset(tmpdir):
     assert optimizer_loop.optim_progress.optimizer_position == 1
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     ["train_datasets", "val_datasets"],
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
@@ -733,10 +727,11 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
     trainer.fit(model)
 
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
     assert not os.path.exists(ckpt_path), "Shouldn't have failed"
     state_dict = trainer.fit_loop.state_dict()
     expected_global_step = trainer.global_step
@@ -771,6 +766,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
     with pytest.raises(CustomException):
         # will stop during validation

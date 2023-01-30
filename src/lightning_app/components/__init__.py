@@ -1,8 +1,8 @@
 from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.server import Database
 from lightning_app.components.multi_node import (
+    FabricMultiNode,
     LightningTrainerMultiNode,
-    LiteMultiNode,
     MultiNode,
     PyTorchSpawnMultiNode,
 )
@@ -33,7 +33,7 @@ __all__ = [
     "Category",
     "Text",
     "MultiNode",
-    "LiteMultiNode",
+    "FabricMultiNode",
     "LightningTrainerScript",
     "PyTorchLightningScriptRunner",
     "PyTorchSpawnMultiNode",

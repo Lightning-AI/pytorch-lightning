@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import fnmatch
 import json
 import os
@@ -56,11 +70,13 @@ from lightning_app.core.constants import (
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
+    enable_interruptible_works,
     enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     get_cloud_queue_type,
+    get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
 )
@@ -644,7 +660,7 @@ class CloudRuntime(Runtime):
                 name=work.cloud_compute.name,
                 count=1,
                 disk_size=work.cloud_compute.disk_size,
-                preemptible=work.cloud_compute.preemptible,
+                preemptible=work.cloud_compute.interruptible,
                 shm_size=work.cloud_compute.shm_size,
             )
 
@@ -750,6 +766,20 @@ class CloudRuntime(Runtime):
 
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
+
+        if get_cloud_queue_type():
+            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_QUEUE_TYPE", value=get_cloud_queue_type()))
+
+        if get_cluster_driver():
+            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLUSTER_DRIVER", value=get_cluster_driver()))
+
+        if enable_interruptible_works():
+            v1_env_vars.append(
+                V1EnvVar(
+                    name="LIGHTNING_INTERRUPTIBLE_WORKS",
+                    value=os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0"),
+                )
+            )
 
         return v1_env_vars
 

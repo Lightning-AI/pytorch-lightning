@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +19,14 @@ from typing import Any, Dict, Optional, Union
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.loop import _Loop
-from pytorch_lightning.trainer.progress import BatchProgress
+from pytorch_lightning.loops.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -168,9 +168,8 @@ class _EvaluationEpochLoop(_Loop):
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
             self._outputs.append(output)
 
-        if not self.batch_progress.is_last_batch:
-            # if fault tolerant is enabled and process has been notified, exit.
-            self.trainer._exit_gracefully_on_signal()
+        if not self.batch_progress.is_last_batch and self.trainer.received_sigterm:
+            raise SIGTERMException
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""

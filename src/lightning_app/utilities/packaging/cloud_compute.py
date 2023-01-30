@@ -1,8 +1,22 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
-from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+from lightning_app.core.constants import enable_interruptible_works, ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
 from lightning_app.storage.mount import Mount
 
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
@@ -66,6 +80,10 @@ class CloudCompute:
             For example 1100 will become 1024. If set to zero (the default) will get the default 64MiB inside docker.
 
         mounts: External data sources which should be mounted into a work as a filesystem at runtime.
+
+        interruptible: Whether to run on a interruptible machine e.g the machine can be stopped
+            at any time by the providers. This is also known as spot or preemptible machines.
+            Compared to on-demand machines, they tend to be cheaper.
     """
 
     name: str = "default"
@@ -73,6 +91,7 @@ class CloudCompute:
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = None
     mounts: Optional[Union[Mount, List[Mount]]] = None
+    interruptible: bool = False
     _internal_id: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -86,12 +105,18 @@ class CloudCompute:
             else:
                 self.shm_size = 0
 
+        if self.interruptible:
+            if not enable_interruptible_works():
+                raise ValueError("CloudCompute with `interruptible=True` isn't supported yet.")
+            if "gpu" not in self.name:
+                raise ValueError("CloudCompute `interruptible=True` is supported only with GPU.")
+
+        # TODO: Remove from the platform first.
+        self.preemptible = self.interruptible
+
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:
             self._internal_id = self._generate_id()
-
-        # Internal arguments for now.
-        self.preemptible = False
 
     def to_dict(self) -> dict:
         _verify_mount_root_dirs_are_unique(self.mounts)

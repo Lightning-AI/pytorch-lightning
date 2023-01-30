@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -123,15 +122,15 @@ class CheckpointConnector:
         if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
             ckpt_path = "hpc"
 
-        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+        from pytorch_lightning.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 
-        ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, OnExceptionCheckpoint)]
         fn = state_fn.value
         if ckpt_path is None and ft_checkpoints and self.trainer.state.fn == TrainerFn.FITTING:
             ckpt_path = "last"
             rank_zero_warn(
                 f"`.{fn}(ckpt_path=None)` was called without a model."
-                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
+                " The last model of the previous `fit` call will be used."
                 f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
                 f" `{fn}(ckpt_path='last')` to use the last model."
                 " If you pass a value, this warning will be silenced."
@@ -144,7 +143,7 @@ class CheckpointConnector:
         if model_connected and ckpt_path is None:
             ckpt_path = "best"
             ft_tip = (
-                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
+                " There is also an on-exception checkpoint available, however it is used by default only when fitting."
                 if ft_checkpoints
                 else ""
             )
@@ -190,8 +189,8 @@ class CheckpointConnector:
             if not candidates_ts:
                 # not an error so it can be set and forget before the first `fit` run
                 rank_zero_warn(
-                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
-                    " or last checkpoint available. No checkpoint will be loaded."
+                    f'.{fn}(ckpt_path="last") is set, but there is no last checkpoint available.'
+                    " No checkpoint will be loaded."
                 )
                 return None
             ckpt_path = max(candidates_ts, key=candidates_ts.get)  # type: ignore[arg-type]
@@ -533,24 +532,7 @@ class CheckpointConnector:
         self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
-        metrics = (
-            [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
-            if _fault_tolerant_training()
-            else []
-        )
-
-        for metric in metrics:
-            metric.persistent(True)
-            metric.sync()
-
-        state_dict = self.trainer.strategy.lightning_module_state_dict()
-
-        for metric in metrics:
-            # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check
-            if metric._is_synced:
-                metric.unsync()
-
-        return state_dict
+        return self.trainer.strategy.lightning_module_state_dict()
 
     def _get_loops_state_dict(self) -> Dict[str, Any]:
         return {

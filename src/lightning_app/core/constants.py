@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 from pathlib import Path
 from typing import Optional
@@ -51,6 +65,7 @@ LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path(LIGH
 DOT_IGNORE_FILENAME = ".lightningignore"
 LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
+LIGHTNING_MODELS_PUBLIC_REGISTRY = "https://lightning.ai/v1/models"
 
 # EXPERIMENTAL: ENV VARIABLES TO ENABLE MULTIPLE WORKS IN THE SAME MACHINE
 DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
@@ -77,8 +92,32 @@ def enable_multiple_works_in_default_container() -> bool:
 
 
 def get_cloud_queue_type() -> Optional[str]:
-    return os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
+    value = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
+    if value is None and enable_interruptible_works():
+        value = "http"
+    return value
 
 
 # Number of seconds to wait between filesystem checks when waiting for files in remote storage
 REMOTE_STORAGE_WAIT = 0.5
+
+
+# interruptible support
+def enable_interruptible_works() -> bool:
+    return bool(int(os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0")))
+
+
+# Get Cluster Driver
+_CLUSTER_DRIVERS = [None, "k8s", "direct"]
+
+
+def get_cluster_driver() -> Optional[str]:
+    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
+    if value is None:
+        if enable_interruptible_works():
+            value = "direct"
+        else:
+            value = None
+    if value not in _CLUSTER_DRIVERS:
+        raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
+    return value
