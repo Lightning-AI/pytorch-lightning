@@ -333,52 +333,52 @@ def load_model(
             " it's expected that only one of them are requested in a single call."
         )
 
-    if os.path.exists(_LIGHTNING_STORAGE_FILE):
-        version = version or "latest"
-        model_data = _get_model_data(name, version)
-        output_dir = model_data["output_dir"]
-        linked_output_dir = model_data["linked_output_dir"]
-        meta_data = model_data["metadata"]
-        stored = {"code": {}}
-
-        for key, val in meta_data.items():
-            if key.startswith("stored_"):
-                if key.startswith("stored_code_"):
-                    stored["code"][key.split("_code_")[1]] = val
-                else:
-                    stored[key.split("_")[1]] = val
-
-        _validate_output_dir(output_dir)
-        if linked_output_dir:
-            _validate_output_dir(linked_output_dir)
-
-        if load_weights:
-            # This first loads the model - and then the weights
-            if not model:
-                raise ValueError(
-                    "Expected model=... to be passed for loading weights, please pass"
-                    f" your model object to load_from_lightning_cloud({name}, {version}, model=ModelObj)"
-                )
-            return _load_weights(model, stored, linked_output_dir or output_dir, *args, **kwargs)
-        elif load_checkpoint:
-            if not model:
-                raise ValueError(
-                    "You need to pass the LightningModule object (model) to be able to"
-                    f" load the checkpoint. `load_from_lightning_cloud({name}, {version},"
-                    " load_checkpoint=True, model=...)`"
-                )
-            if not isinstance(model, (PL.LightningModule, L.LightningModule)):
-                raise TypeError(
-                    "For loading checkpoints, the model is required to be a LightningModule"
-                    f" or a subclass of LightningModule, got type {type(model)}."
-                )
-
-            return _load_checkpoint(model, stored, linked_output_dir or output_dir, *args, **kwargs)
-        else:
-            return _load_model(stored, linked_output_dir or output_dir, *args, **kwargs)
-    else:
+    if not os.path.exists(_LIGHTNING_STORAGE_FILE):
         raise ValueError(
             f"Could not find the model (for {name}:{version}) in the local system."
             " Did you make sure to download the model using: `download_from_lightning_cloud(...)`"
             " before calling `load_from_lightning_cloud(...)`?"
         )
+
+    version = version or "latest"
+    model_data = _get_model_data(name, version)
+    output_dir = model_data["output_dir"]
+    linked_output_dir = model_data["linked_output_dir"]
+    meta_data = model_data["metadata"]
+    stored = {"code": {}}
+
+    for key, val in meta_data.items():
+        if key.startswith("stored_"):
+            if key.startswith("stored_code_"):
+                stored["code"][key.split("_code_")[1]] = val
+            else:
+                stored[key.split("_")[1]] = val
+
+    _validate_output_dir(output_dir)
+    if linked_output_dir:
+        _validate_output_dir(linked_output_dir)
+
+    if load_weights:
+        # This first loads the model - and then the weights
+        if not model:
+            raise ValueError(
+                "Expected model=... to be passed for loading weights, please pass"
+                f" your model object to load_from_lightning_cloud({name}, {version}, model=ModelObj)"
+            )
+        return _load_weights(model, stored, linked_output_dir or output_dir, *args, **kwargs)
+    elif load_checkpoint:
+        if not model:
+            raise ValueError(
+                "You need to pass the LightningModule object (model) to be able to"
+                f" load the checkpoint. `load_from_lightning_cloud({name}, {version},"
+                " load_checkpoint=True, model=...)`"
+            )
+        if not isinstance(model, (PL.LightningModule, L.LightningModule)):
+            raise TypeError(
+                "For loading checkpoints, the model is required to be a LightningModule"
+                f" or a subclass of LightningModule, got type {type(model)}."
+            )
+
+        return _load_checkpoint(model, stored, linked_output_dir or output_dir, *args, **kwargs)
+
+    return _load_model(stored, linked_output_dir or output_dir, *args, **kwargs)
