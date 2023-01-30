@@ -1352,7 +1352,7 @@ class LightningModule(
             self._fabric.backward(loss, *args, **kwargs)
         else:
             self._verify_is_manual_optimization("manual_backward")
-            self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
+            self.trainer.strategy.backward(loss, None, *args, **kwargs)
 
     def backward(self, loss: Tensor, *args: Any, **kwargs: Any) -> None:
         """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
