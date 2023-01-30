@@ -350,7 +350,7 @@ class LightningTestAppWithWork(LightningTestApp):
         return super().on_before_run_once()
 
 
-def test_lightning.app_with_work():
+def test_lightning_app_with_work():
     app = LightningTestAppWithWork(WorkCounter())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -387,7 +387,7 @@ class FlowStart(LightningFlow):
 
 @pytest.mark.parametrize("cache_calls", [False, True])
 @pytest.mark.parametrize("parallel", [False, True])
-def test_lightning.app_work_start(cache_calls, parallel):
+def test_lightning_app_work_start(cache_calls, parallel):
     app = LightningApp(FlowStart(cache_calls, parallel))
     MultiProcessRuntime(app, start_server=False).dispatch()
 

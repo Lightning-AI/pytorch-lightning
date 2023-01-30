@@ -34,7 +34,7 @@ from lightning.app.utilities.warnings import LightningFlowWarning
 logger = logging.getLogger()
 
 
-def test_lightning.app_requires_root_run_method():
+def test_lightning_app_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
 
     with pytest.raises(
@@ -446,7 +446,7 @@ class EmptyFlow(LightningFlow):
         (0, 10),
     ],
 )
-def test_lightning.app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
+def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
@@ -482,7 +482,7 @@ def test_lightning.app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
         assert generated > expect
 
 
-def test_lightning.app_aggregation_empty():
+def test_lightning_app_aggregation_empty():
     """Verify the while loop exits before `state_accumulate_wait` is reached if no deltas are found."""
 
     class SlowQueue(MultiProcessQueue):
@@ -657,7 +657,7 @@ class CheckpointFlow(LightningFlow):
 
 
 @pytest.mark.skipif(True, reason="reloading isn't properly supported")
-def test_lightning.app_checkpointing_with_nested_flows():
+def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
     app.checkpointing = True
@@ -858,7 +858,7 @@ class FlowExit(LightningFlow):
         self.work.run()
 
 
-def test_lightning.app_exit():
+def test_lightning_app_exit():
     app = LightningApp(FlowExit())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.status.stage == WorkStageStatus.STOPPED
@@ -1078,7 +1078,7 @@ class TestLightningHasUpdatedApp(LightningApp):
         return res
 
 
-def test_lightning.app_has_updated():
+def test_lightning_app_has_updated():
     app = TestLightningHasUpdatedApp(FlowPath())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
