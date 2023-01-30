@@ -24,8 +24,6 @@ from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as
 from pytorch_lightning.loops.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -78,8 +76,6 @@ class _TrainingEpochLoop(loops._Loop):
         self._results = _ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
-        # caches the loaded dataloader state until dataloader objects are available
-        self._dataloader_state_dict: Dict[str, Any] = {}
         self._batches_that_stepped: int = 0
 
     @property
@@ -153,14 +149,12 @@ class _TrainingEpochLoop(loops._Loop):
             self.optimizer_loop.optim_progress.reset_on_restart()
 
             trainer = self.trainer
-            if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
+            if trainer.num_training_batches != float("inf"):
                 expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
                 if self.global_step % expected_steps != 0:
                     rank_zero_warn(
                         "You're resuming from a checkpoint that ended before the epoch ended. This can cause unreliable"
-                        " results if further training is done. Consider using an end-of-epoch checkpoint or enabling"
-                        " fault-tolerant training:"
-                        " https://pytorch-lightning.readthedocs.io/en/stable/advanced/fault_tolerant_training.html"
+                        " results if further training is done. Consider using an end-of-epoch checkpoint"
                     )
         else:
             self.batch_progress.reset_on_run()
@@ -173,7 +167,6 @@ class _TrainingEpochLoop(loops._Loop):
         self._outputs = []
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
-        self._reload_dataloader_state_dict(data_fetcher)
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
@@ -297,27 +290,9 @@ class _TrainingEpochLoop(loops._Loop):
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
-
-        trainer = self._trainer
-        if (
-            trainer is not None
-            and trainer.state._fault_tolerant_mode.is_enabled
-            and trainer.train_dataloader is not None
-            and not self._num_completed_batches_reached()  # did not finish
-            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            and self.batch_progress.current.ready  # did start
-        ):
-            assert isinstance(trainer.train_dataloader, CombinedLoader)
-            loader: CombinedLoader = trainer.train_dataloader
-            state = loader.state_dict(has_completed=self._has_completed())
-            if state:
-                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
-
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
-        # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _run_validation(self) -> None:
@@ -454,11 +429,6 @@ class _TrainingEpochLoop(loops._Loop):
         if self.trainer.should_stop:
             for logger in self.trainer.loggers:
                 logger.save()
-
-    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
-        if self._dataloader_state_dict:
-            data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
-            self._dataloader_state_dict = {}
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
