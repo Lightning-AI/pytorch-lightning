@@ -57,6 +57,8 @@ _PACKAGE_MAPPING = {
     "app": "lightning_app",
     "fabric": "lightning_fabric",
 }
+# TODO: drop this reverse list when all packages are moved
+_PACKAGE_STANDALONE = ("app", )
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
@@ -83,11 +85,10 @@ def _named_temporary_file(directory: Optional[str] = None) -> str:
 
 
 @contextlib.contextmanager
-def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
+def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: dict = _PACKAGE_MAPPING) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
-        mapping = _PACKAGE_MAPPING.copy()
         lines = ["include src/lightning/version.info\n", "include requirements/base.txt\n"]
         # load manifest and aggregated all manifests
         for pkg in mapping.values():
@@ -143,7 +144,7 @@ if __name__ == "__main__":
             # merge all requirements files
             assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
             # replace imports and copy the code
-            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
+            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_PACKAGE_STANDALONE)
     else:
         assert len(local_pkgs) > 0
         # PL as a package is distributed together with Fabric, so in such case there are more than one candidate
