@@ -150,6 +150,13 @@ jobs:
           --source_import="pytorch_lightning,lightning_fabric" \
           --target_import="lightning.pytorch,lightning.fabric"
 
+    - name: Testing Warnings
+      # the stacklevel can only be set on >=3.7
+      if: matrix.python-version != '3.7'
+      working-directory: tests/tests_pytorch
+      # needs to run outside of `pytest`
+      run: python utilities/test_warnings.py
+
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
@@ -184,10 +191,3 @@ jobs:
         flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
-
-    - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
-      if: matrix.python-version != '3.7'
-      working-directory: tests/tests_pytorch
-      # needs to run outside of `pytest`
-      run: python utilities/test_warnings.py
