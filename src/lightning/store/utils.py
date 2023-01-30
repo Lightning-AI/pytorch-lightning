@@ -59,8 +59,7 @@ def _get_model_data(name: str, version: str):
 
     if username not in storage_data:
         raise KeyError(
-            f"No data found for the given username {username}. Make sure to call"
-            " `download_model` before loading"
+            f"No data found for the given username {username}. Make sure to call" " `download_model` before loading"
         )
     user_data = storage_data[username]
 
