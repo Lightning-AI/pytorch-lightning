@@ -15,7 +15,7 @@ We present two code versions: the first one is implemented in raw PyTorch, but i
 
 Tip: You can easily inspect the difference between the two files with:
 
-```
+```bash
 sdiff train_torch.py train_fabric.py
 ```
 
@@ -23,7 +23,7 @@ sdiff train_torch.py train_fabric.py
 
 Install requirements by running
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -31,24 +31,54 @@ pip install -r requirements.txt
 
 ### Raw PyTorch:
 
-```
+```bash
 torchrun --nproc_per_node=2 --standalone train_torch.py
-```
-
-You can visualize training and test logs by running
-
-```
-tensorboard --logdir torch_logs
 ```
 
 ### Lightning Fabric:
 
-```
+```bash
 lightning run model --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
 ```
 
-You can visualize training and test logs by running
+### Visualizing logs
 
+You can visualize training and test logs by running:
+
+```bash
+tensorboard --logdir logs
 ```
-tensorboard --logdir fabric_logs
+
+Under the `logs` folder you should find two folders:
+
+- `logs/torch_logs`
+- `logs/fabric_logs`
+
+If you have run the experiment with the `--capture-video` you should find the `train_videos` and `test_videos` folders under the specific experiment folder.
+
+## Results
+
+The following video shows a trained agent on the [LunarLander-v2 environment](https://gymnasium.farama.org/environments/box2d/lunar_lander/).
+
+<p align="center">
+  <video controls>
+    <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/examples/fabric/reinforcement-learning/test.mp4" type="video/mp4">
+  </video>
+</p>
+
+The agent was trained with the following:
+
+```bash
+lightning run model \
+  --accelerator=cpu \
+  --strategy=ddp \
+  --devices=2 \
+  train_fabric.py \
+  --capture-video \
+  --env-id LunarLander-v2 \
+  --total-timesteps 500000 \
+  --ortho-init \
+  --per-rank-num-envs 2 \
+  --num-steps 2048 \
+  --seed 1
 ```
