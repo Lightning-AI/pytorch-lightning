@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional, Type, Union, Iterator
+from typing import Any, Dict, Generator, List, Optional, Type, Union, Iterator, Tuple
 
 import torch
 from torch import Tensor
@@ -75,7 +75,7 @@ class _FSDPStrategyModuleWrapper(_LightningModuleWrapperBase):
         # avoid extra keys `_forward_module.layer.weight.` since we want `layer.weight.` in state_dict.
         return self._forward_module.state_dict(*args, **kwargs)
 
-    def named_modules(self, *args: Any, **kwargs: Any) -> Iterator[str, Module]:
+    def named_modules(self, *args: Any, **kwargs: Any) -> Iterator[Tuple[str, Module]]:
         # This is required because FSDP explicitly checks that each flatted parameter in state_dict.
         # Since we are wrapping the model, all flatted parameters will have `_forward_module.` prefix.
         # This redirect avoids adding this prefix.
