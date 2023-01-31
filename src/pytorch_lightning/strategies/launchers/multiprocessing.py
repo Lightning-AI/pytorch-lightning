@@ -245,6 +245,11 @@ class _MultiProcessingLauncher(_Launcher):
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
 
+    def __getstate__(self) -> Dict:
+        state = self.__dict__.copy()
+        state["procs"] = []  # SpawnProcess can't be pickled
+        return state
+
 
 class _FakeQueue(UserList):
     """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
