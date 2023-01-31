@@ -111,6 +111,9 @@ jobs:
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
+      # FIXME: remove
+      - run: cat examples/app_v0/app.py
+
       - name: Tests
         working-directory: ./tests
         env:
