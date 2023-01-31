@@ -79,7 +79,6 @@ to perform a step, Lightning won't be able to support accelerators, precision an
         epoch,
         batch_idx,
         optimizer,
-        optimizer_idx,
         optimizer_closure,
     ):
         optimizer.step(closure=optimizer_closure)
@@ -93,7 +92,6 @@ to perform a step, Lightning won't be able to support accelerators, precision an
         epoch,
         batch_idx,
         optimizer,
-        optimizer_idx,
         optimizer_closure,
     ):
         optimizer = optimizer.optimizer
@@ -121,7 +119,7 @@ If you are using native PyTorch schedulers, there is no need to override this ho
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
 
 
-    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+    def lr_scheduler_step(self, scheduler, metric):
         scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
 
 
@@ -132,7 +130,7 @@ Configure Gradient Clipping
 
 To configure custom gradient clipping, consider overriding
 the :meth:`~pytorch_lightning.core.module.LightningModule.configure_gradient_clipping` method.
-Attributes ``gradient_clip_val`` and ``gradient_clip_algorithm`` from Trainer will be passed in the
+The attributes ``gradient_clip_val`` and ``gradient_clip_algorithm`` from Trainer will be passed in the
 respective arguments here and Lightning will handle gradient clipping for you. In case you want to set
 different values for your arguments of your choice and let Lightning handle the gradient clipping, you can
 use the inbuilt :meth:`~pytorch_lightning.core.module.LightningModule.clip_gradients` method and pass
@@ -143,31 +141,18 @@ the arguments along with your optimizer.
     method. If you want to customize gradient clipping, consider using
     :meth:`~pytorch_lightning.core.module.LightningModule.configure_gradient_clipping` method.
 
-For example, here we will apply gradient clipping only to the gradients associated with optimizer A.
+For example, here we will apply a stronger gradient clipping after a certain number of epochs:
 
 .. testcode:: python
 
-    def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
-        if optimizer_idx == 0:
-            # Lightning will handle the gradient clipping
-            self.clip_gradients(
-                optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
-            )
+    def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
+        if self.current_epoch > 5:
+            gradient_clip_val = gradient_clip_val * 2
 
-Here we configure gradient clipping differently for optimizer B.
-
-.. testcode:: python
-
-    def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
-        if optimizer_idx == 0:
-            # Lightning will handle the gradient clipping
-            self.clip_gradients(
-                optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
-            )
-        elif optimizer_idx == 1:
-            self.clip_gradients(
-                optimizer, gradient_clip_val=gradient_clip_val * 2, gradient_clip_algorithm=gradient_clip_algorithm
-            )
+        # Lightning will handle the gradient clipping
+        self.clip_gradients(
+            optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+        )
 
 
 Total Stepping Batches
