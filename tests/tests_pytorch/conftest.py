@@ -76,6 +76,12 @@ def restore_env_variables():
         "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # leaked by tensorboardX
+        # leaked by XLA
+        "ALLOW_MULTIPLE_LIBTPU_LOAD",
+        "GRPC_VERBOSITY",
+        "TF_CPP_MIN_LOG_LEVEL",
+        "TF_GRPC_DEFAULT_OPTIONS",
+        "XLA_FLAGS",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
