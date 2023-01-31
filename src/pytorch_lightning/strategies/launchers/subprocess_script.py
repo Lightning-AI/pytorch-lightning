@@ -27,7 +27,7 @@ _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 class _SubprocessScriptLauncher(_Launcher):
     r"""
-    A process laucher that invokes the current script as many times as desired in a single node.
+    A process launcher that invokes the current script as many times as desired in a single node.
 
     This launcher needs to be invoked on each node.
     In its default behavior, the main process in each node then spawns N-1 child processes via :func:`subprocess.Popen`,
@@ -68,7 +68,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.pids: List[int] = []  # pids of the launched subprocesses. does not include the launcher
+        self.procs: List[subprocess.Popen] = []  # launched subprocesses. does not include the launcher
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -91,7 +91,7 @@ class _SubprocessScriptLauncher(_Launcher):
     def _call_children_scripts(self) -> None:
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
-        self.pids = []  # reset in case it's called twice
+        self.procs = []  # reset in case it's called twice
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
@@ -123,7 +123,7 @@ class _SubprocessScriptLauncher(_Launcher):
                 command = _basic_subprocess_cmd()
 
             new_process = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.pids.append(new_process.pid)
+            self.procs.append(new_process)
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:

@@ -1,4 +1,5 @@
 import os
+from time import sleep
 
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -29,15 +30,10 @@ class BoringModel(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self(batch).sum()
         self.log("train_loss", loss)
+        for i in range(9999999999):
+            print(f"[rank {self.local_rank}]", "zzz", i, os.getpid(), self.trainer.received_sigterm)
+            sleep(3)
         return {"loss": loss}
-
-    def validation_step(self, batch, batch_idx):
-        loss = self(batch).sum()
-        self.log("valid_loss", loss)
-
-    def test_step(self, batch, batch_idx):
-        loss = self(batch).sum()
-        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -45,21 +41,20 @@ class BoringModel(LightningModule):
 
 def run():
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        num_sanity_val_steps=0,
-        max_epochs=1,
+        accelerator="cpu",
+        strategy="ddp",
+        devices=2,
         enable_model_summary=False,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
     )
-    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-    trainer.test(model, dataloaders=test_data)
+    trainer.fit(model, train_dataloaders=train_data)
 
 
 if __name__ == "__main__":

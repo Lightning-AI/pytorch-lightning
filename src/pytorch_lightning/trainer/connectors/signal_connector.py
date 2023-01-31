@@ -109,12 +109,15 @@ class SignalConnector:
     def _sigterm_notifier_fn(self, signum: _SIGNUM, _: FrameType) -> None:
         local_rank = self.trainer.local_rank
         log.info(rank_prefixed_message(f"Received SIGTERM: {signum}", local_rank))
+        # subprocesses killing the parent process is not supported, only the parent (rank 0) does it
         if not self.received_sigterm and local_rank == 0:
             # send the same signal to the subprocesses
             launcher = self.trainer.strategy.launcher
             if isinstance(launcher, _SubprocessScriptLauncher):
-                for pid in launcher.pids:
-                    os.kill(pid, signum)
+                for proc in launcher.procs:
+                    if proc.poll() is None:  # process hasn't terminated
+                        log.debug(f"pid {os.getpid()} killing {proc.pid} with {signum}")
+                        os.kill(proc.pid, signum)
         self.received_sigterm = True
 
     def _sigterm_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
