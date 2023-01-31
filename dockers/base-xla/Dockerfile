@@ -75,15 +75,7 @@ ENV \
 
 # Disable cache
 RUN pip --version && \
-    pip config set global.cache-dir false && \
-    conda remove pytorch torchvision && \
-    # Install PyTorch XLA
-    py_version=${PYTHON_VERSION/./} && \
-    gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    pip install *.whl && \
-    rm *.whl
+    pip config set global.cache-dir false
 
 # Get package
 COPY ./ ./lightning/
@@ -96,15 +88,19 @@ RUN \
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
-    # drop packages installed with XLA
-    python .actions/assistant.py requirements_prune_pkgs "--packages=[torch,torchvision]" && \
     # drop unnecessary packages
     python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
+    # Install PyTorch XLA
+    py_version=${PYTHON_VERSION/./} && \
+    gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
+    pip install *.whl && \
+    rm *.whl \
     cd .. && \
     rm -rf lightning && \
-    rm -rf /root/.cache
+    rm -rf /root/.cache \
+
 
 RUN \
     # Show what we have
