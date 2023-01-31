@@ -34,7 +34,7 @@ repos:
         args: [--in-place, --wrap-summaries=120, --wrap-descriptions=120]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.11.4
+    rev: 5.12.0
     hooks:
       - id: isort
 
@@ -60,10 +60,7 @@ repos:
       - id: yesqa
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.226
+    rev: v0.0.238
     hooks:
       - id: ruff
-        args:
-          - "--fix"
-          # Respect `exclude` and `extend-exclude` settings.
-          - "--force-exclude"
+        args: ["--fix"]
