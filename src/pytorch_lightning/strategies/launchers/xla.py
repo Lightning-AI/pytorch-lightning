@@ -80,9 +80,11 @@ class _XLALauncher(_MultiProcessingLauncher):
             start_method=self._start_method,
             join=False,  # we will join ourselves to get the process references
         )
-        self.procs = process_context.processes
-        while not process_context.join():
-            pass
+        # xla will not actually create processes if only 1 device
+        if process_context is not None:
+            self.procs = process_context.processes
+            while not process_context.join():
+                pass
 
         worker_output = return_queue.get()
         if trainer is None:
