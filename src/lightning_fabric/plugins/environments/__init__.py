@@ -15,6 +15,7 @@ from lightning_fabric.plugins.environments.cluster_environment import ClusterEnv
 from lightning_fabric.plugins.environments.kubeflow import KubeflowEnvironment  # noqa: F401
 from lightning_fabric.plugins.environments.lightning import LightningEnvironment  # noqa: F401
 from lightning_fabric.plugins.environments.lsf import LSFEnvironment  # noqa: F401
+from lightning_fabric.plugins.environments.mpi import MPIEnvironment
 from lightning_fabric.plugins.environments.slurm import SLURMEnvironment  # noqa: F401
 from lightning_fabric.plugins.environments.torchelastic import TorchElasticEnvironment  # noqa: F401
 from lightning_fabric.plugins.environments.xla import XLAEnvironment  # noqa: F401
