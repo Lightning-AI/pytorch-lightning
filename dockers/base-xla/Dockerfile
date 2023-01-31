@@ -88,8 +88,10 @@ RUN \
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
-    # drop unnecessary packages
-    python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
+    # set particular PyTorch version \
+    for fpath in `ls requirements/**/*.txt`; do \
+      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
+    done && \
     # install PL dependencies
     pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
     # Install PyTorch XLA
