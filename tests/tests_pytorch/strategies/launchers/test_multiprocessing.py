@@ -46,6 +46,7 @@ def test_multiprocessing_launcher_start_method(mp_mock, start_method):
         args=ANY,
         nprocs=ANY,
         start_method=start_method,
+        join=False,
     )
 
 
