@@ -74,7 +74,7 @@ jobs:
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          pip install -q pytest -r .actions/requirements.txt
+          pip install -q pytest -r requirements.txt
           python -m pytest assistant.py
 
       - name: build source
