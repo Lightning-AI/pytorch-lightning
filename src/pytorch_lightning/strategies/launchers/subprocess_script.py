@@ -20,8 +20,8 @@ from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import ClusterEnvironment
-from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
+from pytorch_lightning.strategies.launchers.launcher import _Launcher
 from pytorch_lightning.trainer.connectors.signal_connector import _SIGNUM
 
 log = logging.getLogger(__name__)

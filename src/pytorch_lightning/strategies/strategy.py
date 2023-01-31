@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO
-from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.distributed import ReduceOp
 from lightning_fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
@@ -33,6 +32,7 @@ from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers,
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.launchers.launcher import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.types import (
     LRSchedulerConfig,
