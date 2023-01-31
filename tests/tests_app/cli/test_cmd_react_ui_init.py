@@ -32,7 +32,7 @@ def test_missing_yarn():
 @_RunIf(skip_windows=True)
 def test_copy_and_setup_react_ui(tmpdir):
     dest_dir = os.path.join(tmpdir, "react-ui")
-    subprocess.Popen(["lightning", "init", "react-ui", "--dest_dir", dest_dir]).wait()
+    os.system(f"lightning init react-ui --dest_dir={dest_dir}")
 
     # make sure package is minimal
     files = sorted(f for f in os.listdir(dest_dir) if f != "__pycache__")
@@ -56,4 +56,5 @@ def test_copy_and_setup_react_ui(tmpdir):
 def test_correct_num_react_template_files():
     template_dir = os.path.join(la.__path__[0], "cli/react-ui-template")
     files = cmd_init._ls_recursively(template_dir)
-    assert len(files) == 16, "react-ui template files must be minimal... do not add nice to haves"
+    # it is 15 after dropping lock file as it was unreasonable large and still just generated
+    assert len(files) == 15, "react-ui template files must be minimal... do not add nice to haves"

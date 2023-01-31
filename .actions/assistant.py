@@ -274,7 +274,7 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
     ... ]
     >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
     >>> _replace_imports(lns, mapping, lightning_by="lightning_fabric")  # doctest: +NORMALIZE_WHITESPACE
-    ['"lightning_app"', 'lightning.app', 'lightning_app/', 'delete_cloud_lightning_apps', 'from lightning.app import', \
+    ['"lightning.app"', 'lightning.app', 'lightning_app/', 'delete_cloud_lightning_apps', 'from lightning.app import', \
      'lightning_apps = []', 'lightning.app and lightning.pytorch are ours', 'def _lightning_app():', \
      ':class:`~lightning.app.core.flow.LightningFlow`', 'from lightning_fabric import __version__', '@lightning.ai']
     """
