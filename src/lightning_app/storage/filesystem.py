@@ -36,7 +36,7 @@ class FileSystem:
         self._root = str(_shared_storage_path())
 
     def _validate_path(self, src_path: str, dst_path: str) -> None:
-        if not os.path.exists(os.path.join(self._root, src_path)):
+        if not os.path.exists(Path(src_path).resolve()):
             raise FileExistsError(f"The provided path {src_path} doesn't exists")
 
         if str(Path(dst_path).resolve()) == dst_path:
