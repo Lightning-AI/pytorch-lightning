@@ -42,7 +42,7 @@ class MPIEnvironment(ClusterEnvironment):
 
         self._comm_world = MPI.COMM_WORLD
         self._comm_local: Optional[MPI.Comm] = None
-        self._node_rank = Optional[int] = None
+        self._node_rank: Optional[int] = None
         self._main_address: Optional[str] = None
         self._main_port: Optional[int] = None
 
