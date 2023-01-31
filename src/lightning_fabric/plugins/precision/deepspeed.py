@@ -24,7 +24,7 @@ from lightning_fabric.utilities.types import Steppable
 if TYPE_CHECKING:
     from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
-    if _DEEPSPEED_AVAILABLE:
+    if _DEEPSPEED_AVAILABLE:  # type: ignore[has-type]
         import deepspeed
 
 _PRECISION_INPUT_INT = Literal[32, 16]
