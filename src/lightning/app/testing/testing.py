@@ -30,6 +30,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Type
 import requests
 from lightning_cloud.openapi import V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
+from lightning_utilities.core.imports import module_available
 from requests import Session
 from rich import print
 from rich.color import ANSI_COLOR_NAMES
@@ -145,18 +146,14 @@ class LightningTestApp(LightningApp):
 
 
 @requires("click")
-def application_testing(
-    lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
-) -> Any:
+def application_testing(lit_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []) -> Any:
     from unittest import mock
 
     from click.testing import CliRunner
 
-    patch1 = mock.patch("lightning.app.LightningApp", lightning_app_cls)
+    patch1 = mock.patch("lightning.app.LightningApp", lit_app_cls)
     # we need to patch both only with the mirror package
-    patch2 = (
-        mock.patch("lightning.LightningApp", lightning_app_cls) if "lightning.app" in sys.modules else nullcontext()
-    )
+    patch2 = mock.patch("lightning.LightningApp", lit_app_cls) if module_available("lightning") else nullcontext()
     with patch1, patch2:
         original = sys.argv
         sys.argv = command_line
