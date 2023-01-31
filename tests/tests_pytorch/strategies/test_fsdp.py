@@ -1,4 +1,5 @@
 import os
+from functools import partial
 from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, Mock
@@ -18,7 +19,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import wrap
+    from torch.distributed.fsdp.wrap import wrap, size_based_auto_wrap_policy
 
 
 class TestFSDPModel(BoringModel):
@@ -102,6 +103,10 @@ class TestFSDPModelAutoWrapped(BoringModel):
 
         precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
         for layer_num in [0, 2]:
+            num_params = sum(p.numel() for p in self.layer[layer_num].parameters())
+            if not custom_auto_wrap_policy(self.layer[layer_num], False, num_params):
+                # This layer is not wrapped
+                continue
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
             assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
@@ -207,6 +212,29 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
         default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp", precision=precision, max_epochs=1
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
+def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
+    """Test to ensure that state dict is extracted correctly when using FSDP strategy.
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
+    """
+    model = TestFSDPModelAutoWrapped()
+    correct_state_dict = model.state_dict()  # State dict before wrapping
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy=strategy, precision=16, max_epochs=1
+    )
+    trainer.fit(model)
+    # CheckpointConnector use this to extract state dict
+    extracted_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    # State dict should contain same number of keys
+    assert len(correct_state_dict) == len(extracted_state_dict)
+    # OrderedDict should return the same keys in the same order
+    assert all(_ex == _co for _ex, _co in zip(list(extracted_state_dict.keys()), list(correct_state_dict.keys())))
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
