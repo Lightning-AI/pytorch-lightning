@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, runtime_checkable, TypeVar, Union
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 
