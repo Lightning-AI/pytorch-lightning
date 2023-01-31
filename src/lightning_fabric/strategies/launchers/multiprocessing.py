@@ -21,7 +21,7 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from typing_extensions import Literal
 
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states

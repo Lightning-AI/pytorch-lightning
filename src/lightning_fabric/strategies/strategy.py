@@ -26,7 +26,7 @@ from lightning_fabric.accelerators import Accelerator
 from lightning_fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning_fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning_fabric.plugins.precision import Precision
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
 from lightning_fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
