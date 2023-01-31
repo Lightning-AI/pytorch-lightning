@@ -122,7 +122,10 @@ jobs:
       if: matrix.python-version != '3.7'
       working-directory: tests/tests_fabric
       # needs to run outside of `pytest`
-      run: python utilities/test_warnings.py
+      run: |
+        # FIXME: revert this kitten
+        cat utilities/test_warnings.py
+        python utilities/test_warnings.py
 
     - name: Switch coverage scope
       run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
