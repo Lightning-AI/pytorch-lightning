@@ -130,7 +130,7 @@ infra
 data
 coverage.*
 # Frontend build artifacts
-*lightning.app/ui*
+*lightning/app/ui*
 gradio_cached_examples
 /docs/source-app/api_reference/generated/*
 examples/my_own_leaderboard/submissions/*
@@ -146,11 +146,11 @@ examples/quick_start
 examples/template_react_ui/*
 examples/template_react_ui
 # Ignore external components
-lightning.app/components/*
-!lightning.app/components/python
-!lightning.app/components/serve
-!lightning.app/components/__init__.py
-!lightning.app/components/README.md
+lightning/app/components/*
+!lightning/app/components/python
+!lightning/app/components/serve
+!lightning/app/components/__init__.py
+!lightning/app/components/README.md
 train_script.py
 *return_values*
 scratch
