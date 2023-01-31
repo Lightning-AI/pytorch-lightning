@@ -15,6 +15,7 @@ import logging
 import os
 import tempfile
 from collections import UserList
+from contextlib import suppress
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, NamedTuple, Optional
@@ -234,13 +235,12 @@ class _MultiProcessingLauncher(_Launcher):
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
     def kill(self, signum: _SIGNUM) -> None:
+        # https://github.com/pytorch/pytorch/blob/v1.13.1/torch/distributed/elastic/multiprocessing/api.py#L522-L530
         for proc in self.procs:
             if proc.is_alive():
                 log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
-                try:
+                with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
-                except ProcessLookupError:
-                    log.info("process {proc.id} already exited")
 
 
 class _FakeQueue(UserList):
