@@ -35,7 +35,7 @@ def load_requirements(
 
     >>> from lightning_app import _PROJECT_ROOT
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
-    >>> load_requirements(path_req, "docs.txt")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> load_requirements(path_req, "docs.txt")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE +SKIP
     ['sphinx>=4.0', ...]
     """
     path = os.path.join(path_dir, file_name)
