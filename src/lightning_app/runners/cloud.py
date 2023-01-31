@@ -202,7 +202,7 @@ class CloudRuntime(Runtime):
                 )
 
             if "PYTEST_CURRENT_TEST" not in os.environ:
-                click.launch(self._get_app_url(project, run_instance, "code", needs_credits))
+                click.launch(self._get_app_url(project, cloudspace_name, run_instance, "code", needs_credits))
 
         except ApiException as e:
             logger.error(e.body)
@@ -322,7 +322,9 @@ class CloudRuntime(Runtime):
             # TODO: Remove testing dependency, but this would open a tab for each test...
             if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
                 click.launch(
-                    self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui", needs_credits)
+                    self._get_app_url(
+                        project, cloudspace_name, run_instance, "logs" if run.is_headless else "web-ui", needs_credits
+                    )
                 )
         except ApiException as e:
             logger.error(e.body)
@@ -919,6 +921,7 @@ class CloudRuntime(Runtime):
     def _get_app_url(
         self,
         project: V1Membership,
+        cloudspace_name: str,
         run_instance: Externalv1LightningappInstance,
         tab: str,
         need_credits: bool = False,
@@ -930,7 +933,7 @@ class CloudRuntime(Runtime):
                 user.username,
                 project.name,
                 "apps",
-                run_instance.name,
+                cloudspace_name,
                 tab,
             ]
         else:
