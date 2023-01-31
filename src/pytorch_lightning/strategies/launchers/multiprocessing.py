@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import tempfile
 from collections import UserList
+from contextlib import suppress
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional
 
 import numpy as np
 import torch
@@ -27,14 +29,17 @@ from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_fabric.strategies.launchers.base import _Launcher
 from lightning_fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_fabric.utilities.types import _PATH
+from pytorch_lightning.strategies.launchers.launcher import _Launcher
+from pytorch_lightning.trainer.connectors.signal_connector import _SIGNUM
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
+
+log = logging.getLogger(__name__)
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -70,6 +75,7 @@ class _MultiProcessingLauncher(_Launcher):
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
             )
+        self.procs: List[mp.Process] = []
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -110,12 +116,17 @@ class _MultiProcessingLauncher(_Launcher):
         else:
             process_args = [trainer, function, args, kwargs, return_queue]
 
-        mp.start_processes(
+        process_context = mp.start_processes(
             self._wrapping_function,
             args=process_args,
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
+            join=False,  # we will join ourselves to get the process references
         )
+        self.procs = process_context.processes
+        while not process_context.join():
+            pass
+
         worker_output = return_queue.get()
         if trainer is None:
             return worker_output
@@ -225,6 +236,18 @@ class _MultiProcessingLauncher(_Launcher):
         # NOTE: `add_to_queue` needs to be called before
         callback_metrics: dict = queue.get()
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
+
+    def kill(self, signum: _SIGNUM) -> None:
+        for proc in self.procs:
+            if proc.is_alive() and proc.pid is not None:
+                log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
+                with suppress(ProcessLookupError):
+                    os.kill(proc.pid, signum)
+
+    def __getstate__(self) -> Dict:
+        state = self.__dict__.copy()
+        state["procs"] = []  # SpawnProcess can't be pickled
+        return state
 
 
 class _FakeQueue(UserList):
