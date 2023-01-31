@@ -14,7 +14,6 @@
 import concurrent.futures
 import os
 import signal
-import subprocess
 from unittest import mock
 from unittest.mock import Mock
 
@@ -24,7 +23,6 @@ from lightning_fabric.plugins.environments import SLURMEnvironment
 from lightning_fabric.utilities.imports import _IS_WINDOWS
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies.launchers import _SubprocessScriptLauncher
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
@@ -163,22 +161,14 @@ def test_has_already_handler(handler, expected_return):
 
 def test_sigterm_notifier_fn():
     trainer = Mock()
-    trainer.local_rank = 0
-    launcher = _SubprocessScriptLauncher(Mock(), 1, 1)
-    proc0 = Mock(autospec=subprocess.Popen)
-    proc1 = Mock(autospec=subprocess.Popen)
-    proc0.pid = 123
-    proc1.pid = 312
-    proc0.poll.return_value = None
-    launcher.procs = [proc0, proc1]
+    launcher = Mock()
     trainer.strategy.launcher = launcher
     connector = SignalConnector(trainer)
 
     assert not connector.received_sigterm
-    with mock.patch("os.kill") as kill_mock:
-        connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
-    kill_mock.assert_called_once_with(123, 15)
+    connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
+    launcher.kill.assert_called_once_with(15)
     assert connector.received_sigterm
-    with mock.patch("os.kill") as kill_mock:
-        connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
-    kill_mock.assert_not_called()
+    launcher.reset_mock()
+    connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
+    launcher.kill.assert_not_called()

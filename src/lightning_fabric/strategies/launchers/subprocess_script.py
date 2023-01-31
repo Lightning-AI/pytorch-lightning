@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, Sequence, Tuple
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 

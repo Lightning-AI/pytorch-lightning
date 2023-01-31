@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from multiprocessing import Process
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, call, Mock, patch
 
 import pytest
 import torch
@@ -163,3 +164,14 @@ def test_non_strict_loading(tmpdir):
     # <-- here would normally be the multiprocessing boundary
     strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     model.load_state_dict.assert_called_once_with(ANY, strict=False)
+
+
+def test_kill():
+    launcher = _MultiProcessingLauncher(Mock())
+    proc0 = Mock(autospec=Process)
+    proc1 = Mock(autospec=Process)
+    launcher.procs = [proc0, proc1]
+
+    with patch("os.kill") as kill_patch:
+        launcher.kill(15)
+    assert kill_patch.mock_calls == [call(proc0.pid, 15), call(proc1.pid, 15)]

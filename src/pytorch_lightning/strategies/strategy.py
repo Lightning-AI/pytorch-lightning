@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.distributed import ReduceOp
 from lightning_fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device

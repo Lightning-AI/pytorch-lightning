@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import subprocess
 from typing import Any, Callable, List, Optional
@@ -19,9 +20,11 @@ from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import ClusterEnvironment
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
+from pytorch_lightning.trainer.connectors.signal_connector import _SIGNUM
 
+log = logging.getLogger(__name__)
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 
@@ -87,6 +90,12 @@ class _SubprocessScriptLauncher(_Launcher):
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
         return function(*args, **kwargs)
+
+    def kill(self, signum: _SIGNUM) -> None:
+        for proc in self.procs:
+            log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
+            # this skips subprocesses already terminated
+            proc.send_signal(signum)
 
     def _call_children_scripts(self) -> None:
         # bookkeeping of spawned processes
