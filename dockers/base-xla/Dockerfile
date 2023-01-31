@@ -94,7 +94,7 @@ RUN \
     pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
     # Install PyTorch XLA
     py_version=${PYTHON_VERSION/./} && \
-    pip install "https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
+    pip install "https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}-linux_x86_64.whl" && \
     cd .. && \
     rm -rf lightning && \
     rm -rf /root/.cache \
