@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a `Trainer.received_sigterm` property to check whether a SIGTERM signal was received ([#16501](https://github.com/Lightning-AI/lightning/pull/16501))
 
+- Added support for cascading a SIGTERM signal to launched subprocesses after the launching process (rank 0) receives it ([#16525](https://github.com/Lightning-AI/lightning/pull/16525))
+
 ### Changed
 
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
