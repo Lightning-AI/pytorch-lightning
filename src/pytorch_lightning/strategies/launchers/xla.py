@@ -73,12 +73,19 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue = context.SimpleQueue()
         import torch_xla.distributed.xla_multiprocessing as xmp
 
-        xmp.spawn(
+        process_context = xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
+            join=False,  # we will join ourselves to get the process references
         )
+        # xla will not actually create processes if only 1 device
+        if process_context is not None:
+            self.procs = process_context.processes
+            while not process_context.join():
+                pass
+
         worker_output = return_queue.get()
         if trainer is None:
             return worker_output

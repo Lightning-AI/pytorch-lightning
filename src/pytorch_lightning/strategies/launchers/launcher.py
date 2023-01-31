@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning_fabric.strategies.launchers.xla import _XLALauncher
+from abc import ABC, abstractmethod
 
-__all__ = [
-    "_MultiProcessingLauncher",
-    "_SubprocessScriptLauncher",
-    "_XLALauncher",
-]
+from lightning_fabric.strategies.launchers.launcher import _Launcher as _FabricLauncher
+from pytorch_lightning.trainer.connectors.signal_connector import _SIGNUM
+
+
+class _Launcher(_FabricLauncher, ABC):
+    @abstractmethod
+    def kill(self, signum: _SIGNUM) -> None:
+        """Kill existing alive processes."""

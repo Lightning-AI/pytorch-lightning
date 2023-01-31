@@ -20,7 +20,7 @@ import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
 
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states
