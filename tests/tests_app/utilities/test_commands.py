@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 
 import pytest
 import requests
-from lightning_utilities.core.imports import package_available
 from pydantic import BaseModel
 
 from lightning_app import LightningApp, LightningFlow
@@ -98,8 +97,8 @@ def test_validate_client_command():
     with pytest.raises(Exception, match="annotate your method"):
         _validate_client_command(ClientCommand(run_failure_1))
 
-    starts = "lightning/app/" if package_available("lightning") else "lightning_app/"
-    with pytest.raises(Exception, match=f"{starts}utilities/commands/base.py"):
+    starts = "lightning_app".replace(".", "/")
+    with pytest.raises(Exception, match=f"{starts}/utilities/commands/base.py"):
         _validate_client_command(ClientCommand(run_failure_2))
 
 
