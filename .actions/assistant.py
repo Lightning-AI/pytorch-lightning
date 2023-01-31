@@ -282,7 +282,7 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
     for source_import, target_import in mapping:
         for i, ln in enumerate(out):
             out[i] = re.sub(
-                rf"([^_/@]|^){source_import}([^_\w\"/]|$)",
+                rf"([^_/@]|^){source_import}([^_\w/]|$)",
                 rf"\1{target_import}\2",
                 ln,
             )

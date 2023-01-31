@@ -155,10 +155,7 @@ jobs:
       if: matrix.python-version != '3.7'
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
-      run: |
-        # FIXME: revert this kitten
-        cat utilities/test_warnings.py
-        python utilities/test_warnings.py
+      run: python utilities/test_warnings.py
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
