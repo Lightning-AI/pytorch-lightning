@@ -18,10 +18,11 @@ import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Sized, Tuple, Type, TypeGuard, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Sized, Tuple, Type, Union
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
+from typing_extensions import TypeGuard
 
 from lightning_fabric.utilities.enums import LightningEnum
 from lightning_fabric.utilities.exceptions import MisconfigurationException
