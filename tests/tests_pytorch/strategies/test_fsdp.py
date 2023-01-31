@@ -254,6 +254,7 @@ else:
 @pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
 def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that state dict is extracted correctly when using FSDP strategy.
+
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
     """
     model = TestFSDPModelAutoWrapped()
