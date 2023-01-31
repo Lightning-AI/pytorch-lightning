@@ -253,7 +253,7 @@ class _OptimizerLoop(_Loop):
         result = closure.consume_result()
 
         # untoggle model params
-        self._run_optimization_end(opt_idx)
+        self._run_optimization_end(optimizer)
         return result
 
     def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer) -> Closure:
@@ -313,12 +313,12 @@ class _OptimizerLoop(_Loop):
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
-            model.toggle_optimizer(optimizer, opt_idx)
+            model.toggle_optimizer(optimizer)
 
-    def _run_optimization_end(self, opt_idx: int) -> None:
+    def _run_optimization_end(self, optimizer: Optimizer) -> None:
         if len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
-            model.untoggle_optimizer(opt_idx)
+            model.untoggle_optimizer(optimizer)
 
     def _optimizer_step(
         self,
@@ -336,8 +336,6 @@ class _OptimizerLoop(_Loop):
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default, called by the optimizer (if possible)
         """
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-
         # wraps into LightningOptimizer only for running step
         optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
@@ -355,7 +353,6 @@ class _OptimizerLoop(_Loop):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            using_lbfgs=is_lbfgs,
         )
 
         if not should_accumulate:

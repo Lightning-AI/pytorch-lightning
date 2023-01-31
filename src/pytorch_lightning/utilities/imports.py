@@ -48,10 +48,3 @@ if _HABANA_FRAMEWORK_AVAILABLE:
         _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
 else:
     _HPU_AVAILABLE = False
-
-
-# experimental feature within PyTorch Lightning.
-def _fault_tolerant_training() -> bool:
-    from pytorch_lightning.utilities.enums import _FaultTolerantMode
-
-    return _FaultTolerantMode.detect_current_mode().is_enabled

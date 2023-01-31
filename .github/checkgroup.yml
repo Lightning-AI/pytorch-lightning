@@ -46,7 +46,6 @@ subprojects:
       - "examples/run_pl_examples.sh"
       - "examples/pl_basics/backbone_image_classifier.py"
       - "examples/pl_basics/autoencoder.py"
-      - "examples/pl_fault_tolerant/automatic.py"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"

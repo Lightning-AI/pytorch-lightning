@@ -1,4 +1,5 @@
 import argparse
+import os
 from distutils.util import strtobool
 from typing import Optional
 
@@ -12,7 +13,16 @@ def parse_args():
     parser.add_argument("--exp-name", type=str, default="default", help="the name of this experiment")
 
     # PyTorch arguments
-    parser.add_argument("--seed", type=int, default=1, help="seed of the experiment")
+    parser.add_argument("--seed", type=int, default=42, help="seed of the experiment")
+    parser.add_argument(
+        "--cuda",
+        type=lambda x: bool(strtobool(x)),
+        default=False,
+        nargs="?",
+        const=True,
+        help="If toggled, GPU training will be used. "
+        "This affects also the distributed backend used (NCCL (gpu) vs GLOO (cpu))",
+    )
     parser.add_argument(
         "--torch-deterministic",
         type=lambda x: bool(strtobool(x)),
@@ -104,13 +114,15 @@ def layer_init(layer: torch.nn.Module, std: float = np.sqrt(2), bias_const: floa
     return layer
 
 
-def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Optional[str] = None):
+def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Optional[str] = None, prefix: str = ""):
     def thunk():
         env = gym.make(env_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)
         if capture_video:
             if idx == 0 and run_name is not None:
-                env = gym.wrappers.RecordVideo(env, f"{run_name}/videos")
+                env = gym.wrappers.RecordVideo(
+                    env, os.path.join(run_name, prefix + "_videos" if prefix else "videos"), disable_logger=True
+                )
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
         return env
