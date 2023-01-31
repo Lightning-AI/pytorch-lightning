@@ -688,7 +688,6 @@ class LightningModule(
                 super().__init__()
                 self.automatic_optimization = False
 
-
             # Multiple optimizers (e.g.: GANs)
             def training_step(self, batch, batch_idx):
                 opt1, opt2 = self.optimizers()
