@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 from fsspec.implementations.local import LocalFileSystem
 
@@ -42,7 +42,7 @@ class FileSystem:
         if str(Path(dst_path).resolve()) == dst_path:
             raise RuntimeError(f"The destination path {dst_path} should be relative.")
 
-    def put(self, src_path: str, dst_path: str, put_fn: Callable = _copy_files) -> None:
+    def put(self, src_path: str, dst_path: Optional[str] = None, put_fn: Callable = _copy_files) -> None:
         """This method enables to put a file to the shared storage in a blocking fashion.
 
         Arguments:
@@ -50,6 +50,9 @@ class FileSystem:
             dst_path: The path to your files transfered in the shared storage.
             put_fn: The method to use to put files in the shared storage.
         """
+        if dst_path is None:
+            src_path = dst_path
+
         self._validate_path(src_path, dst_path)
 
         src = Path(src_path).resolve()
