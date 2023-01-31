@@ -14,7 +14,7 @@ Lightning offers two modes for managing the optimization process:
 For the majority of research cases, **automatic optimization** will do the right thing for you and it is what most
 users should use.
 
-For advanced/expert users who want to do esoteric optimization schedules or techniques, use **manual optimization**.
+For more advanced use cases like multiple optimizers, esoteric optimization schedules or techniques, use **manual optimization**.
 
 .. _manual_optimization:
 
@@ -48,146 +48,19 @@ Under the hood, Lightning does the following:
 
         lr_scheduler.step()
 
-In the case of multiple optimizers, Lightning does the following:
-
-.. code-block:: python
-
-    for epoch in epochs:
-        for batch in data:
-            for opt in optimizers:
-
-                def closure():
-                    loss = model.training_step(batch, batch_idx, optimizer_idx)
-                    opt.zero_grad()
-                    loss.backward()
-                    return loss
-
-                opt.step(closure)
-
-        for lr_scheduler in lr_schedulers:
-            lr_scheduler.step()
-
 As can be seen in the code snippet above, Lightning defines a closure with ``training_step()``, ``optimizer.zero_grad()``
 and ``loss.backward()`` for the optimization. This mechanism is in place to support optimizers which operate on the
 output of the closure (e.g. the loss) or need to call the closure several times (e.g. :class:`~torch.optim.LBFGS`).
 
-.. warning::
-
-   Before v1.2.2, Lightning internally calls ``backward``, ``step`` and ``zero_grad`` in the order.
-   From v1.2.2, the order is changed to ``zero_grad``, ``backward`` and ``step``.
+Should you still require the flexibility of calling ``.zero_grad()``, ``.backward()``, or ``.step()`` yourself, you can
+always switch to :ref:`manual optimization <_manual_optimization>`.
+Manual optimization is required if you wish to work with multiple optimizers.
 
 
 Gradient Accumulation
 =====================
 
 .. include:: ../common/gradient_accumulation.rst
-
-
-Use Multiple Optimizers (like GANs)
-===================================
-
-To use multiple optimizers (optionally with learning rate schedulers), return two or more optimizers from
-:meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`.
-
-.. testcode:: python
-
-    # two optimizers, no schedulers
-    def configure_optimizers(self):
-        return Adam(...), SGD(...)
-
-
-    # two optimizers, one scheduler for adam only
-    def configure_optimizers(self):
-        opt1 = Adam(...)
-        opt2 = SGD(...)
-        optimizers = [opt1, opt2]
-        lr_schedulers = {"scheduler": ReduceLROnPlateau(opt1, ...), "monitor": "metric_to_track"}
-        return optimizers, lr_schedulers
-
-
-    # two optimizers, two schedulers
-    def configure_optimizers(self):
-        opt1 = Adam(...)
-        opt2 = SGD(...)
-        return [opt1, opt2], [StepLR(opt1, ...), OneCycleLR(opt2, ...)]
-
-Under the hood, Lightning will call each optimizer sequentially:
-
-.. code-block:: python
-
-    for epoch in epochs:
-        for batch in data:
-            for opt in optimizers:
-                loss = train_step(batch, batch_idx, optimizer_idx)
-                opt.zero_grad()
-                loss.backward()
-                opt.step()
-
-        for lr_scheduler in lr_schedulers:
-            lr_scheduler.step()
-
-
-Step Optimizers at Arbitrary Intervals
-=======================================
-
-To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
-override the :meth:`~pytorch_lightning.core.module.LightningModule.optimizer_step` function.
-
-.. warning::
-    If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter to
-    ``optimizer.step()`` function as shown in the examples because ``training_step()``, ``optimizer.zero_grad()``,
-    ``loss.backward()`` are called in the closure function.
-
-For example, here step optimizer A every batch and optimizer B every 2 batches.
-
-.. testcode:: python
-
-    # Alternating schedule for optimizer steps (e.g. GANs)
-    def optimizer_step(
-        self,
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        optimizer_closure,
-    ):
-        # update generator every step
-        if optimizer_idx == 0:
-            optimizer.step(closure=optimizer_closure)
-
-        # update discriminator every 2 steps
-        if optimizer_idx == 1:
-            if (batch_idx + 1) % 2 == 0:
-                # the closure (which includes the `training_step`) will be executed by `optimizer.step`
-                optimizer.step(closure=optimizer_closure)
-            else:
-                # call the closure by itself to run `training_step` + `backward` without an optimizer step
-                optimizer_closure()
-
-        # ...
-        # add as many optimizers as you want
-
-Here we add a manual learning rate warm-up without an lr scheduler.
-
-.. testcode:: python
-
-    # learning rate warm-up
-    def optimizer_step(
-        self,
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        optimizer_closure,
-    ):
-        # update params
-        optimizer.step(closure=optimizer_closure)
-
-        # skip the first 500 steps
-        if self.trainer.global_step < 500:
-            lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
-            for pg in optimizer.param_groups:
-                pg["lr"] = lr_scale * self.hparams.learning_rate
 
 
 Access your Own Optimizer
@@ -312,4 +185,4 @@ distributed setting into consideration so you don't have to derive it manually. 
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
         )
-        return [optimizer], [scheduler]
+        return optimizer, scheduler
