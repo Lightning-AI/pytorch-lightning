@@ -121,8 +121,11 @@ class _MultiProcessingLauncher(_Launcher):
             args=process_args,
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
+            join=False,
         )
         self.procs = process_context.processes
+        while not process_context.join():
+            pass
 
         worker_output = return_queue.get()
         if trainer is None:
@@ -237,7 +240,7 @@ class _MultiProcessingLauncher(_Launcher):
     def kill(self, signum: _SIGNUM) -> None:
         # https://github.com/pytorch/pytorch/blob/v1.13.1/torch/distributed/elastic/multiprocessing/api.py#L522-L530
         for proc in self.procs:
-            if proc.is_alive():
+            if proc.is_alive() and proc.pid is not None:
                 log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)

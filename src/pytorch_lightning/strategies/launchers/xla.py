@@ -78,8 +78,11 @@ class _XLALauncher(_MultiProcessingLauncher):
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
+            join=False,
         )
         self.procs = process_context.processes
+        while not process_context.join():
+            pass
 
         worker_output = return_queue.get()
         if trainer is None:
