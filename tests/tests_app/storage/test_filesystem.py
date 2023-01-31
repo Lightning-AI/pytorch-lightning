@@ -1,6 +1,9 @@
-from lightning_app.storage import FileSystem
 import os
+
 import pytest
+
+from lightning_app.storage import FileSystem
+
 
 def test_filesystem(tmpdir):
     fs = FileSystem()
@@ -13,15 +16,15 @@ def test_filesystem(tmpdir):
         f.write("example")
 
     assert fs.list(".") == []
-    fs.put(f"{tmpdir}/a.txt", 'a.txt')
+    fs.put(f"{tmpdir}/a.txt", "a.txt")
     assert fs.list(".") == ["a.txt"]
 
-    fs.put(f"{tmpdir}/checkpoints", 'checkpoints')
-    assert fs.list(".") == ["a.txt", 'checkpoints/a.txt']
+    fs.put(f"{tmpdir}/checkpoints", "checkpoints")
+    assert fs.list(".") == ["a.txt", "checkpoints/a.txt"]
 
     fs.delete("a.txt")
 
-    assert fs.list(".") == ['checkpoints/a.txt']
+    assert fs.list(".") == ["checkpoints/a.txt"]
     fs.delete("checkpoints/a.txt")
     assert fs.list(".") == []
 

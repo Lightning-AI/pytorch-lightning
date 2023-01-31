@@ -18,6 +18,7 @@ import threading
 from threading import Thread
 from time import time
 from typing import Optional, TYPE_CHECKING, Union
+
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
@@ -103,7 +104,9 @@ def _find_matching_path(work, request: _GetRequest) -> Optional["lightning_app.s
             return candidate
 
 
-def _copy_files(source_path: pathlib.Path, destination_path: pathlib.Path, fs: Optional[AbstractFileSystem] = None) -> None:
+def _copy_files(
+    source_path: pathlib.Path, destination_path: pathlib.Path, fs: Optional[AbstractFileSystem] = None
+) -> None:
     """Copy files from one path to another.
 
     The source path must either be an existing file or folder. If the source is a folder, the destination path is
