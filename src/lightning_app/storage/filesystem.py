@@ -1,10 +1,10 @@
-from pathlib import Path
 import os
-from typing import Callable, Optional
-from fsspec import AbstractFileSystem
 import shutil
-import sys
+from pathlib import Path
+from typing import Callable
+
 from fsspec.implementations.local import LocalFileSystem
+
 from lightning_app.storage.copier import _copy_files
 from lightning_app.storage.path import _filesystem, _shared_storage_path
 
@@ -26,9 +26,10 @@ def _get_files(self, fs, src: Path, dst: Path, overwrite: bool):
     else:
         fs.get(str(src), str(dst.absolute()), recursive=False)
 
+
 class FileSystem:
 
-    """This filesystem enables to easily move files from and to the shared storage"""
+    """This filesystem enables to easily move files from and to the shared storage."""
 
     def __init__(self):
         self._fs = _filesystem()
@@ -41,12 +42,7 @@ class FileSystem:
         if str(Path(dst_path).resolve()) == dst_path:
             raise RuntimeError(f"The destination path {dst_path} should be relative.")
 
-    def put(
-        self,
-        src_path: str,
-        dst_path: str,
-        put_fn: Callable = _copy_files
-    ) -> None:
+    def put(self, src_path: str, dst_path: str, put_fn: Callable = _copy_files) -> None:
         """This method enables to put a file to the shared storage in a blocking fashion.
 
         Arguments:
@@ -61,12 +57,7 @@ class FileSystem:
 
         return put_fn(src, dst, fs=self._fs)
 
-    def get(
-        self,
-        src_path: str,
-        dst_path: str,
-        get_fn: Callable = _get_files
-    ) -> None:
+    def get(self, src_path: str, dst_path: str, get_fn: Callable = _get_files) -> None:
         """This method enables to get files from the shared storage in a blocking fashion.
 
         Arguments:
