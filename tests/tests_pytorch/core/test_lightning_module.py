@@ -115,9 +115,9 @@ def test_1_optimizer_toggle_model():
 
     assert not model._param_requires_grad_state
     # toggle optimizer was failing with a single optimizer
-    model.toggle_optimizer(optimizer, 0)
+    model.toggle_optimizer(optimizer)
     assert model._param_requires_grad_state
-    model.untoggle_optimizer(0)
+    model.untoggle_optimizer(optimizer)
     assert not model._param_requires_grad_state
 
 
@@ -143,7 +143,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             opt1, opt2 = self.optimizers()
 
             # Use the first optimizer, toggle it
-            self.toggle_optimizer(opt1, 0)
+            self.toggle_optimizer(opt1)
             loss = self.step(batch)
             opt1.zero_grad()
             self.manual_backward(loss)
@@ -155,10 +155,10 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             assert self.layer_2[3].weight.requires_grad is False
             assert self.layer_2[5].weight.requires_grad is False
             opt1.step()
-            self.untoggle_optimizer(0)
+            self.untoggle_optimizer(opt1)
 
             # Use the second optimizer, toggle it
-            self.toggle_optimizer(opt2, 1)
+            self.toggle_optimizer(opt2)
             loss = self.step(batch)
             opt2.zero_grad()
             self.manual_backward(loss)
@@ -170,7 +170,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             assert self.layer_2[3].weight.requires_grad is False
             assert self.layer_2[5].weight.requires_grad is True
             opt2.step()
-            self.untoggle_optimizer(1)
+            self.untoggle_optimizer(opt2)
 
         def configure_optimizers(self):
             optimizer_1 = SGD(self.layer_1.parameters(), lr=0.1)
@@ -213,7 +213,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             opt1, opt2, opt3 = self.optimizers()
 
             # Use the first optimizer, toggle it
-            self.toggle_optimizer(opt1, 0)
+            self.toggle_optimizer(opt1)
             loss = self.step(batch)
             opt1.zero_grad()
             self.manual_backward(loss)
@@ -229,10 +229,10 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             assert self.layer_3[3].weight.requires_grad is False
             assert self.layer_3[5].weight.requires_grad is False
             opt1.step()
-            self.untoggle_optimizer(0)
+            self.untoggle_optimizer(opt1)
 
             # Use the second optimizer, toggle it
-            self.toggle_optimizer(opt2, 1)
+            self.toggle_optimizer(opt2)
             loss = self.step(batch)
             opt2.zero_grad()
             self.manual_backward(loss)
@@ -248,10 +248,10 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             assert self.layer_3[3].weight.requires_grad is True
             assert self.layer_3[5].weight.requires_grad is False
             opt2.step()
-            self.untoggle_optimizer(1)
+            self.untoggle_optimizer(opt2)
 
             # Use the third optimizer, toggle it
-            self.toggle_optimizer(opt3, 2)
+            self.toggle_optimizer(opt3)
             loss = self.step(batch)
             opt3.zero_grad()
             self.manual_backward(loss)
@@ -267,7 +267,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             assert self.layer_3[3].weight.requires_grad is True
             assert self.layer_3[5].weight.requires_grad is False
             opt3.step()
-            self.untoggle_optimizer(2)
+            self.untoggle_optimizer(opt3)
 
         @staticmethod
         def combine_generators(gen_1, gen_2):
