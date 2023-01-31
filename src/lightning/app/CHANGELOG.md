@@ -16,21 +16,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed the default `LightningClient(retry=False)` to `retry=True` ([#16382](https://github.com/Lightning-AI/lightning/pull/16382))
 
+
 - Add support for async predict method in PythonServer and remove torch context ([#16453](https://github.com/Lightning-AI/lightning/pull/16453))
 
+
 - Renamed `lightning.app.components.LiteMultiNode` to `lightning.app.components.FabricMultiNode` ([#16505](https://github.com/Lightning-AI/lightning/pull/16505))
+
 
 ### Deprecated
 
 -
 
+
 ### Removed
 
 -
 
+
 ### Fixed
 
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
+
 
 ## [1.9.0] - 2023-01-17
 
