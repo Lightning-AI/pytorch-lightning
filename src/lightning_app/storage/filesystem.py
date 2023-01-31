@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 from fsspec.implementations.local import LocalFileSystem
 
