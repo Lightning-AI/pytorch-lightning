@@ -22,11 +22,8 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from lightning_app.runners import CloudRuntime
 from lightning_app.utilities.app_helpers import Logger
-from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.component import _set_flow_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.network import LightningClient
@@ -87,6 +84,8 @@ class _Run(BaseModel):
 def _run_plugin(run: _Run) -> None:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     if run.app_id is None:
+        from lightning.app.runners import CloudRuntime
+
         # TODO: App dispatch should be a plugin
         # Dispatch the run
         _set_flow_context()
@@ -118,6 +117,9 @@ def _run_plugin(run: _Run) -> None:
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     else:
+        from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
+        from lightning_app.utilities.commands.base import _download_command
+
         retriever = _LightningAppOpenAPIRetriever(run.app_id)
 
         metadata = retriever.api_commands[run.plugin_name]
