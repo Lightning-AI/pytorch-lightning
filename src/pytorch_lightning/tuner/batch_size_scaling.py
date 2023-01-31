@@ -15,7 +15,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
@@ -328,9 +328,7 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(
-    batch_size: int, dataloader: "pl.trainer.supporters.CombinedLoader", trainer: "pl.Trainer"
-) -> bool:
+def _is_valid_batch_size(batch_size: int, dataloader: Iterable, trainer: "pl.Trainer") -> bool:
     from pytorch_lightning.utilities.data import has_len_all_ranks
 
     module = trainer.lightning_module or trainer.datamodule

@@ -14,13 +14,12 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Generator, List, Optional, Sequence, Tuple, Union
+from typing import Generator, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
@@ -29,7 +28,6 @@ from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.progress import BaseProgress
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
@@ -190,14 +188,13 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _set_sampler_epoch(dataloader: Union[DataLoader, CombinedLoader], epoch: int) -> None:
+def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
     """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
 
     Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
     """
-
     for sampler_name in ("sampler", "batch_sampler"):
         sampler = getattr(dataloader, sampler_name, None)
         if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
