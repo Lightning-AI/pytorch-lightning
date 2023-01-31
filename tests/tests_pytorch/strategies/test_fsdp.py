@@ -19,7 +19,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import wrap, size_based_auto_wrap_policy
+    from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy, wrap
 
 
 class TestFSDPModel(BoringModel):
@@ -218,6 +218,7 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
 @pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
 def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that state dict is extracted correctly when using FSDP strategy.
+
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
     """
     model = TestFSDPModelAutoWrapped()
