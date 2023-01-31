@@ -3,11 +3,10 @@ Manual Optimization
 *******************
 
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to
-manually manage the optimization process.
+manually manage the optimization process, especially when dealing with multiple optimizers at the same time.
 
-This is only recommended for experts who need ultimate flexibility.
-Lightning will handle only accelerator, precision and strategy logic.
-The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
+In this mode, Lightning will handle only accelerator, precision and strategy logic.
+The users are left with ``optimizer.zero_grad()``, gradient accumulation, optimizer toggling, etc..
 
 To manually optimize, do the following:
 
@@ -18,6 +17,7 @@ To manually optimize, do the following:
   * ``optimizer.zero_grad()`` to clear the gradients from the previous training step
   * ``self.manual_backward(loss)`` instead of ``loss.backward()``
   * ``optimizer.step()`` to update your model parameters
+  * ``self.toggle_optimizer()`` and ``self.untoggle_optimizer()`` if needed
 
 Here is a minimal example of manual optimization.
 
@@ -38,10 +38,6 @@ Here is a minimal example of manual optimization.
             loss = self.compute_loss(batch)
             self.manual_backward(loss)
             opt.step()
-
-.. warning::
-   Before 1.2, ``optimizer.step()`` was calling ``optimizer.zero_grad()`` internally.
-   From 1.2, it is left to the user's expertise.
 
 .. tip::
    Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
