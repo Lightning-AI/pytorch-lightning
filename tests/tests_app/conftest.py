@@ -10,12 +10,12 @@ import psutil
 import py
 import pytest
 
-from lightning_app.storage.path import _storage_root_dir
-from lightning_app.utilities.app_helpers import _collect_child_process_pids
-from lightning_app.utilities.component import _set_context
-from lightning_app.utilities.packaging import cloud_compute
-from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
-from lightning_app.utilities.state import AppState
+from lightning.app.storage.path import _storage_root_dir
+from lightning.app.utilities.app_helpers import _collect_child_process_pids
+from lightning.app.utilities.component import _set_context
+from lightning.app.utilities.packaging import cloud_compute
+from lightning.app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
+from lightning.app.utilities.state import AppState
 
 os.environ["LIGHTNING_DISPATCHED"] = "1"
 
@@ -58,7 +58,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture(scope="function", autouse=True)
 def cleanup():
-    from lightning_app.utilities.app_helpers import _LightningAppRef
+    from lightning.app.utilities.app_helpers import _LightningAppRef
 
     yield
     _LightningAppRef._app_instance = None
@@ -74,10 +74,10 @@ def cleanup():
 def clear_app_state_state_variables():
     """Resets global variables in order to prevent interference between tests."""
     yield
-    import lightning_app.utilities.state
+    import lightning.app.utilities.state
 
-    lightning_app.utilities.state._STATE = None
-    lightning_app.utilities.state._LAST_STATE = None
+    lightning.app.utilities.state._STATE = None
+    lightning.app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
     if hasattr(cloud_compute, "_CLOUD_COMPUTE_STORE"):
         cloud_compute._CLOUD_COMPUTE_STORE.clear()
@@ -105,7 +105,7 @@ def caplog(caplog):
     propagation_dict = {
         name: logging.getLogger(name).propagate
         for name in logging.root.manager.loggerDict
-        if name.startswith("lightning_app")
+        if name.startswith("lightning.app")
     }
     for name in propagation_dict.keys():
         logging.getLogger(name).propagate = True
