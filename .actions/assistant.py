@@ -343,7 +343,7 @@ def copy_replace_imports(
             fo.writelines(lines)
 
 
-def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reverse: Sequence[str]) -> None:
+def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
     # replace imports and copy the code
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
