@@ -1,0 +1,25 @@
+{
+  "files": {
+    "main.css": "/static/css/main.bb0f092c.css",
+    "main.js": "/static/js/main.2b242b99.js",
+    "static/js/787.418637a8.chunk.js": "/static/js/787.418637a8.chunk.js",
+    "static/media/UCity-Regular.woff": "/static/media/UCity-Regular.7a3b475525ed92dc7816.woff",
+    "static/media/UCity-Light.woff": "/static/media/UCity-Light.47cf3e33cb6bb1496c95.woff",
+    "static/media/UCity-Semibold.woff": "/static/media/UCity-Semibold.bb7aab96e378ebd6a651.woff",
+    "static/media/UCity-Regular.woff2": "/static/media/UCity-Regular.8afa44ac39706d62b62b.woff2",
+    "static/media/UCity-Light.woff2": "/static/media/UCity-Light.30446c15a21bf8a994e8.woff2",
+    "static/media/UCity-Semibold.woff2": "/static/media/UCity-Semibold.80655a0e8b4bb5f30545.woff2",
+    "static/media/lightning-logo-with-text.svg": "/static/media/lightning-logo-with-text.b964c8fbf221c97eb8ce52bb6e3a30d6.svg",
+    "static/media/warning.svg": "/static/media/warning.5c542673e84e77ceb6a230bfea7f7263.svg",
+    "index.html": "/index.html",
+    "static/media/error.svg": "/static/media/error.11892047d0183a4723b91dc0fb98cb95.svg",
+    "static/media/success.svg": "/static/media/success.5edae4c5b171e2c1c5a3c54273c47ba8.svg",
+    "main.bb0f092c.css.map": "/static/css/main.bb0f092c.css.map",
+    "main.2b242b99.js.map": "/static/js/main.2b242b99.js.map",
+    "787.418637a8.chunk.js.map": "/static/js/787.418637a8.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.bb0f092c.css",
+    "static/js/main.2b242b99.js"
+  ]
+}

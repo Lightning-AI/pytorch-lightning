@@ -97,7 +97,8 @@ def test_validate_client_command():
     with pytest.raises(Exception, match="annotate your method"):
         _validate_client_command(ClientCommand(run_failure_1))
 
-    with pytest.raises(Exception, match="lightning_app/utilities/commands/base.py"):
+    starts = "lightning_app".replace(".", "/")
+    with pytest.raises(Exception, match=f"{starts}/utilities/commands/base.py"):
         _validate_client_command(ClientCommand(run_failure_2))
 
 

@@ -23,13 +23,13 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CH
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import ClusterEnvironment
+from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
@@ -49,7 +49,6 @@ from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 

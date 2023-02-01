@@ -10,7 +10,8 @@ on:
     paths:
       - ".actions/**"
       - ".github/workflows/ci-examples-app.yml"
-      - "src/lightning_app/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "tests/integrations_app/**"
       - "!tests/integrations_app/flagship/**"
       - "examples/app_*/**"
@@ -90,15 +91,19 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Adjust tests
+      - name: Adjust imports -> Lit
         if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
             --source_import="lightning_app" --target_import="lightning.app"
 
-      - name: Adjust examples
+      - name: Adjust imports -> App
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
+          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+            --source_import="lightning.app" \
+            --target_import="lightning_app" \
+            --lightning_by="lightning_app"
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" \
             --source_import="lightning.app,lightning" \
             --target_import="lightning_app,lightning_app"

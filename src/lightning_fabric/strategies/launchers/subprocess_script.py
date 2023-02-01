@@ -19,13 +19,13 @@ from typing import Any, Callable, Optional, Sequence, Tuple
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 
 class _SubprocessScriptLauncher(_Launcher):
-    r"""A process laucher that invokes the current script as many times as desired in a single node.
+    r"""A process launcher that invokes the current script as many times as desired in a single node.
 
     This launcher needs to be invoked on each node.
     In its default behavior, the main process in each node then spawns N-1 child processes via :func:`subprocess.Popen`,
