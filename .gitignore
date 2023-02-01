@@ -53,7 +53,10 @@ src/lightning_app/
 !src/lightning_app/__*__.py
 !src/lightning_app/MANIFEST.in
 !src/lightning_app/README.md
-src/lightning/fabric/
+src/lightning_fabric/
+!src/lightning_fabric/__*__.py
+!src/lightning_fabric/MANIFEST.in
+!src/lightning_fabric/README.md
 src/lightning/pytorch/
 
 # PyInstaller
@@ -169,6 +172,7 @@ cifar-10-batches-py
 tags
 .tags
 src/lightning_app/ui/*
+src/lightning/app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*
