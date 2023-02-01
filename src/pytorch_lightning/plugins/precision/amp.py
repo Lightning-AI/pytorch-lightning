@@ -10,12 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Dict, Generator, Optional, Union
+from typing import Any, Callable, cast, Dict, Generator, Literal, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.accelerators.cuda import _patch_cuda_is_available

@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed support for PyTorch 1.10 ([#16492](https://github.com/Lightning-AI/lightning/pull/16492))
 
+- Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
+
 
 ### Fixed
 

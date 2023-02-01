@@ -64,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/tpu-tests.yml'
-        python_version: ["3.7"]
+        python_version: ["3.8"]
         xla_version: ["1.12"]
     steps:
       - uses: actions/checkout@v3
