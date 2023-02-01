@@ -58,7 +58,7 @@ _PACKAGE_MAPPING = {
     "fabric": "lightning_fabric",
 }
 # TODO: drop this reverse list when all packages are moved
-_MIRROR_PACKAGE_REVERSED = ("app", "pytorch")
+_MIRROR_PACKAGE_REVERSED = ("app", "fabric", "pytorch")
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)

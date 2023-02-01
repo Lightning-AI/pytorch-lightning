@@ -17,7 +17,8 @@ on:
       - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-pytorch.yml"
       - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
       - "!requirements/pytorch/docs.txt"
       - "!*.md"
       - "!**/*.md"
