@@ -31,7 +31,7 @@ def test_filesystem(tmpdir):
 
     assert not os.path.exists(f"{tmpdir}/a.txt")
 
-    fs.get(f"/a.txt", f"{tmpdir}/a.txt")
+    fs.get("/a.txt", f"{tmpdir}/a.txt")
 
     assert os.path.exists(f"{tmpdir}/a.txt")
 
