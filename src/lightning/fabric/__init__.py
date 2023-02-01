@@ -2,14 +2,14 @@
 import logging
 import os
 
-from lightning_utilities import module_available
+from lightning_utilities.core.imports import package_available
 
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
     from lightning.fabric.__about__ import *  # noqa: F401, F403
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
     from lightning.fabric.__version__ import version as __version__
-elif module_available("lightning"):
-    from lightning import __version__  # noqa: F401
+elif package_available("lightning"):
+    from lightning import __version__  # type: ignore[misc] # noqa: F401
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
