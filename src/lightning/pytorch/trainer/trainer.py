@@ -1361,7 +1361,7 @@ class Trainer:
 
         module = model or self.lightning_module or self.datamodule
         orig_train_batches = self.num_training_batches = (
-            len(self.train_dataloader)  # type: ignore[arg-type]
+            len(self.train_dataloader)
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )

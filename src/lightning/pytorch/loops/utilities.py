@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Generator, Optional, Tuple, Union
+from typing import Generator, Iterable, Optional, Tuple
 
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -25,7 +24,6 @@ from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import BaseProgress
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import Strategy
-from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
@@ -121,14 +119,13 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _set_sampler_epoch(dataloader: Union[DataLoader, CombinedLoader], epoch: int) -> None:
+def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
     """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
 
     Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
     """
-
     for sampler_name in ("sampler", "batch_sampler"):
         sampler = getattr(dataloader, sampler_name, None)
         if sampler is not None and callable(getattr(sampler, "set_epoch", None)):

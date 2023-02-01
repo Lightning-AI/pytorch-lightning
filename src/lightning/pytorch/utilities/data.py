@@ -13,28 +13,24 @@
 # limitations under the License.
 import inspect
 from dataclasses import fields
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
+from lightning_utilities.core.rank_zero import rank_prefixed_message
 from torch import Tensor
-from torch.utils.data import (
-    BatchSampler,
-    DataLoader,
-    Dataset,
-    IterableDataset,
-    RandomSampler,
-    Sampler,
-    SequentialSampler,
-)
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
+from typing_extensions import TypeGuard
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
-from lightning.fabric.utilities.data import has_iterable_dataset as new_has_iterable_dataset
-from lightning.fabric.utilities.data import has_len as new_has_len
+from lightning.fabric.utilities.data import (
+    _reinstantiate_wrapped_cls,
+    _replace_value_in_saved_args,
+    has_iterable_dataset,
+    sized_len,
+)
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 
@@ -94,41 +90,41 @@ def extract_batch_size(batch: BType) -> int:
 
 
 def has_len_all_ranks(
-    dataloader: Union[DataLoader, CombinedLoader],
+    dataloader: object,
     strategy: "pl.strategies.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
-) -> bool:
-    """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
-    infinite dataloader."""
-    try:
-        local_length = len(dataloader)  # type: ignore [arg-type] # we are checking with duck-typing
-        total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
-
-        if total_length == 0:
-            rank_zero_warn(
-                f"Total length of `{dataloader.__class__.__name__}` across ranks is zero."
-                " Please make sure this was your intention."
+) -> TypeGuard[Sized]:
+    """Checks if a given object has ``__len__`` method implemented on all aranks."""
+    local_length = sized_len(dataloader)
+    has_len = True
+    if local_length is None:
+        # if one rank does not define a length, the reduction after would fail, default to 0
+        local_length = 0
+        has_len = False
+    total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
+    if total_length == 0:
+        rank_zero_warn(
+            f"Total length of `{type(dataloader).__name__}` across ranks is zero."
+            " Please make sure this was your intention."
+        )
+    if total_length > 0 and local_length == 0:
+        dataloader_cls_name = type(dataloader).__name__
+        if not has_len:
+            raise RuntimeError(
+                rank_prefixed_message(f"The `{dataloader_cls_name}` does not define a length.", strategy.global_rank)
             )
-        if total_length > 0 and local_length == 0:
-            if model.allow_zero_length_dataloader_with_multiple_devices:
-                rank_zero_warn(
-                    f"Total length of `{dataloader.__class__.__name__}` across ranks is zero, but local rank has zero"
-                    " length. Please be cautious of uneven batch length."
-                )
-                has_len = False
-            else:
-                raise MisconfigurationException(
-                    f"`{dataloader.__class__.__name__}` within local rank has zero length."
-                    " Please make sure that it returns at least 1 batch."
-                )
-        else:
-            has_len = True
-
-    except (TypeError, NotImplementedError):
+        if not model.allow_zero_length_dataloader_with_multiple_devices:
+            raise RuntimeError(
+                f"`{dataloader_cls_name}` within local rank has zero length."
+                " Please make sure that it returns at least 1 batch."
+            )
+        rank_zero_warn(
+            f"Total length of `{dataloader_cls_name}` across ranks is zero, but local rank has zero"
+            " length. Please be cautious of uneven batch length."
+        )
         has_len = False
 
-    # we are checking using lightning.fabric, which doesn't know CombinedLoader
-    if has_len and new_has_iterable_dataset(dataloader):  # type: ignore [arg-type]
+    if has_len and has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
@@ -138,16 +134,13 @@ def has_len_all_ranks(
     return has_len
 
 
-def get_len(dataloader: Union[DataLoader, Dataset]) -> Union[int, float]:
+def get_len(dataloader: object) -> Union[int, float]:
     """Return the length of the given DataLoader.
 
     If ``__len__`` method is not implemented, return float('inf').
     """
-
-    if new_has_len(dataloader):
-        return len(dataloader)  # type: ignore [arg-type]
-
-    return float("inf")
+    length = sized_len(dataloader)
+    return float("inf") if length is None else length
 
 
 def _update_dataloader(
