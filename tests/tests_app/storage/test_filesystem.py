@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from lightning.app.storage import FileSystem
+from lightning_app.storage import FileSystem
 
 
 def test_filesystem(tmpdir):
