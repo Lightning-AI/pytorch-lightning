@@ -15,7 +15,8 @@ on:
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
