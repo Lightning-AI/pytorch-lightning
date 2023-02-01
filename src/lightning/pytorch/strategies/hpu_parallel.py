@@ -22,14 +22,13 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.overrides.torch_distributed import broadcast_object_list
 from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
+from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
@@ -117,18 +116,6 @@ class HPUParallelStrategy(DDPStrategy):
         if static_graph is not None:
             # DDP does not accept static_graph as a parameter, hence removing it from the list
             del self._ddp_kwargs["static_graph"]
-
-    def configure_ddp(self) -> None:
-        # DDP does not accept static graph as param with torch < 1.11
-        if _TORCH_LESSER_EQUAL_1_10_2:
-            log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-            self._pre_configure_ddp()
-            self.model = self._setup_model(_LightningModuleWrapperBase(self.model))  # type: ignore
-            if self.root_device.type == "hpu" and self._static_graph:
-                self._model._set_static_graph()  # type: ignore
-            self._register_ddp_hooks()
-        else:
-            super().configure_ddp()
 
     def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]

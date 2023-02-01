@@ -29,7 +29,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from lightning_fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.plugins.environments import SLURMEnvironment
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.cli import (
@@ -206,7 +206,7 @@ def test_lightning_cli_configurable_callbacks(cleandir, run):
 
 
 def test_lightning_cli_args_cluster_environments(cleandir):
-    plugins = [dict(class_path="lightning_fabric.plugins.environments.SLURMEnvironment")]
+    plugins = [dict(class_path="lightning.fabric.plugins.environments.SLURMEnvironment")]
 
     class TestModel(BoringModel):
         def on_fit_start(self):

@@ -22,18 +22,14 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
+from torch.ao.quantization import fuse_modules_qat as fuse_modules
 from torch.ao.quantization.qconfig import QConfig
 from torch.quantization import FakeQuantizeBase
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-
-if _TORCH_GREATER_EQUAL_1_11:
-    from torch.ao.quantization import fuse_modules_qat as fuse_modules
-else:
-    from torch.quantization import fuse_modules
 
 
 def wrap_qat_forward_context(
