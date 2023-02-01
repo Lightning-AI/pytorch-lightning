@@ -10,10 +10,10 @@ from lightning_cloud.openapi import (
     V1ListLightningappInstancesResponse,
 )
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.core.flow import _RootFlow
-from lightning_app.frontend import StaticWebFrontend
-from lightning_app.utilities.app_helpers import (
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.core.flow import _RootFlow
+from lightning.app.frontend import StaticWebFrontend
+from lightning.app.utilities.app_helpers import (
     _handle_is_headless,
     _is_headless,
     _MagicMockJsonSerializable,
@@ -24,7 +24,7 @@ from lightning_app.utilities.app_helpers import (
     is_static_method,
     StateStore,
 )
-from lightning_app.utilities.exceptions import LightningAppStateException
+from lightning.app.utilities.exceptions import LightningAppStateException
 
 
 class Work(LightningWork):
@@ -67,7 +67,7 @@ def test_simple_app_store():
     assert isinstance(store, StateStore)
 
 
-@mock.patch("lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES", 120)
+@mock.patch("lightning.app.core.constants.APP_STATE_MAX_SIZE_BYTES", 120)
 def test_simple_app_store_warning():
     store = InMemoryStateStore()
     user_id = "1234"
@@ -215,7 +215,7 @@ def test_is_headless(flow, expected):
     assert _is_headless(app) == expected
 
 
-@mock.patch("lightning_app.utilities.network.LightningClient")
+@mock.patch("lightning.app.utilities.network.LightningClient")
 def test_handle_is_headless(mock_client):
     project_id = "test_project_id"
     cloudspace_id = "test_id"
