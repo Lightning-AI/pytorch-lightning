@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.loops import _Loop
+from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.optimization.closure import AbstractClosure, OutputResult
 from lightning.pytorch.loops.progress import OptimizationProgress
 from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
