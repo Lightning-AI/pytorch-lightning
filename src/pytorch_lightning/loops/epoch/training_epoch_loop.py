@@ -18,9 +18,9 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
-from pytorch_lightning.loops.optimization import _ManualOptimization, _OptimizerLoop
-from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
-from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
+from pytorch_lightning.loops.optimization import _ManualOptimization, _AutomaticOptimization
+from pytorch_lightning.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
+from pytorch_lightning.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
@@ -68,7 +68,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.optimizer_loop = _OptimizerLoop()
+        self.optimizer_loop = _AutomaticOptimization()
         self.manual_loop = _ManualOptimization()
 
         self.val_loop = loops._EvaluationLoop(verbose=False)

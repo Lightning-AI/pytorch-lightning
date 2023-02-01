@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loops.optimization.manual_loop import _ManualOptimization  # noqa: F401
-from pytorch_lightning.loops.optimization.optimizer_loop import _OptimizerLoop  # noqa: F401
+from pytorch_lightning.loops.optimization.manual import _ManualOptimization  # noqa: F401
+from pytorch_lightning.loops.optimization.automatic import _AutomaticOptimization  # noqa: F401
