@@ -239,7 +239,6 @@ class DDPStrategy(ParallelStrategy):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        opt_idx: int,
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
@@ -248,12 +247,11 @@ class DDPStrategy(ParallelStrategy):
 
         Args:
             optimizer: the optimizer performing the step
-            opt_idx: index of the current optimizer
             closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
+        optimizer_output = super().optimizer_step(optimizer, closure, model, **kwargs)
 
         if self._model_averager is None:
             return optimizer_output
