@@ -53,7 +53,7 @@ and ``loss.backward()`` for the optimization. This mechanism is in place to supp
 output of the closure (e.g. the loss) or need to call the closure several times (e.g. :class:`~torch.optim.LBFGS`).
 
 Should you still require the flexibility of calling ``.zero_grad()``, ``.backward()``, or ``.step()`` yourself, you can
-always switch to :ref:`manual optimization <_manual_optimization>`.
+always switch to :ref:`manual optimization <manual_optimization>`.
 Manual optimization is required if you wish to work with multiple optimizers (see the :ref:`GAN example <multiple_optimizers_gan>`)
 
 
