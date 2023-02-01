@@ -75,7 +75,7 @@ def test_finetuning_callback(tmpdir):
 
 
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
-    def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+    def finetune_function(self, pl_module, epoch: int, optimizer):
         """Called when the epoch begins."""
 
         if epoch == 0:
@@ -211,7 +211,7 @@ class OnEpochLayerFinetuning(BaseFinetuning):
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(pl_module.layer)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer):
         self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
 
 
@@ -316,7 +316,7 @@ class TestCallbacksRestoreCallback(BaseFinetuning):
     def freeze_before_training(self, pl_module):
         self.freeze(pl_module.layer[:3])
 
-    def finetune_function(self, pl_module, epoch, optimizer, opt_idx):
+    def finetune_function(self, pl_module, epoch, optimizer):
         if epoch >= 1:
             self.unfreeze_and_add_param_group(pl_module.layer[epoch - 1], optimizer)
 

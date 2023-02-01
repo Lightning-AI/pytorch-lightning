@@ -48,7 +48,6 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         tensor: Tensor,
         model: "pl.LightningModule",
         optimizer: Optional[Steppable],
-        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -65,12 +64,11 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         self,
         optimizer: Steppable,
         model: "pl.LightningModule",
-        optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         closure_result = closure()
-        self._after_closure(model, optimizer, optimizer_idx)
+        self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             raise ValueError(

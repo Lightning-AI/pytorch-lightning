@@ -11,15 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
 from contextlib import contextmanager
-from functools import lru_cache
-from typing import Generator, List, Optional, Sequence, Tuple, Union
+from typing import Generator, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -31,7 +27,6 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -86,43 +81,6 @@ def _parse_loop_limits(
     return min_epochs, max_epochs
 
 
-def _build_training_step_kwargs(
-    kwargs: OrderedDict,
-    lightning_module: "pl.LightningModule",
-    optimizers: Sequence[Optimizer],
-    opt_idx: Optional[int],
-) -> OrderedDict:
-    """Builds the keyword arguments for training_step.
-
-    Args:
-        kwargs: The kwargs passed down to the hooks.
-        lightning_module: the LightningModule with a `training_step` hook implementation
-        optimizers: the list of optimizers from the Trainer
-        opt_idx: the index of the current optimizer
-
-    Returns:
-        the keyword arguments for the training step
-    """
-    training_step_fx = getattr(lightning_module, "training_step")
-    if len(optimizers) > 1:
-        has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
-        if has_opt_idx_in_train_step:
-            if not lightning_module.automatic_optimization:
-                raise ValueError(
-                    "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
-                    " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
-                    " argument or set `self.automatic_optimization = True`."
-                )
-            kwargs["optimizer_idx"] = opt_idx
-        elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
-            raise ValueError(
-                f"Your LightningModule defines {len(optimizers)} optimizers but"
-                " `training_step` is missing the `optimizer_idx` argument."
-            )
-
-    return kwargs
-
-
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
     """Blocks synchronization in :class:`~pytorch_lightning.strategies.parallel.ParallelStrategy`. This is useful
@@ -140,33 +98,6 @@ def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Gen
             yield None
     else:
         yield None
-
-
-@lru_cache(1)
-def _cumulative_optimizer_frequencies(frequencies: Tuple[int]) -> np.ndarray:
-    return np.cumsum(frequencies)
-
-
-def _get_active_optimizers(
-    optimizers: List[Optimizer], frequencies: List[int], batch_idx: int
-) -> List[Tuple[int, Optimizer]]:
-    """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
-    one of the optimizers is active at a time.
-
-    Returns:
-        A list of tuples (opt_idx, optimizer) of currently active optimizers.
-    """
-    if not frequencies:
-        # call training_step once per optimizer
-        return list(enumerate(optimizers))
-
-    freq_cumsum = _cumulative_optimizer_frequencies(tuple(frequencies))
-    optimizers_loop_length = freq_cumsum[-1]
-    current_place_in_loop = batch_idx % optimizers_loop_length
-
-    # find optimizer index by looking for the first {item > current_place} in the cumsum list
-    opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
-    return [(opt_idx, optimizers[opt_idx])]
 
 
 def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:

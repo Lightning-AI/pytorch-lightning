@@ -10,7 +10,8 @@ on:
     paths:
       - ".actions/**"
       - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
       - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"

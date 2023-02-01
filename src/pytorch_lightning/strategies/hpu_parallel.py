@@ -145,12 +145,11 @@ class HPUParallelStrategy(DDPStrategy):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        opt_idx: int,
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
-        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
+        optimizer_output = super().optimizer_step(optimizer, closure, model, **kwargs)
         # Break lazy accumulation of graph after optimizer
         htcore.mark_step()
         return optimizer_output
