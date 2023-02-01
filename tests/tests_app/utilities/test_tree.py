@@ -1,8 +1,8 @@
 import pytest
 
-from lightning_app import LightningFlow, LightningWork
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.tree import breadth_first
+from lightning.app import LightningFlow, LightningWork
+from lightning.app.testing.helpers import EmptyFlow, EmptyWork
+from lightning.app.utilities.tree import breadth_first
 
 
 class LeafFlow(EmptyFlow):

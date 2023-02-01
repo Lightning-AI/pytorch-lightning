@@ -64,7 +64,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.10 and above.
+We are fully compatible with any stable PyTorch version v1.11 and above.
 
 .. raw:: html
 
@@ -224,7 +224,6 @@ Current Lightning Users
    Debugging <debug/debugging>
    Early stopping <common/early_stopping>
    Experiment manager (Logger) <visualize/experiment_managers>
-   Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/finetuning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    GPU <accelerators/gpu>

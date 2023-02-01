@@ -54,15 +54,15 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import BuildConfig, LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import backends, cloud, CloudRuntime
-from lightning_app.source_code.copytree import _copytree, _parse_lightningignore
-from lightning_app.source_code.local import LocalSourceCodeDir
-from lightning_app.storage import Drive, Mount
-from lightning_app.testing.helpers import EmptyWork
-from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.dependency_caching import get_hash
-from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import backends, cloud, CloudRuntime
+from lightning.app.source_code.copytree import _copytree, _parse_lightningignore
+from lightning.app.source_code.local import LocalSourceCodeDir
+from lightning.app.storage import Drive, Mount
+from lightning.app.testing.helpers import EmptyWork
+from lightning.app.utilities.cloud import _get_project
+from lightning.app.utilities.dependency_caching import get_hash
+from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 
 class MyWork(LightningWork):
@@ -312,7 +312,7 @@ class TestAppCreationClient:
         assert args[1]["body"].name.startswith(app_name)
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_with_default_flow_compute_config(self, tmpdir, monkeypatch, flow_cloud_compute):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -356,7 +356,7 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_on_byoc_cluster(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -405,7 +405,7 @@ class TestAppCreationClient:
             body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id"),
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_requirements_file(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -463,7 +463,7 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_basic_auth_enabled(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -523,7 +523,7 @@ class TestAppCreationClient:
             ),
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_no_cache(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -572,7 +572,7 @@ class TestAppCreationClient:
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize(
         "lightningapps,start_with_flow",
         [([], False), ([MagicMock()], False), ([MagicMock()], True)],
@@ -629,7 +629,7 @@ class TestAppCreationClient:
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
-            "lightning_app.runners.cloud._get_project",
+            "lightning.app.runners.cloud._get_project",
             lambda x: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
@@ -696,7 +696,7 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_queue_server_type_specified(self, tmpdir, lightningapps, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -751,7 +751,7 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=body
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
@@ -782,8 +782,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning_app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning_app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -819,7 +819,7 @@ class TestAppCreationClient:
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
-            "lightning_app.runners.cloud._get_project",
+            "lightning.app.runners.cloud._get_project",
             lambda x: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
@@ -895,8 +895,8 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    @mock.patch("lightning_app.core.constants.ENABLE_APP_COMMENT_COMMAND_EXECUTION", True)
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.core.constants.ENABLE_APP_COMMENT_COMMAND_EXECUTION", True)
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_app_comment_command_execution_set(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
@@ -929,8 +929,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning_app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning_app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -954,7 +954,7 @@ class TestAppCreationClient:
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
-            "lightning_app.runners.cloud._get_project",
+            "lightning.app.runners.cloud._get_project",
             lambda x: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.run_app_comment_commands = True
@@ -1023,7 +1023,7 @@ class TestAppCreationClient:
                 ),
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
@@ -1056,8 +1056,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun(cluster_id="test")
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning_app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning_app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -1094,7 +1094,7 @@ class TestAppCreationClient:
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
-            "lightning_app.runners.cloud._get_project",
+            "lightning.app.runners.cloud._get_project",
             lambda x: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
@@ -1237,7 +1237,7 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
@@ -1270,8 +1270,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun(cluster_id="test")
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning_app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning_app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         existing_instance.spec.cluster_id = None
@@ -1314,7 +1314,7 @@ class TestAppCreationClient:
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
-            "lightning_app.runners.cloud._get_project",
+            "lightning.app.runners.cloud._get_project",
             lambda x: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
@@ -1645,8 +1645,8 @@ class TestCloudspaceDispatch:
         assert mock_client.cloud_space_service_create_lightning_run_instance.call_args.kwargs["body"].name == "run_name"
 
 
-@mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
+@mock.patch("lightning.app.core.queues.QueuingSystem", MagicMock())
+@mock.patch("lightning.app.runners.backends.cloud.LightningClient", MagicMock())
 def test_get_project(monkeypatch):
     mock_client = mock.MagicMock()
     monkeypatch.setattr(cloud, "CloudBackend", mock.MagicMock(return_value=mock_client))
@@ -1684,8 +1684,8 @@ def write_file_of_size(path, size):
         f.write(b"\0")
 
 
-@mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
+@mock.patch("lightning.app.core.queues.QueuingSystem", MagicMock())
+@mock.patch("lightning.app.runners.backends.cloud.LightningClient", MagicMock())
 def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     app = MagicMock()
     root = Path(tmpdir)
@@ -1711,8 +1711,8 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     assert "lightningingore` attribute in a Flow or Work" in caplog.text
 
 
-@mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
+@mock.patch("lightning.app.core.queues.QueuingSystem", MagicMock())
+@mock.patch("lightning.app.runners.backends.cloud.LightningClient", MagicMock())
 def test_project_has_sufficient_credits():
     app = mock.MagicMock(spec=LightningApp)
     cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=Path("entrypoint.py"))
@@ -1731,28 +1731,28 @@ def test_project_has_sufficient_credits():
     [
         [
             "import this_package_is_not_real",
-            "from lightning_app import LightningApp",
-            "from lightning_app.testing.helpers import EmptyWork",
+            "from lightning.app import LightningApp",
+            "from lightning.app.testing.helpers import EmptyWork",
             "app = LightningApp(EmptyWork())",
         ],
         [
             "from this_package_is_not_real import this_module_is_not_real",
-            "from lightning_app import LightningApp",
-            "from lightning_app.testing.helpers import EmptyWork",
+            "from lightning.app import LightningApp",
+            "from lightning.app.testing.helpers import EmptyWork",
             "app = LightningApp(EmptyWork())",
         ],
         [
             "import this_package_is_not_real",
             "from this_package_is_not_real import this_module_is_not_real",
-            "from lightning_app import LightningApp",
-            "from lightning_app.testing.helpers import EmptyWork",
+            "from lightning.app import LightningApp",
+            "from lightning.app.testing.helpers import EmptyWork",
             "app = LightningApp(EmptyWork())",
         ],
         [
             "import this_package_is_not_real",
-            "from lightning_app import LightningApp",
-            "from lightning_app.core.flow import _RootFlow",
-            "from lightning_app.testing.helpers import EmptyWork",
+            "from lightning.app import LightningApp",
+            "from lightning.app.core.flow import _RootFlow",
+            "from lightning.app.testing.helpers import EmptyWork",
             "class MyFlow(_RootFlow):",
             "    def configure_layout(self):",
             "        return [{'name': 'test', 'content': this_package_is_not_real()}]",
@@ -1941,9 +1941,9 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     (path / ".lightningignore").write_text("foo.png")
 
     with mock.patch(
-        "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
+        "lightning.app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
     ) as parse_mock, mock.patch(
-        "lightning_app.source_code.local._copytree", wraps=_copytree
+        "lightning.app.source_code.local._copytree", wraps=_copytree
     ) as copy_mock, caplog.at_level(
         logging.WARN
     ):
@@ -1992,9 +1992,9 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
     assert not (path / ".lightningignore").exists()
 
     with mock.patch(
-        "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
+        "lightning.app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
     ) as parse_mock, mock.patch(
-        "lightning_app.source_code.local._copytree", wraps=_copytree
+        "lightning.app.source_code.local._copytree", wraps=_copytree
     ) as copy_mock, caplog.at_level(
         logging.WARN
     ):
@@ -2012,31 +2012,57 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
 
 
 @pytest.mark.parametrize(
-    "run_instance, tab, lightning_cloud_url, expected_url",
+    "project, cloudspace_name, run_instance, user, tab, lightning_cloud_url, expected_url",
     [
+        # Old style
         (
+            V1Membership(),
+            "any",
             Externalv1LightningappInstance(id="test-app-id"),
+            V1GetUserResponse(username="tester", features=V1UserFeatures()),
             "logs",
-            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai",
-            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai/tester/apps/test-app-id/logs",
+            "https://lightning.ai",
+            "https://lightning.ai/tester/apps/test-app-id/logs",
         ),
         (
+            V1Membership(),
+            "any",
             Externalv1LightningappInstance(id="test-app-id"),
+            V1GetUserResponse(username="tester", features=V1UserFeatures()),
             "logs",
             "http://localhost:9800",
             "http://localhost:9800/tester/apps/test-app-id/logs",
         ),
+        # New style
+        (
+            V1Membership(name="tester's project"),
+            "test/app",
+            Externalv1LightningappInstance(),
+            V1GetUserResponse(username="tester", features=V1UserFeatures(project_selector=True)),
+            "logs",
+            "https://lightning.ai",
+            "https://lightning.ai/tester/tester%27s_project/apps/test~app/logs",
+        ),
+        (
+            V1Membership(name="tester's project"),
+            "test/app",
+            Externalv1LightningappInstance(),
+            V1GetUserResponse(username="tester", features=V1UserFeatures(project_selector=True)),
+            "logs",
+            "http://localhost:9800",
+            "http://localhost:9800/tester/tester%27s_project/apps/test~app/logs",
+        ),
     ],
 )
-def test_get_app_url(monkeypatch, run_instance, tab, lightning_cloud_url, expected_url):
+def test_get_app_url(monkeypatch, project, cloudspace_name, run_instance, user, tab, lightning_cloud_url, expected_url):
     mock_client = mock.MagicMock()
-    mock_client.auth_service_get_user.return_value = V1GetUserResponse(username="tester")
+    mock_client.auth_service_get_user.return_value = user
     cloud_backend = mock.MagicMock(client=mock_client)
     monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
     runtime = CloudRuntime()
 
     with mock.patch(
-        "lightning_app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
+        "lightning.app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
     ):
-        assert runtime._get_app_url(run_instance, tab) == expected_url
+        assert runtime._get_app_url(project, cloudspace_name, run_instance, tab) == expected_url

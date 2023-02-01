@@ -41,6 +41,7 @@ callbacks
     ModelCheckpoint
     ModelPruning
     ModelSummary
+    OnExceptionCheckpoint
     ProgressBarBase
     QuantizationAwareTraining
     RichModelSummary

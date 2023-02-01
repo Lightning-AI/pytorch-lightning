@@ -5,11 +5,11 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from lightning_app.core.plugin import _Run, _start_plugin_server, Plugin
+from lightning.app.core.plugin import _Run, _start_plugin_server, Plugin
 
 
 @pytest.fixture()
-@mock.patch("lightning_app.core.plugin.uvicorn")
+@mock.patch("lightning.app.core.plugin.uvicorn")
 def mock_plugin_server(mock_uvicorn) -> TestClient:
     """This fixture returns a `TestClient` for the plugin server."""
 
@@ -77,8 +77,8 @@ def test_run_app(mock_cloud_runtime, mock_plugin_server):
     )
 
 
-@mock.patch("lightning_app.utilities.commands.base._download_command")
-@mock.patch("lightning_app.utilities.cli_helpers._LightningAppOpenAPIRetriever")
+@mock.patch("lightning.app.utilities.commands.base._download_command")
+@mock.patch("lightning.app.utilities.cli_helpers._LightningAppOpenAPIRetriever")
 def test_run_plugin(mock_retriever, mock_download_command, mock_plugin_server):
     """Tests that running a plugin calls the correct `CloudRuntime` methods with the correct arguments."""
     body = _Run(
