@@ -224,19 +224,6 @@ def test_mlflow_logger_with_unexpected_characters(client, _, __, tmpdir):
         logger.log_metrics(metrics)
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_with_long_param_value(client, _, tmpdir):
-    """Test that the logger raises warning with special characters not accepted by MLFlow."""
-    logger = MLFlowLogger("test", save_dir=tmpdir)
-    value = "test" * 100
-    key = "test_param"
-    params = {key: value}
-
-    with pytest.warns(RuntimeWarning, match=f"Discard {key}={value}"):
-        logger.log_hyperparams(params)
-
-
 @mock.patch("pytorch_lightning.loggers.mlflow.Metric")
 @mock.patch("pytorch_lightning.loggers.mlflow.Param")
 @mock.patch("pytorch_lightning.loggers.mlflow.time")
@@ -253,8 +240,9 @@ def test_mlflow_logger_experiment_calls(client, _, time, param, metric, tmpdir):
     logger.log_hyperparams(params)
 
     logger.experiment.log_batch.assert_called_once_with(
-        run_id=logger.run_id, params=[param(key="test_param", value="test_param")]
+        run_id=logger.run_id, params=[param(key="test", value="test_param")]
     )
+    param.assert_called_with(key="test", value="test_param")
 
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)
@@ -262,10 +250,43 @@ def test_mlflow_logger_experiment_calls(client, _, time, param, metric, tmpdir):
     logger.experiment.log_batch.assert_called_with(
         run_id=logger.run_id, metrics=[metric(key="some_metric", value=10, timestamp=1000, step=0)]
     )
+    metric.assert_called_with(key="some_metric", value=10, timestamp=1000, step=0)
 
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
     )
+
+
+def _check_value_length(value, *args, **kwargs):
+    assert len(value) <= 250
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.Param", side_effect=_check_value_length)
+@mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_with_long_param_value(client, _, param, tmpdir):
+    """Test that long parameter values are truncated to 250 characters."""
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+
+    params = {"test": "test_param" * 50}
+    logger.log_hyperparams(params)
+
+    # assert_called_once_with() won't properly check the parameter value.
+    logger.experiment.log_batch.assert_called_once()
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.Param")
+@mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_with_many_params(client, _, param, tmpdir):
+    """Test that the when logging more than 100 parameters, it will be split into batches of at most 100
+    parameters."""
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+
+    params = {f"test_{idx}": f"test_param_{idx}" for idx in range(150)}
+    logger.log_hyperparams(params)
+
+    assert logger.experiment.log_batch.call_count == 2
 
 
 @pytest.mark.parametrize(

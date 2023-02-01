@@ -17,27 +17,27 @@ from fastapi import HTTPException, Request
 from httpx import AsyncClient
 from pydantic import BaseModel
 
-import lightning_app
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.api.http_methods import Post
-from lightning_app.core import api
-from lightning_app.core.api import (
+import lightning.app
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.api.http_methods import Post
+from lightning.app.core import api
+from lightning.app.core.api import (
     fastapi_service,
     global_app_state_store,
     register_global_routes,
     start_server,
     UIRefresher,
 )
-from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import _MockQueue
-from lightning_app.utilities.app_status import AppStatus
-from lightning_app.utilities.component import _set_frontend_context, _set_work_context
-from lightning_app.utilities.enum import AppStage
-from lightning_app.utilities.load_app import extract_metadata_from_app
-from lightning_app.utilities.redis import check_if_redis_running
-from lightning_app.utilities.state import AppState, headers_for
+from lightning.app.core.constants import APP_SERVER_PORT
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.drive import Drive
+from lightning.app.testing.helpers import _MockQueue
+from lightning.app.utilities.app_status import AppStatus
+from lightning.app.utilities.component import _set_frontend_context, _set_work_context
+from lightning.app.utilities.enum import AppStage
+from lightning.app.utilities.load_app import extract_metadata_from_app
+from lightning.app.utilities.redis import check_if_redis_running
+from lightning.app.utilities.state import AppState, headers_for
 
 register_global_routes()
 
@@ -69,7 +69,7 @@ class _A(LightningFlow):
 
     def run(self):
         if self.work_a.var_a == -1:
-            self._exit()
+            self.stop()
         self.work_a.run()
 
 
@@ -102,7 +102,7 @@ class A2(LightningFlow):
         if self.var_a == 0:
             self.update_state()
         elif self.var_a == -1:
-            self._exit()
+            self.stop()
 
 
 def test_app_state_api_with_flows(tmpdir):
@@ -125,13 +125,13 @@ class FlowA(LightningFlow):
         super().__init__()
         self.counter = 0
         self.flow = NestedFlow()
-        self.dict = lightning_app.structures.Dict(**{"0": NestedFlow()})
-        self.list = lightning_app.structures.List(*[NestedFlow()])
+        self.dict = lightning.app.structures.Dict(**{"0": NestedFlow()})
+        self.list = lightning.app.structures.List(*[NestedFlow()])
 
     def run(self):
         self.counter += 1
         if self.counter >= 3:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         return [
@@ -432,7 +432,7 @@ def test_start_server_started():
 
 
 @mock.patch("uvicorn.run")
-@mock.patch("lightning_app.core.api.UIRefresher")
+@mock.patch("lightning.app.core.api.UIRefresher")
 @pytest.mark.parametrize("host", ["http://0.0.0.1", "0.0.0.1"])
 def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatch, host):
     api_publish_state_queue = _MockQueue()
@@ -482,7 +482,7 @@ class FlowAPI(LightningFlow):
 
     def run(self):
         if self.counter == 501:
-            self._exit()
+            self.stop()
 
     def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1
@@ -566,7 +566,7 @@ def test_configure_api():
 
 
 @pytest.mark.anyio
-@mock.patch("lightning_app.core.api.UIRefresher", mock.MagicMock())
+@mock.patch("lightning.app.core.api.UIRefresher", mock.MagicMock())
 async def test_get_annotations(tmpdir):
     cwd = os.getcwd()
     os.chdir(tmpdir)

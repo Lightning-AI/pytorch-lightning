@@ -112,14 +112,6 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
     [
-        ("--auto_lr_find --auto_scale_batch_size power", {"auto_lr_find": True, "auto_scale_batch_size": "power"}),
-        (
-            "--auto_lr_find any_string --auto_scale_batch_size",
-            {"auto_lr_find": "any_string", "auto_scale_batch_size": True},
-        ),
-        ("--auto_lr_find TRUE --auto_scale_batch_size FALSE", {"auto_lr_find": True, "auto_scale_batch_size": False}),
-        ("--auto_lr_find t --auto_scale_batch_size ON", {"auto_lr_find": True, "auto_scale_batch_size": True}),
-        ("--auto_lr_find 0 --auto_scale_batch_size n", {"auto_lr_find": False, "auto_scale_batch_size": False}),
         (
             "",
             {
@@ -161,7 +153,7 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected_parsed"],
-    [("", None), ("--accelerator gpu --devices 1", "1"), ("--accelerator gpu --devices 0,", "0,")],
+    [("", None), ("--accelerator gpu --devices 1", 1), ("--accelerator gpu --devices 0,", "0,")],
 )
 def test_argparse_args_parsing_devices(cli_args, expected_parsed, cuda_count_1):
     """Test multi type argument with bool."""

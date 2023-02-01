@@ -20,37 +20,21 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
-from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
     try:
-        import apex  # noqa
-    except ModuleNotFoundError:
-        assert not _APEX_AVAILABLE
-    else:
-        assert _APEX_AVAILABLE
-
-    try:
         import bagua  # noqa
     except ModuleNotFoundError:
         assert not _BAGUA_AVAILABLE
     else:
         assert _BAGUA_AVAILABLE
-
-    try:
-        import horovod.torch  # noqa
-    except ModuleNotFoundError:
-        assert not _HOROVOD_AVAILABLE
-    else:
-        assert _HOROVOD_AVAILABLE
 
     try:
         import omegaconf  # noqa
@@ -125,17 +109,12 @@ def clean_import():
             "pytorch_lightning.cli",
         ),
         (
-            "lightning_utilities.core.imports.module_available",
-            _shortcut_patch(module_available, ("fairscale.nn",)),
-            "pytorch_lightning.strategies",
-        ),
-        (
             "lightning_utilities.core.imports.compare_version",
             _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
-            "pytorch_lightning.strategies.fully_sharded_native",
+            "pytorch_lightning.strategies.fsdp",
         ),
     ],
-    ids=["ProcessGroup", "neptune", "cli", "fairscale", "fully_sharded_native"],
+    ids=["ProcessGroup", "neptune", "cli", "fsdp"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
     """This tests simulates unavailability of certain modules by patching the functions that check for their

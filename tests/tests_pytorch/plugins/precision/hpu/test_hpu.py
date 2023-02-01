@@ -42,7 +42,7 @@ def test_precision_plugin(hmp_params):
 def test_mixed_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-            assert trainer.strategy.model.precision == "bf16"
+            assert trainer.precision == "bf16"
             raise SystemExit
 
     model = BoringModel()
@@ -65,7 +65,7 @@ def test_mixed_precision(tmpdir, hmp_params: dict):
 def test_pure_half_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == "16"
+            assert trainer.precision == "16"
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit

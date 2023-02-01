@@ -57,15 +57,13 @@ The reason is that the full batch gets split evenly between all devices.
 How do I use multiple GPUs on Jupyter or Colab notebooks?
 *********************************************************
 
-To use multiple GPUs on notebooks, use the *DP* mode.
+To use multiple GPUs on notebooks, use the *DDP_SPAWN*, *DDP_NOTEBOOK*, or *DP* mode.
 
 .. code-block:: python
 
-    Trainer(accelerator="gpu", devices=4, strategy="dp")
+    Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook" | "ddp_spawn" | "dp")
 
 If you want to use other models, please launch your training via the command-shell.
-
-.. note:: Learn how to :ref:`access a cloud machine with multiple GPUs <grid_cloud_session_basic>` in this guide.
 
 ----
 

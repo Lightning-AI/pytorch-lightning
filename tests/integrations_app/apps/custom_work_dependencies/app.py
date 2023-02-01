@@ -1,6 +1,6 @@
 import os
 
-from lightning_app import BuildConfig, CloudCompute, LightningApp, LightningFlow, LightningWork
+from lightning.app import BuildConfig, CloudCompute, LightningApp, LightningFlow, LightningWork
 
 
 class CustomBuildConfig(BuildConfig):
@@ -48,7 +48,7 @@ class CustomWorkBuildConfigChecker(LightningFlow):
 
         if self.work1.has_succeeded and self.work2.has_succeeded:
             print("--- Custom Work Dependency checker End ----")
-            self._exit()
+            self.stop()
 
 
 app = LightningApp(CustomWorkBuildConfigChecker())

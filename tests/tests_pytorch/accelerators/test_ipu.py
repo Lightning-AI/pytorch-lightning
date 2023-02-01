@@ -122,7 +122,6 @@ def test_no_warning_strategy(tmpdir):
 
 
 @RunIf(ipu=True)
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: issues with latest poptorch")
 @pytest.mark.parametrize("devices", [1, 4])
 def test_all_stages(tmpdir, devices):
     model = IPUModel()
@@ -134,7 +133,6 @@ def test_all_stages(tmpdir, devices):
 
 
 @RunIf(ipu=True)
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: issues with latest poptorch")
 @pytest.mark.parametrize("devices", [1, 4])
 def test_inference_only(tmpdir, devices):
     model = IPUModel()
@@ -189,7 +187,7 @@ def test_optimization(tmpdir):
 def test_half_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.precision == "16"
             raise SystemExit
 
     model = IPUModel()
@@ -285,7 +283,6 @@ def test_accumulated_batches(tmpdir):
 
 
 @RunIf(ipu=True)
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: issues with latest poptorch")
 def test_stages_correct(tmpdir):
     """Ensure all stages correctly are traced correctly by asserting the output for each stage."""
 
@@ -546,6 +543,9 @@ def test_multi_optimizers_fails(tmpdir):
             return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
 
     model = TestModel()
+    # Must switch to manual optimization mode, otherwise we would get a different error
+    # (multiple optimizers only supported with manual optimization)
+    model.automatic_optimization = False
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
     with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):
@@ -584,25 +584,6 @@ def test_accelerator_ipu_with_devices():
 def test_accelerator_auto_with_devices_ipu():
     trainer = Trainer(accelerator="auto", devices=8)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.num_devices == 8
-
-
-@RunIf(ipu=True)
-def test_accelerator_ipu_with_ipus_priority():
-    """Test for checking `ipus` flag takes priority over `devices`."""
-
-    ipus = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
-
-    assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.num_devices == ipus
-
-
-@RunIf(ipu=True)
-def test_set_devices_if_none_ipu():
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.num_devices == 8
 
 

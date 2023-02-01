@@ -352,21 +352,6 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
     trainer.test(model)
 
 
-def test_logging_to_progress_bar_with_reserved_key(tmpdir):
-    """Test that logging a metric with a reserved name to the progress bar raises a warning."""
-
-    class TestModel(BoringModel):
-        def training_step(self, *args, **kwargs):
-            output = super().training_step(*args, **kwargs)
-            self.log("loss", output["loss"], prog_bar=True)
-            return output
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
-        trainer.fit(model)
-
-
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     """test that auto_add_dataloader_idx argument works."""
@@ -713,10 +698,11 @@ def test_result_collection_batch_size_extraction():
     results.batch = torch.randn(1, 4)
     train_mse = MeanSquaredError()
     train_mse(torch.randn(4, 5), torch.randn(4, 5))
-    results.log(fx_name, "train_logs", {"mse": train_mse, "log_val": log_val}, on_step=False, on_epoch=True)
+    results.log(fx_name, "mse", train_mse, on_step=False, on_epoch=True)
+    results.log(fx_name, "log_val", log_val, on_step=False, on_epoch=True)
     assert results.batch_size == 1
-    assert isinstance(results["training_step.train_logs"]["mse"].value, MeanSquaredError)
-    assert results["training_step.train_logs"]["log_val"].value == log_val
+    assert isinstance(results["training_step.mse"].value, MeanSquaredError)
+    assert results["training_step.log_val"].value == log_val
 
     results = _ResultCollection(training=True, device="cpu")
     results.batch = torch.randn(1, 4)
@@ -735,16 +721,12 @@ def test_result_collection_no_batch_size_extraction():
 
     train_mae = MeanAbsoluteError()
     train_mae(torch.randn(4, 5), torch.randn(4, 5))
-    train_mse = MeanSquaredError()
-    train_mse(torch.randn(4, 5), torch.randn(4, 5))
     results.log(fx_name, "step_log_val", log_val, on_step=True, on_epoch=False)
     results.log(fx_name, "epoch_log_val", log_val, on_step=False, on_epoch=True, batch_size=batch_size)
     results.log(fx_name, "epoch_sum_log_val", log_val, on_step=True, on_epoch=True, reduce_fx="sum")
     results.log(fx_name, "train_mae", train_mae, on_step=True, on_epoch=False)
-    results.log(fx_name, "train_mse", {"mse": train_mse}, on_step=True, on_epoch=False)
 
     assert results.batch_size is None
-    assert isinstance(results["training_step.train_mse"]["mse"].value, MeanSquaredError)
     assert isinstance(results["training_step.train_mae"].value, MeanAbsoluteError)
     assert results["training_step.step_log_val"].value == log_val
     assert results["training_step.step_log_val"].cumulated_batch_size == 0

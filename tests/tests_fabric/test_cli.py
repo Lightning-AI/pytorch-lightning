@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
+from io import StringIO
 from unittest import mock
 from unittest.mock import Mock
 
@@ -19,7 +21,8 @@ import pytest
 import torch.distributed.run
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.cli import _run_model
+from lightning_fabric.cli import _get_supported_strategies, _run_model
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 @pytest.fixture
@@ -54,7 +57,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
-@pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
+@pytest.mark.parametrize("strategy", _get_supported_strategies())
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
@@ -63,6 +66,26 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
         _run_model.main([fake_script, "--strategy", strategy])
     assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
+
+
+def test_cli_get_supported_strategies():
+    """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in
+    the CLI."""
+    if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
+        assert len(_get_supported_strategies()) == 7
+        assert "fsdp" in _get_supported_strategies()
+    else:
+        assert len(_get_supported_strategies()) == 6
+        assert "fsdp" not in _get_supported_strategies()
+
+
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
+def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _run_model.main([fake_script, "--strategy", strategy])
+    assert e.value.code == 2
+    assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])

@@ -30,6 +30,7 @@ from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACh
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
 class WeightSharingModule(BoringModel):
@@ -80,15 +81,10 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
+def test_accelerator_cpu_when_tpu_available(tpu_available):
     assert TPUAccelerator.is_available()
-
     trainer = Trainer(accelerator="cpu", devices=8)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(skip_windows=True)
@@ -99,25 +95,6 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.num_devices == 8
-
-
-@RunIf(skip_windows=True)
-def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
-    """Test for checking `tpu_cores` flag takes priority over `devices`."""
-    tpu_cores = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
-
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert trainer.num_devices == tpu_cores
-
-
-@RunIf(skip_windows=True)
-def test_set_devices_if_none_tpu(tpu_available):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(accelerator="tpu", tpu_cores=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.num_devices == 8
 
 
@@ -159,7 +136,7 @@ def test_manual_optimization_tpus(tmpdir):
                 assert not torch.equal(self.weight_before, after_before), self.count
             else:
                 assert torch.equal(self.weight_before, after_before)
-            assert torch.all(self.layer.weight.grad == 0)
+            assert_emtpy_grad(self.layer.weight.grad)
             self.count += 1
 
         def on_train_start(self):

@@ -1,7 +1,7 @@
 """We have some utility functions that can be used across frontends."""
 
-from lightning_app.frontend.utils import _get_flow_state, _get_frontend_environment
-from lightning_app.utilities.state import AppState
+from lightning.app.frontend.utils import _get_flow_state, _get_frontend_environment
+from lightning.app.utilities.state import AppState
 
 
 def test_get_flow_state(flow_state_state: dict, flow):

@@ -69,13 +69,18 @@ def restore_env_variables():
         "WANDB_MODE",
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
-        "HOROVOD_FUSION_THRESHOLD",  # set by HorovodStrategy # TODO: remove in v2.0.0
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # leaked by tensorboardX
+        # leaked by XLA
+        "ALLOW_MULTIPLE_LIBTPU_LOAD",
+        "GRPC_VERBOSITY",
+        "TF_CPP_MIN_LOG_LEVEL",
+        "TF_GRPC_DEFAULT_OPTIONS",
+        "XLA_FLAGS",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -116,7 +121,6 @@ def reset_deterministic_algorithm():
 def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning_fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
     monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
-    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
 
 
 @pytest.fixture(scope="function")

@@ -8,7 +8,7 @@ from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 
 import pytorch_lightning as pl
-from lightning_app.components.multi_node.trainer import _LightningTrainerRunExecutor
+from lightning.app.components.multi_node.trainer import _LightningTrainerRunExecutor
 
 
 def dummy_callable(**kwargs):
@@ -94,6 +94,3 @@ def test_trainer_run_executor_arguments_choices(
 def test_trainer_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
         _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPSpawnStrategy())
-
-    with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPSpawnShardedStrategy())

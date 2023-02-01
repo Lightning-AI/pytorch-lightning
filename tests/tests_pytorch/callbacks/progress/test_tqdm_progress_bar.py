@@ -407,8 +407,8 @@ def test_tensor_to_float_conversion(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("a", torch.tensor(0.123), prog_bar=True, on_epoch=False)
-            self.log("b", {"b1": torch.tensor([1])}, prog_bar=True, on_epoch=False)
-            self.log("c", {"c1": 2}, prog_bar=True, on_epoch=False)
+            self.log("b", torch.tensor([1]), prog_bar=True, on_epoch=False)
+            self.log("c", 2, prog_bar=True, on_epoch=False)
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
@@ -417,11 +417,11 @@ def test_tensor_to_float_conversion(tmpdir):
     trainer.fit(TestModel())
 
     torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
-    assert trainer.progress_bar_metrics["b"] == {"b1": 1.0}
-    assert trainer.progress_bar_metrics["c"] == {"c1": 2.0}
+    assert trainer.progress_bar_metrics["b"] == 1.0
+    assert trainer.progress_bar_metrics["c"] == 2.0
     pbar = trainer.progress_bar_callback.main_progress_bar
     actual = str(pbar.postfix)
-    assert actual.endswith("a=0.123, b={'b1': 1.0}, c={'c1': 2.0}"), actual
+    assert actual.endswith("a=0.123, b=1.000, c=2.000"), actual
 
 
 @pytest.mark.parametrize(
@@ -659,10 +659,7 @@ def test_get_progress_bar_metrics(tmpdir: str):
     )
     model = BoringModel()
     trainer.fit(model)
-    model.truncated_bptt_steps = 2
     standard_metrics = progress_bar.get_metrics(trainer, model)
-    assert "loss" in standard_metrics.keys()
-    assert "split_idx" in standard_metrics.keys()
     assert "v_num" not in standard_metrics.keys()
 
 
@@ -675,7 +672,6 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
         def get_metrics(self, trainer, pl_module):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
-            del items["loss"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
             self.calls[trainer.state.fn].append(
                 (trainer.state.stage, trainer.current_epoch, trainer.global_step, items)

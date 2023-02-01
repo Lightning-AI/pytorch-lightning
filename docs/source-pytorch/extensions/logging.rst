@@ -115,11 +115,6 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
         self.log("my_metric", x)
 
 
-    # or a dict to get multiple metrics on the same plot if the logger supports it
-    def training_step(self, batch, batch_idx):
-        self.log("performance", {"acc": acc, "recall": recall})
-
-
     # or a dict to log all metrics at once with individual plots
     def training_step(self, batch, batch_idx):
         self.log_dict({"acc": acc, "recall": recall})

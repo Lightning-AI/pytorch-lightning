@@ -8,7 +8,7 @@ from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 
 import lightning_fabric as lf
-from lightning_app.components.multi_node.lite import _FabricRunExecutor
+from lightning.app.components.multi_node.fabric import _FabricRunExecutor
 
 
 class DummyFabric(lf.Fabric):
@@ -48,7 +48,7 @@ def check_lightning_fabric_mps():
 
 @pytest.mark.skipif(not check_lightning_fabric_mps(), reason="Fabric not available or mps not available")
 @pytest.mark.parametrize("accelerator_given,accelerator_expected", [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
-def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
+def test_fabric_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
         r"Forcing accelerator=cpu as other accelerators \(specifically MPS\) are not supported "
         + "by PyTorch for distributed training on mps capable devices"

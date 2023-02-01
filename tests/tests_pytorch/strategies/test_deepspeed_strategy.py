@@ -22,7 +22,6 @@ import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
@@ -130,34 +129,18 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize(
-    "amp_backend",
-    ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
-)
-def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
+def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
-    if amp_backend == "apex":
-        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-            trainer = Trainer(
-                fast_dev_run=True,
-                default_root_dir=tmpdir,
-                accelerator="gpu",
-                strategy="deepspeed",
-                amp_backend=amp_backend,
-                precision=16,
-            )
-    else:
-        trainer = Trainer(
-            fast_dev_run=True,
-            default_root_dir=tmpdir,
-            accelerator="gpu",
-            strategy="deepspeed",
-            amp_backend=amp_backend,
-            precision=16,
-        )
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        strategy="deepspeed",
+        precision=16,
+    )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
@@ -196,7 +179,7 @@ def test_deepspeed_defaults():
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_warn_deepspeed_ignored(tmpdir):
     class TestModel(BoringModel):
-        def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+        def backward(self, loss: Tensor, *args, **kwargs) -> None:
             return loss.backward()
 
     model = TestModel()
@@ -311,7 +294,6 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
             assert trainer.lr_scheduler_configs[0].interval == "step"
-            assert trainer.lr_scheduler_configs[0].opt_idx == 0
 
     model = BoringModel()
     lr_monitor = LearningRateMonitor()
@@ -1114,9 +1096,8 @@ def test_deepspeed_configure_gradient_clipping(tmpdir):
     case of deepspeed."""
 
     class TestModel(BoringModel):
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
-            if optimizer_idx == 0:
-                self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
+            self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     model = TestModel()
     trainer = Trainer(

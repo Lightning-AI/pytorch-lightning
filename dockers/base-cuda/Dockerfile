@@ -29,7 +29,6 @@ ENV \
     TZ=Europe/Prague \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
-    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     MKL_THREADING_LAYER=GNU \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
@@ -99,31 +98,6 @@ RUN \
     pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
 
-ENV \
-    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
-    HOROVOD_GPU_OPERATIONS=NCCL \
-    HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITH_MPI=1
-
-RUN \
-    # CUDA 10.2 doesn't support ampere architecture (8.0).
-    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
-    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
-    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-    echo $HOROVOD_BUILD_CUDA_CC_LIST && \
-    cmake --version && \
-    pip install --no-cache-dir horovod && \
-    horovodrun --check-build
-
-RUN \
-    # CUDA 10.2 doesn't support ampere architecture (8.0).
-    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
-    # install NVIDIA apex
-    pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
-    python -c "from apex import amp"
 
 RUN \
     # install Bagua
@@ -141,10 +115,9 @@ RUN \
     # install ColossalAI
     # TODO: 1.13 wheels are not released, remove skip once they are
     if [[ $PYTORCH_VERSION != "1.13" ]]; then \
-        PYTORCH_VERSION_COLOSSALAI=$(python -c "import torch; print(torch.__version__.split('+')[0][:4])") ; \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
-        pip install "colossalai==0.1.10+torch${PYTORCH_VERSION_COLOSSALAI}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
+        pip install "colossalai==0.1.12+torch${PYTORCH_VERSION}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
         python -c "import colossalai; print(colossalai.__version__)" ; \
     fi
 
@@ -152,7 +125,6 @@ RUN \
     # install rest of strategies
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
-    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
     pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 

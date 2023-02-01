@@ -100,7 +100,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
     with tempfile.TemporaryFile() as ckpt_path:
         ckpt_path = fabric.broadcast(str(ckpt_path))
-        fabric._strategy.save_checkpoint(fabric.model.state_dict(), ckpt_path)
+        fabric._strategy.save_checkpoint(ckpt_path, fabric.model.state_dict())
 
     _assert_save_equality(fabric, fabric.model, ckpt_path)
 

@@ -26,7 +26,7 @@ using `HoloViews`_, streaming and much more.
 
 * Panel can be deployed on your favorite server or cloud including `Lightning`_.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-intro.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-intro.gif
    :alt: Example Panel App
 
    Example Panel App
@@ -34,7 +34,7 @@ using `HoloViews`_, streaming and much more.
 Panel is **particularly well suited for Lightning Apps** that need to display live progress. This is because the Panel server can react
 to state changes and asynchronously push messages from the server to the client using web socket communication.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-streaming-intro.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-streaming-intro.gif
    :alt: Example Panel Streaming App
 
    Example Panel Streaming App
@@ -115,7 +115,7 @@ Run the App locally:
 
 The App should look like this:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-basic.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-basic.png
    :alt: Basic Panel Lightning App
 
    Basic Panel Lightning App
@@ -239,7 +239,7 @@ Try running the following:
 
     PANEL_AUTORELOAD=yes lightning run app app.py
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-autoreload.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-autoreload.gif
    :alt: Basic Panel Lightning App with autoreload
 
    Basic Panel Lightning App with autoreload
@@ -321,7 +321,7 @@ Finally run the App
 
     lightning run app app.py
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-theme.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-theme.gif
    :alt: Basic Panel Plotly Lightning App with theming
 
    Basic Panel Plotly Lightning App with theming

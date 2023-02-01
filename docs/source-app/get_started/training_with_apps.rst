@@ -25,7 +25,7 @@ With `Lightning Apps <https://github.com/Lightning-AI/lightning/tree/master/src/
 By using `PyTorch Lightning <https://github.com/Lightning-AI/lightning/tree/master/src/pytorch_lightning>`_ and `Lightning Apps <https://github.com/Lightning-AI/lightning/tree/master/src/lightning_app>`_
 together, a completely new world of possibilities emerges.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/pl_to_app_4.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_to_app_4.png
     :alt: From PyTorch Lightning to Lightning App
     :width: 100 %
 

@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops import FitLoop
+from pytorch_lightning.loops import _FitLoop
 
 
 def test_outputs_format(tmpdir):
@@ -141,7 +141,7 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = FitLoop(max_epochs=1)
+    fit_loop = _FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
     fit_loop.trainer = trainer
 
@@ -158,7 +158,7 @@ def test_fit_loop_done_log_messages(caplog):
 
     epoch_loop = Mock()
     epoch_loop.global_step = 10
-    fit_loop.connect(epoch_loop=epoch_loop)
+    fit_loop.epoch_loop = epoch_loop
     fit_loop.max_steps = 10
     assert fit_loop.done
     assert "max_steps=10` reached" in caplog.text
@@ -217,7 +217,7 @@ def test_should_stop_early_stopping_conditions_met(
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0, max_epochs=100)
     trainer.num_training_batches = 10
     trainer.should_stop = True
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
+    trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
         current_epoch * trainer.num_training_batches
     )
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = 10

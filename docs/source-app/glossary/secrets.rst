@@ -24,8 +24,8 @@ Provide a name and value to your secret, for example, name could be "github_api_
 .. raw:: html
 
     <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/encrypted_secrets_login.png" width="100%">
-        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/encrypted_secrets_login.mp4" type="video/mp4" width="100%">
+    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning//encrypted_secrets_login.png" width="100%">
+        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning//encrypted_secrets_login.mp4" type="video/mp4" width="100%">
     </video>
     <br />
     <br />

@@ -1,8 +1,8 @@
 import pathlib
 
-from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork
-from lightning_app.storage.path import _artifacts_path, _filesystem
-from lightning_app.utilities.enum import WorkStageStatus, WorkStopReasons
+from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork
+from lightning.app.storage.path import _artifacts_path, _filesystem
+from lightning.app.utilities.enum import WorkStageStatus, WorkStopReasons
 
 
 class SourceFileWriterWork(LightningWork):
@@ -65,7 +65,7 @@ class RootFlow(LightningFlow):
         if self.dest_work.status.stage == WorkStageStatus.STOPPED:
             print(self.dest_work.statuses)
             print("Application End")
-            self._exit()
+            self.stop()
 
 
 app = LightningApp(RootFlow(), log_level="debug")

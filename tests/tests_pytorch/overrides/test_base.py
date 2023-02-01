@@ -13,14 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
-from torch.nn import DataParallel
 
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.base import (
-    _LightningModuleWrapperBase,
-    _LightningPrecisionModuleWrapperBase,
-    unwrap_lightning_module,
-)
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 
 
 @pytest.mark.parametrize("wrapper_class", [_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase])
@@ -30,13 +25,3 @@ def test_wrapper_device_dtype(wrapper_class):
 
     wrapped_model.to(dtype=torch.float16)
     assert model.dtype == torch.float16
-
-
-def test_unwrap_lightning_module():
-    model = BoringModel()
-    wrapped_model = _LightningPrecisionModuleWrapperBase(model)
-    wrapped_model = _LightningModuleWrapperBase(wrapped_model)
-    wrapped_model = DataParallel(wrapped_model)
-
-    with pytest.deprecated_call(match="The function `unwrap_lightning_module` is deprecated in v1.8.0"):
-        assert unwrap_lightning_module(wrapped_model) == model

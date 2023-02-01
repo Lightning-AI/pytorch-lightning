@@ -1,4 +1,4 @@
-from lightning_app import LightningFlow
+from lightning.app import LightningFlow
 
 
 class BBB(LightningFlow):
@@ -7,4 +7,4 @@ class BBB(LightningFlow):
         self.work = work
 
     def run(self):
-        self._exit()
+        self.stop()
