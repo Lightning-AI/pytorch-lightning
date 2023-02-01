@@ -83,7 +83,7 @@ class _Run(BaseModel):
 
 def _run_plugin(run: _Run) -> None:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
-    if run.app_id is None:
+    if run.app_id is None and run.plugin_name == "app":
         from lightning.app.runners import CloudRuntime
 
         # TODO: App dispatch should be a plugin
@@ -116,7 +116,7 @@ def _run_plugin(run: _Run) -> None:
             )
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-    else:
+    elif run.app_id is not None:
         from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
         from lightning_app.utilities.commands.base import _download_command
 
@@ -138,14 +138,14 @@ def _run_plugin(run: _Run) -> None:
             if isinstance(plugin, Plugin):
                 plugin._setup(app_id=run.app_id)
                 plugin.run(run.name, run.entrypoint)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="App ID must be specified unless `plugin_name='app'`."
+        )
 
 
-def _start_plugin_server(
-    host="0.0.0.0",
-    port=8888,
-):
-    host = host.split("//")[-1] if "//" in host else host
-
+def _start_plugin_server(host, port):
+    """Start the plugin server which can be used to dispatch apps or run plugins."""
     fastapi_service = FastAPI()
 
     fastapi_service.add_middleware(
