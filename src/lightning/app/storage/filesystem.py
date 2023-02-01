@@ -36,13 +36,6 @@ class FileSystem:
         self._fs = _filesystem()
         self._root = str(_shared_storage_path())
 
-    def _validate_path(self, src_path: str, dst_path: str) -> None:
-        if not os.path.exists(Path(src_path).resolve()):
-            raise FileExistsError(f"The provided path {src_path} doesn't exists")
-
-        if not dst_path.startswith("/"):
-            raise Exception(f"The provided destination {dst_path} needs to start with `/`.")
-
     def put(self, src_path: str, dst_path: str, put_fn: Callable = _copy_files) -> None:
         """This method enables to put a file to the shared storage in a blocking fashion.
 
@@ -51,7 +44,11 @@ class FileSystem:
             dst_path: The path to your files transfered in the shared storage.
             put_fn: The method to use to put files in the shared storage.
         """
-        self._validate_path(src_path, dst_path)
+        if not os.path.exists(Path(src_path).resolve()):
+            raise FileExistsError(f"The provided path {src_path} doesn't exists")
+
+        if not dst_path.startswith("/"):
+            raise Exception(f"The provided destination {dst_path} needs to start with `/`.")
 
         src = Path(src_path).resolve()
         dst = Path(os.path.join(self._root, dst_path[1:])).resolve()
