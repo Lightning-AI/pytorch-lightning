@@ -23,7 +23,13 @@ def test_filesystem(tmpdir):
     fs.put(f"{tmpdir}/info.txt", "/info.txt")
     assert fs.listdir("/") == ["a.txt"]
 
+    assert fs.isfile("/a.txt")
+
     fs.put(f"{tmpdir}/checkpoints", "/checkpoints")
+    assert not fs.isfile("/checkpoints")
+    assert fs.isdir("/checkpoints")
+    assert fs.isfile("/checkpoints/a.txt")
+
     assert fs.listdir("/") == ["a.txt", "checkpoints"]
     assert fs.walk("/") == ["a.txt", "checkpoints/a.txt"]
 

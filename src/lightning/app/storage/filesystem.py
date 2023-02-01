@@ -142,3 +142,17 @@ class FileSystem:
                 self._fs.rm(str(delete_path))
         else:
             raise Exception(f"The file path {path} doesn't exist.")
+
+    def isfile(self, path: str) -> bool:
+        if not path.startswith("/"):
+            raise Exception(f"The provided destination {path} needs to start with `/`.")
+
+        path = Path(os.path.join(self._root, path[1:])).resolve()
+        return self._fs.isfile(path)
+
+    def isdir(self, path: str) -> bool:
+        if not path.startswith("/"):
+            raise Exception(f"The provided destination {path} needs to start with `/`.")
+
+        path = Path(os.path.join(self._root, path[1:])).resolve()
+        return self._fs.isdir(path)
