@@ -84,7 +84,7 @@ class _Run(BaseModel):
 def _run_plugin(run: _Run) -> None:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     if run.app_id is None and run.plugin_name == "app":
-        from lightning.app.runners import CloudRuntime
+        from lightning.app.runners.cloud import CloudRuntime
 
         # TODO: App dispatch should be a plugin
         # Dispatch the run
@@ -131,13 +131,19 @@ def _run_plugin(run: _Run) -> None:
                 run.plugin_name,
                 metadata["cls_path"],
                 metadata["cls_name"],
-                retriever.app_id,
+                run.app_id,
                 target_file=target_file,
             )
 
             if isinstance(plugin, Plugin):
                 plugin._setup(app_id=run.app_id)
                 plugin.run(run.name, run.entrypoint)
+            else:
+                # This should never be possible but we check just in case
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"The plugin {run.plugin_name} is an incorrect type.",
+                )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="App ID must be specified unless `plugin_name='app'`."

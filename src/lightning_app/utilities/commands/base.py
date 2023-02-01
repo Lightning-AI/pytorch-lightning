@@ -109,7 +109,7 @@ def _download_command(
     app_id: Optional[str] = None,
     debug_mode: bool = False,
     target_file: Optional[str] = None,
-) -> ClientCommand:
+) -> Union[ClientCommand, Plugin]:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
     command_name = command_name.replace(" ", "_")
@@ -140,7 +140,13 @@ def _download_command(
     mod = module_from_spec(spec)
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
-    command = getattr(mod, cls_name)(method=None)
+    command_type = getattr(mod, cls_name)
+    if issubclass(command_type, ClientCommand):
+        command = command_type(method=None)
+    elif issubclass(command_type, Plugin):
+        command = command_type()
+    else:
+        raise ValueError(f"Expected class {cls_name} for command {command_name} to be a `ClientCommand` or `Plugin`.")
     if tmpdir and os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
     return command
