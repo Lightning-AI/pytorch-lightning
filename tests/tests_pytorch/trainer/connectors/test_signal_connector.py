@@ -15,6 +15,7 @@ import concurrent.futures
 import os
 import signal
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -80,11 +81,11 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
     if auto_requeue:
         sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
         assert len(sigterm_handlers) == 2
-        assert sigterm_handlers[1].__qualname__ == "SignalConnector.sigterm_handler_fn"
+        assert sigterm_handlers[1].__qualname__ == "SignalConnector._sigterm_handler_fn"
 
         sigusr_handlers = signal.getsignal(requeue_signal).signal_handlers
         assert len(sigusr_handlers) == 1
-        assert sigusr_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr_handler_fn"
+        assert sigusr_handlers[0].__qualname__ == "SignalConnector._slurm_sigusr_handler_fn"
     else:
         sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
         assert len(sigterm_handlers) == 1
@@ -103,9 +104,8 @@ def test_auto_requeue_job(call_mock):
     call_mock.return_value = 0
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = SignalConnector(trainer)
-    connector.slurm_sigusr_handler_fn(None, None)
+    connector._slurm_sigusr_handler_fn(None, None)
     call_mock.assert_called_once_with(["scontrol", "requeue", "12345"])
-    connector.teardown()
 
 
 @RunIf(skip_windows=True)
@@ -116,9 +116,8 @@ def test_auto_requeue_array_job(call_mock):
     call_mock.return_value = 0
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = SignalConnector(trainer)
-    connector.slurm_sigusr_handler_fn(None, None)
+    connector._slurm_sigusr_handler_fn(None, None)
     call_mock.assert_called_once_with(["scontrol", "requeue", "12345_2"])
-    connector.teardown()
 
 
 def _registering_signals():
@@ -156,3 +155,18 @@ def test_has_already_handler(handler, expected_return):
     """Test that the SignalConnector detects whether a signal handler is already attached."""
     with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
         assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return
+
+
+def test_sigterm_notifier_fn():
+    trainer = Mock()
+    launcher = Mock()
+    trainer.strategy.launcher = launcher
+    connector = SignalConnector(trainer)
+
+    assert not connector.received_sigterm
+    connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
+    launcher.kill.assert_called_once_with(15)
+    assert connector.received_sigterm
+    launcher.reset_mock()
+    connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
+    launcher.kill.assert_not_called()

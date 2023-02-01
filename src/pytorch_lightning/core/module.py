@@ -18,7 +18,7 @@ import numbers
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -26,7 +26,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Literal
 
 import lightning_fabric as lf
 import pytorch_lightning as pl

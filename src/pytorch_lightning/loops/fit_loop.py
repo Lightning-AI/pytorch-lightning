@@ -294,8 +294,12 @@ class _FitLoop(_Loop):
         self.epoch_progress.increment_processed()
 
         # call train epoch end hooks
-        self.trainer._call_callback_hooks("on_train_epoch_end")
+        # we always call callback hooks first, but here we need to make an exception for the callbacks that
+        # monitor a metric, otherwise they wouldn't be able to monitor a key logged in
+        # `LightningModule.on_train_epoch_end`
+        self.trainer._call_callback_hooks("on_train_epoch_end", monitoring_callbacks=False)
         self.trainer._call_lightning_module_hook("on_train_epoch_end")
+        self.trainer._call_callback_hooks("on_train_epoch_end", monitoring_callbacks=True)
 
         self.trainer._logger_connector.on_epoch_end()
 

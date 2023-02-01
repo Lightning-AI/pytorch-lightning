@@ -1,8 +1,8 @@
 import pytest
 
-from lightning_app.storage import Path
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.component import (
+from lightning.app.storage import Path
+from lightning.app.testing.helpers import EmptyFlow, EmptyWork
+from lightning.app.utilities.component import (
     _context,
     _convert_paths_after_init,
     _get_context,
@@ -11,7 +11,7 @@ from lightning_app.utilities.component import (
     _set_context,
     _set_work_context,
 )
-from lightning_app.utilities.enum import ComponentContext
+from lightning.app.utilities.enum import ComponentContext
 
 
 def test_convert_paths_after_init():

@@ -4,13 +4,13 @@ import tarfile
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.components.python import PopenPythonScript, TracerPythonScript
-from lightning_app.components.python.tracer import Code
-from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.testing.testing import run_work_isolated
-from lightning_app.utilities.component import _set_work_context
-from lightning_app.utilities.enum import CacheCallsKeys
+from lightning.app.components.python import PopenPythonScript, TracerPythonScript
+from lightning.app.components.python.tracer import Code
+from lightning.app.storage.drive import Drive
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.testing.testing import run_work_isolated
+from lightning.app.utilities.component import _set_work_context
+from lightning.app.utilities.enum import CacheCallsKeys
 
 COMPONENTS_SCRIPTS_FOLDER = str(os.path.join(_PROJECT_ROOT, "tests/tests_app/components/python/scripts/"))
 

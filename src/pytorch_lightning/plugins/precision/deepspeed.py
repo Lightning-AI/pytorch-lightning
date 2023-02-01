@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Literal, Optional, TYPE_CHECKING, Union
 
-from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import get_args, Literal
+from typing_extensions import get_args
 
 import pytorch_lightning as pl
+from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_fabric.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
@@ -26,7 +26,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import WarningCache
 
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
