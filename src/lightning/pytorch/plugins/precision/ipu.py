@@ -66,17 +66,14 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",
-        optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         """IPUs handle the optimizer step internally."""
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
-                f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
-            )
+            raise MisconfigurationException("IPUs and the LBFGS optimizer are not compatible.")
         closure_result = closure()
-        self._after_closure(model, optimizer, optimizer_idx)
+        self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:

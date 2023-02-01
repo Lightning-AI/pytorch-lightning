@@ -157,7 +157,7 @@ class LightningOptimizer:
             raise MisconfigurationException("When `optimizer.step(closure)` is called, the closure should be callable")
 
         assert self._strategy is not None
-        step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+        step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
 
         self._on_after_step()
 
@@ -166,7 +166,7 @@ class LightningOptimizer:
 
 def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
-) -> Tuple[List[Optimizer], List[LRSchedulerConfig], List[int]]:
+) -> Tuple[List[Optimizer], List[LRSchedulerConfig]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
@@ -176,21 +176,22 @@ def _init_optimizers_and_lr_schedulers(
         )
         optim_conf = _MockOptimizer()
 
-    optimizers, lr_schedulers, optimizer_frequencies, monitor = _configure_optimizers(optim_conf)
+    optimizers, lr_schedulers, monitor = _configure_optimizers(optim_conf)
     lr_scheduler_configs = (
         _configure_schedulers_automatic_opt(lr_schedulers, monitor)
         if model.automatic_optimization
         else _configure_schedulers_manual_opt(lr_schedulers)
     )
-    _set_scheduler_opt_idx(optimizers, lr_scheduler_configs)
+    _validate_multiple_optimizers_support(optimizers, model)
+    _validate_optimizers_attached(optimizers, lr_scheduler_configs)
     _validate_scheduler_api(lr_scheduler_configs, model)
-    return optimizers, lr_scheduler_configs, optimizer_frequencies
+    return optimizers, lr_scheduler_configs
 
 
 def _configure_optimizers(
     optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
-) -> Tuple[List, List, List, Optional[str]]:
-    optimizers, lr_schedulers, optimizer_frequencies = [], [], []
+) -> Tuple[List, List, Optional[str]]:
+    optimizers, lr_schedulers = [], []
     monitor = None
 
     # single output, single optimizer
@@ -228,12 +229,6 @@ def _configure_optimizers(
             for opt_idx, opt_dict in enumerate(optim_conf)
             if "lr_scheduler" in opt_dict
         ]
-        optimizer_frequencies = [
-            opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency", None) is not None
-        ]
-        # assert that if frequencies are present, they are given for all optimizers
-        if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
-            raise ValueError("A frequency must be given to each optimizer.")
     # single list or tuple, multiple optimizer
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizable) for opt in optim_conf):
         optimizers = list(optim_conf)
@@ -246,9 +241,8 @@ def _configure_optimizers(
             " * [`Optimizer`]\n"
             " * ([`Optimizer`], [`LRScheduler`])\n"
             ' * {"optimizer": `Optimizer`, (optional) "lr_scheduler": `LRScheduler`}\n'
-            ' * A list of the previously described dict format, with an optional "frequency" key (int)'
         )
-    return optimizers, lr_schedulers, optimizer_frequencies, monitor
+    return optimizers, lr_schedulers, monitor
 
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
@@ -315,7 +309,7 @@ def _configure_schedulers_manual_opt(schedulers: list) -> List[LRSchedulerConfig
         if isinstance(scheduler, dict):
             # interval is not in this list even though the user needs to manually call the scheduler because
             # the `LearningRateMonitor` callback needs to check its value to know when to log the learning rate
-            invalid_keys = {"frequency", "reduce_on_plateau", "monitor", "strict"}
+            invalid_keys = {"reduce_on_plateau", "monitor", "strict"}
             keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
 
             if keys_to_warn:
@@ -349,27 +343,25 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
             )
 
 
-def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:
+def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
+    if model.automatic_optimization and len(optimizers) > 1:
+        raise RuntimeError(
+            "Training with multiple optimizers is only supported with manual optimization. Set"
+            " `self.automatic_optimization = False`, then access your optimizers in `training_step` with"
+            " `opt1, opt2, ... = self.optimizers()`."
+        )
+
+
+def _validate_optimizers_attached(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:
     for config in lr_scheduler_configs:
-
-        for opt_idx, opt in enumerate(optimizers):
-            if config.scheduler.optimizer is opt:
-                if config.opt_idx is not None and config.opt_idx != opt_idx:
-                    raise MisconfigurationException(
-                        "`opt_idx` set inside scheduler config does not match with the index"
-                        " of the respective optimizer returned from `configure_optimizers`."
-                    )
-
-                config.opt_idx = opt_idx
-                break
-        else:
+        if config.scheduler.optimizer not in optimizers:
             raise MisconfigurationException(
                 "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
             )
 
 
 def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
-    valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
+    valid_keys = {"optimizer", "lr_scheduler", "monitor"}
     extra_keys = optim_conf.keys() - valid_keys
     if extra_keys:
         rank_zero_warn(

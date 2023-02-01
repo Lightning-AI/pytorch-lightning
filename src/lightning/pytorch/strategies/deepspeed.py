@@ -456,18 +456,14 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig]]:
         assert self.lightning_module is not None
-        optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
+        optimizers, lr_schedulers = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
-        return (
-            optimizers[0],
-            lr_schedulers[0] if lr_schedulers else None,
-            optimizer_frequencies[0] if optimizer_frequencies else None,
-        )
+        return optimizers[0], lr_schedulers[0] if lr_schedulers else None
 
     @property
     def zero_stage_3(self) -> bool:
@@ -485,7 +481,10 @@ class DeepSpeedStrategy(DDPStrategy):
             )
             lr_scheduler = None
         else:
-            optimizer, lr_scheduler, _ = self._init_optimizers()
+            (
+                optimizer,
+                lr_scheduler,
+            ) = self._init_optimizers()
             if lr_scheduler is not None:
                 scheduler = lr_scheduler.scheduler
 
@@ -500,7 +499,7 @@ class DeepSpeedStrategy(DDPStrategy):
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
             if lr_scheduler is None:
-                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step", opt_idx=0)
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step")
             else:
                 lr_scheduler.scheduler = deepspeed_scheduler
             self.lr_scheduler_configs = [lr_scheduler]
@@ -587,10 +586,9 @@ class DeepSpeedStrategy(DDPStrategy):
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
-        # empty optimizers, schedulers and frequencies
+        # empty optimizers, schedulers
         self.optimizers = []
         self.lr_scheduler_configs = []
-        self.optimizer_frequencies = []
 
     @property
     def handles_gradient_accumulation(self) -> bool:

@@ -399,7 +399,6 @@ class ColossalAIStrategy(DDPStrategy):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        opt_idx: int,
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
@@ -407,9 +406,7 @@ class ColossalAIStrategy(DDPStrategy):
         model = model or self.lightning_module
         # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
         assert isinstance(model, pl.LightningModule)
-        return self.precision_plugin.optimizer_step(
-            optimizer, model=model, optimizer_idx=opt_idx, closure=closure, **kwargs
-        )
+        return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
 
     def lightning_module_state_dict(self, rank_zero_only: bool = False) -> Dict[str, Any]:
         """Returns a dictionary containing a whole state of the module. But all the tensors in the dictionary are
