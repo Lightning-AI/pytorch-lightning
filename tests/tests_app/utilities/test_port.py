@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import V1NetworkConfig
 
-from lightning_app.utilities import port
-from lightning_app.utilities.port import _find_lit_app_port, disable_port, enable_port
+from lightning.app.utilities import port
+from lightning.app.utilities.port import _find_lit_app_port, disable_port, enable_port
 
 
 def test_find_lit_app_port(monkeypatch):

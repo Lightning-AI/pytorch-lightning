@@ -1,6 +1,6 @@
 import logging
 
-from lightning_app import LightningWork
+from lightning.app import LightningWork
 
 logger = logging.getLogger(__name__)
 

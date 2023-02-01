@@ -67,12 +67,6 @@ jobs:
           mkdir -p $VIDEO_LOCATION
           python -m playwright install  # --with-deps
 
-      - name: Adjust testing
-        run: |
-          pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-            --source_import="lightning_app" --target_import="lightning.app"
-
       - name: Clone the Repo/App
         uses: actions/checkout@v3
         with:
