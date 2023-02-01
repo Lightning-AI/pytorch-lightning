@@ -45,7 +45,7 @@ import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from typing import Generator, Optional
+from typing import Generator, Mapping, Optional
 
 import setuptools
 import setuptools.command.egg_info
@@ -85,7 +85,7 @@ def _named_temporary_file(directory: Optional[str] = None) -> str:
 
 
 @contextlib.contextmanager
-def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: dict = _PACKAGE_MAPPING) -> Generator:
+def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapping = _PACKAGE_MAPPING) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
