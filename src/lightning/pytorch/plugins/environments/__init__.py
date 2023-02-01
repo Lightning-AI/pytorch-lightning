@@ -16,9 +16,9 @@ from lightning.fabric.plugins.environments import (  # noqa: F401
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
+    MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
     XLAEnvironment,
-    MPIEnvironment,
 )
 from lightning.pytorch.plugins.environments.bagua_environment import BaguaEnvironment  # noqa: F401
