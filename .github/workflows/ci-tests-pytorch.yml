@@ -10,7 +10,8 @@ on:
     paths:
       - ".actions/**"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "tests/legacy/**"
       - "pyproject.toml"  # includes pytest config
