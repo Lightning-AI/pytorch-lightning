@@ -13,17 +13,17 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, Callable, Dict, Optional, OrderedDict, Union
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops import _Loop
+from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
 from pytorch_lightning.loops.progress import OptimizationProgress
-from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior, _build_training_step_kwargs
+from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import WarningCache
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -141,91 +141,26 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
+_OUTPUTS_TYPE = Dict[str, Any]
 
 
 class _OptimizerLoop(_Loop):
-    """Iterates over one or multiple optimizers and for each one it calls the
-    :meth:`~pytorch_lightning.core.module.LightningModule.training_step` method with the batch, the current batch index
-    and the optimizer index if multiple optimizers are requested.
-
-    It is the leaf node in the tree of loops and performs automatic optimization
-    (forward, zero grad, backward, optimizer step).
-    """
+    """Performs automatic optimization (forward, zero grad, backward, optimizer step)"""
 
     output_result_cls = ClosureResult
 
     def __init__(self) -> None:
         super().__init__()
         self.optim_progress: OptimizationProgress = OptimizationProgress()
-
-        self._outputs: _OUTPUTS_TYPE = {}
         self._skip_backward: bool = False
-        self._optimizers: Tuple[Optimizer, ...] = tuple()
-        self._indices: Tuple[int, ...] = tuple()
 
-    @property
-    def optimizer_idx(self) -> int:
-        return self._indices[self.optim_progress.optimizer_position]
-
-    @property
-    def done(self) -> bool:
-        """Returns ``True`` when the last optimizer in the sequence has run."""
-        return self.optim_progress.optimizer_position >= len(self._indices)
-
-    def run(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> _OUTPUTS_TYPE:
-        self.reset()
-        self.on_run_start(optimizers)
-        while not self.done:
-            try:
-                self.advance(kwargs)
-                self._restarting = False
-            except StopIteration:
-                break
-        self._restarting = False
-        return self.on_run_end()
-
-    def reset(self) -> None:
-        if not self.restarting:
-            # when reset() is called from outside (manually), we reset the loop progress
-            self.optim_progress.optimizer_position = 0
-        else:
-            self.optim_progress.reset_on_restart()
-        self._outputs = {}
-
-    def on_run_start(self, optimizers: List[Tuple[int, Optimizer]]) -> None:
-        self._indices, self._optimizers = zip(*optimizers)
-        if self.done:
-            self.optim_progress.optimizer_position = 0
-
-    def advance(self, kwargs: OrderedDict) -> None:
-        kwargs = self._build_kwargs(kwargs, self.optimizer_idx)
-
-        result = self._run_optimization(kwargs, self._optimizers[self.optim_progress.optimizer_position])
-        if result.loss is not None:
-            # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
-            # would be skipped otherwise
-            self._outputs[self.optimizer_idx] = result.asdict()
-        self.optim_progress.optimizer_position += 1
-
-    def on_run_end(self) -> _OUTPUTS_TYPE:
-        outputs, self._outputs = self._outputs, {}  # free memory
-        self._indices = tuple()
-        self._optimizers = tuple()
-        return outputs
-
-    def _run_optimization(self, kwargs: OrderedDict, optimizer: torch.optim.Optimizer) -> ClosureResult:
+    def run(self, optimizer: Optimizer, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
-            kwargs: the kwargs passed down to the hooks.
-            optimizer: the current optimizer
+            kwargs: the kwargs passed down to the hooks
+            optimizer: the optimizer
         """
-        opt_idx = kwargs.get("optimizer_idx", 0)
-
-        # toggle model params
-        self._run_optimization_start(opt_idx, optimizer)
-
         closure = self._make_closure(kwargs, optimizer)
 
         if (
@@ -247,28 +182,26 @@ class _OptimizerLoop(_Loop):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            self._optimizer_step(optimizer, opt_idx, kwargs.get("batch_idx", 0), closure)
+            self._optimizer_step(optimizer, kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
-
-        # untoggle model params
-        self._run_optimization_end(optimizer)
-        return result
+        if result.loss is None:
+            return {}
+        return result.asdict()
 
     def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer) -> Closure:
         """Build a closure object that captures the given arguments and runs the `training_step` function and
         optionally other functions such as `backward` and `zero_grad`."""
-        opt_idx = kwargs.get("optimizer_idx", 0)
         step_fn = self._make_step_fn(kwargs)
-        backward_fn = self._make_backward_fn(optimizer, opt_idx)
-        zero_grad_fn = self._make_zero_grad_fn(kwargs.get("batch_idx", 0), opt_idx, optimizer)
+        backward_fn = self._make_backward_fn(optimizer)
+        zero_grad_fn = self._make_zero_grad_fn(kwargs.get("batch_idx", 0), optimizer)
         return Closure(step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn)
 
     def _make_step_fn(self, kwargs: OrderedDict) -> Callable[[], ClosureResult]:
         """Build the step function that runs the `training_step` and processes its output."""
         return partial(self._training_step, kwargs)
 
-    def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
+    def _make_zero_grad_fn(self, batch_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
         """Build a `zero_grad` function that zeroes the gradients before back-propagation.
 
         Returns ``None`` in the case backward needs to be skipped.
@@ -283,11 +216,11 @@ class _OptimizerLoop(_Loop):
 
         def zero_grad_fn() -> None:
             self._on_before_zero_grad(optimizer)
-            self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+            self._optimizer_zero_grad(batch_idx, optimizer)
 
         return zero_grad_fn
 
-    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], None]]:
+    def _make_backward_fn(self, optimizer: Optimizer) -> Optional[Callable[[Tensor], None]]:
         """Build a `backward` function that handles back-propagation through the output produced by the
         `training_step` function.
 
@@ -297,32 +230,13 @@ class _OptimizerLoop(_Loop):
             return None
 
         def backward_fn(loss: Tensor) -> None:
-            self.trainer._call_strategy_hook("backward", loss, optimizer, opt_idx)
+            self.trainer._call_strategy_hook("backward", loss, optimizer)
 
         return backward_fn
-
-    def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
-        """Toggles the optimizer to ensure the correct one is used and prevent dangling grads.
-
-        Args:
-            opt_idx: the index of the optimizer to use
-            optimizer: the optimizer to use
-        """
-        # make sure only the gradients of the current optimizer's parameters are calculated
-        # in the training step to prevent dangling gradients in multiple-optimizer setup.
-        if len(self.trainer.optimizers) > 1:
-            model = self.trainer.lightning_module
-            model.toggle_optimizer(optimizer)
-
-    def _run_optimization_end(self, optimizer: Optimizer) -> None:
-        if len(self.trainer.optimizers) > 1:
-            model = self.trainer.lightning_module
-            model.untoggle_optimizer(optimizer)
 
     def _optimizer_step(
         self,
         optimizer: Union[Optimizer, LightningOptimizer],
-        opt_idx: int,
         batch_idx: int,
         train_step_and_backward_closure: Callable[[], Optional[Tensor]],
     ) -> None:
@@ -330,13 +244,12 @@ class _OptimizerLoop(_Loop):
 
         Args:
             optimizer: the optimizer to perform the step with
-            opt_idx: the index of the current :param:`optimizer`
             batch_idx: the index of the current batch
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default, called by the optimizer (if possible)
         """
         # wraps into LightningOptimizer only for running step
-        optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
+        optimizer = self.trainer.strategy._lightning_optimizers[0]
 
         # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
         # need to check again if `should_accumulate` before increasing the counters
@@ -350,7 +263,6 @@ class _OptimizerLoop(_Loop):
             self.trainer.current_epoch,
             batch_idx,
             optimizer,
-            opt_idx,
             train_step_and_backward_closure,
         )
 
@@ -368,16 +280,15 @@ class _OptimizerLoop(_Loop):
         self.trainer._call_lightning_module_hook("on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
 
-    def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
+    def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer) -> None:
         """Zeroes out all gradients of parameters optimized by the current optimizer.
 
         Args:
             batch_idx: the index of the current batch
             optimizer: the current optimizer
-            opt_idx: the index of the current optimizer
         """
         self.trainer._call_lightning_module_hook(
-            "optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer, opt_idx
+            "optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer
         )
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
@@ -401,17 +312,4 @@ class _OptimizerLoop(_Loop):
         result = self.output_result_cls.from_training_step_output(
             training_step_output, self.trainer.accumulate_grad_batches
         )
-
         return result
-
-    def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int) -> OrderedDict:
-        """Helper method to build the arguments for the current step.
-
-        Args:
-            kwargs: The kwargs passed down to the hooks.
-            opt_idx: the index of the current optimizer.
-
-        Returns:
-            The kwargs passed down to the hooks.
-        """
-        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self.trainer.optimizers, opt_idx)

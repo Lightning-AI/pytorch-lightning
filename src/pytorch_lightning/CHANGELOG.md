@@ -46,6 +46,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `LightningModule.{un}toggle_optimizer` methods no longer accept a `optimizer_idx` argument to select the relevant optimizer. Instead, the optimizer object can be passed in directly ([#16560](https://github.com/Lightning-AI/lightning/pull/16560))
 
 
+- Manual optimization is now required for working with multiple optimizers ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
+
+
 ### Deprecated
 
 -
@@ -171,6 +174,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed the `using_lbfgs` argument from `LightningModule.optimizer_step` hook ([#16538](https://github.com/Lightning-AI/lightning/pull/16538))
+
+
+- Removed support for multiple optimizers in automatic optimization mode ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
+  * Removed `opt_idx` argument from `BaseFinetuning.finetune_function` callback method
+  * Removed `opt_idx` argument from `Callback.on_before_optimizer_step` callback method
+  * Removed `optimizer_idx` as an optional argument in `LightningModule.training_step`
+  * Removed `optimizer_idx` argument from `LightningModule.on_before_optimizer_step`
+  * Removed `optimizer_idx` argument from `LightningModule.configure_gradient_clipping`
+  * Removed `optimizer_idx` argument from `LightningModule.optimizer_step`
+  * Removed `optimizer_idx` argument from `LightningModule.optimizer_zero_grad`
+  * Removed `optimizer_idx` argument from `LightningModule.lr_scheduler_step`
+  * Removed support for declaring optimizer frequencies in the dictionary returned from `LightningModule.configure_optimizers`
+  * Removed arguments `optimizer` and `optimizer_idx` from `LightningModule.backward`
+  * Removed `optimizer_idx` argument from `PrecisionPlugin.optimizer_step` and all of its overrides in subclasses
+  * Removed `optimizer_idx` argument from `PrecisionPlugin.{optimizer_step,backward}` and all of its overrides in subclasses
+  * Removed `optimizer_idx` argument from `Strategy.{optimizer_step,backward}` and all of its overrides in subclasses
+  * Removed `Trainer.optimizer_frequencies` attribute
 
 
 ### Fixed
