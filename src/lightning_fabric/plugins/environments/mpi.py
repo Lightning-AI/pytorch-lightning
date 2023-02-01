@@ -64,11 +64,13 @@ class MPIEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        """Returns ``True`` if MPI is detected in the environment."""
-        # TODO:
-        # @Corey Adams any ideas?
-        # return bool(_MPI4PY_AVAILABLE) and mpi_detected()
-        return True
+        """Returns ``True`` if the `mpi4py` package is installed and MPI returns a world size greater than 1."""
+        if not _MPI4PY_AVAILABLE:
+            return False
+
+        from mpi4py import MPI
+
+        return MPI.COMM_WORLD.Get_size() > 1
 
     @lru_cache(1)
     def world_size(self) -> int:
