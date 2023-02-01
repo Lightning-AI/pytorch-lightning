@@ -56,7 +56,7 @@ local tputests = base.BaseTest {
       PL_RUN_TPU_TESTS=1 coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone PL tests ---"
-      PL_STANDALONE_TESTS_SOURCE=pytorch_lightning PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
+      PL_RUN_TPU_TESTS=1 PL_STANDALONE_TESTS_SOURCE=pytorch_lightning PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Generating coverage ---"
       coverage xml
