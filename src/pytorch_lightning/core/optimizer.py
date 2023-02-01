@@ -54,7 +54,7 @@ class LightningOptimizer:
 
     @classmethod
     def _to_lightning_optimizer(
-            cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
+        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
     ) -> "LightningOptimizer":
         if isinstance(optimizer, LightningOptimizer):
             # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
@@ -216,9 +216,7 @@ def _configure_optimizers(
         for opt_dict in optim_conf:
             _validate_optim_conf(opt_dict)
         optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-        scheduler_dict = (
-            lambda scheduler: dict(scheduler) if isinstance(scheduler, dict) else {"scheduler": scheduler}
-        )
+        scheduler_dict = lambda scheduler: dict(scheduler) if isinstance(scheduler, dict) else {"scheduler": scheduler}
         lr_schedulers = [
             scheduler_dict(opt_dict["lr_scheduler"]) for opt_dict in optim_conf if "lr_scheduler" in opt_dict
         ]

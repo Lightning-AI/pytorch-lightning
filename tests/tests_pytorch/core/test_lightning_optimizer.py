@@ -153,8 +153,7 @@ def test_state():
     lightning_dict = {
         k: v
         for k, v in lightning_optimizer.__dict__.items()
-        if k
-        not in {"_optimizer", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
+        if k not in {"_optimizer", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
     }
 
     assert lightning_dict == optimizer.__dict__
