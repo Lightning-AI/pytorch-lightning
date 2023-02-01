@@ -83,14 +83,13 @@ COPY ./ ./lightning/
 RUN \
     python --version && \
     cd lightning && \
-    pip install -q -r .actions/requirements.txt && \
     # Pin mkl version to avoid OSError on torch import
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
-      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
+      python ./requirements/pytorch/adjust-versions.py $fpath ${XLA_VERSION}; \
     done && \
     # install PL dependencies
     pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
