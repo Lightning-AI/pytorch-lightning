@@ -17,8 +17,8 @@ import torch
 
 from lightning_fabric.utilities.distributed import _AllGather
 from lightning_fabric.utilities.seed import seed_everything
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 

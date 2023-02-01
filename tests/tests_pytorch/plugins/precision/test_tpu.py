@@ -14,7 +14,7 @@
 from unittest import mock
 from unittest.mock import Mock
 
-from pytorch_lightning.plugins import TPUPrecisionPlugin
+from lightning.pytorch.plugins import TPUPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 

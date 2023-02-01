@@ -18,9 +18,9 @@ import pytest
 import torch
 
 from lightning_fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from pytorch_lightning import Trainer
-from pytorch_lightning.strategies import DDPStrategy, DeepSpeedStrategy
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning.pytorch import Trainer
+from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -61,7 +61,7 @@ def environment_combinations():
     "strategy_cls",
     [DDPStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
+@mock.patch("lightning.pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2

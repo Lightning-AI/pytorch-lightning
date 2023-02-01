@@ -17,11 +17,11 @@ import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
+import lightning.pytorch as pl
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -74,7 +74,7 @@ def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-@mock.patch("pytorch_lightning.accelerators.cuda._check_cuda_matmul_precision")
+@mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
 def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 

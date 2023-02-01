@@ -19,12 +19,12 @@ import torch
 from torch.quantization import FakeQuantizeBase
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.accelerators import CUDAAccelerator
-from pytorch_lightning.callbacks import QuantizationAwareTraining
-from pytorch_lightning.demos.boring_classes import RandomDataset
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import get_model_size_mb
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.accelerators import CUDAAccelerator
+from lightning.pytorch.callbacks import QuantizationAwareTraining
+from lightning.pytorch.demos.boring_classes import RandomDataset
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.memory import get_model_size_mb
 from tests_pytorch.helpers.datamodules import RegressDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import RegressionModel

@@ -24,10 +24,10 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -458,7 +458,7 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
 
     side_effect = [(False, "A"), (True, "B")]
     with mock.patch(
-        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
+        "lightning.pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
     ) as es_mock:
         trainer.fit(model)
 
@@ -475,7 +475,7 @@ def test_early_stopping_squeezes():
     trainer.callback_metrics["foo"] = torch.tensor([[[0]]])
 
     with mock.patch(
-        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
+        "lightning.pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
     ) as es_mock:
         early_stopping._run_early_stopping_check(trainer)
 
@@ -504,7 +504,7 @@ def test_early_stopping_log_info(trainer, log_rank_zero_only, world_size, global
     else:
         expected_log = "bar"
 
-    with mock.patch("pytorch_lightning.callbacks.early_stopping.log.info") as log_mock:
+    with mock.patch("lightning.pytorch.callbacks.early_stopping.log.info") as log_mock:
         EarlyStopping._log_info(trainer, "bar", log_rank_zero_only)
 
     # check log.info() was called or not with expected arg

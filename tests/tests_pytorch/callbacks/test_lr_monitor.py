@@ -15,13 +15,13 @@ import pytest
 import torch
 from torch import optim
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import LearningRateMonitor
+from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

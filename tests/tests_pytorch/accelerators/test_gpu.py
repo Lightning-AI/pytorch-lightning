@@ -16,10 +16,10 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CUDAAccelerator
-from pytorch_lightning.accelerators.cuda import get_nvidia_gpu_stats
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CUDAAccelerator
+from lightning.pytorch.accelerators.cuda import get_nvidia_gpu_stats
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 

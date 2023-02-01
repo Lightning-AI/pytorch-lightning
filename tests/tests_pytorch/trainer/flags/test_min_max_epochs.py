@@ -2,8 +2,8 @@ import pytest
 from lightning_utilities.test.warning import no_warning_call
 
 from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 @pytest.mark.parametrize(

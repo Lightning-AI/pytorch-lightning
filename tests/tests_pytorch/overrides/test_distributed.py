@@ -17,8 +17,8 @@ import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from lightning_fabric.utilities.data import has_len
-from pytorch_lightning import seed_everything
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch import seed_everything
+from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 
 
 @pytest.mark.parametrize("shuffle", [False, True])

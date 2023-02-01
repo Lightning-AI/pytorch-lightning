@@ -16,10 +16,10 @@ from unittest.mock import patch
 
 import pytest
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops import _TrainingEpochLoop
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loops import _TrainingEpochLoop
+from lightning.pytorch.trainer.trainer import Trainer
 
 _out00 = {"loss": 0.0}
 _out01 = {"loss": 0.1}
@@ -184,7 +184,7 @@ def test_should_stop_early_stopping_conditions_not_met(
     trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
 
     message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.loops"):
         assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
 
     assert (message in caplog.text) is raise_info_msg

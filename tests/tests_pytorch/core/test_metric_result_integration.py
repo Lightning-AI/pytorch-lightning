@@ -24,12 +24,12 @@ from torch import Tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import OnExceptionCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.logger_connector.result import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import OnExceptionCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _Metadata,
     _ResultCollection,
     _ResultMetric,
@@ -588,7 +588,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result._distributed_available",
+        "lightning.pytorch.trainer.connectors.logger_connector.result._distributed_available",
         return_value=distributed_env,
     ):
         with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):

@@ -15,7 +15,7 @@ from copy import deepcopy
 
 import pytest
 
-from pytorch_lightning.loops.progress import (
+from lightning.pytorch.loops.progress import (
     BaseProgress,
     OptimizerProgress,
     ProcessedTracker,
