@@ -1,5 +1,6 @@
 import os
 import sys
+
 import pytest
 
 from lightning.app.storage import FileSystem
