@@ -2,7 +2,7 @@ from typing import Dict
 
 import pytest
 
-from lightning_app.utilities.auth import _credential_string_to_basic_auth_params
+from lightning.app.utilities.auth import _credential_string_to_basic_auth_params
 
 
 @pytest.mark.parametrize(

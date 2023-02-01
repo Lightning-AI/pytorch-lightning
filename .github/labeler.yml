@@ -1,5 +1,6 @@
 app:
-  - 'src/lightning_app/**'
+  - 'src/lightning/app/**'
+  - "src/lightning_app/*"
   - 'tests/tests_app/**'
   - 'tests/integrations_app/**'
   - 'tests/integrations_app_examples/**'

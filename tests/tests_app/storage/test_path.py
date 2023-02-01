@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.path import (
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.path import (
     _artifacts_path,
     _filesystem,
     _is_lit_path,
@@ -19,11 +19,11 @@ from lightning_app.storage.path import (
     _storage_root_dir,
     Path,
 )
-from lightning_app.storage.requests import _ExistsResponse, _GetResponse
-from lightning_app.testing.helpers import _MockQueue, _RunIf, EmptyWork
-from lightning_app.utilities.app_helpers import LightningJSONEncoder
-from lightning_app.utilities.component import _context
-from lightning_app.utilities.imports import _is_s3fs_available
+from lightning.app.storage.requests import _ExistsResponse, _GetResponse
+from lightning.app.testing.helpers import _MockQueue, _RunIf, EmptyWork
+from lightning.app.utilities.app_helpers import LightningJSONEncoder
+from lightning.app.utilities.component import _context
+from lightning.app.utilities.imports import _is_s3fs_available
 
 
 def test_path_instantiation():
@@ -527,7 +527,7 @@ class DestinationOverwriteWork(LightningWork):
 
     def run(self):
         assert self.path.exists()
-        with mock.patch("lightning_app.storage.path.shutil") as shutil_mock:
+        with mock.patch("lightning.app.storage.path.shutil") as shutil_mock:
             self.path.get(overwrite=True)
         shutil_mock.rmtree.assert_called_with(self.path)
         assert self.path.exists()
@@ -694,7 +694,7 @@ def test_artifacts_path():
 @mock.patch.dict(os.environ, {"LIGHTNING_AWS_SECRET_ACCESS_KEY": "d"})
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "e"})
 def test_filesystem(monkeypatch):
-    from lightning_app.storage import path
+    from lightning.app.storage import path
 
     mock = MagicMock()
     monkeypatch.setattr(path, "S3FileSystem", mock)
