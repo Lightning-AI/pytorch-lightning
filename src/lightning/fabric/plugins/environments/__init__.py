@@ -18,3 +18,4 @@ from lightning.fabric.plugins.environments.lsf import LSFEnvironment  # noqa: F4
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.torchelastic import TorchElasticEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.xla import XLAEnvironment  # noqa: F401
+from lightning.fabric.plugins.environments.mpi import MPIEnvironment  # noqa: F401
