@@ -79,7 +79,7 @@ class FileSystem:
         """
         if not path.startswith("/"):
             raise Exception(f"The provided destination {path} needs to start with `/`.")
-        
+
         shared_path = Path(os.path.join(self._root, path[1:])).resolve()
 
         if not self._fs.exists(shared_path):
@@ -103,7 +103,7 @@ class FileSystem:
         """
         if not path.startswith("/"):
             raise Exception(f"The provided destination {path} needs to start with `/`.")
-        
+
         shared_path = Path(os.path.join(self._root, path[1:])).resolve()
 
         if not self._fs.exists(shared_path):
