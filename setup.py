@@ -140,10 +140,9 @@ if __name__ == "__main__":
                 f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}"
             )
         package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
-        if package_to_install == "lightning":
+        if package_to_install == "lightning" or package_to_install in _REVERSE_LIST:  # install everything
             # merge all requirements files
             assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        if package_to_install == "lightning" or package_to_install in _REVERSE_LIST:
             # replace imports and copy the code
             assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_REVERSE_LIST)
     else:
