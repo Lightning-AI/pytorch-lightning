@@ -144,7 +144,7 @@ class LightningModule(
         if self._fabric:
             opts: MODULE_OPTIMIZERS = self._fabric_optimizers
         elif use_pl_optimizer:
-            opts = list(self.trainer.strategy._lightning_optimizers.values())
+            opts = self.trainer.strategy._lightning_optimizers
         else:
             opts = self.trainer.optimizers
 
