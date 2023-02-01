@@ -1,5 +1,3 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
-
-# colossalai>=0.1.10  # TODO: uncomment when there's a stable version released
 deepspeed>=0.6.0, <=0.8.0
