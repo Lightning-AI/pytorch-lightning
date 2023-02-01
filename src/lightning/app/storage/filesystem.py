@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Callable
+from typing import Callable, List
 
 from fsspec.implementations.local import LocalFileSystem
 
@@ -32,7 +32,7 @@ class FileSystem:
 
     """This filesystem enables to easily move files from and to the shared storage."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._fs = _filesystem()
         self._root = str(_shared_storage_path())
 
@@ -71,7 +71,7 @@ class FileSystem:
 
         return get_fn(fs=self._fs, src=src, dst=dst, overwrite=overwrite)
 
-    def listdir(self, path: str):
+    def listdir(self, path: str) -> List[str]:
         """This method enables to list files from the shared storage in a blocking fashion.
 
         Arguments:
@@ -93,9 +93,9 @@ class FileSystem:
         if not paths:
             return paths
 
-        return sorted([path.replace(self._root + "/", "") for path in paths if not path.endswith("info.txt")])
+        return sorted([path.replace(self._root + os.sep, "") for path in paths if not path.endswith("info.txt")])
 
-    def walk(self, path: str):
+    def walk(self, path: str) -> List[str]:
         """This method enables to list files from the shared storage in a blocking fashion.
 
         Arguments:
@@ -129,7 +129,7 @@ class FileSystem:
                 out.append(path[1:])
         return sorted(out)
 
-    def rm(self, path):
+    def rm(self, path) -> None:
         if not path.startswith("/"):
             raise Exception(f"The provided destination {path} needs to start with `/`.")
 
