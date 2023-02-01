@@ -96,7 +96,7 @@ class FileSystem:
             if self._fs.isdir(shared_path):
                 out.extend(self.list(path))
             else:
-                if path.endswith('info.txt'):
+                if path.endswith("info.txt"):
                     continue
                 out.append(path)
         return sorted(out)
