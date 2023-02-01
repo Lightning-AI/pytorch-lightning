@@ -18,26 +18,34 @@ def test_filesystem(tmpdir):
     with open(f"{tmpdir}/info.txt", "w") as f:
         f.write("example")
 
-    assert fs.list(".") == []
-    fs.put(f"{tmpdir}/a.txt", "a.txt")
-    fs.put(f"{tmpdir}/info.txt", "info.txt")
-    assert fs.list(".") == ["a.txt"]
+    assert fs.listdir("/") == []
+    fs.put(f"{tmpdir}/a.txt", "/a.txt")
+    fs.put(f"{tmpdir}/info.txt", "/info.txt")
+    assert fs.listdir("/") == ["a.txt"]
 
-    fs.put(f"{tmpdir}/checkpoints", "checkpoints")
-    assert fs.list(".") == ["a.txt", "checkpoints/a.txt"]
+    fs.put(f"{tmpdir}/checkpoints", "/checkpoints")
+    assert fs.listdir("/") == ["a.txt", "checkpoints"]
+    assert fs.walk("/") == ["a.txt", "checkpoints/a.txt"]
 
     os.remove(f"{tmpdir}/a.txt")
 
-    fs.get(f"a.txt", f"{tmpdir}/a.txt")
+    assert not os.path.exists(f"{tmpdir}/a.txt")
 
-    fs.delete("a.txt")
+    fs.get(f"/a.txt", f"{tmpdir}/a.txt")
 
-    assert fs.list(".") == ["checkpoints/a.txt"]
-    fs.delete("checkpoints/a.txt")
-    assert fs.list(".") == []
+    assert os.path.exists(f"{tmpdir}/a.txt")
+
+    fs.rm("/a.txt")
+
+    assert fs.listdir("/") == ["checkpoints"]
+    fs.rm("/checkpoints/a.txt")
+    assert fs.listdir("/") == ["checkpoints"]
+    assert fs.walk("/checkpoints") == []
+    fs.rm("/checkpoints/")
+    assert fs.listdir("/") == []
 
     with pytest.raises(FileExistsError, match="HERE"):
-        fs.put("HERE", "HERE")
+        fs.put("HERE", "/HERE")
 
     with pytest.raises(RuntimeError, match="The provided path"):
-        fs.list("space")
+        fs.listdir("/space")
