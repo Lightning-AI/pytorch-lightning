@@ -50,7 +50,7 @@ def has_iterable_dataset(dataloader: object) -> TypeGuard[DataLoader]:
 def sized_len(dataloader: object) -> Optional[int]:
     try:
         # try getting the length
-        length = len(dataloader) == 0  # type: ignore [arg-type]
+        length = len(dataloader)  # type: ignore [arg-type]
     except (TypeError, NotImplementedError):
         length = None
     return length
