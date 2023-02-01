@@ -150,9 +150,7 @@ For example, here we will apply a stronger gradient clipping after a certain num
             gradient_clip_val = gradient_clip_val * 2
 
         # Lightning will handle the gradient clipping
-        self.clip_gradients(
-            optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
-        )
+        self.clip_gradients(optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
 
 Total Stepping Batches
