@@ -30,8 +30,8 @@ def test__training_step__flow_dict(tmpdir):
             self.training_step_called = True
             return {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -68,8 +68,8 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -101,8 +101,8 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
             out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
             return out
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -140,8 +140,8 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None

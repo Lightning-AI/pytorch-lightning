@@ -22,7 +22,6 @@ from pytorch_lightning.core.optimizer import do_nothing_closure
 from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.progress import Progress, ReadyCompletedTracker
-from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -103,8 +102,6 @@ class _ManualOptimization(_Loop):
         Args:
             kwargs: The kwargs passed down to the hooks.
         """
-        kwargs = self._build_kwargs(kwargs)
-
         # manually capture logged metrics
         training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
         del kwargs  # release the batch from memory
@@ -134,14 +131,3 @@ class _ManualOptimization(_Loop):
     def _on_after_step(self) -> None:
         self.trainer.profiler.stop("optimizer_step")
         self.optim_step_progress.increment_completed()
-
-    def _build_kwargs(self, kwargs: OrderedDict) -> OrderedDict:
-        """Helper method to build the arguments for the current step.
-
-        Args:
-            kwargs: The kwargs passed down to the hooks.
-
-        Returns:
-            The kwargs passed down to the hooks.
-        """
-        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self.trainer.optimizers, None)

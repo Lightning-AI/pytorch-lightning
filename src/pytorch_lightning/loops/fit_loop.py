@@ -41,13 +41,12 @@ class _FitLoop(_Loop):
         for epoch in range(max_epochs):
             # TrainingEpochLoop
             for batch_idx, batch in enumerate(train_dataloader):
-                # OptimizerLoop
-                for optimizer_idx, opt in enumerate(optimizers):
-                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
-                    ...
+                loss = lightning_module.training_step(batch, batch_idx)
+                ...
+
                 # ValidationEpochLoop
                 for batch_idx, batch in enumerate(val_dataloader):
-                    lightning_module.validation_step(batch, batch_idx, optimizer_idx)
+                    lightning_module.validation_step(batch, batch_idx)
                     ...
                 ...
             ...

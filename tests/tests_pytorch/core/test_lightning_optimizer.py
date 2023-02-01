@@ -165,7 +165,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
-        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
             if batch_idx % 2 == 0:
                 optimizer.zero_grad()
 
@@ -191,7 +191,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             return super().training_step(batch, batch_idx)
 
-        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, **_):
             assert isinstance(optimizer_closure, Closure)
             # zero_grad is called inside the closure
             optimizer_closure()
@@ -308,7 +308,7 @@ def test_params_groups_and_state_are_accessible(tmpdir):
         def configure_optimizers(self):
             return SGD(self.layer.parameters(), lr=0.1)
 
-        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **__):
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, **__):
             # check attributes are accessible
             assert all("lr" in pg for pg in optimizer.param_groups)
             assert optimizer.state is optimizer._optimizer.state

@@ -536,7 +536,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
             self.freeze(pl_module.backbone[1])
             self.freeze(pl_module.layer)
 
-        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+        def finetune_function(self, pl_module, epoch: int, optimizer):
             """Called when the epoch begins."""
             if epoch == 1 and isinstance(optimizer, torch.optim.SGD):
                 self.unfreeze_and_add_param_group(pl_module.backbone[0], optimizer, lr=0.1)

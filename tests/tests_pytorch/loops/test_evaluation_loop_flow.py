@@ -40,8 +40,8 @@ def test__eval_step__flow(tmpdir):
                 out = {"something": "random"}
             return out
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.validation_step_end = None
@@ -63,10 +63,8 @@ def test__eval_step__flow(tmpdir):
     # simulate training manually
     trainer.state.stage = RunningStage.TRAINING
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
 
-    assert len(train_step_out) == 1
-    train_step_out = train_step_out[0]
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
@@ -100,8 +98,8 @@ def test__eval_step__eval_step_end__flow(tmpdir):
             assert self.last_out == out
             return out
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
 
@@ -122,10 +120,8 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
 
-    assert len(train_step_out) == 1
-    train_step_out = train_step_out[0]
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
@@ -155,8 +151,8 @@ def test__eval_step__epoch_end__flow(tmpdir):
                 self.out_b = out
             return out
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.validation_step_end = None
@@ -203,8 +199,8 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
             assert self.last_out == out
             return out
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
 

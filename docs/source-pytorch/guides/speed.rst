@@ -431,7 +431,7 @@ This is enabled by default on ``torch>=2.0.0``.
 .. testcode::
 
     class Model(LightningModule):
-        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
             optimizer.zero_grad(set_to_none=True)
 
 
