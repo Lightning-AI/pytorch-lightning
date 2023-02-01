@@ -95,7 +95,7 @@ class ReductionTestModel(BoringModel):
         super().__init__()
         self.train_outputs = []
         self.val_outputs = []
-        self.tests_outputs = []
+        self.test_outputs = []
 
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=2)
@@ -129,7 +129,7 @@ class ReductionTestModel(BoringModel):
     def test_step(self, batch, batch_idx):
         output = super().test_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
-        self.tests_outputs.append(output)
+        self.test_outputs.append(output)
         return output
 
     def on_train_epoch_end(self):
@@ -141,7 +141,7 @@ class ReductionTestModel(BoringModel):
         self._assert_extra_outputs(self.val_outputs)
 
     def on_test_epoch_end(self):
-        assert self.tests_outputs[0]["y"].shape == torch.Size([2])
+        assert self.test_outputs[0]["y"].shape == torch.Size([2])
         self._assert_extra_outputs(self.test_outputs)
 
     def _assert_extra_outputs(self, outputs):
