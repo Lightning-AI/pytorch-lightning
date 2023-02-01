@@ -11,18 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABC, abstractmethod
 
-import typing as t
-from typing import Protocol, runtime_checkable
-
-from lightning_app import LightningFlow, LightningWork
-from lightning_app.structures import Dict, List
-
-Component = t.Union[LightningFlow, LightningWork, Dict, List]
-ComponentTuple = (LightningFlow, LightningWork, Dict, List)
+from lightning_fabric.strategies.launchers.launcher import _Launcher as _FabricLauncher
+from pytorch_lightning.trainer.connectors.signal_connector import _SIGNUM
 
 
-@runtime_checkable
-class Hashable(Protocol):
-    def to_dict(self) -> t.Dict[str, t.Any]:
-        ...
+class _Launcher(_FabricLauncher, ABC):
+    @abstractmethod
+    def kill(self, signum: _SIGNUM) -> None:
+        """Kill existing alive processes."""

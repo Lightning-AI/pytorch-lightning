@@ -11,23 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import subprocess
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import ClusterEnvironment
-from lightning_fabric.strategies.launchers.base import _Launcher
 from lightning_fabric.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
+from pytorch_lightning.strategies.launchers.launcher import _Launcher
+from pytorch_lightning.trainer.connectors.signal_connector import _SIGNUM
 
+log = logging.getLogger(__name__)
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 
 class _SubprocessScriptLauncher(_Launcher):
     r"""
-    A process laucher that invokes the current script as many times as desired in a single node.
+    A process launcher that invokes the current script as many times as desired in a single node.
 
     This launcher needs to be invoked on each node.
     In its default behavior, the main process in each node then spawns N-1 child processes via :func:`subprocess.Popen`,
@@ -68,6 +71,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
+        self.procs: List[subprocess.Popen] = []  # launched subprocesses. does not include the launcher
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -87,9 +91,16 @@ class _SubprocessScriptLauncher(_Launcher):
             self._call_children_scripts()
         return function(*args, **kwargs)
 
+    def kill(self, signum: _SIGNUM) -> None:
+        for proc in self.procs:
+            log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
+            # this skips subprocesses already terminated
+            proc.send_signal(signum)
+
     def _call_children_scripts(self) -> None:
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
+        self.procs = []  # reset in case it's called twice
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
@@ -120,7 +131,8 @@ class _SubprocessScriptLauncher(_Launcher):
             else:
                 command = _basic_subprocess_cmd()
 
-            subprocess.Popen(command, env=env_copy, cwd=cwd)
+            new_process = subprocess.Popen(command, env=env_copy, cwd=cwd)
+            self.procs.append(new_process)
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:

@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, cast, Dict, Generator, Optional
+from typing import Any, cast, Dict, Generator, Literal, Optional
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS
-from typing_extensions import Literal
 
 from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning_fabric.plugins.precision.precision import Precision

@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event.pull_request.draft == false
     env:
-      PYTHON_VER: 3.7
+      PYTHON_VER: 3.8
     strategy:
       fail-fast: false
       max-parallel: 1  # run sequential

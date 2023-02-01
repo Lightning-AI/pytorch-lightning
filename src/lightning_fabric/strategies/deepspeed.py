@@ -36,7 +36,8 @@ from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only,
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH
 
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
+# check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
