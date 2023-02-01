@@ -19,7 +19,7 @@ from torch import nn
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
@@ -361,9 +361,8 @@ def test_callbacks_restore(tmpdir):
         "weight_decay": 0,
         "nesterov": False,
         "params": ["layer.3.weight", "layer.3.bias"],
+        "maximize": False,
     }
-    if _TORCH_GREATER_EQUAL_1_11:
-        expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:
@@ -379,9 +378,8 @@ def test_callbacks_restore(tmpdir):
         "weight_decay": 0,
         "nesterov": False,
         "params": ["layer.0.weight", "layer.0.bias"],
+        "maximize": False,
     }
-    if _TORCH_GREATER_EQUAL_1_11:
-        expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:

@@ -29,7 +29,7 @@ from lightning.fabric.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
-from lightning.fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
+from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -194,10 +194,8 @@ class AcceleratorConnector:
 
     def _init_deterministic(self, deterministic: Optional[Union[bool, _LITERAL_WARN]]) -> None:
         self.deterministic = deterministic or False  # default to False if not set
-        if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
+        if deterministic == "warn":
             torch.use_deterministic_algorithms(True, warn_only=True)
-        else:
-            torch.use_deterministic_algorithms(self.deterministic)
         if self.deterministic:
             # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
