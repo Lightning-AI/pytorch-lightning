@@ -7,7 +7,7 @@ from lightning_cloud.openapi.rest import ApiException
 from pytest import fixture
 from urllib3 import HTTPResponse
 
-from lightning_app.utilities.exceptions import _ApiExceptionHandler
+from lightning.app.utilities.exceptions import _ApiExceptionHandler
 
 
 @fixture
