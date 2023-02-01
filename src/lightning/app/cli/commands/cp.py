@@ -9,8 +9,9 @@ from lightning.app.utilities.network import LightningClient
 import sys
 import concurrent
 from lightning_cloud.openapi import IdArtifactsBody
-from lightning.app.storage.path import _shared_storage_path
 from lightning.app.source_code import FileUploader
+from multiprocessing.pool import ApplyResult
+import requests
 
 logger = Logger(__name__)
 
@@ -94,10 +95,6 @@ def _upload_files(client: LightningClient, local_src: str, remote_dst: str, proj
         )
         upload_urls.append(response)
 
-    upload_urls = [response.get().upload_url for response in upload_urls]
-
-    breakpoint()
-
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
         results = executor.map(_upload, upload_paths, upload_urls)
 
@@ -107,10 +104,10 @@ def _upload_files(client: LightningClient, local_src: str, remote_dst: str, proj
         raise exception
 
 
-def _upload(source_file: str, presigned_url: str) -> Optional[Exception]:
+def _upload(source_file: str, presigned_url: ApplyResult) -> Optional[Exception]:
     source_file = Path(source_file)
     file_uploader = FileUploader(
-        presigned_url,
+        presigned_url.get().upload_url,
         source_file,
         name=str(source_file),
         total_size=source_file.stat().st_size,
@@ -118,36 +115,32 @@ def _upload(source_file: str, presigned_url: str) -> Optional[Exception]:
     file_uploader.upload()
 
 
-# def _download_files(client, remote_src: str, local_dst: str, project_id: str, app_id: str):
-#     local_src = Path(local_dst).resolve()
-#     download_paths = []
+def _download_files(client, remote_src: str, local_dst: str, project_id: str, app_id: str):
+    local_src = Path(local_dst).resolve()
+    download_paths = []
+    download_urls = []
 
-#     response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, lit_app.id)
-#     for artifact in response.artifacts:
-#         path = os.path.join(lit_app.name, artifact.filename)
-#         splits = path.split("/")
+    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
+    for artifact in response.artifacts:
+        path = os.path.join(local_dst, artifact.filename.replace(remote_src, ""))
+        path = Path(path).resolve()
+        os.makedirs(path.parent, exist_ok=True)
+        download_paths.append(Path(path).resolve())
+        download_urls.append(artifact.url)
 
+    with concurrent.futures.ThreadPoolExecutor(4) as executor:
+        results = executor.map(_download, download_paths, download_urls)
 
-#     for upload_path in upload_paths:
-#         filename = str(upload_path).replace(str(local_src), str(remote_dst))
-#         filename = os.path.join(shared_storage, filename[1:])
-#         response = client.lightningapp_instance_service_upload_lightningapp_instance_artifact(
-#             project_id=project_id,
-#             id=app_id,
-#             body=IdArtifactsBody(filename),
-#             async_req=True,
-#         )
-#         upload_urls.append(response)
+    # Raise the first exception found
+    exception = next((e for e in results if isinstance(e, Exception)), None)
+    if exception:
+        raise exception
 
-#     upload_urls = [response.get().upload_url for response in upload_urls]
+def _download(source_file: str, presigned_url: str):
+    resp = requests.get(presigned_url, allow_redirects=True)
 
-#     with concurrent.futures.ThreadPoolExecutor(4) as executor:
-#         results = executor.map(_upload, upload_paths, upload_urls)
-
-#     # Raise the first exception found
-#     exception = next((e for e in results if isinstance(e, Exception)), None)
-#     if exception:
-#         raise exception
+    with open(source_file, "wb") as f:
+        f.write(resp.content)
 
 def _sanetize_path(path: str, pwd: str) -> Tuple[str, bool]:
     is_remote = _is_remote(path)
