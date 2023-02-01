@@ -61,6 +61,8 @@ from lightning.app.utilities.login import Auth
 from lightning.app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning.app.utilities.network import LightningClient
 from lightning.app.utilities.port import _find_lit_app_port
+from lightning.app.cli.commands.ls import ls
+from lightning.app.cli.commands.cd import cd
 
 logger = Logger(__name__)
 
@@ -119,6 +121,8 @@ def show() -> None:
 
 _main.command()(connect)
 _main.command()(disconnect)
+_main.command()(ls)
+_main.command()(cd)
 show.command()(logs)
 
 
