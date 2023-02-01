@@ -33,11 +33,11 @@
 /tests/tests_pytorch                        @awaelchli @carmocca @justusschock
 
 # Core APIs
-/src/pytorch_lightning/callbacks/callback.py @williamfalcon @awaelchli @carmocca
-/src/pytorch_lightning/core/datamodule.py    @williamFalcon @awaelchli @carmocca
-/src/pytorch_lightning/trainer/trainer.py    @williamfalcon @tchaton @awaelchli @carmocca
-/src/pytorch_lightning/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
-/src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
+/src/lightning/pytorch/callbacks/callback.py @williamfalcon @awaelchli @carmocca
+/src/lightning/pytorch/core/datamodule.py    @williamFalcon @awaelchli @carmocca
+/src/lightning/pytorch/trainer/trainer.py    @williamfalcon @tchaton @awaelchli @carmocca
+/src/lightning/pytorch/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
+/src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Lightning Fabric
 /src/lightning/fabric                         @awaelchli @carmocca @justusschock
