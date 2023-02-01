@@ -221,7 +221,8 @@ subprojects:
     paths:
       - ".actions/**"
       - ".github/workflows/ci-tests-app.yml"
-      - "src/lightning_app/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
@@ -243,7 +244,8 @@ subprojects:
     paths:
       - ".actions/**"
       - ".github/workflows/ci-examples-app.yml"
-      - "src/lightning_app/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "tests/integrations_app/**"
       - "!tests/integrations_app/flagship/**"
       - "examples/app_*/**"
@@ -285,7 +287,8 @@ subprojects:
     paths:
       - ".actions/**"
       - ".azure/app-cloud-e2e.yml"
-      - "src/lightning_app/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "requirements/app/**"
       - "tests/integrations_app/**"
       - "!tests/integrations_app/flagship/**"
@@ -299,7 +302,8 @@ subprojects:
   - id: "lightning_app: Docs"
     paths:
       - ".actions/**"
-      - "src/lightning_app/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "docs/source-app/**"
       - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
