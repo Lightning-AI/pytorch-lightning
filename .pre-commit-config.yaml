@@ -100,7 +100,7 @@ repos:
           (?x)^(
               src/lightning/app/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
-              src/pytorch_lightning/CHANGELOG.md
+              src/lightning/pytorch/CHANGELOG.md
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
