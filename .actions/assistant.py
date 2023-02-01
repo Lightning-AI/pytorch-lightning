@@ -294,8 +294,8 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
 
 def copy_replace_imports(
     source_dir: str,
-    source_imports: List[str],
-    target_imports: List[str],
+    source_imports: Sequence[str],
+    target_imports: Sequence[str],
     target_dir: Optional[str] = None,
     lightning_by: str = "",
 ) -> None:
@@ -338,26 +338,24 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reve
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
 
-    imports_src, imports_tgt = [], []
     mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
-    for sub_pkg, standalone in mapping.items():
-        imports_src.append(standalone)
-        imports_tgt.append(sub_pkg)
+    source_imports = mapping.values()
+    target_imports = mapping.keys()
 
     for pkg_to, pkg_from in mapping.items():
         if pkg_to.split(".")[-1] in reverse:
-            imports_src_, imports_tgt_ = imports_tgt, imports_src
+            source_imports_, target_imports_ = target_imports, source_imports
             pkg_to, pkg_from = pkg_from, pkg_to
             lightning_by = pkg_from
         else:
-            imports_src_, imports_tgt_ = imports_src, imports_tgt
+            source_imports_, target_imports_ = source_imports, target_imports
             lightning_by = ""
 
         copy_replace_imports(
             source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=imports_src_,
-            target_imports=imports_tgt_,
+            source_imports=source_imports_,
+            target_imports=target_imports_,
             target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
             lightning_by=lightning_by,
         )

@@ -58,7 +58,7 @@ _PACKAGE_MAPPING = {
     "fabric": "lightning_fabric",
 }
 # TODO: drop this reverse list when all packages are moved
-_PACKAGE_STANDALONE = ("lightning", "app", None)
+_MIRROR_PACKAGE_REVERSED = ("app",)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
@@ -139,12 +139,12 @@ if __name__ == "__main__":
             raise ValueError(
                 f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}"
             )
-        if _PACKAGE_NAME in _PACKAGE_STANDALONE:  # install everything
+        package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
+        if package_to_install == "lightning" or _PACKAGE_NAME in _MIRROR_PACKAGE_REVERSED:  # install everything
             # merge all requirements files
             assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
             # replace imports and copy the code
-            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_PACKAGE_STANDALONE)
-        package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
+            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_MIRROR_PACKAGE_REVERSED)
     else:
         assert len(local_pkgs) > 0
         # PL as a package is distributed together with Fabric, so in such case there are more than one candidate
