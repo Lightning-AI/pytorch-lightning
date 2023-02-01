@@ -1,4 +1,4 @@
-from lightning_app import LightningFlow
+from lightning.app import LightningFlow
 
 
 class BBB(LightningFlow):

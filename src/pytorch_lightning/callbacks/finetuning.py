@@ -46,7 +46,7 @@ class BaseFinetuning(Callback):
         and should be used to freeze any modules parameters.
 
     ``finetune_function``: This method is called on every train epoch start and should be used to
-        ``unfreeze`` any parameters. Those parameters needs to be added in a new ``param_group``
+        ``unfreeze`` any parameters. Those parameters need to be added in a new ``param_group``
         within the optimizer.
 
     .. note:: Make sure to filter the parameters based on ``requires_grad``.
@@ -69,7 +69,7 @@ class BaseFinetuning(Callback):
         ...         # Here, we are freezing `feature_extractor`
         ...         self.freeze(pl_module.feature_extractor)
         ...
-        ...     def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
+        ...     def finetune_function(self, pl_module, current_epoch, optimizer):
         ...         # When `current_epoch` is 10, feature_extractor will start training.
         ...         if current_epoch == self._unfreeze_at_epoch:
         ...             self.unfreeze_and_add_param_group(
@@ -290,18 +290,13 @@ class BaseFinetuning(Callback):
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the epoch begins."""
-        # import is here to avoid circular imports
-        from pytorch_lightning.loops.utilities import _get_active_optimizers
-
-        for opt_idx, optimizer in _get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies, 0):
+        for opt_idx, optimizer in enumerate(trainer.optimizers):
             num_param_groups = len(optimizer.param_groups)
-            self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
+            self.finetune_function(pl_module, trainer.current_epoch, optimizer)
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
-    def finetune_function(
-        self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int
-    ) -> None:
+    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer) -> None:
         """Override to add your unfreeze logic."""
         raise NotImplementedError
 
@@ -389,9 +384,7 @@ class BackboneFinetuning(BaseFinetuning):
     def freeze_before_training(self, pl_module: "pl.LightningModule") -> None:
         self.freeze(pl_module.backbone)
 
-    def finetune_function(
-        self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int
-    ) -> None:
+    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer) -> None:
         """Called when the epoch begins."""
         if epoch == self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]["lr"]

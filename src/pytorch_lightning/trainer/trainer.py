@@ -1173,6 +1173,7 @@ class Trainer:
         self,
         hook_name: str,
         *args: Any,
+        monitoring_callbacks: Optional[bool] = None,
         **kwargs: Any,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
@@ -1182,7 +1183,14 @@ class Trainer:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        for callback in self.callbacks:
+        callbacks = self.callbacks
+        if monitoring_callbacks is True:
+            # the list of "monitoring callbacks" is hard-coded to these two. we could add an API to define this
+            callbacks = [cb for cb in callbacks if isinstance(cb, (EarlyStopping, Checkpoint))]
+        elif monitoring_callbacks is False:
+            callbacks = [cb for cb in callbacks if not isinstance(cb, (EarlyStopping, Checkpoint))]
+
+        for callback in callbacks:
             fn = getattr(callback, hook_name)
             if callable(fn):
                 with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
@@ -1549,14 +1557,6 @@ class Trainer:
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_scheduler_configs
-
-    @property
-    def optimizer_frequencies(self) -> List[int]:
-        return self.strategy.optimizer_frequencies
-
-    @optimizer_frequencies.setter
-    def optimizer_frequencies(self, new_freqs: List[int]) -> None:
-        self.strategy.optimizer_frequencies = new_freqs
 
     @property
     def precision(self) -> _PRECISION_INPUT_STR:

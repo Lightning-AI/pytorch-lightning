@@ -43,13 +43,12 @@ class _FitLoop(_Loop):
         for epoch in range(max_epochs):
             # TrainingEpochLoop
             for batch_idx, batch in enumerate(train_dataloader):
-                # OptimizerLoop
-                for optimizer_idx, opt in enumerate(optimizers):
-                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
-                    ...
+                loss = lightning_module.training_step(batch, batch_idx)
+                ...
+
                 # ValidationEpochLoop
                 for batch_idx, batch in enumerate(val_dataloader):
-                    lightning_module.validation_step(batch, batch_idx, optimizer_idx)
+                    lightning_module.validation_step(batch, batch_idx)
                     ...
                 ...
             ...
@@ -283,15 +282,8 @@ class _FitLoop(_Loop):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
-                self._outputs,
-                lightning_module=model,
-                num_optimizers=len(self.trainer.optimizers),
-            )
-            # run lightning module hook training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
-            if epoch_end_outputs is not None:
+            return_value = self.trainer._call_lightning_module_hook("training_epoch_end", self._outputs)
+            if return_value is not None:
                 raise MisconfigurationException(
                     "`training_epoch_end` expects a return of None. "
                     "HINT: remove the return statement in `training_epoch_end`."
@@ -302,8 +294,12 @@ class _FitLoop(_Loop):
         self.epoch_progress.increment_processed()
 
         # call train epoch end hooks
-        self.trainer._call_callback_hooks("on_train_epoch_end")
+        # we always call callback hooks first, but here we need to make an exception for the callbacks that
+        # monitor a metric, otherwise they wouldn't be able to monitor a key logged in
+        # `LightningModule.on_train_epoch_end`
+        self.trainer._call_callback_hooks("on_train_epoch_end", monitoring_callbacks=False)
         self.trainer._call_lightning_module_hook("on_train_epoch_end")
+        self.trainer._call_callback_hooks("on_train_epoch_end", monitoring_callbacks=True)
 
         self.trainer._logger_connector.on_epoch_end()
 

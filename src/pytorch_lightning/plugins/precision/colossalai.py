@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Literal, Optional, Union
 
 from torch import Tensor
 from torch.optim import Optimizer
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.types import Steppable
@@ -49,7 +48,6 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         tensor: Tensor,
         model: "pl.LightningModule",
         optimizer: Optional[Steppable],
-        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -66,12 +64,11 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         self,
         optimizer: Steppable,
         model: "pl.LightningModule",
-        optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         closure_result = closure()
-        self._after_closure(model, optimizer, optimizer_idx)
+        self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             raise ValueError(

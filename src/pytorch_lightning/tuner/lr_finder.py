@@ -106,7 +106,7 @@ class _LRFinder:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
-        from pytorch_lightning.core.optimizer import _set_scheduler_opt_idx
+        from pytorch_lightning.core.optimizer import _validate_optimizers_attached
 
         optimizers = trainer.strategy.optimizers
 
@@ -128,8 +128,8 @@ class _LRFinder:
         scheduler = cast(LRScheduler, scheduler)
 
         trainer.strategy.optimizers = [optimizer]
-        trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
-        _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
+        trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
+        _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
     def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
@@ -303,7 +303,6 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
-        "optimizer_frequencies": trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
         "loggers": trainer.loggers,
         "max_steps": trainer.fit_loop.max_steps,
@@ -316,7 +315,6 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     from pytorch_lightning.loggers.logger import DummyLogger
 
     trainer.strategy.lr_scheduler_configs = []
-    trainer.strategy.optimizer_frequencies = []
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
@@ -329,7 +327,6 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
 def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
-    trainer.strategy.optimizer_frequencies = params["optimizer_frequencies"]
     trainer.callbacks = params["callbacks"]
     trainer.loggers = params["loggers"]
     trainer.fit_loop.max_steps = params["max_steps"]

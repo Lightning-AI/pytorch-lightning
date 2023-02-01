@@ -11,20 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, cast, TYPE_CHECKING, Union
+from typing import Any, cast, Literal, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from typing_extensions import get_args, Literal
+from typing_extensions import get_args
 
 from lightning_fabric.plugins.precision.precision import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.utilities.types import Steppable
 
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
-    import deepspeed
+if TYPE_CHECKING:
+    from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+
+    if _DEEPSPEED_AVAILABLE:  # type: ignore[has-type]
+        import deepspeed
 
 _PRECISION_INPUT_INT = Literal[32, 16]
 _PRECISION_INPUT_STR = Literal["32", "16", "bf16"]

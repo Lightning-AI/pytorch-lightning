@@ -18,7 +18,7 @@ from collections import UserList
 from contextlib import suppress
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional
 
 import numpy as np
 import torch
@@ -26,7 +26,6 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork

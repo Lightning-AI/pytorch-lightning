@@ -15,10 +15,10 @@
 import logging
 import os
 from collections import Counter
-from typing import cast, Dict, List, Optional, Union
+from typing import cast, Dict, List, Literal, Optional, Union
 
 import torch
-from typing_extensions import get_args, Literal
+from typing_extensions import get_args
 
 from lightning_fabric.plugins.environments import (
     ClusterEnvironment,
