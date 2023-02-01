@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.core.constants import get_cluster_driver, get_lightning_cloud_url
+from lightning.app.core.constants import get_cluster_driver, get_lightning_cloud_url
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})

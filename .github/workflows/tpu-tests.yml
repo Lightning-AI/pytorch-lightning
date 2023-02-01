@@ -41,7 +41,7 @@ jobs:
     env:
       PYTHON_VER: 3.8
     strategy:
-      fail-fast: false
+      fail-fast: true
       max-parallel: 1  # run sequential
       matrix:
         # TODO: add also lightning
