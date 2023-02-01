@@ -1155,9 +1155,8 @@ See :ref:`manual optimization <common/optimization:Manual optimization>` for det
         self.manual_backward(loss)
         opt.step()
 
-This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note
-that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter.
 Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
+It is required when you are using 2+ optimizers because with automatic optimization, you can only use one optimizer.
 
 .. code-block:: python
 

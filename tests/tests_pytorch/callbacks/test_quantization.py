@@ -17,87 +17,14 @@ from typing import Callable, Union
 import pytest
 import torch
 from torch.quantization import FakeQuantizeBase
-from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from lightning.pytorch import seed_everything, Trainer
-from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import QuantizationAwareTraining
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.memory import get_model_size_mb
 from tests_pytorch.helpers.datamodules import RegressDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import RegressionModel
-
-
-# todo: [True-False-average] and [False-False-average] fail with 1.12
-# error: assert False (tensor(0.3262), tensor(0.8754), atol=0.45)
-@pytest.mark.parametrize("observe", ["average", "histogram"])
-@pytest.mark.parametrize("fuse", [True, False])
-@pytest.mark.parametrize("convert", [True, False])
-@RunIf(quantization=True, sklearn=True, max_torch="1.11")
-def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
-    """Parity test for quant model."""
-    cuda_available = CUDAAccelerator.is_available()
-
-    if observe == "average" and not fuse and CUDAAccelerator.is_available():
-        pytest.xfail("TODO: flakiness in GPU CI")
-
-    seed_everything(42)
-    dm = RegressDataModule()
-    accelerator = "gpu" if cuda_available else "cpu"
-    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, accelerator=accelerator, devices=1)
-    model = RegressionModel()
-    qmodel = copy.deepcopy(model)
-
-    trainer = Trainer(**trainer_args)
-    trainer.fit(model, datamodule=dm)
-    org_size = get_model_size_mb(model)
-    org_score = torch.mean(torch.tensor([mape(model(x), y) for x, y in dm.test_dataloader()]))
-
-    fusing_layers = [(f"layer_{i}", f"layer_{i}a") for i in range(3)] if fuse else None
-    qcb = QuantizationAwareTraining(
-        observer_type=observe,
-        modules_to_fuse=fusing_layers,
-        quantize_on_fit_end=convert,
-        observer_enabled_stages=("train", "validate"),
-    )
-    trainer = Trainer(callbacks=[qcb], **trainer_args)
-    trainer.fit(qmodel, datamodule=dm)
-
-    quant_calls = qcb._forward_calls
-    assert quant_calls == qcb._forward_calls
-    quant_score = torch.mean(torch.tensor([mape(qmodel(x), y) for x, y in dm.test_dataloader()]))
-    # test that the test score is almost the same as with pure training
-    assert torch.allclose(org_score, quant_score, atol=0.45)
-    model_path = trainer.checkpoint_callback.best_model_path
-    curr_epoch = trainer.current_epoch
-
-    trainer_args.update(dict(max_epochs=1, enable_checkpointing=False))
-    if not convert:
-        trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
-        trainer.fit(qmodel, datamodule=dm)
-        qmodel.eval()
-        torch.quantization.convert(qmodel, inplace=True)
-
-    quant_size = get_model_size_mb(qmodel)
-    # test that the trained model is smaller then initial
-    size_ratio = quant_size / org_size
-    assert size_ratio < 0.65
-
-    # todo: make it work also with strict loading
-    qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
-    quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-    assert torch.allclose(org_score, quant2_score, atol=0.47)
-
-    # test without and with QAT callback
-    trainer_args.update(max_epochs=curr_epoch + 1)
-    qmodel2 = RegressionModel()
-    trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
-    trainer.fit(qmodel2, datamodule=dm, ckpt_path=model_path)
-    quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-    # test that the test score is almost the same as with pure training
-    assert torch.allclose(org_score, quant2_score, atol=0.45)
 
 
 @RunIf(quantization=True, sklearn=True)

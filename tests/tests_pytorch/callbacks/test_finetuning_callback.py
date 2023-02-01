@@ -19,7 +19,7 @@ from torch import nn
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -75,7 +75,7 @@ def test_finetuning_callback(tmpdir):
 
 
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
-    def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+    def finetune_function(self, pl_module, epoch: int, optimizer):
         """Called when the epoch begins."""
 
         if epoch == 0:
@@ -211,7 +211,7 @@ class OnEpochLayerFinetuning(BaseFinetuning):
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(pl_module.layer)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer):
         self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
 
 
@@ -316,7 +316,7 @@ class TestCallbacksRestoreCallback(BaseFinetuning):
     def freeze_before_training(self, pl_module):
         self.freeze(pl_module.layer[:3])
 
-    def finetune_function(self, pl_module, epoch, optimizer, opt_idx):
+    def finetune_function(self, pl_module, epoch, optimizer):
         if epoch >= 1:
             self.unfreeze_and_add_param_group(pl_module.layer[epoch - 1], optimizer)
 
@@ -361,9 +361,8 @@ def test_callbacks_restore(tmpdir):
         "weight_decay": 0,
         "nesterov": False,
         "params": ["layer.3.weight", "layer.3.bias"],
+        "maximize": False,
     }
-    if _TORCH_GREATER_EQUAL_1_11:
-        expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:
@@ -379,9 +378,8 @@ def test_callbacks_restore(tmpdir):
         "weight_decay": 0,
         "nesterov": False,
         "params": ["layer.0.weight", "layer.0.bias"],
+        "maximize": False,
     }
-    if _TORCH_GREATER_EQUAL_1_11:
-        expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:

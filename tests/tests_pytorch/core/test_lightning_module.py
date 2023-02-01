@@ -21,7 +21,6 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -315,10 +314,7 @@ def test_device_placement(tmpdir, accelerator, device):
 
 @RunIf(skip_windows=True)
 def test_sharded_tensor_state_dict(single_process_pg):
-    if _TORCH_GREATER_EQUAL_1_11:
-        from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
-    else:
-        from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
     class BoringModelWithShardedTensor(BoringModel):
@@ -336,7 +332,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 and not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
+    name_st = ".sharded_tensor" if not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
     assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)
@@ -358,7 +354,7 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             assert gradient_clip_val == self.trainer.gradient_clip_val
             assert gradient_clip_algorithm == self.trainer.gradient_clip_algorithm
 
@@ -387,7 +383,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_val = 1e-2
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_val=self.custom_gradient_clip_val)
 
     model = TestModel()
@@ -403,7 +399,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_algorithm = "foo"
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_algorithm=self.custom_gradient_clip_algorithm)
 
     model = TestModel()
