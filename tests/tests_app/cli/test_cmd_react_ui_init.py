@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-import lightning_app as la
-from lightning_app.cli import cmd_init, cmd_react_ui_init
-from lightning_app.testing.helpers import _RunIf
+import lightning.app as la
+from lightning.app.cli import cmd_init, cmd_react_ui_init
+from lightning.app.testing.helpers import _RunIf
 
 
 @pytest.mark.skipif(os.getenv("GITHUB_ACTIONS") is None, reason="not running in GH actions.")
