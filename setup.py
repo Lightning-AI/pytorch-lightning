@@ -142,10 +142,9 @@ if __name__ == "__main__":
         package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
         if package_to_install == "lightning":
             # merge all requirements files
-            assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        if package_to_install == "lightning" or _PACKAGE_NAME in _MIRROR_PACKAGE_REVERSED:  # install everything
-            # replace imports and copy the code
-            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_MIRROR_PACKAGE_REVERSED)
+            assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS) # install everything
+        # replace imports and copy the code
+        assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_MIRROR_PACKAGE_REVERSED)
     else:
         assert len(local_pkgs) > 0
         # PL as a package is distributed together with Fabric, so in such case there are more than one candidate
