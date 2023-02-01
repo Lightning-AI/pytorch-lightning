@@ -20,8 +20,8 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
-from lightning_fabric import Fabric
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning.fabric import Fabric
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.module import _TrainerFabricShim
 from pytorch_lightning.demos.boring_classes import BoringModel
