@@ -29,13 +29,6 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-class HPUTestModel(BoringModel):
-    def configure_optimizers(self):
-        opt_a = torch.optim.Adam(self.layer.parameters(), lr=0.001)
-        opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
-        return opt_a, opt_b
-
-
 @RunIf(hpu=True)
 def test_availability():
     assert HPUAccelerator.is_available()
@@ -277,21 +270,26 @@ def test_strategy_params_with_hpu_parallel_strategy():
 
 @RunIf(hpu=True)
 def test_multi_optimizers_with_hpu(tmpdir):
-    class TestModel(HPUTestModel):
+    class MultiOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt_a = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+            opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+            return opt_a, opt_b
 
-        optims = [False, False]
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+            loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+            loss = self.loss(self.step(batch))
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt2.step()
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            self.optims[optimizer_idx] = True
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
-    model = TestModel()
+    model = MultiOptimizerModel()
+    model.automatic_optimization = False
     model.val_dataloader = None
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="hpu",
@@ -304,11 +302,9 @@ def test_multi_optimizers_with_hpu(tmpdir):
     )
     trainer.fit(model)
 
-    assert all(model.optims)
-
 
 @RunIf(hpu=True)
-def test_hpu_device_stats_monitor(tmpdir):
+def test_hpu_device_stats_monitor():
 
     hpu_stats = HPUAccelerator().get_device_stats("hpu")
     fields = [

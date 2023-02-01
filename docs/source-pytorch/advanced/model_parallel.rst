@@ -48,6 +48,7 @@ When Shouldn't I use an Optimized Distributed Strategy?
 =======================================================
 
 Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in the following cases, we recommend sticking to ordinary distributed strategies
+
 * When your model is small (ResNet50 of around 80M Parameters), unless you are using unusually large batch sizes or inputs.
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 

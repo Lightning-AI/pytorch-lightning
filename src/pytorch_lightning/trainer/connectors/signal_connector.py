@@ -7,6 +7,8 @@ from subprocess import call
 from types import FrameType
 from typing import Any, Callable, Dict, List, Set, Union
 
+from lightning_utilities.core.rank_zero import rank_prefixed_message
+
 import pytorch_lightning as pl
 from lightning_fabric.plugins.environments import SLURMEnvironment
 from lightning_fabric.utilities.imports import _IS_WINDOWS
@@ -50,8 +52,8 @@ class SignalConnector:
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
             log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
-            sigusr_handlers.append(self.slurm_sigusr_handler_fn)
-            sigterm_handlers.append(self.sigterm_handler_fn)
+            sigusr_handlers.append(self._slurm_sigusr_handler_fn)
+            sigterm_handlers.append(self._sigterm_handler_fn)
 
         # Windows seems to have signal incompatibilities
         if not self._is_on_windows():
@@ -65,8 +67,8 @@ class SignalConnector:
                 sigterm_handlers.append(signal.getsignal(signal.SIGTERM))
             self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
-    def slurm_sigusr_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        rank_zero_info("handling auto-requeue signal")
+    def _slurm_sigusr_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
+        rank_zero_info(f"Handling auto-requeue signal: {signum}")
 
         # save logger to make sure we get all the metrics
         for logger in self.trainer.loggers:
@@ -103,12 +105,18 @@ class SignalConnector:
             else:
                 log.warning("requeue failed...")
 
-    def _sigterm_notifier_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        log.info(f"Received signal {signum}")
+    def _sigterm_notifier_fn(self, signum: _SIGNUM, _: FrameType) -> None:
+        log.info(rank_prefixed_message(f"Received SIGTERM: {signum}", self.trainer.local_rank))
+        # subprocesses killing the parent process is not supported, only the parent (rank 0) does it
+        if not self.received_sigterm:
+            # send the same signal to the subprocesses
+            launcher = self.trainer.strategy.launcher
+            if launcher is not None:
+                launcher.kill(signum)
         self.received_sigterm = True
 
-    def sigterm_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        log.info("bypassing sigterm")
+    def _sigterm_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
+        log.info(f"Bypassing SIGTERM: {signum}")
 
     def teardown(self) -> None:
         """Restores the signals that were previously configured before :class:`SignalConnector` replaced them."""

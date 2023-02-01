@@ -1,12 +1,11 @@
 import logging
 import time
 from multiprocessing import Process
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 import requests
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback

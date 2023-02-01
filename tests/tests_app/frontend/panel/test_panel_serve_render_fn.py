@@ -8,8 +8,8 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
-from lightning_app.frontend.panel.panel_serve_render_fn import _get_render_fn, _get_render_fn_from_environment
+from lightning.app.frontend.panel.app_state_watcher import AppStateWatcher
+from lightning.app.frontend.panel.panel_serve_render_fn import _get_render_fn, _get_render_fn_from_environment
 
 
 @pytest.fixture(autouse=True)

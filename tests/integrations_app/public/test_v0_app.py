@@ -7,12 +7,12 @@ from unittest.mock import MagicMock
 import pytest
 from integrations_app.public import _PATH_EXAMPLES
 
-from lightning_app import LightningApp
-from lightning_app.runners import CloudRuntime
-from lightning_app.testing import EmptyFlow
-from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
-from lightning_app.utilities.enum import AppStage
-from lightning_app.utilities.load_app import load_app_from_file
+from lightning.app import LightningApp
+from lightning.app.runners import CloudRuntime
+from lightning.app.testing import EmptyFlow
+from lightning.app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
+from lightning.app.utilities.enum import AppStage
+from lightning.app.utilities.load_app import load_app_from_file
 
 
 class LightningAppTestInt(LightningTestApp):
@@ -87,7 +87,7 @@ def test_v0_app_example_cloud() -> None:
 
 
 @mock.patch(
-    "lightning_app.runners.cloud.load_app_from_file",
+    "lightning.app.runners.cloud.load_app_from_file",
     MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
 )
 def test_load_app_from_file_module_error():

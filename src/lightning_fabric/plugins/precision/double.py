@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Literal
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.precision import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor

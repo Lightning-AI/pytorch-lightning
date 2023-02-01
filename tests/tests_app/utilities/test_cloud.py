@@ -1,7 +1,7 @@
 import os
 from unittest import mock
 
-from lightning_app.utilities.cloud import is_running_in_cloud
+from lightning.app.utilities.cloud import is_running_in_cloud
 
 
 def test_is_running_cloud():

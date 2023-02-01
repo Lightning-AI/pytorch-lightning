@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, List, Tuple
+from typing import Any, List, Literal, Tuple
 
 import torch.nn as nn
 from torch.optim import Optimizer
-from typing_extensions import Literal
 
 from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 
