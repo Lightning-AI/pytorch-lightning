@@ -28,7 +28,7 @@ def test_filesystem(tmpdir):
 
     os.remove(f"{tmpdir}/a.txt")
 
-    fs.get(f"a.txt", f"{tmpdir}/a.txt")
+    fs.get("a.txt", f"{tmpdir}/a.txt")
 
     fs.delete("a.txt")
 
