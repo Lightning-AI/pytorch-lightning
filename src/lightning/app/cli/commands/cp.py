@@ -11,6 +11,12 @@ import concurrent
 from lightning_cloud.openapi import IdArtifactsBody
 from lightning.app.source_code import FileUploader
 from multiprocessing.pool import ApplyResult
+from rich.live import Live
+from rich.text import Text
+import rich
+from rich.spinner import Spinner
+import urllib3
+from rich.progress import BarColumn, Progress, TextColumn
 import requests
 
 logger = Logger(__name__)
@@ -23,50 +29,52 @@ logger = Logger(__name__)
 def cp(src_path: str, dst_path: str, project_id: Optional[str] = None, r: bool = False, recursive: bool = False) -> None:
     cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
     pwd = '/'
+
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
     
-    if os.path.exists(cd_file):
-        with open(cd_file, "r") as f:
-            lines = f.readlines()
-            pwd = lines[0].replace("\n", "")
+        if os.path.exists(cd_file):
+            with open(cd_file, "r") as f:
+                lines = f.readlines()
+                pwd = lines[0].replace("\n", "")
 
-    if pwd == "/":
-        print("ERROR: Uploading files at the project level isn't supported yet.")
-        sys.exit(0)
+        if pwd == "/":
+            print("ERROR: Uploading files at the project level isn't supported yet.")
+            sys.exit(0)
 
-    app_name = pwd.split("/")[1]
+        app_name = pwd.split("/")[1]
 
-    client = LightningClient()
+        client = LightningClient()
 
-    if not project_id:
-        project_id = _get_project(client, verbose=False).project_id
+        if not project_id:
+            project_id = _get_project(client, verbose=False).project_id
 
-    lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
+        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
 
-    lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == app_name]
+        lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == app_name]
 
-    if len(lit_apps) == 0:
-        print(f"ERROR: We didn't find an app with the name {app_name}. HINT: Did you try using `--project_id`.")
-        sys.exit(0)
+        if len(lit_apps) == 0:
+            print(f"ERROR: We didn't find an app with the name {app_name}. HINT: Did you try using `--project_id`.")
+            sys.exit(0)
 
-    lit_app = lit_apps[0]
+        lit_app = lit_apps[0]
 
-    src_path, src_remote = _sanetize_path(src_path, pwd)
-    dst_path, dst_remote = _sanetize_path(dst_path, pwd)
+        src_path, src_remote = _sanetize_path(src_path, pwd)
+        dst_path, dst_remote = _sanetize_path(dst_path, pwd)
 
-    if src_remote and dst_remote:
-        print("ERROR: Moving files remotely isn't support yet. Please, open a Github issue.")
-        sys.exit(0)        
-    
-    if not src_remote and dst_remote:
-        _upload_files(client, src_path, dst_path, project_id, lit_app.id)
-    elif src_remote and not dst_remote:
-        _download_files(client, src_path, dst_path, project_id, lit_app.id)
-    else:
-        print("ERROR: Moving files locally isn't support yet. Please, open a Github issue.")
-        sys.exit(0)        
+        if src_remote and dst_remote:
+            print("ERROR: Moving files remotely isn't support yet. Please, open a Github issue.")
+            sys.exit(0)        
+        
+        if not src_remote and dst_remote:
+            _upload_files(live, client, src_path, dst_path, project_id, lit_app.id)
+        elif src_remote and not dst_remote:
+            _download_files(live, client, src_path, dst_path, project_id, lit_app.id)
+        else:
+            print("ERROR: Moving files locally isn't support yet. Please, open a Github issue.")
+            sys.exit(0)        
 
 
-def _upload_files(client: LightningClient, local_src: str, remote_dst: str, project_id: str, app_id: str) -> str:
+def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str, project_id: str, app_id: str) -> str:
     if not os.path.exists(local_src):
         print(f"ERROR: The provided source path {local_src} doesn't exist.")
         sys.exit(0)   
@@ -93,6 +101,8 @@ def _upload_files(client: LightningClient, local_src: str, remote_dst: str, proj
         )
         upload_urls.append(response)
 
+    live.stop()
+
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
         results = executor.map(_upload, upload_paths, upload_urls)
 
@@ -113,7 +123,7 @@ def _upload(source_file: str, presigned_url: ApplyResult) -> Optional[Exception]
     file_uploader.upload()
 
 
-def _download_files(client, remote_src: str, local_dst: str, project_id: str, app_id: str):
+def _download_files(live, client, remote_src: str, local_dst: str, project_id: str, app_id: str):
     download_paths = []
     download_urls = []
 
@@ -125,19 +135,46 @@ def _download_files(client, remote_src: str, local_dst: str, project_id: str, ap
         download_paths.append(Path(path).resolve())
         download_urls.append(artifact.url)
 
+    live.stop()
+
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
-        results = executor.map(_download, download_paths, download_urls)
+        results = executor.map(_download_file, download_paths, download_urls)
 
     # Raise the first exception found
     exception = next((e for e in results if isinstance(e, Exception)), None)
     if exception:
         raise exception
 
-def _download(source_file: str, presigned_url: str):
-    resp = requests.get(presigned_url, allow_redirects=True)
+def _download_file(path: str, url: str) -> None:
+    r = requests.get(url, stream=True, verify=False)
+    file_size = int(r.headers["Content-Length"]) if "Content-Length" in r.headers else 0
 
-    with open(source_file, "wb") as f:
-        f.write(resp.content)
+    progress = Progress(
+        TextColumn("[bold blue]{task.description}", justify="left"),
+        BarColumn(bar_width=None),
+        "[self.progress.percentage]{task.percentage:>3.1f}%",
+    )
+
+    task_id = progress.add_task("upload", filename=path, total=file_size)
+    # TODO: Resolve the live error
+    try:
+        progress.start()
+    except rich.errors.LiveError:
+        pass
+
+    # Disable warning about making an insecure request
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    task_id = progress.add_task("upload", filename=path, total=file_size)
+    chunk_size = 1024
+
+    if not os.path.exists(path):
+        with open(path, "wb") as fp:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                fp.write(chunk)  # type: ignore
+                progress.update(task_id, advance=chunk_size)
+
+    progress.stop()
 
 def _sanetize_path(path: str, pwd: str) -> Tuple[str, bool]:
     is_remote = _is_remote(path)

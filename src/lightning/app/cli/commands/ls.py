@@ -7,6 +7,9 @@ from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.network import LightningClient
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from rich.color import ANSI_COLOR_NAMES
+from rich.live import Live
+from rich.text import Text
+from rich.spinner import Spinner
 import rich
 
 logger = Logger(__name__)
@@ -20,17 +23,7 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
     root = '/'
     paths = []
 
-    from rich.columns import Columns
-    from rich.panel import Panel
-    from rich.live import Live
-    from rich.text import Text
-    from rich.spinner import Spinner, SPINNERS
-
-    spinner =  Spinner("point", text=Text("pending...", style="white"))
-
-    console = rich.console.Console()
-
-    with Live(spinner, console=console, transient=True) as live:
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
