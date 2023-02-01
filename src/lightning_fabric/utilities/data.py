@@ -43,8 +43,8 @@ class _WrapAttrTag(LightningEnum):
         return fn(*args)
 
 
-def has_iterable_dataset(dataloader: object) -> TypeGuard[DataLoader]:
-    return isinstance(dataloader, DataLoader) and isinstance(dataloader.dataset, IterableDataset)
+def has_iterable_dataset(dataloader: object) -> bool:
+    return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
 
 
 def sized_len(dataloader: object) -> Optional[int]:
