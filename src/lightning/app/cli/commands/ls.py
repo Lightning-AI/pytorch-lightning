@@ -17,7 +17,7 @@ logger = Logger(__name__)
 def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Optional[str] = None) -> None:
 
     cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
-    root = '.'
+    root = '/'
     paths = []
 
     if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
@@ -44,7 +44,7 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
 
     if not paths:
         for lit_app in lit_apps:
-            if root == '.' and app_id is None:
+            if root == '/' and app_id is None:
                 paths.append(_add_colors(lit_app.name, color="blue"))
             else:
                 if not root.startswith(lit_app.name):

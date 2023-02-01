@@ -14,13 +14,13 @@ def cd(path: Optional[str] = None) -> None:
     cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 
     if isinstance(path, str) and path.startswith(_HOME):
-        path =  "~" + path.replace(_HOME, '')
+        path =  "/" + path.replace(_HOME, '')
 
     if isinstance(path, str) and not path.endswith('/'):
         path = path + '/'
 
     if path is None:
-        path = "~/."
+        path = "/"
 
     if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
         os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -38,9 +38,9 @@ def cd(path: Optional[str] = None) -> None:
             lines = f.readlines()
             root = lines[0].replace("\n", "")
 
-        if root == ".":
-            if path == '~/.':
-                root = "."
+        if root == "/":
+            if path == '/':
+                root = "/"
             elif not path.startswith(".."):
                 root = path
         else:
