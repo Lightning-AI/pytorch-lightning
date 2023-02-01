@@ -62,9 +62,9 @@ class FileSystem:
             dst_path: The path to your files transfered locally
             get_fn: The method to use to put files in the shared storage.
         """
-        self._validate_path(src_path, dst_path)
+        self._validate_path(dst_path)
 
-        src = Path(src_path).resolve()
+        src = Path(dst_path).resolve()
         dst = Path(os.path.join(self._root, dst_path)).resolve()
 
         return get_fn(src, dst)

@@ -26,6 +26,10 @@ def test_filesystem(tmpdir):
     fs.put(f"{tmpdir}/checkpoints", "checkpoints")
     assert fs.list(".") == ["a.txt", "checkpoints/a.txt"]
 
+    os.remove(f"{tmpdir}/a.txt")
+
+    fs.get(f"a.txt", f"{tmpdir}/a.txt")
+
     fs.delete("a.txt")
 
     assert fs.list(".") == ["checkpoints/a.txt"]
