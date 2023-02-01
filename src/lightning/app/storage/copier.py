@@ -105,7 +105,9 @@ def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.s
 
 
 def _copy_files(
-    source_path: pathlib.Path, destination_path: pathlib.Path, fs: Optional[AbstractFileSystem] = None
+    source_path: pathlib.Path,
+    destination_path: pathlib.Path,
+    fs: Optional[AbstractFileSystem] = None,
 ) -> None:
     """Copy files from one path to another.
 
