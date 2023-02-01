@@ -39,7 +39,7 @@
 /src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Lightning Fabric
-/src/lightning/fabric                         @awaelchli @carmocca @justusschock
+/src/lightning_fabric                         @awaelchli @carmocca @justusschock
 /tests/tests_fabric                           @awaelchli @carmocca @justusschock
 
 # Lightning App
