@@ -142,7 +142,7 @@ if __name__ == "__main__":
         package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
         if package_to_install == "lightning":
             # merge all requirements files
-            assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS) # install everything
+            assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)  # install everything
         # replace imports and copy the code
         assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_MIRROR_PACKAGE_REVERSED)
     else:
