@@ -293,6 +293,8 @@ For example, here we step the optimizer for the *discriminator* weights twice as
 
     # Alternating schedule for optimizer steps (e.g. GANs)
     def training_step(self, batch, batch_idx):
+        g_opt, d_opt = self.optimizers()
+        ...
 
         # update discriminator every other step
         d_opt.zero_grad()
