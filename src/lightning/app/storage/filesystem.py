@@ -5,8 +5,8 @@ from typing import Callable
 
 from fsspec.implementations.local import LocalFileSystem
 
-from lightning_app.storage.copier import _copy_files
-from lightning_app.storage.path import _filesystem, _shared_storage_path
+from lightning.app.storage.copier import _copy_files
+from lightning.app.storage.path import _filesystem, _shared_storage_path
 
 
 def _get_files(self, fs, src: Path, dst: Path, overwrite: bool):
