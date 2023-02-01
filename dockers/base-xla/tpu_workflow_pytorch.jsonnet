@@ -41,6 +41,9 @@ local tputests = base.BaseTest {
       PACKAGE_NAME=pytorch pip install .[dev]
       pip list
 
+      pip install -q -r .actions/requirements.txt
+      python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning.fabric" --target_import="lightning_fabric"
+
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
