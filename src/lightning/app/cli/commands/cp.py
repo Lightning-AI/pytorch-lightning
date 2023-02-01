@@ -1,52 +1,166 @@
 import click
 import os
-import sys
 from pathlib import Path
+from typing import Optional, Tuple
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.network import LightningClient
+import sys
+import concurrent
+from lightning_cloud.openapi import IdArtifactsBody
+from lightning.app.storage.path import _shared_storage_path
+from lightning.app.source_code import FileUploader
 
 logger = Logger(__name__)
 
-@click.argument("local_path", required=True)
-@click.argument("remote_path", required=True)
-def cp(local_path: str, remote_path: str) -> None:
-
+@click.argument("src_path", required=True)
+@click.argument("dst_path", required=True)
+@click.option("--project_id", required=False)
+@click.option("-r", required=False)
+@click.option("--recursive", required=False)
+def cp(src_path: str, dst_path: str, project_id: Optional[str] = None, r: bool = False, recursive: bool = False) -> None:
     cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
-    root = '.'
+    pwd = '/'
     
-    if not os.path.exists(cd_file):
-        if path.startswith(".."):
-            path = root
-
-        with open(cd_file, "w") as f:
-            f.write(path + "\n")
-    else:
+    if os.path.exists(cd_file):
         with open(cd_file, "r") as f:
             lines = f.readlines()
-            root = lines[0].replace("\n", "")
+            pwd = lines[0].replace("\n", "")
 
-    local_path = Path(local_path).resolve()
-
-    if not local_path.exists():
-        print(f"FileNotFoundError: The provided local path {local_path} doesn't exist.")
+    if pwd == "/":
+        print("ERROR: Uploading files at the project level isn't supported yet.")
         sys.exit(0)
 
-    if remote_path == ".":
-        remote_path = root
-
-    answer = None
-
-    while answer not in ['yes', 'no']:
-        answer = click.prompt(f"Do you want to copy files from {local_path} to {remote_path} ? Answer by yes/no")
-
-    if answer == "no":
-        print(f"Canceling copy.")
-        sys.exit(0)
+    app_name = pwd.split("/")[1]
 
     client = LightningClient()
+
     if not project_id:
-        project_id = _get_project(client).project_id
+        project_id = _get_project(client, verbose=False).project_id
 
     lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
+
+    lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == app_name]
+
+    if len(lit_apps) == 0:
+        print(f"ERROR: We didn't find an app with the name {app_name}. HINT: Did you try using `--project_id`.")
+        sys.exit(0)
+
+    lit_app = lit_apps[0]
+
+    print(project_id, lit_app.id)
+
+    src_path, src_remote = _sanetize_path(src_path, pwd)
+    dst_path, dst_remote = _sanetize_path(dst_path, pwd)
+
+    if src_remote and dst_remote:
+        print("ERROR: Moving files remotely isn't support yet. Please, open a Github issue.")
+        sys.exit(0)        
+    
+    if not src_remote and dst_remote:
+        _upload_files(client, src_path, dst_path, project_id, lit_app.id)
+    elif src_remote and not dst_remote:
+        _download_files(client, src_path, dst_path, project_id, lit_app.id)
+    else:
+        print("ERROR: Moving files locally isn't support yet. Please, open a Github issue.")
+        sys.exit(0)        
+
+
+def _upload_files(client: LightningClient, local_src: str, remote_dst: str, project_id: str, app_id: str) -> str:
+    if not os.path.exists(local_src):
+        print(f"ERROR: The provided source path {local_src} doesn't exist.")
+        sys.exit(0)   
+
+    local_src = Path(local_src).resolve()
+    upload_paths = []
+
+    if os.path.isdir(local_src):
+        for root_dir, _, paths in os.walk(local_src):
+            for path in paths:
+                upload_paths.append(os.path.join(root_dir, path))
+    else:
+        upload_paths = [local_src]
+
+    shared_storage = _shared_storage_path()
+
+    upload_urls = []
+
+    for upload_path in upload_paths:
+        filename = str(upload_path).replace(str(os.getcwd()), "")
+        response = client.lightningapp_instance_service_upload_lightningapp_instance_artifact(
+            project_id=project_id,
+            id=app_id,
+            body=IdArtifactsBody(filename),
+            async_req=True,
+        )
+        upload_urls.append(response)
+
+    upload_urls = [response.get().upload_url for response in upload_urls]
+
+    with concurrent.futures.ThreadPoolExecutor(4) as executor:
+        results = executor.map(_upload, upload_paths, upload_urls)
+
+    # Raise the first exception found
+    exception = next((e for e in results if isinstance(e, Exception)), None)
+    if exception:
+        raise exception
+
+
+def _upload(source_file: str, presigned_url: str) -> Optional[Exception]:
+    source_file = Path(source_file)
+    file_uploader = FileUploader(
+        presigned_url,
+        source_file,
+        name=str(source_file),
+        total_size=source_file.stat().st_size,
+    )
+    file_uploader.upload()
+
+
+# def _download_files(client, remote_src: str, local_dst: str, project_id: str, app_id: str):
+#     local_src = Path(local_dst).resolve()
+#     download_paths = []
+
+#     response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, lit_app.id)
+#     for artifact in response.artifacts:
+#         path = os.path.join(lit_app.name, artifact.filename)
+#         splits = path.split("/")
+
+
+#     for upload_path in upload_paths:
+#         filename = str(upload_path).replace(str(local_src), str(remote_dst))
+#         filename = os.path.join(shared_storage, filename[1:])
+#         response = client.lightningapp_instance_service_upload_lightningapp_instance_artifact(
+#             project_id=project_id,
+#             id=app_id,
+#             body=IdArtifactsBody(filename),
+#             async_req=True,
+#         )
+#         upload_urls.append(response)
+
+#     upload_urls = [response.get().upload_url for response in upload_urls]
+
+#     with concurrent.futures.ThreadPoolExecutor(4) as executor:
+#         results = executor.map(_upload, upload_paths, upload_urls)
+
+#     # Raise the first exception found
+#     exception = next((e for e in results if isinstance(e, Exception)), None)
+#     if exception:
+#         raise exception
+
+def _sanetize_path(path: str, pwd: str) -> Tuple[str, bool]:
+    is_remote = _is_remote(path)
+    if is_remote:
+        path = _remove_remote(path)
+        if path == ".":
+            path = pwd
+        else:
+            path = os.path.join(pwd, path[1:])
+    return path, is_remote
+
+def _is_remote(path: str) -> bool:
+    return path.startswith("r:") or path.startswith("remote:")
+
+def _remove_remote(path: str) -> str:
+    return path.replace("r:", "").replace("remote:", "")

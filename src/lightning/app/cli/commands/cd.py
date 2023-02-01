@@ -16,9 +16,6 @@ def cd(path: Optional[str] = None) -> None:
     if isinstance(path, str) and path.startswith(_HOME):
         path =  "/" + path.replace(_HOME, '')
 
-    if isinstance(path, str) and not path.endswith('/'):
-        path = path + '/'
-
     if path is None:
         path = "/"
 
@@ -42,8 +39,11 @@ def cd(path: Optional[str] = None) -> None:
             if path == '/':
                 root = "/"
             elif not path.startswith(".."):
+                if not path.startswith("/"):
+                    path = "/" + path
                 root = path
         else:
+            # TODO: Validate the new path exists
             if path.startswith(".."):
                 root = "/".join(root.split('/')[:-1])
             elif path.startswith("~"):
@@ -56,6 +56,4 @@ def cd(path: Optional[str] = None) -> None:
         with open(cd_file, "w") as f:
             f.write(root + "\n")
 
-        if root == '.':
-            root = "~"
         print(f"cd {root}")

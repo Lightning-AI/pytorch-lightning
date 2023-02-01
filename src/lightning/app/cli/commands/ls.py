@@ -47,7 +47,7 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
             if root == '/' and app_id is None:
                 paths.append(_add_colors(lit_app.name, color="blue"))
             else:
-                if not root.startswith(lit_app.name):
+                if not root[1:].startswith(lit_app.name):
                     continue
                 num_split = len([split for split in root.split('/') if split != ''])
                 # TODO: Replace with project level endpoints  
