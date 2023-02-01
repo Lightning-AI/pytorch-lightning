@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-from lightning_app.cli import cmd_init
+from lightning.app.cli import cmd_init
 
 
 def test_validate_init_name():

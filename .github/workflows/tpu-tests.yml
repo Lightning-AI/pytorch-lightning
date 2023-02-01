@@ -11,10 +11,12 @@ on:
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
       - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
@@ -39,9 +41,9 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event.pull_request.draft == false
     env:
-      PYTHON_VER: 3.7
+      PYTHON_VER: 3.8
     strategy:
-      fail-fast: false
+      fail-fast: true
       max-parallel: 1  # run sequential
       matrix:
         # TODO: add also lightning

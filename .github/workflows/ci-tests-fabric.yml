@@ -10,7 +10,8 @@ on:
     paths:
       - ".actions/**"
       - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
       - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
@@ -37,11 +38,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # assign python and pytorch version combinations to operating systems (arbitrarily)
-          # note: there's no distribution of torch==1.10 for Python>=3.10
           - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.11"}
           - {os: "macOS-11", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.12"}
           - {os: "windows-2022", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.11"}
@@ -51,9 +49,9 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           # "lightning" installs the monolithic package
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
@@ -118,8 +116,6 @@ jobs:
           --source_import="lightning_fabric" --target_import="lightning.fabric"
 
     - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
-      if: matrix.python-version != '3.7'
       working-directory: tests/tests_fabric
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py

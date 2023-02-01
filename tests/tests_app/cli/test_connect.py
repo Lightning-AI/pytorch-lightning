@@ -6,30 +6,24 @@ import click
 import psutil
 import pytest
 
-from lightning_app import _PROJECT_ROOT
-from lightning_app.cli.commands.connection import (
+from lightning.app import _PROJECT_ROOT
+from lightning.app.cli.commands.connection import (
     _list_app_commands,
     _resolve_command_path,
     _retrieve_connection_to_an_app,
     connect,
     disconnect,
 )
-from lightning_app.utilities import cli_helpers
-from lightning_app.utilities.commands import base
+from lightning.app.utilities import cli_helpers
+from lightning.app.utilities.commands import base
 
 
 def monkeypatch_connection(monkeypatch, tmpdir, ppid):
     connection_path = os.path.join(tmpdir, ppid)
-    try:
-        monkeypatch.setattr("lightning_app.cli.commands.connection._clean_lightning_connection", MagicMock())
-        monkeypatch.setattr("lightning_app.cli.commands.connection._PPID", ppid)
-        monkeypatch.setattr("lightning_app.cli.commands.connection._LIGHTNING_CONNECTION", tmpdir)
-        monkeypatch.setattr("lightning_app.cli.commands.connection._LIGHTNING_CONNECTION_FOLDER", connection_path)
-    except ModuleNotFoundError:
-        monkeypatch.setattr("lightning.app.cli.commands.connection._clean_lightning_connection", MagicMock())
-        monkeypatch.setattr("lightning_app.cli.commands.connection._PPID", ppid)
-        monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION", tmpdir)
-        monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION_FOLDER", connection_path)
+    monkeypatch.setattr("lightning.app.cli.commands.connection._clean_lightning_connection", MagicMock())
+    monkeypatch.setattr("lightning.app.cli.commands.connection._PPID", ppid)
+    monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION", tmpdir)
+    monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION_FOLDER", connection_path)
     return connection_path
 
 
