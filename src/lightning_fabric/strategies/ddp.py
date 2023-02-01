@@ -13,14 +13,13 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
-from typing_extensions import Literal
 
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.plugins.collectives.torch_collective import default_pg_timeout

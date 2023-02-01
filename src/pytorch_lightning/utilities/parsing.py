@@ -18,10 +18,9 @@ import inspect
 import pickle
 import types
 from dataclasses import fields, is_dataclass
-from typing import Any, Dict, List, MutableMapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence, Tuple, Type, Union
 
 from torch import nn
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn

@@ -14,12 +14,11 @@
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
 
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
-from typing_extensions import Literal
 
 from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
