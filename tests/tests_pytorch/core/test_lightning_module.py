@@ -358,7 +358,7 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             assert gradient_clip_val == self.trainer.gradient_clip_val
             assert gradient_clip_algorithm == self.trainer.gradient_clip_algorithm
 
@@ -387,7 +387,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_val = 1e-2
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_val=self.custom_gradient_clip_val)
 
     model = TestModel()
@@ -403,7 +403,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_algorithm = "foo"
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_algorithm=self.custom_gradient_clip_algorithm)
 
     model = TestModel()
