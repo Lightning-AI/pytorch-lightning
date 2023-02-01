@@ -48,6 +48,7 @@ def has_iterable_dataset(dataloader: object) -> bool:
 
 
 def sized_len(dataloader: object) -> Optional[int]:
+    """Try to get the length of an object, return ``None`` otherwise."""
     try:
         # try getting the length
         length = len(dataloader)  # type: ignore [arg-type]
