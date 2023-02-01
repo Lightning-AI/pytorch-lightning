@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Dict, Generator, Optional, Union
+from typing import Any, Dict, Generator, Literal, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.utilities.types import _PARAMETERS, Optimizable

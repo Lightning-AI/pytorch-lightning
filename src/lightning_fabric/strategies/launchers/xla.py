@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 from torch.multiprocessing import get_context
 
 from lightning_fabric.accelerators.tpu import _XLA_AVAILABLE
-from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.strategies.launchers.launcher import _Launcher
 from lightning_fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot
 from lightning_fabric.utilities.apply_func import move_data_to_device
 

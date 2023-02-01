@@ -256,38 +256,49 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
     return all_files
 
 
-def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[str]:
+def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning_by: str = "") -> List[str]:
     """Replace imports of standalone package to lightning.
 
     >>> lns = [
+    ...     '"lightning_app"',
     ...     "lightning_app",
+    ...     "lightning_app/",
     ...     "delete_cloud_lightning_apps",
     ...     "from lightning_app import",
     ...     "lightning_apps = []",
     ...     "lightning_app and pytorch_lightning are ours",
     ...     "def _lightning_app():",
     ...     ":class:`~lightning_app.core.flow.LightningFlow`",
-    ...     "http://pytorch_lightning.ai"
+    ...     "http://pytorch_lightning.ai",
+    ...     "from lightning import __version__",
+    ...     "@lightning.ai"
     ... ]
     >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
-    >>> _replace_imports(lns, mapping)  # doctest: +NORMALIZE_WHITESPACE
-    ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
-    'lightning.app and lightning.pytorch are ours', 'def _lightning_app():',\
-    ':class:`~lightning.app.core.flow.LightningFlow`', 'http://pytorch_lightning.ai']
+    >>> _replace_imports(lns, mapping, lightning_by="lightning_fabric")  # doctest: +NORMALIZE_WHITESPACE
+    ['"lightning.app"', 'lightning.app', 'lightning_app/', 'delete_cloud_lightning_apps', 'from lightning.app import', \
+     'lightning_apps = []', 'lightning.app and lightning.pytorch are ours', 'def _lightning_app():', \
+     ':class:`~lightning.app.core.flow.LightningFlow`', 'from lightning_fabric import __version__', '@lightning.ai']
     """
     out = lines[:]
     for source_import, target_import in mapping:
         for i, ln in enumerate(out):
             out[i] = re.sub(
-                rf"([^_/]|^){source_import}([^_\w]|$)",
+                rf"([^_/@]|^){source_import}([^_\w/]|$)",
                 rf"\1{target_import}\2",
                 ln,
             )
+            if lightning_by:  # in addition, replace base package
+                out[i] = out[i].replace("from lightning import ", f"from {lightning_by} import ")
+                out[i] = out[i].replace("import lightning ", f"import {lightning_by} ")
     return out
 
 
 def copy_replace_imports(
-    source_dir: str, source_imports: List[str], target_imports: List[str], target_dir: Optional[str] = None
+    source_dir: str,
+    source_imports: Sequence[str],
+    target_imports: Sequence[str],
+    target_dir: Optional[str] = None,
+    lightning_by: str = "",
 ) -> None:
     """Copy package content with import adjustments."""
     print(f"Replacing imports: {locals()}")
@@ -317,23 +328,37 @@ def copy_replace_imports(
                 # a binary file, skip
                 print(f"Skipped replacing imports for {fp}")
                 continue
-        lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
+        lines = _replace_imports(lines, list(zip(source_imports, target_imports)), lightning_by=lightning_by)
         os.makedirs(os.path.dirname(fp_new), exist_ok=True)
         with open(fp_new, "w", encoding="utf-8") as fo:
             fo.writelines(lines)
 
 
-def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reverse: Sequence[str]) -> None:
     # replace imports and copy the code
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
-    for new, previous in mapping.items():
+
+    mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
+    source_imports = mapping.values()
+    target_imports = mapping.keys()
+
+    for pkg_to, pkg_from in mapping.items():
+        if pkg_to.split(".")[-1] in reverse:
+            source_imports_, target_imports_ = target_imports, source_imports
+            pkg_to, pkg_from = pkg_from, pkg_to
+            lightning_by = pkg_from
+        else:
+            source_imports_, target_imports_ = source_imports, target_imports
+            lightning_by = ""
+
         copy_replace_imports(
-            source_dir=os.path.join(source_dir, previous),
+            source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=list(mapping.values()),
-            target_imports=[f"lightning.{new}" for new in mapping],
-            target_dir=os.path.join(source_dir, "lightning", new),
+            source_imports=source_imports_,
+            target_imports=target_imports_,
+            target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
+            lightning_by=lightning_by,
         )
 
 
@@ -378,12 +403,18 @@ class AssistantCLI:
 
     @staticmethod
     def copy_replace_imports(
-        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+        source_dir: str,
+        source_import: str,
+        target_import: str,
+        target_dir: Optional[str] = None,
+        lightning_by: str = "",
     ) -> None:
         """Copy package content with import adjustments."""
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        copy_replace_imports(source_dir, source_imports, target_imports, target_dir=target_dir)
+        copy_replace_imports(
+            source_dir, source_imports, target_imports, target_dir=target_dir, lightning_by=lightning_by
+        )
 
 
 if __name__ == "__main__":

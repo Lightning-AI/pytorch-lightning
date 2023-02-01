@@ -323,8 +323,8 @@ def test_install_app_shows_error(tmpdir):
 
 def test_app_and_component_gallery_app(monkeypatch):
     monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
-    path = cmd_install.gallery_apps_and_components("lightning/lightning-diffusion-component-api", True, "latest")
-    assert path == os.path.join(os.getcwd(), "diffusion2", "app.py")
+    path = cmd_install.gallery_apps_and_components("lightning/flashy", True, "latest")
+    assert path == os.path.join(os.getcwd(), "app.py")
 
 
 def test_app_and_component_gallery_component(monkeypatch):

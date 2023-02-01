@@ -1968,11 +1968,12 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
 
 
 @pytest.mark.parametrize(
-    "project, run_instance, user, tab, lightning_cloud_url, expected_url",
+    "project, cloudspace_name, run_instance, user, tab, lightning_cloud_url, expected_url",
     [
         # Old style
         (
             V1Membership(),
+            "any",
             Externalv1LightningappInstance(id="test-app-id"),
             V1GetUserResponse(username="tester", features=V1UserFeatures()),
             "logs",
@@ -1981,6 +1982,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         ),
         (
             V1Membership(),
+            "any",
             Externalv1LightningappInstance(id="test-app-id"),
             V1GetUserResponse(username="tester", features=V1UserFeatures()),
             "logs",
@@ -1990,7 +1992,8 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         # New style
         (
             V1Membership(name="tester's project"),
-            Externalv1LightningappInstance(name="test/app"),
+            "test/app",
+            Externalv1LightningappInstance(),
             V1GetUserResponse(username="tester", features=V1UserFeatures(project_selector=True)),
             "logs",
             "https://lightning.ai",
@@ -1998,7 +2001,8 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         ),
         (
             V1Membership(name="tester's project"),
-            Externalv1LightningappInstance(name="test/app"),
+            "test/app",
+            Externalv1LightningappInstance(),
             V1GetUserResponse(username="tester", features=V1UserFeatures(project_selector=True)),
             "logs",
             "http://localhost:9800",
@@ -2006,7 +2010,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         ),
     ],
 )
-def test_get_app_url(monkeypatch, project, run_instance, user, tab, lightning_cloud_url, expected_url):
+def test_get_app_url(monkeypatch, project, cloudspace_name, run_instance, user, tab, lightning_cloud_url, expected_url):
     mock_client = mock.MagicMock()
     mock_client.auth_service_get_user.return_value = user
     cloud_backend = mock.MagicMock(client=mock_client)
@@ -2017,4 +2021,4 @@ def test_get_app_url(monkeypatch, project, run_instance, user, tab, lightning_cl
     with mock.patch(
         "lightning.app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
     ):
-        assert runtime._get_app_url(project, run_instance, tab) == expected_url
+        assert runtime._get_app_url(project, cloudspace_name, run_instance, tab) == expected_url

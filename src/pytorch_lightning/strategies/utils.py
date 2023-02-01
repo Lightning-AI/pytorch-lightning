@@ -13,10 +13,10 @@
 # limitations under the License.
 import importlib
 from inspect import getmembers, isclass
+from typing import Literal
 
 import torch
 from torch import Tensor
-from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.strategies import _StrategyRegistry
