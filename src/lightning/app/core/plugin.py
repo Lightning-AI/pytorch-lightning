@@ -34,7 +34,7 @@ logger = Logger(__name__)
 class Plugin:
     """A ``Plugin`` is a single-file Python class that can be executed within a cloudspace to perform actions."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.app_url = None
 
     def run(self, name: str, entrypoint: str) -> None:
@@ -122,7 +122,7 @@ def _run_plugin(run: _Run) -> None:
 
         retriever = _LightningAppOpenAPIRetriever(run.app_id)
 
-        metadata = retriever.api_commands[run.plugin_name]
+        metadata = retriever.api_commands[run.plugin_name]  # type: ignore
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
@@ -150,7 +150,7 @@ def _run_plugin(run: _Run) -> None:
         )
 
 
-def _start_plugin_server(host, port):
+def _start_plugin_server(host, port) -> None:
     """Start the plugin server which can be used to dispatch apps or run plugins."""
     fastapi_service = FastAPI()
 
