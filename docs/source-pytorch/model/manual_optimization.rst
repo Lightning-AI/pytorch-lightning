@@ -129,8 +129,6 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
    * Note that ``configure_gradient_clipping()`` won't be called in Manual Optimization. Instead consider using ``self. clip_gradients()`` manually like in the example above.
 
 
-.. _multiple_optimizers_gan:
-
 Use Multiple Optimizers (like GANs)
 ===================================
 

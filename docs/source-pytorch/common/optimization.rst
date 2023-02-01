@@ -54,7 +54,7 @@ output of the closure (e.g. the loss) or need to call the closure several times 
 
 Should you still require the flexibility of calling ``.zero_grad()``, ``.backward()``, or ``.step()`` yourself, you can
 always switch to :ref:`manual optimization <manual_optimization>`.
-Manual optimization is required if you wish to work with multiple optimizers (see the :ref:`GAN example <multiple_optimizers_gan>`)
+Manual optimization is required if you wish to work with multiple optimizers.
 
 
 Gradient Accumulation
