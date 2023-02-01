@@ -44,7 +44,7 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
                 src/lightning_app/cli/pl-app-template/ui/yarn.lock|
                 src/pytorch_lightning/CHANGELOG.md|
-                src/lightning_fabric/CHANGELOG.md
+                src/lightning/fabric/CHANGELOG.md
             )$
       - id: detect-private-key
 
@@ -99,8 +99,8 @@ repos:
         exclude: |
           (?x)^(
               src/lightning/app/CHANGELOG.md|
-              src/pytorch_lightning/CHANGELOG.md|
-              src/lightning_fabric/CHANGELOG.md
+              src/lightning/fabric/CHANGELOG.md|
+              src/pytorch_lightning/CHANGELOG.md
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
