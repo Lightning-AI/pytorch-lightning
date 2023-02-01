@@ -27,6 +27,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
+from lightning.app.core import constants
 from lightning.app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
@@ -35,6 +36,18 @@ logger = Logger(__name__)
 def find_free_network_port() -> int:
     """Finds a free port on localhost."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    if constants.LIGHTNING_IN_CLOUDSPACE:
+        # If in a cloudspace, look for a port in the exposed range
+        port = constants.APP_SERVER_PORT
+        while port <= constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT:
+            try:
+                s.bind(("", port))
+                s.close()
+                return port
+            except OSError:
+                port += 1
+
     s.bind(("", 0))
     port = s.getsockname()[1]
     s.close()
