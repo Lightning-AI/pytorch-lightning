@@ -35,5 +35,5 @@ def test_filesystem(tmpdir):
     with pytest.raises(FileExistsError, match="HERE"):
         fs.put("HERE", "HERE")
 
-    with pytest.raises(FileExistsError, match="The provided path"):
+    with pytest.raises(FileNotFoundError, match="The provided path"):
         fs.list("space")

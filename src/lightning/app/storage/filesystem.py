@@ -79,7 +79,7 @@ class FileSystem:
         shared_path = Path(os.path.join(self._root, path)).resolve()
 
         if not self._fs.exists(shared_path):
-            raise FileExistsError(f"The provided path {shared_path} doesn't exist.")
+            raise FileNotFoundError(f"The provided path {shared_path} doesn't exist.")
 
         # Invalidate cache before running ls in case new directories have been added
         # TODO: Re-evaluate this - may lead to performance issues
