@@ -85,15 +85,18 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
-    pip config set global.cache-dir false && \
+    pip install -q fire && \
+    # Disable cache \
     export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
 
     # Install base requirements \
-    pip install -r requirements/pytorch/base.txt --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    rm assistant.py
 
 
 RUN \
@@ -123,7 +126,7 @@ RUN \
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
