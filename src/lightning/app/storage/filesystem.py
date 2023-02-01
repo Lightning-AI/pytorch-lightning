@@ -45,7 +45,7 @@ class FileSystem:
             put_fn: The method to use to put files in the shared storage.
         """
         if not os.path.exists(Path(src_path).resolve()):
-            raise FileExistsError(f"The provided path {src_path} doesn't exists")
+            raise FileExistsError(f"The provided path {src_path} doesn't exist")
 
         if not dst_path.startswith("/"):
             raise Exception(f"The provided destination {dst_path} needs to start with `/`.")
