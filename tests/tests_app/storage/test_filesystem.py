@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from lightning_app.storage import FileSystem
+from lightning.app.storage import FileSystem
 
 
 def test_filesystem(tmpdir):
@@ -15,8 +15,12 @@ def test_filesystem(tmpdir):
     with open(f"{tmpdir}/checkpoints/a.txt", "w") as f:
         f.write("example")
 
+    with open(f"{tmpdir}/info.txt", "w") as f:
+        f.write("example")
+
     assert fs.list(".") == []
     fs.put(f"{tmpdir}/a.txt", "a.txt")
+    fs.put(f"{tmpdir}/info.txt", "info.txt")
     assert fs.list(".") == ["a.txt"]
 
     fs.put(f"{tmpdir}/checkpoints", "checkpoints")
@@ -31,5 +35,5 @@ def test_filesystem(tmpdir):
     with pytest.raises(FileExistsError, match="HERE"):
         fs.put("HERE", "HERE")
 
-    with pytest.raises(RuntimeError, match="The destination path"):
-        fs.put(f"{tmpdir}/a.txt", f"{tmpdir}/a.txt")
+    with pytest.raises(FileExistsError, match="The provided path"):
+        fs.list("space")
