@@ -1,10 +1,11 @@
 import os
-
+import sys
 import pytest
 
 from lightning.app.storage import FileSystem
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="TODO: Add support for windows")
 def test_filesystem(tmpdir):
     fs = FileSystem()
 
