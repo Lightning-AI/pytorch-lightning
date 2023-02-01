@@ -140,9 +140,7 @@ def get_len(dataloader: object) -> Union[int, float]:
     If ``__len__`` method is not implemented, return float('inf').
     """
     length = sized_len(dataloader)
-    if length is None:
-        return float("inf")
-    return length
+    return float("inf") if length is None else length
 
 
 def _update_dataloader(
