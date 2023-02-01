@@ -1,12 +1,18 @@
 """Root package info."""
 
 import logging
+import os
 from typing import Any
 
-from lightning.pytorch.__about__ import *  # noqa: F401, F403
+from lightning_utilities import module_available
 
+if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
+    from lightning.pytorch.__about__ import *  # noqa: F401, F403
 if "__version__" not in locals():
-    from lightning.pytorch.__version__ import version as __version__  # noqa: F401
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
+        from lightning.pytorch.__version__ import version as __version__
+    elif module_available("lightning"):
+        from lightning import __version__  # noqa: F401
 
 _DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
 
