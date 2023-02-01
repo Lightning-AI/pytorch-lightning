@@ -82,12 +82,10 @@ def _upload_files(client: LightningClient, local_src: str, remote_dst: str, proj
     else:
         upload_paths = [local_src]
 
-    shared_storage = _shared_storage_path()
-
     upload_urls = []
 
     for upload_path in upload_paths:
-        filename = str(upload_path).replace(str(os.getcwd()), "")
+        filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
         response = client.lightningapp_instance_service_upload_lightningapp_instance_artifact(
             project_id=project_id,
             id=app_id,
@@ -97,6 +95,8 @@ def _upload_files(client: LightningClient, local_src: str, remote_dst: str, proj
         upload_urls.append(response)
 
     upload_urls = [response.get().upload_url for response in upload_urls]
+
+    breakpoint()
 
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
         results = executor.map(_upload, upload_paths, upload_urls)
