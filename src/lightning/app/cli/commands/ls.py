@@ -20,57 +20,66 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
     root = '/'
     paths = []
 
-    with rich.spinner.Spinner("pending..."):
-        breakpoint()
+    from rich.columns import Columns
+    from rich.panel import Panel
+    from rich.live import Live
+    from rich.text import Text
+    from rich.spinner import Spinner, SPINNERS
 
-    if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
-        os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
+    spinner =  Spinner("point", text=Text("pending...", style="white"))
 
-    if not os.path.exists(cd_file):
+    console = rich.console.Console()
+
+    with Live(spinner, console=console, transient=True) as live:
+
+        if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
+            os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
+
+        if not os.path.exists(cd_file):
+            with open(cd_file, "w") as f:
+                f.write(root + "\n")
+        else:
+            with open(cd_file, "r") as f:
+                lines = f.readlines()
+                root = lines[0].replace("\n", "")
+
+        client = LightningClient()
+        if not project_id:
+            project_id = _get_project(client, verbose=False).project_id
+
+        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
+
+        if app_id:
+            lit_apps = [lit_app for lit_app in lit_apps if lit_app.id == app_id or lit_app.name == app_id]
+        else:
+            lit_apps = [lit_app for lit_app in lit_apps]
+
+        if not paths:
+            for lit_app in lit_apps:
+                if root == '/' and app_id is None:
+                    paths.append(_add_colors(lit_app.name, color="blue"))
+                else:
+                    if not root[1:].startswith(lit_app.name):
+                        continue
+                    num_split = len([split for split in root.split('/') if split != ''])
+                    # TODO: Replace with project level endpoints  
+                    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, lit_app.id)
+                    for artifact in response.artifacts:
+                        path = os.path.join(lit_app.name, artifact.filename)
+                        splits = path.split("/")
+
+                        # display files otherwise folders
+                        if len(splits) == num_split + 1:
+                            color = "white"
+                        else:
+                            color= "blue"
+                        
+                        paths.append(_add_colors(splits[num_split], color=color))
+        
+        os.remove(cd_file)
+
         with open(cd_file, "w") as f:
             f.write(root + "\n")
-    else:
-        with open(cd_file, "r") as f:
-            lines = f.readlines()
-            root = lines[0].replace("\n", "")
-
-    client = LightningClient()
-    if not project_id:
-        project_id = _get_project(client, verbose=False).project_id
-
-    lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
-
-    if app_id:
-        lit_apps = [lit_app for lit_app in lit_apps if lit_app.id == app_id or lit_app.name == app_id]
-    else:
-        lit_apps = [lit_app for lit_app in lit_apps]
-
-    if not paths:
-        for lit_app in lit_apps:
-            if root == '/' and app_id is None:
-                paths.append(_add_colors(lit_app.name, color="blue"))
-            else:
-                if not root[1:].startswith(lit_app.name):
-                    continue
-                num_split = len([split for split in root.split('/') if split != ''])
-                # TODO: Replace with project level endpoints  
-                response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, lit_app.id)
-                for artifact in response.artifacts:
-                    path = os.path.join(lit_app.name, artifact.filename)
-                    splits = path.split("/")
-
-                    # display files otherwise folders
-                    if len(splits) == num_split + 1:
-                        color = "white"
-                    else:
-                        color= "blue"
-                    
-                    paths.append(_add_colors(splits[num_split], color=color))
-    
-    os.remove(cd_file)
-
-    with open(cd_file, "w") as f:
-        f.write(root + "\n")
 
     rich.print(*sorted(set(paths)))
 
