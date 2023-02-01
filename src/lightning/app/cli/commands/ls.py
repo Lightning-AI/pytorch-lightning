@@ -20,6 +20,9 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
     root = '/'
     paths = []
 
+    with rich.spinner.Spinner("pending..."):
+        breakpoint()
+
     if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
         os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
 

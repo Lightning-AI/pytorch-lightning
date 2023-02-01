@@ -50,8 +50,6 @@ def cp(src_path: str, dst_path: str, project_id: Optional[str] = None, r: bool =
 
     lit_app = lit_apps[0]
 
-    print(project_id, lit_app.id)
-
     src_path, src_remote = _sanetize_path(src_path, pwd)
     dst_path, dst_remote = _sanetize_path(dst_path, pwd)
 
@@ -116,7 +114,6 @@ def _upload(source_file: str, presigned_url: ApplyResult) -> Optional[Exception]
 
 
 def _download_files(client, remote_src: str, local_dst: str, project_id: str, app_id: str):
-    local_src = Path(local_dst).resolve()
     download_paths = []
     download_urls = []
 
