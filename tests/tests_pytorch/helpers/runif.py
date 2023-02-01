@@ -21,7 +21,7 @@ import torch
 from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
-from lightning_fabric.accelerators.cuda import num_cuda_devices
+from lightning.fabric.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE

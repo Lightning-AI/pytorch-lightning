@@ -15,7 +15,7 @@
 import pytest
 import torch
 
-from lightning_fabric.accelerators.cpu import _parse_cpu_cores, CPUAccelerator
+from lightning.fabric.accelerators.cpu import _parse_cpu_cores, CPUAccelerator
 
 
 def test_auto_device_count():

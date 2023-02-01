@@ -17,7 +17,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.warnings import PossibleUserWarning
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel

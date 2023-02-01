@@ -25,7 +25,7 @@ from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.warnings import PossibleUserWarning
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
