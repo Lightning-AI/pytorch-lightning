@@ -12,20 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from collections import defaultdict, OrderedDict
-from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, Tuple, Union
+from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
 
-import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.optimization import _ManualOptimization, _OptimizerLoop
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.progress import BatchProgress, SchedulerProgress
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
@@ -223,12 +220,9 @@ class _TrainingEpochLoop(loops._Loop):
             self.batch_progress.increment_started()
 
             with self.trainer.profiler.profile("run_training_batch"):
-                # choose which loop will run the optimization
                 if self.trainer.lightning_module.automatic_optimization:
-                    optimizers = _get_active_optimizers(
-                        self.trainer.optimizers, self.trainer.optimizer_frequencies, kwargs.get("batch_idx", 0)
-                    )
-                    batch_output = self.optimizer_loop.run(optimizers, kwargs)
+                    # in automatic optimization, there can only be one optimizer
+                    batch_output = self.optimizer_loop.run(self.trainer.optimizers[0], kwargs)
                 else:
                     batch_output = self.manual_loop.run(kwargs)
 
@@ -240,14 +234,8 @@ class _TrainingEpochLoop(loops._Loop):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        batch_end_outputs = self._prepare_outputs_training_batch_end(
-            batch_output,
-            lightning_module=self.trainer.lightning_module,
-            num_optimizers=len(self.trainer.optimizers),
-        )
-
-        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
-        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
+        self.trainer._call_callback_hooks("on_train_batch_end", batch_output, batch, batch_idx)
+        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_output, batch, batch_idx)
         self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -338,73 +326,13 @@ class _TrainingEpochLoop(loops._Loop):
         strategy_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
         return not accumulation_done and strategy_accumulates_on_final_batch
 
-    @staticmethod
-    def _prepare_outputs_training_batch_end(
-        batch_output: _BATCH_OUTPUTS_TYPE,
-        lightning_module: "pl.LightningModule",
-        num_optimizers: int,
-    ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
-        if not batch_output:
-            return []  # type: ignore[return-value]
-
-        # convert optimizer dicts to list
-        if lightning_module.automatic_optimization:
-            batch_output = apply_to_collection(
-                batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-            )
-
-        array = np.array(batch_output, dtype=object)
-        # squeeze all single-element dimensions
-        array = array.squeeze()
-        array = array.tolist()
-        array = _recursive_unpad(array)
-        return array
-
-    @staticmethod
-    def _prepare_outputs_training_epoch_end(
-        batch_outputs: _OUTPUTS_TYPE,
-        lightning_module: "pl.LightningModule",
-        num_optimizers: int,
-    ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
-        # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
-        if not batch_outputs:
-            return []  # type: ignore[return-value]
-
-        # convert optimizer dicts to list
-        if lightning_module.automatic_optimization:
-            batch_outputs = apply_to_collection(
-                batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-            )
-
-        array = _recursive_pad(batch_outputs)
-        # squeeze all single-element dimensions
-        array = array.squeeze()
-        array = array.tolist()
-        array = _recursive_unpad(array)
-        # in case we squeezed from 1-element array to a 0-dim array
-        array = array if isinstance(array, list) else [array]
-        # remove residual empty lists
-        array = [item for item in array if not isinstance(item, list) or len(item)]
-        return array
-
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval."""
         if interval == "step" and self._should_accumulate():
             return
-        active_optimizers = _get_active_optimizers(
-            self.trainer.optimizers, self.trainer.optimizer_frequencies, self.total_batch_idx
-        )
-        self._update_learning_rates(
-            interval=interval,
-            update_plateau_schedulers=update_plateau_schedulers,
-            opt_indices=[opt_idx for opt_idx, _ in active_optimizers],
-        )
+        self._update_learning_rates(interval=interval, update_plateau_schedulers=update_plateau_schedulers)
 
-    def _update_learning_rates(
-        self, interval: str, update_plateau_schedulers: bool, opt_indices: Optional[List[int]] = None
-    ) -> None:
+    def _update_learning_rates(self, interval: str, update_plateau_schedulers: bool) -> None:
         """Update learning rates.
 
         Args:
@@ -413,18 +341,11 @@ class _TrainingEpochLoop(loops._Loop):
                 This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
                 so they have to be updated separately.
-            opt_indices: indices of the optimizers to update.
         """
         if not self.trainer.lr_scheduler_configs or not self.trainer.lightning_module.automatic_optimization:
             return
 
-        if opt_indices is None:
-            opt_indices = []
-
         for config in self.trainer.lr_scheduler_configs:
-            if config.opt_idx not in opt_indices:
-                continue
-
             if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
@@ -460,7 +381,6 @@ class _TrainingEpochLoop(loops._Loop):
                 self.trainer._call_lightning_module_hook(
                     "lr_scheduler_step",
                     config.scheduler,
-                    config.opt_idx,
                     monitor_val,
                 )
                 self.scheduler_progress.increment_completed()
@@ -520,87 +440,8 @@ class _TrainingEpochLoop(loops._Loop):
         """
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        # the `batch_idx` is optional, however, when there's more than 1 argument we cannot differentiate whether the
-        # user wants the `batch_idx` or another key like `optimizer_idx` as we are not strict about the argument names
+        # the `batch_idx` is optional, but its name can be anything
+        # as long as there are two argumetns after 'self', we assume they are the `batch` and `batch_idx`
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
-
-
-def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Optional[Dict[str, Any]]]:
-    """Converts an optimizer dict to a list in which the key of the dict determines the position of the element.
-
-    Example::
-        >>> _convert_optim_dict({0: {"loss": 0.0}, 2: {"loss": 0.2}}, num_optimizers=3)
-        [{'loss': 0.0}, None, {'loss': 0.2}]
-    """
-    return [outs[opt_idx] if opt_idx in outs else None for opt_idx in range(num_optimizers)]
-
-
-@overload
-def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
-    ...
-
-
-@overload
-def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
-    ...
-
-
-def _recursive_unpad(nested: Union[Any, List[Any]], value: Optional[Any] = None) -> Union[Any, List[Any]]:
-    """Removes the given pad value from the nested list. Not strictly the reverse operation of
-    :func:`_recursive_pad` because it removes the padding element everywhere, not just from the end of a list.
-
-    Example::
-        >>> _recursive_unpad([[[0, 1, 0]], [2], [0, 0]], value=0)
-        [[[1]], [2], []]
-    """
-    if not isinstance(nested, list):
-        return nested
-
-    return [_recursive_unpad(item, value) for item in nested if item != value]
-
-
-def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> np.ndarray:
-    """Pads a jagged nested list of lists with the given value such that a proper multi-dimensional array can be
-    formed with rectangular shape. The padding appends to the incomplete lists.
-
-    Example::
-        >>> _recursive_pad([[], [1], [2, 3], [4]], fill_value=0)  # doctest: +NORMALIZE_WHITESPACE
-        array([[0, 0], [1, 0], [2, 3], [4, 0]], dtype=object)
-    """
-    # code adapted from stackexchange:
-    # https://codereview.stackexchange.com/questions/222623/pad-a-ragged-multidimensional-array-to-rectangular-shape
-    dimensions = _get_max_shape(nested)
-    result = np.full(dimensions, fill_value, dtype=object)
-    for index, value in _iterate_nested_array(nested):
-        result[index] = value
-    return result
-
-
-def _get_dimensions(array: List[Any], level: int = 0) -> Generator:
-    yield level, len(array)
-    if all(isinstance(row, list) for row in array):
-        for row in array:
-            yield from _get_dimensions(row, level + 1)
-
-
-def _get_max_shape(array: List[Any]) -> List[int]:
-    """Calculates the max size in each dimension of a jagged (non-rectangular) nested list of lists.
-
-    Example::
-        >>> _get_max_shape([[], [[1], [2]], []])
-        [3, 2, 1]
-    """
-    dimensions: DefaultDict[int, int] = defaultdict(int)
-    for level, length in _get_dimensions(array):
-        dimensions[level] = max(dimensions[level], length)
-    return [value for _, value in sorted(dimensions.items())]
-
-
-def _iterate_nested_array(array: List[Any], index: Tuple = ()) -> Generator:
-    if all(isinstance(item, list) for item in array):
-        for idx, row in enumerate(array):
-            yield from _iterate_nested_array(row, (*index, idx))
-    else:  # final level
-        yield (*index, slice(len(array))), array
