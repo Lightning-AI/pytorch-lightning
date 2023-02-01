@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, cast, Generator, List, Tuple
+from typing import Any, cast, Generator, List, Literal, Tuple
 
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import FloatTensor, Tensor
 from torch.optim import Optimizer
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor

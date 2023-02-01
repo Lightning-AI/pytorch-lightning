@@ -16,9 +16,7 @@ import importlib
 import os
 import warnings
 from dataclasses import dataclass
-from typing import Any, Callable, Type
-
-from typing_extensions import Protocol, runtime_checkable
+from typing import Any, Callable, Protocol, runtime_checkable, Type
 
 from lightning.app.components.multi_node.base import MultiNode
 from lightning.app.components.multi_node.pytorch_spawn import _PyTorchSpawnRunExecutor

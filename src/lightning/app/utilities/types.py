@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import typing as t
-
-from typing_extensions import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from lightning.app import LightningFlow, LightningWork
 from lightning.app.structures import Dict, List

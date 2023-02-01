@@ -14,14 +14,13 @@
 import logging
 import os
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment

@@ -19,13 +19,12 @@ Convention:
 from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Sequence, Type, Union
+from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Sequence, Type, Union
 
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import Protocol, runtime_checkable
 
 from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, ProcessGroup, ReduceLROnPlateau
 

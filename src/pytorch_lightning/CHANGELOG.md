@@ -51,6 +51,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
+
 - Removed the `pytorch_lightning.lite` module in favor of `lightning_fabric` ([#15953](https://github.com/Lightning-AI/lightning/pull/15953))
 
 - `nvidia/apex` removal ([#16149](https://github.com/Lightning-AI/lightning/pull/16149))
