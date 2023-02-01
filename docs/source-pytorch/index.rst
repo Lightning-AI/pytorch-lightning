@@ -224,7 +224,6 @@ Current Lightning Users
    Debugging <debug/debugging>
    Early stopping <common/early_stopping>
    Experiment manager (Logger) <visualize/experiment_managers>
-   Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/finetuning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    GPU <accelerators/gpu>

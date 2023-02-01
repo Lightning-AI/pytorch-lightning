@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -20,6 +18,7 @@ import torch
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
@@ -136,7 +135,6 @@ class CustomException(Exception):
     pass
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (0, 1))
 @pytest.mark.parametrize("stop_batch", (0, 1, 2))
 @pytest.mark.parametrize("n_optimizers,stop_optimizer", [(2, 0), (2, 1), (3, 2)])
@@ -192,7 +190,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         enable_checkpointing=False,
     )
     trainer.fit(model)
-    weights_complete = model.parameters()
+    model.parameters()
     _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_complete)
 
     # simulate a failure
@@ -208,7 +206,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        enable_checkpointing=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -230,11 +228,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         logger=False,
         enable_checkpointing=False,
     )
-    trainer.fit(model, ckpt_path=str(tmpdir / ".pl_auto_save.ckpt"))
-    weights_resumed = model.parameters()
-
-    # check that the final weights of a resumed run match the weights of a run that never failed
-    for w0, w1 in zip(weights_complete, weights_resumed):
-        assert torch.allclose(w0, w1)
+    trainer.fit(model, ckpt_path=str(tmpdir / "on_exception.ckpt"))
 
     _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_resumed)

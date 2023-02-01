@@ -7,10 +7,12 @@ from subprocess import call
 from types import FrameType
 from typing import Any, Callable, Dict, List, Set, Union
 
+from lightning_utilities.core.rank_zero import rank_prefixed_message
+
 import pytorch_lightning as pl
 from lightning_fabric.plugins.environments import SLURMEnvironment
 from lightning_fabric.utilities.imports import _IS_WINDOWS
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _PYTHON_GREATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 # copied from signal.pyi
@@ -36,39 +38,37 @@ class HandlersCompose:
 
 class SignalConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
+        self.received_sigterm = False
         self.trainer = trainer
-        self.trainer._terminate_gracefully = False
         self._original_handlers: Dict[_SIGNUM, _HANDLER] = {}
 
     def register_signal_handlers(self) -> None:
+        self.received_sigterm = False
         self._original_handlers = self._get_current_signal_handlers()
 
         sigusr_handlers: List[_HANDLER] = []
-        sigterm_handlers: List[_HANDLER] = []
-
-        if _fault_tolerant_training():
-            sigterm_handlers.append(self.fault_tolerant_sigterm_handler_fn)
+        sigterm_handlers: List[_HANDLER] = [self._sigterm_notifier_fn]
 
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
             log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
-            sigusr_handlers.append(self.slurm_sigusr_handler_fn)
-            sigterm_handlers.append(self.sigterm_handler_fn)
+            sigusr_handlers.append(self._slurm_sigusr_handler_fn)
+            sigterm_handlers.append(self._sigterm_handler_fn)
 
         # Windows seems to have signal incompatibilities
         if not self._is_on_windows():
             sigusr = environment.requeue_signal if isinstance(environment, SLURMEnvironment) else signal.SIGUSR1
-
             assert sigusr is not None
-
             if sigusr_handlers and not self._has_already_handler(sigusr):
                 self._register_signal(sigusr, HandlersCompose(sigusr_handlers))
 
-            if sigterm_handlers and not self._has_already_handler(signal.SIGTERM):
-                self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
+            # we have our own handler, but include existing ones too
+            if self._has_already_handler(signal.SIGTERM):
+                sigterm_handlers.append(signal.getsignal(signal.SIGTERM))
+            self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
-    def slurm_sigusr_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        rank_zero_info("handling auto-requeue signal")
+    def _slurm_sigusr_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
+        rank_zero_info(f"Handling auto-requeue signal: {signum}")
 
         # save logger to make sure we get all the metrics
         for logger in self.trainer.loggers:
@@ -105,12 +105,18 @@ class SignalConnector:
             else:
                 log.warning("requeue failed...")
 
-    def fault_tolerant_sigterm_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        log.info(f"Received signal {signum}. Saving a fault-tolerant checkpoint and terminating.")
-        self.trainer._terminate_gracefully = True
+    def _sigterm_notifier_fn(self, signum: _SIGNUM, _: FrameType) -> None:
+        log.info(rank_prefixed_message(f"Received SIGTERM: {signum}", self.trainer.local_rank))
+        # subprocesses killing the parent process is not supported, only the parent (rank 0) does it
+        if not self.received_sigterm:
+            # send the same signal to the subprocesses
+            launcher = self.trainer.strategy.launcher
+            if launcher is not None:
+                launcher.kill(signum)
+        self.received_sigterm = True
 
-    def sigterm_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        log.info("bypassing sigterm")
+    def _sigterm_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
+        log.info(f"Bypassing SIGTERM: {signum}")
 
     def teardown(self) -> None:
         """Restores the signals that were previously configured before :class:`SignalConnector` replaced them."""

@@ -48,8 +48,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-src/lightning/*/
 src/*/version.info
+src/lightning/app/
+src/lightning/fabric/
+src/lightning/pytorch/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
 import os
 import sys
 from typing import Optional
 
 import pytest
 import torch
+from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
-from pkg_resources import get_distribution
 
 from lightning_fabric.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.accelerators.mps import MPSAccelerator
@@ -108,14 +109,14 @@ class RunIf:
             kwargs["min_cuda_gpus"] = True
 
         if min_torch:
-            torch_version = get_distribution("torch").version
-            conditions.append(Version(torch_version) < Version(min_torch))
-            reasons.append(f"torch>={min_torch}")
+            # set use_base_version for nightly support
+            conditions.append(compare_version("torch", operator.lt, min_torch, use_base_version=True))
+            reasons.append(f"torch>={min_torch}, {torch.__version__} installed")
 
         if max_torch:
-            torch_version = get_distribution("torch").version
-            conditions.append(Version(torch_version) >= Version(max_torch))
-            reasons.append(f"torch<{max_torch}")
+            # set use_base_version for nightly support
+            conditions.append(compare_version("torch", operator.ge, max_torch, use_base_version=True))
+            reasons.append(f"torch<{max_torch}, {torch.__version__} installed")
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"

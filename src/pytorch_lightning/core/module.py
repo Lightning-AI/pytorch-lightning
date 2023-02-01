@@ -18,7 +18,7 @@ import numbers
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -26,7 +26,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Literal
 
 import lightning_fabric as lf
 import pytorch_lightning as pl
@@ -35,7 +34,7 @@ from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_2_0
 from lightning_fabric.utilities.types import Steppable
 from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
@@ -1448,16 +1447,14 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
-    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
+    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
         to prevent dangling gradients in multiple-optimizer setup.
 
-        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
 
         Args:
             optimizer: The optimizer to toggle.
-            optimizer_idx: The index of the optimizer to toggle.
         """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
@@ -1478,16 +1475,14 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
-    def untoggle_optimizer(self, optimizer_idx: int) -> None:
+    def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
 
-        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
-
         Args:
-            optimizer_idx: The index of the optimizer to untoggle.
+            optimizer: The optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.trainer.optimizers):
-            if optimizer_idx != opt_idx:
+        for opt in self.trainer.optimizers:
+            if not (opt is optimizer or (isinstance(optimizer, LightningOptimizer) and opt is optimizer.optimizer)):
                 for group in opt.param_groups:
                     for param in group["params"]:
                         if param in self._param_requires_grad_state:
@@ -1630,8 +1625,6 @@ class LightningModule(
         optimizer: Union[Optimizer, LightningOptimizer],
         optimizer_idx: int = 0,
         optimizer_closure: Optional[Callable[[], Any]] = None,
-        on_tpu: bool = False,
-        using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
@@ -1648,19 +1641,15 @@ class LightningModule(
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
             optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
-            on_tpu: ``True`` if TPU backward is required
-            using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
 
         Examples::
 
             # DEFAULT
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_lbfgs):
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure):
                 optimizer.step(closure=optimizer_closure)
 
             # Alternating schedule for optimizer steps (i.e.: GANs)
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_lbfgs):
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure):
                 # update generator opt every step
                 if optimizer_idx == 0:
                     optimizer.step(closure=optimizer_closure)
@@ -1689,8 +1678,6 @@ class LightningModule(
                 optimizer,
                 optimizer_idx,
                 optimizer_closure,
-                on_tpu,
-                using_lbfgs,
             ):
                 # update params
                 optimizer.step(closure=optimizer_closure)
@@ -1719,7 +1706,7 @@ class LightningModule(
             def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
                 optimizer.zero_grad()
 
-            # Set gradients to `None` instead of zero to improve performance.
+            # Set gradients to `None` instead of zero to improve performance (not required on `torch>=2.0.0`).
             def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
                 optimizer.zero_grad(set_to_none=True)
 
@@ -1938,19 +1925,21 @@ class LightningModule(
 
         Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
         """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise ModuleNotFoundError(f"`{cls.__name__}.from_compiled` requires torch>=2.0")
 
         from torch._dynamo import OptimizedModule
 
         if not isinstance(model, OptimizedModule):
             raise ValueError(
-                "`model` is required to be a `torch._dynamo.OptimizedModule`. " f"Found a `{type(model)}` instead."
+                f"`model` is required to be a `OptimizedModule`. Found a `{type(model).__name__}` instead."
             )
 
         orig_module = model._orig_mod
 
         if not isinstance(orig_module, cls):
             raise ValueError(
-                "`model` is expected to be a compiled LightingModule. " f"Found a compiled {type(orig_module)} instead"
+                f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
             )
 
         orig_module._compiler_ctx = {
@@ -1979,11 +1968,13 @@ class LightningModule(
 
         Note: this method will in-place modify the ``LightningModule`` that is passed in.
         """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise ModuleNotFoundError(f"`{cls.__name__}.to_uncompiled` requires torch>=2.0")
 
         from torch._dynamo import OptimizedModule
 
         if isinstance(model, OptimizedModule):
-            return model._orig_mod
+            model = model._orig_mod
 
         elif isinstance(model, cls):
             if model._compiler_ctx is None:
@@ -1993,13 +1984,13 @@ class LightningModule(
                 )
 
         else:
-            raise ValueError("`model` must either be an instance of torch._dynamo.OptimizedModule or LightningModule")
+            raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
 
-        model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment]
-        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment]
-        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment]
-        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment]
-        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment]
+        model.forward = model._compiler_ctx["original_forward"]
+        model.training_step = model._compiler_ctx["original_training_step"]
+        model.validation_step = model._compiler_ctx["original_validation_step"]
+        model.test_step = model._compiler_ctx["original_test_step"]
+        model.predict_step = model._compiler_ctx["original_predict_step"]
         model._compiler_ctx = None
 
         return model

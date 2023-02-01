@@ -13,14 +13,13 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
-from typing_extensions import Literal
 
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.plugins.collectives.torch_collective import default_pg_timeout
@@ -154,6 +153,11 @@ class DDPStrategy(ParallelStrategy):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        if isinstance(module, DistributedDataParallel):
+            module = module.module
+        return super().get_module_state_dict(module)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

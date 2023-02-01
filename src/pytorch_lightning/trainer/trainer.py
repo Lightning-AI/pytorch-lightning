@@ -40,12 +40,12 @@ from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
@@ -77,7 +77,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DI
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
 from pytorch_lightning.utilities import GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
@@ -86,10 +85,8 @@ from pytorch_lightning.utilities.argparse import (
     parse_argparser,
     parse_env_variables,
 )
-from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
@@ -147,10 +144,8 @@ class Trainer:
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
-        auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
-        auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -165,31 +160,6 @@ class Trainer:
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
                 Default: ``None``.
-
-            auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
-                trying to optimize initial learning for faster convergence. trainer.tune() method will
-                set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
-                To use a different key set a string instead of True with the key name.
-                Default: ``False``.
-
-            auto_scale_batch_size: If set to True, will `initially` run a batch size
-                finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.batch_size in the LightningModule
-                or LightningDataModule depending on your setup.
-                Additionally, can be set to either `power` that estimates the batch size through
-                a power search or `binsearch` that estimates the batch size through a binary search.
-                Default: ``False``.
-
-            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
-                gpus automatically. This is especially useful when
-                GPUs are configured to be in "exclusive mode", such
-                that only one process at a time can access them.
-                Default: ``False``.
-
-                .. deprecated:: v1.9
-                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
-                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
-                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -364,7 +334,6 @@ class Trainer:
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self)
         self._signal_connector = SignalConnector(self)
-        self.tuner = Tuner(self)
 
         # init loops
         self.fit_loop = _FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
@@ -428,9 +397,6 @@ class Trainer:
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
 
-        # configure tuner
-        self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
-
         # configure profiler
         setup._init_profiler(self, profiler)
 
@@ -478,19 +444,20 @@ class Trainer:
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
-    def _maybe_unwrap_optimized(self, model: Optional["pl.LightningModule"]) -> Optional["pl.LightningModule"]:
-        if model is None:
-            return None
-
-        try:
-            from torch._dynamo import OptimizedModule
-        except ImportError:
+    def _maybe_unwrap_optimized(self, model: object) -> "pl.LightningModule":
+        if not _TORCH_GREATER_EQUAL_2_0:
+            if not isinstance(model, pl.LightningModule):
+                raise TypeError(f"`model` must be a `LightningModule`, got `{type(model).__qualname__}`")
             return model
+        from torch._dynamo import OptimizedModule
 
-        if not isinstance(model, OptimizedModule):
+        if isinstance(model, OptimizedModule):
+            return model.from_compiled(model)
+        if isinstance(model, pl.LightningModule):
             return model
-
-        return pl.LightningModule.from_compiled(model)
+        raise TypeError(
+            f"`model` must be a `LightningModule` or `torch._dynamo.OptimizedModule`, got `{type(model).__qualname__}`"
+        )
 
     def fit(
         self,
@@ -519,8 +486,6 @@ class Trainer:
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
         model = self._maybe_unwrap_optimized(model)
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
@@ -600,10 +565,15 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        model = self._maybe_unwrap_optimized(model)
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy._lightning_module = model or self.lightning_module
+        if model is None:
+            # do we still have a reference from a previous call?
+            if self.lightning_module is None:
+                raise TypeError(
+                    "`Trainer.validate()` requires a `LightningModule` when it hasn't been passed in a previous run"
+                )
+        else:
+            model = self._maybe_unwrap_optimized(model)
+            self.strategy._lightning_module = model
         return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -634,12 +604,11 @@ class Trainer:
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`")
 
-        model_provided = model is not None
-        model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
-                "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
-            )
+            model = self.lightning_module
+            model_provided = False
+        else:
+            model_provided = True
 
         self.validate_loop.verbose = verbose
 
@@ -689,10 +658,15 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        model = self._maybe_unwrap_optimized(model)
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy._lightning_module = model or self.lightning_module
+        if model is None:
+            # do we still have a reference from a previous call?
+            if self.lightning_module is None:
+                raise TypeError(
+                    "`Trainer.test()` requires a `LightningModule` when it hasn't been passed in a previous run"
+                )
+        else:
+            model = self._maybe_unwrap_optimized(model)
+            self.strategy._lightning_module = model
         return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -723,12 +697,11 @@ class Trainer:
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`")
 
-        model_provided = model is not None
-        model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
-                "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
-            )
+            model = self.lightning_module
+            model_provided = False
+        else:
+            model_provided = True
 
         self.test_loop.verbose = verbose
 
@@ -779,10 +752,15 @@ class Trainer:
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
-        model = self._maybe_unwrap_optimized(model)
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy._lightning_module = model or self.lightning_module
+        if model is None:
+            # do we still have a reference from a previous call?
+            if self.lightning_module is None:
+                raise TypeError(
+                    "`Trainer.predict()` requires a `LightningModule` when it hasn't been passed in a previous run"
+                )
+        else:
+            model = self._maybe_unwrap_optimized(model)
+            self.strategy._lightning_module = model
         return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -814,12 +792,11 @@ class Trainer:
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`")
 
-        model_provided = model is not None
-        model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
-                "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
-            )
+            model = self.lightning_module
+            model_provided = False
+        else:
+            model_provided = True
 
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
@@ -833,60 +810,6 @@ class Trainer:
         self.predicting = False
 
         return results
-
-    def tune(
-        self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
-        lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        method: Literal["fit", "validate", "test", "predict"] = "fit",
-    ) -> _TunerResult:
-        r"""
-        Runs routines to tune hyperparameters before training.
-
-        Args:
-            model: Model to tune.
-
-            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
-
-            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
-
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
-                samples used for running tuner on validation/testing/prediction.
-
-            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
-
-            scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
-
-            lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
-
-            method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
-        """
-        model = self._maybe_unwrap_optimized(model)
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-
-        Trainer._log_api_event("tune")
-
-        with isolate_rng():
-            result = self.tuner._tune(
-                model,
-                train_dataloaders,
-                val_dataloaders,
-                dataloaders,
-                datamodule,
-                scale_batch_size_kwargs=scale_batch_size_kwargs,
-                lr_find_kwargs=lr_find_kwargs,
-                method=method,
-            )
-
-        return result
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
@@ -1424,10 +1347,6 @@ class Trainer:
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(loaders, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
 
-        # add collate_fn to collect metadata for fault tolerant training
-        if _fault_tolerant_training():
-            apply_to_collection(loaders, DataLoader, _add_capture_metadata_collate)
-
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         if not isinstance(self.train_dataloader, CombinedLoader):
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
@@ -1656,17 +1575,6 @@ class Trainer:
         """
         return self.strategy.model
 
-    @model.setter
-    def model(self, model: torch.nn.Module) -> None:
-        """Setter for the model, pass-through to accelerator and plugin where the model reference is stored. Used
-        by the Tuner to reset the state of Trainer and Accelerator.
-
-        Args:
-            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
-                on the backend.
-        """
-        self.strategy.model = model
-
     """
     General properties
     """
@@ -1894,6 +1802,14 @@ class Trainer:
         elif self.sanity_checking:
             self.state.stage = None
 
+    @property
+    def received_sigterm(self) -> bool:
+        """Whether a ``signal.SIGTERM`` signal was received.
+
+        For example, this can be checked to exit gracefully.
+        """
+        return self._signal_connector.received_sigterm
+
     """
     Loop properties
     """
@@ -1993,15 +1909,6 @@ class Trainer:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
-
-    def _exit_gracefully_on_signal(self) -> None:
-        if not _fault_tolerant_training() or not self._should_terminate_gracefully():
-            return
-        raise ExitGracefullyException(0)
-
-    def _should_terminate_gracefully(self) -> bool:
-        value = torch.tensor(int(self._terminate_gracefully), device=self.strategy.root_device)
-        return bool(self.strategy.reduce(value, reduce_op="sum") > 0)
 
     """
     Other

@@ -79,3 +79,23 @@ def test_ddp_extra_kwargs(ddp_mock):
     strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")], find_unused_parameters=True)
     strategy.setup_module(module)
     ddp_mock.assert_called_with(module=module, device_ids=None, find_unused_parameters=True)
+
+
+def test_ddp_module_state_dict():
+    """Test that the module state dict gets retrieved without the prefixed wrapper keys from DDP."""
+
+    class DistributedDataParallelMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make the strategy's `isinstance(model, DistributedDataParallel)` pass with a mock as class
+            return True
+
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")])
+
+    # Without DDP applied (no setup call)
+    original_module = torch.nn.Linear(2, 3)
+    assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
+
+    # With DDP applied (setup called)
+    with mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel", DistributedDataParallelMock):
+        wrapped_module = strategy.setup_module(original_module)
+        assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()

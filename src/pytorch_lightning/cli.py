@@ -436,7 +436,6 @@ class LightningCLI:
             "validate": {"model", "dataloaders", "datamodule"},
             "test": {"model", "dataloaders", "datamodule"},
             "predict": {"model", "dataloaders", "datamodule"},
-            "tune": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
         }
 
     def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:

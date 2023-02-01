@@ -13,12 +13,8 @@
 # limitations under the License.
 from typing import Dict, Optional
 
-from torchmetrics import Metric
-
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.loops.progress import BaseProgress
 
 
 class _Loop:
@@ -79,63 +75,33 @@ class _Loop:
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
-        # do not get the mode from `self.trainer` because it might not have been attached yet
-        ft_enabled = _fault_tolerant_training()
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, _Loop):
                 v.state_dict(destination, key + ".")
-            elif ft_enabled and isinstance(v, _ResultCollection):
-                # sync / unsync metrics
-                v.sync()
-                destination[key] = v.state_dict()
-                v.unsync()
-
         return destination
 
     def load_state_dict(
         self,
         state_dict: Dict,
         prefix: str = "",
-        metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        self._load_from_state_dict(state_dict.copy(), prefix, metrics)
+        self._load_from_state_dict(state_dict.copy(), prefix)
         for k, v in self.__dict__.items():
             if isinstance(v, _Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
         self.restarting = True
 
-    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
-        trainer = self._trainer
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
                 # compatibility with old checkpoints
                 continue
-
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-            elif isinstance(v, _ResultCollection) and trainer is not None and trainer.lightning_module is not None:
-                metric_attributes = {
-                    name: module
-                    for name, module in self.trainer.lightning_module.named_modules()
-                    if isinstance(module, Metric)
-                }
-                if metrics:
-                    metric_attributes.update(metrics)
-
-                # The `_ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
-                # When creating a checkpoint, the `Metric`s are dropped from the loop `state_dict` to serialize only
-                # Python primitives. However, their states are saved with the model's `state_dict`.
-                # On reload, we need to re-attach the `Metric`s back to the `_ResultCollection`.
-                # The references are provided through the `metric_attributes` dictionary.
-                v.load_state_dict(state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.strategy.reduce)
-
-                if not self.trainer.is_global_zero:
-                    v.reset(metrics=False)
-
         if prefix + "state_dict" in state_dict:  # compatibility with old checkpoints
             self.on_load_checkpoint(state_dict[prefix + "state_dict"])

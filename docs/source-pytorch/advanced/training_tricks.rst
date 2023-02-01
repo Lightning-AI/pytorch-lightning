@@ -78,18 +78,24 @@ Auto-scaling of batch size can be enabled to find the largest batch size that fi
 memory. Large batch size often yields a better estimation of the gradients, but may also result in
 longer training time. Inspired by https://github.com/BlackHC/toma.
 
-.. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
+.. seealso:: :class:`~pytorch_lightning.tuner.tuning.Tuner`
 
 .. code-block:: python
 
-    # DEFAULT (ie: don't scale batch size automatically)
-    trainer = Trainer(auto_scale_batch_size=None)
+    from pytorch_lightning.tuner import Tuner
 
-    # Autoscale batch size
-    trainer = Trainer(auto_scale_batch_size=None | "power" | "binsearch")
+    # Create a tuner for the trainer
+    trainer = Trainer(...)
+    tuner = Tuner(trainer)
 
-    # Find the batch size
-    trainer.tune(model)
+    # Auto-scale batch size by growing it exponentially (default)
+    tuner.scale_batch_size(model, mode="power")
+
+    # Auto-scale batch size with binary search
+    tuner.scale_batch_size(model, mode="binsearch")
+
+    # Fit as normal with new batch size
+    trainer.fit(model)
 
 
 Currently, this feature supports two modes ``'power'`` scaling and ``'binsearch'``
@@ -122,9 +128,10 @@ search for batch sizes larger than the size of the training dataset.
                 return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
 
 
-        trainer = Trainer(...)
         model = LitModel(batch_size=32)
-        trainer.tune(model)
+        trainer = Trainer(...)
+        tuner = Tuner(trainer)
+        tuner.scale_batch_size(model)
 
         # using LightningDataModule
         class LitDataModule(LightningDataModule):
@@ -138,39 +145,18 @@ search for batch sizes larger than the size of the training dataset.
                 return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
 
 
-        trainer = Trainer(...)
         model = MyModel()
         datamodule = LitDataModule(batch_size=32)
-        trainer.tune(model, datamodule=datamodule)
+
+        trainer = Trainer(...)
+        tuner = Tuner(trainer)
+        tuner.scale_batch_size(model, datamodule=datamodule)
 
     Note that the ``train_dataloader`` can be either part of
     the ``LightningModule`` or ``LightningDataModule``
     as shown above. If both the ``LightningModule``
     and the ``LightningDataModule`` contain a ``train_dataloader``,
     the ``LightningDataModule`` takes precedence.
-
-.. warning::
-
-    Due to the constraints listed above, this features does *NOT* work when passing dataloaders directly
-    to ``.fit()``.
-
-The scaling algorithm has a number of parameters that the user can control by
-invoking the :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size` method:
-
-.. code-block:: python
-
-    # Use default in trainer construction
-    trainer = Trainer()
-    tuner = Tuner(trainer)
-
-    # Invoke method
-    new_batch_size = tuner.scale_batch_size(model, *extra_parameters_here)
-
-    # Override old batch size (this is done automatically)
-    model.hparams.batch_size = new_batch_size
-
-    # Fit as normal
-    trainer.fit(model)
 
 The algorithm in short works by:
     1. Dumping the current state of the model and trainer
@@ -247,14 +233,6 @@ Customizing Batch Size Finder
 Learning Rate Finder
 ********************
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
-
-|
-
 For training deep neural networks, selecting a good learning rate is essential
 for both better performance and faster convergence. Even optimizers such as
 :class:`~torch.optim.Adam` that are self-adjusting the learning rate can benefit from more optimal
@@ -284,15 +262,16 @@ Using Lightning's built-in LR finder
 
 To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to
 have a ``learning_rate`` or ``lr`` attribute (or as a field in your ``hparams`` i.e.
-``hparams.learning_rate`` or ``hparams.lr``). Then, set ``Trainer(auto_lr_find=True)``
-during trainer construction, and then call ``trainer.tune(model)`` to run the LR finder.
+``hparams.learning_rate`` or ``hparams.lr``). Then, create the :class:`~pytorch_lightning.tuner.tuning.Tuner` via ``tuner = Tuner(trainer)``
+and call ``tuner.lr_find(model)`` to run the LR finder.
 The suggested ``learning_rate`` will be written to the console and will be automatically
 set to your :doc:`lightning module <../common/lightning_module>`, which can be accessed
 via ``self.learning_rate`` or ``self.lr``.
 
-.. seealso:: :ref:`trainer.tune <common/trainer:tune>`.
-
 .. code-block:: python
+
+    from pytorch_lightning.tuner import Tuner
+
 
     class LitModel(LightningModule):
         def __init__(self, learning_rate):
@@ -305,36 +284,39 @@ via ``self.learning_rate`` or ``self.lr``.
 
 
     model = LitModel()
+    trainer = Trainer(...)
+
+    # Create a Tuner
+    tuner = Tuner(trainer)
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
-    trainer = Trainer(auto_lr_find=True)
-
-    trainer.tune(model)
+    tuner.lr_find(model)
 
 
-If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as ``auto_lr_find``:
+If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value in ``lr_find``:
 
 .. code-block:: python
 
     model = LitModel()
+    trainer = Trainer(...)
+    tuner = Tuner(trainer)
 
     # to set to your own hparams.my_value
-    trainer = Trainer(auto_lr_find="my_value")
+    tuner.lr_find(model, attr_name="my_value")
 
-    trainer.tune(model)
 
 You can also inspect the results of the learning rate finder or just play around
-with the parameters of the algorithm. This can be done by invoking the
-:meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find` method. A typical example of this would look like:
+with the parameters of the algorithm. A typical example of this would look like:
 
 .. code-block:: python
 
     model = MyModelClass(hparams)
     trainer = Trainer()
+    tuner = Tuner(trainer)
 
     # Run learning rate finder
-    lr_finder = trainer.tuner.lr_find(model)
+    lr_finder = tuner.lr_find(model)
 
     # Results can be found in
     print(lr_finder.results)
