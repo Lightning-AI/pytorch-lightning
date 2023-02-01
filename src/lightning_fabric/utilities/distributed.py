@@ -1,5 +1,7 @@
 import logging
 import os
+import sys
+from contextlib import nullcontext
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
@@ -9,6 +11,7 @@ from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning_fabric.utilities.rank_zero import rank_zero_info
 from lightning_fabric.utilities.types import ReduceOp
 
@@ -164,21 +167,27 @@ class _AllGather(torch.autograd.Function):
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
     ) -> Tensor:
         ctx.group = group
-
-        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
-
+        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group=group))]
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
-
         return gathered_tensor
 
     @staticmethod
     def backward(ctx: Any, *grad_output: Tensor) -> Tuple[Tensor, None]:
         grad_output = torch.cat(grad_output)
-
         torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
-
         return grad_output[torch.distributed.get_rank()], None
+
+
+def _functional_all_gather(tensor: Any, group: Any) -> Any:
+    """Compatibility layer with Windows."""
+    if sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_12:
+        # TODO: also remove `_AllGather` when support for 1.12 is dropped
+        return _AllGather.apply(tensor, group)
+
+    import torch.distributed.nn
+
+    return torch.distributed.nn.functional.all_gather(tensor, group)
 
 
 def _all_gather_ddp_if_available(
@@ -194,13 +203,12 @@ def _all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    group = group if group is not None else torch.distributed.group.WORLD
-    if _distributed_available():
-        if sync_grads:
-            return _AllGather.apply(tensor, group)
-        with torch.no_grad():
-            return _AllGather.apply(tensor, group)
-    return tensor
+    if not _distributed_available():
+        return tensor
+    tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
+    with nullcontext() if sync_grads else torch.no_grad():
+        gathered_tensors = _functional_all_gather(tensor, group)
+    return torch.stack(gathered_tensors)
 
 
 def _init_dist_connection(
