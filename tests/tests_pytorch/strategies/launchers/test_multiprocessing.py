@@ -19,7 +19,7 @@ from unittest.mock import ANY, call, Mock, patch
 import pytest
 import torch
 
-from lightning_fabric.plugins import ClusterEnvironment
+from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPSpawnStrategy

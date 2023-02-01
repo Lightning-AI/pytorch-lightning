@@ -16,7 +16,7 @@ from functools import partial
 import torch
 import torch.distributed as dist
 
-from lightning_fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher

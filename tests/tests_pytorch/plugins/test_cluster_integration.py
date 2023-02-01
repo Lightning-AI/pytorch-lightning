@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 import torch
 
-from lightning_fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy
 from lightning.pytorch.utilities.rank_zero import rank_zero_only

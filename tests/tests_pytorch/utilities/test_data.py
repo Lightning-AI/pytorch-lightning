@@ -7,7 +7,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
-from lightning_fabric.utilities.data import _replace_dunder_methods
+from lightning.fabric.utilities.data import _replace_dunder_methods
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper

@@ -7,7 +7,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

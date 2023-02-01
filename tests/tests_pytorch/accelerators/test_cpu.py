@@ -7,7 +7,7 @@ import pytest
 import torch
 
 import lightning.pytorch as pl
-from lightning_fabric.plugins import TorchCheckpointIO
+from lightning.fabric.plugins import TorchCheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel

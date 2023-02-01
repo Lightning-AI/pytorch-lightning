@@ -33,8 +33,8 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import lightning.pytorch
 import tests_pytorch.helpers.utils as tutils
-from lightning_fabric.utilities.cloud_io import _load as pl_load
-from lightning_fabric.utilities.seed import seed_everything
+from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer

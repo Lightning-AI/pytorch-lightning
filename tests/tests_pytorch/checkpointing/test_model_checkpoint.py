@@ -31,7 +31,7 @@ import yaml
 from torch import optim
 
 import lightning.pytorch as pl
-from lightning_fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

@@ -27,7 +27,7 @@ from torch import Tensor
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from lightning_fabric import seed_everything
+from lightning.fabric import seed_everything
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

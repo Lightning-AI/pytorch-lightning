@@ -20,7 +20,7 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf

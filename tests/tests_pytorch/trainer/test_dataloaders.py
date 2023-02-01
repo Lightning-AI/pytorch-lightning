@@ -23,7 +23,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
-from lightning_fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
+from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, seed_everything, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import (

@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 import torch
 
-from lightning_fabric.utilities.logger import _convert_params, _sanitize_params
+from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import Logger, TensorBoardLogger

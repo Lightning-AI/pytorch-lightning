@@ -19,8 +19,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning_fabric.plugins.environments import SLURMEnvironment
-from lightning_fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector

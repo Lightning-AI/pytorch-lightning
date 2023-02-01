@@ -20,8 +20,8 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning_fabric.plugins.environments import TorchElasticEnvironment
-from lightning_fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.fabric.plugins.environments import TorchElasticEnvironment
+from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
