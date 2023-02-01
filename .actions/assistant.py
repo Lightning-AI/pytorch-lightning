@@ -338,25 +338,27 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reve
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
 
-    # convert short name to lightning import
-    mapping = {f"lightning.{new}": standalone_import for new, standalone_import in mapping.items()}
-    target_imports = list(mapping.keys())
-    source_imports = list(mapping.values())
-    for l_import, standalone_import in mapping.items():
-        if l_import.split(".")[-1] in reverse:
-            source_imports_, target_imports_ = target_imports, source_imports
-            l_import, standalone_import = standalone_import, l_import
-            lightning_by = standalone_import
+    imports_src, imports_tgt = [], []
+    mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
+    for sub_pkg, standalone in mapping.items():
+        imports_src.append(standalone)
+        imports_tgt.append(sub_pkg)
+
+    for pkg_to, pkg_from in mapping.items():
+        if pkg_to.split(".")[-1] in reverse:
+            imports_src_, imports_tgt_ = imports_tgt, imports_src
+            pkg_to, pkg_from = pkg_from, pkg_to
+            lightning_by = pkg_from
         else:
-            source_imports_, target_imports_ = source_imports, target_imports
+            imports_src_, imports_tgt_ = imports_src, imports_tgt
             lightning_by = ""
 
         copy_replace_imports(
-            source_dir=os.path.join(source_dir, standalone_import.replace(".", os.sep)),
+            source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=source_imports_,
-            target_imports=target_imports_,
-            target_dir=os.path.join(source_dir, l_import.replace(".", os.sep)),
+            source_imports=imports_src_,
+            target_imports=imports_tgt_,
+            target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
             lightning_by=lightning_by,
         )
 
