@@ -1,1 +1,1 @@
-from lightning_app import LightningApp  # noqa F401
+from lightning.app import LightningApp  # noqa F401

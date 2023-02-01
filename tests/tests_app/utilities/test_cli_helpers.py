@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 import arrow
 import pytest
 
-import lightning_app
-from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables, _get_newer_version
+import lightning.app
+from lightning.app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables, _get_newer_version
 
 
 def test_format_input_env_variables():
@@ -103,11 +103,11 @@ def test_arrow_time_callback():
         ({}, "1.0.0rc0", None),
     ],
 )
-@patch("lightning_app.utilities.cli_helpers.requests")
+@patch("lightning.app.utilities.cli_helpers.requests")
 def test_get_newer_version(mock_requests, releases, current_version, newer_version):
     mock_requests.get().json.return_value = {"releases": releases}
 
-    lightning_app.utilities.cli_helpers.__version__ = current_version
+    lightning.app.utilities.cli_helpers.__version__ = current_version
 
     _get_newer_version.cache_clear()
     assert _get_newer_version() == newer_version

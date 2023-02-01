@@ -6,9 +6,9 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from lightning_app import LightningFlow
-from lightning_app.frontend.stream_lit import StreamlitFrontend
-from lightning_app.utilities.state import AppState
+from lightning.app import LightningFlow
+from lightning.app.frontend.stream_lit import StreamlitFrontend
+from lightning.app.utilities.state import AppState
 
 
 def test_stop_server_not_running():
@@ -30,7 +30,7 @@ class MockFlow(LightningFlow):
         pass
 
 
-@mock.patch("lightning_app.frontend.stream_lit.subprocess")
+@mock.patch("lightning.app.frontend.stream_lit.subprocess")
 def test_streamlit_frontend_start_stop_server(subprocess_mock):
     """Test that `StreamlitFrontend.start_server()` invokes subprocess.Popen with the right parameters."""
     frontend = StreamlitFrontend(render_fn=_noop_render_fn)
@@ -83,7 +83,7 @@ def _streamlit_call_me(state):
     },
 )
 def test_streamlit_wrapper_calls_render_fn(*_):
-    runpy.run_module("lightning_app.frontend.streamlit_base")
+    runpy.run_module("lightning.app.frontend.streamlit_base")
     # TODO: find a way to assert that _streamlit_call_me got called
 
 
