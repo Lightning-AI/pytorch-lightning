@@ -17,17 +17,6 @@ from textwrap import dedent
 
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-
-
-def test_imports():
-    try:
-        import deepspeed  # noqa
-    except ModuleNotFoundError:
-        assert not _DEEPSPEED_AVAILABLE
-    else:
-        assert _DEEPSPEED_AVAILABLE
-
 
 def test_import_fabric_with_torch_dist_unavailable():
     """Test that the package can be imported regardless of whether torch.distributed is available."""

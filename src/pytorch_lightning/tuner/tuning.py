@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
-
-from typing_extensions import Literal
+from typing import Literal, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback

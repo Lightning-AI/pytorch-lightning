@@ -546,6 +546,9 @@ def test_multi_optimizers_fails(tmpdir):
             return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
 
     model = TestModel()
+    # Must switch to manual optimization mode, otherwise we would get a different error
+    # (multiple optimizers only supported with manual optimization)
+    model.automatic_optimization = False
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
     with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):

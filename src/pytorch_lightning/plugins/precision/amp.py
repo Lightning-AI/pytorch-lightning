@@ -10,12 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Dict, Generator, Optional, Union
+from typing import Any, Callable, cast, Dict, Generator, Literal, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
@@ -56,19 +55,14 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",
-        optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(
-                optimizer, model=model, optimizer_idx=optimizer_idx, closure=closure, **kwargs
-            )
+            return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
-                f"AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
-            )
+            raise MisconfigurationException("AMP and the LBFGS optimizer are not compatible.")
         closure_result = closure()
 
         if not _optimizer_handles_unscaling(optimizer):
@@ -77,7 +71,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
             # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
             self.scaler.unscale_(optimizer)
 
-        self._after_closure(model, optimizer, optimizer_idx)
+        self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:

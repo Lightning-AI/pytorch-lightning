@@ -1,4 +1,4 @@
-from lightning_app import LightningFlow, LightningWork
+from lightning.app import LightningFlow, LightningWork
 
 
 class MyCustomLightningWork(LightningWork):

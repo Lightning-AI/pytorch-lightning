@@ -4,17 +4,17 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from lightning_app import LightningApp
-from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage import Path
-from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
-from lightning_app.testing.testing import LightningTestApp
-from lightning_app.utilities.enum import make_status, WorkStageStatus
-from lightning_app.utilities.exceptions import LightningWorkException
-from lightning_app.utilities.packaging.build_config import BuildConfig
-from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
+from lightning.app import LightningApp
+from lightning.app.core.flow import LightningFlow
+from lightning.app.core.work import LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage import Path
+from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
+from lightning.app.testing.testing import LightningTestApp
+from lightning.app.utilities.enum import make_status, WorkStageStatus
+from lightning.app.utilities.exceptions import LightningWorkException
+from lightning.app.utilities.packaging.build_config import BuildConfig
+from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
 def test_lightning_work_run_method_required():
@@ -234,7 +234,7 @@ def test_lightning_work_url():
 
 
 def test_work_path_assignment():
-    """Test that paths in the lit format lit:// get converted to a proper lightning_app.storage.Path object."""
+    """Test that paths in the lit format lit:// get converted to a proper lightning.app.storage.Path object."""
 
     class Work(LightningWork):
         def __init__(self):

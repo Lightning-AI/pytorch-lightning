@@ -49,7 +49,10 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning/app/
+src/lightning_app/
+!src/lightning_app/__*__.py
+!src/lightning_app/MANIFEST.in
+!src/lightning_app/README.md
 src/lightning/fabric/
 src/lightning/pytorch/
 
