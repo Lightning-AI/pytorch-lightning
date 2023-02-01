@@ -1,6 +1,6 @@
 <div align="center">
 
-**NEWS: PyTorch Lightning has been renamed Lightning!**
+**NEWS: PyTorch Lightning has been renamed Lightning AI!**
 
 <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning-ai.png" width="400px">
 
