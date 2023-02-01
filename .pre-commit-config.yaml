@@ -52,7 +52,7 @@ repos:
     rev: v3.3.1
     hooks:
       - id: pyupgrade
-        args: [--py37-plus]
+        args: [--py38-plus]
         name: Upgrade code
 
   - repo: https://github.com/PyCQA/docformatter
@@ -98,8 +98,8 @@ repos:
           - mdformat_frontmatter
         exclude: |
           (?x)^(
+              src/lightning/app/CHANGELOG.md|
               src/pytorch_lightning/CHANGELOG.md|
-              src/lightning_app/CHANGELOG.md|
               src/lightning_fabric/CHANGELOG.md
           )$
 

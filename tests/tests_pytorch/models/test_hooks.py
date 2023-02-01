@@ -502,11 +502,11 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
-        # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_train_epoch_end`
+        dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
+        # `ModelCheckpoint.save_checkpoint` is called here
         dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
         dict(name="on_train_end"),
         dict(name="Callback.on_fit_end", args=(trainer, model)),
@@ -580,10 +580,11 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, 2, current_epoch=1, current_batch=0),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
+        dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
+        # `ModelCheckpoint.save_checkpoint` is called here
         dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
         dict(name="on_train_end"),
         dict(name="Callback.on_fit_end", args=(trainer, model)),
@@ -658,10 +659,11 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, steps_after_reload, current_batch=1),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
+        dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
+        # `ModelCheckpoint.save_checkpoint` is called here
         dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
         dict(name="on_train_end"),
         dict(name="Callback.on_fit_end", args=(trainer, model)),

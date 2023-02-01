@@ -18,7 +18,7 @@ import numbers
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -26,7 +26,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Literal
 
 import lightning_fabric as lf
 import pytorch_lightning as pl
@@ -1296,16 +1295,14 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
-    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
+    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
         to prevent dangling gradients in multiple-optimizer setup.
 
-        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
 
         Args:
             optimizer: The optimizer to toggle.
-            optimizer_idx: The index of the optimizer to toggle.
         """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
@@ -1326,16 +1323,14 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
-    def untoggle_optimizer(self, optimizer_idx: int) -> None:
+    def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
 
-        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
-
         Args:
-            optimizer_idx: The index of the optimizer to untoggle.
+            optimizer: The optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.trainer.optimizers):
-            if optimizer_idx != opt_idx:
+        for opt in self.trainer.optimizers:
+            if not (opt is optimizer or (isinstance(optimizer, LightningOptimizer) and opt is optimizer.optimizer)):
                 for group in opt.param_groups:
                     for param in group["params"]:
                         if param in self._param_requires_grad_state:

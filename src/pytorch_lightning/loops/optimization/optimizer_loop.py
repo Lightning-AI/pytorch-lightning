@@ -13,12 +13,11 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-from typing_extensions import OrderedDict
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import _Loop
@@ -253,7 +252,7 @@ class _OptimizerLoop(_Loop):
         result = closure.consume_result()
 
         # untoggle model params
-        self._run_optimization_end(opt_idx)
+        self._run_optimization_end(optimizer)
         return result
 
     def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer) -> Closure:
@@ -313,12 +312,12 @@ class _OptimizerLoop(_Loop):
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
-            model.toggle_optimizer(optimizer, opt_idx)
+            model.toggle_optimizer(optimizer)
 
-    def _run_optimization_end(self, opt_idx: int) -> None:
+    def _run_optimization_end(self, optimizer: Optimizer) -> None:
         if len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
-            model.untoggle_optimizer(opt_idx)
+            model.untoggle_optimizer(optimizer)
 
     def _optimizer_step(
         self,

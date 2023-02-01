@@ -187,7 +187,7 @@ def test_early_stopping_patience_train(
     assert trainer.current_epoch - 1 == expected_stop_epoch
 
 
-def test_pickling(tmpdir):
+def test_pickling():
     early_stopping = EarlyStopping(monitor="foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)

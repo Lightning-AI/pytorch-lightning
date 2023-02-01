@@ -22,12 +22,11 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from typing_extensions import Literal
 
 from lightning_fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
