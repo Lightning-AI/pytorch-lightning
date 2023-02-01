@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 @dataclass
 class ManualResult(OutputResult):
-    """A container to hold the result returned by the ``ManualLoop``.
+    """A container to hold the result returned by ``_ManualOptimization``.
 
     It is created from the output of :meth:`~pytorch_lightning.core.module.LightningModule.training_step`.
 
