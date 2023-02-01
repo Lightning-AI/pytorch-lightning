@@ -24,9 +24,9 @@ from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 from torch.utils.data import DataLoader
 
-from lightning_fabric import Fabric
-from lightning_fabric.plugins import DeepSpeedPrecision
-from lightning_fabric.strategies import DeepSpeedStrategy
+from lightning.fabric import Fabric
+from lightning.fabric.plugins import DeepSpeedPrecision
+from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
@@ -254,7 +254,7 @@ def test_deepspeed_multigpu_stage_3():
 
 @RunIf(deepspeed=True)
 @mock.patch("deepspeed.init_distributed", autospec=True)
-@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
 def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     """Test to ensure that we set up distributed communication correctly.
