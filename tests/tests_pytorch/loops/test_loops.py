@@ -300,7 +300,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
-    optim_progress = trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress
+    optim_progress = trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress
     sch_progress = trainer.fit_loop.epoch_loop.scheduler_progress
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
@@ -365,13 +365,13 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
             "current": {"ready": be_sch_steps, "completed": be_sch_steps},
         },
-        "epoch_loop.manual_loop.state_dict": ANY,
-        "epoch_loop.manual_loop.optim_step_progress": {
+        "epoch_loop.manual_optimization.state_dict": ANY,
+        "epoch_loop.manual_optimization.optim_step_progress": {
             "total": {"ready": 0, "completed": 0},
             "current": {"ready": 0, "completed": 0},
         },
-        "epoch_loop.optimizer_loop.state_dict": {},
-        "epoch_loop.optimizer_loop.optim_progress": {
+        "epoch_loop.automatic_optimization.state_dict": {},
+        "epoch_loop.automatic_optimization.optim_progress": {
             "optimizer": {
                 "step": {
                     "total": {
@@ -423,7 +423,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert batch_progress.current.ready == be_batches_completed
     assert batch_progress.current.completed == be_batches_completed
 
-    optim_progress = trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress
+    optim_progress = trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress
     assert optim_progress.optimizer.step.current.ready == be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     assert optim_progress.optimizer.zero_grad.current.ready == be_total_zero_grad
@@ -503,13 +503,13 @@ def test_loop_state_on_complete_run(tmpdir):
             "total": {"ready": n_sch_steps_total, "completed": n_sch_steps_total},
             "current": {"ready": n_sch_steps_current, "completed": n_sch_steps_current},
         },
-        "epoch_loop.manual_loop.state_dict": ANY,
-        "epoch_loop.manual_loop.optim_step_progress": {
+        "epoch_loop.manual_optimization.state_dict": ANY,
+        "epoch_loop.manual_optimization.optim_step_progress": {
             "total": {"ready": 0, "completed": 0},
             "current": {"ready": 0, "completed": 0},
         },
-        "epoch_loop.optimizer_loop.state_dict": {},
-        "epoch_loop.optimizer_loop.optim_progress": {
+        "epoch_loop.automatic_optimization.state_dict": {},
+        "epoch_loop.automatic_optimization.optim_progress": {
             "optimizer": {
                 "step": {
                     "total": {
@@ -568,7 +568,7 @@ def test_fit_loop_reset(tmpdir):
     mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=2.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
-    optimizer_loop = epoch_loop.optimizer_loop
+    optimizer_loop = epoch_loop.automatic_optimization
     assert not fit_loop.restarting
     assert not epoch_loop.restarting
     assert not optimizer_loop.restarting

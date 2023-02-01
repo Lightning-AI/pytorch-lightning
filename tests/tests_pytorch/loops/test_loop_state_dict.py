@@ -49,13 +49,13 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.manual_loop.state_dict": {},
-            "epoch_loop.manual_loop.optim_step_progress": {
+            "epoch_loop.manual_optimization.state_dict": {},
+            "epoch_loop.manual_optimization.optim_step_progress": {
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.optimizer_loop.state_dict": {},
-            "epoch_loop.optimizer_loop.optim_progress": {
+            "epoch_loop.automatic_optimization.state_dict": {},
+            "epoch_loop.automatic_optimization.optim_progress": {
                 "optimizer": {
                     "step": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
                     "zero_grad": {
