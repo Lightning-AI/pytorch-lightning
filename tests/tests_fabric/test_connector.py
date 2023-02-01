@@ -793,7 +793,7 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", ["64", "32", "16", pytest.param("bf16", marks=RunIf(min_torch="1.10"))])
+@pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
