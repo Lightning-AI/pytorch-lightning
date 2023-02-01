@@ -128,6 +128,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 .. warning::
    * Note that ``configure_gradient_clipping()`` won't be called in Manual Optimization. Instead consider using ``self. clip_gradients()`` manually like in the example above.
 
+
 Use Multiple Optimizers (like GANs)
 ===================================
 
@@ -282,69 +283,30 @@ If you want to call schedulers that require a metric value after each epoch, con
             sch.step(self.trainer.callback_metrics["loss"])
 
 
-Step Optimizers at Arbitrary Intervals
-=======================================
+Optimizer Steps at Different Frequencies
+========================================
 
-::TODO::
-
-To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
-override the :meth:`~pytorch_lightning.core.module.LightningModule.optimizer_step` function.
-
-.. warning::
-    If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter to
-    ``optimizer.step()`` function as shown in the examples because ``training_step()``, ``optimizer.zero_grad()``,
-    ``loss.backward()`` are called in the closure function.
-
-For example, here step optimizer A every batch and optimizer B every 2 batches.
+In manual optimization, you are free to ``step()`` one optimizer more often than another one.
+For example, here we step the optimizer for the *discriminator* weights twice as often as the optimizer for the *generator*.
 
 .. testcode:: python
 
     # Alternating schedule for optimizer steps (e.g. GANs)
-    def optimizer_step(
-        self,
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        optimizer_closure,
-    ):
+    def training_step(self, batch, batch_idx):
+
+        # update discriminator every other step
+        d_opt.zero_grad()
+        self.manual_backward(errD)
+        if (batch_idx + 1) % 2 == 0:
+            d_opt.step()
+
+        ...
+
         # update generator every step
-        if optimizer_idx == 0:
-            optimizer.step(closure=optimizer_closure)
+        g_opt.zero_grad()
+        self.manual_backward(errG)
+        g_opt.step()
 
-        # update discriminator every 2 steps
-        if optimizer_idx == 1:
-            if (batch_idx + 1) % 2 == 0:
-                # the closure (which includes the `training_step`) will be executed by `optimizer.step`
-                optimizer.step(closure=optimizer_closure)
-            else:
-                # call the closure by itself to run `training_step` + `backward` without an optimizer step
-                optimizer_closure()
-
-        # ...
-        # add as many optimizers as you want
-
-Here we add a manual learning rate warm-up without an lr scheduler.
-
-.. testcode:: python
-
-    # learning rate warm-up
-    def optimizer_step(
-        self,
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        optimizer_closure,
-    ):
-        # update params
-        optimizer.step(closure=optimizer_closure)
-
-        # skip the first 500 steps
-        if self.trainer.global_step < 500:
-            lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
-            for pg in optimizer.param_groups:
-                pg["lr"] = lr_scale * self.hparams.learning_rate
 
 Use Closure for LBFGS-like Optimizers
 =====================================

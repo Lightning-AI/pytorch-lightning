@@ -39,7 +39,7 @@ Under the hood, Lightning does the following:
         for batch in data:
 
             def closure():
-                loss = model.training_step(batch, batch_idx, ...)
+                loss = model.training_step(batch, batch_idx)
                 optimizer.zero_grad()
                 loss.backward()
                 return loss
