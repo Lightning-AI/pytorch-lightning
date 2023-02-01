@@ -11,7 +11,8 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "tests/legacy/**"
       - "pyproject.toml"  # includes pytest config
@@ -49,7 +50,8 @@ subprojects:
       - "examples/pl_basics/backbone_image_classifier.py"
       - "examples/pl_basics/autoencoder.py"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "pyproject.toml"  # includes pytest config
       - "requirements/fabric/**"
@@ -82,7 +84,8 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
@@ -99,7 +102,8 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "pyproject.toml"  # includes pytest config
       - "!requirements/docs.txt"
@@ -130,7 +134,8 @@ subprojects:
 
   - id: "pytorch_lightning: Docs"
     paths:
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "docs/source-pytorch/**"
       - ".actions/**"
       - ".github/workflows/docs-checks.yml"
