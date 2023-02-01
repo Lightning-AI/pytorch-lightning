@@ -63,6 +63,9 @@ from lightning.app.utilities.network import LightningClient
 from lightning.app.utilities.port import _find_lit_app_port
 from lightning.app.cli.commands.ls import ls
 from lightning.app.cli.commands.cd import cd
+from lightning.app.cli.commands.cp import cp
+from lightning.app.cli.commands.pwd import pwd
+
 
 logger = Logger(__name__)
 
@@ -123,6 +126,8 @@ _main.command()(connect)
 _main.command()(disconnect)
 _main.command()(ls)
 _main.command()(cd)
+_main.command()(cp)
+_main.command()(pwd)
 show.command()(logs)
 
 

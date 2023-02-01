@@ -1,33 +1,61 @@
 import click
-from typing import Optional
-from lightning.app.utilities.cloud import _get_project
 import os
+from typing import Optional
 from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.cloud import _get_project
-from lightning.app.utilities.network import LightningClient
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 
 logger = Logger(__name__)
 
+_HOME = os.path.expanduser("~")
 
-@click.argument("path", required=True)
-def cd(path: str) -> None:
+@click.argument("path", required=False)
+def cd(path: Optional[str] = None) -> None:
 
     cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
-    root = '.'
+
+    if isinstance(path, str) and path.startswith(_HOME):
+        path =  "~" + path.replace(_HOME, '')
+
+    if isinstance(path, str) and not path.endswith('/'):
+        path = path + '/'
+
+    if path is None:
+        path = "~/."
 
     if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
         os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
 
     if not os.path.exists(cd_file):
+        if path.startswith(".."):
+            path = root
+
         with open(cd_file, "w") as f:
-            f.write(root)
+            f.write(path + "\n")
+
+        print(f"cd {path}")
     else:
         with open(cd_file, "r") as f:
             lines = f.readlines()
             root = lines[0].replace("\n", "")
 
+        if root == ".":
+            if path == '~/.':
+                root = "."
+            elif not path.startswith(".."):
+                root = path
+        else:
+            if path.startswith(".."):
+                root = "/".join(root.split('/')[:-1])
+            elif path.startswith("~"):
+                root = path[2:]
+            else:
+                root = os.path.join(root, path)
+
         os.remove(cd_file)
 
         with open(cd_file, "w") as f:
-            f.write(root)
+            f.write(root + "\n")
+
+        if root == '.':
+            root = "~"
+        print(f"cd {root}")
