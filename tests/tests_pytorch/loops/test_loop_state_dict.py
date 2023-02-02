@@ -13,8 +13,8 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-from pytorch_lightning.loops import _FitLoop
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch.loops import _FitLoop
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 def test_loops_state_dict():

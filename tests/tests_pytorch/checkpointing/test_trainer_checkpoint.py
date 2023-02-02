@@ -18,11 +18,11 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO, XLACheckpointIO
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 def test_finetuning_with_ckpt_path(tmpdir):
@@ -95,7 +95,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
         io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint"
+        "lightning.pytorch.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint"
     ) as cc_mock:
         trainer.save_checkpoint(instance_path, True)
         cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)

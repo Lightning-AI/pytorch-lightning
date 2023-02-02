@@ -22,15 +22,15 @@ from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch import LightningModule
+from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 

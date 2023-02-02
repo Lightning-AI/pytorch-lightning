@@ -24,13 +24,13 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
-from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
+from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -145,7 +145,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
         default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
     )
     pbar = trainer.progress_bar_callback
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
 
     expected_sanity_steps = [num_sanity_val_steps] * num_dl
@@ -158,7 +158,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     # fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     pbar = trainer.progress_bar_callback
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
 
     n = trainer.num_training_batches
@@ -176,7 +176,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert not pbar.val_progress_bar.leave
 
     # validate
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.validate(model)
     assert trainer.num_val_batches == m
     assert pbar.val_progress_bar.total_values == m
@@ -184,7 +184,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
 
     # test
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.test(model)
     assert pbar.test_progress_bar.leave
     k = trainer.num_test_batches
@@ -194,7 +194,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.test_progress_bar.leave
 
     # predict
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.predict(model)
     assert pbar.predict_progress_bar.leave
     k = trainer.num_predict_batches
@@ -375,7 +375,7 @@ def test_main_progress_bar_update_amount(
         logger=False,
         enable_checkpointing=False,
     )
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
     if train_batches > 0:
         assert progress_bar.main_progress_bar.n_values == train_updates
@@ -396,7 +396,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
         logger=False,
         enable_checkpointing=False,
     )
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.test(model)
     assert progress_bar.test_progress_bar.n_values == updates
 
@@ -512,7 +512,7 @@ def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
 
 
 @mock.patch("builtins.print")
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
+@mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()
@@ -581,7 +581,7 @@ def test_progress_bar_max_val_check_interval(
         limit_val_batches=limit_batches,
         callbacks=TQDMProgressBar(refresh_rate=3),
     )
-    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
 
     pbar = trainer.progress_bar_callback
@@ -727,7 +727,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
     assert pbar.calls["test"] == []
 
 
-@mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
+@mock.patch("lightning.pytorch.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
 def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     """Test that the progress bar is disabled when not in global rank zero."""
     pbar = TQDMProgressBar()

@@ -52,7 +52,7 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
-          # "lightning" installs the monolithic package
+          # "fabric" installs the standalone package
           - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}

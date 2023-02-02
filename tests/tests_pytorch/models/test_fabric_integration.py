@@ -17,7 +17,7 @@ from copy import deepcopy
 import torch
 
 from lightning.fabric import Fabric
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
 
 def test_fabric_boring_lightning_module_automatic():
