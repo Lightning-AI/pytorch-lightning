@@ -1,12 +1,11 @@
 import os
 import sys
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import click
 import rich
 from rich.live import Live
 from rich.spinner import Spinner
-from rich.table import Table
 from rich.text import Text
 from rich.console import Console
 from lightning.app.cli.commands.cd import _CD_FILE
@@ -14,7 +13,7 @@ from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
 
-_FOLDER_COLOR = "blue1"
+_FOLDER_COLOR = "sky_blue1"
 _FILE_COLOR = "white"
 
 logger = Logger(__name__)
@@ -50,7 +49,7 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         if root == "/":
             project_names = [project.name for project in projects.memberships]
-            _print_names_with_colors(project_names, [_FOLDER_COLOR] * len(app_names))
+            _print_names_with_colors(project_names, [_FOLDER_COLOR] * len(project_names))
             return project_names
 
         # Note: Root format has the following structure:
@@ -106,14 +105,16 @@ def _add_colors(filename: str, color: Optional[str] = None) -> str:
     return f"[{color}]{filename}[/{color}]"
 
 
-def _print_names_with_colors(names: List[str], colors: List[str], padding: int = 10) -> None:
+def _print_names_with_colors(names: List[str], colors: List[str], padding: int = 5) -> None:
     console = Console()
     width = console.width
 
-    max_L = max([len(name) for name in names]) + padding
+    max_L = max([len(name) for name in names] + [0]) + padding
+    
+    use_spacing = False
 
     if max_L * len(names) < width:
-        max_L = padding
+        use_spacing = True
 
     num_cols = width // max_L
 
@@ -127,6 +128,10 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
     for row_index in sorted(columns):
         row = ""
         for (name, color) in columns[row_index]:
-            spaces = " " * (max_L - len(name))
+            if use_spacing:
+                spacing = padding
+            else:
+                spacing = max_L - len(name)
+            spaces = " " * spacing
             row += _add_colors(name, color) + spaces
         rich.print(row)
