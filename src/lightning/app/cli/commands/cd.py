@@ -20,8 +20,6 @@ def cd(path: Optional[str] = None) -> str:
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
-        live.stop()
-
         root = "/"
 
         if isinstance(path, str) and path.startswith(_HOME):
@@ -44,11 +42,7 @@ def cd(path: Optional[str] = None) -> str:
 
             print(f"cd {path}")
         else:
-<<<<<<< HEAD
             with open(_CD_FILE, "r") as f:
-=======
-            with open(cd_file) as f:
->>>>>>> e3d5e60354284ab1c089aec0d13fbd37d13dd1fe
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 

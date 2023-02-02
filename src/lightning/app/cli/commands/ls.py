@@ -1,13 +1,8 @@
-<<<<<<< HEAD
 from typing import Optional, List
-=======
->>>>>>> e3d5e60354284ab1c089aec0d13fbd37d13dd1fe
 import os
 from typing import Optional
 
-import click
 import rich
-from rich.color import ANSI_COLOR_NAMES
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
@@ -15,16 +10,11 @@ from rich.text import Text
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
-<<<<<<< HEAD
 from lightning.app.cli.commands.cd import _CD_FILE
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
-from rich.color import ANSI_COLOR_NAMES
 from rich.live import Live
 from rich.text import Text
 from rich.spinner import Spinner
 import rich
-=======
->>>>>>> e3d5e60354284ab1c089aec0d13fbd37d13dd1fe
 
 _FOLDER_COLOR = "blue"
 _FILE_COLOR = "white"
@@ -34,17 +24,11 @@ logger = Logger(__name__)
 
 def ls(path: Optional[str] = None) -> List[str]:
 
-<<<<<<< HEAD
     root = '/'
-=======
-    cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
-    root = "/"
->>>>>>> e3d5e60354284ab1c089aec0d13fbd37d13dd1fe
     paths = []
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
-        live.stop()
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -99,7 +83,7 @@ def ls(path: Optional[str] = None) -> List[str]:
             
             paths.append(_add_colors(artifact_splits[depth], color=color))
         
-    paths = sorted(set(paths))
+        paths = sorted(set(paths))
 
     rich.print(*paths)
 
