@@ -1,25 +1,26 @@
 import concurrent
 import os
 import sys
+from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
-from typing import Optional, Tuple
 from time import sleep
+from typing import Optional, Tuple
+
 import click
-from functools import partial
+import requests
 import rich
 import urllib3
-import requests
 from lightning_cloud.openapi import IdArtifactsBody
 from rich.live import Live
-from rich.progress import BarColumn, Progress, TextColumn, Task
+from rich.progress import BarColumn, Progress, Task, TextColumn
 from rich.spinner import Spinner
 from rich.text import Text
 
+from lightning.app.cli.commands.pwd import _pwd
 from lightning.app.source_code import FileUploader
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
-from lightning.app.cli.commands.pwd import _pwd
 
 logger = Logger(__name__)
 
@@ -36,7 +37,7 @@ def cp(
 
         pwd = _pwd()
 
-        if pwd == "/" or len(pwd.split('/')) == 1:
+        if pwd == "/" or len(pwd.split("/")) == 1:
             return _error_and_exit("Uploading files at the project level isn't supported yet.")
 
         client = LightningClient()
@@ -95,7 +96,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     total_size = sum([Path(path).stat().st_size for path in upload_paths])
     task_id = progress.add_task("upload", filename="", total=total_size)
-    
+
     progress.start()
 
     _upload_partial = partial(_upload, progress=progress, task_id=task_id)
@@ -201,6 +202,7 @@ def _remove_remote(path: str) -> str:
 def _error_and_exit(msg: str) -> str:
     rich.print(f"[red]ERROR[/red]: {msg}")
     sys.exit(0)
+
 
 def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
     project_name, app_name, *_ = pwd.split("/")[1:]
