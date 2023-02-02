@@ -124,6 +124,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
     decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
+
     # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
         def __init__(self, encoder, decoder):

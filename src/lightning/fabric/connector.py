@@ -36,9 +36,9 @@ from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
+    MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    MPIEnvironment,
 )
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision

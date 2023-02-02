@@ -25,9 +25,9 @@ from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
+    MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    MPIEnvironment,
 )
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
