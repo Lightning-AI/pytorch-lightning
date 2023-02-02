@@ -30,9 +30,7 @@ logger = Logger(__name__)
 @click.option("-r", required=False, hidden=True)
 @click.option("--recursive", required=False, hidden=True)
 def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -> None:
-    """
-    Command to copy files between your local and the Lightning Cloud filesystem's.
-    """
+    """Command to copy files between your local and the Lightning Cloud filesystem's."""
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
