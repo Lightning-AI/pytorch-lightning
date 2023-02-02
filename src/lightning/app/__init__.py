@@ -2,7 +2,7 @@
 import logging
 import os
 
-from lightning_utilities.core.imports import module_available, package_available
+from lightning_utilities import module_available
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
 if "__version__" not in locals():
     if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
         from lightning.app.__version__ import version as __version__
-    elif package_available("lightning"):
+    elif module_available("lightning"):
         from lightning import __version__  # noqa: F401
 
 from lightning.app.core.app import LightningApp  # noqa: E402

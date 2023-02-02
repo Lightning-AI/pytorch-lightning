@@ -4,7 +4,7 @@ import sys
 
 import pytest
 import torch
-from lightning_utilities.core.imports import package_available
+from lightning_utilities import module_available
 from lightning_utilities.test.warning import no_warning_call
 from packaging.version import Version
 
@@ -17,7 +17,7 @@ from tests_pytorch.checkpointing.test_legacy_checkpoints import (
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    package_available("lightning.pytorch"), reason="This test is only relevant for the standalone package"
+    module_available("lightning.pytorch"), reason="This test is only relevant for the standalone package"
 )
 def test_imports_standalone(pl_version: str):
     assert any(
@@ -41,7 +41,7 @@ def test_imports_standalone(pl_version: str):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    not package_available("lightning.pytorch"),
+    not module_available("lightning.pytorch"),
     reason="This test is only relevant for the unified package",
 )
 def test_imports_unified(pl_version: str):

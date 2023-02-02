@@ -30,7 +30,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Type
 import requests
 from lightning_cloud.openapi import V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
-from lightning_utilities.core.imports import package_available
+from lightning_utilities import module_available
 from requests import Session
 from rich import print
 from rich.color import ANSI_COLOR_NAMES
@@ -153,7 +153,7 @@ def application_testing(lit_app_cls: Type[LightningTestApp] = LightningTestApp, 
 
     patch1 = mock.patch("lightning.app.LightningApp", lit_app_cls)
     # we need to patch both only with the mirror package
-    patch2 = mock.patch("lightning.LightningApp", lit_app_cls) if package_available("lightning") else nullcontext()
+    patch2 = mock.patch("lightning.LightningApp", lit_app_cls) if module_available("lightning") else nullcontext()
     with patch1, patch2:
         original = sys.argv
         sys.argv = command_line

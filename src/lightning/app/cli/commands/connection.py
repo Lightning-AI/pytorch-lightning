@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 
 import click
 import psutil
-from lightning_utilities.core.imports import package_available
+from lightning_utilities import module_available
 from rich.progress import Progress
 
 from lightning.app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
@@ -316,7 +316,7 @@ def _install_missing_requirements(
     if requirements:
         missing_requirements = []
         for req in requirements:
-            if not (package_available(req) or package_available(req.replace("-", "_"))):
+            if not (module_available(req) or module_available(req.replace("-", "_"))):
                 missing_requirements.append(req)
 
         if missing_requirements:

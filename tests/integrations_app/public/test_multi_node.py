@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from integrations_app.public import _PATH_EXAMPLES
-from lightning_utilities.core.imports import package_available
+from lightning_utilities import module_available
 
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.testing.testing import application_testing, LightningTestApp
@@ -19,7 +19,7 @@ class LightningTestMultiNodeApp(LightningTestApp):
 
 
 # for the skip to work, the package needs to be installed without editable mode
-_SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not package_available("lightning"), reason="script requires lightning")
+_SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not module_available("lightning"), reason="script requires lightning")
 
 
 @pytest.mark.parametrize(
