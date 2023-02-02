@@ -3,12 +3,12 @@ from copy import deepcopy
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.payload import Payload
-from lightning_app.structures import Dict, List
-from lightning_app.testing.helpers import EmptyFlow
-from lightning_app.utilities.enum import CacheCallsKeys, WorkStageStatus
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.payload import Payload
+from lightning.app.structures import Dict, List
+from lightning.app.testing.helpers import EmptyFlow
+from lightning.app.utilities.enum import CacheCallsKeys, WorkStageStatus
 
 
 def test_dict():

@@ -41,6 +41,9 @@ local tputests = base.BaseTest {
       PACKAGE_NAME=fabric pip install .[dev]
       pip list
 
+      pip install -q -r .actions/requirements.txt
+      python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning.fabric" --target_import="lightning_fabric"
+
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
@@ -53,7 +56,7 @@ local tputests = base.BaseTest {
       PL_RUN_TPU_TESTS=1 coverage run --source=lightning_fabric -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone Fabric tests ---"
-      PL_STANDALONE_TESTS_SOURCE=lightning_fabric PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
+      PL_RUN_TPU_TESTS=1 PL_STANDALONE_TESTS_SOURCE=lightning_fabric PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Generating coverage ---"
       coverage xml

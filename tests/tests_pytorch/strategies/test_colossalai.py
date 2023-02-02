@@ -17,15 +17,14 @@ import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-from torch.optim import Optimizer
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
-from pytorch_lightning.strategies import ColossalAIStrategy
-from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
+from lightning.pytorch import LightningModule, seed_everything, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins.precision import ColossalAIPrecisionPlugin
+from lightning.pytorch.strategies import ColossalAIStrategy
+from lightning.pytorch.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -34,7 +33,7 @@ if _COLOSSALAI_AVAILABLE:
 
 
 def test_invalid_colosalai(monkeypatch):
-    import pytorch_lightning.strategies.colossalai as colossal_strategy
+    import lightning.pytorch.strategies.colossalai as colossal_strategy
 
     monkeypatch.setattr(colossal_strategy, "_COLOSSALAI_AVAILABLE", False)
     with pytest.raises(
@@ -143,7 +142,7 @@ def test_colossalai_optimizer(tmpdir):
 @RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
 def test_warn_colossalai_ignored(tmpdir):
     class TestModel(ModelParallelBoringModel):
-        def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+        def backward(self, loss: Tensor, *args, **kwargs) -> None:
             return loss.backward()
 
     model = TestModel()
@@ -158,7 +157,7 @@ def test_warn_colossalai_ignored(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    from pytorch_lightning.plugins.precision.colossalai import warning_cache
+    from lightning.pytorch.plugins.precision.colossalai import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since ColossalAI handles the backward"):
         trainer.fit(model)

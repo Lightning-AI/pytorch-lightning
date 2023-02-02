@@ -20,14 +20,13 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
-from lightning_fabric import Fabric
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.core.module import _TrainerFabricShim
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric import Fabric
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.core.module import _TrainerFabricShim
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -115,9 +114,9 @@ def test_1_optimizer_toggle_model():
 
     assert not model._param_requires_grad_state
     # toggle optimizer was failing with a single optimizer
-    model.toggle_optimizer(optimizer, 0)
+    model.toggle_optimizer(optimizer)
     assert model._param_requires_grad_state
-    model.untoggle_optimizer(0)
+    model.untoggle_optimizer(optimizer)
     assert not model._param_requires_grad_state
 
 
@@ -143,7 +142,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             opt1, opt2 = self.optimizers()
 
             # Use the first optimizer, toggle it
-            self.toggle_optimizer(opt1, 0)
+            self.toggle_optimizer(opt1)
             loss = self.step(batch)
             opt1.zero_grad()
             self.manual_backward(loss)
@@ -155,10 +154,10 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             assert self.layer_2[3].weight.requires_grad is False
             assert self.layer_2[5].weight.requires_grad is False
             opt1.step()
-            self.untoggle_optimizer(0)
+            self.untoggle_optimizer(opt1)
 
             # Use the second optimizer, toggle it
-            self.toggle_optimizer(opt2, 1)
+            self.toggle_optimizer(opt2)
             loss = self.step(batch)
             opt2.zero_grad()
             self.manual_backward(loss)
@@ -170,7 +169,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             assert self.layer_2[3].weight.requires_grad is False
             assert self.layer_2[5].weight.requires_grad is True
             opt2.step()
-            self.untoggle_optimizer(1)
+            self.untoggle_optimizer(opt2)
 
         def configure_optimizers(self):
             optimizer_1 = SGD(self.layer_1.parameters(), lr=0.1)
@@ -213,7 +212,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             opt1, opt2, opt3 = self.optimizers()
 
             # Use the first optimizer, toggle it
-            self.toggle_optimizer(opt1, 0)
+            self.toggle_optimizer(opt1)
             loss = self.step(batch)
             opt1.zero_grad()
             self.manual_backward(loss)
@@ -229,10 +228,10 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             assert self.layer_3[3].weight.requires_grad is False
             assert self.layer_3[5].weight.requires_grad is False
             opt1.step()
-            self.untoggle_optimizer(0)
+            self.untoggle_optimizer(opt1)
 
             # Use the second optimizer, toggle it
-            self.toggle_optimizer(opt2, 1)
+            self.toggle_optimizer(opt2)
             loss = self.step(batch)
             opt2.zero_grad()
             self.manual_backward(loss)
@@ -248,10 +247,10 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             assert self.layer_3[3].weight.requires_grad is True
             assert self.layer_3[5].weight.requires_grad is False
             opt2.step()
-            self.untoggle_optimizer(1)
+            self.untoggle_optimizer(opt2)
 
             # Use the third optimizer, toggle it
-            self.toggle_optimizer(opt3, 2)
+            self.toggle_optimizer(opt3)
             loss = self.step(batch)
             opt3.zero_grad()
             self.manual_backward(loss)
@@ -267,7 +266,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             assert self.layer_3[3].weight.requires_grad is True
             assert self.layer_3[5].weight.requires_grad is False
             opt3.step()
-            self.untoggle_optimizer(2)
+            self.untoggle_optimizer(opt3)
 
         @staticmethod
         def combine_generators(gen_1, gen_2):
@@ -315,10 +314,7 @@ def test_device_placement(tmpdir, accelerator, device):
 
 @RunIf(skip_windows=True)
 def test_sharded_tensor_state_dict(single_process_pg):
-    if _TORCH_GREATER_EQUAL_1_11:
-        from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
-    else:
-        from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
     class BoringModelWithShardedTensor(BoringModel):
@@ -336,7 +332,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 and not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
+    name_st = ".sharded_tensor" if not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
     assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)
@@ -358,7 +354,7 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             assert gradient_clip_val == self.trainer.gradient_clip_val
             assert gradient_clip_algorithm == self.trainer.gradient_clip_algorithm
 
@@ -387,7 +383,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_val = 1e-2
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_val=self.custom_gradient_clip_val)
 
     model = TestModel()
@@ -403,7 +399,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_algorithm = "foo"
 
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_algorithm=self.custom_gradient_clip_algorithm)
 
     model = TestModel()

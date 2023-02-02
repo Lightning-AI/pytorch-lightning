@@ -22,10 +22,10 @@ if __name__ == "__main__":
     # check that logging is properly configured
     import logging
 
-    from pytorch_lightning import _DETAIL
+    from lightning.pytorch import _DETAIL
 
     root_logger = logging.getLogger()
-    lightning_logger = logging.getLogger("pytorch_lightning")
+    lightning_logger = logging.getLogger("lightning.pytorch")
     # should have a `StreamHandler`
     assert lightning_logger.hasHandlers() and len(lightning_logger.handlers) == 1
     # set our own stream for testing

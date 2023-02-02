@@ -18,9 +18,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
@@ -114,7 +114,7 @@ class BasicGAN(LightningModule):
 
         # train generator
         # sample noise
-        self.toggle_optimizer(optimizer1, 0)
+        self.toggle_optimizer(optimizer1)
         z = torch.randn(imgs.shape[0], self.hidden_dim)
         z = z.type_as(imgs)
 
@@ -132,11 +132,11 @@ class BasicGAN(LightningModule):
         self.manual_backward(g_loss)
         optimizer1.step()
         optimizer1.zero_grad()
-        self.untoggle_optimizer(0)
+        self.untoggle_optimizer(optimizer1)
 
         # train discriminator
         # Measure discriminator's ability to classify real from generated samples
-        self.toggle_optimizer(optimizer2, 1)
+        self.toggle_optimizer(optimizer2)
         # how well can it label as real?
         valid = torch.ones(imgs.size(0), 1)
         valid = valid.type_as(imgs)
@@ -155,7 +155,7 @@ class BasicGAN(LightningModule):
         self.manual_backward(d_loss)
         optimizer2.step()
         optimizer2.zero_grad()
-        self.untoggle_optimizer(1)
+        self.untoggle_optimizer(optimizer2)
 
     def configure_optimizers(self):
         lr = self.learning_rate

@@ -45,7 +45,7 @@ import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from typing import Generator, Optional
+from typing import Generator, Mapping, Optional
 
 import setuptools
 import setuptools.command.egg_info
@@ -83,11 +83,10 @@ def _named_temporary_file(directory: Optional[str] = None) -> str:
 
 
 @contextlib.contextmanager
-def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
+def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapping = _PACKAGE_MAPPING) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
-        mapping = _PACKAGE_MAPPING.copy()
         lines = ["include src/lightning/version.info\n", "include requirements/base.txt\n"]
         # load manifest and aggregated all manifests
         for pkg in mapping.values():
@@ -139,9 +138,10 @@ if __name__ == "__main__":
                 f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}"
             )
         package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
-        if package_to_install == "lightning":  # install everything
+        if package_to_install == "lightning":
             # merge all requirements files
             assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+        else:
             # replace imports and copy the code
             assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     else:

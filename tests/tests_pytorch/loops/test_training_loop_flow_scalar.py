@@ -17,11 +17,11 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops.optimization.optimizer_loop import Closure
-from pytorch_lightning.trainer.states import RunningStage
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops.optimization.optimizer_loop import Closure
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
@@ -35,8 +35,8 @@ def test__training_step__flow_scalar(tmpdir):
             self.training_step_called = True
             return acc
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -74,8 +74,8 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -119,8 +119,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
                 assert "loss" in b
                 assert isinstance(b, dict)
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -147,10 +147,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
 
-    assert len(train_step_out) == 1
-    train_step_out = train_step_out[0]
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
@@ -189,8 +187,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
                 assert "loss" in b
                 assert isinstance(b, dict)
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -217,10 +215,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
 
-    assert len(train_step_out) == 1
-    train_step_out = train_step_out[0]
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
@@ -302,7 +298,7 @@ def test_training_step_no_return_when_even(tmpdir):
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
         kwargs = {"batch": batch, "batch_idx": batch_idx}
-        out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+        out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
         if not batch_idx % 2:
             assert out == {}
 
@@ -328,7 +324,7 @@ def test_training_step_none_batches(tmpdir):
 
         def on_train_batch_end(self, outputs, batch, batch_idx):
             if batch_idx % 2 == 0:
-                assert outputs == []
+                assert outputs is None
             else:
                 assert outputs
 

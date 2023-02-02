@@ -16,8 +16,8 @@ import math
 import torch
 import torch.nn as nn
 
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.memory import get_model_size_mb, recursive_detach
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.memory import get_model_size_mb, recursive_detach
 
 
 def test_recursive_detach():

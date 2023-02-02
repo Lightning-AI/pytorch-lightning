@@ -21,10 +21,10 @@ import torch
 from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
-from lightning_fabric.accelerators import TPUAccelerator
-from lightning_fabric.accelerators.cuda import num_cuda_devices
-from lightning_fabric.accelerators.mps import MPSAccelerator
-from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.accelerators import TPUAccelerator
+from lightning.fabric.accelerators.cuda import num_cuda_devices
+from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
 
 class RunIf:

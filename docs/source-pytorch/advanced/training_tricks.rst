@@ -133,6 +133,7 @@ search for batch sizes larger than the size of the training dataset.
         tuner = Tuner(trainer)
         tuner.scale_batch_size(model)
 
+
         # using LightningDataModule
         class LitDataModule(LightningDataModule):
             def __init__(self, batch_size):

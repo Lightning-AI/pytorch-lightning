@@ -124,6 +124,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
     decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
+
     # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
         def __init__(self, encoder, decoder):
@@ -282,7 +283,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 .. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
-        def backward(self, loss, optimizer, optimizer_idx):
+        def backward(self, loss):
             loss.backward()
 
 ----
