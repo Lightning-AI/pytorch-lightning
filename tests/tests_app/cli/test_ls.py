@@ -68,17 +68,17 @@ def test_ls(monkeypatch):
 
     monkeypatch.setattr(ls, "LightningClient", MagicMock(return_value=client))
 
-    assert ls.ls() == ["[blue]project-0[/blue]", "[blue]project-1[/blue]"]
+    assert ls.ls() == ["project-0", "project-1", "project 2"]
     assert "/project-0" == cd("project-0")
 
-    assert ls.ls() == ["[blue]app-name-0[/blue]", "[blue]app-name-1[/blue]"]
+    assert ls.ls() == ["app name 2", "app-name-0", "app-name-1"]
     assert f"/project-0{os.sep}app-name-1" == cd("app-name-1")
-    assert ls.ls() == ["[blue]folder_1[/blue]", "[blue]folder_2[/blue]", "[white]file_1.txt[/white]"]
+    assert ls.ls() == ['file_1.txt', 'folder_1', 'folder_2']
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_1" == cd("folder_1")
-    assert ls.ls() == ["[white]file_2.txt[/white]"]
+    assert ls.ls() == ["file_2.txt"]
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2" == cd("../folder_2")
-    assert ls.ls() == ["[blue]folder_3[/blue]", "[white]file_4.txt[/white]"]
+    assert ls.ls() == ["folder_3", "file_4.txt"]
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2{os.sep}folder_3" == cd("folder_3")
-    assert ls.ls() == ["[white]file_3.txt[/white]"]
+    assert ls.ls() == ["file_3.txt"]
 
     os.remove(_CD_FILE)
