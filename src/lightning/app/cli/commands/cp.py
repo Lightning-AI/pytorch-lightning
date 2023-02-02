@@ -104,7 +104,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     # Raise the first exception found
     exception = next((e for e in results if isinstance(e, Exception)), None)
     if exception:
-        raise exception
+        _error_and_exit("We detected errors in uploading your files.")
 
 
 def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: Task) -> Optional[Exception]:
