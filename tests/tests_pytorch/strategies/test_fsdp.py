@@ -78,9 +78,10 @@ class TestFSDPModel(BoringModel):
 
 
 class TestFSDPModelAutoWrapped(BoringModel):
-    def __init__(self):
+    def __init__(self, wrap_min_params: int):
         super().__init__()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        self.wrap_min_params = wrap_min_params
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
@@ -104,8 +105,9 @@ class TestFSDPModelAutoWrapped(BoringModel):
         precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
         for layer_num in [0, 2]:
             num_params = sum(p.numel() for p in self.layer[layer_num].parameters())
-            if not custom_auto_wrap_policy(self.layer[layer_num], False, num_params):
-                # This layer is not wrapped
+            if num_params < self.wrap_min_params:
+                # this layer is not wrapped
+                assert not isinstance(self.layer[layer_num], FullyShardedDataParallel)
                 continue
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
@@ -145,15 +147,6 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
         # Assert model parameters are identical after loading
         for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
-
-
-def custom_auto_wrap_policy(
-    module,
-    recurse,
-    unwrapped_params: int,
-    min_num_params: int = int(1e8),
-) -> bool:
-    return unwrapped_params >= 2
 
 
 @RunIf(min_torch="1.12")
@@ -221,7 +214,7 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
     """
-    model = TestFSDPModelAutoWrapped()
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
     correct_state_dict = model.state_dict()  # State dict before wrapping
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
@@ -243,7 +236,7 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     "model, strategy",
     [
         (TestFSDPModel(), "fsdp"),
-        (TestFSDPModelAutoWrapped(), FSDPStrategy),
+        (TestFSDPModelAutoWrapped(wrap_min_params=2), FSDPStrategy),
     ],
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
@@ -252,7 +245,8 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
     ck = ModelCheckpoint(save_last=True)
 
     if not isinstance(strategy, str):
-        strategy = strategy(auto_wrap_policy=custom_auto_wrap_policy)
+        # So every layer is wrapped
+        strategy = strategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=2))
 
     trainer = Trainer(
         default_root_dir=tmpdir,
