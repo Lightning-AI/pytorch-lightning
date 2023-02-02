@@ -294,7 +294,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
-    "fairscale": ("https://fairscale.readthedocs.io/en/latest/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
 }
 
@@ -400,9 +399,24 @@ from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARG
 from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
 )
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
 from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
+
+# skip false positive linkcheck errors from anchors
+linkcheck_anchors = False
+
+# ignore all links in any CHANGELOG file
+linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+
+# ignore the following relative links (false positive errors during linkcheck)
+linkcheck_ignore = [
+    r"^starter/installation.html$",
+    r"^installation.html$",
+    r"^../cli/lightning_cli.html$",
+    r"^../common/trainer.html#trainer-flags$",
+]

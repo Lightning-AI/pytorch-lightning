@@ -18,9 +18,9 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import DoublePrecisionPlugin
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import DoublePrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -43,9 +43,7 @@ class DoublePrecisionBoringModel(BoringModel):
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         assert float_data.dtype == torch.float64
-        output = self(float_data)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
+        return super().training_step(float_data, batch_idx)
 
     def training_epoch_end(self, outputs) -> None:
         assert torch.tensor([0.0]).dtype == torch.float32
@@ -55,17 +53,13 @@ class DoublePrecisionBoringModel(BoringModel):
         assert batch.dtype == torch.float64
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return {"x": loss}
+        return super().validation_step(batch, batch_idx)
 
     def test_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return {"y": loss}
+        return super().test_step(batch, batch_idx)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert batch.dtype == torch.float64
@@ -93,21 +87,21 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
-        loss = self.loss(batch, output)
+        loss = self.loss(output)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
-        loss = self.loss(batch, output)
+        loss = self.loss(output)
         return {"x": loss}
 
     def test_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
-        loss = self.loss(batch, output)
+        loss = self.loss(output)
         return {"y": loss}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
@@ -166,7 +160,7 @@ def test_double_precision_ddp(tmpdir):
     trainer.validate(model)
 
 
-def test_double_precision_pickle(tmpdir):
+def test_double_precision_pickle():
     model = BoringModel()
     plugin = DoublePrecisionPlugin()
     model, _, __ = plugin.connect(model, MagicMock(), MagicMock())

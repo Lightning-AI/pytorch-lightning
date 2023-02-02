@@ -10,13 +10,15 @@ on:
       - ".actions/**"
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
-      - "requirements/lite/**"
-      - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
+      - "requirements/fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
+      - "tests/tests_fabric/**"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -39,13 +41,13 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event.pull_request.draft == false
     env:
-      PYTHON_VER: 3.7
+      PYTHON_VER: 3.8
     strategy:
-      fail-fast: false
+      fail-fast: true
       max-parallel: 1  # run sequential
       matrix:
         # TODO: add also lightning
-        pkg-name: ["lite", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:

@@ -15,7 +15,6 @@ class LitDash(L.LightningWork):
         self.selected_year = None
 
     def run(self):
-
         df = pd.read_csv("https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv")
         self.df = Payload(df)
 

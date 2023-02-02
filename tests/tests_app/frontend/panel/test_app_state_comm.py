@@ -2,8 +2,8 @@
 import os
 from unittest import mock
 
-from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.frontend.panel.app_state_comm import _get_ws_url, _run_callbacks, _watch_app_state
+from lightning.app.core.constants import APP_SERVER_PORT
+from lightning.app.frontend.panel.app_state_comm import _get_ws_url, _run_callbacks, _watch_app_state
 
 FLOW_SUB = "lit_flow"
 FLOW = f"root.{FLOW_SUB}"

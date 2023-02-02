@@ -13,7 +13,7 @@ Final Application
 
 Here is a gif of the final application built in this example.
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/ml_server_2.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/ml_server_2.gif
 
 ----
 
@@ -29,7 +29,7 @@ In order to create such application, we need to build several components:
 
 * A Load Testing Component that tests the model server works as expected. This could be used to CI/CD the performance of newly generated models (left to the users).
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/model_server_app_2.png
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/model_server_app_2.png
 
 Let's dive into the tutorial.
 

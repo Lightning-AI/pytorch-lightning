@@ -1,6 +1,6 @@
 import pytest
 
-from lightning_app.storage.mount import Mount
+from lightning.app.storage.mount import Mount
 
 
 def test_create_s3_mount_successfully():

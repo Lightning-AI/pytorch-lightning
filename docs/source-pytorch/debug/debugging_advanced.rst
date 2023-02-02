@@ -25,7 +25,6 @@ or use regular print statements.
 
     class LitModel(LightningModule):
         def training_step(self, batch, batch_idx):
-
             debugging_message = ...
             print(f"RANK - {self.trainer.global_rank}: {debugging_message}")
 

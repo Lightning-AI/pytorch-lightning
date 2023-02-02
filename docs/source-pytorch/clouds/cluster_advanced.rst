@@ -35,8 +35,8 @@ To train a model using multiple nodes, do the following:
     .. testcode::
 
         # train.py
-        def main(hparams):
-            model = LightningTemplateModel(hparams)
+        def main(args):
+            model = YourLightningModule(args)
 
             trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
 
@@ -44,12 +44,9 @@ To train a model using multiple nodes, do the following:
 
 
         if __name__ == "__main__":
-            root_dir = os.path.dirname(os.path.realpath(__file__))
-            parent_parser = ArgumentParser(add_help=False)
-            hyperparams = parser.parse_args()
-
+            args = ...  # you can use your CLI parser of choice, or the `LightningCLI`
             # TRAIN
-            main(hyperparams)
+            main(args)
 
 4.  Create the appropriate SLURM job:
 
@@ -192,10 +189,6 @@ See also the multi-node examples
     )
 
 
-The other option is that you generate scripts on your own via a bash command or use our
-:doc:`native solution <../clouds/cloud_training>`.
-
-
 ----
 
 ***************
@@ -220,34 +213,3 @@ The most likely reasons and how to fix it:
   There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
   The numbers there need to match what is configured in your Trainer in the code: ``Trainer(num_nodes=X, devices=Y)``.
   If you change the numbers, update them in BOTH places.
-
-
-----
-
-********
-Get help
-********
-
-Setting up a cluster for distributed training is not trivial. Lightning offers lightning-grid which allows you to configure a cluster easily and run experiments via the CLI and web UI.
-
-Try it out for free today:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Train models on the cloud
-   :description: Learn to run a model in the background on a cloud machine.
-   :col_css: col-md-6
-   :button_link: cloud_training.html
-   :height: 150
-   :tag: intermediate
-
-.. raw:: html
-
-        </div>
-    </div

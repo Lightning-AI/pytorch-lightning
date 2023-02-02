@@ -10,13 +10,15 @@ on:
     paths:
       - ".actions/**"
       - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
-      - "tests/legacy/back-compatible-versions.txt"
-      - "setup.cfg"  # includes pytest config
+      - "tests/legacy/**"
+      - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-pytorch.yml"
-      - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "requirements/fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
       - "!requirements/pytorch/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -41,33 +43,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # assign python and pytorch version combinations to operating systems (arbitrarily)
-          # note: there's no distribution of torch==1.10 for Python>=3.10
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           # only run PyTorch latest with Python latest
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10", requires: "oldest"}  # 3.7 hangs
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           # run test under SLOW label
-          - {type: "slow", os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
-          - {type: "slow", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
-          - {type: "slow", os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
-          # "lightning" installs the monolithic package
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {type: "slow", os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {type: "slow", os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {type: "slow", os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          # "pytorch" installs the standalone package
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
 
-    timeout-minutes: 70  # tests with macOS-11, py3.7 oldest takes much longer then expected
+    timeout-minutes: 70
 
     steps:
     - uses: actions/checkout@v3
@@ -81,16 +80,6 @@ jobs:
       run: |
         pip --version
         pip install -q -r .actions/requirements.txt
-
-    - name: Setup macOS
-      if: runner.os == 'macOS'
-      run: |
-        brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
-
-    - name: Setup Windows
-      if: runner.os == 'windows'
-      run: |
-        python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
@@ -117,9 +106,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
+        key: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
+        enableCrossOsArchive: true
 
     - name: Env. variables
       run: |
@@ -142,23 +131,6 @@ jobs:
         # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
         pip list
 
-    - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
-      run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-          pip uninstall -y horovod
-          grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
-          pip install --no-cache-dir -r requirements/pytorch/horovod.txt
-        fi
-        horovodrun --check-build
-        python -c "import horovod.torch"
-        pip list
-
     - name: Cache datasets
       uses: actions/cache@v3
       with:
@@ -170,16 +142,14 @@ jobs:
         python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
         python requirements/pytorch/check-avail-extras.py
 
-    - name: Adjust tests
-      if: ${{ matrix.pkg-name == 'lightning' }}
+    - name: Adjust tests -> PL
+      if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="pytorch_lightning,lightning_lite" \
-          --target_import="lightning.pytorch,lightning.lite"
+          --source_import="lightning.fabric,lightning.pytorch" \
+          --target_import="lightning_fabric,pytorch_lightning"
 
     - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
-      if: matrix.python-version != '3.7'
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py

@@ -11,7 +11,7 @@ Create AWS cluster
 
 **Prereqs:** basic familiarity with cloud provider infrastructure management.
 
-.. note:: This feature is currently available for early access! To create your own clutser `contact us <mailto:product@lightning.ai?subject=I%20want%20to%20run%20on%20my%20private%20cloud!>`_.
+.. note:: This feature is currently available for early access! To create your own cluster `contact us <mailto:product@lightning.ai?subject=I%20want%20to%20run%20on%20my%20private%20cloud!>`_.
 
 
 ----
@@ -87,6 +87,7 @@ Here's an example:
    lightning create cluster my-byoc-cluster --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy
 
 .. note:: Cluster creation is going to take an hour or more after you run this command.
+.. note:: Only us-east-1, us-east-2, us-west-1 and us-west-2 are supported today.
 
 
 Parameters

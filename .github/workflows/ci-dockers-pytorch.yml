@@ -10,8 +10,9 @@ on:
       - ".actions/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
       - "dockers/**"
+      - "requirements/*.txt"
       - "requirements/pytorch/**"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "environment.yml"
       - "setup.py"
       - "!requirements/*/docs.txt"
@@ -19,13 +20,16 @@ on:
       - "!**/*.md"
   schedule:
     - cron: "0 0 * * *"  # at the end of every day
+  release:
+    types: [published]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_TO_HUB: ${{ github.event_name == 'schedule' }}
+  PUSH_NIGHTLY: ${{ github.event_name == 'schedule' }}
+  PUSH_RELEASE: ${{ github.event_name == 'release' }}
 
 jobs:
   build-pl:
@@ -37,10 +41,9 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # The matrix here is the same as the one in release-docker.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -51,7 +54,7 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/release/Dockerfile
-          push: false  # pushed in release-docker.yml only when PL is released
+          push: ${{ env.PUSH_RELEASE }}  # pushed in release-docker.yml only when PL is released
         timeout-minutes: 50
 
   build-xla:
@@ -61,13 +64,13 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/tpu-tests.yml'
-        python_version: ["3.7"]
+        python_version: ["3.8"]
         xla_version: ["1.12"]
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/login-action@v2
-        if: env.PUSH_TO_HUB == 'true'
+        if: env.PUSH_NIGHTLY == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -77,11 +80,11 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
+          push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 60
       - uses: ravsamhq/notify-slack-action@v2
-        if: failure() && env.PUSH_TO_HUB == 'true'
+        if: failure() && env.PUSH_NIGHTLY == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -99,15 +102,14 @@ jobs:
         include:
           # These are the base images for PL release docker images,
           # so include at least all of the combinations in release-dockers.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/login-action@v2
-        if: env.PUSH_TO_HUB == 'true'
+        if: env.PUSH_NIGHTLY == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -118,11 +120,11 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-cuda/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
+          push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v2
-        if: failure() && env.PUSH_TO_HUB == 'true'
+        if: failure() && env.PUSH_NIGHTLY == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -139,12 +141,12 @@ jobs:
       matrix:
         include:
           # the config used in 'dockers/ci-runner-ipu/Dockerfile'
-          - {python_version: "3.9", pytorch_version: "1.10"}
+          - {python_version: "3.9", pytorch_version: "1.13"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/login-action@v2
-        if: env.PUSH_TO_HUB == 'true'
+        if: env.PUSH_NIGHTLY == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -154,7 +156,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-ipu/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
+          push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 100
       - uses: docker/build-push-action@v3
@@ -163,11 +165,11 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-ipu/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
+          push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 10
       - uses: ravsamhq/notify-slack-action@v2
-        if: failure() && env.PUSH_TO_HUB == 'true'
+        if: failure() && env.PUSH_NIGHTLY == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -189,7 +191,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/login-action@v2
-        if: env.PUSH_TO_HUB == 'true'
+        if: env.PUSH_NIGHTLY == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -200,11 +202,11 @@ jobs:
             GAUDI_VERSION=${{ matrix.gaudi_version }}
             PYTORCH_INSTALLER_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
+          push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
         timeout-minutes: 10
       - uses: ravsamhq/notify-slack-action@v2
-        if: failure() && env.PUSH_TO_HUB == 'true'
+        if: failure() && env.PUSH_NIGHTLY == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -226,3 +228,20 @@ jobs:
           file: dockers/nvidia/Dockerfile
           push: false
         timeout-minutes: 55
+
+  build-docs:
+    # if: github.event.pull_request.draft == false  # fixme
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        if: env.PUSH_NIGHTLY == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/build-push-action@v3
+        with:
+          file: dockers/docs/Dockerfile
+          push: ${{ env.PUSH_NIGHTLY }}
+          tags: pytorchlightning/pytorch_lightning:docs

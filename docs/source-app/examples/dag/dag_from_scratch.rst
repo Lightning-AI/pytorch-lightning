@@ -25,7 +25,7 @@ Step 1: Implement your DAG
 
 Here is an illustration of the DAG to implement:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/simple_dag.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/simple_dag.png
     :alt: Simple DAG
     :width: 100 %
 
@@ -36,12 +36,12 @@ First, let's define the component we need:
 * A collection of model work to train all models in parallel.
 
 .. literalinclude:: ../../../examples/app_dag/app.py
-    :lines: 55-79
+    :lines: 53-75
 
 And its run method executes the steps described above.
 
 .. literalinclude:: ../../../examples/app_dag/app.py
-    :lines: 80-103
+    :lines: 77-100
 
 ----
 
@@ -50,4 +50,4 @@ Step 2: Define the scheduling
 *****************************
 
 .. literalinclude:: ../../../examples/app_dag/app.py
-    :lines: 106-135
+    :lines: 103-132

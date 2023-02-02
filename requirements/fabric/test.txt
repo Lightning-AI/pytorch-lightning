@@ -1,0 +1,7 @@
+coverage==6.5.0
+codecov==2.1.12
+pytest==7.2.0
+pytest-cov==4.0.0
+pre-commit==2.20.0
+click==8.1.3
+tensorboardX>=2.2, <=2.5.1  # min version is set by torch.onnx missing attribute

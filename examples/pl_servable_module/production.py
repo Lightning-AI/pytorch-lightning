@@ -43,7 +43,6 @@ class LitModule(LightningModule):
 
 
 class CIFAR10DataModule(LightningDataModule):
-
     transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
 
     def train_dataloader(self, *args, **kwargs):
@@ -57,7 +56,6 @@ class CIFAR10DataModule(LightningDataModule):
 
 @dataclass(unsafe_hash=True)
 class Image:
-
     height: Optional[int] = None
     width: Optional[int] = None
     extension: str = "JPEG"

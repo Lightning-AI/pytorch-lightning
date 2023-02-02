@@ -45,7 +45,7 @@ class Flow(L.LightningFlow):
         # Pass the drive to both works.
         self.work_1.run(self.drive_1)
         self.work_2.run(self.drive_1)
-        self._exit("Application End!")
+        self.stop("Application End!")
 
 
 app = L.LightningApp(Flow())

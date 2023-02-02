@@ -18,6 +18,7 @@
    storage/storage
    restful_api/restful_api
    add web ui <../workflows/add_web_ui/glossary_ui>
+   use_local_lightning
 
 ########
 Glossary
@@ -152,4 +153,11 @@ Glossary
    :description: Combine multiple frameworks to create your own UI
    :col_css: col-md-12
    :button_link: ../workflows/add_web_ui/glossary_ui.html
+   :height: 100
+
+.. displayitem::
+   :header: Using a development branch of Lightning on the Cloud
+   :description: Learn how to contribute to the Lightning framework in the cloud
+   :col_css: col-md-12
+   :button_link: use_local_lightning.html
    :height: 100

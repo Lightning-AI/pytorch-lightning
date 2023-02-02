@@ -16,9 +16,9 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CSVLogger
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger
 
 
 class ModelWithManualGradTracker(BoringModel):
@@ -29,12 +29,6 @@ class ModelWithManualGradTracker(BoringModel):
     # validation spoils logger's metrics with `val_loss` records
     validation_step = None
     val_dataloader = None
-
-    def training_step(self, batch, batch_idx, optimizer_idx=None):
-        # just return a loss, no log or progress bar meta
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
 
     def on_after_backward(self):
         out, norms = {}, []

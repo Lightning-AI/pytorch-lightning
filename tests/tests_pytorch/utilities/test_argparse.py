@@ -5,10 +5,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.argparse import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.utilities.argparse import (
+    _devices_allowed_type,
     _get_abbrev_qualified_cls_name,
-    _gpus_allowed_type,
     _int_or_float_type,
     _parse_args_from_docstring,
     _precision_allowed_type,
@@ -104,7 +104,7 @@ def test_get_abbrev_qualified_cls_name():
     class NestedClass:
         pass
 
-    assert not __name__.startswith("pytorch_lightning.")
+    assert not __name__.startswith("lightning.pytorch.")
     expected_name = f"{__name__}.test_get_abbrev_qualified_cls_name.<locals>.NestedClass"
     assert _get_abbrev_qualified_cls_name(NestedClass) == expected_name
 
@@ -229,9 +229,9 @@ def test_add_argparse_args_no_argument_group():
     assert args.my_parameter == 2
 
 
-def test_gpus_allowed_type():
-    assert _gpus_allowed_type("1,2") == "1,2"
-    assert _gpus_allowed_type("1") == 1
+def test_devices_allowed_type():
+    assert _devices_allowed_type("1,2") == "1,2"
+    assert _devices_allowed_type("1") == 1
 
 
 def test_int_or_float_type():

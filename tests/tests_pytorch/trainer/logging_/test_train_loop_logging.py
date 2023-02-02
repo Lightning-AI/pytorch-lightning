@@ -27,13 +27,13 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -199,8 +199,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
             return acc
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("bar", torch.tensor(batch_idx).float(), on_step=False, on_epoch=True, reduce_fx=fx)
             return {"x": loss}
 
@@ -225,15 +224,13 @@ def test_different_batch_types_for_sizing(tmpdir):
             assert isinstance(batch, dict)
             a = batch["a"]
             acc = self.step(a)
-            self.log("a", {"d1": 2, "d2": torch.tensor(1)}, on_step=True, on_epoch=True)
+            self.log("a", 2, on_step=True, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
-            a = batch["a"]
-            output = self.layer(a)
-            loss = self.loss(batch, output)
-            self.log("n", {"d3": 2, "d4": torch.tensor(1)}, on_step=True, on_epoch=True)
+            loss = self.step(batch["a"])
+            self.log("n", 3, on_step=True, on_epoch=True)
             return {"x": loss}
 
         def train_dataloader(self):
@@ -449,8 +446,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
             return acc
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("bar", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="AVG")
             return {"x": loss}
 
@@ -598,9 +594,10 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 
 @pytest.mark.parametrize(
-    "value", [None, dict(a=None), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]]
+    "value",
+    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
-def test_log_none_raises(tmpdir, value):
+def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", value)
@@ -706,7 +703,7 @@ def test_sanity_metrics_are_reset(tmpdir):
             return output
 
         def training_step(self, batch, batch_idx):
-            loss = super().training_step(batch, batch_idx)
+            loss = super().training_step(batch, batch_idx)["loss"]
             if batch_idx == 0:
                 assert self.trainer.progress_bar_metrics == {}
                 assert self.trainer.logged_metrics == {}
@@ -720,23 +717,6 @@ def test_sanity_metrics_are_reset(tmpdir):
     trainer.fit(TestModel())
 
     assert "val_loss" not in trainer.progress_bar_metrics
-
-
-@RunIf(min_cuda_gpus=1)
-def test_move_metrics_to_cpu(tmpdir):
-    class TestModel(BoringModel):
-        def on_before_backward(self, loss: Tensor) -> None:
-            assert loss.device.type == "cuda"
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=16,
-        move_metrics_to_cpu=True,
-        accelerator="gpu",
-        devices=1,
-    )
-    trainer.fit(TestModel())
 
 
 def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
@@ -780,7 +760,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     """Tests the default epoch and step values logged."""
 
@@ -815,7 +795,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     )
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_on_train_start(mock_log_metrics, tmpdir):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 
