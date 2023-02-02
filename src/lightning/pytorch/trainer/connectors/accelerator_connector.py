@@ -494,7 +494,7 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
+        if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false", "ddp_spawn_find_unused_parameters_true") and (
             TorchElasticEnvironment.detect()
             or KubeflowEnvironment.detect()
             or SLURMEnvironment.detect()
