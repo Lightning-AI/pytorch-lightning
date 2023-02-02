@@ -143,10 +143,10 @@ jobs:
       - name: Run the tests
         working-directory: tests/
         env:
-          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID_PROD }}
-          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY_PROD }}
-          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME_PROD }}
-          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL_PROD }}
+          LIGHTNING_USER_ID: ${{ secrets[format('LIGHTNING_USER_ID_{0}', inputs.environment)] }}
+          LIGHTNING_API_KEY: ${{ secrets[format('LIGHTNING_API_KEY_{0}', inputs.environment)] }}
+          LIGHTNING_USERNAME: ${{ secrets[format('LIGHTNING_USERNAME_{0}', inputs.environment)] }}
+          LIGHTNING_CLOUD_URL: ${{ secrets[format('LIGHTNING_CLOUD_URL_{0}', inputs.environment)] }}
         run: |
           ls -l _flagship-app
           python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
@@ -163,9 +163,9 @@ jobs:
         if: always()
         timeout-minutes: 3
         env:
-          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID_PROD }}
-          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY_PROD }}
-          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME_PROD }}
-          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL_PROD }}
+          LIGHTNING_USER_ID: ${{ secrets[format('LIGHTNING_USER_ID_{0}', inputs.environment)] }}
+          LIGHTNING_API_KEY: ${{ secrets[format('LIGHTNING_API_KEY_{0}', inputs.environment)] }}
+          LIGHTNING_USERNAME: ${{ secrets[format('LIGHTNING_USERNAME_{0}', inputs.environment)] }}
+          LIGHTNING_CLOUD_URL: ${{ secrets[format('LIGHTNING_CLOUD_URL_{0}', inputs.environment)] }}
         run: |
           time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
