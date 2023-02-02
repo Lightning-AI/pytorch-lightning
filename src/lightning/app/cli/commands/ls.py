@@ -1,20 +1,15 @@
-from typing import List, Optional
-
 import os
-from typing import Optional
+from typing import List, Optional
 
 import rich
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
+from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
-from lightning.app.cli.commands.cd import _CD_FILE
-import rich
-from rich.live import Live
-from rich.spinner import Spinner
 
 _FOLDER_COLOR = "blue"
 _FILE_COLOR = "white"
@@ -24,11 +19,10 @@ logger = Logger(__name__)
 
 def ls(path: Optional[str] = None) -> List[str]:
 
-    root = '/'
+    root = "/"
     paths = []
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -37,7 +31,7 @@ def ls(path: Optional[str] = None) -> List[str]:
             with open(_CD_FILE, "w") as f:
                 f.write(root + "\n")
         else:
-            with open(_CD_FILE, "r") as f:
+            with open(_CD_FILE) as f:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
@@ -55,7 +49,6 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         if len(splits) == 1:
             return sorted([_add_colors(lit_app.name, color=_FOLDER_COLOR) for lit_app in lit_apps])
-
 
         lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == splits[1]]
         assert len(lit_apps) == 1
@@ -75,16 +68,16 @@ def ls(path: Optional[str] = None) -> List[str]:
             if not str(artifact.filename).startswith(subpath):
                 continue
 
-            # display files otherwise folders
+            # display files otherwise folders
             if len(artifact_splits) == depth + 1:
                 color = _FILE_COLOR
             else:
-                color= _FOLDER_COLOR
+                color = _FOLDER_COLOR
 
             paths.append(_add_colors(artifact_splits[depth], color=color))
-        
+
         paths = sorted(set(paths))
-    
+
     rich.print(*paths)
 
     return paths
