@@ -283,7 +283,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 .. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
-        def backward(self, loss, optimizer, optimizer_idx):
+        def backward(self, loss):
             loss.backward()
 
 ----

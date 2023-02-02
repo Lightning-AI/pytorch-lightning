@@ -18,8 +18,8 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning_fabric.strategies import DDPStrategy
-from lightning_fabric.strategies.ddp import _DDPBackwardSyncControl
+from lightning.fabric.strategies import DDPStrategy
+from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 
 
 @pytest.mark.parametrize(
@@ -65,7 +65,7 @@ def test_ddp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 def test_ddp_extra_kwargs(ddp_mock):
     """Test that additional kwargs passed to the DDPStrategy get passed down to the DistributedDataParallel
     wrapper."""
@@ -96,6 +96,6 @@ def test_ddp_module_state_dict():
     assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
 
     # With DDP applied (setup called)
-    with mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel", DistributedDataParallelMock):
+    with mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel", DistributedDataParallelMock):
         wrapped_module = strategy.setup_module(original_module)
         assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
