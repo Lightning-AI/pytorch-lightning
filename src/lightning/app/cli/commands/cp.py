@@ -114,6 +114,7 @@ def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, ta
     file_uploader = FileUploader(
         presigned_url.get().upload_url,
         source_file,
+        total_size=None,
         name=str(source_file),
     )
     file_uploader.progress = progress

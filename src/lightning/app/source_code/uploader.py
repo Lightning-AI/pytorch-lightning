@@ -105,5 +105,5 @@ class FileUploader:
             if self.use_progress:
                 self.progress.update(self.task_id, advance=len(data))
         finally:
-            if self.use_progress and not no_task:
+            if self.use_progress and no_task:
                 self.progress.stop()
