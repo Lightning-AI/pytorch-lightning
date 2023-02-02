@@ -14,7 +14,7 @@
 import pytest
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.tpu import TPUAccelerator
 
 
 def test_auto_device_count():
