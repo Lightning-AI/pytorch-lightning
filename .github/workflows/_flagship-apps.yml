@@ -27,14 +27,6 @@ on:
         required: true
       LIGHTNING_CLOUD_URL_PROD:
         required: true
-      LIGHTNING_USER_ID_STAGING:
-        required: true
-      LIGHTNING_API_KEY_STAGING:
-        required: true
-      LIGHTNING_USERNAME_STAGING:
-        required: true
-      LIGHTNING_CLOUD_URL_STAGING:
-        required: true
   workflow_dispatch:
     inputs:
       environment:
@@ -71,6 +63,10 @@ on:
       LIGHTNING_USERNAME_STAGING:
         required: true
       LIGHTNING_CLOUD_URL_STAGING:
+        required: true
+      LAI_SSH_USER:
+        required: true
+      LAI_SSH_PASS:
         required: true
 
 defaults:
@@ -147,6 +143,8 @@ jobs:
           LIGHTNING_API_KEY: ${{ secrets[format('LIGHTNING_API_KEY_{0}', inputs.environment)] }}
           LIGHTNING_USERNAME: ${{ secrets[format('LIGHTNING_USERNAME_{0}', inputs.environment)] }}
           LIGHTNING_CLOUD_URL: ${{ secrets[format('LIGHTNING_CLOUD_URL_{0}', inputs.environment)] }}
+          LAI_USER: ${{ secrets.LAI_SSH_USER }}
+          LAI_PASS: ${{ secrets.LAI_SSH_PASS }}
         run: |
           ls -l _flagship-app
           python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
@@ -167,5 +165,7 @@ jobs:
           LIGHTNING_API_KEY: ${{ secrets[format('LIGHTNING_API_KEY_{0}', inputs.environment)] }}
           LIGHTNING_USERNAME: ${{ secrets[format('LIGHTNING_USERNAME_{0}', inputs.environment)] }}
           LIGHTNING_CLOUD_URL: ${{ secrets[format('LIGHTNING_CLOUD_URL_{0}', inputs.environment)] }}
+          LAI_USER: ${{ secrets.LAI_SSH_USER }}
+          LAI_PASS: ${{ secrets.LAI_SSH_PASS }}
         run: |
           time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
