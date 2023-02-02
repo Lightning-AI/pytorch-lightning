@@ -25,9 +25,11 @@ def cd(path: Optional[str] = None) -> str:
 
         root = "/"
 
+        # handle ~/
         if isinstance(path, str) and path.startswith(_HOME):
             path = "/" + path.replace(_HOME, "")
 
+        # handle no path -> /
         if path is None:
             path = "/"
 
@@ -35,20 +37,25 @@ def cd(path: Optional[str] = None) -> str:
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
 
         if not os.path.exists(_CD_FILE):
+            # Start from the root
             if path.startswith(".."):
-                path = root
+                root = _apply_double_dots(root, path)
 
             with open(_CD_FILE, "w") as f:
-                f.write(path + "\n")
+                f.write(root + "\n")
 
             live.stop()
 
-            print(f"cd {path}")
+            print(f"cd {root}")
+
+            return root
         else:
+            # read from saved cd
             with open(_CD_FILE) as f:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
+            # generate new root
             if root == "/":
                 if path == "/":
                     root = "/"
@@ -69,6 +76,7 @@ def cd(path: Optional[str] = None) -> str:
 
             os.remove(_CD_FILE)
 
+            # store new root
             with open(_CD_FILE, "w") as f:
                 f.write(root + "\n")
 

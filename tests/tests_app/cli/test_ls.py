@@ -10,8 +10,8 @@ from lightning_cloud.openapi import (
     V1Membership,
 )
 
-from lightning_app.cli.commands import ls
-from lightning_app.cli.commands.cd import _CD_FILE, cd
+from lightning.app.cli.commands import ls
+from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 
 def test_ls(monkeypatch):
@@ -21,8 +21,8 @@ def test_ls(monkeypatch):
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[
-            V1Membership(name="project-0"),
-            V1Membership(name="project-1"),
+            V1Membership(name="project-0", project_id="project-id-0"),
+            V1Membership(name="project-1", project_id="project-id-1"),
         ]
     )
 

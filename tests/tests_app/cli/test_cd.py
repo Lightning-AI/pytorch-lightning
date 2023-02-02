@@ -1,7 +1,7 @@
 import os
 
-from lightning_app.cli.commands.cd import _CD_FILE, cd
-from lightning_app.cli.commands.pwd import pwd
+from lightning.app.cli.commands.cd import _CD_FILE, cd
+from lightning.app.cli.commands.pwd import pwd
 
 
 def test_cd():

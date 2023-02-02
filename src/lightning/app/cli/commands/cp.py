@@ -201,6 +201,7 @@ def _error_and_exit(msg: str) -> str:
 
 
 def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
+    """Convert a root path to a project id and app id"""
     project_name, app_name, *_ = pwd.split("/")[1:]
     client = LightningClient()
     projects = client.projects_service_list_memberships()
