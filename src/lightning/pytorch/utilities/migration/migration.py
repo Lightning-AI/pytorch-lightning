@@ -91,11 +91,11 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     checkpoint.setdefault("loops", {"fit_loop": _get_fit_loop_initial_state_1_6_0()})
     checkpoint["loops"].setdefault("fit_loop", _get_fit_loop_initial_state_1_6_0())
     # for automatic optimization
-    optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.automatic_optimization.optim_progress"]
+    optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]
     optim_progress["optimizer"]["step"]["total"]["completed"] = global_step
     # for manual optimization
     optim_step_progress = checkpoint["loops"]["fit_loop"][
-        "epoch_loop.batch_loop.manual_optimization.optim_step_progress"
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress"
     ]
     optim_step_progress["total"]["completed"] = global_step
     return checkpoint
@@ -270,13 +270,18 @@ def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT
     resuming the loop.
 
     Version: 2.0.0
-    Commit: TBD
-    PR: TBD
+    Commit: 6a56586
+    PR: #16539, #16598
     """
     if "loops" not in checkpoint:
         return checkpoint
 
-    # TODO: Complete this migration function when optimizer loop gets flattened out and keys need to be remapped
     fit_loop = checkpoint["loops"]["fit_loop"]
-    fit_loop["epoch_loop.automatic_optimization.optim_progress"].pop("optimizer_position", None)
+    # optimizer_position is no longer used
+    fit_loop["epoch_loop.optimizer_loop.optim_progress"].pop("optimizer_position", None)
+    # the subloop attribute names have changed
+    fit_loop["epoch_loop.automatic_optimization.state_dict"] = fit_loop.pop("epoch_loop.optimizer_loop.state_dict")
+    fit_loop["epoch_loop.automatic_optimization.optim_progress"] = fit_loop.pop("epoch_loop.optimizer_loop.optim_progress")
+    fit_loop["epoch_loop.manual_optimization.state_dict"] = fit_loop.pop("epoch_loop.manual_loop.state_dict")
+    fit_loop["epoch_loop.manual_optimization.optim_step_progress"] = fit_loop.pop("epoch_loop.manual_loop.optim_step_progress")
     return checkpoint

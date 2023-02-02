@@ -15,4 +15,4 @@ from lightning.pytorch.loops.loop import _Loop  # noqa: F401 isort: skip (avoids
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop, _EvaluationLoop, _PredictionLoop  # noqa: F401
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop, _PredictionEpochLoop, _TrainingEpochLoop  # noqa: F401
 from lightning.pytorch.loops.fit_loop import _FitLoop  # noqa: F401
-from lightning.pytorch.loops.optimization import _ManualOptimization, _OptimizerLoop  # noqa: F401
+from lightning.pytorch.loops.optimization import _ManualOptimization, _AutomaticOptimization  # noqa: F401
