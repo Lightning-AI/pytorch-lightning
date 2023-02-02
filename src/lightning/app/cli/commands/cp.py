@@ -212,7 +212,9 @@ def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
     client = LightningClient()
     lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
     lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == app_name]
-    assert len(lit_apps) == 1
+    if len(lit_apps) != 1:
+        print(f"ERROR: There isn't any Lightning App matching the name {app_name}.")
+        sys.exit(0)
     lit_app = lit_apps[0]
     return project_id, lit_app.id
 

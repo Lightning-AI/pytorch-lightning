@@ -67,7 +67,11 @@ def ls(path: Optional[str] = None) -> List[str]:
             return app_names
 
         lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == splits[1]]
-        assert len(lit_apps) == 1
+
+        if len(lit_apps) != 1:
+            print(f"ERROR: There isn't any Lightning App matching the name {app_name}.")
+            sys.exit(0)
+
         lit_app = lit_apps[0]
 
         depth = len(splits)
