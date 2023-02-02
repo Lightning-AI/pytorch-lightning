@@ -113,7 +113,7 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
     width = console.width
 
     max_L = max([len(name) for name in names] + [0]) + padding
-    
+
     use_spacing = False
 
     if max_L * len(names) < width:
