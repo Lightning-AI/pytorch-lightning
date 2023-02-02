@@ -157,5 +157,6 @@ def _collect_artifacts(
     )
     yield from response.artifacts
 
-    tokens.append(page_token)
-    yield from _collect_artifacts(client, project_id, app_id, page_token=response.next_page_token, tokens=tokens)
+    if response.next_page_token != "":
+        tokens.append(page_token)
+        yield from _collect_artifacts(client, project_id, app_id, page_token=response.next_page_token, tokens=tokens)
