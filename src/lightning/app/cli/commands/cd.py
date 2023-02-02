@@ -1,15 +1,18 @@
-import click
 import os
 from typing import Optional
-from lightning.app.utilities.app_helpers import Logger
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+
+import click
 from rich.live import Live
-from rich.text import Text
 from rich.spinner import Spinner
+from rich.text import Text
+
+from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+from lightning.app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
 _HOME = os.path.expanduser("~")
+
 
 @click.argument("path", required=False)
 def cd(path: Optional[str] = None) -> None:
@@ -20,7 +23,7 @@ def cd(path: Optional[str] = None) -> None:
         root = "/"
 
         if isinstance(path, str) and path.startswith(_HOME):
-            path =  "/" + path.replace(_HOME, '')
+            path = "/" + path.replace(_HOME, "")
 
         if path is None:
             path = "/"
@@ -39,21 +42,21 @@ def cd(path: Optional[str] = None) -> None:
 
             print(f"cd {path}")
         else:
-            with open(cd_file, "r") as f:
+            with open(cd_file) as f:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
             if root == "/":
-                if path == '/':
+                if path == "/":
                     root = "/"
                 elif not path.startswith(".."):
                     if not path.startswith("/"):
                         path = "/" + path
                     root = path
             else:
-                # TODO: Validate the new path exists
+                # TODO: Validate the new path exists
                 if path.startswith(".."):
-                    root = "/".join(root.split('/')[:-1])
+                    root = "/".join(root.split("/")[:-1])
                 elif path.startswith("~"):
                     root = path[2:]
                 else:

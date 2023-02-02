@@ -1,16 +1,17 @@
-import click
-from typing import Optional
-from lightning.app.utilities.cloud import _get_project
 import os
+from typing import Optional
+
+import click
+import rich
+from rich.color import ANSI_COLOR_NAMES
+from rich.live import Live
+from rich.spinner import Spinner
+from rich.text import Text
+
+from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.network import LightningClient
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
-from rich.color import ANSI_COLOR_NAMES
-from rich.live import Live
-from rich.text import Text
-from rich.spinner import Spinner
-import rich
 
 logger = Logger(__name__)
 
@@ -20,7 +21,7 @@ logger = Logger(__name__)
 def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Optional[str] = None) -> None:
 
     cd_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
-    root = '/'
+    root = "/"
     paths = []
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
@@ -32,7 +33,7 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
             with open(cd_file, "w") as f:
                 f.write(root + "\n")
         else:
-            with open(cd_file, "r") as f:
+            with open(cd_file) as f:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
@@ -49,26 +50,28 @@ def ls(path: Optional[str] = None, project_id: Optional[str] = None, app_id: Opt
 
         if not paths:
             for lit_app in lit_apps:
-                if root == '/' and app_id is None:
+                if root == "/" and app_id is None:
                     paths.append(_add_colors(lit_app.name, color="blue"))
                 else:
                     if not root[1:].startswith(lit_app.name):
                         continue
-                    num_split = len([split for split in root.split('/') if split != ''])
-                    # TODO: Replace with project level endpoints  
-                    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, lit_app.id)
+                    num_split = len([split for split in root.split("/") if split != ""])
+                    # TODO: Replace with project level endpoints
+                    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(
+                        project_id, lit_app.id
+                    )
                     for artifact in response.artifacts:
                         path = os.path.join(lit_app.name, artifact.filename)
                         splits = path.split("/")
 
-                        # display files otherwise folders
+                        # display files otherwise folders
                         if len(splits) == num_split + 1:
                             color = "white"
                         else:
-                            color= "blue"
-                        
+                            color = "blue"
+
                         paths.append(_add_colors(splits[num_split], color=color))
-        
+
         os.remove(cd_file)
 
         with open(cd_file, "w") as f:

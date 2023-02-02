@@ -33,13 +33,17 @@ from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
+from lightning.app.cli.commands.cd import cd
 from lightning.app.cli.commands.connection import (
     _list_app_commands,
     _retrieve_connection_to_an_app,
     connect,
     disconnect,
 )
+from lightning.app.cli.commands.cp import cp
 from lightning.app.cli.commands.logs import logs
+from lightning.app.cli.commands.ls import ls
+from lightning.app.cli.commands.pwd import pwd
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -61,11 +65,6 @@ from lightning.app.utilities.login import Auth
 from lightning.app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning.app.utilities.network import LightningClient
 from lightning.app.utilities.port import _find_lit_app_port
-from lightning.app.cli.commands.ls import ls
-from lightning.app.cli.commands.cd import cd
-from lightning.app.cli.commands.cp import cp
-from lightning.app.cli.commands.pwd import pwd
-
 
 logger = Logger(__name__)
 
