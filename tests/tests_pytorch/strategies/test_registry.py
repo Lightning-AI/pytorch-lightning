@@ -124,7 +124,9 @@ def test_fsdp_strategy_registry(cuda_count_1):
         ),
     ],
 )
-def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy, expected_init_params, mps_count_0):
+def test_ddp_find_unused_parameters_strategy_registry(
+    tmpdir, strategy_name, strategy, expected_init_params, mps_count_0
+):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
     assert isinstance(trainer.strategy, strategy)
     assert strategy_name in StrategyRegistry
