@@ -10,7 +10,6 @@ You are in control of which model accumulates and at what frequency:
 .. code-block:: python
 
     for iteration, batch in enumerate(dataloader):
-
         # Accumulate gradient 8 batches at a time
         is_accumulating = iteration % 8 != 0
 

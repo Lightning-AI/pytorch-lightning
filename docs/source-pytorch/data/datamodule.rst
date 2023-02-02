@@ -142,7 +142,6 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             MNIST(self.data_dir, train=False, download=True)
 
         def setup(self, stage: str):
-
             # Assign train/val datasets for use in dataloaders
             if stage == "fit":
                 mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
@@ -227,7 +226,6 @@ There are also data operations you might want to perform on every GPU. Use :meth
 
     class MNISTDataModule(pl.LightningDataModule):
         def setup(self, stage: str):
-
             # Assign Train/val split(s) for use in Dataloaders
             if stage == "fit":
                 mnist_full = MNIST(self.data_dir, train=True, download=True, transform=self.transform)
