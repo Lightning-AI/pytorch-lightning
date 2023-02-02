@@ -89,7 +89,11 @@ def test_force_nvml_based_cuda_check():
 @RunIf(min_torch="1.12")
 @mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
 @mock.patch("torch.cuda.get_device_name", return_value="Z100")
-def test_tf32_message(_, __, caplog):
+def test_tf32_message(_, __, caplog, monkeypatch):
+
+    # for some reason, caplog doesn't work with our rank_zero_info utilities
+    monkeypatch.setattr(lightning_fabric.accelerators.cuda, "rank_zero_info", logging.info)
+
     device = Mock()
     expected = "Z100') that has Tensor Cores"
     assert torch.get_float32_matmul_precision() == "highest"  # default in torch
