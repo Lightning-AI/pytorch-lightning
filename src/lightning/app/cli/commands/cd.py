@@ -42,7 +42,7 @@ def cd(path: Optional[str] = None) -> str:
 
             print(f"cd {path}")
         else:
-            with open(_CD_FILE, "r") as f:
+            with open(_CD_FILE) as f:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
@@ -73,11 +73,12 @@ def cd(path: Optional[str] = None) -> str:
 
     return root
 
+
 def _apply_double_dots(root: str, path: str) -> str:
     splits = [split for split in path.split("/") if split != ""]
     for split in splits:
-        if split == '..':
-            root = '/' + os.path.join(*root.split('/')[:-1])
+        if split == "..":
+            root = "/" + os.path.join(*root.split("/")[:-1])
         else:
             root = os.path.join(root, split)
     return root
