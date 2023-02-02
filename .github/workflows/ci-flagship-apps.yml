@@ -19,6 +19,6 @@ concurrency:
 jobs:
   app-flagships:
     if: github.event.pull_request.draft == false
-    uses: ./.github/workflows/_build-packages.yml
+    uses: ./.github/workflows/_flagship-apps.yml
     with:
       checkout: ${{ github.sha }}
