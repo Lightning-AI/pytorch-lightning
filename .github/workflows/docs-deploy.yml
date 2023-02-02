@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: deploy-docs-pip-${{ hashFiles('requirements/**/*.txt') }}
+          key: deploy-docs-pip-${{ hashFiles('requirements/app/*.txt') }}
           restore-keys: deploy-docs-pip-
 
       - name: Install package & dependencies
