@@ -10,8 +10,8 @@ from lightning_cloud.openapi import (
     V1Membership,
 )
 
-from lightning.app.cli.commands import ls
-from lightning.app.cli.commands.cd import _CD_FILE, cd
+from lightning_app.cli.commands import ls
+from lightning_app.cli.commands.cd import _CD_FILE, cd
 
 
 def test_ls(monkeypatch):
