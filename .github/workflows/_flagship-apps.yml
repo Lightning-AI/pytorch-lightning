@@ -13,11 +13,6 @@ on:
         description: 'Git branch or tag to checkout'
         required: true
         type: string
-      python:
-        description: 'Python version'
-        required: false
-        type: string
-        default: '3.9'
   workflow_dispatch:
     inputs:
       environment:
@@ -33,11 +28,6 @@ on:
         required: false
         type: string
         default: 'release/stable'
-      python:
-        description: 'Python version'
-        required: false
-        type: string
-        default: '3.9'
 
 defaults:
   run:
@@ -79,10 +69,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.checkout }}
-      - name: Set up Python ${{ inputs.python }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ inputs.python }}
 
       - name: basic setup
         run: |
