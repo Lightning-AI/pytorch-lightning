@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import List, Optional
+from typing import Generator, List, Optional
 
 import click
 import rich
@@ -145,7 +145,7 @@ def _collect_artifacts(
     app_id: str,
     page_token: Optional[str] = "",
     tokens=None,
-):
+) -> Generator:
     if tokens is None:
         tokens = []
 

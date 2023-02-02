@@ -47,9 +47,6 @@ def test_ls(monkeypatch):
         ]
     )
 
-
-
-
     client.lightningapp_instance_service_list_lightningapp_instance_artifacts.return_value = (
         V1ListLightningappInstanceArtifactsResponse(
             artifacts=[
@@ -66,7 +63,7 @@ def test_ls(monkeypatch):
                     filename="folder_2/file_4.txt",
                 ),
             ],
-            next_page_token="something"
+            next_page_token="something",
         )
     )
 
