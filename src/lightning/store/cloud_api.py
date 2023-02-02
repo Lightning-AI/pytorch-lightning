@@ -17,13 +17,18 @@ import logging
 import os
 import sys
 import tempfile
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 import requests
 import torch
+from lightning_utilities.core.imports import package_available
+from torch.nn import Module
 
-import lightning as L
-import pytorch_lightning as PL
+from lightning import LightningModule as LLightningModule
+
+if package_available("pytorch_lightning"):
+    from pytorch_lightning import LightningModule as PLLightningModule
+
 from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
 from lightning.store.authentication import _authenticate
 from lightning.store.save import (
@@ -42,6 +47,8 @@ from lightning.store.save import (
 from lightning.store.utils import _get_model_data, _split_name, stage
 
 logging.basicConfig(level=logging.INFO)
+
+LightningModules = (LLightningModule, PLLightningModule) if "PLLightningModule" in locals() else (LLightningModule,)
 
 
 def upload_model(
@@ -306,7 +313,7 @@ def load_model(
     version: str = "latest",
     load_weights: bool = False,
     load_checkpoint: bool = False,
-    model: Union[PL.LightningModule, L.LightningModule, None] = None,
+    model: Optional[Module] = None,
     *args,
     **kwargs,
 ):
@@ -364,7 +371,7 @@ def load_model(
                     f" load the checkpoint. `load_model({name}, {version},"
                     " load_checkpoint=True, model=...)`"
                 )
-            if not isinstance(model, (PL.LightningModule, L.LightningModule)):
+            if not isinstance(model, LightningModules):
                 raise TypeError(
                     "For loading checkpoints, the model is required to be a LightningModule"
                     f" or a subclass of LightningModule, got type {type(model)}."
