@@ -43,8 +43,10 @@ def find_free_network_port() -> int:
 
     if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
         # If in a cloudspace, look for a port in the exposed range
-        port = constants.APP_SERVER_PORT
-        while port <= constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT:
+        for port in range(
+            constants.APP_SERVER_PORT,
+            constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
+        ):
             if port in _reserved_ports:
                 continue
 
@@ -54,7 +56,7 @@ def find_free_network_port() -> int:
                 _reserved_ports.add(port)
                 return port
             except OSError:
-                port += 1
+                continue
 
         # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
         raise RuntimeError(
