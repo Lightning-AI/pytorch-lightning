@@ -81,4 +81,9 @@ def test_ls(monkeypatch):
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2{os.sep}folder_3" == cd("folder_3")
     assert ls.ls() == ["file_3.txt"]
 
+    assert "/project 2" == cd("/project 2")
+    assert ls.ls() == ["app name 2", "app-name-0", "app-name-1"]
+    assert "/project 2/app name 2" == cd("app name 2")
+    assert ls.ls() == ["file_1.txt", "folder_1", "folder_2"]
+
     os.remove(_CD_FILE)
