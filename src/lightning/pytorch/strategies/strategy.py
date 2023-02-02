@@ -65,7 +65,7 @@ class Strategy(ABC):
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
         self._optimizers: List[Optimizer] = []
-        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
+        self._lightning_optimizers: List[LightningOptimizer] = []
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
 
     @property
@@ -108,9 +108,7 @@ class Strategy(ABC):
     @optimizers.setter
     def optimizers(self, optimizers: List[Optimizer]) -> None:
         self._optimizers = optimizers
-        self._lightning_optimizers = {
-            idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
-        }
+        self._lightning_optimizers = [LightningOptimizer._to_lightning_optimizer(opt, self) for opt in optimizers]
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
@@ -537,7 +535,7 @@ class Strategy(ABC):
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy
-        state["_lightning_optimizers"] = {}
+        state["_lightning_optimizers"] = []
         return state
 
     def __setstate__(self, state: Dict) -> None:
