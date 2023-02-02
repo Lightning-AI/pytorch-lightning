@@ -145,6 +145,9 @@ def _collect_artifacts(client: LightningClient, project_id: str, app_id: str, pa
     if page_token in tokens:
         return
 
+
+        
+
     response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id, page_token=page_token)
     for artifact in response.artifacts:
         yield artifact
