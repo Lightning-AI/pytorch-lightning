@@ -18,7 +18,7 @@ import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.loops.optimization.automatic import ClosureResult
+from lightning.pytorch.loops.optimization.automatic import ClosureResult
 
 
 def test_closure_result_deepcopy():

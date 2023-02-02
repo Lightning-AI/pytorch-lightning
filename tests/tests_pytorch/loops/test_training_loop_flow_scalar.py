@@ -21,7 +21,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import RunningStage
-from pytorch_lightning.loops.optimization.automatic import Closure
+from lightning.pytorch.loops.optimization.automatic import Closure
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
