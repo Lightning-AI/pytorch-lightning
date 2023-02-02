@@ -63,7 +63,7 @@ def test_ls(monkeypatch):
                     filename="folder_2/file_4.txt",
                 ),
             ],
-            next_page_token="something"
+            next_page_token="something",
         )
     )
 
