@@ -20,7 +20,7 @@ import torch
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning_fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
+from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy

@@ -45,6 +45,7 @@ class FileUploader:
         BarColumn(bar_width=None),
         "[self.progress.percentage]{task.percentage:>3.1f}%",
     )
+
     def __init__(self, presigned_url: str, source_file: str, total_size: int, name: str, use_progress: bool = True):
         self.presigned_url = presigned_url
         self.source_file = source_file

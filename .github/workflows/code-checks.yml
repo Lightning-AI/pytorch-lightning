@@ -60,6 +60,9 @@ jobs:
           --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
+    - name: Build package
+      run: python setup.py build
+
     - name: Check typing
       run: |
         mkdir .mypy_cache
