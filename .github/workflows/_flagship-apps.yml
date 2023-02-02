@@ -47,27 +47,27 @@ on:
         required: false
         type: string
         default: '3.9'
-    secrets:
-      LIGHTNING_USER_ID_PROD:
-        required: true
-      LIGHTNING_API_KEY_PROD:
-        required: true
-      LIGHTNING_USERNAME_PROD:
-        required: true
-      LIGHTNING_CLOUD_URL_PROD:
-        required: true
-      LIGHTNING_USER_ID_STAGING:
-        required: true
-      LIGHTNING_API_KEY_STAGING:
-        required: true
-      LIGHTNING_USERNAME_STAGING:
-        required: true
-      LIGHTNING_CLOUD_URL_STAGING:
-        required: true
-      LAI_SSH_USER:
-        required: true
-      LAI_SSH_PASS:
-        required: true
+    #secrets:
+    #  LIGHTNING_USER_ID_PROD:
+    #    required: true
+    #  LIGHTNING_API_KEY_PROD:
+    #    required: true
+    #  LIGHTNING_USERNAME_PROD:
+    #    required: true
+    #  LIGHTNING_CLOUD_URL_PROD:
+    #    required: true
+    #  LIGHTNING_USER_ID_STAGING:
+    #    required: true
+    #  LIGHTNING_API_KEY_STAGING:
+    #    required: true
+    #  LIGHTNING_USERNAME_STAGING:
+    #    required: true
+    #  LIGHTNING_CLOUD_URL_STAGING:
+    #    required: true
+    #  LAI_SSH_USER:
+    #    required: true
+    #  LAI_SSH_PASS:
+    #    required: true
 
 defaults:
   run:
