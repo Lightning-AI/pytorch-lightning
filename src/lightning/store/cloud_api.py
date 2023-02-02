@@ -21,12 +21,12 @@ from typing import Any, List, Optional
 
 import requests
 import torch
-from lightning_utilities.core.imports import package_available
+from lightning_utilities import module_available
 from torch.nn import Module
 
 from lightning import LightningModule as LLightningModule
 
-if package_available("pytorch_lightning"):
+if module_available("pytorch_lightning"):
     from pytorch_lightning import LightningModule as PLLightningModule
 
 from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
