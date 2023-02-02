@@ -27,6 +27,7 @@ from lightning.fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    MPIEnvironment,
 )
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
@@ -449,6 +450,7 @@ class AcceleratorConnector:
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
+            MPIEnvironment,
         ):
             if env_type.detect():
                 return env_type()
@@ -499,6 +501,7 @@ class AcceleratorConnector:
             or KubeflowEnvironment.detect()
             or SLURMEnvironment.detect()
             or LSFEnvironment.detect()
+            or MPIEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":

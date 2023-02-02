@@ -38,6 +38,7 @@ from lightning.fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    MPIEnvironment,
 )
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
@@ -374,6 +375,7 @@ class _Connector:
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
+            MPIEnvironment,
         ):
             if env_type.detect():
                 return env_type()
@@ -414,6 +416,7 @@ class _Connector:
             or KubeflowEnvironment.detect()
             or SLURMEnvironment.detect()
             or LSFEnvironment.detect()
+            or MPIEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
