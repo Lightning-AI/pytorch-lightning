@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import LightningDataModule
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from lightning.pytorch import LightningDataModule
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.utilities.model_helpers import is_overridden
 
 
 def test_is_overridden():
