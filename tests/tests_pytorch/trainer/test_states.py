@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 
 
 def test_initialize_state():

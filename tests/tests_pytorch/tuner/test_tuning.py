@@ -13,10 +13,10 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import BatchSizeFinder, LearningRateFinder
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.tuner.tuning import Tuner
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import BatchSizeFinder, LearningRateFinder
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.tuner.tuning import Tuner
 
 
 def test_tuner_with_distributed_strategies():

@@ -31,28 +31,28 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
-import pytorch_lightning
+import lightning.pytorch
 import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
-from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
-from pytorch_lightning.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
-from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
-from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
-from pytorch_lightning.demos.boring_classes import (
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning.pytorch.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
+from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
+from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
+from lightning.pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from lightning.pytorch.demos.boring_classes import (
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.strategies import DataParallelStrategy, DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.strategies import DataParallelStrategy, DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -621,7 +621,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
         limit_train_batches=2,
         callbacks=[early_stop],
     )
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.trainer.trainer"):
         trainer.fit(model)
 
     message = f"min_epochs={min_epochs}` or `min_steps=None` has not been met. Training will continue"
@@ -1306,7 +1306,7 @@ def test_trainer_setup_call(tmpdir, stage):
 
 
 @pytest.mark.parametrize("train_batches, max_steps, log_interval", [(10, 10, 1), (3, 10, 1), (3, 10, 5)])
-@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
+@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
     class TestModel(BoringModel):
         def training_step(self, *args, **kwargs):
@@ -2095,8 +2095,8 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
         mock_mps_count(monkeypatch, 1)
     elif trainer_kwargs.get("accelerator") == "ipu":
-        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
-        monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+        monkeypatch.setattr(lightning.pytorch.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
+        monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
 
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids
