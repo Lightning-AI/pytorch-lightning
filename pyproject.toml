@@ -111,7 +111,7 @@ module = [
     "lightning.app.cli.commands.pwd",
     "lightning.app.cli.commands.ls",
     "lightning.app.cli.commands.cp",
-    "lightning.app.cli.commands.cdß",
+    "lightning.app.cli.commands.cd",
     "lightning.app.cli.cmd_install",
     "lightning.app.components.database.client",
     "lightning.app.components.database.server",

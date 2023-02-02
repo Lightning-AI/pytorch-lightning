@@ -20,7 +20,7 @@ logger = Logger(__name__)
 
 @click.argument("path", required=False)
 def ls(path: Optional[str] = None) -> List[str]:
-    """Command to list the content of a folder from the Lightning Cloud Filesystem."""
+    """List the contents of a folder in the Lightning Cloud Filesystem."""
 
     root = "/"
     paths = []
@@ -48,6 +48,9 @@ def ls(path: Optional[str] = None) -> List[str]:
             rich.print(*sorted(set(project_names)))
             return project_names
 
+        # Note: Root format has the following structure:
+        # /{PROJECT_NAME}/{APP_NAME}/{ARTIFACTS_PATHS}
+        # TODO: Add support for CloudSpaces, etc..
         splits = root.split("/")[1:]
 
         project_id = [project.project_id for project in projects.memberships if project.name == splits[0]][0]

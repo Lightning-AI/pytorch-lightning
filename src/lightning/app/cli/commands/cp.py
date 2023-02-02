@@ -30,7 +30,7 @@ logger = Logger(__name__)
 @click.option("-r", required=False, hidden=True)
 @click.option("--recursive", required=False, hidden=True)
 def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -> None:
-    """Command to copy files between your local and the Lightning Cloud filesystem's."""
+    """Copy files between your local filesystem and the Lightning Cloud filesystem."""
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
@@ -45,14 +45,14 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
         dst_path, dst_remote = _sanetize_path(dst_path, pwd)
 
         if src_remote and dst_remote:
-            return _error_and_exit("Moving files remotely isn't support yet. Please, open a Github issue.")
+            return _error_and_exit("Moving files remotely isn't supported yet. Please, open a Github issue.")
 
         if not src_remote and dst_remote:
             _upload_files(live, client, src_path, dst_path, pwd)
         elif src_remote and not dst_remote:
             _download_files(live, client, src_path, dst_path, pwd)
         else:
-            return _error_and_exit("Moving files locally isn't support yet. Please, open a Github issue.")
+            return _error_and_exit("Moving files locally isn't supported yet. Please, open a Github issue.")
 
 
 def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str, pwd: str) -> str:
@@ -85,6 +85,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     live.stop()
 
+    # Sleep to avoid rich live collision.
     sleep(1)
 
     progress = _get_progress_bar()
@@ -157,7 +158,7 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     # Raise the first exception found
     exception = next((e for e in results if isinstance(e, Exception)), None)
     if exception:
-        _error_and_exit("We detected errors in downloading your files.")
+        _error_and_exit("There was an error downloading your files.")
 
 
 def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> None:
