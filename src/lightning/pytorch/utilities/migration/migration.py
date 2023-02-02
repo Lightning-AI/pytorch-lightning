@@ -276,14 +276,18 @@ def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT
 
     fit_loop = checkpoint["loops"]["fit_loop"]
     # optimizer_position is no longer used
-    fit_loop["epoch_loop.optimizer_loop.optim_progress"].pop("optimizer_position", None)
+    if "epoch_loop.optimizer_loop.optim_progress" in fit_loop:
+        fit_loop["epoch_loop.optimizer_loop.optim_progress"].pop("optimizer_position", None)
+
     # the subloop attribute names have changed
-    fit_loop["epoch_loop.automatic_optimization.state_dict"] = fit_loop.pop("epoch_loop.optimizer_loop.state_dict")
-    fit_loop["epoch_loop.automatic_optimization.optim_progress"] = fit_loop.pop(
-        "epoch_loop.optimizer_loop.optim_progress"
-    )
-    fit_loop["epoch_loop.manual_optimization.state_dict"] = fit_loop.pop("epoch_loop.manual_loop.state_dict")
-    fit_loop["epoch_loop.manual_optimization.optim_step_progress"] = fit_loop.pop(
-        "epoch_loop.manual_loop.optim_step_progress"
-    )
+    if "epoch_loop.optimizer_loop.state_dict" in fit_loop:
+        fit_loop["epoch_loop.automatic_optimization.state_dict"] = fit_loop.pop("epoch_loop.optimizer_loop.state_dict")
+        fit_loop["epoch_loop.automatic_optimization.optim_progress"] = fit_loop.pop(
+            "epoch_loop.optimizer_loop.optim_progress"
+        )
+    if "epoch_loop.manual_loop.state_dict" in fit_loop:
+        fit_loop["epoch_loop.manual_optimization.state_dict"] = fit_loop.pop("epoch_loop.manual_loop.state_dict")
+        fit_loop["epoch_loop.manual_optimization.optim_step_progress"] = fit_loop.pop(
+            "epoch_loop.manual_loop.optim_step_progress"
+        )
     return checkpoint
