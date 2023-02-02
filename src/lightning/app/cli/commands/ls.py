@@ -4,10 +4,11 @@ from typing import List, Optional
 
 import click
 import rich
+from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
-from rich.console import Console
+
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
@@ -91,10 +92,9 @@ def ls(path: Optional[str] = None) -> List[str]:
                 continue
 
             paths.append(artifact_splits[depth])
-            
+
             # display files otherwise folders
             colors.append(_FILE_COLOR if len(artifact_splits) == depth + 1 else _FOLDER_COLOR)
-
 
     _print_names_with_colors(paths, colors)
 
