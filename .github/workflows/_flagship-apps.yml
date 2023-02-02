@@ -34,7 +34,7 @@ defaults:
     shell: bash
 
 jobs:
-  app-flagships:
+  run-flagships:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:

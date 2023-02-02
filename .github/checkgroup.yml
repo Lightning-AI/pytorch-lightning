@@ -279,7 +279,7 @@ subprojects:
       - "github/actions/prep-apps/action.yml"
       - "tests/integrations_app/flagship/**"
     checks:
-      - "app-flagships (flashy, Lightning-Universe/Flashy-app)"
+      - "test-flagships / run-flagships (flashy, Lightning-Universe/Flashy-app)"
 
   - id: "lightning: Store"
     paths:

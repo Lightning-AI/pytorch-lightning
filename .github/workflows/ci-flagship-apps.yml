@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  app-flagships:
+  test-flagships:
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/_flagship-apps.yml
     with:
