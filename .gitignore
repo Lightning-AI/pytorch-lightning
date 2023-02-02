@@ -52,6 +52,13 @@ src/*/version.info
 src/lightning_app/
 src/lightning_fabric/
 src/pytorch_lightning/
+!src/*/__about__.py
+!src/*/__main__.py
+!src/*/__setup__.py
+!src/*/__version__.py
+!src/*/MANIFEST.in
+!src/*/py.typed
+!src/*/README.md
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
