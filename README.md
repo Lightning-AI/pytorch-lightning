@@ -2,9 +2,9 @@
 
 **NEWS: PyTorch Lightning has been renamed Lightning!**
 
-<img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning-ai.png" width="400px">
+<img src="https://github.com/likethecognac/images/blob/main/Icon_Color_WhiteBolt.png" width="85px">
 
-**Deep learning framework to train, deploy, and ship AI products Lightning fast.**
+**The Deep Learning framework to train, deploy, and ship AI products Lightning fast.**
 
 ______________________________________________________________________
 
