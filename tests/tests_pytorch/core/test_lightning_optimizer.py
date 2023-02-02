@@ -153,8 +153,7 @@ def test_state():
     lightning_dict = {
         k: v
         for k, v in lightning_optimizer.__dict__.items()
-        if k
-        not in {"_optimizer", "_optimizer_idx", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
+        if k not in {"_optimizer", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
     }
 
     assert lightning_dict == optimizer.__dict__
@@ -192,9 +191,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     """Test overriding step works in automatic_optimization."""
 
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
-
         def training_epoch_end(self, outputs):
             ...
 
