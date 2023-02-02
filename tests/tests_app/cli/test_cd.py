@@ -1,8 +1,10 @@
-from lightning.app.cli.commands.cd import cd, _CD_FILE
 import os
 
+from lightning.app.cli.commands.cd import _CD_FILE, cd
+
+
 def test_cd():
-    """This test validates cd behaves as expected"""
+    """This test validates cd behaves as expected."""
     assert "/" == cd("/")
     assert "/hero" == cd("hero")
     assert "/hero/something_else" == cd("something_else")

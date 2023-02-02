@@ -1,5 +1,6 @@
 <<<<<<< HEAD
-from typing import Optional, List
+from typing import List, Optional
+
 =======
 >>>>>>> e3d5e60354284ab1c089aec0d13fbd37d13dd1fe
 import os
@@ -15,14 +16,17 @@ from rich.text import Text
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
+
 <<<<<<< HEAD
-from lightning.app.cli.commands.cd import _CD_FILE
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+import rich
 from rich.color import ANSI_COLOR_NAMES
 from rich.live import Live
-from rich.text import Text
 from rich.spinner import Spinner
-import rich
+from rich.text import Text
+
+from lightning.app.cli.commands.cd import _CD_FILE
+from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+
 =======
 >>>>>>> e3d5e60354284ab1c089aec0d13fbd37d13dd1fe
 
@@ -79,7 +83,7 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         depth = len(splits)
         subpath = "/".join(splits[2:])
-        # TODO: Replace with project level endpoints  
+        # TODO: Replace with project level endpoints
         response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(splits[0], lit_app.id)
         for artifact in response.artifacts:
             path = os.path.join(splits[0], lit_app.name, artifact.filename)
@@ -96,9 +100,9 @@ def ls(path: Optional[str] = None) -> List[str]:
                 color = _FILE_COLOR
             else:
                 color= _FOLDER_COLOR
-            
+
             paths.append(_add_colors(artifact_splits[depth], color=color))
-        
+
     paths = sorted(set(paths))
 
     rich.print(*paths)
