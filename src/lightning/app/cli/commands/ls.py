@@ -91,10 +91,13 @@ def ls(path: Optional[str] = None) -> List[str]:
             if not str(artifact.filename).startswith(subpath):
                 continue
 
-            paths.append(artifact_splits[depth])
+            path = artifact_splits[depth]
 
-            # display files otherwise folders
-            colors.append(_FILE_COLOR if len(artifact_splits) == depth + 1 else _FOLDER_COLOR)
+            if path not in paths:
+                paths.append(path)
+
+                # display files otherwise folders
+                colors.append(_FILE_COLOR if len(artifact_splits) == depth + 1 else _FOLDER_COLOR)
 
     _print_names_with_colors(paths, colors)
 
