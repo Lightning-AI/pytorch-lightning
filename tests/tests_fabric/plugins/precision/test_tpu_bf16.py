@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 
-from lightning_fabric.plugins import TPUBf16Precision
+from lightning.fabric.plugins import TPUBf16Precision
 
 
 def test_teardown():

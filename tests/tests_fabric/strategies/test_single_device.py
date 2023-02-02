@@ -16,7 +16,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning_fabric.strategies import SingleDeviceStrategy
+from lightning.fabric.strategies import SingleDeviceStrategy
 
 
 def test_single_device_default_device():

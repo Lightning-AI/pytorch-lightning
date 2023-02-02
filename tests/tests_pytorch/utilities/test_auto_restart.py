@@ -16,7 +16,7 @@ import inspect
 import pytest
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_fabric.utilities.seed import seed_everything
+from lightning.fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
