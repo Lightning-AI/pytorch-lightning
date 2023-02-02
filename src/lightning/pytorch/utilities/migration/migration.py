@@ -94,7 +94,9 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.automatic_optimization.optim_progress"]
     optim_progress["optimizer"]["step"]["total"]["completed"] = global_step
     # for manual optimization
-    optim_step_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.manual_optimization.optim_step_progress"]
+    optim_step_progress = checkpoint["loops"]["fit_loop"][
+        "epoch_loop.batch_loop.manual_optimization.optim_step_progress"
+    ]
     optim_step_progress["total"]["completed"] = global_step
     return checkpoint
 
