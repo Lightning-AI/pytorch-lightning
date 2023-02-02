@@ -151,6 +151,7 @@ module = [
     "lightning_app.source_code.tar",
     "lightning_app.source_code.uploader",
     "lightning_app.storage.copier",
+    "lightning_app.storage.filesystem",
     "lightning_app.storage.drive",
     "lightning_app.storage.orchestrator",
     "lightning_app.storage.path",
