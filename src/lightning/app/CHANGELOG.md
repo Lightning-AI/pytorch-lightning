@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
  * `ls`: List files from your Cloud Platform Filesystem
- * `cd`: Navigate through your Cloud Platform Filesystem (terminal session based)
+ * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
  * `pwd`: Return the current folder in your Cloud Platform Filesystem
  * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
 
