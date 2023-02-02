@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Manual optimization is now required for working with multiple optimizers ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
 
+- DDP's `find_unused_parameters` now defaults to `False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
+
 
 ### Deprecated
 
