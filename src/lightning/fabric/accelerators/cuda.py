@@ -18,8 +18,8 @@ from functools import lru_cache
 from typing import Dict, Generator, List, Optional, Set, Union
 
 import torch
-
 from lightning_utilities.core.rank_zero import rank_zero_info
+
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
