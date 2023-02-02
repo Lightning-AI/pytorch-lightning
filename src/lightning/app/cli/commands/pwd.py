@@ -1,9 +1,10 @@
 import os
+import sys
 
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
-import sys
+
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.utilities.app_helpers import Logger
 
@@ -16,7 +17,6 @@ def pwd() -> str:
     if sys.platform == "win32":
         print("`pwd` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
-
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 

@@ -1,6 +1,8 @@
 import os
-import pytest
 import sys
+
+import pytest
+
 from lightning.app.cli.commands.cd import _CD_FILE, cd
 from lightning.app.cli.commands.pwd import pwd
 
