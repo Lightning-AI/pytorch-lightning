@@ -20,8 +20,8 @@ import torch
 from fsspec.implementations.local import LocalFileSystem
 
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 

@@ -15,7 +15,7 @@ import torch
 from torch import nn, Tensor
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning.core.module import LightningModule
+from lightning.pytorch.core.module import LightningModule
 
 
 class DeterministicModel(LightningModule):

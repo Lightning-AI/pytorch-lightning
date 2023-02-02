@@ -15,7 +15,7 @@
 import torch
 import torch.distributed
 
-from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
+from lightning.pytorch.utilities.distributed import _collect_states_on_rank_zero
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 

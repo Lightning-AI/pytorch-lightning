@@ -15,10 +15,10 @@ import os
 from typing import Any, Dict, Optional, Union
 from unittest.mock import Mock
 
-import pytorch_lightning as pl
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers.logger import Logger
+import lightning.pytorch as pl
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers.logger import Logger
 from tests_pytorch.helpers.runif import RunIf
 
 
