@@ -22,7 +22,9 @@ def ls(path: Optional[str] = None) -> List[str]:
     root = "/"
     paths = []
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
+
+        live.stop()
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -45,10 +47,14 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         splits = root.split("/")[1:]
 
-        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=splits[0]).lightningapps
+        project_id = [project.project_id for project in projects.memberships if project.name == splits[0]][0]
+
+        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
 
         if len(splits) == 1:
-            return sorted([_add_colors(lit_app.name, color=_FOLDER_COLOR) for lit_app in lit_apps])
+            app_names = sorted([_add_colors(lit_app.name, color=_FOLDER_COLOR) for lit_app in lit_apps])
+            rich.print(*app_names)
+            return app_names
 
         lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == splits[1]]
         assert len(lit_apps) == 1
@@ -57,9 +63,9 @@ def ls(path: Optional[str] = None) -> List[str]:
         depth = len(splits)
         subpath = "/".join(splits[2:])
         # TODO: Replace with project level endpoints
-        response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(splits[0], lit_app.id)
+        response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, lit_app.id)
         for artifact in response.artifacts:
-            path = os.path.join(splits[0], lit_app.name, artifact.filename)
+            path = os.path.join(project_id, lit_app.name, artifact.filename)
             artifact_splits = path.split("/")
 
             if len(artifact_splits) < depth + 1:

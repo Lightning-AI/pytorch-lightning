@@ -52,6 +52,7 @@ class FileUploader:
         self.total_size = total_size
         self.name = name
         self.use_progress = use_progress
+        self.task_id = None
 
     def upload_data(self, url: str, data: bytes, retries: int, disconnect_retry_wait_seconds: int) -> str:
         """Send data to url.
@@ -93,15 +94,16 @@ class FileUploader:
 
     def upload(self) -> None:
         """Upload files from source dir into target path in S3."""
-        if self.use_progress:
-            task_id = self.progress.add_task("upload", filename=self.name, total=self.total_size)
+        no_task = self.task_id is None
+        if self.use_progress and no_task:
+            self.task_id = self.progress.add_task("upload", filename=self.name, total=self.total_size)
             self.progress.start()
         try:
             with open(self.source_file, "rb") as f:
                 data = f.read()
             self.upload_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
             if self.use_progress:
-                self.progress.update(task_id, advance=len(data))
+                self.progress.update(self.task_id, advance=len(data))
         finally:
-            if self.use_progress:
+            if self.use_progress and not no_task:
                 self.progress.stop()

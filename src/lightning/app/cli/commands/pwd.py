@@ -15,16 +15,22 @@ def pwd() -> str:
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 
-        root = "/"
-
-        if not os.path.exists(_CD_FILE):
-            with open(_CD_FILE, "w") as f:
-                f.write(root + "\n")
-        else:
-            with open(_CD_FILE) as f:
-                lines = f.readlines()
-                root = lines[0].replace("\n", "")
+        root = _pwd()
 
     print(root)
+
+    return root
+
+
+def _pwd() -> str:
+    root = "/"
+
+    if not os.path.exists(_CD_FILE):
+        with open(_CD_FILE, "w") as f:
+            f.write(root + "\n")
+    else:
+        with open(_CD_FILE) as f:
+            lines = f.readlines()
+            root = lines[0].replace("\n", "")
 
     return root
