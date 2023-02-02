@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, Union, Tuple
 
 import click
 from rich.live import Live
@@ -15,20 +15,25 @@ _HOME = os.path.expanduser("~")
 _CD_FILE = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 
 
-@click.argument("path", required=False)
-def cd(path: Optional[str] = None) -> str:
+@click.argument("path", nargs=-1)
+def cd(path: Optional[Union[Tuple[str], str]]) -> None:
     """Change the current directory within the Lightning Cloud filesystem."""
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
         root = "/"
 
+        live.stop()
+
+        if isinstance(path, Tuple) and len(path) > 0:
+            path = " ".join(path)
+
         # handle ~/
         if isinstance(path, str) and path.startswith(_HOME):
             path = "/" + path.replace(_HOME, "")
 
         # handle no path -> /
-        if path is None:
+        if path is None or len(path) == 0:
             path = "/"
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):

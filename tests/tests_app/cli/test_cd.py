@@ -30,5 +30,8 @@ def test_cd():
     assert f"/a{os.sep}thomas{os.sep}hello" == pwd()
     assert f"/thomas{os.sep}hello" == cd(f"/thomas{os.sep}hello")
     assert f"/thomas{os.sep}hello" == pwd()
+    assert "/" == cd("/")
+    assert "/name with spaces" == cd("name with spaces")
+    assert "/name with spaces/name with spaces 2" == cd("name with spaces 2")
 
     os.remove(_CD_FILE)
