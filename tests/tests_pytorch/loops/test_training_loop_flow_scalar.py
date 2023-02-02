@@ -20,8 +20,8 @@ from torch.utils.data._utils.collate import default_collate
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.loops.optimization.automatic import Closure
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 

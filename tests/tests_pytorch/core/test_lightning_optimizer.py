@@ -20,8 +20,8 @@ from torch.optim import Adam, Optimizer, SGD
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.loops.optimization.automatic import Closure
+from lightning.pytorch.tuner.tuning import Tuner
 
 
 @pytest.mark.parametrize("auto", (True, False))
