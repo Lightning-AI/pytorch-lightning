@@ -363,8 +363,10 @@ def test_exception_invalid_strategy():
     (
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_true", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
+        ("ddp_find_unused_parameters_true", DDPStrategy),
         ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
