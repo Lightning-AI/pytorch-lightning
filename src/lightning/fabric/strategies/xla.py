@@ -114,9 +114,14 @@ class XLAStrategy(ParallelStrategy):
         XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
+        if isinstance(dataloader, MpDeviceLoader):
+            # dataloader is already wrapped by MpDeviceLoader
+            return dataloader
+
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
+        dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
