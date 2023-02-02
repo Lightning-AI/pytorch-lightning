@@ -29,12 +29,11 @@ dependencies:
     - python>=3.8
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.10.*
+    - pytorch>=1.11.0
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.57.0
     - fsspec[http]>=2021.06.1
-    #- tensorboard>=2.2.0  # not needed, already included in pytorch
 
     # Optional
     - scikit-learn >0.22.1
@@ -42,4 +41,4 @@ dependencies:
     - omegaconf>=2.0.5
 
     # Examples
-    - torchvision>=0.11.*
+    - torchvision>=0.12.0

@@ -64,7 +64,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.10 and above.
+We are fully compatible with any stable PyTorch version v1.11 and above.
 
 .. raw:: html
 
