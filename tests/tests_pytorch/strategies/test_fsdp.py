@@ -90,6 +90,7 @@ class TestFSDPModel(BoringModel):
 class TestFSDPModelAutoWrapped(BoringModel):
     def __init__(self, wrap_min_params: int):
         super().__init__()
+        self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.wrap_min_params = wrap_min_params
 
