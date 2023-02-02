@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import List, Optional
 
 import click
@@ -6,7 +7,7 @@ import rich
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
-import sys
+
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger

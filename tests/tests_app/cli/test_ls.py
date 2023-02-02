@@ -1,6 +1,8 @@
 import os
+import sys
 from unittest.mock import MagicMock
 
+import pytest
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     V1LightningappInstanceArtifact,
@@ -9,8 +11,7 @@ from lightning_cloud.openapi import (
     V1ListMembershipsResponse,
     V1Membership,
 )
-import pytest
-import sys
+
 from lightning.app.cli.commands import ls
 from lightning.app.cli.commands.cd import _CD_FILE, cd
 
