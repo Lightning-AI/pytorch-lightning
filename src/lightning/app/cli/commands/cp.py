@@ -146,7 +146,7 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
 
     progress.start()
 
-    task_id = progress.add_task("upload", filename=path, total=sum(total_size))
+    task_id = progress.add_task("download", filename=path, total=sum(total_size))
 
     _download_file_fn = partial(_download_file, progress=progress, task_id=task_id)
 
