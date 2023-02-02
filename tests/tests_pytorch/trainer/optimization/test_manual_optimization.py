@@ -21,10 +21,10 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.strategies import Strategy
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
 
 

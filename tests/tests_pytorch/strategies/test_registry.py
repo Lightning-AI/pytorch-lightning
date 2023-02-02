@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import CheckpointIO
-from pytorch_lightning.strategies import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.plugins import CheckpointIO
+from lightning.pytorch.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,

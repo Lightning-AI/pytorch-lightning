@@ -22,13 +22,13 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
-from pytorch_lightning.utilities import find_shared_parameters
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
+from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
+from lightning.pytorch.strategies import DDPStrategy, TPUSpawnStrategy
+from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
@@ -268,7 +268,7 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 
 @RunIf(tpu=True)
 @patch("torch_xla.distributed.parallel_loader.MpDeviceLoader")
-@patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
+@patch("lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
 def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)

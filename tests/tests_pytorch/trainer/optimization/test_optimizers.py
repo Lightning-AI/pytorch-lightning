@@ -18,16 +18,16 @@ import pytest
 import torch
 from torch import optim
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.core.optimizer import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.core.optimizer import (
     _configure_optimizers,
     _configure_schedulers_automatic_opt,
     _init_optimizers_and_lr_schedulers,
 )
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import LRSchedulerConfig
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.types import LRSchedulerConfig
 from tests_pytorch.helpers.runif import RunIf
 
 

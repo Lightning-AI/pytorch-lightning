@@ -16,15 +16,15 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.trainer.configuration_validator import (
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.configuration_validator import (
     __verify_eval_loop_configuration,
     __verify_train_val_loop_configuration,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count
 
 

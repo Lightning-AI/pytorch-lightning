@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
+from lightning.pytorch.utilities.finite_checks import detect_nan_parameters
 
 
 @pytest.mark.parametrize("value", (math.nan, math.inf, -math.inf))

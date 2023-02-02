@@ -1,6 +1,6 @@
 name: Refactor
 description: Suggest a code refactor or deprecation
-labels: ["needs triage"]
+labels: ["needs triage", "refactor"]
 body:
   - type: textarea
     attributes:

@@ -243,6 +243,7 @@ Here is the process to create a new test
 # TEST SHOULD BE IN YOUR FILE: tests/.../test_file.py
 # TEST CODE TEMPLATE
 
+
 # [OPTIONAL] pytest decorator
 # @RunIf(min_cuda_gpus=1)
 def test_explain_what_is_being_tested(tmpdir):

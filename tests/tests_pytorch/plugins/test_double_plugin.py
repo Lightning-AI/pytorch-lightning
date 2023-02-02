@@ -18,9 +18,9 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import DoublePrecisionPlugin
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import DoublePrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 

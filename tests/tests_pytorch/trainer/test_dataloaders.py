@@ -23,19 +23,19 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
-from lightning_fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
-from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import (
+from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
+from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import (
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.data import has_len_all_ranks
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -534,7 +534,7 @@ def test_warning_on_zero_len_dataloader(tmpdir):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
-@patch("pytorch_lightning.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
 
@@ -564,7 +564,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
-@patch("pytorch_lightning.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
 

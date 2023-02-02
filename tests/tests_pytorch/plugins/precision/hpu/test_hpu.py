@@ -15,10 +15,10 @@
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
+from lightning.pytorch import Callback, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import HPUPrecisionPlugin
+from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 

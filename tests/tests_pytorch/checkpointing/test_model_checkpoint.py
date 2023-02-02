@@ -30,14 +30,14 @@ import torch
 import yaml
 from torch import optim
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.cloud_io import _load as pl_load
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+import lightning.pytorch as pl
+from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -646,7 +646,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@mock.patch("pytorch_lightning.callbacks.model_checkpoint.time")
+@mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
     seconds_per_batch = 7

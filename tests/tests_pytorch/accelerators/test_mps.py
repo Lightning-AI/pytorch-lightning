@@ -18,9 +18,9 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import MPSAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import MPSAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 

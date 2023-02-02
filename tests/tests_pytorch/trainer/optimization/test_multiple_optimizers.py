@@ -15,8 +15,8 @@
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning.demos.boring_classes import BoringModel
+import lightning.pytorch as pl
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class MultiOptModel(BoringModel):

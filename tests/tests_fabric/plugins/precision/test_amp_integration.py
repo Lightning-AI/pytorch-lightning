@@ -18,7 +18,7 @@ import torch.nn as nn
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric import Fabric, seed_everything
+from lightning.fabric import Fabric, seed_everything
 
 
 class MixedPrecisionModule(nn.Module):

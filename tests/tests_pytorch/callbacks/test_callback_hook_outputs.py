@@ -13,8 +13,8 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 @pytest.mark.parametrize("single_cb", [False, True])
