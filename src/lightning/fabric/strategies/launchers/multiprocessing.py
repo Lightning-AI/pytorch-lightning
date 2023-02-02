@@ -22,7 +22,7 @@ import torch.multiprocessing as mp
 
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
+from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 
 if TYPE_CHECKING:
@@ -154,22 +154,18 @@ class _GlobalStateSnapshot:
     def capture(cls) -> "_GlobalStateSnapshot":
         """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
         process."""
-        warn_only = torch.is_deterministic_algorithms_warn_only_enabled() if _TORCH_GREATER_EQUAL_1_11 else False
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
-            use_deterministic_algorithms_warn_only=warn_only,
+            use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled(),
             cudnn_benchmark=torch.backends.cudnn.benchmark,
             rng_states=_collect_rng_states(),
         )
 
     def restore(self) -> None:
         """Restores all globals to the values captured in the :meth:`capture` method."""
-        if _TORCH_GREATER_EQUAL_1_11:
-            torch.use_deterministic_algorithms(
-                self.use_deterministic_algorithms, warn_only=self.use_deterministic_algorithms_warn_only
-            )
-        else:
-            torch.use_deterministic_algorithms(self.use_deterministic_algorithms)
+        torch.use_deterministic_algorithms(
+            self.use_deterministic_algorithms, warn_only=self.use_deterministic_algorithms_warn_only
+        )
         torch.backends.cudnn.benchmark = self.cudnn_benchmark
         _set_rng_states(self.rng_states)
 

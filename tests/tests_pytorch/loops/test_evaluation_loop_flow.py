@@ -16,9 +16,9 @@
 import torch
 from torch import Tensor
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.trainer.states import RunningStage
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 

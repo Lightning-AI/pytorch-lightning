@@ -719,6 +719,7 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
         """
 
         ...
+
         # NeMo models come with neural type checking
         @typecheck(
             input_types={

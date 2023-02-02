@@ -50,14 +50,15 @@ wheels/
 *.egg
 src/*/version.info
 src/lightning_app/
-!src/lightning_app/__*__.py
-!src/lightning_app/MANIFEST.in
-!src/lightning_app/README.md
 src/lightning_fabric/
-!src/lightning_fabric/__*__.py
-!src/lightning_fabric/MANIFEST.in
-!src/lightning_fabric/README.md
-src/lightning/pytorch/
+src/pytorch_lightning/
+!src/*/__about__.py
+!src/*/__main__.py
+!src/*/__setup__.py
+!src/*/__version__.py
+!src/*/MANIFEST.in
+!src/*/py.typed
+!src/*/README.md
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

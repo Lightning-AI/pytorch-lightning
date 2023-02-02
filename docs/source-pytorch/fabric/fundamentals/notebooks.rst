@@ -16,7 +16,6 @@ If you want to use multiprocessing, for example, multi-GPU, you can put your cod
 
     # Notebook Cell
     def train(fabric):
-
         model = ...
         optimizer = ...
         model, optimizer = fabric.setup(model, optimizer)

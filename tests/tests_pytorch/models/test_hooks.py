@@ -21,8 +21,8 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -141,7 +141,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     ],
 )
 @mock.patch(
-    "pytorch_lightning.strategies.Strategy.lightning_module",
+    "lightning.pytorch.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_device_str):

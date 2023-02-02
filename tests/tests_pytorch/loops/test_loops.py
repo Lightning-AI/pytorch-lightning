@@ -21,11 +21,11 @@ import pytest
 import torch
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import _Loop
-from pytorch_lightning.loops.progress import BaseProgress
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops import _Loop
+from lightning.pytorch.loops.progress import BaseProgress
 from tests_pytorch.helpers.runif import RunIf
 
 

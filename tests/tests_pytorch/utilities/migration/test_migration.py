@@ -16,13 +16,13 @@ from unittest.mock import ANY, MagicMock
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.utilities.migration import migrate_checkpoint
-from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.utilities.migration import migrate_checkpoint
+from lightning.pytorch.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 
 
 @pytest.mark.parametrize(

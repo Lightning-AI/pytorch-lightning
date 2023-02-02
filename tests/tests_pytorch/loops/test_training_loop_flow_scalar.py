@@ -17,11 +17,11 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.states import RunningStage
 from pytorch_lightning.loops.optimization.automatic import Closure
-from pytorch_lightning.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
