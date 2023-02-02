@@ -14,8 +14,8 @@
 import torch
 from torchmetrics.functional import accuracy
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint
 
 

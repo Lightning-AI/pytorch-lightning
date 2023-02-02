@@ -13,7 +13,7 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-from pytorch_lightning.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _set_sampler_epoch
 
 
 def test_set_sampler_epoch():

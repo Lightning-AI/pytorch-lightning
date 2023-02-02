@@ -25,9 +25,9 @@ from tests_fabric.helpers.runif import RunIf
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
-from lightning_fabric.fabric import Fabric
-from lightning_fabric.plugins import Precision
-from lightning_fabric.strategies import (
+from lightning.fabric.fabric import Fabric
+from lightning.fabric.plugins import Precision
+from lightning.fabric.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -35,11 +35,11 @@ from lightning_fabric.strategies import (
     Strategy,
     XLAStrategy,
 )
-from lightning_fabric.strategies.strategy import _Sharded
-from lightning_fabric.utilities.exceptions import MisconfigurationException
-from lightning_fabric.utilities.seed import pl_worker_init_function, seed_everything
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning.fabric.strategies.strategy import _Sharded
+from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
 
 
 class EmptyFabric(Fabric):
@@ -77,7 +77,7 @@ def test_run_input_output():
     assert fabric.run_kwargs == {"three": 3}
 
 
-@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
@@ -298,7 +298,7 @@ def test_setup_dataloaders_return_type():
     assert fabric_dataloader1.dataset is dataset1
 
 
-@mock.patch("lightning_fabric.fabric._replace_dunder_methods")
+@mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
     method."""
@@ -344,7 +344,7 @@ def test_setup_dataloaders_twice_fails():
 
 
 @mock.patch(
-    "lightning_fabric.fabric.Fabric.device",
+    "lightning.fabric.fabric.Fabric.device",
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
@@ -628,7 +628,7 @@ def test_launch_without_function():
 
     # default: no launcher, single process
     fabric = Fabric()
-    with mock.patch("lightning_fabric.fabric._do_nothing") as nothing:
+    with mock.patch("lightning.fabric.fabric._do_nothing") as nothing:
         fabric.launch()
     nothing.assert_called()
 

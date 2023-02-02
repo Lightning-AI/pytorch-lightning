@@ -16,7 +16,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment
 
 
 @mock.patch.dict(os.environ, {}, clear=True)

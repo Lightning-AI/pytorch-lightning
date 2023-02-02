@@ -16,10 +16,10 @@ from unittest.mock import patch
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import GradientAccumulationScheduler
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))

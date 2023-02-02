@@ -27,13 +27,13 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -760,7 +760,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     """Tests the default epoch and step values logged."""
 
@@ -795,7 +795,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     )
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_on_train_start(mock_log_metrics, tmpdir):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 

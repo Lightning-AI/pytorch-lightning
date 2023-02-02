@@ -14,7 +14,7 @@
 
 import torch
 
-from lightning_fabric.plugins.precision.double import DoublePrecision
+from lightning.fabric.plugins.precision.double import DoublePrecision
 
 
 def test_double_precision_forward_context():
