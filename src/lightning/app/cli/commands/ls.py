@@ -1,19 +1,20 @@
 import os
 import sys
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import click
 import rich
 from rich.live import Live
 from rich.spinner import Spinner
+from rich.table import Table
 from rich.text import Text
-
+from rich.console import Console
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
 
-_FOLDER_COLOR = "blue"
+_FOLDER_COLOR = "blue1"
 _FILE_COLOR = "white"
 
 logger = Logger(__name__)
@@ -28,7 +29,6 @@ def ls(path: Optional[str] = None) -> List[str]:
         sys.exit(0)
 
     root = "/"
-    paths = []
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
@@ -49,8 +49,8 @@ def ls(path: Optional[str] = None) -> List[str]:
         projects = client.projects_service_list_memberships()
 
         if root == "/":
-            project_names = [_add_colors(project.name, color=_FOLDER_COLOR) for project in projects.memberships]
-            rich.print(*sorted(set(project_names)))
+            project_names = [project.name for project in projects.memberships]
+            _print_names_with_colors(project_names, [_FOLDER_COLOR] * len(app_names))
             return project_names
 
         # Note: Root format has the following structure:
@@ -63,8 +63,8 @@ def ls(path: Optional[str] = None) -> List[str]:
         lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
 
         if len(splits) == 1:
-            app_names = sorted([_add_colors(lit_app.name, color=_FOLDER_COLOR) for lit_app in lit_apps])
-            rich.print(*app_names)
+            app_names = sorted([lit_app.name for lit_app in lit_apps])
+            _print_names_with_colors(app_names, [_FOLDER_COLOR] * len(app_names))
             return app_names
 
         lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == splits[1]]
@@ -75,6 +75,8 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         lit_app = lit_apps[0]
 
+        paths = []
+        colors = []
         depth = len(splits)
         subpath = "/".join(splits[2:])
         # TODO: Replace with project level endpoints
@@ -89,20 +91,42 @@ def ls(path: Optional[str] = None) -> List[str]:
             if not str(artifact.filename).startswith(subpath):
                 continue
 
+            paths.append(artifact_splits[depth])
+            
             # display files otherwise folders
-            if len(artifact_splits) == depth + 1:
-                color = _FILE_COLOR
-            else:
-                color = _FOLDER_COLOR
+            colors.append(_FILE_COLOR if len(artifact_splits) == depth + 1 else _FOLDER_COLOR)
 
-            paths.append(_add_colors(artifact_splits[depth], color=color))
 
-        paths = sorted(set(paths))
-
-    rich.print(*paths)
+    _print_names_with_colors(paths, colors)
 
     return paths
 
 
 def _add_colors(filename: str, color: Optional[str] = None) -> str:
     return f"[{color}]{filename}[/{color}]"
+
+
+def _print_names_with_colors(names: List[str], colors: List[str], padding: int = 10) -> None:
+    console = Console()
+    width = console.width
+
+    max_L = max([len(name) for name in names]) + padding
+
+    if max_L * len(names) < width:
+        max_L = padding
+
+    num_cols = width // max_L
+
+    columns = {}
+    for index, (name, color) in enumerate(zip(names, colors)):
+        row = index // num_cols
+        if row not in columns:
+            columns[row] = []
+        columns[row].append((name, color))
+
+    for row_index in sorted(columns):
+        row = ""
+        for (name, color) in columns[row_index]:
+            spaces = " " * (max_L - len(name))
+            row += _add_colors(name, color) + spaces
+        rich.print(row)

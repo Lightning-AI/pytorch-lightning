@@ -26,6 +26,7 @@ def test_ls(monkeypatch):
         memberships=[
             V1Membership(name="project-0", project_id="project-id-0"),
             V1Membership(name="project-1", project_id="project-id-1"),
+            V1Membership(name="project 2", project_id="project-id-2"),
         ]
     )
 
@@ -37,6 +38,10 @@ def test_ls(monkeypatch):
             ),
             Externalv1LightningappInstance(
                 name="app-name-1",
+                id="app-id-1",
+            ),
+            Externalv1LightningappInstance(
+                name="app name 2",
                 id="app-id-1",
             ),
         ]
