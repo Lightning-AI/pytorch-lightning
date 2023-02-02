@@ -32,9 +32,9 @@ There is nothing you have to change in your code:
 
 .. code-block:: python
 
-    fabric = Fabric(...)        # automatically detects MPI
-    print(fabric.world_size)    # world size provided by MPI
-    print(fabric.global_rank)   # rank provided by MPI
+    fabric = Fabric(...)  # automatically detects MPI
+    print(fabric.world_size)  # world size provided by MPI
+    print(fabric.global_rank)  # rank provided by MPI
     ...
 
 If you want to bypass the automatic detection, you can explicitly set the MPI environment as a plugin:
