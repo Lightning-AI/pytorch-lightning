@@ -33,24 +33,42 @@ from lightning.app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
+# Global record to track ports that have been allocated.
+_reserved_ports = set()
+
+
 def find_free_network_port() -> int:
     """Finds a free port on localhost."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    if constants.LIGHTNING_IN_CLOUDSPACE:
+    if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
         # If in a cloudspace, look for a port in the exposed range
         port = constants.APP_SERVER_PORT
         while port <= constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT:
+            if port in _reserved_ports:
+                continue
+
             try:
                 s.bind(("", port))
                 s.close()
+                _reserved_ports.add(port)
                 return port
             except OSError:
                 port += 1
 
-    s.bind(("", 0))
-    port = s.getsockname()[1]
-    s.close()
+        # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
+        raise RuntimeError(
+            f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use."
+            "Contact support@lightning.ai for help."
+        )
+
+    port = None
+
+    while port is None or port in _reserved_ports:
+        s.bind(("", 0))
+        port = s.getsockname()[1]
+        s.close()
+    _reserved_ports.add(port)
     return port
 
 

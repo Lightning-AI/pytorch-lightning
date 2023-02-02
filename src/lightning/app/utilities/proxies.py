@@ -31,6 +31,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, T
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.storage import Path
 from lightning.app.storage.copier import _Copier, _copy_files
@@ -500,7 +501,8 @@ class WorkRunner:
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
-        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
+        default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is not None else "0.0.0.0"
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", default_internal_ip)
 
         # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
