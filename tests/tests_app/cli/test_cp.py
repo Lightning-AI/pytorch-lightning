@@ -1,8 +1,6 @@
 import os
-
-from lightning.app.cli.commands.cd import _CD_FILE, cd
-from lightning.app.cli.commands import cp
 from unittest.mock import MagicMock
+
 import requests
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
@@ -12,7 +10,10 @@ from lightning_cloud.openapi import (
     V1ListMembershipsResponse,
     V1Membership,
 )
-from unittest.mock import MagicMock
+
+from lightning.app.cli.commands import cp
+from lightning.app.cli.commands.cd import _CD_FILE, cd
+
 
 def test_cp_local_to_remote(tmpdir, monkeypatch):
     assert "/" == cd("/")
@@ -47,9 +48,9 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
     file_uploader = MagicMock()
     monkeypatch.setattr(cp, "FileUploader", file_uploader)
 
-    cp.cp(str(tmpdir), "r:.")  
+    cp.cp(str(tmpdir), "r:.")
 
-    assert file_uploader._mock_call_args[1]['name'] == ""f"{tmpdir}/a.txt"
+    assert file_uploader._mock_call_args[1]["name"] == "" f"{tmpdir}/a.txt"
 
     os.remove(_CD_FILE)
 
@@ -106,6 +107,6 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
 
     monkeypatch.setattr(requests, "get", patch_get)
 
-    cp.cp("r:.", str(tmpdir))  
+    cp.cp("r:.", str(tmpdir))
 
     os.remove(_CD_FILE)
