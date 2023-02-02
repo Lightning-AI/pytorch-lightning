@@ -359,8 +359,8 @@ def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
 
 def _reset_progress(trainer: "pl.Trainer") -> None:
     if trainer.lightning_module.automatic_optimization:
-        trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress.reset()
+        trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.reset()
     else:
-        trainer.fit_loop.epoch_loop.manual_loop.optim_step_progress.reset()
+        trainer.fit_loop.epoch_loop.manual_optimization.optim_step_progress.reset()
 
     trainer.fit_loop.epoch_progress.reset()
