@@ -18,10 +18,10 @@ import pytest
 import torch
 from torch.quantization import FakeQuantizeBase
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import QuantizationAwareTraining
-from pytorch_lightning.demos.boring_classes import RandomDataset
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import QuantizationAwareTraining
+from lightning.pytorch.demos.boring_classes import RandomDataset
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import RegressDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import RegressionModel

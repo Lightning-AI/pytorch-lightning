@@ -16,8 +16,8 @@ import inspect
 import pytest
 from torch.jit import ScriptModule
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities.parsing import (
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.utilities.parsing import (
     AttributeDict,
     clean_namespace,
     collect_init_args,

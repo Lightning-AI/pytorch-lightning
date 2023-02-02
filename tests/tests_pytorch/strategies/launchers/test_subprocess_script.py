@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 from lightning_utilities.core.imports import RequirementCache
 
-from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from tests_pytorch.helpers.runif import RunIf
 
 _HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
@@ -21,8 +21,8 @@ import hydra
 import os
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
