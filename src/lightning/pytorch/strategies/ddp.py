@@ -256,7 +256,6 @@ class DDPStrategy(ParallelStrategy):
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-        self.pre_configure_ddp()
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
         self._register_ddp_hooks()
