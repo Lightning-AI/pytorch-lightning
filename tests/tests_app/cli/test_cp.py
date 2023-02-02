@@ -10,11 +10,13 @@ from lightning_cloud.openapi import (
     V1ListMembershipsResponse,
     V1Membership,
 )
-
+import pytest
+import sys
 from lightning.app.cli.commands import cp
 from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_local_to_remote(tmpdir, monkeypatch):
     assert "/" == cd("/")
 

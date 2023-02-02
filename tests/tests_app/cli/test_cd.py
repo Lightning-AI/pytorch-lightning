@@ -1,9 +1,11 @@
 import os
-
+import pytest
+import sys
 from lightning.app.cli.commands.cd import _CD_FILE, cd
 from lightning.app.cli.commands.pwd import pwd
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cd():
     """This test validates cd behaves as expected."""
     assert "/" == cd("/")

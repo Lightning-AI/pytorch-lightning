@@ -9,11 +9,13 @@ from lightning_cloud.openapi import (
     V1ListMembershipsResponse,
     V1Membership,
 )
-
+import pytest
+import sys
 from lightning.app.cli.commands import ls
 from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_ls(monkeypatch):
     """This test validates ls behaves as expected."""
     assert "/" == cd("/")

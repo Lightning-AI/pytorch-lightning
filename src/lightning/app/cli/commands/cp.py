@@ -32,6 +32,10 @@ logger = Logger(__name__)
 def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -> None:
     """Copy files between your local filesystem and the Lightning Cloud filesystem."""
 
+    if sys.platform == "win32":
+        print("`cp` isn't supported on windows. Open an issue on Github.")
+        sys.exit(0)
+
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
         pwd = _pwd()

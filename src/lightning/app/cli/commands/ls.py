@@ -6,7 +6,7 @@ import rich
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
-
+import sys
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
@@ -21,6 +21,10 @@ logger = Logger(__name__)
 @click.argument("path", required=False)
 def ls(path: Optional[str] = None) -> List[str]:
     """List the contents of a folder in the Lightning Cloud Filesystem."""
+
+    if sys.platform == "win32":
+        print("`ls` isn't supported on windows. Open an issue on Github.")
+        sys.exit(0)
 
     root = "/"
     paths = []
