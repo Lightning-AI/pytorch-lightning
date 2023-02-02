@@ -48,6 +48,8 @@ local tputests = base.BaseTest {
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
       echo "--- Sanity check TPU availability ---"
+      python -c "import torch_xla; print(torch_xla)"
+      python -c "from lightning_fabric.accelerators.tpu import _XLA_AVAILABLE; print(str(_XLA_AVAILABLE))"
       python -c "from lightning_fabric.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       echo "Sanity check passed!"
 
