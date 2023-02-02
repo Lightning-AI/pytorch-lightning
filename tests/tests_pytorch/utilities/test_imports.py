@@ -128,7 +128,7 @@ def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, cle
         importlib.import_module(to_import)
 
 
-def test_import_lightning.pytorch_with_torch_dist_unavailable():
+def test_import_pytorch_lightning_with_torch_dist_unavailable():
     """Test that the package can be imported regardless of whether torch.distributed is available."""
     code = dedent(
         """
