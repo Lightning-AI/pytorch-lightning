@@ -142,12 +142,19 @@ jobs:
         python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
         python requirements/pytorch/check-avail-extras.py
 
-    - name: Adjust tests
+    - name: Adjust tests -> Lit
       if: ${{ matrix.pkg-name == 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="pytorch_lightning,lightning_fabric" \
-          --target_import="lightning.pytorch,lightning.fabric"
+          --source_import="pytorch_lightning" \
+          --target_import="lightning.pytorch"
+
+    - name: Adjust tests -> PL
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      run: |
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+          --source_import="lightning.fabric" \
+          --target_import="lightning_fabric"
 
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
