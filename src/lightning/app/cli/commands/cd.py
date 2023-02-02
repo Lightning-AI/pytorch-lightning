@@ -17,9 +17,7 @@ _CD_FILE = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 
 @click.argument("path", required=False)
 def cd(path: Optional[str] = None) -> str:
-    """
-    Command to nagivate through the Lightning Cloud filesystem.
-    """
+    """Command to nagivate through the Lightning Cloud filesystem."""
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 

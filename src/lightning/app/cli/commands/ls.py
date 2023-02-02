@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
 
+import click
 import rich
 from rich.live import Live
 from rich.spinner import Spinner
@@ -10,7 +11,6 @@ from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import LightningClient
-import click
 
 _FOLDER_COLOR = "blue"
 _FILE_COLOR = "white"
@@ -20,9 +20,7 @@ logger = Logger(__name__)
 
 @click.argument("path", required=False)
 def ls(path: Optional[str] = None) -> List[str]:
-    """
-    Command to list the content of a folder from the Lightning Cloud Filesystem.
-    """
+    """Command to list the content of a folder from the Lightning Cloud Filesystem."""
 
     root = "/"
     paths = []
