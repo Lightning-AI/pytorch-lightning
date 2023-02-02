@@ -73,7 +73,7 @@ def test_ls(monkeypatch):
 
     assert ls.ls() == ["app name 2", "app-name-0", "app-name-1"]
     assert f"/project-0{os.sep}app-name-1" == cd("app-name-1")
-    assert ls.ls() == ['file_1.txt', 'folder_1', 'folder_2']
+    assert ls.ls() == ["file_1.txt", "folder_1", "folder_2"]
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_1" == cd("folder_1")
     assert ls.ls() == ["file_2.txt"]
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2" == cd("../folder_2")
