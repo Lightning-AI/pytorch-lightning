@@ -13,7 +13,7 @@ import rich
 import urllib3
 from lightning_cloud.openapi import IdArtifactsBody
 from rich.live import Live
-from rich.progress import BarColumn, Progress, Task, TextColumn, DownloadColumn
+from rich.progress import BarColumn, DownloadColumn, Progress, Task, TextColumn
 from rich.spinner import Spinner
 from rich.text import Text
 
