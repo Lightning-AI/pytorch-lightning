@@ -11,6 +11,9 @@ logger = Logger(__name__)
 
 
 def pwd() -> str:
+    """
+    Command to get your current folder from the Lightning Cloud filesystem.
+    """
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 

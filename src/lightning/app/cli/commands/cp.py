@@ -27,12 +27,13 @@ logger = Logger(__name__)
 
 @click.argument("src_path", required=True)
 @click.argument("dst_path", required=True)
-@click.option("--project_id", required=False)
-@click.option("-r", required=False)
-@click.option("--recursive", required=False)
-def cp(
-    src_path: str, dst_path: str, project_id: Optional[str] = None, r: bool = False, recursive: bool = False
-) -> None:
+@click.option("-r", required=False, hidden=True)
+@click.option("--recursive", required=False, hidden=True)
+def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -> None:
+    """
+    Command to copy files between your local and the Lightning Cloud filesystem's.
+    """
+
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
         pwd = _pwd()
