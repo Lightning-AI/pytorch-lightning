@@ -510,6 +510,7 @@ class AutoScaler(LightningFlow):
             )
         )
 
+
         # Example 2: Customizing the scaling logic
         class MyAutoScaler(L.app.components.AutoScaler):
             def scale(self, replicas: int, metrics: dict) -> int:

@@ -37,7 +37,6 @@ as Lightning takes care of GPU placement. In case you want to use some data tran
 
     class CustomClassifier(LitClassifier):
         def train_dataloader(self):
-
             # Random resized crop
             decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
@@ -71,7 +70,6 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
 
         class CustomLitClassifier(LitClassifier):
             def train_dataloader(self):
-
                 # To run with different data, see documentation of nvidia.dali.fn.readers.file
                 # points to https://github.com/NVIDIA/DALI_extra
                 data_root_dir = os.environ["DALI_EXTRA_PATH"]
