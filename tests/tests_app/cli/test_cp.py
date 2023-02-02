@@ -33,7 +33,6 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
             Externalv1LightningappInstance(
                 name="app-name-0",
                 id="app-id-0",
-                size_bytes="123.0",
             )
         ]
     )
@@ -82,15 +81,19 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
             artifacts=[
                 V1LightningappInstanceArtifact(
                     filename="file_1.txt",
+                    size_bytes=123,
                 ),
                 V1LightningappInstanceArtifact(
                     filename="folder_1/file_2.txt",
+                    size_bytes=123,
                 ),
                 V1LightningappInstanceArtifact(
                     filename="folder_2/folder_3/file_3.txt",
+                    size_bytes=123,
                 ),
                 V1LightningappInstanceArtifact(
                     filename="folder_2/file_4.txt",
+                    size_bytes=123,
                 ),
             ]
         )

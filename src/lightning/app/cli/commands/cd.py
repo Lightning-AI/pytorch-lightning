@@ -69,6 +69,8 @@ def cd(path: Optional[str] = None) -> str:
             with open(_CD_FILE, "w") as f:
                 f.write(root + "\n")
 
+        live.stop()
+
         print(f"cd {root}")
 
     return root

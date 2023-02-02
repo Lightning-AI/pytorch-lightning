@@ -13,7 +13,7 @@ import rich
 import urllib3
 from lightning_cloud.openapi import IdArtifactsBody
 from rich.live import Live
-from rich.progress import BarColumn, Progress, Task, TextColumn
+from rich.progress import BarColumn, Progress, Task, TextColumn, DownloadColumn
 from rich.spinner import Spinner
 from rich.text import Text
 
@@ -88,11 +88,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     sleep(1)
 
-    progress = Progress(
-        TextColumn("[bold blue]{task.description}", justify="left"),
-        BarColumn(bar_width=None),
-        "[self.progress.percentage]{task.percentage:>3.1f}%",
-    )
+    progress = _get_progress_bar()
 
     total_size = sum([Path(path).stat().st_size for path in upload_paths])
     task_id = progress.add_task("upload", filename="", total=total_size)
@@ -103,6 +99,8 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
         results = executor.map(_upload_partial, upload_paths, upload_urls)
+
+    progress.stop()
 
     # Raise the first exception found
     exception = next((e for e in results if isinstance(e, Exception)), None)
@@ -130,8 +128,6 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     download_urls = []
     total_size = []
 
-    live.stop()
-
     response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
     for artifact in response.artifacts:
         path = os.path.join(local_dst, artifact.filename.replace(remote_src, ""))
@@ -141,14 +137,12 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
         download_urls.append(artifact.url)
         total_size.append(int(artifact.size_bytes))
 
+    live.stop()
+
     # Sleep to avoid rich live collision.
     sleep(1)
 
-    progress = Progress(
-        TextColumn("[bold blue]{task.description}", justify="left"),
-        BarColumn(bar_width=None),
-        "[self.progress.percentage]{task.percentage:>3.1f}%",
-    )
+    progress = progress = _get_progress_bar()
 
     progress.start()
 
@@ -216,3 +210,12 @@ def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
     assert len(lit_apps) == 1
     lit_app = lit_apps[0]
     return project_id, lit_app.id
+
+
+def _get_progress_bar():
+    return Progress(
+        TextColumn("[bold blue]{task.description}", justify="left"),
+        BarColumn(bar_width=None),
+        "[self.progress.percentage]{task.percentage:>3.1f}%",
+        DownloadColumn(),
+    )
