@@ -15,10 +15,10 @@ import torch
 from jsonargparse import lazy_instance
 from torch.nn import functional as F
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.plugins import HPUPrecisionPlugin
+from lightning.pytorch import LightningModule
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch.plugins import HPUPrecisionPlugin
 
 
 class LitClassifier(LightningModule):

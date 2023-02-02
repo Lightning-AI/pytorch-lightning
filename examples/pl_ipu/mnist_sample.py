@@ -15,8 +15,8 @@
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
 
 
 class LitClassifier(LightningModule):
