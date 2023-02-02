@@ -138,20 +138,24 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
             row += _add_colors(name, color) + spaces
         rich.print(row)
 
-def _collect_artifacts(client: LightningClient, project_id: str, app_id: str, page_token: Optional[str] = "", tokens = None):
+
+def _collect_artifacts(
+    client: LightningClient,
+    project_id: str,
+    app_id: str,
+    page_token: Optional[str] = "",
+    tokens=None,
+):
     if tokens is None:
         tokens = []
 
     if page_token in tokens:
         return
 
-
-        
-
-    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id, page_token=page_token)
-    for artifact in response.artifacts:
-        yield artifact
+    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(
+        project_id, app_id, page_token=page_token
+    )
+    yield from response.artifacts
 
     tokens.append(page_token)
-    for artifact in _collect_artifacts(client, project_id, app_id, page_token=response.next_page_token, tokens=tokens):
-        yield artifact
+    yield from _collect_artifacts(client, project_id, app_id, page_token=response.next_page_token, tokens=tokens)
