@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 import click
 from rich.live import Live
