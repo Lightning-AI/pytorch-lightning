@@ -49,7 +49,7 @@ def ls(path: Optional[str] = None) -> List[str]:
             return project_names
 
         # Note: Root format has the following structure:
-        # /{PROJECT_NAME}/{APP_NAME}/{ARTIFACTS_PATHS}
+        # /{PROJECT_NAME}/{APP_NAME}/{ARTIFACTS_PATHS}
         # TODO: Add support for CloudSpaces, etc..
         splits = root.split("/")[1:]
 
