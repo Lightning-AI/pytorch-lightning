@@ -34,7 +34,7 @@ class MPIEnvironment(ClusterEnvironment):
     Requires the installation of the `mpi4py` package. See also: https://github.com/mpi4py/mpi4py
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not _MPI4PY_AVAILABLE:
             raise ModuleNotFoundError(str(_MPI4PY_AVAILABLE))
 
@@ -90,11 +90,13 @@ class MPIEnvironment(ClusterEnvironment):
     def local_rank(self) -> int:
         if self._comm_local is None:
             self._init_comm_local()
+        assert self._comm_local is not None
         return self._comm_local.Get_rank()
 
     def node_rank(self) -> int:
         if self._node_rank is None:
             self._init_comm_local()
+        assert self._node_rank is not None
         return self._node_rank
 
     def _get_main_address(self) -> str:
