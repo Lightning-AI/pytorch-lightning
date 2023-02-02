@@ -95,7 +95,6 @@ Reduce the added overhead by logging less frequently:
     :emphasize-lines: 3
 
     for iteration in range(num_iterations):
-
         if iteration % log_every_n_steps == 0:
             value = ...
             fabric.log("some_value", value)

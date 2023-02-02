@@ -108,6 +108,7 @@ Lightning doesn't support it out of the box yet but you can still use it by conf
 
     import bitsandbytes as bnb
 
+
     # in your LightningModule, return the 8-bit optimizer
     def configure_optimizers(self):
         return bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))
