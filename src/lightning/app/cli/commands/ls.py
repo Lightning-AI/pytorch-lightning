@@ -91,15 +91,21 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         depth = len(splits)
 
-        prefix = _get_prefix("/".join(splits[2:]), lit_resource)
+        prefix = "/".join(splits[2:])
+        prefix = _get_prefix(prefix, lit_resource)
 
         for artifact in _collect_artifacts(client=client, project_id=project_id, prefix=prefix):
 
             if str(artifact.filename).startswith("/"):
                 artifact.filename = artifact.filename[1:]
 
-            path = os.path.join(project_id, lit_resource.name, prefix, artifact.filename)
+            path = os.path.join(project_id, prefix[1:], artifact.filename)
+
             artifact_splits = path.split("/")
+
+            if len(artifact_splits) <= depth + 1:
+                continue
+
             path = artifact_splits[depth + 1]
 
             paths = app_paths if isinstance(lit_resource, Externalv1LightningappInstance) else cloud_spaces_paths
@@ -220,9 +226,7 @@ def _add_resource_prefix(prefix: str, resource_path: str):
     return "/" + os.path.join(resource_path, prefix)
 
 
-def _get_prefix(path: str, lit_resource) -> str:
-    prefix = "/".join(path.split("/")[2:])
-
+def _get_prefix(prefix: str, lit_resource) -> str:
     if isinstance(lit_resource, Externalv1LightningappInstance):
         return _add_resource_prefix(prefix, f"lightningapps/{lit_resource.id}")
 

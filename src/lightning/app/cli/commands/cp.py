@@ -133,6 +133,8 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     download_urls = []
     total_size = []
 
+    live.stop()
+
     prefix = _get_prefix("/".join(pwd.split("/")[3:]), lit_resource)
 
     for artifact in _collect_artifacts(client, project_id, prefix, include_download_url=True):
@@ -142,8 +144,6 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
         download_paths.append(Path(path).resolve())
         download_urls.append(artifact.url)
         total_size.append(int(artifact.size_bytes))
-
-    live.stop()
 
     if not download_paths:
         print("There were no files to download.")
