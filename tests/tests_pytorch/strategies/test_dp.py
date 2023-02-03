@@ -117,20 +117,32 @@ class ReductionTestModel(BoringModel):
     def training_step(self, batch, batch_idx):
         output = super().training_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
-        self.train_outputs.append(output)
         return output
 
     def validation_step(self, batch, batch_idx):
         output = super().validation_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
-        self.val_outputs.append(output)
         return output
 
     def test_step(self, batch, batch_idx):
         output = super().test_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
-        self.test_outputs.append(output)
         return output
+
+    def training_step_end(self, training_step_output):
+        # the strategy does this automatically, but since we want to store these in memory, we need to manually do it
+        # so that we can append the reduced value and not the per-rank value
+        training_step_output["loss"] = self.trainer.strategy.reduce(training_step_output["loss"])
+        self.train_outputs.append(training_step_output)
+        # return this or the DP strategy will reduce again
+        return training_step_output
+
+    def validation_step_end(self, validation_step_output):
+        self.val_outputs.append(validation_step_output)
+        # returning a value is not necessary because there's no modification
+
+    def test_step_end(self, test_step_output):
+        self.test_outputs.append(test_step_output)
 
     def on_train_epoch_end(self):
         assert self.train_outputs[0]["loss"].shape == torch.Size([])
@@ -158,9 +170,6 @@ class ReductionTestModel(BoringModel):
 def test_dp_training_step_dict(tmpdir):
     """This test verifies that dp properly reduces dictionaries."""
     model = ReductionTestModel()
-    model.training_step_end = None
-    model.validation_step_end = None
-    model.test_step_end = None
 
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
