@@ -27,18 +27,62 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
+from lightning_app.core import constants
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
 
+# Global record to track ports that have been allocated in this session.
+_reserved_ports = set()
+
+
 def find_free_network_port() -> int:
     """Finds a free port on localhost."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    port = s.getsockname()[1]
-    s.close()
+    if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
+        return _find_free_network_port_cloudspace()
+
+    port = None
+
+    for _ in range(10):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(("", 0))
+        port = sock.getsockname()[1]
+        sock.close()
+
+        if port not in _reserved_ports:
+            break
+
+    if port in _reserved_ports:
+        # Prevent an infinite loop, if we tried 10 times and didn't get a free port then something is wrong
+        raise RuntimeError(
+            "Couldn't find a free port. Please open an issue at `https://github.com/Lightning-AI/lightning/issues`."
+        )
+
+    _reserved_ports.add(port)
     return port
+
+
+def _find_free_network_port_cloudspace():
+    """Finds a free port in the exposed range when running in a cloudspace."""
+    for port in range(
+        constants.APP_SERVER_PORT,
+        constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
+    ):
+        if port in _reserved_ports:
+            continue
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(("", port))
+            sock.close()
+            _reserved_ports.add(port)
+            return port
+        except OSError:
+            continue
+
+    # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
+    raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
 
 
 _CONNECTION_RETRY_TOTAL = 2880

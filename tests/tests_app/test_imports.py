@@ -49,7 +49,7 @@ def test_import_depth(
     ]
 ):
     """This test ensures that any public exports (functions, classes, etc.) can be imported by users with at most a
-    depth of two. This guarantees that everything user-facing can be imported with (at most) ``lightning.app.*.*``.
+    depth of two. This guarantees that everything user-facing can be imported with (at most) ``lightning_app.*.*``.
 
     Args:
         ignore: Sub-module paths to ignore (usually sub-modules that are not intended to be user-facing).

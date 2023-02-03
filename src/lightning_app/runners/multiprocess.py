@@ -20,8 +20,8 @@ from typing import Any, Union
 import click
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
+from lightning_app.core import constants
 from lightning_app.core.api import start_server
-from lightning_app.core.constants import APP_SERVER_IN_CLOUD
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
@@ -50,7 +50,8 @@ class MultiProcessRuntime(Runtime):
             _set_flow_context()
 
             # Note: In case the runtime is used in the cloud.
-            self.host = "0.0.0.0" if APP_SERVER_IN_CLOUD else self.host
+            in_cloudspace = constants.LIGHTNING_CLOUDSPACE_HOST is not None
+            self.host = "0.0.0.0" if constants.APP_SERVER_IN_CLOUD or in_cloudspace else self.host
 
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
@@ -116,7 +117,7 @@ class MultiProcessRuntime(Runtime):
                 # wait for server to be ready
                 has_started_queue.get()
 
-            if open_ui and not _is_headless(self.app):
+            if open_ui and not _is_headless(self.app) and constants.LIGHTNING_CLOUDSPACE_HOST is None:
                 click.launch(self._get_app_url())
 
             # Connect the runtime to the application.
@@ -134,7 +135,7 @@ class MultiProcessRuntime(Runtime):
                 self.terminate()
 
     def terminate(self):
-        if APP_SERVER_IN_CLOUD:
+        if constants.APP_SERVER_IN_CLOUD:
             # Close all the ports open for the App within the App.
             ports = [self.port] + getattr(self.backend, "ports", [])
             for port in ports:
