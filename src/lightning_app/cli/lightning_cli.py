@@ -33,13 +33,17 @@ from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning_app.cli.cmd_apps import _AppManager
 from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.cli.commands.app_commands import _run_app_command
+from lightning_app.cli.commands.cd import cd
 from lightning_app.cli.commands.connection import (
     _list_app_commands,
     _retrieve_connection_to_an_app,
     connect,
     disconnect,
 )
+from lightning_app.cli.commands.cp import cp
 from lightning_app.cli.commands.logs import logs
+from lightning_app.cli.commands.ls import ls
+from lightning_app.cli.commands.pwd import pwd
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
@@ -119,6 +123,10 @@ def show() -> None:
 
 _main.command()(connect)
 _main.command()(disconnect)
+_main.command()(ls)
+_main.command()(cd)
+_main.command()(cp)
+_main.command()(pwd)
 show.command()(logs)
 
 
