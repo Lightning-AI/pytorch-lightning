@@ -644,9 +644,15 @@ def test_state_observer():
 
 
 @pytest.mark.parametrize(
-    "environment, expected_ip_addr", [({}, "127.0.0.1"), ({"LIGHTNING_NODE_IP": "10.10.10.5"}, "10.10.10.5")]
+    "patch_constants, environment, expected_ip_addr",
+    [
+        ({}, {}, "127.0.0.1"),
+        ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "0.0.0.0"),
+        ({}, {"LIGHTNING_NODE_IP": "10.10.10.5"}, "10.10.10.5"),
+    ],
+    indirect=["patch_constants"],
 )
-def test_work_runner_sets_internal_ip(environment, expected_ip_addr):
+def test_work_runner_sets_internal_ip(patch_constants, environment, expected_ip_addr):
     """Test that the WorkRunner updates the internal ip address as soon as the Work starts running."""
 
     class Work(LightningWork):
