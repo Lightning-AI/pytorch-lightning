@@ -24,7 +24,7 @@ import click
 import requests
 import rich
 import urllib3
-from lightning_cloud.openapi import Externalv1LightningappInstance, IdArtifactsBody, V1CloudSpace
+from lightning_cloud.openapi import Externalv1LightningappInstance, ProjectIdStorageBody, V1CloudSpace
 from rich.live import Live
 from rich.progress import BarColumn, DownloadColumn, Progress, Task, TextColumn
 from rich.spinner import Spinner
@@ -74,10 +74,12 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
 
 
 def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str, pwd: str) -> str:
+    remote_dst = os.path.join(*remote_dst.split("/")[3:])
+
     if not os.path.exists(local_src):
         return _error_and_exit(f"The provided source path {local_src} doesn't exist.")
 
-    project_id, app_id = _get_project_app_ids(pwd)
+    project_id, lit_resource = _get_project_id_and_resource(pwd)
 
     local_src = Path(local_src).resolve()
     upload_paths = []
@@ -91,21 +93,30 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     upload_urls = []
 
+    clusters = client.projects_service_list_project_cluster_bindings(project_id)
+
     for upload_path in upload_paths:
-        filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
-        response = client.lightningapp_instance_service_upload_lightningapp_instance_artifact(
-            project_id=project_id,
-            id=app_id,
-            body=IdArtifactsBody(filename),
-            async_req=True,
-        )
-        upload_urls.append(response)
+        for cluster in clusters.clusters:
+            filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
+            filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
+            response = client.lightningapp_instance_service_upload_project_artifact(
+                project_id=project_id,
+                body=ProjectIdStorageBody(cluster_id=cluster.cluster_id, filename=filename),
+                async_req=True,
+            )
+            upload_urls.append(response)
+
+    upload_urls = [upload_url.get().upload_url for upload_url in upload_urls]
 
     live.stop()
 
+    if not upload_paths:
+        print("There were no files to upload.")
+        return
+
     progress = _get_progress_bar()
 
-    total_size = sum([Path(path).stat().st_size for path in upload_paths])
+    total_size = sum([Path(path).stat().st_size for path in upload_paths]) // len(clusters.clusters)
     task_id = progress.add_task("upload", filename="", total=total_size)
 
     progress.start()
@@ -126,14 +137,17 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: Task) -> Optional[Exception]:
     source_file = Path(source_file)
     file_uploader = FileUploader(
-        presigned_url.get().upload_url,
+        presigned_url,
         source_file,
         total_size=None,
         name=str(source_file),
     )
     file_uploader.progress = progress
     file_uploader.task_id = task_id
-    file_uploader.upload()
+    try:
+        file_uploader.upload()
+    except ValueError:
+        pass
 
 
 def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
@@ -214,24 +228,6 @@ def _remove_remote(path: str) -> str:
 def _error_and_exit(msg: str) -> str:
     rich.print(f"[red]ERROR[/red]: {msg}")
     sys.exit(0)
-
-
-# TODO: To be removed when upload is supported for CloudSpaces.
-def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
-    """Convert a root path to a project id and app id."""
-    # TODO: Handle project level
-    project_name, app_name, *_ = pwd.split("/")[1:3]
-    client = LightningClient()
-    projects = client.projects_service_list_memberships()
-    project_id = [project.project_id for project in projects.memberships if project.name == project_name][0]
-    client = LightningClient()
-    lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
-    lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == app_name]
-    if len(lit_apps) != 1:
-        print(f"ERROR: There isn't any Lightning App matching the name {app_name}.")
-        sys.exit(0)
-    lit_app = lit_apps[0]
-    return project_id, lit_app.id
 
 
 def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1LightningappInstance, V1CloudSpace]]:

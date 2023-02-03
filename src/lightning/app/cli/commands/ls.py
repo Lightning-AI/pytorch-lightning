@@ -220,27 +220,31 @@ def _collect_artifacts(
             include_download_url=include_download_url,
             page_size=str(page_size),
         )
-        for artifact in response.artifacts:
-            if ".lightning-app-sync" in artifact.filename:
-                continue
-            yield artifact
+        if response:
+            for artifact in response.artifacts:
+                if ".lightning-app-sync" in artifact.filename:
+                    continue
+                yield artifact
 
-        if response.next_page_token != "":
-            tokens.append(page_token)
-            yield from _collect_artifacts(
-                client,
-                project_id,
-                prefix=prefix,
-                cluster_id=cluster_id,
-                page_token=response.next_page_token,
-                tokens=tokens,
-            )
+            if response.next_page_token != "":
+                tokens.append(page_token)
+                yield from _collect_artifacts(
+                    client,
+                    project_id,
+                    prefix=prefix,
+                    cluster_id=cluster_id,
+                    page_token=response.next_page_token,
+                    tokens=tokens,
+                )
 
 
 def _add_resource_prefix(prefix: str, resource_path: str):
     if resource_path in prefix:
         return prefix
-    return "/" + os.path.join(resource_path, prefix)
+    prefix = os.path.join(resource_path, prefix)
+    if not prefix.startswith("/"):
+        prefix = "/" + prefix
+    return prefix
 
 
 def _get_prefix(prefix: str, lit_resource) -> str:
