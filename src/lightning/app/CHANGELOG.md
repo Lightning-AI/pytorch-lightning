@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
 
 - Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
+- Enable `ls` and `cp` (download) at project level ([#16622](https://github.com/Lightning-AI/lightning/pull/16622))
  * `ls`: List files from your Cloud Platform Filesystem
  * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
  * `pwd`: Return the current folder in your Cloud Platform Filesystem
