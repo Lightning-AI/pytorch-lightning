@@ -30,11 +30,11 @@ def test_find_free_network_port_cloudspace(_):
     constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT = 10
 
     try:
-        with pytest.raises(RuntimeError, match="All 10 ports are already in use."):
-            ports = set()
-            num_ports = 0
+        ports = set()
+        num_ports = 0
 
-            while True:
+        with pytest.raises(RuntimeError, match="All 10 ports are already in use."):
+            for _ in range(11):
                 ports.add(find_free_network_port())
                 num_ports = num_ports + 1
 
