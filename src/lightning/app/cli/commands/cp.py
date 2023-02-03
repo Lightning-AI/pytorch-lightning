@@ -18,7 +18,6 @@ import sys
 from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
-from time import sleep
 from typing import Optional, Tuple, Union
 
 import click
@@ -104,9 +103,6 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     live.stop()
 
-    # Sleep to avoid rich live collision.
-    sleep(1)
-
     progress = _get_progress_bar()
 
     total_size = sum([Path(path).stat().st_size for path in upload_paths])
@@ -147,8 +143,6 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     download_urls = []
     total_size = []
 
-    live.stop()
-
     prefix = _get_prefix("/".join(pwd.split("/")[3:]), lit_resource)
 
     for artifact in _collect_artifacts(client, project_id, prefix, include_download_url=True):
@@ -159,12 +153,11 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
         download_urls.append(artifact.url)
         total_size.append(int(artifact.size_bytes))
 
+    live.stop()
+
     if not download_paths:
         print("There were no files to download.")
         return
-
-    # Sleep to avoid rich live collision.
-    sleep(1)
 
     progress = progress = _get_progress_bar()
 
