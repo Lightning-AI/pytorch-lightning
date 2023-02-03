@@ -12,25 +12,26 @@ assignees: ''
 
 ### To Reproduce
 
-Steps to reproduce the behavior:
-
-1. Go to '...'
-1. Run '....'
-1. Scroll down to '....'
-1. See error
+Steps to reproduce the behavior...
 
 <!-- If you have a code sample, error messages, stack traces, please provide it here as well -->
 
-#### Code sample
+<details>
+  <summary><b>Code sample</b></summary>
 
 <!-- Ideally attach a minimal code sample to reproduce the decried issue.
 Minimal means having the shortest code but still preserving the bug. -->
+
+</details>
 
 ### Expected behavior
 
 <!-- A clear and concise description of what you expected to happen. -->
 
-### Environment
+### Additional context
+
+<details>
+  <summary><b>Environment details</b></summary>
 
 - PyTorch Version (e.g., 1.0):
 - OS (e.g., Linux):
@@ -41,6 +42,6 @@ Minimal means having the shortest code but still preserving the bug. -->
 - GPU models and configuration:
 - Any other relevant information:
 
-### Additional context
+</details>
 
 <!-- Add any other context about the problem here. -->
