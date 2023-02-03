@@ -220,7 +220,10 @@ def _collect_artifacts(
             include_download_url=include_download_url,
             page_size=str(page_size),
         )
-        yield from response.artifacts
+        for artifact in response.artifacts:
+            if ".lightning-app-sync" in artifact.filename:
+                continue
+            yield artifact
 
         if response.next_page_token != "":
             tokens.append(page_token)
