@@ -33,7 +33,7 @@ from lightning.app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-# Global record to track ports that have been allocated in this session. This is needed as
+# Global record to track ports that have been allocated in this session.
 _reserved_ports = set()
 
 
