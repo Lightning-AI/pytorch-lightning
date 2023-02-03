@@ -272,8 +272,8 @@ def test_epoch_results_cache_dp(tmpdir):
             self.log("train_loss_epoch", result["loss"], on_step=False, on_epoch=True)
             return result
 
-        def training_step_end(self, training_step_outputs):  # required for dp
-            loss = training_step_outputs["loss"].mean()
+        def training_step_end(self, training_step_output):  # required for dp
+            loss = training_step_output["loss"].mean()
             return loss
 
         def on_train_epoch_end(self):

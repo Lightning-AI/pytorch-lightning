@@ -195,10 +195,10 @@ class RecommenderModel(BoringModel):
         torch.cuda._sleep(self.CYCLES_PER_MS * 50)
         return batch
 
-    def training_step_end(self, training_step_outputs):
+    def training_step_end(self, training_step_output):
         # emulate heavy routine
         torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return training_step_outputs
+        return training_step_output
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.1)

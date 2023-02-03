@@ -117,8 +117,8 @@ class BoringModel(LightningModule):
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
-    def training_step_end(self, training_step_outputs: STEP_OUTPUT) -> STEP_OUTPUT:
-        return training_step_outputs
+    def training_step_end(self, training_step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        return training_step_output
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"x": self.step(batch)}

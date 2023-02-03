@@ -747,10 +747,10 @@ class LightningModule(
                 return {"pred": out}
 
 
-            def training_step_end(self, training_step_outputs):
-                gpu_0_pred = training_step_outputs[0]["pred"]
-                gpu_1_pred = training_step_outputs[1]["pred"]
-                gpu_n_pred = training_step_outputs[n]["pred"]
+            def training_step_end(self, training_step_output):
+                gpu_0_pred = training_step_output[0]["pred"]
+                gpu_1_pred = training_step_output[1]["pred"]
+                gpu_n_pred = training_step_output[n]["pred"]
 
                 # this softmax now uses the full batch
                 loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
