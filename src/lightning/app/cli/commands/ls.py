@@ -1,10 +1,10 @@
 import os
 import sys
-from typing import Generator, List, Optional, Union
+from typing import Generator, List, Optional
 
 import click
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1CloudSpace
+from lightning_cloud.openapi import Externalv1LightningappInstance
 from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
@@ -90,14 +90,10 @@ def ls(path: Optional[str] = None) -> List[str]:
         cloud_spaces_colors = []
 
         depth = len(splits)
-        prefix = "/".join(splits[2:])
 
-        if isinstance(lit_resource, Externalv1LightningappInstance):
-            prefix = _add_resource_prefix(prefix, f"lightningapps/{lit_resource.id}")
-        else:
-            prefix = _add_resource_prefix(prefix, f"cloudspaces/{lit_resource.id}")
+        prefix = _get_prefix("/".join(splits[2:]), lit_resource)
 
-        for artifact in _collect_artifacts(client, project_id, lit_resource, prefix):
+        for artifact in _collect_artifacts(client=client, project_id=project_id, prefix=prefix):
 
             if str(artifact.filename).startswith("/"):
                 artifact.filename = artifact.filename[1:]
@@ -168,7 +164,6 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
 def _collect_artifacts(
     client: LightningClient,
     project_id: str,
-    resource: Union[Externalv1LightningappInstance, V1CloudSpace],
     prefix: str = "",
     page_token: Optional[str] = "",
     cluster_id: Optional[str] = None,
@@ -186,11 +181,11 @@ def _collect_artifacts(
                 client,
                 project_id,
                 prefix=prefix,
-                resource=resource,
                 cluster_id=cluster.cluster_id,
                 page_token=page_token,
                 tokens=tokens,
                 page_size=page_size,
+                include_download_url=include_download_url,
             )
     else:
 
@@ -213,7 +208,6 @@ def _collect_artifacts(
                 client,
                 project_id,
                 prefix=prefix,
-                resource=resource,
                 cluster_id=cluster_id,
                 page_token=response.next_page_token,
                 tokens=tokens,
@@ -224,3 +218,12 @@ def _add_resource_prefix(prefix: str, resource_path: str):
     if resource_path in prefix:
         return prefix
     return "/" + os.path.join(resource_path, prefix)
+
+
+def _get_prefix(path: str, lit_resource) -> str:
+    prefix = "/".join(path.split("/")[2:])
+
+    if isinstance(lit_resource, Externalv1LightningappInstance):
+        return _add_resource_prefix(prefix, f"lightningapps/{lit_resource.id}")
+
+    return _add_resource_prefix(prefix, f"cloudspaces/{lit_resource.id}")

@@ -5,18 +5,19 @@ from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
 from time import sleep
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import click
 import requests
 import rich
 import urllib3
-from lightning_cloud.openapi import IdArtifactsBody
+from lightning_cloud.openapi import Externalv1LightningappInstance, IdArtifactsBody, V1CloudSpace
 from rich.live import Live
 from rich.progress import BarColumn, DownloadColumn, Progress, Task, TextColumn
 from rich.spinner import Spinner
 from rich.text import Text
 
+from lightning.app.cli.commands.ls import _collect_artifacts, _get_prefix
 from lightning.app.cli.commands.pwd import _pwd
 from lightning.app.source_code import FileUploader
 from lightning.app.utilities.app_helpers import Logger
@@ -126,14 +127,15 @@ def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, ta
 
 
 def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
-    project_id, app_id = _get_project_app_ids(pwd)
+    project_id, lit_resource = _get_project_id_and_resource(pwd)
 
     download_paths = []
     download_urls = []
     total_size = []
 
-    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
-    for artifact in response.artifacts:
+    prefix = _get_prefix("/".join(pwd.split("/")[3:]), lit_resource)
+
+    for artifact in _collect_artifacts(client, project_id, prefix, include_download_url=True):
         path = os.path.join(local_dst, artifact.filename.replace(remote_src, ""))
         path = Path(path).resolve()
         os.makedirs(path.parent, exist_ok=True)
@@ -207,6 +209,7 @@ def _error_and_exit(msg: str) -> str:
     sys.exit(0)
 
 
+# TODO: To be removed when upload is supported for CloudSpaces.
 def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
     """Convert a root path to a project id and app id."""
     # TODO: Handle project level
@@ -222,6 +225,35 @@ def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
         sys.exit(0)
     lit_app = lit_apps[0]
     return project_id, lit_app.id
+
+
+def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1LightningappInstance, V1CloudSpace]]:
+    """Convert a root path to a project id and app id."""
+    # TODO: Handle project level
+    project_name, resource_name, *_ = pwd.split("/")[1:3]
+
+    # 1. Collect the projects of the user
+    client = LightningClient()
+    projects = client.projects_service_list_memberships()
+    project_id = [project.project_id for project in projects.memberships if project.name == project_name][0]
+
+    # 2. Collect resources
+    lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
+
+    lit_cloud_spaces = client.cloud_space_service_list_cloud_spaces(project_id=project_id).cloudspaces
+
+    lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == resource_name]
+
+    if len(lit_ressources) == 0:
+
+        lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == resource_name]
+
+        if len(lit_ressources) == 0:
+
+            print(f"ERROR: There isn't any Lightning Ressource matching the name {resource_name}.")
+            sys.exit(0)
+
+    return project_id, lit_ressources[0]
 
 
 def _get_progress_bar():
