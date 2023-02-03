@@ -18,7 +18,7 @@ Then, type your handler input with your custom model.
 
 After running the updated App, the App documentation ``/name`` has changed and takes JSON with ``{"name": ...}`` as input.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_post_pydantic.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/rest_post_pydantic.png
    :alt: Rest API with pydantic
    :width: 100 %
 

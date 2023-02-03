@@ -3,12 +3,12 @@ from copy import deepcopy
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.payload import Payload
-from lightning_app.structures import Dict, List
-from lightning_app.testing.helpers import EmptyFlow
-from lightning_app.utilities.enum import CacheCallsKeys, WorkStageStatus
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.payload import Payload
+from lightning.app.structures import Dict, List
+from lightning.app.testing.helpers import EmptyFlow
+from lightning.app.utilities.enum import CacheCallsKeys, WorkStageStatus
 
 
 def test_dict():
@@ -54,6 +54,7 @@ def test_dict():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -87,6 +88,7 @@ def test_dict():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -120,6 +122,7 @@ def test_dict():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -205,6 +208,7 @@ def test_list():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -238,6 +242,7 @@ def test_list():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -266,6 +271,7 @@ def test_list():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)

@@ -1,6 +1,6 @@
 from unittest import mock
 
-from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
+from lightning.app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 
 
 def test_cluster_logs_socket_url1():

@@ -48,6 +48,7 @@ When Shouldn't I use an Optimized Distributed Strategy?
 =======================================================
 
 Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in the following cases, we recommend sticking to ordinary distributed strategies
+
 * When your model is small (ResNet50 of around 80M Parameters), unless you are using unusually large batch sizes or inputs.
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
@@ -205,7 +206,7 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
 .. code-block:: python
 
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
 
@@ -258,23 +259,24 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
 
-You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
+You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+    from pytorch_lightning.strategies import FSDPStrategy
 
 
-    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=True)
-    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", devices=4)
+    fsdp = FSDPStrategy(cpu_offload=True)
+    # equivalent to passing `"fsdp_cpu_offload"`
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 
-Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about the native support.
+Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 
 ----
 
@@ -290,9 +292,9 @@ Enable checkpointing on large layers (like Transformers) by providing the layer 
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+    from pytorch_lightning.strategies import FSDPStrategy
 
-    fsdp = DDPFullyShardedNativeStrategy(
+    fsdp = FSDPStrategy(
         activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
     )
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)

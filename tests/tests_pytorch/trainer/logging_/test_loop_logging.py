@@ -18,11 +18,11 @@ from unittest.mock import ANY
 
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 
 
 def test_default_level_for_hooks_that_support_logging():
@@ -45,7 +45,7 @@ def test_default_level_for_hooks_that_support_logging():
     all_logging_hooks = {k for k in _FxValidator.functions if _FxValidator.functions[k]}
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result._ResultCollection.log", return_value=None
+        "lightning.pytorch.trainer.connectors.logger_connector.result._ResultCollection.log", return_value=None
     ) as result_mock:
         trainer.state.stage = RunningStage.TRAINING
         hooks = [

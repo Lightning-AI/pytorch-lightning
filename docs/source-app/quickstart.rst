@@ -73,11 +73,11 @@ And that's it!
 
 The app will open your browser and show an interactive demo:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/quick-start/qiuck-start-tensorboard-tab.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/qiuck-start-tensorboard-tab.png
     :alt: Quick Start UI - Model Training Tab
     :width: 100 %
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/quick-start/quick-start-gradio-tab.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/quick-start-gradio-tab.png
     :alt: Quick Start UI - Interactive Demo Tab
     :width: 100 %
 
@@ -92,13 +92,13 @@ Once the training is finished, the trained model weights are passed to the serve
 
 Here is how the components of a Lightning app are structured:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/quick_start_components.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/quick_start_components.gif
     :alt: Quick Start Application
     :width: 100 %
 
 Here is the application timeline:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/timeline.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/timeline.gif
     :alt: Quick Start Timeline Application
     :width: 100 %
 

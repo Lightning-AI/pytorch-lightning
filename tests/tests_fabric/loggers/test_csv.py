@@ -17,8 +17,8 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from lightning_fabric.loggers import CSVLogger
-from lightning_fabric.loggers.csv_logs import _ExperimentWriter
+from lightning.fabric.loggers import CSVLogger
+from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 
 
 def test_file_logger_automatic_versioning(tmpdir):

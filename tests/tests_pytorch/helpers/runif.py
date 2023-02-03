@@ -11,24 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
 import os
 import sys
 from typing import Optional
 
 import pytest
 import torch
+from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
-from pkg_resources import get_distribution
 
-from lightning_fabric.accelerators.cuda import num_cuda_devices
-from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.imports import (
+from lightning.fabric.accelerators.cuda import num_cuda_devices
+from lightning.pytorch.accelerators.mps import MPSAccelerator
+from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
+from lightning.pytorch.strategies.colossalai import _COLOSSALAI_AVAILABLE
+from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.pytorch.utilities.imports import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
@@ -62,7 +62,6 @@ class RunIf:
         mps: Optional[bool] = None,
         skip_windows: bool = False,
         standalone: bool = False,
-        fairscale: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
         omegaconf: bool = False,
@@ -90,7 +89,6 @@ class RunIf:
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
-            fairscale: Require that facebookresearch/fairscale is installed.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
             omegaconf: Require that omry/omegaconf is installed.
@@ -111,14 +109,14 @@ class RunIf:
             kwargs["min_cuda_gpus"] = True
 
         if min_torch:
-            torch_version = get_distribution("torch").version
-            conditions.append(Version(torch_version) < Version(min_torch))
-            reasons.append(f"torch>={min_torch}")
+            # set use_base_version for nightly support
+            conditions.append(compare_version("torch", operator.lt, min_torch, use_base_version=True))
+            reasons.append(f"torch>={min_torch}, {torch.__version__} installed")
 
         if max_torch:
-            torch_version = get_distribution("torch").version
-            conditions.append(Version(torch_version) >= Version(max_torch))
-            reasons.append(f"torch<{max_torch}")
+            # set use_base_version for nightly support
+            conditions.append(compare_version("torch", operator.ge, max_torch, use_base_version=True))
+            reasons.append(f"torch<{max_torch}, {torch.__version__} installed")
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -178,14 +176,6 @@ class RunIf:
             reasons.append("Standalone execution")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["standalone"] = True
-
-        if fairscale:
-            if skip_windows:
-                raise ValueError(
-                    "`skip_windows` is not necessary when `fairscale` is set as it does not support Windows."
-                )
-            conditions.append(not _FAIRSCALE_AVAILABLE)
-            reasons.append("Fairscale")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)

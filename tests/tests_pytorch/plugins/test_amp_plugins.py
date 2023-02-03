@@ -19,13 +19,13 @@ import pytest
 import torch
 from torch import Tensor
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import MixedPrecisionPlugin
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import MixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
-class MyNativeAMP(MixedPrecisionPlugin):
+class MyAMP(MixedPrecisionPlugin):
     pass
 
 
@@ -48,7 +48,7 @@ class MyNativeAMP(MixedPrecisionPlugin):
     "custom_plugin,plugin_cls",
     [
         (False, MixedPrecisionPlugin),
-        (True, MyNativeAMP),
+        (True, MyAMP),
     ],
 )
 def test_amp_ddp(cuda_count_2, strategy, devices, custom_plugin, plugin_cls):
@@ -120,7 +120,7 @@ class TestPrecisionModel(BoringModel):
         # check clipping worked as expected
         self.check_grads_clipped()
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, closure, **_):
+    def optimizer_step(self, epoch, batch_idx, optimizer, closure, **_):
         # pass self as a kwarg
         optimizer.step(closure, pl_module=self)
 
@@ -160,6 +160,7 @@ def test_amp_skip_optimizer(tmpdir):
     class CustomBoringModel(BoringModel):
         def __init__(self):
             super().__init__()
+            self.automatic_optimization = False
             self.layer1 = torch.nn.Linear(32, 32)
             self.layer2 = torch.nn.Linear(32, 2)
 
@@ -168,10 +169,14 @@ def test_amp_skip_optimizer(tmpdir):
             x = self.layer2(x)
             return x
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            if optimizer_idx == 1:
-                return None
-            return self.step(batch)
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+            output = self(batch)
+            loss = self.loss(output)
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            # only optimizer 2 steps
+            opt2.step()
 
         def configure_optimizers(self):
             return [

@@ -24,9 +24,9 @@ from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 from torch.utils.data import DataLoader
 
-from lightning_fabric import Fabric
-from lightning_fabric.plugins import DeepSpeedPrecision
-from lightning_fabric.strategies import DeepSpeedStrategy
+from lightning.fabric import Fabric
+from lightning.fabric.plugins import DeepSpeedPrecision
+from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
@@ -241,7 +241,7 @@ class ModelParallelClassification(BoringFabric):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_multigpu_stage_3(tmpdir):
+def test_deepspeed_multigpu_stage_3():
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     fabric = ModelParallelClassification(
         strategy=DeepSpeedStrategy(stage=3),
@@ -254,8 +254,9 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
 
 @RunIf(deepspeed=True)
 @mock.patch("deepspeed.init_distributed", autospec=True)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
-def test_deepspeed_env_variables_on_platforms(deepspeed_dist_mock, tmpdir, platform):
+def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     """Test to ensure that we set up distributed communication correctly.
 
     When using Windows, ranks environment variables should not be set, and DeepSpeed should handle this.
@@ -279,7 +280,7 @@ def test_deepspeed_env_variables_on_platforms(deepspeed_dist_mock, tmpdir, platf
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_specific_gpu_device_index(tmpdir):
+def test_deepspeed_specific_gpu_device_index():
     """Test that the DeepSpeed strategy can run on specific device indices."""
 
     class RunFabric(BoringFabric):
@@ -295,7 +296,7 @@ def test_deepspeed_specific_gpu_device_index(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
-def test_deepspeed_with_bfloat16_precision(tmpdir):
+def test_deepspeed_with_bfloat16_precision():
     """Test that the DeepSpeed strategy works with bfloat16 precision."""
 
     class Model(nn.Module):
@@ -322,3 +323,88 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert fabric._strategy.precision.precision == "bf16"
     assert fabric._strategy.config["zero_optimization"]["stage"] == 3
     fabric.run()
+
+
+def _assert_saved_model_is_equal(fabric, model, checkpoint_path):
+    """Convert the saved checkpoint to a single file with the model weights consolidated to easily verify the full
+    weights in float32 precision."""
+    from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+
+    assert isinstance(fabric.strategy, DeepSpeedStrategy)
+
+    # carry out the check only on rank 0
+    if fabric.is_global_zero:
+        if fabric.strategy.config["zero_optimization"]["stage"] in (2, 3):
+            single_ckpt_path = checkpoint_path / "single_model.pt"
+            # the tag is hardcoded in DeepSpeedStrategy
+            convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path, tag="checkpoint")
+            state_dict = torch.load(single_ckpt_path)
+        else:
+            # 'checkpoint' is the tag, hardcoded in DeepSpeedStrategy
+            single_ckpt_path = checkpoint_path / "checkpoint" / "mp_rank_00_model_states.pt"
+            state_dict = torch.load(single_ckpt_path)["module"]
+
+        model = model.cpu()
+
+        # assert model parameters are identical after loading
+        for orig_param, saved_model_param in zip(model.parameters(), state_dict.values()):
+            # perform the equality check in the same precision
+            saved_model_param = saved_model_param.cpu().to(orig_param.dtype)
+            assert torch.equal(orig_param, saved_model_param)
+
+    fabric.barrier()
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+@pytest.mark.parametrize("stage", [1, 2, 3])
+def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
+    """Test that DeepSpeed stage 1, 2, and 3 model checkpoints can be saved and loaded successfully."""
+    from deepspeed import DeepSpeedEngine
+
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=DeepSpeedStrategy(stage=stage), precision="bf16")
+    fabric.launch()
+
+    checkpoint_path = fabric.broadcast(tmp_path / "deepspeed-checkpoint")
+
+    with fabric.sharded_model():
+        model = BoringModel()
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    model, optimizer = fabric.setup(model, optimizer)
+    assert isinstance(model._forward_module, DeepSpeedEngine)
+
+    # TODO(fabric): The dtype on the model is not correct, should be torch.bfloat16
+    assert model.dtype == torch.float32
+    assert next(model.parameters()).dtype == torch.bfloat16
+
+    # dummy training step
+    output = model(torch.randn(1, 32).to(fabric.device))
+    loss = output.sum()
+    fabric.backward(loss)
+    optimizer.step()
+    optimizer.zero_grad()
+
+    state = {"model": model, "optimizer": optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+
+    fabric.barrier()
+
+    # re-init all objects and resume
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=DeepSpeedStrategy(stage=stage), precision="bf16")
+    fabric.launch()
+    with fabric.sharded_model():
+        model = BoringModel()
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    model, optimizer = fabric.setup(model, optimizer)
+    state = {"model": model, "optimizer": optimizer, "steps": 0}
+
+    metadata = fabric.load(checkpoint_path, state)
+    fabric.barrier()
+
+    # check user data in state reloaded
+    assert state["steps"] == 1
+    # the remainder of the deepspeed checkpoint contains metadata
+    assert "ds_version" in metadata
+
+    _assert_saved_model_is_equal(fabric, model, checkpoint_path)

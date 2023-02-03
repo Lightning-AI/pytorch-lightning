@@ -294,7 +294,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
-    "fairscale": ("https://fairscale.readthedocs.io/en/latest/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
 }
 

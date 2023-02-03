@@ -18,13 +18,13 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.profilers import SimpleProfiler
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from lightning.pytorch import LightningDataModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.profilers import SimpleProfiler
+from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -127,7 +127,6 @@ def test_misconfiguration_error():
     fetcher = DataFetcher()
     loader = DataLoader(range(10))
     fetcher.setup(loader)
-    assert fetcher.loaders == loader
     with pytest.raises(
         MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
     ):
@@ -478,25 +477,25 @@ def test_fetching_is_profiled():
 
     # validation
     for i in range(2):
-        key = f"[EvaluationEpochLoop].val_dataloader_idx_{i}_next"
+        key = f"[_EvaluationEpochLoop].val_dataloader_idx_{i}_next"
         assert key in profiler.recorded_durations
         durations = profiler.recorded_durations[key]
         assert len(durations) == fast_dev_run
         assert all(d > 0 for d in durations)
     # training
-    key = "[TrainingEpochLoop].train_dataloader_next"
+    key = "[_TrainingEpochLoop].train_dataloader_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # test
-    key = "[EvaluationEpochLoop].val_dataloader_idx_0_next"
+    key = "[_EvaluationEpochLoop].val_dataloader_idx_0_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # predict
-    key = "[PredictionEpochLoop].predict_dataloader_idx_0_next"
+    key = "[_PredictionEpochLoop].predict_dataloader_idx_0_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
@@ -524,7 +523,7 @@ def test_fetching_is_profiled():
     profiler = trainer.profiler
     assert isinstance(profiler, SimpleProfiler)
 
-    key = "[TrainingEpochLoop].train_dataloader_next"
+    key = "[_TrainingEpochLoop].train_dataloader_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == 2  # 2 polls in training_step

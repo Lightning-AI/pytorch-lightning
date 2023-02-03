@@ -124,6 +124,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
     decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
+
     # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
         def __init__(self, encoder, decoder):
@@ -282,7 +283,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 .. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
-        def backward(self, loss, optimizer, optimizer_idx):
+        def backward(self, loss):
             loss.backward()
 
 ----
@@ -306,7 +307,7 @@ If you have multiple lines of code with similar functionalities, you can use cal
 Use a raw PyTorch loop
 ======================
 
-For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
+For certain types of work at the bleeding-edge of research, Lightning offers experts full control of optimization or the training loop in various ways.
 
 .. raw:: html
 
@@ -330,15 +331,6 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
    :button_link: ../fabric/fabric.html
-   :image_height: 220px
-   :height: 320
-
-.. displayitem::
-   :header: Loops
-   :description: Enable meta-learning, reinforcement learning, GANs with full control.
-   :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
-   :button_link: ../extensions/loops.html
    :image_height: 220px
    :height: 320
 

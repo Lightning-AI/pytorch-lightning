@@ -12,29 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from multiprocessing import Process
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, call, Mock, patch
 
 import pytest
 import torch
 
-from lightning_fabric.plugins import ClusterEnvironment
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
-from pytorch_lightning.trainer.states import TrainerFn
+from lightning.fabric.plugins import ClusterEnvironment
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
+@mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
 def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
-@mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
@@ -45,11 +46,12 @@ def test_multiprocessing_launcher_start_method(mp_mock, start_method):
         args=ANY,
         nprocs=ANY,
         start_method=start_method,
+        join=False,
     )
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
-@mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
     """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""
     mp_mock.get_all_start_methods.return_value = [start_method]
@@ -163,3 +165,14 @@ def test_non_strict_loading(tmpdir):
     # <-- here would normally be the multiprocessing boundary
     strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     model.load_state_dict.assert_called_once_with(ANY, strict=False)
+
+
+def test_kill():
+    launcher = _MultiProcessingLauncher(Mock())
+    proc0 = Mock(autospec=Process)
+    proc1 = Mock(autospec=Process)
+    launcher.procs = [proc0, proc1]
+
+    with patch("os.kill") as kill_patch:
+        launcher.kill(15)
+    assert kill_patch.mock_calls == [call(proc0.pid, 15), call(proc1.pid, 15)]
