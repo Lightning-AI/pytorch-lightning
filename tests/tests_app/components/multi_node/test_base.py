@@ -4,8 +4,8 @@ from unittest import mock
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
-from lightning_app import CloudCompute, LightningWork
-from lightning_app.components import MultiNode
+from lightning.app import CloudCompute, LightningWork
+from lightning.app.components import MultiNode
 
 
 def test_multi_node_warn_running_locally():
@@ -20,7 +20,7 @@ def test_multi_node_warn_running_locally():
         MultiNode(Work, num_nodes=1, cloud_compute=CloudCompute("gpu"))
 
 
-@mock.patch("lightning_app.components.multi_node.base.is_running_in_cloud", mock.Mock(return_value=True))
+@mock.patch("lightning.app.components.multi_node.base.is_running_in_cloud", mock.Mock(return_value=True))
 def test_multi_node_separate_cloud_computes():
     class Work(LightningWork):
         def run(self):

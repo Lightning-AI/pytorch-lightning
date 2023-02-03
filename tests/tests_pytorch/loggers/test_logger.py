@@ -21,14 +21,14 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import Logger, TensorBoardLogger
-from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests_pytorch.helpers.runif import RunIf
+from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.loggers import Logger, TensorBoardLogger
+from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.logger import _scan_checkpoints
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
 class CustomLogger(Logger):
@@ -79,8 +79,7 @@ class CustomLogger(Logger):
 def test_custom_logger(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
@@ -97,8 +96,7 @@ def test_custom_logger(tmpdir):
 def test_multiple_loggers(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
@@ -230,7 +228,7 @@ def test_np_sanitization():
 
 
 @pytest.mark.parametrize("logger", [True, False])
-@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
     class TestModel(BoringModel):
         def __init__(self, param_one, param_two):
@@ -254,7 +252,7 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
         log_hyperparams_mock.assert_not_called()
 
 
-@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, hparams: Dict[str, Any]) -> None:
@@ -331,9 +329,8 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         trainer.fit(model, dm)
 
 
-@RunIf(min_python="3.8")
 @pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
-@patch("pytorch_lightning.callbacks.ModelCheckpoint")
+@patch("lightning.pytorch.callbacks.ModelCheckpoint")
 def test_scan_checkpoints(checkpoint_callback_mock, tmpdir, save_top_k: int):
     """Checks if the expected number of checkpoints is returned."""
     # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()

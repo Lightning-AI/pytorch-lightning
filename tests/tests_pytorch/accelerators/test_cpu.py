@@ -6,13 +6,13 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from lightning_lite.plugins import TorchCheckpointIO
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.strategies import SingleDeviceStrategy
+import lightning.pytorch as pl
+from lightning.fabric.plugins import TorchCheckpointIO
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CPUAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.strategies import SingleDeviceStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 

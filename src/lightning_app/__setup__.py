@@ -1,5 +1,7 @@
+import glob
 import os
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
@@ -32,16 +34,16 @@ def _prepare_extras() -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
+    req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major")
     extras = {
-        # 'docs': load_requirements(file_name='docs.txt'),
-        "cloud": assistant.load_requirements(file_name="cloud.txt", **common_args),
-        "ui": assistant.load_requirements(file_name="ui.txt", **common_args),
-        "test": assistant.load_requirements(file_name="test.txt", **common_args),
+        p.stem: assistant.load_requirements(file_name=p.name, **common_args)
+        for p in req_files
+        if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
-    extras["extra"] = extras["cloud"] + extras["ui"]
-    extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
-    extras["all"] = extras["dev"]
+    extras["extra"] = extras["cloud"] + extras["ui"] + extras["components"]
+    extras["all"] = extras["extra"]
+    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
 
 
@@ -72,15 +74,15 @@ def _setup_args() -> Dict[str, Any]:
         include_package_data=True,
         zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],
-        python_requires=">=3.7",
+        python_requires=">=3.8",
         entry_points={
             "console_scripts": [
                 "lightning = lightning_app.cli.lightning_cli:main",
             ],
         },
-        setup_requires=["wheel"],
+        setup_requires=[],
         install_requires=assistant.load_requirements(
-            _PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all"
+            _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
         ),
         extras_require=_prepare_extras(),
         project_urls={
@@ -104,7 +106,6 @@ def _setup_args() -> Dict[str, Any]:
             # Specify the Python versions you support here. In particular, ensure
             # that you indicate whether you support Python 2, Python 3 or both.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",

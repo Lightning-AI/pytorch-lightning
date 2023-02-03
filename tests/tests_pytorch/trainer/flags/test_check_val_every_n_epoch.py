@@ -14,8 +14,8 @@
 import pytest
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 @pytest.mark.parametrize(

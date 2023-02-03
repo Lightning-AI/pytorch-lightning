@@ -23,15 +23,16 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from torch import Tensor
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loops.dataloader import EvaluationLoop
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loops.dataloader import _EvaluationLoop
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -72,8 +73,8 @@ def test__validation_step__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     assert set(trainer.callback_metrics) == {"a", "a2", "b", "a_epoch", "b_epoch", "a_step"}
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -115,8 +116,8 @@ def test__validation_step__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     assert set(trainer.callback_metrics) == {"a", "b", "b_epoch", "c", "d", "d_epoch", "g", "b_step"}
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -149,16 +150,15 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
     assert callback_metrics == (logged_metrics | pbar_metrics)
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test_eval_float_logging(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("a", 12.0)
             return {"x": loss}
 
@@ -183,8 +183,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         manual_epoch_end_mean = None
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
             return {"x": loss}
@@ -503,7 +502,7 @@ def test_log_works_in_test_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     """This tests make sure we properly log_metrics to loggers."""
 
@@ -516,14 +515,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.save_hyperparameters()
 
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("valid_loss_0", loss, on_step=True, on_epoch=True)
             self.log("valid_loss_1", loss, on_step=False, on_epoch=True)
@@ -531,8 +528,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("test_loss", loss)
             return {"y": loss}
 
@@ -597,31 +593,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert set(results[0]) == {"test_loss"}
 
 
-def test_logging_dict_on_validation_step(tmpdir):
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            loss = super().validation_step(batch, batch_idx)
-            loss = loss["x"]
-            metrics = {
-                "loss": loss,
-                "loss_1": loss,
-            }
-            self.log("val_metrics", metrics)
-
-        validation_epoch_end = None
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-    )
-
-    trainer.fit(model)
-
-
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     class TestModel(BoringModel):
@@ -681,12 +652,16 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
+def test_metrics_and_outputs_device(tmpdir, accelerator):
     class TestModel(BoringModel):
+        def on_before_backward(self, loss: Tensor) -> None:
+            # the loss should be on the correct device before backward
+            assert loss.device.type == accelerator
+
         def validation_step(self, *args):
             x = torch.tensor(2.0, requires_grad=True, device=self.device)
             y = x * 2
@@ -699,13 +674,12 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
         def validation_epoch_end(self, outputs):
             # the step outputs were not moved
             assert all(o.device == self.device for o in outputs)
-            # but the logging results were
-            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+            # and the logged metrics aren't
+            assert self.trainer.callback_metrics["foo"].device.type == accelerator
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator=accelerator, devices=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
+    trainer.fit(model)
     trainer.validate(model, verbose=False)
 
 
@@ -751,7 +725,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
@@ -866,26 +840,26 @@ expected4 = ""
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
     with redirect_stdout(StringIO()) as out:
-        EvaluationLoop._print_results(*inputs)
+        _EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
 
 
 @pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
 def test_native_print_results_encodings(monkeypatch, encoding):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
     out = mock.Mock()
     out.encoding = encoding
     with redirect_stdout(out) as out:
-        EvaluationLoop._print_results(*inputs0)
+        _EvaluationLoop._print_results(*inputs0)
 
     # Attempt to encode everything the file is told to write with the given encoding
     for call_ in out.method_calls:
@@ -963,12 +937,12 @@ expected3 = """
 def test_rich_print_results(inputs, expected):
     console = get_console()
     with console.capture() as capture:
-        EvaluationLoop._print_results(*inputs)
+        _EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert capture.get() == expected.lstrip()
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 @pytest.mark.parametrize("num_dataloaders", (1, 2))
 def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""

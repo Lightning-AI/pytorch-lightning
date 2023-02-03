@@ -1,5 +1,7 @@
+import glob
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
@@ -33,18 +35,17 @@ def _prepare_extras() -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all")
+    req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
     extras = {
-        # 'docs': load_requirements(file_name='docs.txt'),
-        "examples": assistant.load_requirements(file_name="examples.txt", **common_args),
-        "extra": assistant.load_requirements(file_name="extra.txt", **common_args),
-        "strategies": assistant.load_requirements(file_name="strategies.txt", **common_args),
-        "test": assistant.load_requirements(file_name="test.txt", **common_args),
+        p.stem: assistant.load_requirements(file_name=p.name, **common_args)
+        for p in req_files
+        if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["extra"] + extras["test"]
-    extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
+    extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
+    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
 
 
@@ -69,8 +70,8 @@ def _setup_args() -> Dict[str, Any]:
             include=[
                 "pytorch_lightning",
                 "pytorch_lightning.*",
-                "lightning_lite",
-                "lightning_lite.*",
+                "lightning_fabric",
+                "lightning_fabric.*",
             ],
         ),
         package_dir={"": "src"},
@@ -79,12 +80,12 @@ def _setup_args() -> Dict[str, Any]:
         long_description_content_type="text/markdown",
         zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],
-        python_requires=">=3.7",
-        setup_requires=[],
+        python_requires=">=3.8",
+        setup_requires=["wheel"],
         # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
         # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
         install_requires=assistant.load_requirements(
-            _PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"
+            _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
         ),
         extras_require=_prepare_extras(),
         project_urls={
@@ -106,7 +107,6 @@ def _setup_args() -> Dict[str, Any]:
             "Operating System :: OS Independent",
             # Specify the Python versions you support here.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",

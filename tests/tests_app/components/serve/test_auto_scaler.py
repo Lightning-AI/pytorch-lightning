@@ -6,9 +6,9 @@ from unittest.mock import patch
 import pytest
 from fastapi import HTTPException
 
-from lightning_app import CloudCompute, LightningWork
-from lightning_app.components import AutoScaler, ColdStartProxy, Text
-from lightning_app.components.serve.auto_scaler import _LoadBalancer
+from lightning.app import CloudCompute, LightningWork
+from lightning.app.components import AutoScaler, ColdStartProxy, Text
+from lightning.app.components.serve.auto_scaler import _LoadBalancer
 
 
 class EmptyWork(LightningWork):
@@ -28,16 +28,9 @@ class AutoScaler2(AutoScaler):
         return replicas - 1
 
 
-def test_num_replicas_after_init():
-    """Test the number of works is the same as min_replicas after initialization."""
-    min_replicas = 2
-    auto_scaler = AutoScaler(EmptyWork, min_replicas=min_replicas)
-    assert auto_scaler.num_replicas == min_replicas
-
-
 @patch("uvicorn.run")
-@patch("lightning_app.components.serve.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
+@patch("lightning.app.components.serve.auto_scaler._LoadBalancer.url")
+@patch("lightning.app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_above_max_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     max_replicas = 6
@@ -57,9 +50,9 @@ def test_num_replicas_not_above_max_replicas(*_):
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.serve.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
-def test_num_replicas_not_belo_min_replicas(*_):
+@patch("lightning.app.components.serve.auto_scaler._LoadBalancer.url")
+@patch("lightning.app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
+def test_num_replicas_not_below_min_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     min_replicas = 1
     auto_scaler = AutoScaler2(
@@ -128,8 +121,8 @@ fastapi_mock = mock.MagicMock()
 mocked_fastapi_creater = mock.MagicMock(return_value=fastapi_mock)
 
 
-@patch("lightning_app.components.serve.auto_scaler._create_fastapi", mocked_fastapi_creater)
-@patch("lightning_app.components.serve.auto_scaler.uvicorn.run", mock.MagicMock())
+@patch("lightning.app.components.serve.auto_scaler._create_fastapi", mocked_fastapi_creater)
+@patch("lightning.app.components.serve.auto_scaler.uvicorn.run", mock.MagicMock())
 def test_API_ACCESS_ENDPOINT_creation():
     auto_scaler = AutoScaler(EmptyWork, input_type=Text, output_type=Text)
     assert auto_scaler.load_balancer._api_name == "EmptyWork"
@@ -210,7 +203,7 @@ class TestLoadBalancerProcessRequest:
         )
         load_balancer._fastapi_app = mock.MagicMock()
         load_balancer._fastapi_app.num_current_requests = 1000
-        load_balancer._servers.append(mock.MagicMock())
+        load_balancer.servers.append(mock.MagicMock())
         req_id = uuid.uuid4().hex
         await load_balancer.process_request("test", req_id)
         load_balancer._cold_start_proxy.handle_request.assert_called_once_with("test")
@@ -222,7 +215,7 @@ class TestLoadBalancerProcessRequest:
             output_type=Text,
             endpoint="/predict",
         )
-        load_balancer._servers.append(mock.MagicMock())
+        load_balancer.servers.append(mock.MagicMock())
         req_id = uuid.uuid4().hex
         # populating the responses so the while loop exists
         load_balancer._responses = {req_id: "Dummy"}

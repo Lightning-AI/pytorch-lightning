@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning.core.module import LightningModule
+from lightning.pytorch.core.module import LightningModule
 
 
 class DeterministicModel(LightningModule):
@@ -56,7 +56,7 @@ class DeterministicModel(LightningModule):
 
     def count_num_graphs(self, result, num_graphs=0):
         for k, v in result.items():
-            if isinstance(v, torch.Tensor) and v.grad_fn is not None:
+            if isinstance(v, Tensor) and v.grad_fn is not None:
                 num_graphs += 1
             if isinstance(v, dict):
                 num_graphs += self.count_num_graphs(v)
@@ -110,14 +110,14 @@ class DeterministicModel(LightningModule):
         scheduler = {"scheduler": lr_scheduler, "interval": "step", "monitor": "pbar_acc1"}
         return [optimizer], [scheduler]
 
-    def backward(self, loss, optimizer, optimizer_idx):
+    def backward(self, loss, *args, **kwargs):
         if self.assert_backward:
-            if self.trainer.precision == 16:
+            if self.trainer.precision == "16":
                 assert loss > 171 * 1000
             else:
                 assert loss == 171.0
 
-        super().backward(loss, optimizer, optimizer_idx)
+        return super().backward(loss, *args, **kwargs)
 
 
 class DummyDataset(Dataset):

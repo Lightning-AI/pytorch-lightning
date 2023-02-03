@@ -33,7 +33,7 @@ With Lightning Apps, your favorite components can work together on any machine a
 <summary>Prerequisites</summary>
 
 > TIP: We strongly recommend creating a virtual environment first.
-> Don’t know what this is? Follow our [beginner guide here](https://lightning.ai/lightning-docs/install_beginner.html).
+> Don’t know what this is? Follow our [beginner guide here](https://lightning.ai/docs/stable/install/installation.html).
 
 - Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x, ...)
 - Git
@@ -73,11 +73,11 @@ lightning run app app.py
 lightning run app app.py --cloud
 ```
 
-[Read this guide](https://lightning.ai/lightning-docs/lightning_apps_intro.html) to learn the basics of Lightning Apps in 15 minutes.
+[Read this guide](https://lightning.ai/docs/stable/levels/basic/) to learn the basics of Lightning Apps in 15 minutes.
 
 # Features
 
-Lightning Apps consist of a root [LightningFlow](https://lightning.ai/lightning-docs/lightning_apps_intro.html#define-root-component) component, that optionally contains a tree of 2 types of components: [LightningFlow](https://lightning.ai/lightning-docs/core_api/lightning_flow.html) 🌊 and [LightningWork](https://lightning.ai/lightning-docs/core_api/lightning_work/) ⚒️. Key functionality includes:
+Lightning Apps consist of a root [LightningFlow](https://lightning.ai/docs/stable/glossary/app_tree.html) component, that optionally contains a tree of 2 types of components: [LightningFlow](https://lightning.ai/lightning-docs/core_api/lightning_flow.html) 🌊 and [LightningWork](https://lightning.ai/lightning-docs/core_api/lightning_work/) ⚒️. Key functionality includes:
 
 - A shared state between components.
 - A constantly running event loop for reactivity.
@@ -98,7 +98,7 @@ Lightning Apps have built-in support for [adding UIs](https://lightning.ai/light
 
 - [StaticWebFrontEnd](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.web.StaticWebFrontend.html#lightning_app.frontend.web.StaticWebFrontend): A frontend that serves static files from a directory using FastAPI.
 - [StreamlitFrontend](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.stream_lit.StreamlitFrontend.html#lightning_app.frontend.stream_lit.StreamlitFrontend): A frontend for wrapping Streamlit code in your LightingFlow.
-- [ServeGradio](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.components.serve.gradio.ServeGradio.html#lightning_app.components.serve.gradio.ServeGradio): This class enables you to quickly create a `gradio` based UI for your Lightning App.
+- [ServeGradio](https://lightning.ai/docs/stable/api_reference/generated/lightning_app.components.serve.gradio_server.ServeGradio.html#servegradio): This class enables you to quickly create a `gradio` based UI for your Lightning App.
 
 [Scheduling](https://lightning.ai/lightning-docs/glossary/scheduling.html) ⏲️: The Lightning Scheduling system makes it easy to schedule your components execution with any arbitrary conditions.
 
@@ -113,7 +113,7 @@ Ready to use [built-in components](https://lightning.ai/lightning-docs/api_refer
 
 # App gallery
 
-The [Lightning AI website](https://www.lightning.ai/) features a curated gallery of Lightning Apps and components that makes it easy to get started. A few highlights:
+The [Lightning AI website](https://lightning.ai/) features a curated gallery of Lightning Apps and components that makes it easy to get started. A few highlights:
 
 | App                            | Description                                                                                                                                                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

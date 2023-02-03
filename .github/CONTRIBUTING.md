@@ -199,7 +199,7 @@ We recommend you follow this convention `<type>/<issue-id>_<short-name>` where t
 
 We recommend creating a PR in a separate branch other than `master`, especially if you plan to submit several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
 
-First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
+First, make sure you have set [upstream](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/configuring-a-remote-repository-for-a-fork) by running:
 
 ```bash
 git remote add upstream https://github.com/Lightning-AI/lightning.git
@@ -242,6 +242,7 @@ Here is the process to create a new test
 ```python
 # TEST SHOULD BE IN YOUR FILE: tests/.../test_file.py
 # TEST CODE TEMPLATE
+
 
 # [OPTIONAL] pytest decorator
 # @RunIf(min_cuda_gpus=1)

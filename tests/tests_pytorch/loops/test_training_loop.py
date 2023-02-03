@@ -17,9 +17,9 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops import FitLoop
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loops import _FitLoop
 
 
 def test_outputs_format(tmpdir):
@@ -141,7 +141,7 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = FitLoop(max_epochs=1)
+    fit_loop = _FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
     fit_loop.trainer = trainer
 
@@ -158,7 +158,7 @@ def test_fit_loop_done_log_messages(caplog):
 
     epoch_loop = Mock()
     epoch_loop.global_step = 10
-    fit_loop.connect(epoch_loop=epoch_loop)
+    fit_loop.epoch_loop = epoch_loop
     fit_loop.max_steps = 10
     assert fit_loop.done
     assert "max_steps=10` reached" in caplog.text
@@ -174,7 +174,7 @@ def test_fit_loop_done_log_messages(caplog):
     fit_loop.max_epochs = 5
 
     fit_loop.epoch_loop.min_steps = 0
-    with caplog.at_level(level=logging.DEBUG, logger="pytorch_lightning.utilities.rank_zero"):
+    with caplog.at_level(level=logging.DEBUG, logger="lightning.pytorch.utilities.rank_zero"):
         assert fit_loop.done
     assert "should_stop` was set" in caplog.text
 
@@ -186,10 +186,10 @@ def test_warning_valid_train_step_end(tmpdir):
     class ValidTrainStepEndModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self(batch)
-            return {"output": output, "batch": batch}
+            return {"output": output}
 
         def training_step_end(self, outputs):
-            loss = self.loss(outputs["batch"], outputs["output"])
+            loss = self.loss(outputs["output"])
             return loss
 
     # No error is raised
@@ -217,14 +217,14 @@ def test_should_stop_early_stopping_conditions_met(
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0, max_epochs=100)
     trainer.num_training_batches = 10
     trainer.should_stop = True
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
+    trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.optimizer.step.total.completed = (
         current_epoch * trainer.num_training_batches
     )
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = 10
     trainer.fit_loop.epoch_progress.current.processed = current_epoch
 
     message = "`Trainer.fit` stopped: `trainer.should_stop` was set."
-    with caplog.at_level(level=logging.DEBUG, logger="pytorch_lightning.utilities.rank_zero"):
+    with caplog.at_level(level=logging.DEBUG, logger="lightning.pytorch.utilities.rank_zero"):
         assert trainer.fit_loop.done is fit_loop_done
 
     assert (message in caplog.text) is raise_debug_msg

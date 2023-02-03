@@ -21,7 +21,7 @@ To run the app, simply open a terminal and execute this command:
 
 Here is a gif of the UI.
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/ml_server_2.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/ml_server_2.gif
 
 .. raw:: html
 

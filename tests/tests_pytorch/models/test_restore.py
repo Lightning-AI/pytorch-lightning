@@ -17,21 +17,21 @@ import os
 import pickle
 from copy import deepcopy
 from typing import Generic, Mapping, TypeVar
-from unittest import mock
 
 import cloudpickle
 import pytest
 import torch
 import torch.nn.functional as F
 from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite import seed_everything
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.states import TrainerFn
+from lightning.fabric import seed_everything
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -160,7 +160,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
     class CustomClassifModel(CustomClassifModel):
         def _is_equal(self, a, b):
-            if isinstance(a, torch.Tensor):
+            if isinstance(a, Tensor):
                 return torch.all(torch.eq(a, b))
 
             if isinstance(a, Mapping):
@@ -815,7 +815,6 @@ def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_c
         trainer.fit(model, ckpt_path=ckpt_path)
 
     if stop_in_the_middle:
-        with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-            trainer = Trainer(max_epochs=2, **trainer_kwargs)
-            with no_warning_call(UserWarning, match="resuming from a checkpoint that ended"):
-                trainer.fit(model, ckpt_path=ckpt_path)
+        trainer = Trainer(max_epochs=2, **trainer_kwargs)
+        with pytest.warns(UserWarning, match="resuming from a checkpoint that ended"):
+            trainer.fit(model, ckpt_path=ckpt_path)

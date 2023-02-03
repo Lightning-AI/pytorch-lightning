@@ -15,8 +15,8 @@
 
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
@@ -30,8 +30,8 @@ def test__training_step__flow_dict(tmpdir):
             self.training_step_called = True
             return {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -69,8 +69,8 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -116,8 +116,8 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
                 assert self.count_num_graphs(b) == 0
                 assert {"random_things", "loss", "batch_idx"} == set(b.keys())
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -169,8 +169,8 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
                 assert self.count_num_graphs(b) == 0
                 assert {"random_things", "loss", "batch_idx"} == set(b.keys())
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None

@@ -10,7 +10,8 @@ on:
     paths:
       - ".actions/**"
       - ".github/workflows/ci-tests-app.yml"
-      - "src/lightning_app/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
@@ -21,9 +22,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
-
-env:
-  FREEZE_REQUIREMENTS: 1
 
 defaults:
   run:
@@ -37,14 +35,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
-        pkg-name: ["app"]
+        pkg-name: ["lightning"]
         python-version: ["3.8"]
         requires: ["oldest", "latest"]
         include:
           # "lightning" installs the monolithic package
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", requires: "latest"}
+          - {os: "macOS-11", pkg-name: "app", python-version: "3.9", requires: "latest"}
+          - {os: "ubuntu-20.04", pkg-name: "app", python-version: "3.9", requires: "latest"}
+          - {os: "windows-2022", pkg-name: "app", python-version: "3.8", requires: "latest"}
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 30
@@ -71,17 +69,19 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
+          key: pip-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: pip-${{ matrix.pkg-name }}-
+          enableCrossOsArchive: true
 
       - name: Switch PyTorch URL
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
-      - name: Install package & depenencies
+      - name: Install package & dependencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
+          FREEZE_REQUIREMENTS: 1
         run: |
-          pip install -e . -r requirements/app/devel.txt -U -q --find-links ${TORCH_URL}
+          pip install -e .[dev] --upgrade --find-links ${TORCH_URL}
           pip list
 
       - name: Setup Node.js
@@ -92,19 +92,17 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Adjust tests
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: |
-          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-            --source_import="lightning_app,lightning_lite,pytorch_lightning" \
-            --target_import="lightning.app,lightning.lite,lightning.pytorch"
-
-      - name: Adjust examples
+      - name: Adjust imports -> App
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
+          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+            --source_import="lightning.app,lightning.fabric,lightning.pytorch" \
+            --target_import="lightning_app,lightning_fabric,pytorch_lightning" \
+            --lightning_by="lightning_app"
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" \
-            --source_import="lightning.app,lightning" \
-            --target_import="lightning_app,lightning_app"
+            --source_import="lightning.app,lightning.fabric,lightning.pytorch" \
+            --target_import="lightning_app,lightning_fabric,pytorch_lightning" \
+            --lightning_by="lightning_app"
 
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
@@ -117,7 +115,10 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
+          python -m coverage run --source ${COVERAGE_SCOPE} \
+            -m pytest -m "not cloud" tests_app \
+            --timeout=300 -vvvv --durations=50 \
+            --junitxml=$PYTEST_ARTIFACT
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

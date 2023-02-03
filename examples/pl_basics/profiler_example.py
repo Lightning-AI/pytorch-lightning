@@ -90,7 +90,6 @@ class ModelToProfile(LightningModule):
 
 
 class CIFAR10DataModule(LightningDataModule):
-
     transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
 
     def train_dataloader(self, *args, **kwargs):
