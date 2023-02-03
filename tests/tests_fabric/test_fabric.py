@@ -14,7 +14,7 @@
 import os
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
 
 import pytest
 import torch
@@ -25,9 +25,9 @@ from tests_fabric.helpers.runif import RunIf
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
-from lightning_fabric.fabric import Fabric
-from lightning_fabric.plugins import Precision
-from lightning_fabric.strategies import (
+from lightning.fabric.fabric import Fabric
+from lightning.fabric.plugins import Precision
+from lightning.fabric.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -35,11 +35,11 @@ from lightning_fabric.strategies import (
     Strategy,
     XLAStrategy,
 )
-from lightning_fabric.strategies.strategy import _Sharded
-from lightning_fabric.utilities.exceptions import MisconfigurationException
-from lightning_fabric.utilities.seed import pl_worker_init_function, seed_everything
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning.fabric.strategies.strategy import _Sharded
+from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
 
 
 class EmptyFabric(Fabric):
@@ -77,7 +77,7 @@ def test_run_input_output():
     assert fabric.run_kwargs == {"three": 3}
 
 
-@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
@@ -298,7 +298,7 @@ def test_setup_dataloaders_return_type():
     assert fabric_dataloader1.dataset is dataset1
 
 
-@mock.patch("lightning_fabric.fabric._replace_dunder_methods")
+@mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
     method."""
@@ -344,7 +344,7 @@ def test_setup_dataloaders_twice_fails():
 
 
 @mock.patch(
-    "lightning_fabric.fabric.Fabric.device",
+    "lightning.fabric.fabric.Fabric.device",
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
@@ -556,7 +556,7 @@ def test_backward():
     fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
     fabric = EmptyFabric(strategy="deepspeed")
@@ -628,7 +628,7 @@ def test_launch_without_function():
 
     # default: no launcher, single process
     fabric = Fabric()
-    with mock.patch("lightning_fabric.fabric._do_nothing") as nothing:
+    with mock.patch("lightning.fabric.fabric._do_nothing") as nothing:
         fabric.launch()
     nothing.assert_called()
 
@@ -811,3 +811,85 @@ def test_log_dict_input_parsing():
 
     with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
         fabric.log_dict({"log_dict": torch.tensor([3, 4])})
+
+
+@pytest.mark.parametrize("setup", [True, False])
+def test_save_wrapped_objects(setup, tmp_path):
+    """Test that when modules and optimizers are in the state, they get unwrapped properly."""
+    fabric = Fabric()
+    save_checkpoint_mock = Mock()
+    fabric.strategy.save_checkpoint = save_checkpoint_mock
+
+    unwrapped_model = BoringModel()
+    unwrapped_optimizer = torch.optim.Adam(unwrapped_model.parameters())
+
+    if setup:
+        model, optimizer = fabric.setup(unwrapped_model, unwrapped_optimizer)
+        assert isinstance(model, _FabricModule)
+        assert isinstance(optimizer, _FabricOptimizer)
+    else:
+        model, optimizer = unwrapped_model, unwrapped_optimizer
+
+    anything = {"cocofruit": 1}
+    state = {"model": model, "optimizer": optimizer, "anything": anything}
+    expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
+    fabric.save(tmp_path, state)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+
+
+def test_barrier():
+    """Test that `Fabric.barrier()` calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock()
+    fabric.barrier("test")
+    fabric._strategy.barrier.assert_called_once_with(name="test")
+
+
+def test_broadcast():
+    """Test that `Fabric.broadcast()` calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock()
+    fabric.broadcast(torch.tensor(1), src=2)
+    fabric._strategy.broadcast.assert_called_once_with(torch.tensor(1), src=2)
+
+
+def test_all_gather():
+    """Test that `Fabric.all_gather()` applies itself to collections and calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock(root_device=torch.device("cpu"))
+    defaults = dict(group=None, sync_grads=False)
+
+    # single tensor
+    fabric.all_gather(torch.tensor(1))
+    fabric._strategy.all_gather.assert_called_once_with(torch.tensor(1), **defaults)
+    fabric._strategy.reset_mock()
+
+    # list
+    fabric.all_gather([torch.tensor(2), torch.tensor(3), "string"])
+    fabric._strategy.all_gather.assert_has_calls([call(torch.tensor(2), **defaults), call(torch.tensor(3), **defaults)])
+    fabric._strategy.reset_mock()
+
+    # dict
+    fabric.all_gather({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
+    fabric._strategy.all_gather.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
+
+
+def test_all_reduce():
+    """Test that `Fabric.all_reduce()` applies itself to collections and calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock(root_device=torch.device("cpu"))
+    defaults = dict(group=None, reduce_op="mean")
+
+    # single tensor
+    fabric.all_reduce(torch.tensor(1))
+    fabric._strategy.all_reduce.assert_called_once_with(torch.tensor(1), **defaults)
+    fabric._strategy.reset_mock()
+
+    # list
+    fabric.all_reduce([torch.tensor(2), torch.tensor(3), "string"])
+    fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(2), **defaults), call(torch.tensor(3), **defaults)])
+    fabric._strategy.reset_mock()
+
+    # dict
+    fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
+    fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])

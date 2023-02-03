@@ -62,6 +62,7 @@ To visualize tensorboard in a jupyter notebook environment, run the following co
 You can also pass a custom Logger to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE
 
     from pytorch_lightning import loggers as pl_loggers
 
@@ -79,7 +80,7 @@ Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. testcode::
-    :skipif: not _COMET_AVAILABLE
+    :skipif: (not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE) or not _COMET_AVAILABLE
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
@@ -112,11 +113,6 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
 
     def training_step(self, batch, batch_idx):
         self.log("my_metric", x)
-
-
-    # or a dict to get multiple metrics on the same plot if the logger supports it
-    def training_step(self, batch, batch_idx):
-        self.log("performance", {"acc": acc, "recall": recall})
 
 
     # or a dict to log all metrics at once with individual plots
@@ -378,7 +374,7 @@ When Lightning creates a checkpoint, it stores a key ``"hyper_parameters"`` with
 
 Some loggers also allow logging the hyperparams used in the experiment. For instance,
 when using the ``TensorBoardLogger``, all hyperparams will show
-in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
+in the hparams tab at :meth:`torch.utils.tensorboard.writer.SummaryWriter.add_hparams`.
 
 .. note::
     If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the examples below for setting up proper hyperparams metrics tracking within the :doc:`LightningModule <../common/lightning_module>`.

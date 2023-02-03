@@ -130,12 +130,15 @@ jobs:
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: |
+    - name: Browse folder
+      id: folder
+      run: |
         sudo apt install -q -y tree
         tree -L 2 -h dist/
+        python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/$(echo 'console.log("${{ matrix.name }}".toLowerCase())')
+        pkg-folder: dist/${{ steps.folder.outputs.pkg }}
         pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
 
 
@@ -152,12 +155,15 @@ jobs:
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: |
+    - name: Browse folder
+      id: folder
+      run: |
         sudo apt install -q -y tree
         tree -L 2 -h dist/
+        python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/$(echo 'console.log("${{ matrix.name }}".toLowerCase())')
+        pkg-folder: dist/${{ steps.folder.outputs.pkg }}
         pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
 
 
@@ -167,6 +173,4 @@ jobs:
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
+    secrets: inherit

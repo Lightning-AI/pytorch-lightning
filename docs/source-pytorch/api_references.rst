@@ -41,6 +41,7 @@ callbacks
     ModelCheckpoint
     ModelPruning
     ModelSummary
+    OnExceptionCheckpoint
     ProgressBarBase
     QuantizationAwareTraining
     RichModelSummary
@@ -100,67 +101,6 @@ loggers
     tensorboard
     wandb
 
-loops
-^^^^^
-
-Base Classes
-""""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~dataloader.dataloader_loop.DataLoaderLoop
-    ~loop.Loop
-
-Training
-""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~batch.TrainingBatchLoop
-    ~epoch.TrainingEpochLoop
-    FitLoop
-    ~optimization.ManualOptimization
-    ~optimization.OptimizerLoop
-
-
-Validation and Testing
-""""""""""""""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.EvaluationEpochLoop
-    ~dataloader.EvaluationLoop
-
-
-Prediction
-""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.PredictionEpochLoop
-    ~dataloader.PredictionLoop
-
-
 plugins
 ^^^^^^^
 
@@ -177,13 +117,11 @@ precision
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FullyShardedNativeMixedPrecisionPlugin
-    FullyShardedNativeNativeMixedPrecisionPlugin
+    FSDPMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
@@ -233,7 +171,7 @@ others
     :template: classtemplate.rst
 
     LayerSync
-    NativeSyncBatchNorm
+    TorchSyncBatchNorm
 
 profiler
 --------
@@ -276,15 +214,11 @@ strategies
 
     BaguaStrategy
     ColossalAIStrategy
-    DDPFullyShardedNativeStrategy
-    DDPFullyShardedStrategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
     DDPSpawnStrategy
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
-    HivemindStrategy
+    FSDPStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
@@ -315,15 +249,13 @@ utilities
     :toctree: api
     :nosignatures:
 
-    apply_func
     argparse
-    cloud_io
+    data
     deepspeed
     distributed
     finite_checks
     memory
     model_summary
-    optimizer
     parsing
     rank_zero
     seed

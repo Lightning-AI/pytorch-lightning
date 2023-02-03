@@ -11,30 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import mock
 from unittest.mock import Mock
 
-from pytorch_lightning.loops import FitLoop
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch.loops import _FitLoop
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 def test_loops_state_dict():
     trainer = Trainer()
 
-    fit_loop = FitLoop()
+    fit_loop = _FitLoop()
 
     fit_loop.trainer = trainer
     state_dict = fit_loop.state_dict()
 
-    new_fit_loop = FitLoop()
+    new_fit_loop = _FitLoop()
     new_fit_loop.trainer = trainer
 
     new_fit_loop.load_state_dict(state_dict)
     assert fit_loop.state_dict() == new_fit_loop.state_dict()
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loops_state_dict_structure():
     trainer = Trainer()
     trainer.train_dataloader = Mock()
@@ -52,14 +49,13 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.batch_loop.state_dict": {},
-            "epoch_loop.batch_loop.manual_loop.state_dict": {},
-            "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "epoch_loop.manual_optimization.state_dict": {},
+            "epoch_loop.manual_optimization.optim_step_progress": {
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
-            "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
+            "epoch_loop.automatic_optimization.state_dict": {},
+            "epoch_loop.automatic_optimization.optim_progress": {
                 "optimizer": {
                     "step": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
                     "zero_grad": {
@@ -67,7 +63,6 @@ def test_loops_state_dict_structure():
                         "current": {"ready": 0, "started": 0, "completed": 0},
                     },
                 },
-                "optimizer_position": 0,
             },
             "epoch_loop.val_loop.state_dict": {},
             "epoch_loop.val_loop.dataloader_progress": {
@@ -81,22 +76,6 @@ def test_loops_state_dict_structure():
                 # number of batches for this validation run
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
-            },
-            "epoch_loop.val_loop._results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": False,
-                "device": None,
-                "items": {},
-            },
-            "epoch_loop._results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": True,
-                "device": None,
-                "items": {},
             },
             "epoch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -114,14 +93,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },
-            "_results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": False,
-                "device": None,
-                "items": {},
-            },
         },
         "test_loop": {
             "state_dict": {},
@@ -131,14 +102,6 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
-            },
-            "_results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": False,
-                "device": None,
-                "items": {},
             },
         },
         "predict_loop": {

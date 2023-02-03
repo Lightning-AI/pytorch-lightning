@@ -17,10 +17,10 @@ from unittest import mock
 import pytest
 import torch
 
-from lightning_fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from pytorch_lightning import Trainer
-from pytorch_lightning.strategies import DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning.fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from lightning.pytorch import Trainer
+from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -59,9 +59,9 @@ def environment_combinations():
 @RunIf(mps=False)
 @pytest.mark.parametrize(
     "strategy_cls",
-    [DDPStrategy, DDPShardedStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
+    [DDPStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
+@mock.patch("lightning.pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
@@ -83,7 +83,6 @@ def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     "trainer_kwargs",
     [
         dict(strategy="ddp", accelerator="gpu", devices=[1, 2]),
-        dict(strategy="ddp_sharded", accelerator="gpu", devices=[1, 2]),
         dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
         dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],

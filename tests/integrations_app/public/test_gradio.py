@@ -4,10 +4,10 @@ from unittest.mock import ANY
 
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "1"})
-@mock.patch("lightning_app.components.serve.gradio.gradio")
+@mock.patch("lightning.app.components.serve.gradio_server.gradio")
 def test_serve_gradio(gradio_mock):
 
-    from lightning_app.components.serve.gradio import ServeGradio
+    from lightning.app.components.serve.gradio_server import ServeGradio
 
     class MyGradioServe(ServeGradio):
 

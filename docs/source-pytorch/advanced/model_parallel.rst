@@ -6,8 +6,6 @@ Train 1 trillion+ parameter models
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
 
-In many cases these strategies are some flavour of model parallelism however we only introduce concepts at a high level to get you started. Refer to the `FairScale documentation <https://fairscale.readthedocs.io/en/latest/deep_dive/oss_sdp_fsdp.html>`_ for more information about model parallelism.
-
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
 Some of these memory-efficient strategies rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a strategy such as :ref:`deepspeed-zero-stage-3-offload`.
@@ -40,7 +38,7 @@ Overall:
 
 * When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
 * When **pre-training** a model, use simpler optimizations such :ref:`sharded-training`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded-training`, scaling the number of GPUs to reach larger parameter sizes
-* For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
+* For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu strategy.
 
@@ -50,6 +48,7 @@ When Shouldn't I use an Optimized Distributed Strategy?
 =======================================================
 
 Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in the following cases, we recommend sticking to ordinary distributed strategies
+
 * When your model is small (ResNet50 of around 80M Parameters), unless you are using unusually large batch sizes or inputs.
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
@@ -153,11 +152,10 @@ Here's an example of changing the placement policy to "cpu".
 
 .. _sharded-training:
 
-**************************
-FairScale Sharded Training
-**************************
+****************
+Sharded Training
+****************
 
-Lightning integration of optimizer sharded training provided by `FairScale <https://github.com/facebookresearch/fairscale>`_.
 The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
 `ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
 however the implementation is built from the ground up to be PyTorch compatible and standalone.
@@ -171,21 +169,11 @@ these benefits in multi-GPU setups are almost free and throughput scales well wi
 
 It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
 A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
-Use :ref:`fairscale-activation-checkpointing` to see even more benefit at the cost of some throughput.
-
-To use Sharded Training, you need to first install FairScale using the command below.
-
-.. code-block:: bash
-
-    pip install fairscale
-
 
 .. code-block:: python
 
     # train using Sharded DDP
     trainer = Trainer(strategy="ddp_sharded")
-
-Sharded Training can work across all DDP variants by adding the additional ``--strategy ddp_sharded`` flag via command line using a PyTorch Lightning script.
 
 Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
 
@@ -193,156 +181,13 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 .. _fully-sharded-training:
 
-FairScale Fully Sharded Training
-================================
-
-.. warning::
-    FairScale Fully Sharded Training is in BETA and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any problems.
-
-`Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`_ shards optimizer state, gradients, and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
-
-Fully Sharded Training alleviates the need to worry about balancing layers onto specific devices using some form of pipe parallelism, and optimizes for distributed communication with minimal effort.
-
-Shard Parameters to Reach 10+ Billion Parameters
-------------------------------------------------
-
-To reach larger parameter sizes and to be memory efficient, we have to shard parameters. There are various ways to enable this.
-
-.. note::
-    Currently Fully Sharded Training relies on the user to wrap the model with Fully Sharded within the ``LightningModule``.
-    This means you must create a single model that is treated as a ``torch.nn.Module`` within the ``LightningModule``.
-    This is a limitation of Fully Sharded Training that will be resolved in the future.
-
-Enabling Module Sharding for Maximum Memory Efficiency
-------------------------------------------------------
-
-Auto Wrapping
-^^^^^^^^^^^^^
-
-Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
-simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
-have to ``wrap`` layers manually as in the case of manual wrapping.
-
-.. note::
-    While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
-    PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
-    ``lightning_module.parameters()`` will return a generator with no params. This inconvenience will be addressed in the future.
-
-.. code-block:: python
-
-    class MyModel(BoringModel):
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.trainer.model.parameters(), lr=1e-2)
-
-
-    model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
-    trainer.fit(model)
-
-
-Manual Wrapping
-^^^^^^^^^^^^^^^
-
-Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
-parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
-
-When not using Fully Sharded Training these wrap functions are a no-op. That means once the changes have been made, there is no need to remove the changes for other strategies.
-
-``auto_wrap`` recursively wraps :class:`~torch.nn.Module` within the ``LightningModule`` with nested Fully Sharded Wrappers,
-signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information :class:`here <fairscale.nn.fsdp>`).
-
-``auto_wrap`` can have varying levels of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**.
-
-``wrap`` simply wraps the module with a Fully Sharded Parallel class with the correct parameters from the Lightning context manager.
-
-Here's an example using both ``wrap`` and ``auto_wrap`` to create your model:
-
-.. code-block:: python
-
-    import torch
-    import torch.nn as nn
-    import pytorch_lightning as pl
-    from pytorch_lightning import Trainer
-    from fairscale.nn import checkpoint_wrapper, auto_wrap, wrap
-
-
-    class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.linear_layer = nn.Linear(32, 32)
-            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
-            self.final_block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
-
-        def configure_sharded_model(self):
-            # modules are sharded across processes
-            # as soon as they are wrapped with `wrap` or `auto_wrap`.
-            # During the forward/backward passes, weights get synced across processes
-            # and de-allocated once computation is complete, saving memory.
-
-            # Wraps the layer in a Fully Sharded Wrapper automatically
-            linear_layer = wrap(self.linear_layer)
-
-            # Wraps the module recursively
-            # based on a minimum number of parameters (default 100M parameters)
-            block = auto_wrap(self.block)
-
-            # For best memory efficiency,
-            # add FairScale activation checkpointing
-            final_block = auto_wrap(checkpoint_wrapper(self.final_block))
-            self.model = nn.Sequential(linear_layer, nn.ReLU(), block, final_block)
-
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.model.parameters(), lr=1e-2)
-
-
-    model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
-    trainer.fit(model)
-
-    trainer.test()
-    trainer.predict()
-
-----
-
-.. _fairscale-activation-checkpointing:
-
-Activation Checkpointing
-------------------------
-
-Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
-
-FairScale's checkpointing wrapper also handles batch norm layers correctly, unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
-
-This saves memory when training larger models, however it requires wrapping modules you'd like to use activation checkpointing on. See :class:`here <fairscale.nn.checkpoint.checkpoint_wrapper>` for more information.
-
-.. warning::
-
-    Do not wrap the entire model with activation checkpointing. This is not the intended use of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/Lightning-AI/lightning/discussions/9144>`_.
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-    from fairscale.nn import checkpoint_wrapper
-
-
-    class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
-            # Wrap layers using checkpoint_wrapper
-            self.block_1 = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
-            self.block_2 = nn.Linear(32, 2)
-
-----
-
-.. _fully-sharded-native-training:
-
-******************************
-PyTorch Fully Sharded Training
-******************************
+**********************
+Fully Sharded Training
+**********************
 
 PyTorch has it's own version of `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_ which is upstreamed from their `fairscale <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ project.
 It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_ but it is recommended to use it with PyTorch v1.12 or more and that's what
-Lightning supports. The API is pretty similar to that of FairScale.
+Lightning supports.
 
 
 Auto Wrapping
@@ -361,7 +206,7 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
 .. code-block:: python
 
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
 
@@ -414,23 +259,24 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
 
-You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
+You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+    from pytorch_lightning.strategies import FSDPStrategy
 
 
-    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=True)
-    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", devices=4)
+    fsdp = FSDPStrategy(cpu_offload=True)
+    # equivalent to passing `"fsdp_cpu_offload"`
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 
-Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about the native support.
+Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 
 ----
 
@@ -446,9 +292,9 @@ Enable checkpointing on large layers (like Transformers) by providing the layer 
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+    from pytorch_lightning.strategies import FSDPStrategy
 
-    fsdp = DDPFullyShardedNativeStrategy(
+    fsdp = FSDPStrategy(
         activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
     )
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)

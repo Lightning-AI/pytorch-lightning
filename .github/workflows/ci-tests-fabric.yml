@@ -10,9 +10,10 @@ on:
     paths:
       - ".actions/**"
       - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -37,29 +38,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # assign python and pytorch version combinations to operating systems (arbitrarily)
-          # note: there's no distribution of torch==1.10 for Python>=3.10
-          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.11"}
-          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           # only run PyTorch latest with Python latest
-          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          # "lightning" installs the monolithic package
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          # "fabric" installs the standalone package
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
 
-    timeout-minutes: 15
+    timeout-minutes: 25  # because of building grpcio on Mac
 
     steps:
     - uses: actions/checkout@v3
@@ -95,9 +93,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/fabric/*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
+        key: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/fabric/*.txt') }}
+        restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
+        enableCrossOsArchive: true
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
@@ -108,17 +106,16 @@ jobs:
         FREEZE_REQUIREMENTS: 1
       run: |
         pip install -e .[test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
+        pip install -r requirements/fabric/strategies.txt
         pip list
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name == 'lightning' }}
+      if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="lightning_fabric" --target_import="lightning.fabric"
+          --source_import="lightning.fabric" --target_import="lightning_fabric"
 
     - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
-      if: matrix.python-version != '3.7'
       working-directory: tests/tests_fabric
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py

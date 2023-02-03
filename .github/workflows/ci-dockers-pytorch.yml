@@ -41,7 +41,6 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # The matrix here is the same as the one in release-docker.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
@@ -65,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/tpu-tests.yml'
-        python_version: ["3.7"]
+        python_version: ["3.8"]
         xla_version: ["1.12"]
     steps:
       - uses: actions/checkout@v3
@@ -103,7 +102,6 @@ jobs:
         include:
           # These are the base images for PL release docker images,
           # so include at least all of the combinations in release-dockers.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
@@ -143,7 +141,7 @@ jobs:
       matrix:
         include:
           # the config used in 'dockers/ci-runner-ipu/Dockerfile'
-          - {python_version: "3.9", pytorch_version: "1.10"}
+          - {python_version: "3.9", pytorch_version: "1.13"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2

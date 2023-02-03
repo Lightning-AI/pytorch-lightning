@@ -23,8 +23,8 @@ Find `Flashy <https://lightning.ai/app/PgM82rHUWu-Flashy>`_ on the App Gallery a
 
 .. raw:: html
 
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/flashy.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/flashy.mp4" type="video/mp4" width="100%">
+   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/flashy.png" width="100%">
+      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/flashy.mp4" type="video/mp4" width="100%">
    </video>
 
 .. ----
@@ -37,8 +37,8 @@ Find `Flashy <https://lightning.ai/app/PgM82rHUWu-Flashy>`_ on the App Gallery a
 
 .. .. raw:: html
 
-..    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.png" width="100%">
-..       <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.mp4" type="video/mp4" width="100%">
+..    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.png" width="100%">
+..       <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.mp4" type="video/mp4" width="100%">
 ..    </video>
 
 ----
@@ -53,8 +53,8 @@ Find the `Research App <https://lightning.ai/app/KDKgKk3HVW-Research%20Poster>`_
 
 .. raw:: html
 
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/research_app.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/research_app.mp4" type="video/mp4" width="100%">
+   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/research_app.png" width="100%">
+      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/research_app.mp4" type="video/mp4" width="100%">
    </video>
 
 ----
@@ -71,8 +71,8 @@ Find the `ScratchPad App <https://lightning.ai/app/hvUwbEG70B-ScratchPad%2C%20No
 
 .. raw:: html
 
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/notebook_apps.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/notebook_apps.mp4" type="video/mp4" width="100%">
+   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/notebook_apps.png" width="100%">
+      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/notebook_apps.mp4" type="video/mp4" width="100%">
    </video>
 
 ----
@@ -87,8 +87,8 @@ Find the `InVideo Search App <https://lightning.ai/app/7pmQNIDxAE-InVideo%20Sear
 
 .. raw:: html
 
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/video_search_2.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/video_search_2.mp4" type="video/mp4" width="100%">
+   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/video_search_2.png" width="100%">
+      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/video_search_2.mp4" type="video/mp4" width="100%">
    </video>
 
 ----
@@ -103,8 +103,8 @@ Find the `AI-powered HackerNews App <https://lightning.ai/app/g1VJ8GZ7XF-AI-powe
 
 .. raw:: html
 
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/hackernews_app.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/hackernews_app.mp4" type="video/mp4" width="100%">
+   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews_app.png" width="100%">
+      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews_app.mp4" type="video/mp4" width="100%">
    </video>
 
 ----
@@ -116,7 +116,7 @@ Lightning Apps can turn ML into scalable systems in days — not months
 Use the Lightning framework to develop any ML system: train and deploy a model, create an ETL pipeline,
 or spin up a research demo — using the intuitive principles we pioneered with PyTorch Lightning.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/apps_logos_2.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/apps_logos_2.png
    :alt: Apps with Logos
    :width: 100 %
 
@@ -137,8 +137,8 @@ Lightning Apps are:
 .. raw:: html
 
    <br />
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
+   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
+      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
    </video>
    <br />
    <br />

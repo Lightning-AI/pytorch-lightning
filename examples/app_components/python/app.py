@@ -17,9 +17,9 @@ class RootFlow(L.LightningFlow):
         if not self.tracer_python_script.has_started:
             self.tracer_python_script.run()
         if self.tracer_python_script.has_succeeded:
-            self._exit("tracer script succeed")
+            self.stop("tracer script succeed")
         if self.tracer_python_script.has_failed:
-            self._exit("tracer script failed")
+            self.stop("tracer script failed")
 
 
 app = L.LightningApp(RootFlow())

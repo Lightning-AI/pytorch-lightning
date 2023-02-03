@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
+import inspect
 import os
 from typing import Any, Dict
 from unittest import mock
@@ -21,34 +21,33 @@ import pytest
 import torch
 import torch.distributed
 
-import pytorch_lightning
-from lightning_fabric.plugins.environments import (
+import lightning.pytorch
+from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
-from pytorch_lightning.plugins.io import TorchCheckpointIO
-from pytorch_lightning.strategies import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators.accelerator import Accelerator
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
+from lightning.pytorch.accelerators.cuda import CUDAAccelerator
+from lightning.pytorch.accelerators.mps import MPSAccelerator
+from lightning.pytorch.plugins import DoublePrecisionPlugin, LayerSync, PrecisionPlugin, TorchSyncBatchNorm
+from lightning.pytorch.plugins.io import TorchCheckpointIO
+from lightning.pytorch.strategies import (
     DataParallelStrategy,
-    DDPFullyShardedNativeStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     SingleDeviceStrategy,
 )
-from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
+from lightning.pytorch.trainer.connectors.accelerator_connector import AcceleratorConnector
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -139,7 +138,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(cuda_count_0):
     class Accel(Accelerator):
         def setup_device(self, device: torch.device) -> None:
@@ -222,8 +221,8 @@ def test_custom_accelerator(cuda_count_0):
         ),
     ],
 )
-@mock.patch("lightning_fabric.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
-@mock.patch("lightning_fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
+@mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
+@mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
 def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
     with mock.patch.dict(os.environ, env_vars, clear=True):
         trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
@@ -234,15 +233,12 @@ def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_env
 
 @RunIf(mps=False)
 def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
-
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
-        Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
@@ -250,21 +246,21 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
 
 
 def test_interactive_compatible_dp_strategy_gpu(mps_count_0, cuda_count_2, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="dp", accelerator="gpu")
     assert trainer.strategy.launcher is None
 
 
 @RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
 
 
 @RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="ddp_fork", accelerator="cpu")
     assert trainer.strategy.launcher.is_interactive_compatible
 
@@ -275,8 +271,6 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -290,21 +284,14 @@ def test_accelerator_cpu(cuda_count_0):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException,
-        match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
-    ):
-        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-            Trainer(gpus=1)
+    trainer = Trainer(devices=1)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(
         MisconfigurationException,
         match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         Trainer(accelerator="cuda")
-
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-        Trainer(accelerator="cpu", gpus=1)
 
 
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
@@ -360,7 +347,7 @@ def test_set_devices_if_none_cpu():
 
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator="cpu", strategy="dp", num_processes=2)
+        trainer = Trainer(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
@@ -379,8 +366,6 @@ def test_exception_invalid_strategy():
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
@@ -413,7 +398,6 @@ def test_strategy_choice_cpu_instance(strategy_class):
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
@@ -422,27 +406,22 @@ def test_strategy_choice_cpu_instance(strategy_class):
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_strategy_choice_gpu_str(strategy, strategy_class):
+def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2):
     trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_gpu_instance(strategy_class):
+def test_strategy_choice_gpu_instance(strategy_class, cuda_count_2, mps_count_0):
     trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_strategy_instance_gpu_passed(strategy_class):
-
+def test_device_type_when_strategy_instance_gpu_passed(strategy_class, cuda_count_2, mps_count_0):
     trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -455,13 +434,6 @@ def test_validate_precision_type(precision):
         Trainer(precision=precision)
 
 
-def test_amp_level_raises_error_with_native():
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"), pytest.raises(
-        MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"
-    ):
-        _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
-
-
 def test_strategy_choice_ddp_spawn_cpu():
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -471,7 +443,7 @@ def test_strategy_choice_ddp_spawn_cpu():
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._IS_INTERACTIVE", True)
+@mock.patch("lightning.pytorch.trainer.connectors.accelerator_connector._IS_INTERACTIVE", True)
 def test_strategy_choice_ddp_fork_in_interactive():
     """Test that when accelerator and strategy are unspecified, the connector chooses DDP Fork in interactive
     environments by default."""
@@ -536,7 +508,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
     },
 )
 @mock.patch("torch.cuda.set_device")
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_te(_, __, mps_count_0, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -557,7 +529,7 @@ def test_strategy_choice_ddp_te(_, __, mps_count_0, cuda_count_2):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_cpu_te(cuda_count_0):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -579,7 +551,7 @@ def test_strategy_choice_ddp_cpu_te(cuda_count_0):
     },
 )
 @mock.patch("torch.cuda.set_device")
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_1):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -599,7 +571,7 @@ def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_1):
         "RANK": "1",
     },
 )
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -621,7 +593,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
@@ -632,13 +604,12 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 
 
 @RunIf(min_torch="1.12")
-def test_check_native_fsdp_strategy_and_fallback():
+def test_check_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
-        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-        "but GPU accelerator is not used.",
+        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
     ):
-        Trainer(accelerator="cpu", strategy="fsdp_native")
+        Trainer(accelerator="cpu", strategy="fsdp")
 
 
 def test_unsupported_tpu_choice(tpu_available):
@@ -647,20 +618,15 @@ def test_unsupported_tpu_choice(tpu_available):
 
     # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
     ):
         Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"
-    ):
-        Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
-
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+@mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
-    import pytorch_lightning.strategies.ipu as ipu
-    import pytorch_lightning.utilities.imports as imports
+    import lightning.pytorch.strategies.ipu as ipu
+    import lightning.pytorch.utilities.imports as imports
 
     monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
@@ -670,9 +636,9 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
         Trainer(accelerator="ipu", precision=64)
 
 
-@mock.patch("pytorch_lightning.accelerators.tpu._XLA_AVAILABLE", return_value=False)
-@mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
-@mock.patch("pytorch_lightning.utilities.imports._HPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.utilities.imports._IPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.utilities.imports._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
@@ -701,22 +667,21 @@ def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_device
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
-@pytest.mark.parametrize("deterministic", [True, False, pytest.param("warn", marks=RunIf(min_torch="1.11.0"))])
+@pytest.mark.parametrize("deterministic", [True, False, "warn"])
 def test_deterministic_init(deterministic):
     trainer = Trainer(accelerator="auto", deterministic=deterministic)
     assert trainer._accelerator_connector.deterministic == deterministic
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
-        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
 
 
 @pytest.mark.parametrize(
     "sync_batchnorm,plugins,expected",
     [
         (False, [], type(None)),
-        (True, [], NativeSyncBatchNorm),
-        (False, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
-        (True, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
+        (True, [], TorchSyncBatchNorm),
+        (False, [TorchSyncBatchNorm()], TorchSyncBatchNorm),
+        (True, [TorchSyncBatchNorm()], TorchSyncBatchNorm),
         (False, [Mock(spec=LayerSync)], LayerSync),
     ],
 )
@@ -750,7 +715,7 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     strategy = CustomParallelStrategy()
     assert strategy._layer_sync is None
     Trainer(accelerator="cpu", strategy=strategy, sync_batchnorm=True)
-    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+    assert isinstance(strategy._layer_sync, TorchSyncBatchNorm)
 
 
 @pytest.mark.parametrize(
@@ -802,16 +767,16 @@ def test_gpu_accelerator_backend_choice_mps(mps_count_1):
     assert isinstance(trainer.accelerator, MPSAccelerator)
 
 
-@mock.patch("pytorch_lightning.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
 def test_gpu_accelerator_misconfiguration_exception(*_):
     with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu")
 
 
-@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
-@mock.patch("pytorch_lightning.strategies.hpu_parallel._HPU_AVAILABLE", return_value=True)
-@mock.patch("pytorch_lightning.plugins.precision.hpu._HPU_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
+@mock.patch("lightning.pytorch.strategies.hpu_parallel._HPU_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.plugins.precision.hpu._HPU_AVAILABLE", return_value=True)
 def test_accelerator_specific_checkpoint_io(*_):
     ckpt_plugin = TorchCheckpointIO()
     trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
@@ -820,7 +785,7 @@ def test_accelerator_specific_checkpoint_io(*_):
 
 @pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
 @mock.patch(
-    "pytorch_lightning.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
+    "lightning.pytorch.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
     return_value=[],
 )
 def test_ddp_fork_on_unsupported_platform(_, strategy):
@@ -834,3 +799,18 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     trainer = Trainer(accelerator="cpu", strategy=strategy)
     assert isinstance(trainer.strategy, strategy_cls)
+
+
+def test_connector_defaults_match_trainer_defaults():
+    """Test that the default values for the init arguments of AcceleratorConnector match the ones in Trainer."""
+
+    def get_defaults(cls):
+        init_signature = inspect.signature(cls)
+        return {k: v.default for k, v in init_signature.parameters.items()}
+
+    trainer_defaults = get_defaults(Trainer)
+    connector_defaults = get_defaults(AcceleratorConnector)
+
+    # defaults should match on the intersection of argument names
+    for name, connector_default in connector_defaults.items():
+        assert connector_default == trainer_defaults[name]

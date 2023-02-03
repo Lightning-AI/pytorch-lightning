@@ -3,7 +3,7 @@ Fabric (Beta)
 #############
 
 Fabric allows you to scale any PyTorch model with just a few lines of code!
-With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
+With Fabric, you can easily scale your model to run on distributed devices using the strategy of your choice while keeping complete control over the training loop and optimization logic.
 
 With only a few changes to your code, Fabric allows you to:
 
@@ -13,7 +13,7 @@ With only a few changes to your code, Fabric allows you to:
 - State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
 - Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
 - Multi-node support (TorchElastic, SLURM, and more)
-- You keep full control of your training loop
+- You keep complete control of your training loop
 
 
 .. code-block:: diff
@@ -51,6 +51,7 @@ With only a few changes to your code, Fabric allows you to:
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
+              lr_scheduler.step()
 
 
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
@@ -93,7 +94,7 @@ Fundamentals
     :tag: basic
 
 .. displayitem::
-    :header: Distributed Operation
+    :header: Launch Distributed Training
     :description: Launch a Python script on multiple devices and machines
     :button_link: fundamentals/launch.html
     :col_css: col-md-4
@@ -159,6 +160,14 @@ Build Your Own Trainer
     :tag: basic
 
 .. displayitem::
+    :header: Checkpoints
+    :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
+    :button_link: guide/checkpoint.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
     :header: Trainer Template
     :description: Take our Fabric Trainer template and customize it for your needs
     :button_link: guide/trainer_template.html
@@ -193,9 +202,9 @@ Advanced Topics
     :tag: advanced
 
 .. displayitem::
-    :header: Collectives
+    :header: Distributed Communication
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
-    :button_link: advanced/collectives.html
+    :button_link: advanced/distributed_communication.html
     :col_css: col-md-4
     :height: 160
     :tag: advanced
@@ -223,7 +232,7 @@ Examples
 .. displayitem::
     :header: Image Classification
     :description: Train an image classifier on the MNIST dataset
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier
     :col_css: col-md-4
     :height: 150
     :tag: basic
@@ -231,7 +240,7 @@ Examples
 .. displayitem::
     :header: GAN
     :description: Train a GAN that generates realistic human faces
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
@@ -239,14 +248,23 @@ Examples
 .. displayitem::
     :header: Meta-Learning
     :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
 
 .. displayitem::
+    :header: Large Language Models
+    :description: Pre-train a GPT-2 language model on OpenWebText data
+    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. displayitem::
     :header: Reinforcement Learning
-    :description: Coming soon
+    :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 150
 

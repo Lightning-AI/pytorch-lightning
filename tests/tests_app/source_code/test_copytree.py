@@ -1,6 +1,6 @@
 import os
 
-from lightning_app.source_code.copytree import _copytree, _read_lightningignore
+from lightning.app.source_code.copytree import _copytree, _read_lightningignore
 
 
 def test_read_lightningignore(tmpdir):

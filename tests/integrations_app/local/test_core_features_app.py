@@ -3,7 +3,7 @@ import os
 from click.testing import CliRunner
 from integrations_app.local import _PATH_APPS
 
-from lightning_app.cli.lightning_cli import run_app
+from lightning.app.cli.lightning_cli import run_app
 
 
 def test_core_features_app_example():

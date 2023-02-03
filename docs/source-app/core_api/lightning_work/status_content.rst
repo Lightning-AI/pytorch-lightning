@@ -71,7 +71,7 @@ the Work transitions from ``is_pending`` to ``is_running`` and then to ``has_suc
 
             elif self.work.has_stopped:
                 print("STOPPED")
-                self._exit()
+                self.stop()
 
             print(self.work.status)
             self.work.run(self.counter)

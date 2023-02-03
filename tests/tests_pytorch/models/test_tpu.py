@@ -21,14 +21,14 @@ import torch
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import TPUAccelerator
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.strategies import TPUSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla import _XLALauncher
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.strategies import TPUSpawnStrategy
+from lightning.pytorch.strategies.launchers.xla import _XLALauncher
+from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -259,12 +259,15 @@ def test_accelerator_set_when_using_tpu(devices):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
+    [
+        pytest.param("--accelerator=tpu --devices=8", {"accelerator": "tpu", "devices": 8}, id="tpu-8"),
+        pytest.param("--accelerator=tpu --devices=1,", {"accelerator": "tpu", "devices": "1,"}, id="tpu-1,"),
+    ],
 )
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_cores_with_argparse(cli_args, expected):
-    """Test passing tpu_cores in command line."""
+def test_tpu_devices_with_argparse(cli_args, expected):
+    """Test passing devices for TPU accelerator in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
@@ -273,7 +276,6 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 
     for k, v in expected.items():
         assert getattr(args, k) == v
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         assert Trainer.from_argparse_args(args)
 
 

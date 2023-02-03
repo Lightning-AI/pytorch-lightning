@@ -11,17 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.connector import _Connector
-from lightning_fabric.plugins import DeepSpeedPrecision
-from lightning_fabric.strategies import DeepSpeedStrategy
+from lightning.fabric.connector import _Connector
+from lightning.fabric.plugins import DeepSpeedPrecision
+from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("precision", ["bf16", 16, 32])
-def test_deepspeed_precision_choice(precision):
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_deepspeed_precision_choice(_, precision):
     """Test to ensure precision plugin is correctly chosen.
 
     DeepSpeed handles precision via custom DeepSpeedPrecision.

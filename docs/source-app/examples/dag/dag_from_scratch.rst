@@ -25,7 +25,7 @@ Step 1: Implement your DAG
 
 Here is an illustration of the DAG to implement:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/simple_dag.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/simple_dag.png
     :alt: Simple DAG
     :width: 100 %
 
