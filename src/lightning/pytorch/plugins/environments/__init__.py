@@ -16,6 +16,7 @@ from lightning.fabric.plugins.environments import (  # noqa: F401
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
+    MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
     XLAEnvironment,

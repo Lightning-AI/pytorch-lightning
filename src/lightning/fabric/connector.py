@@ -36,6 +36,7 @@ from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
+    MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
@@ -374,6 +375,7 @@ class _Connector:
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
+            MPIEnvironment,
         ):
             if env_type.detect():
                 return env_type()
@@ -414,6 +416,7 @@ class _Connector:
             or KubeflowEnvironment.detect()
             or SLURMEnvironment.detect()
             or LSFEnvironment.detect()
+            or MPIEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
