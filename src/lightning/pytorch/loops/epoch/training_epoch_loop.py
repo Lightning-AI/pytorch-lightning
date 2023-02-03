@@ -18,9 +18,9 @@ from typing import Any, Dict, Optional, Union
 import torch
 
 from lightning.pytorch import loops  # import as loops to avoid circular imports
-from lightning.pytorch.loops.optimization import _ManualOptimization, _OptimizerLoop
-from lightning.pytorch.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
-from lightning.pytorch.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
+from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
+from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
+from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
@@ -66,8 +66,8 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.optimizer_loop = _OptimizerLoop()
-        self.manual_loop = _ManualOptimization()
+        self.automatic_optimization = _AutomaticOptimization()
+        self.manual_optimization = _ManualOptimization()
 
         self.val_loop = loops._EvaluationLoop(verbose=False)
 
@@ -93,8 +93,8 @@ class _TrainingEpochLoop(loops._Loop):
     def global_step(self) -> int:
         lightning_module = self.trainer.lightning_module
         if lightning_module is None or lightning_module.automatic_optimization:
-            return self.optimizer_loop.optim_progress.optimizer_steps
-        return self.manual_loop.optim_step_progress.total.completed
+            return self.automatic_optimization.optim_progress.optimizer_steps
+        return self.manual_optimization.optim_step_progress.total.completed
 
     @property
     def _is_training_done(self) -> bool:
@@ -142,7 +142,7 @@ class _TrainingEpochLoop(loops._Loop):
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
-            self.optimizer_loop.optim_progress.reset_on_restart()
+            self.automatic_optimization.optim_progress.reset_on_restart()
 
             trainer = self.trainer
             if trainer.num_training_batches != float("inf"):
@@ -155,7 +155,7 @@ class _TrainingEpochLoop(loops._Loop):
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
-            self.optimizer_loop.optim_progress.reset_on_run()
+            self.automatic_optimization.optim_progress.reset_on_run()
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
@@ -216,9 +216,9 @@ class _TrainingEpochLoop(loops._Loop):
             with self.trainer.profiler.profile("run_training_batch"):
                 if self.trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
-                    batch_output = self.optimizer_loop.run(self.trainer.optimizers[0], kwargs)
+                    batch_output = self.automatic_optimization.run(self.trainer.optimizers[0], kwargs)
                 else:
-                    batch_output = self.manual_loop.run(kwargs)
+                    batch_output = self.manual_optimization.run(kwargs)
 
         self.batch_progress.increment_processed()
 

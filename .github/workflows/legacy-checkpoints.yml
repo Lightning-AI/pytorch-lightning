@@ -35,11 +35,7 @@ on:
         default: false
         required: false
         type: boolean
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_KEY_ID:
-        required: true
+    secrets: inherit
 
 defaults:
   run:
