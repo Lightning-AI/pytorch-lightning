@@ -102,3 +102,17 @@ If you are deploying workflows built with Lightning in production and require fe
 .. code-block:: bash
 
     pip install lightning-app
+    
+    
+----
+
+
+************
+Troubleshoot
+************
+If you experience difficulties during installation, it is recommended to create a new environment (or restart runtime in notebooks).
+For help, join our `community forum <https://lightning.ai/community>`_ and share the results of running this command:
+
+.. code:: bash
+
+        pip list | grep lightning
