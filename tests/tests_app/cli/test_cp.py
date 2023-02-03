@@ -71,6 +71,10 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
         memberships=[V1Membership(name="project-0")]
     )
 
+    clusters = MagicMock()
+    clusters.clusters = [MagicMock()]
+    client.projects_service_list_project_cluster_bindings.return_value = clusters
+
     client.lightningapp_instance_service_list_lightningapp_instances.return_value = V1ListLightningappInstancesResponse(
         lightningapps=[
             Externalv1LightningappInstance(
@@ -80,7 +84,7 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
         ]
     )
 
-    client.lightningapp_instance_service_list_lightningapp_instance_artifacts.return_value = (
+    client.lightningapp_instance_service_list_project_artifacts.return_value = (
         V1ListLightningappInstanceArtifactsResponse(
             artifacts=[
                 V1LightningappInstanceArtifact(

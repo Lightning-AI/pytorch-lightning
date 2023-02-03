@@ -47,25 +47,40 @@ def test_ls(monkeypatch):
         ]
     )
 
-    client.lightningapp_instance_service_list_lightningapp_instance_artifacts.return_value = (
-        V1ListLightningappInstanceArtifactsResponse(
-            artifacts=[
-                V1LightningappInstanceArtifact(
-                    filename="file_1.txt",
-                ),
-                V1LightningappInstanceArtifact(
-                    filename="folder_1/file_2.txt",
-                ),
-                V1LightningappInstanceArtifact(
-                    filename="folder_2/folder_3/file_3.txt",
-                ),
-                V1LightningappInstanceArtifact(
-                    filename="folder_2/file_4.txt",
-                ),
-            ],
-            next_page_token="something",
-        )
-    )
+    clusters = MagicMock()
+    clusters.clusters = [MagicMock()]
+    client.projects_service_list_project_cluster_bindings.return_value = clusters
+
+    def fn(*args, prefix, **kwargs):
+        splits = [split for split in prefix.split("/") if split != ""]
+        if len(splits) == 2:
+            return V1ListLightningappInstanceArtifactsResponse(
+                artifacts=[
+                    V1LightningappInstanceArtifact(filename="file_1.txt"),
+                    V1LightningappInstanceArtifact(filename="folder_1/file_2.txt"),
+                    V1LightningappInstanceArtifact(filename="folder_2/folder_3/file_3.txt"),
+                    V1LightningappInstanceArtifact(filename="folder_2/file_4.txt"),
+                ]
+            )
+        elif splits[-1] == "folder_1":
+            return V1ListLightningappInstanceArtifactsResponse(
+                artifacts=[V1LightningappInstanceArtifact(filename="file_2.txt")]
+            )
+        elif splits[-1] == "folder_2":
+            return V1ListLightningappInstanceArtifactsResponse(
+                artifacts=[
+                    V1LightningappInstanceArtifact(filename="folder_3/file_3.txt"),
+                    V1LightningappInstanceArtifact(filename="file_4.txt"),
+                ]
+            )
+        elif splits[-1] == "folder_3":
+            return V1ListLightningappInstanceArtifactsResponse(
+                artifacts=[
+                    V1LightningappInstanceArtifact(filename="file_3.txt"),
+                ]
+            )
+
+    client.lightningapp_instance_service_list_project_artifacts = fn
 
     monkeypatch.setattr(ls, "LightningClient", MagicMock(return_value=client))
 
@@ -76,9 +91,7 @@ def test_ls(monkeypatch):
     assert f"/project-0{os.sep}app-name-1" == cd("app-name-1")
     assert ls.ls() == ["file_1.txt", "folder_1", "folder_2"]
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_1" == cd("folder_1")
-    print("BEFORE")
     assert ls.ls() == ["file_2.txt"]
-    print("AFTER")
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2" == cd("../folder_2")
     assert ls.ls() == ["folder_3", "file_4.txt"]
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2{os.sep}folder_3" == cd("folder_3")

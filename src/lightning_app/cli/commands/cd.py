@@ -37,8 +37,6 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
 
         root = "/"
 
-        live.stop()
-
         if isinstance(path, Tuple) and len(path) > 0:
             path = " ".join(path)
 
