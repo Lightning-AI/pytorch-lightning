@@ -13,6 +13,7 @@ import pytest
 from deepdiff import DeepDiff, Delta
 
 from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.core import constants
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.storage import Drive, Path
 from lightning.app.storage.path import _artifacts_path
@@ -644,56 +645,71 @@ def test_state_observer():
 
 
 @pytest.mark.parametrize(
-    "environment, expected_ip_addr", [({}, "127.0.0.1"), ({"LIGHTNING_NODE_IP": "10.10.10.5"}, "10.10.10.5")]
+    "patch_constants, environment, expected_ip_addr",
+    [
+        ({}, {}, "127.0.0.1"),
+        ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "0.0.0.0"),
+        ({}, {"LIGHTNING_NODE_IP": "10.10.10.5"}, "10.10.10.5"),
+    ],
 )
-def test_work_runner_sets_internal_ip(environment, expected_ip_addr):
+def test_work_runner_sets_internal_ip(patch_constants, environment, expected_ip_addr):
     """Test that the WorkRunner updates the internal ip address as soon as the Work starts running."""
+    # Set constants
+    old_constants = {}
+    for constant, value in patch_constants.items():
+        old_constants[constant] = getattr(constants, constant)
+        setattr(constants, constant, value)
 
-    class Work(LightningWork):
-        def run(self):
-            pass
+    try:
 
-    work = Work()
-    work_runner = WorkRunner(
-        work,
-        work.name,
-        caller_queue=_MockQueue("caller_queue"),
-        delta_queue=Mock(),
-        readiness_queue=Mock(),
-        error_queue=Mock(),
-        request_queue=Mock(),
-        response_queue=Mock(),
-        copy_request_queue=Mock(),
-        copy_response_queue=Mock(),
-    )
+        class Work(LightningWork):
+            def run(self):
+                pass
 
-    # Make a fake call
-    call_hash = "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c"
-    work._calls[call_hash] = {
-        "args": (),
-        "kwargs": {},
-        "call_hash": call_hash,
-        "run_started_counter": 1,
-        "statuses": [],
-    }
-    work_runner.caller_queue.put(
-        {
+        work = Work()
+        work_runner = WorkRunner(
+            work,
+            work.name,
+            caller_queue=_MockQueue("caller_queue"),
+            delta_queue=Mock(),
+            readiness_queue=Mock(),
+            error_queue=Mock(),
+            request_queue=Mock(),
+            response_queue=Mock(),
+            copy_request_queue=Mock(),
+            copy_response_queue=Mock(),
+        )
+
+        # Make a fake call
+        call_hash = "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c"
+        work._calls[call_hash] = {
             "args": (),
             "kwargs": {},
             "call_hash": call_hash,
-            "state": work.state,
+            "run_started_counter": 1,
+            "statuses": [],
         }
-    )
+        work_runner.caller_queue.put(
+            {
+                "args": (),
+                "kwargs": {},
+                "call_hash": call_hash,
+                "state": work.state,
+            }
+        )
 
-    with mock.patch.dict(os.environ, environment, clear=True):
-        work_runner.setup()
-        # The internal ip address only becomes available once the hardware is up / the work is running.
-        assert work.internal_ip == ""
-        try:
-            work_runner.run_once()
-        except Empty:
-            pass
-        assert work.internal_ip == expected_ip_addr
+        with mock.patch.dict(os.environ, environment, clear=True):
+            work_runner.setup()
+            # The internal ip address only becomes available once the hardware is up / the work is running.
+            assert work.internal_ip == ""
+            try:
+                work_runner.run_once()
+            except Empty:
+                pass
+            assert work.internal_ip == expected_ip_addr
+    finally:
+        for constant, value in old_constants.items():
+            setattr(constants, constant, value)
 
 
 class WorkBi(LightningWork):
