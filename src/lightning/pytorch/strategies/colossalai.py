@@ -199,7 +199,6 @@ class ColossalAIStrategy(DDPStrategy):
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after pre-dispatch."""
         return True
 
     def setup_distributed(self) -> None:
