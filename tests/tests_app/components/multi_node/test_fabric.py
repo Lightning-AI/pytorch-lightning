@@ -7,8 +7,8 @@ import pytest
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 
-import lightning_fabric as lf
-from lightning_app.components.multi_node.fabric import _FabricRunExecutor
+import lightning.fabric as lf
+from lightning.app.components.multi_node.fabric import _FabricRunExecutor
 
 
 class DummyFabric(lf.Fabric):
@@ -41,7 +41,7 @@ def _get_args_after_tracer_injection(**kwargs):
 
 
 def check_lightning_fabric_mps():
-    if module_available("lightning_fabric"):
+    if module_available("lightning.fabric"):
         return lf.accelerators.MPSAccelerator.is_available()
     return False
 

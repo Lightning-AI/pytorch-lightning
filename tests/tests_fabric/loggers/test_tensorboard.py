@@ -22,8 +22,8 @@ import pytest
 import torch
 from tests_fabric.test_fabric import BoringModel
 
-from lightning_fabric.loggers import TensorBoardLogger
-from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning.fabric.loggers import TensorBoardLogger
+from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
@@ -200,7 +200,7 @@ def test_tensorboard_finalize(monkeypatch, tmpdir):
     logger.experiment.close.assert_called()
 
 
-@mock.patch("lightning_fabric.loggers.tensorboard.log")
+@mock.patch("lightning.fabric.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
     and relative paths."""

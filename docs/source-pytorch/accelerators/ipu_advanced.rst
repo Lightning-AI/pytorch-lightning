@@ -120,7 +120,6 @@ You can also use the block context manager within the forward function, or any o
             self.softmax = torch.nn.Softmax(dim=1)
 
         def forward(self, x):
-
             with poptorch.Block(ipu_id=0):
                 x = self.act(self.layer1(x))
 

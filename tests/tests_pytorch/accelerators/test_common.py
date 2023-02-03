@@ -15,9 +15,9 @@ from typing import Any, Dict
 
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.strategies import DDPStrategy
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import Accelerator
+from lightning.pytorch.strategies import DDPStrategy
 
 
 def test_pluggable_accelerator():

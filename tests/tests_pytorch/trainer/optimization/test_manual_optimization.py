@@ -21,10 +21,10 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.strategies import Strategy
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -929,8 +929,8 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
-            # Discriminator.
             optimizer1, optimizer2 = self.optimizers()
+            # Discriminator.
             self.toggle_optimizer(optimizer1)
 
             loss_d = self.step(batch)
@@ -977,17 +977,3 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
-
-
-def test_manual_optimization_training_step_signature(tmpdir):
-    """Test that Lightning raises an exception if the training_step signature has an optimier_idx by mistake."""
-
-    class ConfusedAutomaticManualModel(ManualOptModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
-
-    model = ConfusedAutomaticManualModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-
-    with pytest.raises(ValueError, match="Your `LightningModule.training_step` signature contains an `optimizer_idx`"):
-        trainer.fit(model)
