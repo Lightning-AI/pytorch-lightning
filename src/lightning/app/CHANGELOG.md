@@ -42,6 +42,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed a deadlock causing apps not to exit properly when running locally ([#16623](https://github.com/Lightning-AI/lightning/pull/16623)))
+
+
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
 
 
