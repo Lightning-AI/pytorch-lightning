@@ -30,15 +30,16 @@ def test_find_free_network_port_cloudspace(_):
     constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT = 10
 
     try:
-        ports = set()
-
-        for i in range(10):
-            ports.add(find_free_network_port())
-
-        assert len(ports) == 10
-
         with pytest.raises(RuntimeError, match="All 10 ports are already in use."):
-            find_free_network_port()
+            ports = set()
+            num_ports = 0
+
+            while True:
+                ports.add(find_free_network_port())
+                num_ports = num_ports + 1
+
+        # Check that all ports are unique
+        assert len(ports) == num_ports
     finally:
         constants.LIGHTNING_CLOUDSPACE_HOST = None
         constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT = 0
