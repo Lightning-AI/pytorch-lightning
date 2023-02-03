@@ -43,7 +43,7 @@ Here's a basic application with four flows and two works:
 
 And here's its associated tree structure:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/tree.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/tree.gif
     :alt: Basic App Components
     :width: 100 %
 
@@ -56,7 +56,7 @@ Lightning Distributed Event Loop
 
 Drawing inspiration from modern web frameworks like `React.js <https://reactjs.org/>`_, the Lightning app runs all flows in an **event loop** (forever), which is triggered every 0.1 seconds after collecting any works' state change.
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_loop.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_loop.gif
 
 When running an app in the cloud, the :class:`~lightning_app.core.work.LightningWork` run on different machines. Lightning communicates any :class:`~lightning_app.core.work.LightningWork` state changes to the **event loop** which re-executes the flow with the newly-collected works' state.
 
@@ -77,7 +77,7 @@ You can easily check the state of your entire app:
 
 Here's the entire tree structure associated with your app:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/parent_child.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/parent_child.png
     :alt: Parent Child Components
     :width: 100 %
 
@@ -213,7 +213,7 @@ your :class:`~lightning_app.core.work.LightningWork`.
 
 Here's an example of the interaction between parallel and non-parallel behaviors:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/blocking_non_blocking.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/blocking_non_blocking.gif
     :alt: mnist GPU bar
     :width: 100 %
 

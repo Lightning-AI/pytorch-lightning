@@ -208,7 +208,7 @@ class Flow(LightningFlow):
 
         # 4 When both execution are successful, exit the app.
         if self.test_file_server.num_successes == 2:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         # Expose the file_server component

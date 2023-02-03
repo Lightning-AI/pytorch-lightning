@@ -2,7 +2,7 @@ from datetime import datetime
 from time import sleep
 from unittest.mock import MagicMock
 
-from lightning_app.utilities.app_logs import _LogEvent
+from lightning.app.utilities.app_logs import _LogEvent
 
 
 def test_log_event():

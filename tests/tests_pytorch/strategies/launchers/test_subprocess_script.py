@@ -1,8 +1,11 @@
+import subprocess
 import sys
+from unittest.mock import Mock
 
 import pytest
 from lightning_utilities.core.imports import RequirementCache
 
+from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from tests_pytorch.helpers.runif import RunIf
 
 _HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
@@ -18,8 +21,8 @@ import hydra
 import os
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
@@ -59,3 +62,14 @@ def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
+
+
+def test_kill():
+    launcher = _SubprocessScriptLauncher(Mock(), 1, 1)
+    proc0 = Mock(autospec=subprocess.Popen)
+    proc1 = Mock(autospec=subprocess.Popen)
+    launcher.procs = [proc0, proc1]
+
+    launcher.kill(15)
+    proc0.send_signal.assert_called_once_with(15)
+    proc1.send_signal.assert_called_once_with(15)

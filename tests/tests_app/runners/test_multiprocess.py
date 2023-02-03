@@ -4,10 +4,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.frontend import StaticWebFrontend, StreamlitFrontend
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.utilities.component import _get_context
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.utilities.component import _get_context
 
 
 def _streamlit_render_fn():
@@ -16,7 +16,7 @@ def _streamlit_render_fn():
 
 class StreamlitFlow(LightningFlow):
     def run(self):
-        self._exit()
+        self.stop()
 
     def configure_layout(self):
         frontend = StreamlitFrontend(render_fn=_streamlit_render_fn)
@@ -27,7 +27,7 @@ class StreamlitFlow(LightningFlow):
 
 class WebFlow(LightningFlow):
     def run(self):
-        self._exit()
+        self.stop()
 
     def configure_layout(self):
         frontend = StaticWebFrontend(serve_dir="a/b/c")
@@ -43,10 +43,10 @@ class StartFrontendServersTestFlow(LightningFlow):
         self.flow1 = WebFlow()
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
-@mock.patch("lightning_app.runners.multiprocess.find_free_network_port")
+@mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
 def test_multiprocess_starts_frontend_servers(*_):
     """Test that the MultiProcessRuntime starts the servers for the frontends in each LightningFlow."""
     root = StartFrontendServersTestFlow()
@@ -78,7 +78,7 @@ class ContextFlow(LightningFlow):
         assert _get_context().value == "flow"
         self.work.run()
         assert _get_context().value == "flow"
-        self._exit()
+        self.stop()
 
 
 def test_multiprocess_runtime_sets_context():

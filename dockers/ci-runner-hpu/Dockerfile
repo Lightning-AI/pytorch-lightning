@@ -16,14 +16,14 @@
 #        gaudi-docker-agent:latest
 
 ARG DIST="latest"
-ARG GAUDI_VERSION="1.7.1"
-ARG PYTORCH_INSTALLER_VERSION="1.13.0"
+ARG GAUDI_VERSION="1.8.0"
+ARG PYTORCH_INSTALLER_VERSION="1.13.1"
 FROM vault.habana.ai/gaudi-docker/${GAUDI_VERSION}/ubuntu20.04/habanalabs/pytorch-installer-${PYTORCH_INSTALLER_VERSION}:${DIST}
 
 LABEL maintainer="https://vault.habana.ai/"
 # update the base packages and add a non-sudo user
 RUN \
-    apt-get update -y && \
+    apt-get update --fix-missing && \
     apt-get upgrade -y && \
     useradd -m docker
 

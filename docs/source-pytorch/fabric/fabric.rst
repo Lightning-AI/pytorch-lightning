@@ -2,9 +2,8 @@
 Fabric (Beta)
 #############
 
-
-:class:`~lightning_fabric.fabric.Fabric` library allows you to scale any PyTorch model with just a few lines of code!
-With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
+Fabric allows you to scale any PyTorch model with just a few lines of code!
+With Fabric, you can easily scale your model to run on distributed devices using the strategy of your choice while keeping complete control over the training loop and optimization logic.
 
 With only a few changes to your code, Fabric allows you to:
 
@@ -14,7 +13,7 @@ With only a few changes to your code, Fabric allows you to:
 - State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
 - Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
 - Multi-node support (TorchElastic, SLURM, and more)
-- You keep full control of your training loop
+- You keep complete control of your training loop
 
 
 .. code-block:: diff
@@ -25,591 +24,310 @@ With only a few changes to your code, Fabric allows you to:
 
     + from lightning.fabric import Fabric
 
-      class MyModel(nn.Module):
+      class PyTorchModel(nn.Module):
           ...
 
-      class MyDataset(Dataset):
+      class PyTorchDataset(Dataset):
           ...
 
     + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
     - device = "cuda" if torch.cuda.is_available() else "cpu
-      model = MyModel(...)
+      model = PyTorchModel(...)
       optimizer = torch.optim.SGD(model.parameters())
     + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(MyDataset(...), ...)
+      dataloader = DataLoader(PyTorchDataset(...), ...)
     + dataloader = fabric.setup_dataloaders(dataloader)
       model.train()
 
       for epoch in range(num_epochs):
           for batch in dataloader:
-    -         batch.to(device)
+              input, target = batch
+    -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              loss = model(batch)
+              output = model(input)
+              loss = loss_fn(output, target)
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
+              lr_scheduler.step()
 
 
-.. note:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on feedback.
+.. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
 
 
-----------
+----
 
-*****************
-Convert to Fabric
-*****************
-
-Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale your PyTorch models.
-
-**Step 1:** Create the :class:`~lightning_fabric.fabric.Fabric` object at the beginning of your training code.
-
-.. code-block:: python
-
-    from lightning.fabric import Fabric
-
-    fabric = Fabric()
-
-**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders.
-
-.. code-block:: python
-
-    model, optimizer = fabric.setup(model, optimizer)
-    dataloader = fabric.setup_dataloaders(dataloader)
-
-**Step 3:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
-
-.. code-block:: diff
-
-  - model.to(device)
-  - batch.to(device)
-
-**Step 4:** Replace ``loss.backward()`` by ``fabric.backward(loss)``.
-
-.. code-block:: diff
-
-  - loss.backward()
-  + fabric.backward(loss)
-
-**Step 5:** Run the script from the terminal with
-
-.. code-block:: bash
-
-    lightning run model path/to/train.py``
-
-or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
-
-|
-
-That's it! You can now train on any device at any scale with a switch of a flag.
-Check out our examples that use Fabric:
-
-- `Image Classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_
-- `Generative Adversarial Network (GAN) <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan/README.md>`_
-
-
-Here is how you run DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
-
-.. code-block:: bash
-
-    lightning run model ./path/to/train.py --strategy=ddp --devices=8 --accelerator=cuda --precision="bf16"
-
-Or `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with mixed precision:
-
-.. code-block:: bash
-
-     lightning run model ./path/to/train.py --strategy=deepspeed --devices=8 --accelerator=cuda --precision=16
-
-:class:`~lightning_fabric.fabric.Fabric` can also figure it out automatically for you!
-
-.. code-block:: bash
-
-    lightning run model ./path/to/train.py --devices=auto --accelerator=auto --precision=16
-
-
-You can also easily use distributed collectives if required.
-
-.. code-block:: python
-
-    fabric = Fabric()
-
-    # Transfer and concatenate tensors across processes
-    fabric.all_gather(...)
-
-    # Transfer an object from one process to all the others
-    fabric.broadcast(..., src=...)
-
-    # The total number of processes running across all devices and nodes.
-    fabric.world_size
-
-    # The global index of the current process across all devices and nodes.
-    fabric.global_rank
-
-    # The index of the current process among the processes running on the local node.
-    fabric.local_rank
-
-    # The index of the current node.
-    fabric.node_rank
-
-    # Whether this global rank is rank zero.
-    if fabric.is_global_zero:
-        # do something on rank 0
-        ...
-
-    # Wait for all processes to enter this call.
-    fabric.barrier()
-
-
-The code stays agnostic, whether you are running on CPU, on two GPUS or on multiple machines with many GPUs.
-
-If you require custom data or model device placement, you can deactivate :class:`~lightning_fabric.fabric.Fabric`'s automatic placement by doing ``fabric.setup_dataloaders(..., move_to_device=False)`` for the data and ``fabric.setup(..., move_to_device=False)`` for the model.
-Furthermore, you can access the current device from ``fabric.device`` or rely on :meth:`~lightning_fabric.fabric.Fabric.to_device` utility to move an object to the current device.
-
-
-----------
-
-*******************
-Fabric in Notebooks
-*******************
-
-
-Fabric works exactly the same way in notebooks (Jupyter, Google Colab, Kaggle, etc.) if you only run in a single process or a single GPU.
-If you want to use multiprocessing, for example multi-GPU, you can put your code in a function and pass that function to the
-:meth:`~lightning_fabric.fabric.Fabric.launch` method:
-
-
-.. code-block:: python
-
-
-    # Notebook Cell
-    def train(fabric):
-
-        model = ...
-        optimizer = ...
-        model, optimizer = fabric.setup(model, optimizer)
-        ...
-
-
-    # Notebook Cell
-    fabric = Fabric(accelerator="cuda", devices=2)
-    fabric.launch(train)  # Launches the `train` function on two GPUs
-
-
-As you can see, this function accepts one argument, the ``Fabric`` object, and it gets launched on as many devices as specified.
-
-
-----------
 
 ************
-Fabric Flags
+Fundamentals
 ************
 
-Fabric is designed to accelerate distributed training and inference. It makes it easy to configure your device and communication strategy, and to switch seamlessly from one to the other.
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Getting Started
+    :description: Learn how to add Fabric to your PyTorch code
+    :button_link: fundamentals/convert.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Accelerators
+    :description: Take advantage of your hardware with a switch of a flag
+    :button_link: fundamentals/accelerators.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. displayitem::
+    :header: Code Structure
+    :description: Best practices for setting up your training script with Fabric
+    :button_link: fundamentals/code_structure.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Launch Distributed Training
+    :description: Launch a Python script on multiple devices and machines
+    :button_link: fundamentals/launch.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. displayitem::
+    :header: Fabric in Notebooks
+    :description: Launch on multiple devices from within a Jupyter notebook
+    :button_link: fundamentals/notebooks.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Mixed Precision Training
+    :description: Save memory and speed up training using mixed precision
+    :button_link: fundamentals/precision.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>
+
+
+----
+
+
+**********************
+Build Your Own Trainer
+**********************
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: The LightningModule
+    :description: Organize your code in a LightningModule and use it with Fabric
+    :button_link: guide/lightning_module.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Callbacks
+    :description: Make use of the Callback system in Fabric
+    :button_link: guide/callbacks.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Logging
+    :description: Learn how Fabric helps you remove boilerplate code for tracking metrics with a logger
+    :button_link: guide/logging.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Checkpoints
+    :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
+    :button_link: guide/checkpoint.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Trainer Template
+    :description: Take our Fabric Trainer template and customize it for your needs
+    :button_link: guide/trainer_template.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. raw:: html
 
+        </div>
+    </div>
 
-accelerator
-===========
 
-Choose one of ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"`` (IPU support is coming soon).
+----
 
-.. code-block:: python
 
-    # CPU accelerator
-    fabric = Fabric(accelerator="cpu")
+***************
+Advanced Topics
+***************
 
-    # Running with GPU Accelerator using 2 GPUs
-    fabric = Fabric(devices=2, accelerator="gpu")
+.. raw:: html
 
-    # Running with TPU Accelerator using 8 tpu cores
-    fabric = Fabric(devices=8, accelerator="tpu")
+    <div class="display-card-container">
+        <div class="row">
 
-    # Running with GPU Accelerator using the DistributedDataParallel strategy
-    fabric = Fabric(devices=4, accelerator="gpu", strategy="ddp")
+.. displayitem::
+    :header: Efficient Gradient Accumulation
+    :description: Learn how to perform efficient gradient accumulation in distributed settings
+    :button_link: advanced/gradient_accumulation.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
 
-The ``"auto"`` option recognizes the machine you are on and selects the available accelerator.
+.. displayitem::
+    :header: Distributed Communication
+    :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
+    :button_link: advanced/distributed_communication.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
 
-.. code-block:: python
+.. raw:: html
 
-    # If your machine has GPUs, it will use the GPU Accelerator
-    fabric = Fabric(devices=2, accelerator="auto")
+        </div>
+    </div>
 
 
-strategy
-========
+----
 
-Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``, or ``"ddp_sharded_spawn"``.
 
-.. code-block:: python
+.. _Fabric Examples:
 
-    # Running with the DistributedDataParallel strategy on 4 GPUs
-    fabric = Fabric(strategy="ddp", accelerator="gpu", devices=4)
+********
+Examples
+********
 
-    # Running with the DDP Spawn strategy using 4 cpu processes
-    fabric = Fabric(strategy="ddp_spawn", accelerator="cpu", devices=4)
+.. raw:: html
 
+    <div class="display-card-container">
+        <div class="row">
 
-Additionally, you can pass in your custom strategy by configuring additional parameters.
+.. displayitem::
+    :header: Image Classification
+    :description: Train an image classifier on the MNIST dataset
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. code-block:: python
+.. displayitem::
+    :header: GAN
+    :description: Train a GAN that generates realistic human faces
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
 
-    from lightning.fabric.strategies import DeepSpeedStrategy
+.. displayitem::
+    :header: Meta-Learning
+    :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
 
-    fabric = Fabric(strategy=DeepSpeedStrategy(stage=2), accelerator="gpu", devices=2)
+.. displayitem::
+    :header: Large Language Models
+    :description: Pre-train a GPT-2 language model on OpenWebText data
+    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
 
+.. displayitem::
+    :header: Reinforcement Learning
+    :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
+    :col_css: col-md-4
+    :height: 150
 
-Support for Fully Sharded training strategies are coming soon.
+.. displayitem::
+    :header: Active Learning
+    :description: Coming soon
+    :col_css: col-md-4
+    :height: 150
 
 
-devices
-=======
 
-Configure the devices to run on. Can be of type:
+.. raw:: html
 
-- int: the number of devices (e.g., GPUs) to train on
-- list of int: which device index (e.g., GPU ID) to train on (0-indexed)
-- str: a string representation of one of the above
+        </div>
+    </div>
 
-.. code-block:: python
 
-    # default used by Fabric, i.e., use the CPU
-    fabric = Fabric(devices=None)
 
-    # equivalent
-    fabric = Fabric(devices=0)
+----
 
-    # int: run on two GPUs
-    fabric = Fabric(devices=2, accelerator="gpu")
 
-    # list: run on GPUs 1, 4 (by bus ordering)
-    fabric = Fabric(devices=[1, 4], accelerator="gpu")
-    fabric = Fabric(devices="1, 4", accelerator="gpu")  # equivalent
+***
+API
+***
 
-    # -1: run on all GPUs
-    fabric = Fabric(devices=-1, accelerator="gpu")
-    fabric = Fabric(devices="-1", accelerator="gpu")  # equivalent
+.. raw:: html
 
+    <div class="display-card-container">
+        <div class="row">
 
-num_nodes
-=========
+.. displayitem::
+    :header: Fabric Arguments
+    :description: All configuration options for the Fabric object
+    :button_link: api/fabric_args.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
+.. displayitem::
+    :header: Fabric Methods
+    :description: Explore all methods that Fabric offers
+    :button_link: api/fabric_methods.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-Number of cluster nodes for distributed operation.
+.. displayitem::
+    :header: Utilities
+    :description: Explore utility functions that make your life easier
+    :button_link: api/utilities.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. code-block:: python
+.. displayitem::
+    :header: Full API Reference
+    :description: Reference of all public classes, methods and functions. Useful for developers.
+    :button_link: api/api_reference.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
 
-    # Default used by Fabric
-    fabric = Fabric(num_nodes=1)
+.. raw:: html
 
-    # Run on 8 nodes
-    fabric = Fabric(num_nodes=8)
-
-
-Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster>`.
-
-
-precision
-=========
-
-Fabric supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
-Half precision, or mixed precision, is the combined use of 32 and 16-bit floating points to reduce the memory footprint during model training.
-This can result in improved performance, achieving significant speedups on modern GPUs.
-
-.. code-block:: python
-
-    # Default used by the Fabric
-    fabric = Fabric(precision=32, devices=1)
-
-    # 16-bit (mixed) precision
-    fabric = Fabric(precision=16, devices=1)
-
-    # 16-bit bfloat precision
-    fabric = Fabric(precision="bf16", devices=1)
-
-    # 64-bit (double) precision
-    fabric = Fabric(precision=64, devices=1)
-
-
-plugins
-=======
-
-:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
-To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
-:class:`~lightning.fabric.plugins.environments.ClusterEnvironment`.
-
-.. code-block:: python
-
-    from lightning.fabric.plugins.environments import ClusterEnvironment
-
-
-    class MyCluster(ClusterEnvironment):
-        @property
-        def main_address(self):
-            return your_main_address
-
-        @property
-        def main_port(self):
-            return your_main_port
-
-        def world_size(self):
-            return the_world_size
-
-
-    fabric = Fabric(plugins=[MyCluster()], ...)
-
-
-callbacks
-=========
-
-A callback class is a collection of methods that the training loop can call at a specific point in time, for example, at the end of an epoch.
-Add callbacks to Fabric to inject logic into your training loop from an external callback class.
-
-.. code-block:: python
-
-    class MyCallback:
-        def on_train_epoch_end(self, results):
-            ...
-
-You can then register this callback, or multiple ones directly in Fabric:
-
-.. code-block:: python
-
-    fabric = Fabric(callbacks=[MyCallback()])
-
-
-Then, in your training loop, you can call a hook by its name. Any callback objects that have this hook will execute it:
-
-.. code-block:: python
-
-    # Call any hook by name
-    fabric.call("on_train_epoch_end", results={...})
-
-
-----------
-
-
-**************
-Fabric Methods
-**************
-
-
-setup
-=====
-
-Set up a model and corresponding optimizer(s). If you need to set up multiple models, call ``setup()`` on each of them.
-Moves the model and optimizer to the correct device automatically.
-
-.. code-block:: python
-
-    model = nn.Linear(32, 64)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-
-    # Set up model and optimizer for accelerated training
-    model, optimizer = fabric.setup(model, optimizer)
-
-    # If you don't want Fabric to set the device
-    model, optimizer = fabric.setup(model, optimizer, move_to_device=False)
-
-
-The setup method also prepares the model for the selected precision choice so that operations during ``forward()`` get
-cast automatically.
-
-setup_dataloaders
-=================
-
-Set up one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Fabric
-replaces the sampler automatically for you. In addition, the dataloader will be configured to move the returned
-data tensors to the correct device automatically.
-
-.. code-block:: python
-
-    train_data = torch.utils.DataLoader(train_dataset, ...)
-    test_data = torch.utils.DataLoader(test_dataset, ...)
-
-    train_data, test_data = fabric.setup_dataloaders(train_data, test_data)
-
-    # If you don't want Fabric to move the data to the device
-    train_data, test_data = fabric.setup_dataloaders(train_data, test_data, move_to_device=False)
-
-    # If you don't want Fabric to replace the sampler in the context of distributed training
-    train_data, test_data = fabric.setup_dataloaders(train_data, test_data, replace_sampler=False)
-
-
-backward
-========
-
-This replaces any occurrences of ``loss.backward()`` and makes your code accelerator and precision agnostic.
-
-.. code-block:: python
-
-    output = model(input)
-    loss = loss_fn(output, target)
-
-    # loss.backward()
-    fabric.backward(loss)
-
-
-to_device
-=========
-
-Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors or collections of tensors to
-the current device. By default :meth:`~lightning_fabric.fabric.Fabric.setup` and
-:meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` already move the model and data to the correct
-device, so calling this method is only necessary for manual operation when needed.
-
-.. code-block:: python
-
-    data = torch.load("dataset.pt")
-    data = fabric.to_device(data)
-
-
-seed_everything
-===============
-
-Make your code reproducible by calling this method at the beginning of your run.
-
-.. code-block:: python
-
-    # Instead of `torch.manual_seed(...)`, call:
-    fabric.seed_everything(1234)
-
-
-This covers PyTorch, NumPy and Python random number generators. In addition, Fabric takes care of properly initializing
-the seed of dataloader worker processes (can be turned off by passing ``workers=False``).
-
-
-autocast
-========
-
-Let the precision backend autocast the block of code under this context manager. This is optional and already done by
-Fabric for the model's forward method (once the model was :meth:`~lightning_fabric.fabric.Fabric.setup`).
-You need this only if you wish to autocast more operations outside the ones in model forward:
-
-.. code-block:: python
-
-    model, optimizer = fabric.setup(model, optimizer)
-
-    # Fabric handles precision automatically for the model
-    output = model(inputs)
-
-    with fabric.autocast():  # optional
-        loss = loss_function(output, target)
-
-    fabric.backward(loss)
-    ...
-
-
-print
-=====
-
-Print to the console via the built-in print function, but only on the main process.
-This avoids excessive printing and logs when running on multiple devices/nodes.
-
-
-.. code-block:: python
-
-    # Print only on the main process
-    fabric.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {loss}")
-
-
-save
-====
-
-Save contents to a checkpoint. Replaces all occurrences of ``torch.save(...)`` in your code. Fabric will take care of
-handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
-
-.. code-block:: python
-
-    # Instead of `torch.save(...)`, call:
-    fabric.save(model.state_dict(), "path/to/checkpoint.ckpt")
-
-
-load
-====
-
-Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Fabric will take care of
-handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
-
-.. code-block:: python
-
-    # Instead of `torch.load(...)`, call:
-    fabric.load("path/to/checkpoint.ckpt")
-
-
-barrier
-=======
-
-Call this if you want all processes to wait and synchronize. Once all processes have entered this call,
-execution continues. Useful for example when you want to download data on one process and make all others wait until
-the data is written to disk.
-
-.. code-block:: python
-
-    # Download data only on one process
-    if fabric.global_rank == 0:
-        download_data("http://...")
-
-    # Wait until all processes meet up here
-    fabric.barrier()
-
-    # All processes are allowed to read the data now
-
-
-no_backward_sync
-================
-
-Use this context manager when performing gradient accumulation and using a distributed strategy (e.g., DDP).
-It will speed up your training loop by cutting redundant communication between processes during the accumulation phase.
-
-.. code-block:: python
-
-    # Accumulate gradient 8 batches at a time
-    is_accumulating = batch_idx % 8 != 0
-
-    with fabric.no_backward_sync(model, enabled=is_accumulating):
-        output = model(input)
-        loss = ...
-        fabric.backward(loss)
-        ...
-
-    # Step the optimizer every 8 batches
-    if not is_accumulating:
-        optimizer.step()
-        optimizer.zero_grad()
-
-Both the model's `.forward()` and the `fabric.backward()` call need to run under this context as shown in the example above.
-For single-device strategies, it is a no-op. There are strategies that don't support this:
-
-- deepspeed
-- dp
-- xla
-
-For these, the context manager falls back to a no-op and emits a warning.
-
-
-call
-====
-
-Use this to run all registered callback hooks with a given name and inputs.
-It is useful when building a Trainer that allows the user to run arbitrary code at fixed points in the training loop.
-
-.. code-block:: python
-
-    class MyCallback:
-        def on_train_start(self):
-            ...
-
-        def on_train_epoch_end(self, model, results):
-            ...
-
-
-    fabric = Fabric(callbacks=[MyCallback()])
-
-    # Call any hook by name
-    fabric.call("on_train_start")
-
-    # Pass in additional arguments that the hook requires
-    fabric.call("on_train_epoch_end", model=..., results={...})
-
-    # Only the callbacks that have this method defined will be executed
-    fabric.call("undefined")
+        </div>
+    </div>

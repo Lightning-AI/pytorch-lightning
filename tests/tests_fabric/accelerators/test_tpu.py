@@ -14,7 +14,7 @@
 import pytest
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.tpu import TPUAccelerator
 
 
 def test_auto_device_count():
@@ -29,11 +29,11 @@ def test_availability():
 @pytest.mark.parametrize(
     "devices,expected",
     [
-        (0, []),  # TODO(lite): This should raise an exception
+        (0, []),  # TODO(fabric): This should raise an exception
         (1, [0]),
         (2, [0, 1]),
         (3, [0, 1, 2]),
-        ("anything-else", "anything-else"),  # TODO(lite): This should raise an exception
+        ("anything-else", "anything-else"),  # TODO(fabric): This should raise an exception
     ],
 )
 def test_get_parallel_devices(devices, expected):

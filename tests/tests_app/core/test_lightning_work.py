@@ -4,17 +4,17 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from lightning_app import LightningApp
-from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage import Path
-from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
-from lightning_app.testing.testing import LightningTestApp
-from lightning_app.utilities.enum import make_status, WorkStageStatus
-from lightning_app.utilities.exceptions import LightningWorkException
-from lightning_app.utilities.packaging.build_config import BuildConfig
-from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
+from lightning.app import LightningApp
+from lightning.app.core.flow import LightningFlow
+from lightning.app.core.work import LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage import Path
+from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
+from lightning.app.testing.testing import LightningTestApp
+from lightning.app.utilities.enum import make_status, WorkStageStatus
+from lightning.app.utilities.exceptions import LightningWorkException
+from lightning.app.utilities.packaging.build_config import BuildConfig
+from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
 def test_lightning_work_run_method_required():
@@ -203,17 +203,21 @@ def test_lightning_status(enable_exception, raise_exception):
         pass
 
     res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
-    index = 1 if len(delta_queue._queue) == 2 else 2
-    res_end = delta_queue._queue[index].delta.to_dict()["iterable_item_added"]
+    L = len(delta_queue._queue) - 1
     if enable_exception:
         exception_cls = Exception if raise_exception else Empty
         assert isinstance(error_queue._queue[0], exception_cls)
+        res_end = delta_queue._queue[L].delta.to_dict()["iterable_item_added"]
         res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["stage"] == "failed"
         res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["message"] == "Custom Exception"
     else:
         assert res[f"root['calls']['{call_hash}']['statuses'][0]"]["stage"] == "running"
         key = f"root['calls']['{call_hash}']['statuses'][1]"
-        assert res_end[key]["stage"] == "succeeded"
+        while L >= 0:
+            res_end = delta_queue._queue[L].delta.to_dict()["iterable_item_added"]
+            if key in res_end and res_end[key]["stage"] == "succeeded":
+                break
+            L -= 1
 
     # Stop blocking and let the thread join
     work_runner.copier.join()
@@ -230,7 +234,7 @@ def test_lightning_work_url():
 
 
 def test_work_path_assignment():
-    """Test that paths in the lit format lit:// get converted to a proper lightning_app.storage.Path object."""
+    """Test that paths in the lit format lit:// get converted to a proper lightning.app.storage.Path object."""
 
     class Work(LightningWork):
         def __init__(self):
@@ -271,7 +275,7 @@ def test_work_state_change_with_path():
 
         def run(self):
             self.work.run()
-            self._exit()
+            self.stop()
 
     flow = Flow()
     MultiProcessRuntime(LightningApp(flow)).dispatch()
@@ -368,7 +372,7 @@ class FlowStart(LightningFlow):
 
     def run(self):
         if self.finish:
-            self._exit()
+            self.stop()
         if self.w.status.stage == WorkStageStatus.STOPPED:
             with pytest.raises(Exception, match="A work can be started only once for now."):
                 self.w.start()

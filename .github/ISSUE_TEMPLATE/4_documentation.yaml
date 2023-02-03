@@ -1,6 +1,6 @@
 name: Typos and doc fixes
 description: Tell us about how we can improve our documentation
-labels: ["needs triage"]
+labels: ["needs triage", "docs"]
 body:
   - type: textarea
     attributes:

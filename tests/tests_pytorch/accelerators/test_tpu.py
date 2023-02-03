@@ -15,21 +15,22 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
-from pytorch_lightning.utilities import find_shared_parameters
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
+from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
+from lightning.pytorch.strategies import DDPStrategy, TPUSpawnStrategy
+from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
 class WeightSharingModule(BoringModel):
@@ -80,15 +81,10 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
+def test_accelerator_cpu_when_tpu_available(tpu_available):
     assert TPUAccelerator.is_available()
-
     trainer = Trainer(accelerator="cpu", devices=8)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(skip_windows=True)
@@ -99,25 +95,6 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.num_devices == 8
-
-
-@RunIf(skip_windows=True)
-def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
-    """Test for checking `tpu_cores` flag takes priority over `devices`."""
-    tpu_cores = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
-
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert trainer.num_devices == tpu_cores
-
-
-@RunIf(skip_windows=True)
-def test_set_devices_if_none_tpu(tpu_available):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(accelerator="tpu", tpu_cores=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.num_devices == 8
 
 
@@ -159,7 +136,7 @@ def test_manual_optimization_tpus(tmpdir):
                 assert not torch.equal(self.weight_before, after_before), self.count
             else:
                 assert torch.equal(self.weight_before, after_before)
-            assert torch.all(self.layer.weight.grad == 0)
+            assert_emtpy_grad(self.layer.weight.grad)
             self.count += 1
 
         def on_train_start(self):
@@ -291,14 +268,20 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 
 
 @RunIf(tpu=True)
-@patch("torch_xla.distributed.parallel_loader.MpDeviceLoader")
-@patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
-def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
+@patch("pytorch.lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
+def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
+    import torch_xla.distributed.parallel_loader as parallel_loader
+
+    mp_loader_mock = Mock()
+    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
+
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
-    processed_dataloader = TPUSpawnStrategy().process_dataloader(dataloader)
-    mp_loader_mock.assert_called_with(dataloader, root_device_mock)
+    strategy = TPUSpawnStrategy()
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
+    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
 def test_warning_if_tpus_not_used(tpu_available):

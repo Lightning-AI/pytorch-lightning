@@ -117,20 +117,6 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
-   :header: Train on the cloud
-   :description: Run models on the cloud.
-   :col_css: col-md-12
-   :button_link: clouds/cloud_training.html
-   :height: 100
-
-.. displayitem::
-   :header: Train on multiple machines over the internet
-   :description: Train on local machines or unreliable GPUs across the internet.
-   :col_css: col-md-12
-   :button_link: strategies/hivemind
-   :height: 100
-
-.. displayitem::
    :header: Train on single or multiple GPUs
    :description: Train models faster with GPUs.
    :col_css: col-md-12

@@ -11,15 +11,15 @@ from lightning_cloud.openapi import (
     V1LightningappInstanceSpec,
 )
 
-from lightning_app.cli.lightning_cli import ssh
+from lightning.app.cli.lightning_cli import ssh
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("inquirer.prompt")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_apps")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_components")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_app")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_cluster")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_apps")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_components")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_app")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_cluster")
 @mock.patch("os.execv")
 def test_ssh_no_arguments(
     os_execv: mock.MagicMock,
@@ -49,10 +49,10 @@ def test_ssh_no_arguments(
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("inquirer.prompt")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_apps")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_components")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_app")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_cluster")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_apps")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_components")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_app")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_cluster")
 @mock.patch("os.execv")
 def test_ssh_app_preselected(
     os_execv: mock.MagicMock,
@@ -81,10 +81,10 @@ def test_ssh_app_preselected(
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_apps")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_components")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_app")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_cluster")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_apps")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_components")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_app")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_cluster")
 @mock.patch("os.execv")
 def test_ssh_app_and_component_preselected(
     os_execv: mock.MagicMock,
@@ -111,7 +111,7 @@ def test_ssh_app_and_component_preselected(
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_apps")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_apps")
 @mock.patch("click.ClickException")
 def test_ssh_unknown_app(
     click_exception: mock.MagicMock,
@@ -131,10 +131,10 @@ def test_ssh_unknown_app(
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_apps")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.list_components")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_app")
-@mock.patch("lightning_app.cli.cmd_apps._AppManager.get_cluster")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_apps")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.list_components")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_app")
+@mock.patch("lightning.app.cli.cmd_apps._AppManager.get_cluster")
 @mock.patch("click.ClickException")
 def test_ssh_unknown_component(
     click_exception: mock.MagicMock,

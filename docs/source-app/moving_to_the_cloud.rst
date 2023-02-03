@@ -85,7 +85,7 @@ and embeds its content as an `IFrame <https://en.wikipedia.org/wiki/HTML_element
 
 Here's a visualization of the application described above:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/storage_ui.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/storage_ui.gif
     :alt: Storage API Animation
     :width: 100 %
 

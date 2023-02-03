@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.logger import _version
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.utilities.logger import _version
 
 
 def test_version(tmpdir):

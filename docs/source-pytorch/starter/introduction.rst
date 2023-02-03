@@ -124,6 +124,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
     decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
+
     # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
         def __init__(self, encoder, decoder):
@@ -139,7 +140,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             z = self.encoder(x)
             x_hat = self.decoder(z)
             loss = nn.functional.mse_loss(x_hat, x)
-            # Logging to TensorBoard by default
+            # Logging to TensorBoard (if installed) by default
             self.log("train_loss", loss)
             return loss
 
@@ -218,7 +219,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 *********************
 6: Visualize training
 *********************
-Lightning comes with a *lot* of batteries included. A helpful one is Tensorboard for visualizing experiments.
+If you have tensorboard installed, you can use it for visualizing experiments.
 
 Run this on your commandline and open your browser to **http://localhost:6006/**
 
@@ -282,7 +283,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 .. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
-        def backward(self, loss, optimizer, optimizer_idx):
+        def backward(self, loss):
             loss.backward()
 
 ----
@@ -306,7 +307,7 @@ If you have multiple lines of code with similar functionalities, you can use cal
 Use a raw PyTorch loop
 ======================
 
-For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
+For certain types of work at the bleeding-edge of research, Lightning offers experts full control of optimization or the training loop in various ways.
 
 .. raw:: html
 
@@ -329,16 +330,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Full control over loop for migrating complex PyTorch projects.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
-   :button_link: ../model/build_model_expert.html
-   :image_height: 220px
-   :height: 320
-
-.. displayitem::
-   :header: Loops
-   :description: Enable meta-learning, reinforcement learning, GANs with full control.
-   :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
-   :button_link: ../extensions/loops.html
+   :button_link: ../fabric/fabric.html
    :image_height: 220px
    :height: 320
 
@@ -383,7 +375,7 @@ Depending on your use case, you might want to check one of these out next.
    :header: I need my raw PyTorch Loop
    :description: Expert-level control for researchers working on the bleeding-edge
    :col_css: col-md-3
-   :button_link: ../model/build_model_expert.html
+   :button_link: ../fabric/fabric.html
    :height: 180
    :tag: expert
 

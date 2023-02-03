@@ -32,6 +32,7 @@ Create AWS role with AWS CLI
         "Action": [
           "autoscaling:*",
           "cloudwatch:*",
+          "codebuild:*",
           "ec2:*",
           "ecr:*",
           "eks:*",
