@@ -45,6 +45,10 @@ Before you start reviewing, make sure you have read the [review guidelines](http
 
 </details>
 
-## Did you have fun?
+<!-- 
+
+Did you have fun?
 
 Make sure you had fun coding 🙃
+
+-->
