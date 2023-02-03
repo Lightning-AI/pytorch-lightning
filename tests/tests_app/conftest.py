@@ -10,6 +10,7 @@ import psutil
 import py
 import pytest
 
+from lightning_app.core import constants
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities.app_helpers import _collect_child_process_pids
 from lightning_app.utilities.component import _set_context
@@ -115,3 +116,26 @@ def caplog(caplog):
     root_logger.propagate = root_propagate
     for name, propagate in propagation_dict.items():
         logging.getLogger(name).propagate = propagate
+
+
+@pytest.fixture
+def patch_constants(request):
+    """This fixture can be used with indirect parametrization to patch values in `lightning_app.core.constants` for
+    the duration of a test.
+
+    Example::
+
+        @pytest.mark.parametrize("patch_constants", [{"LIGHTNING_CLOUDSPACE_HOST": "any"}], indirect=True)
+        def test_my_stuff(patch_constants):
+            ...
+    """
+    # Set constants
+    old_constants = {}
+    for constant, value in request.param.items():
+        old_constants[constant] = getattr(constants, constant)
+        setattr(constants, constant, value)
+
+    yield
+
+    for constant, value in old_constants.items():
+        setattr(constants, constant, value)

@@ -16,6 +16,7 @@ import multiprocessing
 from typing import List, Optional
 
 import lightning_app
+from lightning_app.core import constants
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends.backend import Backend, WorkManager
 from lightning_app.utilities.enum import WorkStageStatus
@@ -76,6 +77,12 @@ class MultiProcessingBackend(Backend):
         super().__init__(entrypoint_file=entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id="0")
 
     def create_work(self, app, work) -> None:
+        if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
+            # Override the port if set by the user
+            work._port = find_free_network_port()
+            work._host = "0.0.0.0"
+            work._future_url = f"https://{work.port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+
         app.processes[work.name] = MultiProcessWorkManager(app, work)
         app.processes[work.name].start()
         self.resolve_url(app)
