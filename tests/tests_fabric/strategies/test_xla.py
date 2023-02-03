@@ -95,6 +95,7 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     processed_dataloader = strategy.process_dataloader(dataloader)
     mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
+    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
 _loader = DataLoader(RandomDataset(32, 64))
