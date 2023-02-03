@@ -415,8 +415,8 @@ class Strategy(ABC):
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after the setup phase has completed.
-        This is useful when the strategy requires all the setup hooks to run before loading checkpoint.
+        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful
+        when the strategy requires all the setup hooks to run before loading checkpoint.
 
         Returns:
             If ``True``, restore checkpoint after strategy setup.
