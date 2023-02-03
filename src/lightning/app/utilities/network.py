@@ -33,14 +33,12 @@ from lightning.app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-# Global record to track ports that have been allocated.
+# Global record to track ports that have been allocated in this session. This is needed as
 _reserved_ports = set()
 
 
 def find_free_network_port() -> int:
     """Finds a free port on localhost."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
     if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
         # If in a cloudspace, look for a port in the exposed range
         for port in range(
@@ -51,6 +49,7 @@ def find_free_network_port() -> int:
                 continue
 
             try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.bind(("", port))
                 s.close()
                 _reserved_ports.add(port)
@@ -62,11 +61,21 @@ def find_free_network_port() -> int:
         raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
 
     port = None
+    i = 0
 
-    while port is None or port in _reserved_ports:
+    while i < 10 and (port is None or port in _reserved_ports):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind(("", 0))
         port = s.getsockname()[1]
         s.close()
+        i = i + 1
+
+    if port in _reserved_ports:
+        # Prevent an infinite loop, if we tried 10 times and didn't get a free port then something is wrong
+        raise RuntimeError(
+            "Couldn't find a free port. Please open an issue at `https://github.com/Lightning-AI/lightning/issues`."
+        )
+
     _reserved_ports.add(port)
     return port
 
