@@ -59,10 +59,7 @@ def find_free_network_port() -> int:
                 continue
 
         # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
-        raise RuntimeError(
-            f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use."
-            "Contact support@lightning.ai for help."
-        )
+        raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
 
     port = None
 
