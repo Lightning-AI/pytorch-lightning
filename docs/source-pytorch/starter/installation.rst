@@ -102,8 +102,8 @@ If you are deploying workflows built with Lightning in production and require fe
 .. code-block:: bash
 
     pip install lightning-app
-    
-    
+
+
 ----
 
 
