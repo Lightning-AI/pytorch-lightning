@@ -40,25 +40,7 @@ _reserved_ports = set()
 def find_free_network_port() -> int:
     """Finds a free port on localhost."""
     if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
-        # If in a cloudspace, look for a port in the exposed range
-        for port in range(
-            constants.APP_SERVER_PORT,
-            constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
-        ):
-            if port in _reserved_ports:
-                continue
-
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(("", port))
-                sock.close()
-                _reserved_ports.add(port)
-                return port
-            except OSError:
-                continue
-
-        # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
-        raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
+        return _find_free_network_port_cloudspace()
 
     port = None
 
@@ -79,6 +61,28 @@ def find_free_network_port() -> int:
 
     _reserved_ports.add(port)
     return port
+
+
+def _find_free_network_port_cloudspace():
+    """Finds a free port in the exposed range when running in a cloudspace."""
+    for port in range(
+        constants.APP_SERVER_PORT,
+        constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
+    ):
+        if port in _reserved_ports:
+            continue
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(("", port))
+            sock.close()
+            _reserved_ports.add(port)
+            return port
+        except OSError:
+            continue
+
+    # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
+    raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
 
 
 _CONNECTION_RETRY_TOTAL = 2880
