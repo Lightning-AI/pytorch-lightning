@@ -104,6 +104,7 @@ extensions = [
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
@@ -125,6 +126,12 @@ suppress_warnings = [
     "autosectionlabel.*",
 ]
 
+copybutton_prompt_text = ">>> "
+copybutton_prompt_text1 = "... "
+copybutton_exclude = ".linenos"
+
+copybutton_only_copy_prompt_lines = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -139,6 +146,8 @@ nbsphinx_requirejs_path = ""
 # myst-parser, forcing to parse all html pages with mathjax
 # https://github.com/executablebooks/MyST-Parser/issues/394
 myst_update_mathjax = False
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
+myst_heading_anchors = 3
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -179,8 +188,7 @@ pygments_style = None
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
 html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
-# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -286,7 +294,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
-    "fairscale": ("https://fairscale.readthedocs.io/en/latest/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
 }
 
@@ -390,13 +397,26 @@ from pytorch_lightning import LightningDataModule, LightningModule, Trainer, see
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
     _TORCHVISION_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_10,
 )
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
 from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
+
+# skip false positive linkcheck errors from anchors
+linkcheck_anchors = False
+
+# ignore all links in any CHANGELOG file
+linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+
+# ignore the following relative links (false positive errors during linkcheck)
+linkcheck_ignore = [
+    r"^starter/installation.html$",
+    r"^installation.html$",
+    r"^../cli/lightning_cli.html$",
+    r"^../common/trainer.html#trainer-flags$",
+]

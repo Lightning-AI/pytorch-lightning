@@ -6,7 +6,7 @@
 Build and Train a Model
 #######################
 
-**Required background:** Basic Python familiarity and complete the :ref:`install` guide.
+**Required background:** Basic Python familiarity and complete the  guide.
 
 **Goal:** We'll walk you through the creation of a model using PyTorch Lightning.
 

@@ -1,1 +1,0 @@
-../../source-pytorch/clouds/fault_tolerant_training_basic.rst

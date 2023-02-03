@@ -1,1 +1,0 @@
-../../../source-app/workflows/build_lightning_component/from_scratch_component_content.rst

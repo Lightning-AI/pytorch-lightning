@@ -35,7 +35,6 @@ When the LightningWork starts up, it will pick up the requirements file if prese
 .. note::
     This only applies when running in the cloud. The requirements.txt files get ignored when running locally.
 
-
 ----
 
 ***********************************
@@ -58,3 +57,12 @@ Instead of listing the requirements in a file, you can also pass them to the Lig
 
 .. note::
     The build config only applies when running in the cloud and gets ignored otherwise. A local build config is currently not supported.
+
+.. warning::
+     Custom base images are not supported with the default CPU cloud compute. For example:
+
+     .. code-block:: py
+
+         class MyWork(LightningWork):
+             def __init__(self):
+              super().__init__(cloud_build_config=BuildConfig(image="my-custom-image")) # no cloud compute, for example default work

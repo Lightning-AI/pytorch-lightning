@@ -88,10 +88,25 @@ The table below lists examples of possible input formats and how they are interp
 | "-1"             | str       | [0, 1, 2, ...]      | all available GPUs              |
 +------------------+-----------+---------------------+---------------------------------+
 
-.. note::
 
-    When specifying number of ``devices`` as an integer ``devices=k``, setting the trainer flag
-    ``auto_select_gpus=True`` will automatically help you find ``k`` GPUs that are not
-    occupied by other processes. This is especially useful when GPUs are configured
-    to be in "exclusive mode", such that only one process at a time can access them.
-    For more details see the :doc:`trainer guide <../common/trainer>`.
+Find usable CUDA devices
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you want to run several experiments at the same time on your machine, for example for a hyperparameter sweep, then you can
+use the following utility function to pick GPU indices that are "accessible", without having to change your code every time.
+
+.. code-block:: python
+
+    from lightning.pytorch.accelerators import find_usable_cuda_devices
+
+    # Find two GPUs on the system that are not already occupied
+    trainer = Trainer(accelerator="cuda", devices=find_usable_cuda_devices(2))
+
+    from lightning.fabric.accelerators import find_usable_cuda_devices
+
+    # Works with Fabric too
+    fabric = Fabric(accelerator="cuda", devices=find_usable_cuda_devices(2))
+
+
+This is especially useful when GPUs are configured to be in "exclusive compute mode", such that only one process at a time is allowed access to the device.
+This special mode is often enabled on server GPUs or systems shared among multiple users.

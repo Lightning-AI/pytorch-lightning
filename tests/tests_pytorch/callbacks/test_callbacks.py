@@ -16,11 +16,11 @@ from re import escape
 from unittest.mock import Mock
 
 import pytest
+from lightning_utilities.test.warning import no_warning_call
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.utils import no_warning_call
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 def test_callbacks_configured_in_model(tmpdir):

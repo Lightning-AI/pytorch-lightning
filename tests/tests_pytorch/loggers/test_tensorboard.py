@@ -15,16 +15,18 @@ import logging
 import os
 from argparse import Namespace
 from unittest import mock
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
 import torch
 import yaml
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -37,7 +39,7 @@ def test_tensorboard_hparams_reload(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=TensorBoardLogger(tmpdir))
     model = CustomModel()
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
@@ -220,6 +222,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     logger.log_graph(model, example_input_array)
 
 
+@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
@@ -227,13 +230,18 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
-        match="Could not log computational graph since the `model.example_input_array`"
-        " attribute is not set or `input_array` was not given",
+        match="Could not log computational graph to TensorBoard: The `model.example_input_array` .* was not given",
+    ):
+        logger.log_graph(model)
+
+    model.example_input_array = dict(x=1, y=2)
+    with pytest.warns(
+        UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):
         logger.log_graph(model)
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
     """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
 
@@ -271,23 +279,28 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
     assert count_steps == model.indexes
 
 
-@mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter")
-def test_tensorboard_finalize(summary_writer, tmpdir):
+def test_tensorboard_finalize(monkeypatch, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    else:
+        import tensorboardX as tb
+
+    monkeypatch.setattr(tb, "SummaryWriter", Mock())
     logger = TensorBoardLogger(save_dir=tmpdir)
     assert logger._experiment is None
     logger.finalize("any")
 
     # no log calls, no experiment created -> nothing to flush
-    summary_writer.assert_not_called()
+    logger.experiment.assert_not_called()
 
     logger = TensorBoardLogger(save_dir=tmpdir)
     logger.log_metrics({"flush_me": 11.1})  # trigger creation of an experiment
     logger.finalize("any")
 
     # finalize flushes to experiment directory
-    summary_writer().flush.assert_called()
-    summary_writer().close.assert_called()
+    logger.experiment.flush.assert_called()
+    logger.experiment.close.assert_called()
 
 
 def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
@@ -302,7 +315,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
 
 
-@mock.patch("pytorch_lightning.loggers.tensorboard.log")
+@mock.patch("lightning.pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
     and relative paths."""

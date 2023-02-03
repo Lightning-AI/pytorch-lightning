@@ -1,5 +1,5 @@
 #####################
-lightning_app.runners
+lightning.app.runners
 #####################
 
 .. contents::
@@ -18,5 +18,4 @@ ______________
     :template: classtemplate.rst
 
     ~cloud.CloudRuntime
-    ~singleprocess.SingleProcessRuntime
     ~multiprocess.MultiProcessRuntime

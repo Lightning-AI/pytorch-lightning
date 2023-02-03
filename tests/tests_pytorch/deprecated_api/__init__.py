@@ -14,7 +14,7 @@
 from contextlib import contextmanager
 from typing import Optional
 
-from tests_pytorch.helpers.utils import no_warning_call
+from lightning_utilities.test.warning import no_warning_call
 
 
 @contextmanager

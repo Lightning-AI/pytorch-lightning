@@ -1,1 +1,0 @@
-../../../source-app/core_api/lightning_work/handling_app_exception_content.rst

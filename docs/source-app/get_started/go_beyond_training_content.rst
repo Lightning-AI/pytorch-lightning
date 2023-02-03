@@ -9,8 +9,8 @@ Here is a recording of this App running locally and in the cloud with the same b
 .. raw:: html
 
     <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
-        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
+    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
+        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
     </video>
     <br />
     <br />
@@ -25,12 +25,12 @@ Here are `the entire App's code <https://github.com/Lightning-AI/lightning-quick
 Step 1: Install Lightning
 *************************
 
-If you are using a :ref:`virtual environment<install_beginner>`, don't forget to activate it before running commands.
+If you are using a virtual env, don't forget to activate it before running commands.
 You must do so in every new shell.
 
 .. tip:: We highly recommend using virtual environments.
 
-.. code:: python
+.. code:: bash
 
     pip install lightning
 
@@ -350,7 +350,7 @@ What components are supported?
 ******************************
 Any component can work with Lightning AI!
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/Lightning.gif
     :alt: What is Lightning gif.
     :width: 100 %
 

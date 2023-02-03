@@ -30,14 +30,14 @@ import torch
 import yaml
 from torch import optim
 
-import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import _load as pl_load
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+import lightning.pytorch as pl
+from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -48,7 +48,7 @@ def test_model_checkpoint_state_key():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     expected_id = (
         "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None, 'save_on_train_epoch_end': None}"
+        " 'train_time_interval': None}"
     )
     assert early_stopping.state_key == expected_id
 
@@ -168,7 +168,7 @@ def test_model_checkpoint_score_and_ckpt(
 
         mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+            " 'train_time_interval': None}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -269,7 +269,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
+            " 'train_time_interval': None}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -301,9 +301,11 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
     max_epochs = 2
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs, logger=False
+    )
     trainer.fit(model)
-    assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
+    assert checkpoint.dirpath == tmpdir / "checkpoints"
 
     if save_top_k == -1:
         ckpt_files = os.listdir(checkpoint.dirpath)
@@ -646,7 +648,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@mock.patch("pytorch_lightning.callbacks.model_checkpoint.time")
+@mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
     seconds_per_batch = 7
@@ -753,7 +755,12 @@ def test_default_checkpoint_behavior(tmpdir):
 
     model = LogInTwoMethods()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, enable_progress_bar=False, limit_train_batches=5, limit_val_batches=5
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        logger=False,
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -761,7 +768,7 @@ def test_default_checkpoint_behavior(tmpdir):
         results = trainer.test()
 
     assert len(results) == 1
-    save_dir = tmpdir / "lightning_logs" / "version_0" / "checkpoints"
+    save_dir = tmpdir / "checkpoints"
     save_weights_only = trainer.checkpoint_callback.save_weights_only
     save_mock.assert_has_calls(
         [
@@ -805,7 +812,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     ckpt_id = (
         "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        " 'train_time_interval': None}"
     )
     assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
@@ -852,8 +859,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss)
 
     model = ExtendedBoringModel()
@@ -867,6 +873,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         "enable_model_summary": False,
         "log_every_n_steps": 1,
         "default_root_dir": tmpdir,
+        "logger": CSVLogger(tmpdir),
     }
     trainer = Trainer(**trainer_kwargs, callbacks=[checkpoint_callback])
     trainer.fit(model)
@@ -890,8 +897,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss)
             return {"val_loss": loss}
 
@@ -931,6 +937,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         limit_val_batches=3,
         limit_test_batches=4,
         callbacks=[checkpoint_cb],
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer = Trainer(**trainer_config)
     assert_trainer_init(trainer)
@@ -953,6 +960,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert_checkpoint_content(ckpt_dir)
 
         # load from checkpoint
+        trainer_config["logger"] = TensorBoardLogger(tmpdir)
         trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
@@ -981,8 +989,8 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 def test_configure_model_checkpoint(tmpdir):
     """Test all valid and invalid ways a checkpoint callback can be passed to the Trainer."""
     kwargs = dict(default_root_dir=tmpdir)
-    callback1 = ModelCheckpoint()
-    callback2 = ModelCheckpoint()
+    callback1 = ModelCheckpoint(monitor="foo")
+    callback2 = ModelCheckpoint(monitor="bar")
 
     # no callbacks
     trainer = Trainer(enable_checkpointing=False, callbacks=[], **kwargs)
@@ -1052,7 +1060,7 @@ def test_current_score(tmpdir):
     ckpts = [
         ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+            " 'train_time_interval': None}"
         ]
         for ckpt in ckpts
     ]
@@ -1360,3 +1368,13 @@ def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
         trainer.fit(model)
     assert mc.last_model_path  # a "last" ckpt was saved
     assert save_mock.call_count == trainer.max_epochs
+
+
+def test_train_epoch_end_ckpt_with_no_validation():
+    trainer = Trainer(val_check_interval=0.5)
+    trainer.num_val_batches = [0]
+    assert trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+    trainer.num_val_batches = [1]
+    assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+    trainer.val_check_interval = 0.8
+    assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)

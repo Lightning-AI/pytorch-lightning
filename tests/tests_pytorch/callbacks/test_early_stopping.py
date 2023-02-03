@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import math
+import os
 import pickle
 from typing import List, Optional
 from unittest import mock
@@ -23,10 +24,10 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -56,6 +57,8 @@ class EarlyStoppingTestRestore(EarlyStopping):
         self.saved_states.append(self.state_dict().copy())
 
 
+@RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """Prevent regressions to bugs:
 
@@ -98,6 +101,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         new_trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_filepath)
 
 
+@RunIf(sklearn=True)
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = ClassificationModel()
@@ -130,7 +134,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
     class ModelOverrideValidationReturn(BoringModel):
         validation_return_values = torch.tensor(loss_values)
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             loss = self.validation_return_values[self.current_epoch]
             self.log("test_val_loss", loss)
 
@@ -160,7 +164,7 @@ def test_early_stopping_patience_train(
     class ModelOverrideTrainReturn(BoringModel):
         train_return_values = torch.tensor(loss_values)
 
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             loss = self.train_return_values[self.current_epoch]
             self.log("train_loss", loss)
 
@@ -183,7 +187,7 @@ def test_early_stopping_patience_train(
     assert trainer.current_epoch - 1 == expected_stop_epoch
 
 
-def test_pickling(tmpdir):
+def test_pickling():
     early_stopping = EarlyStopping(monitor="foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
@@ -195,6 +199,7 @@ def test_pickling(tmpdir):
     assert vars(early_stopping) == vars(early_stopping_loaded)
 
 
+@RunIf(sklearn=True)
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 
@@ -221,7 +226,7 @@ def test_early_stopping_no_val_step(tmpdir):
 )
 def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_threshold, losses, expected_epoch):
     class CurrentModel(BoringModel):
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             val_loss = losses[self.current_epoch]
             self.log("abc", val_loss)
 
@@ -247,7 +252,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
     expected_stop_epoch = 2
 
     class CurrentModel(BoringModel):
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             val_loss = losses[self.current_epoch]
             self.log("val_loss", val_loss)
 
@@ -329,23 +334,30 @@ def test_early_stopping_mode_options():
 
 
 class EarlyStoppingModel(BoringModel):
-    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool):
+    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool, dist_diverge_epoch: Optional[int] = None):
         super().__init__()
         self.expected_end_epoch = expected_end_epoch
         self.early_stop_on_train = early_stop_on_train
+        self.dist_diverge_epoch = dist_diverge_epoch
+
+    def _dist_diverge(self):
+        should_diverge = (
+            self.dist_diverge_epoch and self.current_epoch >= self.dist_diverge_epoch and self.trainer.global_rank == 0
+        )
+        return 10 if should_diverge else None
 
     def _epoch_end(self) -> None:
         losses = [8, 4, 2, 3, 4, 5, 8, 10]
-        loss = losses[self.current_epoch]
+        loss = self._dist_diverge() or losses[self.current_epoch]
         self.log("abc", torch.tensor(loss))
         self.log("cba", torch.tensor(0))
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         if not self.early_stop_on_train:
             return
         self._epoch_end()
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         if self.early_stop_on_train:
             return
         self._epoch_end()
@@ -360,20 +372,28 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices",
+    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices, dist_diverge_epoch",
     [
-        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
-        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
-        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
-        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
+        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1, None),
+        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1, None),
+        pytest.param(
+            [EarlyStopping("abc", patience=1), EarlyStopping("cba")], 2, False, "ddp_spawn", 2, 2, **_SPAWN_MARK
+        ),
+        pytest.param(
+            [EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
+        ),
+        pytest.param(
+            [EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
+        ),
+        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1, None),
+        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1, None),
         pytest.param(
             [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)],
             3,
             True,
             "ddp_spawn",
             2,
+            None,
             **_SPAWN_MARK,
         ),
         pytest.param(
@@ -382,6 +402,7 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
+            None,
             **_SPAWN_MARK,
         ),
     ],
@@ -393,10 +414,11 @@ def test_multiple_early_stopping_callbacks(
     check_on_train_epoch_end: bool,
     strategy: Optional[str],
     devices: int,
+    dist_diverge_epoch: Optional[int],
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
-    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end)
+    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end, dist_diverge_epoch=dist_diverge_epoch)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -436,7 +458,7 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
 
     side_effect = [(False, "A"), (True, "B")]
     with mock.patch(
-        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
+        "lightning.pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
     ) as es_mock:
         trainer.fit(model)
 
@@ -453,7 +475,7 @@ def test_early_stopping_squeezes():
     trainer.callback_metrics["foo"] = torch.tensor([[[0]]])
 
     with mock.patch(
-        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
+        "lightning.pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
     ) as es_mock:
         early_stopping._run_early_stopping_check(trainer)
 
@@ -482,7 +504,7 @@ def test_early_stopping_log_info(trainer, log_rank_zero_only, world_size, global
     else:
         expected_log = "bar"
 
-    with mock.patch("pytorch_lightning.callbacks.early_stopping.log.info") as log_mock:
+    with mock.patch("lightning.pytorch.callbacks.early_stopping.log.info") as log_mock:
         EarlyStopping._log_info(trainer, "bar", log_rank_zero_only)
 
     # check log.info() was called or not with expected arg

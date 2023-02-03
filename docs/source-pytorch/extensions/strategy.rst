@@ -72,24 +72,12 @@ The below table lists all relevant strategies available in Lightning with their 
    * - bagua
      - :class:`~pytorch_lightning.strategies.BaguaStrategy`
      - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu_intermediate:Bagua>`
-   * - collaborative
-     - :class:`~pytorch_lightning.strategies.HivemindStrategy`
-     - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/hivemind:Training on unreliable mixed GPUs across the internet>`
    * - colossalai
      - :class:`~pytorch_lightning.strategies.ColossalAIStrategy`
      - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
-   * - fsdp_native
-     - :class:`~pytorch_lightning.strategies.DDPFullyShardedNativeStrategy`
-     - Strategy for Fully Sharded Data Parallel provided by PyTorch. :ref:`Learn more. <advanced/model_parallel:PyTorch Fully Sharded Training>`
    * - fsdp
-     - :class:`~pytorch_lightning.strategies.DDPFullyShardedStrategy`
-     - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Fully Sharded Training>`
-   * - ddp_sharded
-     - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
-     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Sharded Training>`
-   * - ddp_sharded_spawn
-     - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
-     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Sharded Training>`
+     - :class:`~pytorch_lightning.strategies.FSDPStrategy`
+     - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
      - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
@@ -102,9 +90,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
-   * - horovod
-     - :class:`~pytorch_lightning.strategies.HorovodStrategy`
-     - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu_intermediate:Horovod>`
    * - hpu_parallel
      - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
      - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`

@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer import Trainer
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer import Trainer
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,

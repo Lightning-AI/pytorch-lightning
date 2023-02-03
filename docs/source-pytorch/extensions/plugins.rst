@@ -52,17 +52,14 @@ The full list of built-in precision plugins is listed below.
     :nosignatures:
     :template: classtemplate.rst
 
-    ApexMixedPrecisionPlugin
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FullyShardedNativeMixedPrecisionPlugin
-    FullyShardedNativeNativeMixedPrecisionPlugin
+    FSDPMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    NativeMixedPrecisionPlugin
+    MixedPrecisionPlugin
     PrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 

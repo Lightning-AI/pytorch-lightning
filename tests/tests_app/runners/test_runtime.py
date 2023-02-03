@@ -5,21 +5,20 @@ from unittest import mock
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.runners import cloud
-from lightning_app.runners.runtime import dispatch
-from lightning_app.runners.runtime_type import RuntimeType
+from lightning.app.runners import cloud
+from lightning.app.runners.runtime import dispatch
+from lightning.app.runners.runtime_type import RuntimeType
 
 
 @pytest.mark.parametrize(
     "runtime_type",
     [
-        RuntimeType.SINGLEPROCESS,
         RuntimeType.MULTIPROCESS,
         RuntimeType.CLOUD,
     ],
 )
-@mock.patch("lightning_app.core.queues.QueuingSystem", mock.MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+@mock.patch("lightning.app.core.queues.QueuingSystem", mock.MagicMock())
+@mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
 def test_dispatch(runtime_type, monkeypatch):
     """This test ensures the runtime dispatch method gets called when using dispatch."""
 

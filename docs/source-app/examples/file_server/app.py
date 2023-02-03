@@ -90,7 +90,7 @@ class FileServer(L.LightningWork):
             "size": full_size,
             "drive_path": uploaded_file,
         }
-        with open(self.get_filepath(meta_file), "wt") as f:
+        with open(self.get_filepath(meta_file), "w") as f:
             json.dump(meta, f)
 
         # 5: Put the file to the drive.
@@ -157,13 +157,12 @@ class FileServer(L.LightningWork):
         return self.url != ""
 
 
-import requests  # noqa: E402
+import requests
 
-from lightning import LightningWork  # noqa: E402
+from lightning import LightningWork
 
 
 class TestFileServer(LightningWork):
-
     def __init__(self, drive: Drive):
         super().__init__(cache_calls=True)
         self.drive = drive
@@ -184,11 +183,10 @@ class TestFileServer(LightningWork):
             assert response.json() == {"asset_names": ["test.txt"]}
 
 
-from lightning import LightningApp, LightningFlow  # noqa: E402
+from lightning import LightningApp, LightningFlow
 
 
 class Flow(LightningFlow):
-
     def __init__(self):
         super().__init__()
         # 1: Create a drive to share data between works
@@ -210,7 +208,7 @@ class Flow(LightningFlow):
 
         # 4 When both execution are successful, exit the app.
         if self.test_file_server.num_successes == 2:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         # Expose the file_server component
@@ -218,7 +216,7 @@ class Flow(LightningFlow):
         return {"name": "File Server", "content": self.file_server}
 
 
-from lightning.app.runners import MultiProcessRuntime  # noqa: E402
+from lightning.app.runners import MultiProcessRuntime
 
 
 def test_file_server():
@@ -226,7 +224,7 @@ def test_file_server():
     MultiProcessRuntime(app).dispatch()
 
 
-from lightning.app.testing import run_app_in_cloud  # noqa: E402
+from lightning.app.testing import run_app_in_cloud
 
 
 def test_file_server_in_cloud():

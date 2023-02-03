@@ -1,3 +1,4 @@
+:orphan:
 
 .. _fileserver_example:
 

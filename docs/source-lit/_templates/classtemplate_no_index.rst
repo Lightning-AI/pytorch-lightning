@@ -1,1 +1,0 @@
-../../source-app/_templates/classtemplate_no_index.rst

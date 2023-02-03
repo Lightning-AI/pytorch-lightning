@@ -49,7 +49,7 @@ class RootComponent(L.LightningFlow):
                 self.slack.send_message("It's not a pickle!")
             self.counter -= 1
         else:
-            self._exit("Pickle or Not End")
+            self.stop("Pickle or Not End")
 
 
 app = L.LightningApp(RootComponent())

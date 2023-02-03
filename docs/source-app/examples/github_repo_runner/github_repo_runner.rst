@@ -1,3 +1,5 @@
+:orphan:
+
 .. _github_repo_script_runner_example:
 
 ###################################

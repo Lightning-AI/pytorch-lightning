@@ -199,7 +199,7 @@ We recommend you follow this convention `<type>/<issue-id>_<short-name>` where t
 
 We recommend creating a PR in a separate branch other than `master`, especially if you plan to submit several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
 
-First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
+First, make sure you have set [upstream](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/configuring-a-remote-repository-for-a-fork) by running:
 
 ```bash
 git remote add upstream https://github.com/Lightning-AI/lightning.git
@@ -242,6 +242,7 @@ Here is the process to create a new test
 ```python
 # TEST SHOULD BE IN YOUR FILE: tests/.../test_file.py
 # TEST CODE TEMPLATE
+
 
 # [OPTIONAL] pytest decorator
 # @RunIf(min_cuda_gpus=1)
@@ -308,6 +309,20 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   # when all done, push back to the open PR
   git push -f
   ```
+
+#### How to run an app on the cloud with a local version of lightning
+
+The lightning cloud uses the latest release by default. However, you might want to run your app with some local changes you've made to the lightning framework. To use your local version of lightning on the cloud, set the following environment variable:
+
+```bash
+git clone https://github.com/Lightning-AI/lightning.git
+cd lightning
+pip install -e .
+export PACKAGE_LIGHTNING=1  # <- this is the magic to use your version (not mainstream PyPI)!
+lightning run app app.py --cloud
+```
+
+By seting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code and uploads them to the cloud.
 
 ### Bonus Workflow Tip
 

@@ -43,12 +43,16 @@ class BoringApp(L.LightningFlow):
             raise_exception=True,
         )
 
+    @property
+    def ready(self) -> bool:
+        return self.dest_work.is_running
+
     def run(self):
         self.source_work.run()
         if self.source_work.has_succeeded:
             # the flow passes the file from one work to another.
             self.dest_work.run(self.source_work.boring_path)
-            self._exit("Boring App End")
+            self.stop("Boring App End")
 
     def configure_layout(self):
         return {"name": "Boring Tab", "content": self.dest_work.url + "/file"}

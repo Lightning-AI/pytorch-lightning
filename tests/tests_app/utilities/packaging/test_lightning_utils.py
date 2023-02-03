@@ -1,35 +1,30 @@
+import glob
 import os
 from unittest import mock
 
 import pytest
 from lightning_utilities.core.imports import module_available
 
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.packaging import lightning_utils
-from lightning_app.utilities.packaging.lightning_utils import (
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.packaging import lightning_utils
+from lightning.app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
     _verify_lightning_version,
+    get_dist_path_if_editable_install,
 )
 
 
-# TODO: Resolve this sensitive test.
-@pytest.mark.skipif(True, reason="Currently broken")
+@pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning.app too")
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
-
-    package_name = "lightning" if module_available("lightning") else "lightning-app"
-
-    if package_name == "lightning":
-        from lightning.__version__ import version
-
-        tar_name = f"lightning-{version}.tar.gz"
-    else:
-        from lightning_app.__version__ import version
-
-        tar_name = f"lightning-app-{version}.tar.gz"
+    package_name = "lightning"
+    if not get_dist_path_if_editable_install(package_name):
+        pytest.skip("Requires --editable install")
 
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir, package_name=package_name)
-    assert sorted(os.listdir(tmpdir))[0] == tar_name
+    assert len(os.listdir(tmpdir)) == 1
+    assert len(glob.glob(str(tmpdir / "lightning-*.tar.gz"))) == 1
+
     cleanup_handle()
     assert os.listdir(tmpdir) == []
 
@@ -39,7 +34,7 @@ def _mocked_get_dist_path_if_editable_install(*args, **kwargs):
 
 
 @mock.patch(
-    "lightning_app.utilities.packaging.lightning_utils.get_dist_path_if_editable_install",
+    "lightning.app.utilities.packaging.lightning_utils.get_dist_path_if_editable_install",
     new=_mocked_get_dist_path_if_editable_install,
 )
 def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_editable_mode(tmpdir):

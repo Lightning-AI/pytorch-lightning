@@ -1,1 +1,0 @@
-../../../source-app/glossary/storage/storage.rst

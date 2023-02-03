@@ -16,10 +16,10 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -49,7 +49,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log("test_acc", self.test_acc(outputs["logits"], outputs["y"]))
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works.
 

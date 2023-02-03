@@ -4,7 +4,8 @@ import sys
 
 import pytest
 import torch
-from lightning_utilities.core.imports import package_available
+from lightning_utilities.core.imports import module_available
+from lightning_utilities.test.warning import no_warning_call
 from packaging.version import Version
 
 from tests_pytorch.checkpointing.test_legacy_checkpoints import (
@@ -12,17 +13,16 @@ from tests_pytorch.checkpointing.test_legacy_checkpoints import (
     LEGACY_BACK_COMPATIBLE_PL_VERSIONS,
     LEGACY_CHECKPOINTS_PATH,
 )
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    package_available("lightning.pytorch"), reason="This test is only relevant for the standalone package"
+    not module_available("lightning_pytorch"), reason="This test is ONLY relevant for the STANDALONE package"
 )
 def test_imports_standalone(pl_version: str):
     assert any(
-        key.startswith("pytorch_" + "lightning") for key in sys.modules.keys()
-    ), "Imported PL, so it has to be in sys.modules"
+        key.startswith("pytorch_lightning") for key in sys.modules.keys()
+    ), f"Imported PL, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     path_legacy = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     path_ckpts = sorted(glob.glob(os.path.join(path_legacy, f"*{CHECKPOINT_EXTENSION}")))
     assert path_ckpts, f'No checkpoints found in folder "{path_legacy}"'
@@ -32,24 +32,21 @@ def test_imports_standalone(pl_version: str):
         torch.load(path_ckpt)
 
     assert any(
-        key.startswith("pytorch_" + "lightning") for key in sys.modules.keys()
-    ), "Imported PL, so it has to be in sys.modules"
+        key.startswith("pytorch_lightning") for key in sys.modules.keys()
+    ), f"Imported PL, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     assert not any(
-        key.startswith("lightning.pytorch") for key in sys.modules.keys()
-    ), "Did not import the unified package, so it should not be in sys.modules"
+        key.startswith("lightning." + "pytorch") for key in sys.modules.keys()
+    ), f"Did not import the unified package, so it should not be in sys.modules: {sorted(sys.modules.keys())}"
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-@pytest.mark.skipif(
-    not package_available("lightning.pytorch"),
-    reason="This test is only relevant for the unified package",
-)
+@pytest.mark.skipif(not module_available("lightning"), reason="This test is ONLY relevant for the UNIFIED package")
 def test_imports_unified(pl_version: str):
     assert any(
-        key.startswith("lightning.pytorch") for key in sys.modules.keys()
-    ), "Imported unified package, so it has to be in sys.modules"
+        key.startswith("lightning." + "pytorch") for key in sys.modules.keys()
+    ), f"Imported unified package, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     assert not any(
-        key.startswith("pytorch_" + "lightning") for key in sys.modules.keys()
+        key.startswith("pytorch_lightning") for key in sys.modules.keys()
     ), "Should not import standalone package, all imports should be redirected to the unified package"
 
     path_legacy = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
@@ -66,8 +63,8 @@ def test_imports_unified(pl_version: str):
         torch.load(path_ckpt)
 
     assert any(
-        key.startswith("lightning.pytorch") for key in sys.modules.keys()
-    ), "Imported unified package, so it has to be in sys.modules"
+        key.startswith("lightning." + "pytorch") for key in sys.modules.keys()
+    ), f"Imported unified package, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     assert not any(
-        key.startswith("pytorch_" + "lightning") for key in sys.modules.keys()
+        key.startswith("pytorch_lightning") for key in sys.modules.keys()
     ), "Should not import standalone package, all imports should be redirected to the unified package"

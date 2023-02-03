@@ -1,22 +1,31 @@
-import datetime
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import glob
-import json
 import os
+import pathlib
 import re
 import shutil
+import tarfile
+import tempfile
+import urllib.request
 from distutils.version import LooseVersion
-from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
+from os.path import dirname, isfile
 from pathlib import Path
-from pprint import pprint
-from types import ModuleType
-from typing import List, Optional, Sequence
-from urllib import request
-from urllib.request import Request, urlopen
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
-import jsonargparse
-import pkg_resources
-from packaging.version import parse as version_parse
+from pkg_resources import parse_requirements, Requirement, yield_lines
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -30,37 +39,211 @@ REQUIREMENT_FILES = {
         "requirements/app/ui.txt",
         "requirements/app/cloud.txt",
     ),
-    "lite": (
-        "requirements/lite/base.txt",
-        "requirements/lite/strategies.txt",
+    "fabric": (
+        "requirements/fabric/base.txt",
+        "requirements/fabric/strategies.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
-PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-def pypi_versions(package_name: str, drop_pre: bool = True) -> List[str]:
-    """Return a list of released versions of a provided pypi name.
+class _RequirementWithComment(Requirement):
+    strict_string = "# strict"
 
-    >>> _ = pypi_versions("lightning_app", drop_pre=False)
+    def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.comment = comment
+        assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
+        self.pip_argument = pip_argument
+        self.strict = self.strict_string in comment.lower()
+
+    def adjust(self, unfreeze: str) -> str:
+        """Remove version restrictions unless they are strict.
+
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# anything").adjust("none")
+        'arrow<=1.2.2,>=1.2.0'
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# strict").adjust("none")
+        'arrow<=1.2.2,>=1.2.0  # strict'
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# my name").adjust("all")
+        'arrow>=1.2.0'
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("all")
+        'arrow<=1.2.2,>=1.2.0  # strict'
+        >>> _RequirementWithComment("arrow").adjust("all")
+        'arrow'
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# cool").adjust("major")
+        'arrow<2.0,>=1.2.0'
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("major")
+        'arrow<=1.2.2,>=1.2.0  # strict'
+        >>> _RequirementWithComment("arrow>=1.2.0").adjust("major")
+        'arrow>=1.2.0'
+        >>> _RequirementWithComment("arrow").adjust("major")
+        'arrow'
+        """
+        out = str(self)
+        if self.strict:
+            return f"{out}  {self.strict_string}"
+        if unfreeze == "major":
+            for operator, version in self.specs:
+                if operator in ("<", "<="):
+                    major = LooseVersion(version).version[0]
+                    # replace upper bound with major version increased by one
+                    return out.replace(f"{operator}{version}", f"<{major + 1}.0")
+        elif unfreeze == "all":
+            for operator, version in self.specs:
+                if operator in ("<", "<="):
+                    # drop upper bound
+                    return out.replace(f"{operator}{version},", "")
+        elif unfreeze != "none":
+            raise ValueError(f"Unexpected unfreeze: {unfreeze!r} value.")
+        return out
+
+
+def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_RequirementWithComment]:
+    """Adapted from `pkg_resources.parse_requirements` to include comments.
+
+    >>> txt = ['# ignored', '', 'this # is an', '--piparg', 'example', 'foo # strict', 'thing', '-r different/file.txt']
+    >>> [r.adjust('none') for r in _parse_requirements(txt)]
+    ['this', 'example', 'foo  # strict', 'thing']
+    >>> txt = '\\n'.join(txt)
+    >>> [r.adjust('none') for r in _parse_requirements(txt)]
+    ['this', 'example', 'foo  # strict', 'thing']
     """
-    # https://stackoverflow.com/a/27239645/4521646
-    url = f"https://pypi.org/pypi/{package_name}/json"
-    data = json.load(urlopen(Request(url)))
-    versions = list(data["releases"].keys())
-    # todo: drop this line after cleaning Pypi history from invalid versions
-    versions = list(filter(lambda v: v.count(".") == 2, versions))
-    if drop_pre:
-        versions = list(filter(lambda v: all(c not in v for c in ["rc", "dev"]), versions))
-    versions.sort(key=version_parse)
-    return versions
+    lines = yield_lines(strs)
+    pip_argument = None
+    for line in lines:
+        # Drop comments -- a hash without a space may be in a URL.
+        if " #" in line:
+            comment_pos = line.find(" #")
+            line, comment = line[:comment_pos], line[comment_pos:]
+        else:
+            comment = ""
+        # If there is a line continuation, drop it, and append the next line.
+        if line.endswith("\\"):
+            line = line[:-2].strip()
+            try:
+                line += next(lines)
+            except StopIteration:
+                return
+        # If there's a pip argument, save it
+        if line.startswith("--"):
+            pip_argument = line
+            continue
+        if line.startswith("-r "):
+            # linked requirement files are unsupported
+            continue
+        yield _RequirementWithComment(line, comment=comment, pip_argument=pip_argument)
+        pip_argument = None
 
 
-def _load_py_module(name: str, location: str) -> ModuleType:
-    spec = spec_from_file_location(name, location)
-    py = module_from_spec(spec)
-    spec.loader.exec_module(py)
-    return py
+def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> List[str]:
+    """Loading requirements from a file.
+
+    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
+    >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['sphinx<6.0,>=4.0', ...]
+    """
+    assert unfreeze in {"none", "major", "all"}
+    path = Path(path_dir) / file_name
+    assert path.exists(), (path_dir, file_name, path)
+    text = path.read_text()
+    return [req.adjust(unfreeze) for req in _parse_requirements(text)]
+
+
+def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
+    """Load readme as decribtion.
+
+    >>> load_readme_description(_PROJECT_ROOT, "", "")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    '...PyTorch Lightning is just organized PyTorch...'
+    """
+    path_readme = os.path.join(path_dir, "README.md")
+    text = open(path_readme, encoding="utf-8").read()
+
+    # drop images from readme
+    text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
+
+    # https://github.com/Lightning-AI/lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
+    github_source_url = os.path.join(homepage, "raw", version)
+    # replace relative repository path to absolute link to the release
+    #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
+    text = text.replace("docs/source/_static/", f"{os.path.join(github_source_url, 'docs/source/_static/')}")
+
+    # readthedocs badge
+    text = text.replace("badge/?version=stable", f"badge/?version={version}")
+    text = text.replace("pytorch-lightning.readthedocs.io/en/stable/", f"pytorch-lightning.readthedocs.io/en/{version}")
+    # codecov badge
+    text = text.replace("/branch/master/graph/badge.svg", f"/release/{version}/graph/badge.svg")
+    # github actions badge
+    text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={version}")
+    # azure pipelines badge
+    text = text.replace("?branchName=master", f"?branchName=refs%2Ftags%2F{version}")
+
+    skip_begin = r"<!-- following section will be skipped from PyPI description -->"
+    skip_end = r"<!-- end skipping PyPI description -->"
+    # todo: wrap content as commented description
+    text = re.sub(rf"{skip_begin}.+?{skip_end}", "<!--  -->", text, flags=re.IGNORECASE + re.DOTALL)
+
+    # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
+    # github_release_url = os.path.join(homepage, "releases", "download", version)
+    # # download badge and replace url with local file
+    # text = _parse_for_badge(text, github_release_url)
+    return text
+
+
+def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
+    """Copy the global version to all packages."""
+    ls_ver = glob.glob(os.path.join(src_folder, "*", "__version__.py"))
+    ver_template = os.path.join(src_folder, ver_file)
+    for fpath in ls_ver:
+        fpath = os.path.join(os.path.dirname(fpath), ver_file)
+        print("Distributing the version to", fpath)
+        if os.path.isfile(fpath):
+            os.remove(fpath)
+        shutil.copy2(ver_template, fpath)
+
+
+def _download_frontend(pkg_path: str):
+    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
+    directory."""
+
+    try:
+        frontend_dir = pathlib.Path(pkg_path, "ui")
+        download_dir = tempfile.mkdtemp()
+
+        shutil.rmtree(frontend_dir, ignore_errors=True)
+        # TODO: remove this once lightning-ui package is ready as a dependency
+        frontend_release_url = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
+        response = urllib.request.urlopen(frontend_release_url)
+
+        file = tarfile.open(fileobj=response, mode="r|gz")
+        file.extractall(path=download_dir)
+
+        shutil.move(os.path.join(download_dir, "build"), frontend_dir)
+        print("The Lightning UI has successfully been downloaded!")
+
+    # If installing from source without internet connection, we don't want to break the installation
+    except Exception:
+        print("The Lightning UI downloading has failed!")
+
+
+def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
+    """Load all base requirements from all particular packages and prune duplicates.
+
+    >>> _load_aggregate_requirements(os.path.join(_PROJECT_ROOT, "requirements"))
+    """
+    requires = [
+        load_requirements(d, unfreeze="none" if freeze_requirements else "major")
+        for d in glob.glob(os.path.join(req_dir, "*"))
+        # skip empty folder as git artefacts, and resolving Will's special issue
+        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
+    ]
+    if not requires:
+        return
+    # TODO: add some smarter version aggregation per each package
+    requires = sorted(set(chain(*requires)))
+    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
+        fp.writelines([ln + os.linesep for ln in requires] + [os.linesep])
 
 
 def _retrieve_files(directory: str, *ext: str) -> List[str]:
@@ -73,25 +256,111 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
     return all_files
 
 
+def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning_by: str = "") -> List[str]:
+    """Replace imports of standalone package to lightning.
+
+    >>> lns = [
+    ...     '"lightning_app"',
+    ...     "lightning_app",
+    ...     "lightning_app/",
+    ...     "delete_cloud_lightning_apps",
+    ...     "from lightning_app import",
+    ...     "lightning_apps = []",
+    ...     "lightning_app and pytorch_lightning are ours",
+    ...     "def _lightning_app():",
+    ...     ":class:`~lightning_app.core.flow.LightningFlow`",
+    ...     "http://pytorch_lightning.ai",
+    ...     "from lightning import __version__",
+    ...     "@lightning.ai"
+    ... ]
+    >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
+    >>> _replace_imports(lns, mapping, lightning_by="lightning_fabric")  # doctest: +NORMALIZE_WHITESPACE
+    ['"lightning.app"', \
+     'lightning.app', \
+     'lightning_app/', \
+     'delete_cloud_lightning_apps', \
+     'from lightning.app import', \
+     'lightning_apps = []', \
+     'lightning.app and lightning.pytorch are ours', \
+     'def _lightning_app():', \
+     ':class:`~lightning.app.core.flow.LightningFlow`', \
+     'http://pytorch_lightning.ai', \
+     'from lightning_fabric import __version__', \
+     '@lightning.ai']
+    """
+    out = lines[:]
+    for source_import, target_import in mapping:
+        for i, ln in enumerate(out):
+            out[i] = re.sub(
+                rf"([^_/@]|^){source_import}([^_\w/]|$)",
+                rf"\1{target_import}\2",
+                ln,
+            )
+            if lightning_by:  # in addition, replace base package
+                out[i] = out[i].replace("from lightning import ", f"from {lightning_by} import ")
+                out[i] = out[i].replace("import lightning ", f"import {lightning_by} ")
+    return out
+
+
+def copy_replace_imports(
+    source_dir: str,
+    source_imports: Sequence[str],
+    target_imports: Sequence[str],
+    target_dir: Optional[str] = None,
+    lightning_by: str = "",
+) -> None:
+    """Copy package content with import adjustments."""
+    print(f"Replacing imports: {locals()}")
+    assert len(source_imports) == len(target_imports), (
+        "source and target imports must have the same length, "
+        f"source: {len(source_imports)}, target: {len(target_imports)}"
+    )
+    if target_dir is None:
+        target_dir = source_dir
+
+    ls = _retrieve_files(source_dir)
+    for fp in ls:
+        fp_new = fp.replace(source_dir, target_dir)
+        _, ext = os.path.splitext(fp)
+        if ext in (".png", ".jpg", ".ico"):
+            os.makedirs(dirname(fp_new), exist_ok=True)
+            if not isfile(fp_new):
+                shutil.copy(fp, fp_new)
+            continue
+        elif ext in (".pyc",):
+            continue
+        # Try to parse everything else
+        with open(fp, encoding="utf-8") as fo:
+            try:
+                lines = fo.readlines()
+            except UnicodeDecodeError:
+                # a binary file, skip
+                print(f"Skipped replacing imports for {fp}")
+                continue
+        lines = _replace_imports(lines, list(zip(source_imports, target_imports)), lightning_by=lightning_by)
+        os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+        with open(fp_new, "w", encoding="utf-8") as fo:
+            fo.writelines(lines)
+
+
+def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+    # replace imports and copy the code
+    mapping = package_mapping.copy()
+    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
+
+    mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
+    for pkg_from, pkg_to in mapping.items():
+        copy_replace_imports(
+            source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
+            # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
+            source_imports=mapping.keys(),
+            target_imports=mapping.values(),
+            target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
+            lightning_by=pkg_from,
+        )
+
+
 class AssistantCLI:
-    _PATH_ROOT = str(Path(__file__).parent.parent)
-    _PATH_SRC = os.path.join(_PATH_ROOT, "src")
-
-    @staticmethod
-    def prepare_nightly_version(proj_root: str = _PATH_ROOT) -> None:
-        """Replace semantic version by date."""
-        path_info = os.path.join(proj_root, "pytorch_lightning", "__about__.py")
-        # get today date
-        now = datetime.datetime.now()
-        now_date = now.strftime("%Y%m%d")
-
-        print(f"prepare init '{path_info}' - replace version by {now_date}")
-        with open(path_info, encoding="utf-8") as fp:
-            init = fp.read()
-        init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
-        with open(path_info, "w", encoding="utf-8") as fp:
-            fp.write(init)
-
     @staticmethod
     def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
         """Remove some packages from given requirement files."""
@@ -113,11 +382,11 @@ class AssistantCLI:
             if not ln_ or ln_.startswith("#"):
                 final.append(line)
                 continue
-            req = list(pkg_resources.parse_requirements(ln_))[0]
+            req = list(parse_requirements(ln_))[0]
             if req.name not in packages:
                 final.append(line)
-        pprint(final)
-        path.write_text("\n".join(final))
+        print(final)
+        path.write_text("\n".join(final) + "\n")
 
     @staticmethod
     def _replace_min(fname: str) -> None:
@@ -131,106 +400,22 @@ class AssistantCLI:
             AssistantCLI._replace_min(fname)
 
     @staticmethod
-    def _release_pkg(pkg: str, src_folder: str = _PATH_SRC) -> bool:
-        pypi_ver = pypi_versions(pkg)[-1]
-        _version = _load_py_module("version", os.path.join(src_folder, pkg.replace("-", "_"), "__version__.py"))
-        local_ver = _version.version
-        return "dev" not in local_ver and LooseVersion(local_ver) > LooseVersion(pypi_ver)
-
-    @staticmethod
-    def determine_releasing_pkgs(
-        src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch", "app"), inverse: bool = False
-    ) -> Sequence[str]:
-        """Determine version of package where the name is `lightning.<name>`."""
-        if isinstance(packages, str):
-            packages = [packages]
-        releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
-        if inverse:
-            releasing = list(filter(lambda pkg: pkg not in releasing, packages))
-        return json.dumps([{"pkg": pkg for pkg in releasing}])
-
-    @staticmethod
-    def download_package(package: str, folder: str = ".", version: Optional[str] = None) -> None:
-        """Download specific or latest package from PyPI where the name is `lightning.<name>`."""
-        url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
-        data = json.load(urlopen(Request(url)))
-        if not version:
-            pypi_vers = pypi_versions(PACKAGE_MAPPING[package], drop_pre=False)
-            version = pypi_vers[-1]
-        releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
-        assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
-        release = releases[0]
-        pkg_url = release["url"]
-        pkg_file = os.path.basename(pkg_url)
-        pkg_path = os.path.join(folder, pkg_file)
-        os.makedirs(folder, exist_ok=True)
-        print(f"downloading: {pkg_url}")
-        request.urlretrieve(pkg_url, pkg_path)
-
-    @staticmethod
-    def _find_pkgs(folder: str, pkg_pattern: str = "lightning") -> List[str]:
-        """Find all python packages with spec.
-
-        pattern in given folder, in case `src` exists dive there.
-        """
-        pkg_dirs = [d for d in glob.glob(os.path.join(folder, "*")) if os.path.isdir(d)]
-        if "src" in [os.path.basename(p) for p in pkg_dirs]:
-            return AssistantCLI._find_pkgs(os.path.join(folder, "src"), pkg_pattern)
-        pkg_dirs = list(filter(lambda p: pkg_pattern in os.path.basename(p), pkg_dirs))
-        return pkg_dirs
-
-    @staticmethod
-    def mirror_pkg2source(pypi_folder: str, src_folder: str) -> None:
-        """From extracted sdist packages overwrite the python package with given pkg pattern."""
-        pypi_dirs = [d for d in glob.glob(os.path.join(pypi_folder, "*")) if os.path.isdir(d)]
-        for pkg_dir in pypi_dirs:
-            for py_dir in AssistantCLI._find_pkgs(pkg_dir):
-                dir_name = os.path.basename(py_dir)
-                py_dir2 = os.path.join(src_folder, dir_name)
-                shutil.rmtree(py_dir2, ignore_errors=True)
-                shutil.copytree(py_dir, py_dir2)
-
-    @staticmethod
     def copy_replace_imports(
-        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+        source_dir: str,
+        source_import: str,
+        target_import: str,
+        target_dir: Optional[str] = None,
+        lightning_by: str = "",
     ) -> None:
-        """Recursively replace imports in given folder."""
-
+        """Copy package content with import adjustments."""
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        assert len(source_imports) == len(target_imports), (
-            "source and target imports must have the same length, "
-            f"source: {len(source_import)}, target: {len(target_import)}"
+        copy_replace_imports(
+            source_dir, source_imports, target_imports, target_dir=target_dir, lightning_by=lightning_by
         )
-
-        if target_dir is None:
-            target_dir = source_dir
-
-        ls = _retrieve_files(source_dir)
-
-        for fp in ls:
-            if fp.endswith(".py"):
-                with open(fp, encoding="utf-8") as fo:
-                    py = fo.readlines()
-
-                for source_import, target_import in zip(source_imports, target_imports):
-                    for i, ln in enumerate(py):
-                        py[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
-
-                if target_dir:
-                    fp_new = fp.replace(source_dir, target_dir)
-                    os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                else:
-                    fp_new = fp
-
-                with open(fp_new, "w", encoding="utf-8") as fo:
-                    fo.writelines(py)
-            elif not fp.endswith(".pyc"):
-                fp_new = fp.replace(source_dir, target_dir)
-                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                if os.path.abspath(fp) != os.path.abspath(fp_new):
-                    shutil.copy2(fp, fp_new)
 
 
 if __name__ == "__main__":
+    import jsonargparse
+
     jsonargparse.CLI(AssistantCLI, as_positional=False)

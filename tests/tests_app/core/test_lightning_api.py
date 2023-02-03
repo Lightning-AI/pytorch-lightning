@@ -5,6 +5,7 @@ import os
 import sys
 from copy import deepcopy
 from multiprocessing import Process
+from pathlib import Path
 from time import sleep, time
 from unittest import mock
 
@@ -12,37 +13,38 @@ import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from httpx import AsyncClient
 from pydantic import BaseModel
 
-import lightning_app
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.api.http_methods import Post
-from lightning_app.core import api
-from lightning_app.core.api import (
+import lightning.app
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.api.http_methods import Post
+from lightning.app.core import api
+from lightning.app.core.api import (
     fastapi_service,
     global_app_state_store,
     register_global_routes,
     start_server,
     UIRefresher,
 )
-from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
-from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import _MockQueue
-from lightning_app.utilities.component import _set_frontend_context, _set_work_context
-from lightning_app.utilities.enum import AppStage
-from lightning_app.utilities.load_app import extract_metadata_from_app
-from lightning_app.utilities.redis import check_if_redis_running
-from lightning_app.utilities.state import AppState, headers_for
+from lightning.app.core.constants import APP_SERVER_PORT
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.drive import Drive
+from lightning.app.testing.helpers import _MockQueue
+from lightning.app.utilities.app_status import AppStatus
+from lightning.app.utilities.component import _set_frontend_context, _set_work_context
+from lightning.app.utilities.enum import AppStage
+from lightning.app.utilities.load_app import extract_metadata_from_app
+from lightning.app.utilities.redis import check_if_redis_running
+from lightning.app.utilities.state import AppState, headers_for
 
 register_global_routes()
 
 
 class WorkA(LightningWork):
     def __init__(self):
-        super().__init__(parallel=True)
+        super().__init__(parallel=True, start_with_flow=False)
         self.var_a = 0
         self.drive = Drive("lit://test_app_state_api")
 
@@ -67,16 +69,14 @@ class _A(LightningFlow):
 
     def run(self):
         if self.work_a.var_a == -1:
-            self._exit()
+            self.stop()
         self.work_a.run()
 
 
-# TODO: Resolve singleprocess - idea: explore frame calls recursively.
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_app_state_api(runtime_cls):
+def test_app_state_api():
     """This test validates the AppState can properly broadcast changes from work within its own process."""
-    app = LightningApp(_A(), debug=True)
-    runtime_cls(app, start_server=True).dispatch()
+    app = LightningApp(_A(), log_level="debug")
+    MultiProcessRuntime(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
     assert app.root.work_a.drive.list(".") == ["test_app_state_api.txt"]
@@ -102,16 +102,13 @@ class A2(LightningFlow):
         if self.var_a == 0:
             self.update_state()
         elif self.var_a == -1:
-            self._exit()
+            self.stop()
 
 
-# TODO: Find why this test is flaky.
-@pytest.mark.skipif(True, reason="flaky test.")
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
-def test_app_state_api_with_flows(runtime_cls, tmpdir):
+def test_app_state_api_with_flows(tmpdir):
     """This test validates the AppState can properly broadcast changes from flows."""
-    app = LightningApp(A2(), debug=True)
-    runtime_cls(app, start_server=True).dispatch()
+    app = LightningApp(A2(), log_level="debug")
+    MultiProcessRuntime(app, start_server=True).dispatch()
     assert app.root.var_a == -1
 
 
@@ -128,13 +125,13 @@ class FlowA(LightningFlow):
         super().__init__()
         self.counter = 0
         self.flow = NestedFlow()
-        self.dict = lightning_app.structures.Dict(**{"0": NestedFlow()})
-        self.list = lightning_app.structures.List(*[NestedFlow()])
+        self.dict = lightning.app.structures.Dict(**{"0": NestedFlow()})
+        self.list = lightning.app.structures.List(*[NestedFlow()])
 
     def run(self):
         self.counter += 1
         if self.counter >= 3:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         return [
@@ -180,14 +177,13 @@ class AppStageTestingApp(LightningApp):
 
 
 # FIXME: This test doesn't assert anything
-@pytest.mark.skipif(True, reason="TODO: Resolve flaky test.")
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_app_stage_from_frontend(runtime_cls):
+@pytest.mark.skip(reason="TODO: Resolve flaky test.")
+def test_app_stage_from_frontend():
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
     start and stop the app."""
-    app = AppStageTestingApp(FlowA(), debug=True)
+    app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
-    runtime_cls(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
 
 
 def test_update_publish_state_and_maybe_refresh_ui():
@@ -197,11 +193,11 @@ def test_update_publish_state_and_maybe_refresh_ui():
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
     """
 
-    app = AppStageTestingApp(FlowA(), debug=True)
+    app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
 
-    publish_state_queue.put(app.state_with_changes)
+    publish_state_queue.put((app.state_with_changes, None))
 
     thread = UIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
@@ -224,7 +220,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
         def get(self, timeout: int = 0):
             return self._queue[0]
 
-    app = AppStageTestingApp(FlowA(), debug=True)
+    app = AppStageTestingApp(FlowA(), log_level="debug")
     app._update_layout()
     app.stage = AppStage.BLOCKING
     publish_state_queue = InfiniteQueue("publish_state_queue")
@@ -232,7 +228,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
     has_started_queue = _MockQueue("has_started_queue")
     api_response_queue = _MockQueue("api_response_queue")
     state = app.state_with_changes
-    publish_state_queue.put(state)
+    publish_state_queue.put((state, AppStatus(is_ui_ready=True, work_statuses={})))
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
@@ -289,6 +285,9 @@ async def test_start_server(x_lightning_type, monkeypatch):
             {"name": "main_3", "content": "https://te"},
             {"name": "main_4", "content": "https://te"},
         ]
+
+        response = await client.get("/api/v1/status")
+        assert response.json() == {"is_ui_ready": True, "work_statuses": {}}
 
         response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
         assert change_state_queue._queue[1].to_dict() == {
@@ -386,7 +385,7 @@ async def test_health_endpoint_success():
 @pytest.mark.anyio
 async def test_health_endpoint_failure(monkeypatch):
     monkeypatch.setenv("LIGHTNING_APP_STATE_URL", "http://someurl")  # adding this to make is_running_in_cloud pass
-    monkeypatch.setattr(api, "CLOUD_QUEUE_TYPE", "redis")
+    monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         # will respond 503 if redis is not running
         response = await client.get("/healthz")
@@ -433,7 +432,7 @@ def test_start_server_started():
 
 
 @mock.patch("uvicorn.run")
-@mock.patch("lightning_app.core.api.UIRefresher")
+@mock.patch("lightning.app.core.api.UIRefresher")
 @pytest.mark.parametrize("host", ["http://0.0.0.1", "0.0.0.1"])
 def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatch, host):
     api_publish_state_queue = _MockQueue()
@@ -483,12 +482,15 @@ class FlowAPI(LightningFlow):
 
     def run(self):
         if self.counter == 501:
-            self._exit()
+            self.stop()
 
-    def request(self, config: InputRequestModel) -> OutputRequestModel:
+    def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1
         if config.index % 5 == 0:
             raise HTTPException(status_code=400, detail="HERE")
+        assert request.body()
+        assert request.json()
+        assert request.headers
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
@@ -560,3 +562,37 @@ def test_configure_api():
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
+    process.kill()
+
+
+@pytest.mark.anyio
+@mock.patch("lightning.app.core.api.UIRefresher", mock.MagicMock())
+async def test_get_annotations(tmpdir):
+    cwd = os.getcwd()
+    os.chdir(tmpdir)
+
+    Path("lightning-annotations.json").write_text('[{"test": 3}]')
+
+    try:
+        app = AppStageTestingApp(FlowA(), log_level="debug")
+        app._update_layout()
+        app.stage = AppStage.BLOCKING
+        change_state_queue = _MockQueue("change_state_queue")
+        has_started_queue = _MockQueue("has_started_queue")
+        api_response_queue = _MockQueue("api_response_queue")
+        spec = extract_metadata_from_app(app)
+        start_server(
+            None,
+            change_state_queue,
+            api_response_queue,
+            has_started_queue=has_started_queue,
+            uvicorn_run=False,
+            spec=spec,
+        )
+
+        async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
+            response = await client.get("/api/v1/annotations")
+            assert response.json() == [{"test": 3}]
+    finally:
+        # Cleanup
+        os.chdir(cwd)

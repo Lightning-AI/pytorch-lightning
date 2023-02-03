@@ -19,16 +19,16 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DistributedSampler
 
-from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import IPUAccelerator
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import IPUPrecisionPlugin
-from pytorch_lightning.strategies.ipu import IPUStrategy
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _IPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch.accelerators import IPUAccelerator
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import IPUPrecisionPlugin
+from lightning.pytorch.strategies.ipu import IPUStrategy
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities import _IPU_AVAILABLE
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -39,19 +39,13 @@ if _IPU_AVAILABLE:
 
 class IPUModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
+        return self.step(batch)
 
     def validation_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
+        return self.step(batch)
 
     def test_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
+        return self.step(batch)
 
     def training_epoch_end(self, outputs) -> None:
         pass
@@ -101,7 +95,7 @@ def test_auto_device_count():
 
 
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+@mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(_, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
         Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
@@ -149,7 +143,9 @@ def test_inference_only(tmpdir, devices):
     trainer.predict(model)
 
 
-@RunIf(ipu=True)
+@RunIf(ipu=True, sklearn=True)
+@pytest.mark.xfail(reason="TODO: issues with latest poptorch")
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
@@ -191,7 +187,7 @@ def test_optimization(tmpdir):
 def test_half_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.precision == "16"
             raise SystemExit
 
     model = IPUModel()
@@ -199,7 +195,7 @@ def test_half_precision(tmpdir):
         default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback()
     )
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -208,7 +204,7 @@ def test_half_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.precision_plugin.precision == 16
+            assert trainer.strategy.precision_plugin.precision == "16"
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -221,7 +217,7 @@ def test_pure_half_precision(tmpdir):
 
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
 
     changed_dtypes = [torch.float, torch.float64]
     data = [torch.zeros((1), dtype=dtype) for dtype in changed_dtypes]
@@ -547,6 +543,9 @@ def test_multi_optimizers_fails(tmpdir):
             return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
 
     model = TestModel()
+    # Must switch to manual optimization mode, otherwise we would get a different error
+    # (multiple optimizers only supported with manual optimization)
+    model.automatic_optimization = False
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
     with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):
@@ -558,7 +557,7 @@ def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
-    assert plugin.precision == 16
+    assert plugin.precision == "16"
 
 
 @RunIf(ipu=True)
@@ -575,7 +574,6 @@ def test_accelerator_ipu():
 
 @RunIf(ipu=True)
 def test_accelerator_ipu_with_devices():
-
     trainer = Trainer(accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
@@ -586,25 +584,6 @@ def test_accelerator_ipu_with_devices():
 def test_accelerator_auto_with_devices_ipu():
     trainer = Trainer(accelerator="auto", devices=8)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.num_devices == 8
-
-
-@RunIf(ipu=True)
-def test_accelerator_ipu_with_ipus_priority():
-    """Test for checking `ipus` flag takes priority over `devices`."""
-
-    ipus = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
-
-    assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.num_devices == ipus
-
-
-@RunIf(ipu=True)
-def test_set_devices_if_none_ipu():
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.num_devices == 8
 
 

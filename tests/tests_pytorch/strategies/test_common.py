@@ -14,8 +14,8 @@
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
@@ -30,6 +30,7 @@ from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
         pytest.param(dict(accelerator="mps", devices=1), marks=RunIf(mps=True)),
     ),
 )
+@RunIf(sklearn=True)
 def test_evaluate(tmpdir, trainer_kwargs):
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()

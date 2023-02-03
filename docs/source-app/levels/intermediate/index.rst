@@ -4,19 +4,18 @@
    :maxdepth: 1
    :hidden:
 
-   level_8
-   level_9
-   level_10
-   level_11
-   level_12
-   level_13
-   level_14
-   level_15
+   connect_lightning_components
+   debug_a_lightning_app
+   run_lightning_work_in_parallel
+   share_variables_between_lightning_components
+   share_files_between_components
+   embed_web_ui_into_lightningwork
+   start_from_lightning_app_templates
 
 ###################
 Intermediate skills
 ###################
-Learn to build your own Lightning Apps from scratch and the basics of the framework.
+Learn to coordinate 2+ components into workflows which we call Lightning apps.
 
 .. join_slack::
    :align: left
@@ -31,65 +30,57 @@ Learn to build your own Lightning Apps from scratch and the basics of the framew
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 8: Build a Lightning App
-   :description: Learn how to build a Lightning App from scratch.
-   :button_link: level_8.html
+   :header: Level 4: Coordinate 2+ components in a workflow
+   :description: Learn to coordinate 2_ components in a workflow which we call a Lightning app.
+   :button_link: connect_lightning_components.html
    :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
+   :height: 170
+   :tag: 15 minutes
 
 .. displayitem::
-   :header: Level 9: Event loop
-   :description: Learn about the event loop.
-   :button_link: level_9.html
+   :header: Level 5: Debug a Lightning App
+   :description: Learn to debug a lightning app.
+   :button_link: debug_a_lightning_app.html
    :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
+   :height: 170
+   :tag: 2 minutes
 
 .. displayitem::
-   :header: Level 10: Add web UIs
-   :description: Learn how to add web UIs to your Lightning App.
-   :button_link: level_10.html
+   :header: Level 6: Run a Lightning component in parallel
+   :description: Learn when and how to run Components in parallel (asynchronous).
+   :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 11: Customize cloud compute
-   :description: Learn to use different cloud machines.
-   :button_link: level_11.html
+   :header: Level 7: Share variables between components
+   :description: Share variables between Lightning components.
+   :button_link: share_variables_between_lightning_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: 15 minutes
 
 .. displayitem::
-   :header: Level 12: LightningFlow vs LightningWork
-   :description: Learn the difference between LightningFlow and LightningWork.
-   :button_link: level_12.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level 13: Communicate between Lightning components
-   :description: Learn about how LightningFlows communicate with LightningWorks.
-   :button_link: level_13.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level 14: Share files between components
+   :header: Level 8: Share files between components
    :description: Learn how Drives share files between components
-   :button_link: level_14.html
+   :button_link: share_files_between_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: 20 minutes
 
 .. displayitem::
-   :header: Level 15: Run LightningWorks in parallel
-   :description: Learn when to run LightningWorks in parallel
-   :button_link: level_15.html
+   :header: Level 9: Render a web UI with other components
+   :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
+   :button_link: embed_web_ui_into_lightningwork.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: 15 minutes
+
+.. displayitem::
+   :header: Level 10: Practice adapting app templates
+   :description: Practice starting apps from templates and evolving them by replacing or adding components.
+   :button_link: start_from_lightning_app_templates.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

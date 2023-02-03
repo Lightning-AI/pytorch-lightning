@@ -1,1 +1,0 @@
-../../source-pytorch/clouds/cluster_intermediate_2.rst

@@ -41,6 +41,7 @@ callbacks
     ModelCheckpoint
     ModelPruning
     ModelSummary
+    OnExceptionCheckpoint
     ProgressBarBase
     QuantizationAwareTraining
     RichModelSummary
@@ -82,16 +83,6 @@ core
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
 
-lightninglite
--------------
-
-.. currentmodule:: pytorch_lightning.lite
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-
-    LightningLite
 
 loggers
 -------
@@ -102,74 +93,13 @@ loggers
     :toctree: api
     :nosignatures:
 
-    base
+    logger
     comet
     csv_logs
     mlflow
     neptune
     tensorboard
     wandb
-
-loops
-^^^^^
-
-Base Classes
-""""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~dataloader.dataloader_loop.DataLoaderLoop
-    ~base.Loop
-
-Training
-""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~batch.TrainingBatchLoop
-    ~epoch.TrainingEpochLoop
-    FitLoop
-    ~optimization.ManualOptimization
-    ~optimization.OptimizerLoop
-
-
-Validation and Testing
-""""""""""""""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.EvaluationEpochLoop
-    ~dataloader.EvaluationLoop
-
-
-Prediction
-""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.PredictionEpochLoop
-    ~dataloader.PredictionLoop
-
 
 plugins
 ^^^^^^^
@@ -184,17 +114,14 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    ApexMixedPrecisionPlugin
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FullyShardedNativeMixedPrecisionPlugin
-    FullyShardedNativeNativeMixedPrecisionPlugin
+    FSDPMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    NativeMixedPrecisionPlugin
+    MixedPrecisionPlugin
     PrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
@@ -244,7 +171,7 @@ others
     :template: classtemplate.rst
 
     LayerSync
-    NativeSyncBatchNorm
+    TorchSyncBatchNorm
 
 profiler
 --------
@@ -287,16 +214,11 @@ strategies
 
     BaguaStrategy
     ColossalAIStrategy
-    DDPFullyShardedNativeStrategy
-    DDPFullyShardedStrategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
     DDPSpawnStrategy
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
-    HivemindStrategy
-    HorovodStrategy
+    FSDPStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
@@ -327,16 +249,13 @@ utilities
     :toctree: api
     :nosignatures:
 
-    apply_func
     argparse
-    cli
-    cloud_io
+    data
     deepspeed
     distributed
     finite_checks
     memory
     model_summary
-    optimizer
     parsing
     rank_zero
     seed

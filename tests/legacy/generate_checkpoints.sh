@@ -6,10 +6,12 @@
 #    bash generate_checkpoints.sh
 set -e
 
-LEGACY_PATH=$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )
+LEGACY_PATH=$(cd $(dirname $0); pwd -P)
 ENV_PATH=$LEGACY_PATH/vEnv
+export PYTHONPATH=$(dirname $LEGACY_PATH)  # for `import tests_pytorch`
 echo LEGACY_PATH: $LEGACY_PATH
 echo ENV_PATH: $ENV_PATH
+echo PYTHONPATH: $PYTHONPATH
 
 function create_and_save_checkpoint {
   python --version

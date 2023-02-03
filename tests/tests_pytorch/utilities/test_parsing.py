@@ -16,8 +16,8 @@ import inspect
 import pytest
 from torch.jit import ScriptModule
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities.parsing import (
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.utilities.parsing import (
     AttributeDict,
     clean_namespace,
     collect_init_args,
@@ -255,10 +255,10 @@ def test_get_init_args(tmpdir):
             self.result = get_init_args(frame)
 
     my_class = AutomaticArgsModel("test", anykw=32, otherkw=123)
-    assert my_class.result == {"anyarg": "test", "anykw": 32, "otherkw": 123}
+    assert my_class.result == (my_class, {"anyarg": "test", "anykw": 32, "otherkw": 123})
 
     my_class.get_init_args_wrapper()
-    assert my_class.result == {}
+    assert my_class.result == (None, {})
 
 
 def test_collect_init_args():

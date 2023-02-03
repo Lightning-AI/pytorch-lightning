@@ -6,9 +6,9 @@ from unittest.mock import ANY, MagicMock
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.components.serve import serve
-from lightning_app.utilities.imports import _is_numpy_available, _is_torch_available
-from lightning_app.utilities.network import _configure_session, find_free_network_port
+from lightning.app.components.serve import serve
+from lightning.app.utilities.imports import _is_numpy_available, _is_torch_available
+from lightning.app.utilities.network import _configure_session, find_free_network_port
 
 if _is_numpy_available():
     import numpy as np
@@ -48,6 +48,7 @@ def test_model_inference_api(workers):
     process.terminate()
     # TODO: Investigate why this doesn't match exactly `imgstr`.
     assert res.json()
+    process.kill()
 
 
 class EmptyServer(serve.ModelInferenceAPI):

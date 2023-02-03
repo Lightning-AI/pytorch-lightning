@@ -1,53 +1,41 @@
 
 
-****************************************************
-What running LightningWorks in parallel does for you
-****************************************************
 
-When there is a long-running workload such as a model training, or a deployment server, you might want to run that LightningWork in parallel
-while the rest of the Lightning App continues to execute.
-
-The default behavior of the ``LightningWork`` is to wait for the ``run`` method to complete:
-
-.. code:: python
-
-    import lightning as L
-
-
-    class Root(L.LightningFlow):
-        def __init__(self):
-            self.work_component_a = L.demo.InfinteWorkComponent()
-
-        def run(self):
-            self.work_component_a.run()
-            print("this will never print")
-
-Since this LightningWork component we created loops forever, the print statement will never execute. In practice
-``LightningWork`` workloads are finite and don't run forever.
-
-When a ``LightningWork`` performs a heavy operation (longer than 1 second), or requires its own hardware,
-LightningWork that is *not* done in parallel will slow down your app.
+************************************
+When to run a Components in parallel
+************************************
+Run LightningWork in parallel when you want to execute work in the background or at the same time as another work.
+An example of when this comes up in machine learning is when data streams-in while a model trains.
 
 ----
 
-******************************
-Enable parallel LightningWorks
-******************************
-To run LightningWorks in parallel, while the rest of the app executes without delays, enable ``parallel=True``:
+************
+Toy example
+************
+By default, a Component must complete before the next one runs. We can enable one
+component to start in parallel which allows the code to proceed without having
+to wait for the first one to finish.
 
-.. code:: python
-    :emphasize-lines: 5
+.. lit_tabs::
+   :descriptions: No parallel components; Allow the train component to run in parallel; When the component runs, it will run in parallel; The next component is unblocked and can now immediately run.
+   :code_files: /workflows/scripts/parallel/toy_app.py; /workflows/scripts/parallel/toy_parallel.py; /workflows/scripts/parallel/toy_parallel.py; /workflows/scripts/parallel/toy_parallel.py;
+   :highlights: ; 18; 23; 24;
+   :enable_run: true
+   :tab_rows: 3
+   :height: 540px
 
-    import lightning as L
+----
 
+*******************************
+Multiple components in parallel
+*******************************
+In this example, we start all 3 components at once. The first two start in parallel, which
+allows the third component to run without waiting for the others to finish.
 
-    class Root(L.LightningFlow):
-        def __init__(self):
-            self.work_component_a = L.demo.InfinteWorkComponent(parallel=True)
-
-        def run(self):
-            self.work_component_a.run()
-            print("repeats while the infinite work runs ONCE (and forever) in parallel")
-
-Any LightningWorks that will take more than **1 second** should be run in parallel
-unless the rest of your Lightning App depends on the output of this work (for example, downloading a dataset).
+.. lit_tabs::
+   :descriptions: No parallel components; Enable 2 components to run in parallel; Start both components together in parallel; Last component is not blocked and can start immediately.
+   :code_files: /workflows/scripts/parallel/toy_two_parallel_not_started.py; /workflows/scripts/parallel/toy_two_parallel.py; /workflows/scripts/parallel/toy_two_parallel.py; /workflows/scripts/parallel/toy_two_parallel.py
+   :highlights: ; 18, 19; 23, 24; 25
+   :enable_run: true
+   :tab_rows: 3
+   :height: 540px

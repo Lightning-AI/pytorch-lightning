@@ -1,1 +1,0 @@
-../../../source-app/workflows/add_web_ui/vue_js_intermediate.rst

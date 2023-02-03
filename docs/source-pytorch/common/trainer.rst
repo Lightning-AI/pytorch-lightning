@@ -4,9 +4,7 @@
 .. testsetup:: *
 
     import os
-    from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.module import LightningModule
-    from pytorch_lightning.utilities.seed import seed_everything
+    from pytorch_lightning import Trainer, LightningModule, seed_everything
 
 .. _trainer:
 
@@ -195,7 +193,7 @@ Example::
     trainer = Trainer(deterministic=True)
 
 
-By setting ``workers=True`` in :func:`~pytorch_lightning.utilities.seed.seed_everything`, Lightning derives
+By setting ``workers=True`` in :func:`~pytorch_lightning.seed_everything`, Lightning derives
 unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
 :mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
@@ -262,9 +260,6 @@ Example::
         # Training with GPU Accelerator using total number of gpus available on the system
         Trainer(accelerator="gpu")
 
-.. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
-    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
-
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -292,118 +287,6 @@ Example::
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-amp_backend
-^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_backend.mp4"></video>
-
-|
-
-Use PyTorch AMP ('native'), or NVIDIA apex ('apex').
-
-.. testcode::
-
-    # using PyTorch built-in AMP, default used by the Trainer
-    trainer = Trainer(amp_backend="native")
-
-    # using NVIDIA Apex
-    trainer = Trainer(amp_backend="apex")
-
-auto_scale_batch_size
-^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_scale%E2%80%A8_batch_size.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_scale_batch_size.mp4"></video>
-
-|
-
-Automatically tries to find the largest batch size that fits into memory,
-before any training.
-
-.. code-block:: python
-
-    # default used by the Trainer (no scaling of batch size)
-    trainer = Trainer(auto_scale_batch_size=None)
-
-    # run batch size scaling, result overrides hparams.batch_size
-    trainer = Trainer(auto_scale_batch_size="binsearch")
-
-    # call tune to find the batch size
-    trainer.tune(model)
-
-auto_select_gpus
-^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_select+_gpus.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_select_gpus.mp4"></video>
-
-|
-
-If enabled and ``devices`` is an integer, pick available GPUs automatically.
-This is especially useful when GPUs are configured to be in "exclusive mode",
-such that only one process at a time can access them.
-
-Example::
-
-    # no auto selection (picks first 2 GPUs on system, may fail if other process is occupying)
-    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
-
-    # enable auto selection (will find two available GPUs on system)
-    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
-
-    # specifies all GPUs regardless of its availability
-    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=False)
-
-    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True)
-
-auto_lr_find
-^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
-
-|
-
-Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
-when calling trainer.tune(), to find optimal initial learning rate.
-
-.. code-block:: python
-
-    # default used by the Trainer (no learning rate finder)
-    trainer = Trainer(auto_lr_find=False)
-
-Example::
-
-    # run learning rate finder, results override hparams.learning_rate
-    trainer = Trainer(auto_lr_find=True)
-
-    # call tune to find the lr
-    trainer.tune(model)
-
-Example::
-
-    # run learning rate finder, results override hparams.my_lr_arg
-    trainer = Trainer(auto_lr_find='my_lr_arg')
-
-    # call tune to find the lr
-    trainer.tune(model)
-
-.. note::
-    See the :ref:`learning rate finder guide <learning_rate_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -448,7 +331,6 @@ deterministic
 
 This flag sets the ``torch.backends.cudnn.deterministic`` flag.
 Might make your system slower, but ensures reproducibility.
-Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 
 For more info check `PyTorch docs <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
@@ -545,8 +427,6 @@ devices
 ^^^^^^^
 
 Number of devices to train on (``int``), which devices to train on (``list`` or ``str``), or ``"auto"``.
-It will be mapped to either ``gpus``, ``tpu_cores``, ``num_processes`` or ``ipus``,
-based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
 .. code-block:: python
 
@@ -674,59 +554,9 @@ impact to subsequent runs. These are the changes enabled:
 - The :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
 - The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
-- Disables the Tuner.
+- Disables the tuning callbacks (:class:`~pytorch_lightning.callbacks.batch_size_finder.BatchSizeFinder`, :class:`~pytorch_lightning.callbacks.lr_finder.LearningRateFinder`).
 - If using the CLI, the configuration file is not saved.
 
-.. _gpus:
-
-gpus
-^^^^
-
-.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gpus.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gpus.mp4"></video>
-
-|
-
-- Number of GPUs to train on (int)
-- or which GPUs to train on (list)
-- can handle strings
-
-.. testcode::
-
-    # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(gpus=None)
-
-    # equivalent
-    trainer = Trainer(gpus=0)
-
-Example::
-
-    # int: train on 2 gpus
-    trainer = Trainer(gpus=2)
-
-    # list: train on GPUs 1, 4 (by bus ordering)
-    trainer = Trainer(gpus=[1, 4])
-    trainer = Trainer(gpus='1, 4') # equivalent
-
-    # -1: train on all gpus
-    trainer = Trainer(gpus=-1)
-    trainer = Trainer(gpus='-1') # equivalent
-
-    # combine with num_nodes to train on multiple GPUs across nodes
-    # uses 8 gpus in total
-    trainer = Trainer(gpus=2, num_nodes=4)
-
-    # train only on GPUs 1 and 4 across nodes
-    trainer = Trainer(gpus=[1, 4], num_nodes=4)
-
-See Also:
-    - :ref:`Multi GPU Training <multi_gpu>`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -870,10 +700,11 @@ logger
 :doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger
 
-    # default logger used by trainer
+    # default logger used by trainer (if tensorboard is installed)
     logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
     Trainer(logger=logger)
 
@@ -1004,33 +835,6 @@ Number of GPU nodes for distributed training.
     # to train on 8 nodes
     trainer = Trainer(num_nodes=8)
 
-num_processes
-^^^^^^^^^^^^^
-
-.. warning:: ``num_processes=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_processes.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_processes.mp4"></video>
-
-|
-
-Number of processes to train with. Automatically set to the number of GPUs
-when using ``strategy="ddp"``. Set to a number greater than 1 when
-using ``accelerator="cpu"`` and ``strategy="ddp"`` to mimic distributed training on a
-machine without GPUs. This is useful for debugging, but **will not** provide
-any speedup, since single-process Torch already makes efficient use of multiple
-CPUs. While it would typically spawns subprocesses for training, setting
-``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
-process.
-
-.. testcode::
-
-    # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(accelerator="cpu", strategy="ddp", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -1159,27 +963,6 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
 .. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
 
-.. admonition::  If you are interested in using Apex 16-bit training:
-   :class: dropdown
-
-    NVIDIA Apex and DDP have instability problems. We recommend using the native AMP for 16-bit precision with multiple GPUs.
-    To use Apex 16-bit training:
-
-    1. `Install apex. <https://github.com/NVIDIA/apex#quick-start>`__
-
-    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the ``amp_level`` flag
-       in the precision plugin.
-
-    .. testcode::
-        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
-
-        from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
-
-
-        apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
-        # turn on 16-bit
-        trainer = Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
-
 profiler
 ^^^^^^^^
 
@@ -1294,31 +1077,6 @@ By setting to False, you have to add your own distributed sampler:
 
 .. note:: For iterable datasets, we don't do this automatically.
 
-resume_from_checkpoint
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
-    Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/resume_from_checkpoint.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/resume_from_checkpoint.mp4"></video>
-
-|
-
-To resume training from a specific checkpoint pass in the path here. If resuming from a mid-epoch
-checkpoint, training will start from the beginning of the next epoch.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(resume_from_checkpoint=None)
-
-    # resume from a specific checkpoint
-    trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
 
 strategy
 ^^^^^^^^
@@ -1393,65 +1151,6 @@ track_grad_norm
 
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
-
-.. _tpu_cores:
-
-tpu_cores
-^^^^^^^^^
-
-.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/tpu_cores.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
-
-|
-
-- How many TPU cores to train on (1 or 8).
-- Which TPU core to train on [1-8]
-
-A single TPU v2 or v3 has 8 cores. A TPU pod has
-up to 2048 cores. A slice of a POD means you get as many cores
-as you request.
-
-Your effective batch size is batch_size * total tpu cores.
-
-This parameter can be either 1 or 8.
-
-Example::
-
-    # your_trainer_file.py
-
-    # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(tpu_cores=None)
-
-    # int: train on a single core
-    trainer = Trainer(tpu_cores=1)
-
-    # list: train on a single selected core
-    trainer = Trainer(tpu_cores=[2])
-
-    # int: train on all cores few cores
-    trainer = Trainer(tpu_cores=8)
-
-    # for 8+ cores must submit via xla script with
-    # a max of 8 cores specified. The XLA script
-    # will duplicate script onto each TPU in the POD
-    trainer = Trainer(tpu_cores=8)
-
-To train on more than 8 cores (ie: a POD),
-submit this script using the xla_dist script.
-
-Example::
-
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
 
 
 val_check_interval
@@ -1596,12 +1295,6 @@ predict
 .. automethod:: pytorch_lightning.trainer.Trainer.predict
    :noindex:
 
-tune
-****
-
-.. automethod:: pytorch_lightning.trainer.Trainer.tune
-   :noindex:
-
 
 Properties
 ^^^^^^^^^^
@@ -1654,7 +1347,7 @@ global_step
 ***********
 
 The number of optimizer steps taken (does not reset each epoch).
-This includes multiple optimizers and TBPTT steps (if enabled).
+This includes multiple optimizers (if enabled).
 
 .. code-block:: python
 
@@ -1761,11 +1454,11 @@ execution within that function, and the status of the Trainer.
 
 .. code-block:: python
 
-    # fn in ("fit", "validate", "test", "predict", "tune")
+    # fn in ("fit", "validate", "test", "predict")
     trainer.state.fn
     # status in ("initializing", "running", "finished", "interrupted")
     trainer.state.status
-    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
+    # stage in ("train", "sanity_check", "validate", "test", "predict")
     trainer.state.stage
 
 should_stop

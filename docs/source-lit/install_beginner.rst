@@ -1,1 +1,0 @@
-../source-app/install_beginner.rst

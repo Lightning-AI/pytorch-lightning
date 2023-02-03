@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock
 
-from lightning_app.storage.orchestrator import StorageOrchestrator
-from lightning_app.storage.requests import _GetRequest, _GetResponse
-from lightning_app.testing.helpers import _MockQueue
-from lightning_app.utilities.enum import WorkStageStatus
+from lightning.app.storage.orchestrator import StorageOrchestrator
+from lightning.app.storage.requests import _GetRequest, _GetResponse
+from lightning.app.testing.helpers import _MockQueue
+from lightning.app.utilities.enum import WorkStageStatus
 
 
 def test_orchestrator():
@@ -39,7 +39,7 @@ def test_orchestrator():
 
     # orchestrator is now waiting for a response for copier in Work A
     assert "work_b" in orchestrator.waiting_for_response
-    assert not request_queues["work_a"]
+    assert len(request_queues["work_a"]) == 0
     assert request in copy_request_queues["work_a"]
     assert request.destination == "work_b"
 
@@ -54,7 +54,7 @@ def test_orchestrator():
 
     # orchestrator processes confirmation and confirms to the pending request from Work B
     orchestrator.run_once("work_a")
-    assert not copy_response_queues["work_a"]
+    assert len(copy_response_queues["work_a"]) == 0
     assert response in response_queues["work_b"]
     assert not orchestrator.waiting_for_response
     orchestrator.run_once("work_b")
@@ -71,7 +71,7 @@ def test_orchestrator():
     assert response.exception is None
 
     # all queues should be empty
-    assert all(not queue for queue in request_queues.values())
-    assert all(not queue for queue in response_queues.values())
-    assert all(not queue for queue in copy_request_queues.values())
-    assert all(not queue for queue in copy_response_queues.values())
+    assert all(len(queue) == 0 for queue in request_queues.values())
+    assert all(len(queue) == 0 for queue in response_queues.values())
+    assert all(len(queue) == 0 for queue in copy_request_queues.values())
+    assert all(len(queue) == 0 for queue in copy_response_queues.values())

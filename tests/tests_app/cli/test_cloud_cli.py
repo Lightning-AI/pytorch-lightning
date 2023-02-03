@@ -9,19 +9,19 @@ from unittest.mock import ANY, call, MagicMock
 import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import (
-    V1LightningappV2,
+    V1CloudSpace,
+    V1ListCloudSpacesResponse,
     V1ListLightningappInstancesResponse,
-    V1ListLightningappsV2Response,
     V1ListMembershipsResponse,
     V1Membership,
 )
 from lightning_cloud.openapi.rest import ApiException
 from tests_app import _PROJECT_ROOT
 
-import lightning_app.runners.backends.cloud as cloud_backend
-from lightning_app.cli.lightning_cli import run_app
-from lightning_app.runners import cloud
-from lightning_app.runners.cloud import CloudRuntime
+import lightning.app.runners.backends.cloud as cloud_backend
+from lightning.app.cli.lightning_cli import run_app
+from lightning.app.runners import cloud
+from lightning.app.runners.cloud import CloudRuntime
 
 _FILE_PATH = os.path.join(_PROJECT_ROOT, "tests", "tests_app", "core", "scripts", "app_metadata.py")
 
@@ -37,8 +37,8 @@ class FakeResponse:
 
 
 class FakeLightningClient:
-    def __init__(self, response, api_client=None):
-        self._response = response
+    def cloud_space_service_list_cloud_spaces(self, *args, **kwargs):
+        return V1ListCloudSpacesResponse(cloudspaces=[])
 
     def lightningapp_instance_service_list_lightningapp_instances(self, *args, **kwargs):
         return V1ListLightningappInstancesResponse(lightningapps=[])
@@ -102,34 +102,34 @@ class ExceptionResponse:
 
 class FakeLightningClientCreate(FakeLightningClient):
     def __init__(self, *args, create_response, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.create_response = create_response
 
-    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
-        return V1ListLightningappsV2Response(lightningapps=[V1LightningappV2(id="my_app", name="app")])
+    def cloud_space_service_create_cloud_space(self, *args, **kwargs):
+        return V1CloudSpace(id="my_app", name="app")
 
-    def lightningapp_v2_service_create_lightningapp_release(self, project_id, app_id, body):
+    def cloud_space_service_create_lightning_run(self, project_id, cloudspace_id, body):
         assert project_id == "test-project-id"
         return self.create_response
 
-    def lightningapp_v2_service_create_lightningapp_release_instance(self, project_id, app_id, id, body):
+    def cloud_space_service_create_lightning_run_instance(self, project_id, cloudspace_id, id, body):
         assert project_id == "test-project-id"
         return self.create_response
 
 
-@mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
+@mock.patch("lightning.app.core.queues.QueuingSystem", MagicMock())
+@mock.patch("lightning.app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
 @pytest.mark.parametrize("create_response", [RuntimeErrorResponse(), RuntimeErrorResponse2()])
 def test_start_app(create_response, monkeypatch):
 
     monkeypatch.setattr(cloud, "V1LightningappInstanceState", MagicMock())
-    monkeypatch.setattr(cloud, "Body8", MagicMock())
+    monkeypatch.setattr(cloud, "CloudspaceIdRunsBody", MagicMock())
     monkeypatch.setattr(cloud, "V1Flowserver", MagicMock())
     monkeypatch.setattr(cloud, "V1LightningappInstanceSpec", MagicMock())
     monkeypatch.setattr(
         cloud_backend,
         "LightningClient",
-        partial(FakeLightningClientCreate, response=FakeResponse(), create_response=create_response),
+        partial(FakeLightningClientCreate, create_response=create_response),
     )
     monkeypatch.setattr(cloud, "LocalSourceCodeDir", MagicMock())
     monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", MagicMock())
@@ -167,25 +167,26 @@ def test_start_app(create_response, monkeypatch):
             flow_servers=ANY,
         )
 
-        cloud.Body8.assert_called_once()
+        cloud.CloudspaceIdRunsBody.assert_called_once()
+
+
+class HttpHeaderDict(dict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.reason = kwargs["reason"]
+        self.status = kwargs["status"]
+        self.data = kwargs["data"]
+
+    def getheaders(self):
+        return {}
 
 
 class FakeLightningClientException(FakeLightningClient):
-    def __init__(self, *args, message, api_client=None, **kwargs):
-        super().__init__(*args, api_client=api_client, **kwargs)
+    def __init__(self, *args, message, **kwargs):
+        super().__init__()
         self.message = message
 
-    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
-        class HttpHeaderDict(dict):
-            def __init__(self, **kwargs):
-                super().__init__(**kwargs)
-                self.reason = ""
-                self.status = 500
-                self.data = kwargs["data"]
-
-            def getheaders(self):
-                return {}
-
+    def cloud_space_service_list_cloud_spaces(self, *args, **kwargs):
         raise ApiException(
             http_resp=HttpHeaderDict(
                 data=self.message,
@@ -195,8 +196,8 @@ class FakeLightningClientException(FakeLightningClient):
         )
 
 
-@mock.patch("lightning_app.utilities.network.create_swagger_client", MagicMock())
-@mock.patch("lightning_app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
+@mock.patch("lightning.app.utilities.network.create_swagger_client", MagicMock())
+@mock.patch("lightning.app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
 @pytest.mark.parametrize(
     "message",
     [
@@ -206,7 +207,7 @@ class FakeLightningClientException(FakeLightningClient):
 def test_start_app_exception(message, monkeypatch, caplog):
 
     monkeypatch.setattr(cloud, "V1LightningappInstanceState", MagicMock())
-    monkeypatch.setattr(cloud, "Body8", MagicMock())
+    monkeypatch.setattr(cloud, "CloudspaceIdRunsBody", MagicMock())
     monkeypatch.setattr(cloud, "V1Flowserver", MagicMock())
     monkeypatch.setattr(cloud, "V1LightningappInstanceSpec", MagicMock())
     monkeypatch.setattr(cloud, "LocalSourceCodeDir", MagicMock())
@@ -215,9 +216,9 @@ def test_start_app_exception(message, monkeypatch, caplog):
 
     runner = CliRunner()
 
-    fake_grid_rest_client = partial(FakeLightningClientException, response=FakeResponse(), message=message)
+    fake_grid_rest_client = partial(FakeLightningClientException, message=message)
     with caplog.at_level(logging.ERROR):
-        with mock.patch("lightning_app.runners.backends.cloud.LightningClient", fake_grid_rest_client):
+        with mock.patch("lightning.app.runners.backends.cloud.LightningClient", fake_grid_rest_client):
             result = runner.invoke(run_app, [_FILE_PATH, "--cloud", "--open-ui=False"], catch_exceptions=False)
             assert result.exit_code == 1
     assert caplog.messages == [message]

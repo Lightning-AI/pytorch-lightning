@@ -17,17 +17,17 @@ import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
+import lightning.pytorch as pl
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_fit_only(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -35,7 +35,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_test_only(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -43,7 +43,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir):
     trainer.test(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_fit_test(tmpdir):
     seed_everything(4321)
     dm = ClassifDataModule()
@@ -74,7 +74,8 @@ def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-def test_ddp_torch_dist_is_available_in_setup(mock_set_device, cuda_count_1, tmpdir):
+@mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
+def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
@@ -94,7 +95,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, cuda_count_1, tmp
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""

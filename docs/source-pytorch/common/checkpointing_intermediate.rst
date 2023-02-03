@@ -1,10 +1,10 @@
 :orphan:
 
-.. _checkpointing_intermediate:
+.. _checkpointing_intermediate_1:
 
-############################
-Checkpointing (intermediate)
-############################
+###############################################
+Customize checkpointing behavior (intermediate)
+###############################################
 **Audience:** Users looking to customize the checkpointing behavior
 
 ----

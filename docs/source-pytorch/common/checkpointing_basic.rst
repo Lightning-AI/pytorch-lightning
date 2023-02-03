@@ -2,9 +2,9 @@
 
 .. _checkpointing_basic:
 
-#####################
-Checkpointing (basic)
-#####################
+######################################
+Saving and loading checkpoints (basic)
+######################################
 **Audience:** All users
 
 ----
@@ -37,7 +37,7 @@ Inside a Lightning checkpoint you'll find:
 - State of datamodule (for stateful datamodules)
 - The hyperparameters used for that model if passed in as hparams (Argparse.Namespace)
 - The hyperparameters used for that datamodule if passed in as hparams (Argparse.Namespace)
-- State of Loops (if using Fault-Tolerant training)
+- State of Loops
 
 ----
 
@@ -186,5 +186,5 @@ If you don't just want to load weights, but instead restore the full training, d
    model = LitModel()
    trainer = Trainer()
 
-   # automatically restores model, epoch, step, LR schedulers, apex, etc...
+   # automatically restores model, epoch, step, LR schedulers, etc...
    trainer.fit(model, ckpt_path="some/path/to/my_checkpoint.ckpt")

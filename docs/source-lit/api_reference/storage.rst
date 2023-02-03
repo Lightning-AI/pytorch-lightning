@@ -1,1 +1,0 @@
-../../source-app/api_reference/storage.rst

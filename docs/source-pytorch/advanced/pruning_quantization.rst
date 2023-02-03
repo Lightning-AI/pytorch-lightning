@@ -58,9 +58,13 @@ Quantization
 
 Model quantization is another performance optimization technique that allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating-point precision. This is particularly beneficial during model deployment.
 
-Quantization Aware Training (QAT) mimics the effects of quantization during training: The computations are carried-out in floating-point precision but the subsequent quantization effect is taken into account. The weights and activations are quantized into lower precision only for inference, when training is completed.
+There are two model quantization methods, Quantization Aware Training (QAT) and Post-training Quantization (PTQ). QAT mimics the effects of quantization during training: The computations are carried-out in floating-point precision but the subsequent quantization effect is taken into account. The weights and activations are quantized into lower precision only for inference, when training is completed. PTQ focuses on quantize the fine-tuned model without retraining. The weights and activations of ops are converted into lower precision for saving the memory and computation losses.
 
 Quantization is useful when it is required to serve large models on machines with limited memory, or when there's a need to switch between models and reducing the I/O time is important. For example, switching between monolingual speech recognition models across multiple languages.
+
+
+Quantization Aware Training
+===========================
 
 Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch's native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`__), which allows creating fully quantized models (compatible with torchscript).
 
@@ -113,3 +117,9 @@ You can further customize the callback:
 
     batch = iter(my_dataloader()).next()
     qmodel(batch[0])
+
+
+Post-training Quantization
+==========================
+
+If you want to quantize a fine-tuned model with PTQ, it is recommended to adopt a third party API names Intel® Neural Compressor, read more :doc:`here <./post_training_quantization>`, which provides a convenient tool for accelerating the model inference speed on Intel CPUs and GPUs.

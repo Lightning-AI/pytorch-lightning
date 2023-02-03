@@ -20,7 +20,7 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * devices * num_nodes.
+In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED your effective batch size will be 7 * devices * num_nodes.
 
 .. code-block:: python
 
@@ -28,13 +28,11 @@ In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size 
     Trainer(accelerator="gpu", devices=8, strategy="ddp")
     Trainer(accelerator="gpu", devices=8, strategy="ddp_spawn")
     Trainer(accelerator="gpu", devices=8, strategy="ddp_sharded")
-    Trainer(accelerator="gpu", devices=8, strategy="horovod")
 
     # effective batch size = 7 * 8 * 10
     Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp")
     Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp_spawn")
     Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp_sharded")
-    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="horovod")
 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
@@ -59,15 +57,13 @@ The reason is that the full batch gets split evenly between all devices.
 How do I use multiple GPUs on Jupyter or Colab notebooks?
 *********************************************************
 
-To use multiple GPUs on notebooks, use the *DP* mode.
+To use multiple GPUs on notebooks, use the *DDP_SPAWN*, *DDP_NOTEBOOK*, or *DP* mode.
 
 .. code-block:: python
 
-    Trainer(accelerator="gpu", devices=4, strategy="dp")
+    Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook" | "ddp_spawn" | "dp")
 
 If you want to use other models, please launch your training via the command-shell.
-
-.. note:: Learn how to :ref:`access a cloud machine with multiple GPUs <grid_cloud_session_basic>` in this guide.
 
 ----
 

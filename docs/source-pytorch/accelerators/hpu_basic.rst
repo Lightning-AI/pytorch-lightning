@@ -113,4 +113,3 @@ Known limitations
 -----------------
 
 * `Habana dataloader <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#habana-data-loader>`__ is not supported.
-* :func:`torch.inference_mode` is not supported

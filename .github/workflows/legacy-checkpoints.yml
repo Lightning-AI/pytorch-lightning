@@ -35,17 +35,17 @@ on:
         default: false
         required: false
         type: boolean
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_KEY_ID:
-        required: true
+    secrets: inherit
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   create-legacy-ckpts:
     runs-on: ubuntu-20.04
     outputs:
-      pl-version: ${{ steps.decide-pl-version.outputs.pl-version }}
+      pl-version: ${{ steps.decide-version.outputs.pl-version }}
     defaults:
       run:
         working-directory: tests/legacy
@@ -68,17 +68,25 @@ jobs:
       working-directory: ./
       env:
         PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
       if: inputs.pl_version == ''
+
+    - name: Install PL version
+      run: |
+        pip install "pytorch-lightning==${{ inputs.pl_version }}" \
+          -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip list
+      if: inputs.pl_version != ''
 
     - name: Pull legacy checkpoints
       working-directory: ./
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Decide PL version to create a PR with
-      id: decide-pl-version
+      id: decide-version
       run: |
         python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
 
@@ -120,7 +128,7 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
       with:
-        title: Adding test for legacy checkpiont created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
+        title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
         labels: |
           tests

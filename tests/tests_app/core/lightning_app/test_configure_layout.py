@@ -4,11 +4,11 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow
-from lightning_app.frontend.stream_lit import StreamlitFrontend
-from lightning_app.frontend.web import StaticWebFrontend
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.testing.helpers import EmptyFlow
+from lightning.app import LightningApp, LightningFlow
+from lightning.app.frontend.stream_lit import StreamlitFrontend
+from lightning.app.frontend.web import StaticWebFrontend
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.testing.helpers import EmptyFlow
 
 
 @pytest.mark.parametrize("return_val", (1, None, set(), "string"))
@@ -55,7 +55,7 @@ class StreamlitFrontendFlow(LightningFlow):
 
     def run(self):
         if self.counter > 2:
-            self._exit()
+            self.stop()
         self.counter += 1
 
     def configure_layout(self):
@@ -76,7 +76,7 @@ class StaticWebFrontendFlow(LightningFlow):
 
     def run(self):
         if self.counter > 2:
-            self._exit()
+            self.stop()
         self.counter += 1
 
     def configure_layout(self):
@@ -87,7 +87,7 @@ class StaticWebFrontendFlow(LightningFlow):
 
 
 @pytest.mark.parametrize("flow", (StaticWebFrontendFlow(), StreamlitFrontendFlow()))
-@mock.patch("lightning_app.runners.multiprocess.find_free_network_port")
+@mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
 def test_layout_leaf_node(find_ports_mock, flow):
     find_ports_mock.side_effect = lambda: 100
     app = LightningApp(flow)
@@ -126,9 +126,9 @@ def test_default_content_layout():
     root = TestContentComponent()
     LightningApp(root)
     assert root._layout == [
-        dict(name="component0", content="root.component0"),
-        dict(name="component1", content="root.component1"),
-        dict(name="component2", content="root.component2"),
+        dict(name="root.component0", content="root.component0"),
+        dict(name="root.component1", content="root.component1"),
+        dict(name="root.component2", content="root.component2"),
     ]
 
 
@@ -184,7 +184,7 @@ class DynamicContentComponent(EmptyFlow):
         self.run_assertion()
         self.counter += 1
         if self.counter == 3:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         self.configure_layout_called += 1
@@ -220,7 +220,7 @@ def test_dynamic_content_layout_update():
     assert flow.configure_layout_called == 5
 
 
-@mock.patch("lightning_app.utilities.layout.is_running_in_cloud", return_value=True)
+@mock.patch("lightning.app.utilities.layout.is_running_in_cloud", return_value=True)
 def test_http_url_warning(*_):
     class Root(EmptyFlow):
         def configure_layout(self):

@@ -22,11 +22,11 @@ from typing import List
 import pytest
 import torch.distributed
 
-import lightning_lite
-import pytorch_lightning
-from lightning_lite.plugins.environments.lightning import find_free_network_port
-from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+import lightning.fabric
+import lightning.pytorch
+from lightning.fabric.plugins.environments.lightning import find_free_network_port
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -38,7 +38,7 @@ def datadir():
 @pytest.fixture(scope="function", autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from pytorch_lightning.utilities.rank_zero import rank_zero_only
+    from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
     rank = getattr(rank_zero_only, "rank", None)
     yield
@@ -69,9 +69,18 @@ def restore_env_variables():
         "WANDB_MODE",
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
-        "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
+        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
+        "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
+        "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
+        "CRC32C_SW_MODE",  # leaked by tensorboardX
+        # leaked by XLA
+        "ALLOW_MULTIPLE_LIBTPU_LOAD",
+        "GRPC_VERBOSITY",
+        "TF_CPP_MIN_LOG_LEVEL",
+        "TF_GRPC_DEFAULT_OPTIONS",
+        "XLA_FLAGS",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -110,9 +119,8 @@ def reset_deterministic_algorithm():
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
-    monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: n)
-    monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
-    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(lightning.fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
 
 
 @pytest.fixture(scope="function")
@@ -139,8 +147,8 @@ def mock_mps_count(monkeypatch, n: int) -> None:
     if n > 0 and not _TORCH_GREATER_EQUAL_1_12:
         # torch doesn't allow creation of mps devices on older versions
         monkeypatch.setattr("torch.device", lambda *_: "mps")
-    monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
-    monkeypatch.setattr(lightning_lite.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+    monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
+    monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
 
 @pytest.fixture(scope="function")
@@ -165,22 +173,22 @@ def mps_count_4(monkeypatch):
 
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(pytorch_lightning.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(pytorch_lightning.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(pytorch_lightning.strategies.single_tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(pytorch_lightning.plugins.precision.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(pytorch_lightning.strategies.launchers.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.plugins.environments.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.plugins.io.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.pytorch.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
 
 
 @pytest.fixture(scope="function")
 def tpu_available(xla_available, monkeypatch) -> None:
-    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
-    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
 
 
 @pytest.fixture
@@ -198,7 +206,7 @@ def caplog(caplog):
     propagation_dict = {
         name: logging.getLogger(name).propagate
         for name in logging.root.manager.loggerDict
-        if name.startswith("pytorch_lightning")
+        if name.startswith("lightning.pytorch")
     }
     for name in propagation_dict.keys():
         logging.getLogger(name).propagate = True
@@ -296,15 +304,10 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
 
     # error out on our deprecation warnings - ensures the code and tests are kept up-to-date
     deprecation_error = pytest.mark.filterwarnings(
-        "error::lightning_lite.utilities.rank_zero.LightningDeprecationWarning",
+        "error::lightning.fabric.utilities.rank_zero.LightningDeprecationWarning",
     )
     for item in items:
         item.add_marker(deprecation_error)
-
-    apex_deprecation = pytest.mark.filterwarnings("ignore:apex.amp is deprecated:FutureWarning")
-    for item in items:
-        if any(marker.name == "skipif" and marker.kwargs.get("amp_apex", False) for marker in item.own_markers):
-            item.add_marker(apex_deprecation)
 
 
 def pytest_addoption(parser):

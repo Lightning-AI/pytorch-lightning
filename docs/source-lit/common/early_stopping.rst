@@ -1,1 +1,0 @@
-../../source-pytorch/common/early_stopping.rst

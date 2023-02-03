@@ -1,1 +1,0 @@
-../../source-app/glossary/fault_tolerance.rst

@@ -13,15 +13,10 @@
 # limitations under the License.
 import functools
 import os
-import re
-from contextlib import contextmanager
-from typing import Optional, Type
 
-import pytest
-
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import TensorBoardLogger
 from tests_pytorch import _TEMP_PATH
 
 
@@ -70,25 +65,3 @@ def init_checkpoint_callback(logger):
 
 def getattr_recursive(obj, attr):
     return functools.reduce(getattr, [obj] + attr.split("."))
-
-
-@contextmanager
-def no_warning_call(expected_warning: Type[Warning] = UserWarning, match: Optional[str] = None):
-    with pytest.warns(None) as record:
-        yield
-
-    if match is None:
-        try:
-            w = record.pop(expected_warning)
-        except AssertionError:
-            # no warning raised
-            return
-    else:
-        for w in record.list:
-            if w.category is expected_warning and re.compile(match).search(w.message.args[0]):
-                break
-        else:
-            return
-
-    msg = "A warning" if expected_warning is None else f"`{expected_warning.__name__}`"
-    raise AssertionError(f"{msg} was raised: {w}")

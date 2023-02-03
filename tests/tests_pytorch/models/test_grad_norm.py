@@ -16,8 +16,9 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger
 
 
 class ModelWithManualGradTracker(BoringModel):
@@ -28,12 +29,6 @@ class ModelWithManualGradTracker(BoringModel):
     # validation spoils logger's metrics with `val_loss` records
     validation_step = None
     val_dataloader = None
-
-    def training_step(self, batch, batch_idx, optimizer_idx=None):
-        # just return a loss, no log or progress bar meta
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
 
     def on_after_backward(self):
         out, norms = {}, []
@@ -86,7 +81,13 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
 @pytest.mark.parametrize("log_every_n_steps", [1, 2, 3])
 def test_grad_tracking_interval(tmpdir, log_every_n_steps):
     """Test that gradient norms get tracked in the right interval and that everytime the same keys get logged."""
-    trainer = Trainer(default_root_dir=tmpdir, track_grad_norm=2, log_every_n_steps=log_every_n_steps, max_steps=10)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        track_grad_norm=2,
+        log_every_n_steps=log_every_n_steps,
+        max_steps=10,
+        logger=CSVLogger(tmpdir),
+    )
 
     with patch.object(trainer.logger, "log_metrics") as mocked:
         model = BoringModel()

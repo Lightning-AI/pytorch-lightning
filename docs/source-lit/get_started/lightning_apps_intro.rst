@@ -1,1 +1,0 @@
-../../source-app/get_started/lightning_apps_intro.rst

@@ -1,1 +1,0 @@
-../../source-pytorch/cli/lightning_cli_intermediate_2.rst

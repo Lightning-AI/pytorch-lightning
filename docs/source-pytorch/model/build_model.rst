@@ -23,7 +23,7 @@ Build a Model
    :header: 2: Validate and test a model
    :description: Add a validation and test data split to avoid overfitting.
    :col_css: col-md-4
-   :button_link: validate_model_basic.html
+   :button_link: ../common/evaluation_basic.html
    :height: 150
    :tag: basic
 

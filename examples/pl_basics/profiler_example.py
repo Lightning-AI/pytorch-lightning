@@ -90,7 +90,6 @@ class ModelToProfile(LightningModule):
 
 
 class CIFAR10DataModule(LightningDataModule):
-
     transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
 
     def train_dataloader(self, *args, **kwargs):
@@ -107,7 +106,10 @@ def cli_main():
         sys.argv += DEFAULT_CMD_LINE
 
     LightningCLI(
-        ModelToProfile, CIFAR10DataModule, save_config_overwrite=True, trainer_defaults={"profiler": PyTorchProfiler()}
+        ModelToProfile,
+        CIFAR10DataModule,
+        save_config_kwargs={"overwrite": True},
+        trainer_defaults={"profiler": PyTorchProfiler()},
     )
 
 

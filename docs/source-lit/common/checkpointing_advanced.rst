@@ -1,1 +1,0 @@
-../../source-pytorch/common/checkpointing_advanced.rst

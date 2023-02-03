@@ -3,16 +3,16 @@ from time import sleep, time
 
 import pytest
 
-from lightning_app import LightningWork
-from lightning_app.core.queues import QueuingSystem
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.imports import _is_docker_available
-from lightning_app.utilities.load_app import load_app_from_file
-from lightning_app.utilities.packaging.docker import DockerRunner
-from lightning_app.utilities.redis import check_if_redis_running
+from lightning.app import LightningWork
+from lightning.app.core.queues import QueuingSystem
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.imports import _is_docker_available
+from lightning.app.utilities.load_app import load_app_from_file
+from lightning.app.utilities.packaging.docker import DockerRunner
+from lightning.app.utilities.redis import check_if_redis_running
 
 
-@pytest.mark.skipif(True, reason="FIXME (tchaton)")
+@pytest.mark.skip(reason="FIXME (tchaton)")
 @pytest.mark.skipif(not _is_docker_available(), reason="docker is required for this test.")
 @pytest.mark.skipif(not check_if_redis_running(), reason="redis is required for this test.")
 @_RunIf(skip_windows=True)

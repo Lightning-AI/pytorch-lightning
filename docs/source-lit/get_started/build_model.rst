@@ -1,1 +1,0 @@
-../../source-app/get_started/build_model.rst

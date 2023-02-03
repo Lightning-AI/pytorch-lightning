@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A trivial script that wraps a LightningCLI around the BoringModel and BoringDataModule."""
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 
 if __name__ == "__main__":
     LightningCLI(
         BoringModel,
         BoringDataModule,
         seed_everything_default=42,
-        save_config_overwrite=True,
+        save_config_kwargs={"overwrite": True},
     )

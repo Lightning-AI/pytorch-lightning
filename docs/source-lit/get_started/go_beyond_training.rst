@@ -1,1 +1,0 @@
-../../source-app/get_started/go_beyond_training.rst

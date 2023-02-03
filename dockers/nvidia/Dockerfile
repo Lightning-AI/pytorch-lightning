@@ -42,9 +42,10 @@ RUN \
     cp -r lightning/*examples . && \
 
 # Installations \
-    pip install -q fire && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
-    pip install ./lightning["extra","loggers","strategies","examples"] --no-cache-dir && \
+    # remove colossalai from requirements since they are installed separately
+    python -c "fname = 'lightning/requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    PACKAGE_NAME=pytorch pip install './lightning[extra,loggers,strategies]' --no-cache-dir && \
     rm -rf lightning && \
     pip list
 
@@ -60,6 +61,6 @@ RUN \
     pip --version && \
     pip list | grep torch && \
     python -c "import torch; assert torch.__version__.startswith('$TORCH_VERSION'), torch.__version__" && \
-    python -c "import lightning as L; print(L.__version__)"
+    python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]

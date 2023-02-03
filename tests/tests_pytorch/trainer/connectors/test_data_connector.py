@@ -18,21 +18,21 @@ from typing import Sized
 from unittest.mock import Mock
 
 import pytest
+from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
-from lightning_lite.utilities.distributed import DistributedSamplerWrapper
-from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.data import _update_dataloader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.data import _update_dataloader
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 @RunIf(skip_windows=True)

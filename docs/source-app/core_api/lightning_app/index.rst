@@ -3,6 +3,8 @@ Lightning App
 #############
 **Audience:** Users who want to know how an app works under the hood 🤯.
 
+**Lightning App:** We call workflows composed of multiple LightningWorks a **Lightning App**.
+
 ----
 
 *******************

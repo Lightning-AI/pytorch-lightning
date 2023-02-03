@@ -49,7 +49,8 @@ Create a :class:`~lightning_app.utilities.packaging.build_config.BuildConfig` an
     - Images from private registries are currently not supported.
 
 .. note::
-    Since we need to run the lightning framework in this image, it needs to have python and pip available.
+    Custom docker images must have python installed. We'll use `virtualenv` from this system python to create a virtual environment.
+    We'll also configure the `virtualenv` to use the packages installed under system's python so your packages are not lost
 
 ----
 

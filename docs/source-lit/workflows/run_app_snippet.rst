@@ -1,1 +1,0 @@
-../../source-app/workflows/run_app_snippet.rst

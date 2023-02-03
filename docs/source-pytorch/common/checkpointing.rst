@@ -12,33 +12,41 @@ Checkpointing
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Basic
+   :header: Saving and loading checkpoints
    :description: Learn to save and load checkpoints
-   :col_css: col-md-3
+   :col_css: col-md-4
    :button_link: checkpointing_basic.html
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Intermediate
-   :description: Customize checkpointing behavior
-   :col_css: col-md-3
+   :header: Customize checkpointing behavior
+   :description: Learn how to change the behavior of checkpointing
+   :col_css: col-md-4
    :button_link: checkpointing_intermediate.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Advanced
+   :header: Upgrading checkpoints
+   :description: Learn how to upgrade old checkpoints to the newest Lightning version
+   :col_css: col-md-4
+   :button_link: checkpointing_migration.html
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Cloud-based checkpoints
    :description: Enable cloud-based checkpointing and composable checkpoints.
-   :col_css: col-md-3
+   :col_css: col-md-4
    :button_link: checkpointing_advanced.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Expert
+   :header: Distributed checkpoints
    :description: Customize checkpointing for custom distributed strategies and accelerators.
-   :col_css: col-md-3
+   :col_css: col-md-4
    :button_link: checkpointing_expert.html
    :height: 150
    :tag: expert

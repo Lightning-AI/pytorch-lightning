@@ -22,14 +22,14 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
-from pytorch_lightning.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.profilers.pytorch import RegisterRecordFunction, warning_cache
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
+from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -103,13 +103,12 @@ def test_simple_profiler_dirpath(tmpdir):
     assert profiler.dirpath is None
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler, logger=False)
     trainer.fit(model)
 
-    expected = tmpdir / "lightning_logs" / "version_0"
-    assert trainer.log_dir == expected
+    assert trainer.log_dir == tmpdir
     assert profiler.dirpath == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert tmpdir.join("fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
@@ -121,15 +120,19 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+        default_root_dir=nonexisting_tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
+        logger=False,
     )
     trainer.fit(model)
 
-    expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
-    assert expected.exists()
-    assert trainer.log_dir == expected
+    assert nonexisting_tmpdir.exists()
+    assert trainer.log_dir == nonexisting_tmpdir
     assert profiler.dirpath == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
@@ -178,7 +181,7 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.profiler"):
         trainer.fit(model)
         trainer.test(model)
 

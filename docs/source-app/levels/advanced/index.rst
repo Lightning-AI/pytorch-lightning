@@ -4,6 +4,7 @@
    :maxdepth: 1
    :hidden:
 
+   start_dynamic_components
    level_16
    level_17
    level_18
@@ -13,8 +14,7 @@
 ###############
 Advanced skills
 ###############
-
-Learn to build Lightning Apps for enterprise workloads or advanced research.
+Learn to build nested components with advanced functionality.
 
 .. join_slack::
    :align: left
@@ -29,7 +29,15 @@ Learn to build Lightning Apps for enterprise workloads or advanced research.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 16: Check work status
+   :header: Level 9: Start dynamic components
+   :description: Learn to start works dynamically
+   :button_link: start_dynamic_components.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level 10: Check component status
    :description: Learn to use work status to coordinate complex apps.
    :button_link: level_16.html
    :col_css: col-md-6
@@ -37,33 +45,49 @@ Learn to build Lightning Apps for enterprise workloads or advanced research.
    :tag: advanced
 
 .. displayitem::
-   :header: Level 17: Cache calls into run
-   :description: Learn about caching calls in work.run.
+   :header: Level: Nest flows
+   :description: Learn to nest flows into other flows.
+   :button_link: level_14.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level: Develop reactive apps.
+   :description: Learn to develop reactive Lightning Apps. Lightning shines with reactive workflows.
+   :button_link: level_14.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level: Enable CLI commands for your app
+   :description: Speak to your app from a CLI over the network
    :button_link: level_17.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 18: Share objects between works
-   :description: Learn to build things like DAGs where values return from Work.
-   :button_link: level_18.html
+   :header: Level 11: Connect two components over the network
+   :description: Connect two LightningWorks over the network.
+   :button_link: level_14.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level 13: Rerun components
+   :description: Learn to reuse components by passing different variables.
+   :button_link: level_17.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 19: Handle Lightning App exceptions
+   :header: Level 14: Handle Lightning App exceptions
    :description: Learn to handle Lightning App exceptions.
    :button_link: level_19.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: advanced
-
-.. displayitem::
-   :header: Level 20: Enable dynamic Works
-   :description: Learn to enable dynamic works for complex systems.
-   :button_link: level_20.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced

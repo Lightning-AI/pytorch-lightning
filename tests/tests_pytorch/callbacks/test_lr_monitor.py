@@ -15,13 +15,15 @@ import pytest
 import torch
 from torch import optim
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import LearningRateMonitor
+from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
@@ -31,7 +33,12 @@ def test_lr_monitor_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -69,6 +76,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -95,6 +103,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -116,7 +125,12 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
 
     trainer.fit(model)
@@ -153,6 +167,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -178,6 +193,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -202,8 +218,27 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     """Test that learning rates are extracted and logged for multi lr schedulers."""
 
     class CustomBoringModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+
+            loss = self.loss(self.step(batch))
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt2.step()
+
+        def on_train_epoch_end(self):
+            scheduler1, scheduler2 = self.lr_schedulers()
+            scheduler1.step()
+            scheduler2.step()
 
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
@@ -225,6 +260,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -246,8 +282,22 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     """Test that learning rates are extracted and logged for multi optimizers but no lr scheduler."""
 
     class CustomBoringModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+
+            loss = self.loss(self.step(batch))
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt2.step()
 
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
@@ -268,6 +318,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -284,6 +335,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values())
 
 
+@RunIf(sklearn=True)
 def test_lr_monitor_param_groups(tmpdir):
     """Test that learning rates are extracted and logged for single lr scheduler."""
 
@@ -303,7 +355,12 @@ def test_lr_monitor_param_groups(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model, datamodule=dm)
 
@@ -328,6 +385,7 @@ def test_lr_monitor_custom_name(tmpdir):
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["my_logging_name"]
@@ -347,6 +405,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -382,6 +441,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -396,22 +456,46 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
+            self.automatic_optimization = False
             self.backbone = torch.nn.Sequential(
                 torch.nn.Linear(32, 32), torch.nn.Linear(32, 32), torch.nn.Linear(32, 32), torch.nn.ReLU(True)
             )
             self.layer = torch.nn.Linear(32, 2)
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
+        def training_step(self, batch, batch_idx):
+            opt1, opt2, opt3 = self.optimizers()
+
+            # optimizer 1
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            opt1.step()
+            opt1.zero_grad()
+
+            # optimizer 2
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            opt2.step()
+            opt2.zero_grad()
+
+            # optimizer 3
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            opt3.step()
+            opt3.zero_grad()
+
+        def on_train_epoch_end(self) -> None:
+            lr_sched1, lr_sched2 = self.lr_schedulers()
+            lr_sched1.step()
+            lr_sched2.step()
 
         def forward(self, x):
             return self.layer(self.backbone(x))
 
         def configure_optimizers(self):
             parameters = list(filter(lambda p: p.requires_grad, self.parameters()))
-            opt = optim.Adam(parameters, lr=0.1)
+            opt = optim.SGD(parameters, lr=0.1)
             opt_2 = optim.Adam(parameters, lr=0.1)
-            opt_3 = optim.Adam(parameters, lr=0.1)
+            opt_3 = optim.AdamW(parameters, lr=0.1)
             optimizers = [opt, opt_2, opt_3]
             schedulers = [
                 optim.lr_scheduler.StepLR(opt, step_size=1, gamma=0.5),
@@ -427,24 +511,24 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
                 assert num_param_groups == 3
             elif trainer.current_epoch == 1:
                 assert num_param_groups == 4
-                assert list(lr_monitor.lrs) == ["lr-Adam-1", "lr-Adam-2", "lr-Adam/pg1", "lr-Adam/pg2"]
+                assert list(lr_monitor.lrs) == ["lr-Adam", "lr-AdamW", "lr-SGD/pg1", "lr-SGD/pg2"]
             elif trainer.current_epoch == 2:
                 assert num_param_groups == 5
                 assert list(lr_monitor.lrs) == [
-                    "lr-Adam-2",
+                    "lr-AdamW",
+                    "lr-SGD/pg1",
+                    "lr-SGD/pg2",
                     "lr-Adam/pg1",
                     "lr-Adam/pg2",
-                    "lr-Adam-1/pg1",
-                    "lr-Adam-1/pg2",
                 ]
             else:
                 expected = [
-                    "lr-Adam-2",
+                    "lr-AdamW",
+                    "lr-SGD/pg1",
+                    "lr-SGD/pg2",
                     "lr-Adam/pg1",
                     "lr-Adam/pg2",
-                    "lr-Adam-1/pg1",
-                    "lr-Adam-1/pg2",
-                    "lr-Adam-1/pg3",
+                    "lr-Adam/pg3",
                 ]
                 assert list(lr_monitor.lrs) == expected
 
@@ -454,14 +538,14 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
             self.freeze(pl_module.backbone[1])
             self.freeze(pl_module.layer)
 
-        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+        def finetune_function(self, pl_module, epoch: int, optimizer):
             """Called when the epoch begins."""
-            if epoch == 1 and opt_idx == 0:
+            if epoch == 1 and isinstance(optimizer, torch.optim.SGD):
                 self.unfreeze_and_add_param_group(pl_module.backbone[0], optimizer, lr=0.1)
-            if epoch == 2 and opt_idx == 1:
+            if epoch == 2 and isinstance(optimizer, torch.optim.Adam):
                 self.unfreeze_and_add_param_group(pl_module.layer, optimizer, lr=0.1)
 
-            if epoch == 3 and opt_idx == 1:
+            if epoch == 3 and isinstance(optimizer, torch.optim.Adam):
                 assert len(optimizer.param_groups) == 2
                 self.unfreeze_and_add_param_group(pl_module.backbone[1], optimizer, lr=0.1)
                 assert len(optimizer.param_groups) == 3
@@ -473,6 +557,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         limit_val_batches=0,
         limit_train_batches=2,
         callbacks=[TestFinetuning(), lr_monitor, Check()],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
@@ -482,22 +567,22 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     trainer.fit(model)
 
     expected = [0.1, 0.1, 0.1, 0.1, 0.1]
-    assert lr_monitor.lrs["lr-Adam-2"] == expected
+    assert lr_monitor.lrs["lr-AdamW"] == expected
+
+    expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
+    assert lr_monitor.lrs["lr-SGD/pg1"] == expected
+
+    expected = [0.1, 0.05, 0.025, 0.0125]
+    assert lr_monitor.lrs["lr-SGD/pg2"] == expected
 
     expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
     assert lr_monitor.lrs["lr-Adam/pg1"] == expected
 
-    expected = [0.1, 0.05, 0.025, 0.0125]
+    expected = [0.1, 0.05, 0.025]
     assert lr_monitor.lrs["lr-Adam/pg2"] == expected
 
-    expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
-    assert lr_monitor.lrs["lr-Adam-1/pg1"] == expected
-
-    expected = [0.1, 0.05, 0.025]
-    assert lr_monitor.lrs["lr-Adam-1/pg2"] == expected
-
     expected = [0.1, 0.05]
-    assert lr_monitor.lrs["lr-Adam-1/pg3"] == expected
+    assert lr_monitor.lrs["lr-Adam/pg3"] == expected
 
 
 def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
@@ -531,6 +616,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )

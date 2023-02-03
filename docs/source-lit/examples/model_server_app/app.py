@@ -1,1 +1,0 @@
-../../../source-app/examples/model_server_app/app.py

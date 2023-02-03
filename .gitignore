@@ -9,9 +9,6 @@ lightning_logs/
 # Documentations
 docs/source-app/generated
 docs/source-app/*/generated
-docs/source-lit/generated
-docs/source-lit/*/generated
-docs/source-lit/api
 docs/source-pytorch/api
 docs/source-pytorch/*.md
 docs/source-pytorch/generated
@@ -51,7 +48,17 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-src/lightning/*/
+src/*/version.info
+src/lightning_app/
+src/lightning_fabric/
+src/pytorch_lightning/
+!src/*/__about__.py
+!src/*/__main__.py
+!src/*/__setup__.py
+!src/*/__version__.py
+!src/*/MANIFEST.in
+!src/*/py.typed
+!src/*/README.md
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -112,8 +119,8 @@ celerybeat-schedule
 
 # dotenv
 .env
-.env_staging
-.env_local
+.env.staging
+.env.local
 
 # virtualenv
 .venv
@@ -135,6 +142,8 @@ ENV/
 .mypy_cache/
 # pytest
 .pytest_cache/
+# ruff
+.ruff_cache/
 
 # data
 .data/
@@ -164,11 +173,11 @@ cifar-10-batches-py
 tags
 .tags
 src/lightning_app/ui/*
+src/lightning/app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*
 *docs/examples*
-*docs/source-app/api*
 
 # tutorials
 our_model.tar
@@ -177,3 +186,7 @@ saved_models
 data/
 .shared
 .lightning
+node_modules/
+
+# instalation artifacts
+requirements/base.txt

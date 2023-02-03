@@ -24,11 +24,11 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import StochasticWeightAveraging
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.strategies import DDPSpawnStrategy, Strategy
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -65,9 +65,7 @@ class SwaTestModel(BoringModel):
     def training_step(self, batch, batch_idx):
         if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
             raise Exception("SWA crash test")
-        output = self.forward(batch)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
+        return super().training_step(batch, batch_idx)
 
     def train_dataloader(self):
         dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
@@ -303,13 +301,14 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         "limit_val_batches": 0,
         "accumulate_grad_batches": 2,
         "enable_progress_bar": False,
+        "logger": False,
     }
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
     with _backward_patch(trainer), pytest.raises(Exception, match="SWA crash test"):
         trainer.fit(model)
 
-    checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
+    checkpoint_dir = Path(tmpdir) / "checkpoints"
     checkpoint_files = os.listdir(checkpoint_dir)
     assert len(checkpoint_files) == 1
     ckpt_path = str(checkpoint_dir / checkpoint_files[0])
@@ -362,9 +361,8 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
 @pytest.mark.parametrize(
     "strategy",
     [
-        pytest.param("fsdp", marks=RunIf(fairscale=True, min_cuda_gpus=1)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True, min_cuda_gpus=1)),
-        pytest.param("fsdp_native", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
+        pytest.param("fsdp", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
     ],
 )
 def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):

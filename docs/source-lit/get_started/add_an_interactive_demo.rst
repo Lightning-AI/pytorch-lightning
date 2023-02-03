@@ -1,1 +1,0 @@
-../../source-app/get_started/add_an_interactive_demo.rst

@@ -16,17 +16,18 @@ import pickle
 from unittest import mock
 
 import pytest
+from lightning_utilities.test.warning import no_warning_call
 
-import pytorch_lightning
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.utils import no_warning_call
+import lightning.pytorch
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_project_name(*_):
     logger = WandbLogger()
     assert logger.name == "lightning_logs"
@@ -35,8 +36,8 @@ def test_wandb_project_name(*_):
     assert logger.name == "project"
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_init(wandb, monkeypatch):
     """Verify that basic functionality of wandb logger works.
 
@@ -82,7 +83,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
     wandb.init.reset_mock()
     wandb.run = wandb.init()
 
-    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
         logger = WandbLogger()
     # check that no new run is created
@@ -114,7 +115,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
     assert logger.version == wandb.init().id
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_pickle(wandb, tmpdir):
     """Verify that pickling trainer with wandb logger works.
 
@@ -130,7 +131,7 @@ def test_wandb_pickle(wandb, tmpdir):
         def name(self):
             return "the_run_name"
 
-    with mock.patch("pytorch_lightning.loggers.wandb.Run", new=Experiment):
+    with mock.patch("lightning.pytorch.loggers.wandb.Run", new=Experiment):
         wandb.run = None
         wandb.init.return_value = Experiment()
         logger = WandbLogger(id="the_id", offline=True)
@@ -153,11 +154,11 @@ def test_wandb_pickle(wandb, tmpdir):
     del os.environ["WANDB_MODE"]
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
     logger = WandbLogger(project="project", save_dir=str(tmpdir), offline=True)
     # the logger get initialized
@@ -187,17 +188,17 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     assert trainer.log_dir == logger.save_dir
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
+    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
 
     wandb.run = None
     model = BoringModel()
 
     # test log_model=True
-    logger = WandbLogger(log_model=True)
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -207,7 +208,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model='all'
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
-    logger = WandbLogger(log_model="all")
+    logger = WandbLogger(save_dir=tmpdir, log_model="all")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -217,7 +218,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model=False
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
-    logger = WandbLogger(log_model=False)
+    logger = WandbLogger(save_dir=tmpdir, log_model=False)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -228,7 +229,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = WandbLogger(log_model=True)
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -250,9 +251,69 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         },
     )
 
+    # Test wandb custom artifact name
+    wandb.init().log_artifact.reset_mock()
+    wandb.init().reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmpdir, log_model=True, checkpoint_name="my-test-model")
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    wandb.Artifact.assert_called_once_with(
+        name="my-test-model",
+        type="model",
+        metadata={
+            "score": None,
+            "original_filename": "epoch=1-step=6-v4.ckpt",
+            "ModelCheckpoint": {
+                "monitor": None,
+                "mode": "min",
+                "save_last": None,
+                "save_top_k": 1,
+                "save_weights_only": False,
+                "_every_n_train_steps": 0,
+            },
+        },
+    )
 
-@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
+def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
+    """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar
+    tensor."""
+    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
+
+    wandb.run = None
+    model = BoringModel()
+
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    checkpoint_callback = ModelCheckpoint(monitor="step")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        callbacks=[checkpoint_callback],
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=1,
+    )
+    trainer.fit(model)
+
+    calls = wandb.Artifact.call_args_list
+    assert len(calls) == 1
+    score = calls[0][1]["metadata"]["score"]
+    # model checkpoint monitors scalar tensors, but wandb can't serializable them - expect Python scalars in metadata
+    assert isinstance(score, int) and score == 3
+
+
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_media(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
 
@@ -321,15 +382,15 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
 
 
-@mock.patch("pytorch_lightning.loggers.wandb.Run", object)
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+@mock.patch("lightning.pytorch.loggers.wandb.Run", object)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_download_artifact(wandb, tmpdir):
     """Test that download_artifact works."""
 

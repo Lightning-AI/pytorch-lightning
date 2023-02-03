@@ -2,9 +2,9 @@
 
 .. _checkpointing_expert:
 
-######################
-Checkpointing (expert)
-######################
+################################
+Distributed checkpoints (expert)
+################################
 
 *********************************
 Writing your own Checkpoint class
