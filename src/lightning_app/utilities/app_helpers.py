@@ -578,7 +578,7 @@ def _handle_is_headless(app: "LightningApp"):
 
     from lightning_app.utilities.network import LightningClient
 
-    client = LightningClient()
+    client = LightningClient(retry=True)
     list_apps_response = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
 
     current_lightningapp_instance: Optional[Externalv1LightningappInstance] = None
