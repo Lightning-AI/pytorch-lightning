@@ -15,7 +15,7 @@ Fixes #\<issue_number>
 <!-- Does your PR introduce any breaking changes? If yes, please list them. -->
 
 <details>
-  <summary>Before submitting</summary>
+  <summary><b>Before submitting</b></summary>
 
 - Was this **discussed/agreed** via a GitHub issue? (not for typos and docs)
 - [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/lightning/blob/master/.github/CONTRIBUTING.md), **Pull Request** section?
