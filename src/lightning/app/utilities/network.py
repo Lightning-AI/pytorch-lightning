@@ -49,9 +49,9 @@ def find_free_network_port() -> int:
                 continue
 
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.bind(("", port))
-                s.close()
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.bind(("", port))
+                sock.close()
                 _reserved_ports.add(port)
                 return port
             except OSError:
@@ -61,14 +61,15 @@ def find_free_network_port() -> int:
         raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
 
     port = None
-    i = 0
 
-    while i < 10 and (port is None or port in _reserved_ports):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("", 0))
-        port = s.getsockname()[1]
-        s.close()
-        i = i + 1
+    for _ in range(10):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(("", 0))
+        port = sock.getsockname()[1]
+        sock.close()
+
+        if port not in _reserved_ports:
+            break
 
     if port in _reserved_ports:
         # Prevent an infinite loop, if we tried 10 times and didn't get a free port then something is wrong

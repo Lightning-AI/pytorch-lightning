@@ -2,7 +2,6 @@ from unittest import mock
 
 import pytest
 
-from lightning.app.core import constants
 from lightning.app.utilities.network import find_free_network_port, LightningClient
 
 
@@ -22,27 +21,24 @@ def test_find_free_network_port():
 
 
 @mock.patch("lightning.app.utilities.network.socket")
-def test_find_free_network_port_cloudspace(_):
+@pytest.mark.parametrize(
+    "patch_constants",
+    [{"LIGHTNING_CLOUDSPACE_HOST": "any", "LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT": 10}],
+    indirect=True,
+)
+def test_find_free_network_port_cloudspace(_, patch_constants):
     """Tests that `find_free_network_port` gives expected outputs and raises if a free port couldn't be found when
     cloudspace env variables are set."""
-    # Set constants
-    constants.LIGHTNING_CLOUDSPACE_HOST = "any"
-    constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT = 10
+    ports = set()
+    num_ports = 0
 
-    try:
-        ports = set()
-        num_ports = 0
+    with pytest.raises(RuntimeError, match="All 10 ports are already in use."):
+        for _ in range(11):
+            ports.add(find_free_network_port())
+            num_ports = num_ports + 1
 
-        with pytest.raises(RuntimeError, match="All 10 ports are already in use."):
-            for _ in range(11):
-                ports.add(find_free_network_port())
-                num_ports = num_ports + 1
-
-        # Check that all ports are unique
-        assert len(ports) == num_ports
-    finally:
-        constants.LIGHTNING_CLOUDSPACE_HOST = None
-        constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT = 0
+    # Check that all ports are unique
+    assert len(ports) == num_ports
 
 
 def test_lightning_client_retry_enabled():
