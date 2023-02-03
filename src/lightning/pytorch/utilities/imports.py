@@ -34,10 +34,8 @@ _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 
 
 if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
+    from habana_frameworks.torch.utils.library_loader import is_habana_available
 
-    _HPU_AVAILABLE = is_habana_avaialble()
-    if _HPU_AVAILABLE:
-        _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
+    _HPU_AVAILABLE = is_habana_available()
 else:
     _HPU_AVAILABLE = False
