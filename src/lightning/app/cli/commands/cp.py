@@ -45,8 +45,8 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
 
         client = LightningClient()
 
-        src_path, src_remote = _sanetize_path(src_path, pwd)
-        dst_path, dst_remote = _sanetize_path(dst_path, pwd)
+        src_path, src_remote = _sanitize_path(src_path, pwd)
+        dst_path, dst_remote = _sanitize_path(dst_path, pwd)
 
         if src_remote and dst_remote:
             return _error_and_exit("Moving files remotely isn't supported yet. Please, open a Github issue.")
@@ -179,7 +179,7 @@ def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> No
             progress.update(task_id, advance=len(chunk))
 
 
-def _sanetize_path(path: str, pwd: str) -> Tuple[str, bool]:
+def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
     is_remote = _is_remote(path)
     if is_remote:
         path = _remove_remote(path)

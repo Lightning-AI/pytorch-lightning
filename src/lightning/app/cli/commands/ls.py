@@ -1,9 +1,10 @@
 import os
 import sys
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Union
 
 import click
 import rich
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1CloudSpace
 from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
@@ -62,35 +63,56 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
 
+        lit_cloud_spaces = client.cloud_space_service_list_cloud_spaces(project_id=project_id).cloudspaces
+
         if len(splits) == 1:
-            app_names = sorted([lit_app.name for lit_app in lit_apps])
-            _print_names_with_colors(app_names, [_FOLDER_COLOR] * len(app_names))
-            return app_names
+            apps = [lit_app.name for lit_app in lit_apps]
+            cloud_spaces = [lit_cloud_space.name for lit_cloud_space in lit_cloud_spaces]
+            ressource_names = sorted(set(cloud_spaces + apps))
+            _print_names_with_colors(ressource_names, [_FOLDER_COLOR] * len(ressource_names))
+            return ressource_names
 
-        lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == splits[1]]
+        lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == splits[1]]
 
-        if len(lit_apps) != 1:
-            print(f"ERROR: There isn't any Lightning App matching the name {splits[1]}.")
-            sys.exit(0)
+        if len(lit_ressources) == 0:
 
-        lit_app = lit_apps[0]
+            lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == splits[1]]
 
-        paths = []
-        colors = []
+            if len(lit_ressources) == 0:
+
+                print(f"ERROR: There isn't any Lightning Ressource matching the name {splits[1]}.")
+                sys.exit(0)
+
+        lit_resource = lit_ressources[0]
+
+        app_paths = []
+        app_colors = []
+
+        cloud_spaces_paths = []
+        cloud_spaces_colors = []
+
         depth = len(splits)
-        subpath = "/".join(splits[2:])
+        prefix = "/".join(splits[2:])
+
+        if isinstance(lit_resource, Externalv1LightningappInstance):
+            prefix = _add_resource_prefix(prefix, f"lightningapps/{lit_resource.id}")
+        else:
+            prefix = _add_resource_prefix(prefix, f"cloudspaces/{lit_resource.id}")
+
+        print(prefix)
+
         # TODO: Replace with project level endpoints
-        for artifact in _collect_artifacts(client, project_id, lit_app.id):
-            path = os.path.join(project_id, lit_app.name, artifact.filename)
+        for artifact in _collect_artifacts(client, project_id, lit_resource, prefix):
+            path = os.path.join(project_id, lit_resource.name, prefix, artifact.filename)
+
+            print(path)
+
             artifact_splits = path.split("/")
 
-            if len(artifact_splits) < depth + 1:
-                continue
+            path = artifact_splits[depth + 1]
 
-            if not str(artifact.filename).startswith(subpath):
-                continue
-
-            path = artifact_splits[depth]
+            paths = app_paths if isinstance(lit_resource, Externalv1LightningappInstance) else cloud_spaces_paths
+            colors = app_colors if isinstance(lit_resource, Externalv1LightningappInstance) else cloud_spaces_colors
 
             if path not in paths:
                 paths.append(path)
@@ -98,9 +120,18 @@ def ls(path: Optional[str] = None) -> List[str]:
                 # display files otherwise folders
                 colors.append(_FILE_COLOR if len(artifact_splits) == depth + 1 else _FOLDER_COLOR)
 
-    _print_names_with_colors(paths, colors)
+    if app_paths and cloud_spaces_paths:
+        if app_paths:
+            rich.print("Lightning App")
+            _print_names_with_colors(app_paths, app_colors)
 
-    return paths
+        if cloud_spaces_paths:
+            rich.print("Lightning CloudSpaces")
+            _print_names_with_colors(cloud_spaces_paths, cloud_spaces_colors)
+    else:
+        _print_names_with_colors(app_paths + cloud_spaces_paths, app_colors + cloud_spaces_colors)
+
+    return app_paths + cloud_spaces_paths
 
 
 def _add_colors(filename: str, color: Optional[str] = None) -> str:
@@ -142,21 +173,55 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
 def _collect_artifacts(
     client: LightningClient,
     project_id: str,
-    app_id: str,
+    resource: Union[Externalv1LightningappInstance, V1CloudSpace],
+    prefix: str = "",
     page_token: Optional[str] = "",
+    cluster_id: Optional[str] = None,
     tokens=None,
 ) -> Generator:
     if tokens is None:
         tokens = []
 
-    if page_token in tokens:
-        return
+    if cluster_id is None:
+        clusters = client.projects_service_list_project_cluster_bindings(project_id)
+        for cluster in clusters.clusters:
+            yield from _collect_artifacts(
+                client,
+                project_id,
+                prefix=prefix,
+                resource=resource,
+                cluster_id=cluster.cluster_id,
+                page_token=page_token,
+                tokens=tokens,
+            )
+    else:
 
-    response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(
-        project_id, app_id, page_token=page_token
-    )
-    yield from response.artifacts
+        if page_token in tokens:
+            return
 
-    if response.next_page_token != "":
-        tokens.append(page_token)
-        yield from _collect_artifacts(client, project_id, app_id, page_token=response.next_page_token, tokens=tokens)
+        response = client.lightningapp_instance_service_list_project_artifacts(
+            project_id,
+            prefix=prefix,
+            cluster_id=cluster_id,
+            page_token=page_token,
+            include_download_url=False,
+        )
+        yield from response.artifacts
+
+        if response.next_page_token != "":
+            tokens.append(page_token)
+            yield from _collect_artifacts(
+                client,
+                project_id,
+                prefix=prefix,
+                resource=resource,
+                cluster_id=cluster_id,
+                page_token=response.next_page_token,
+                tokens=tokens,
+            )
+
+
+def _add_resource_prefix(prefix: str, resource_path: str):
+    if resource_path in prefix:
+        return prefix
+    return "/" + os.path.join(resource_path, prefix)
