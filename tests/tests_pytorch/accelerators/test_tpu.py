@@ -272,7 +272,7 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     import torch_xla.distributed.parallel_loader as parallel_loader
 
-    mp_loader_mock = Mock(spec=parallel_loader.MpDeviceLoader)
+    mp_loader_mock = Mock(autospec=parallel_loader.MpDeviceLoader)
     monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
 
     dataset = RandomDataset(32, 64)
