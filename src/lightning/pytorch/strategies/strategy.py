@@ -415,11 +415,11 @@ class Strategy(ABC):
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
-        requires all the setup hooks to run before loading checkpoint.
+        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful
+        when the strategy requires all the setup hooks to run before loading checkpoint.
 
         Returns:
-            If true, restore checkpoint after pre_dispatch.
+            If ``True``, restore checkpoint after strategy setup.
         """
         return False
 
@@ -527,10 +527,6 @@ class Strategy(ABC):
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.precision_plugin.dispatch(trainer)
 
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
