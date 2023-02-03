@@ -174,6 +174,7 @@ def _collect_artifacts(
     cluster_id: Optional[str] = None,
     page_size: int = 100_000,
     tokens=None,
+    include_download_url: bool = False,
 ) -> Generator:
     if tokens is None:
         tokens = []
@@ -201,7 +202,7 @@ def _collect_artifacts(
             prefix=prefix,
             cluster_id=cluster_id,
             page_token=page_token,
-            include_download_url=False,
+            include_download_url=include_download_url,
             page_size=str(page_size),
         )
         yield from response.artifacts
