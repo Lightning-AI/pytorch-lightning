@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
 
+- Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
+ * `ls`: List files from your Cloud Platform Filesystem
+ * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
+ * `pwd`: Return the current folder in your Cloud Platform Filesystem
+ * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
+
 ### Changed
 
 - Changed the default `LightningClient(retry=False)` to `retry=True` ([#16382](https://github.com/Lightning-AI/lightning/pull/16382))
