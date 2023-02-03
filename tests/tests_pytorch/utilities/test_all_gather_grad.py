@@ -75,8 +75,15 @@ def test_all_gather_collection(tmpdir):
             assert gathered_loss["losses_bool"][0].dtype == torch.uint8
             assert gathered_loss["losses_float"][0].dtype == torch.float
             assert gathered_loss["losses_int"][0].dtype == torch.int
-            assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
-            assert gathered_loss["losses"].numel() == 2 * len(losses)
+
+            losses_numel = losses.numel()
+            assert gathered_loss["losses_tensor_int"].numel() == 2 * losses_numel
+            assert gathered_loss["losses_tensor_float"].numel() == 2 * losses_numel
+            assert torch.stack(gathered_loss["losses_tensor_list"]).shape == (2, 2, 2, 2)
+            assert gathered_loss["losses_np_ndarray"].numel() == 2 * 3
+            assert torch.stack(gathered_loss["losses_bool"]).shape == (2, 2)
+            assert torch.stack(gathered_loss["losses_float"]).shape == (3, 2)
+            assert torch.stack(gathered_loss["losses_int"]).shape == (3, 2)
             self.on_train_epoch_end_called = True
 
     model = TestModel()
