@@ -23,6 +23,14 @@ on:
         default: 'requirements/docs.txt'
         required: false
         type: string
+      env-vars:
+        description: 'custom environment variables in json format'
+        required: false
+        type: string
+        default: |
+          {
+            "SPHINX_MOCK_REQUIREMENTS": 0,
+          }
 
 defaults:
   run:
@@ -32,6 +40,7 @@ jobs:
 
   docs-test:
     runs-on: ubuntu-20.04
+    env: ${{ fromJSON(inputs.env-vars) }}
     steps:
     - name: Checkout 🛎
       uses: actions/checkout@v3
@@ -45,9 +54,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e . -U -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install -r ${{ inputs.requirements-file }}
-        python --version
+        pip install -e . -U -r ${{ inputs.requirements-file }} \
+          -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip --version
         pip list
       shell: bash
@@ -66,6 +74,7 @@ jobs:
 
   docs-html:
     runs-on: ubuntu-20.04
+    env: ${{ fromJSON(inputs.env-vars) }}
     steps:
     - name: Checkout 🛎
       uses: actions/checkout@v3
@@ -79,7 +88,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e . -U -r ${{ inputs.requirements-file }} -f https://download.pytorch.org/whl/torch_stable.html
+        pip install -e . -U -r ${{ inputs.requirements-file }} \
+          -f https://download.pytorch.org/whl/torch_stable.html
         sudo apt-get update --fix-missing
         sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
         python --version
