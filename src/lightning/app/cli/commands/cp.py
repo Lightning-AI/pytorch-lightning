@@ -196,14 +196,17 @@ def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> No
     # Disable warning about making an insecure request
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    request = requests.get(url, stream=True, verify=False)
+    try:
+        request = requests.get(url, stream=True, verify=False)
 
-    chunk_size = 1024
+        chunk_size = 1024
 
-    with open(path, "wb") as fp:
-        for chunk in request.iter_content(chunk_size=chunk_size):
-            fp.write(chunk)  # type: ignore
-            progress.update(task_id, advance=len(chunk))
+        with open(path, "wb") as fp:
+            for chunk in request.iter_content(chunk_size=chunk_size):
+                fp.write(chunk)  # type: ignore
+                progress.update(task_id, advance=len(chunk))
+    except ConnectionError:
+        pass
 
 
 def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
