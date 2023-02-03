@@ -15,7 +15,7 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import torch
@@ -268,14 +268,20 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 
 
 @RunIf(tpu=True)
-@patch("torch_xla.distributed.parallel_loader.MpDeviceLoader")
-@patch("lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
-def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
+@patch("pytorch.lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
+def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
+    import torch_xla.distributed.parallel_loader as parallel_loader
+
+    mp_loader_mock = Mock()
+    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
+
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
-    processed_dataloader = TPUSpawnStrategy().process_dataloader(dataloader)
-    mp_loader_mock.assert_called_with(dataloader, root_device_mock)
+    strategy = TPUSpawnStrategy()
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
+    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
 def test_warning_if_tpus_not_used(tpu_available):

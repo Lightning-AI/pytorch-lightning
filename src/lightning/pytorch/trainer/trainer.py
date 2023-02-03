@@ -990,7 +990,6 @@ class Trainer:
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         self.strategy.barrier("run-stage")
-        self.strategy.dispatch(self)
 
         if self.evaluating:
             return self._run_evaluate()
