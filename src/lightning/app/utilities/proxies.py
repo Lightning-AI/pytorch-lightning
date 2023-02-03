@@ -612,6 +612,7 @@ class WorkRunner:
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)
             )
 
+        # kill the thread as the job is going to be terminated.
         if self.state_observer:
             if self.state_observer.started:
                 self.state_observer.join(0)
@@ -619,12 +620,7 @@ class WorkRunner:
         delta = Delta(DeepDiff(state, deepcopy(self.work.state), verbose_level=2))
         self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
-        # kill the thread as the job is going to be terminated.
         self.copier.join(0)
-        if self.state_observer:
-            if self.state_observer.started:
-                self.state_observer.join(0)
-            self.state_observer = None
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):
