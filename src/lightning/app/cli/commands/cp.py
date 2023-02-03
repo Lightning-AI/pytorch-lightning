@@ -143,6 +143,10 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
 
     live.stop()
 
+    if not download_paths:
+        print("There were no files to download.")
+        return
+
     # Sleep to avoid rich live collision.
     sleep(1)
 
@@ -150,7 +154,7 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
 
     progress.start()
 
-    task_id = progress.add_task("download", filename=path, total=sum(total_size))
+    task_id = progress.add_task("download", filename="", total=sum(total_size))
 
     _download_file_fn = partial(_download_file, progress=progress, task_id=task_id)
 
