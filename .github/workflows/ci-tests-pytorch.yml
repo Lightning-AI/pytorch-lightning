@@ -158,7 +158,7 @@ jobs:
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
-        python -m coverage run --source ${COVERAGE_SCOPE} \
+        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest . -v \
           --timeout=${TEST_TIMEOUT} --durations=50 \
           --reruns 3 --reruns-delay 1 \
@@ -185,6 +185,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
+        flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
