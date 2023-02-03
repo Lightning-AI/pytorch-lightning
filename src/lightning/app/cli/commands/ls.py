@@ -99,16 +99,13 @@ def ls(path: Optional[str] = None) -> List[str]:
         else:
             prefix = _add_resource_prefix(prefix, f"cloudspaces/{lit_resource.id}")
 
-        print(prefix)
-
-        # TODO: Replace with project level endpoints
         for artifact in _collect_artifacts(client, project_id, lit_resource, prefix):
+
+            if str(artifact.filename).startswith("/"):
+                artifact.filename = artifact.filename[1:]
+
             path = os.path.join(project_id, lit_resource.name, prefix, artifact.filename)
-
-            print(path)
-
             artifact_splits = path.split("/")
-
             path = artifact_splits[depth + 1]
 
             paths = app_paths if isinstance(lit_resource, Externalv1LightningappInstance) else cloud_spaces_paths
