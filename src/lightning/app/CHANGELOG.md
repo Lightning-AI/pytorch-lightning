@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
 
+- Fixed bug with downloading files using `lightning cp` ([#16626](https://github.com/Lightning-AI/lightning/pull/16626))
 
 ## [1.9.0] - 2023-01-17
 
