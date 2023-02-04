@@ -22,8 +22,7 @@ from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
-
-# from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
+from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -153,11 +152,11 @@ class RunIf:
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True
 
-        # if ipu:
-        #     conditions.append(not _IPU_AVAILABLE)
-        #     reasons.append("IPU")
-        #     # used in conftest.py::pytest_collection_modifyitems
-        #     kwargs["ipu"] = True
+        if ipu:
+            conditions.append(not _IPU_AVAILABLE)
+            reasons.append("IPU")
+            # used in conftest.py::pytest_collection_modifyitems
+            kwargs["ipu"] = True
 
         if hpu:
             conditions.append(not _HPU_AVAILABLE)

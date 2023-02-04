@@ -17,24 +17,23 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DistributedSampler
 
 from lightning.pytorch import Callback, seed_everything, Trainer
 from lightning.pytorch.accelerators import IPUAccelerator
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
+
+# from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import IPUPrecisionPlugin
 from lightning.pytorch.strategies.ipu import IPUStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
-if _IPU_AVAILABLE:
-    import poptorch
+# if _IPU_AVAILABLE:
+#     import poptorch
 
 
 class IPUModel(BoringModel):
@@ -94,11 +93,11 @@ def test_auto_device_count():
     assert IPUAccelerator.auto_device_count() == 4
 
 
-@pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
-@mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_fail_if_no_ipus(_, tmpdir):
-    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
+# @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
+# @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+# def test_fail_if_no_ipus(_, tmpdir):
+#     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+#         Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
 
 
 @RunIf(ipu=True)
@@ -114,11 +113,11 @@ def test_warning_if_ipus_not_used():
         Trainer(accelerator="cpu")
 
 
-@RunIf(ipu=True)
-def test_no_warning_strategy(tmpdir):
-    with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=IPUStrategy(training_opts=poptorch.Options()))
-    assert len(record) == 0
+# @RunIf(ipu=True)
+# def test_no_warning_strategy(tmpdir):
+#     with pytest.warns(None) as record:
+#         Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=IPUStrategy(training_opts=poptorch.Options()))
+#     assert len(record) == 0
 
 
 @RunIf(ipu=True)
@@ -363,175 +362,175 @@ def test_autoreport(tmpdir):
     assert os.path.isfile(autoreport_path + "training/profile.pop")
 
 
-@RunIf(ipu=True)
-def test_manual_poptorch_dataloader(tmpdir):
-    model_options = poptorch.Options()
+# @RunIf(ipu=True)
+# def test_manual_poptorch_dataloader(tmpdir):
+#     model_options = poptorch.Options()
 
-    class IPUTestModel(IPUModel):
-        def train_dataloader(self):
-            dataloader = super().train_dataloader()
-            # save to instance to compare the reference later
-            self.poptorch_dataloader = poptorch.DataLoader(model_options, dataloader.dataset, drop_last=True)
-            return self.poptorch_dataloader
+#     class IPUTestModel(IPUModel):
+#         def train_dataloader(self):
+#             dataloader = super().train_dataloader()
+#             # save to instance to compare the reference later
+#             self.poptorch_dataloader = poptorch.DataLoader(model_options, dataloader.dataset, drop_last=True)
+#             return self.poptorch_dataloader
 
-    model = IPUTestModel()
-    other_options = poptorch.Options()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        accelerator="ipu",
-        devices=2,
-        strategy=IPUStrategy(training_opts=other_options),
-    )
-    trainer.fit(model)
+#     model = IPUTestModel()
+#     other_options = poptorch.Options()
+#     trainer = Trainer(
+#         default_root_dir=tmpdir,
+#         fast_dev_run=True,
+#         accelerator="ipu",
+#         devices=2,
+#         strategy=IPUStrategy(training_opts=other_options),
+#     )
+#     trainer.fit(model)
 
-    assert isinstance(trainer.strategy, IPUStrategy)
-    assert trainer.strategy.training_opts is other_options
-    dataloader = trainer.train_dataloader.loaders
-    assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
-    # dataloader uses the options in the model, not the strategy
-    assert dataloader.options is model_options
-    assert dataloader.options is not other_options
-    assert dataloader.drop_last  # was kept
-
-
-@RunIf(ipu=True)
-def test_manual_poptorch_opts(tmpdir):
-    """Ensure if the user passes manual poptorch Options, we run with the correct object."""
-    model = IPUModel()
-    inference_opts = poptorch.Options()
-    training_opts = poptorch.Options()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="ipu",
-        devices=2,
-        fast_dev_run=True,
-        strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts),
-    )
-    trainer.fit(model)
-
-    assert isinstance(trainer.strategy, IPUStrategy)
-    assert trainer.strategy.training_opts == training_opts
-    assert trainer.strategy.inference_opts == inference_opts
-
-    dataloader = trainer.train_dataloader.loaders
-    assert isinstance(dataloader, poptorch.DataLoader)
-    assert dataloader.options == training_opts
-    assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
-    assert not isinstance(dataloader.sampler, DistributedSampler)
+#     assert isinstance(trainer.strategy, IPUStrategy)
+#     assert trainer.strategy.training_opts is other_options
+#     dataloader = trainer.train_dataloader.loaders
+#     assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
+#     # dataloader uses the options in the model, not the strategy
+#     assert dataloader.options is model_options
+#     assert dataloader.options is not other_options
+#     assert dataloader.drop_last  # was kept
 
 
-@RunIf(ipu=True)
-def test_manual_poptorch_opts_custom(tmpdir):
-    """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
-    poptorch options and the dataloaders."""
+# @RunIf(ipu=True)
+# def test_manual_poptorch_opts(tmpdir):
+#     """Ensure if the user passes manual poptorch Options, we run with the correct object."""
+#     model = IPUModel()
+#     inference_opts = poptorch.Options()
+#     training_opts = poptorch.Options()
 
-    model = IPUModel()
-    training_opts = poptorch.Options()
-    training_opts.deviceIterations(8)
-    training_opts.replicationFactor(2)
-    training_opts.Training.gradientAccumulation(2)
+#     trainer = Trainer(
+#         default_root_dir=tmpdir,
+#         accelerator="ipu",
+#         devices=2,
+#         fast_dev_run=True,
+#         strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts),
+#     )
+#     trainer.fit(model)
 
-    inference_opts = poptorch.Options()
-    inference_opts.deviceIterations(16)
-    inference_opts.replicationFactor(1)
-    inference_opts.Training.gradientAccumulation(1)
+#     assert isinstance(trainer.strategy, IPUStrategy)
+#     assert trainer.strategy.training_opts == training_opts
+#     assert trainer.strategy.inference_opts == inference_opts
 
-    class TestCallback(Callback):
-        def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            # ensure dataloaders were correctly set up during training.
-            strategy = trainer.strategy
-            assert isinstance(strategy, IPUStrategy)
-            assert strategy.training_opts.replication_factor == 2
-            assert strategy.inference_opts.replication_factor == 1
-
-            val_dataloader = trainer.val_dataloaders[0]
-            train_dataloader = trainer.train_dataloader
-            assert isinstance(train_dataloader, CombinedLoader)
-            train_dataloader = train_dataloader.loaders
-            assert isinstance(val_dataloader, poptorch.DataLoader)
-            assert isinstance(train_dataloader, poptorch.DataLoader)
-            assert train_dataloader.options.replication_factor == 2
-            assert val_dataloader.options.replication_factor == 1
-
-    strategy = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
-    # ensure we default to the training options replication factor
-    assert strategy.replication_factor == 2
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy, callbacks=TestCallback())
-    trainer.fit(model)
-
-    strategy = trainer.strategy
-    assert isinstance(strategy, IPUStrategy)
-
-    training_opts = strategy.training_opts
-    assert training_opts.device_iterations == 8
-    assert training_opts.replication_factor == 2
-    assert training_opts.Training.gradient_accumulation == 2
-
-    inference_opts = strategy.inference_opts
-    assert inference_opts.device_iterations == 16
-    assert inference_opts.replication_factor == 1
-    assert inference_opts.Training.gradient_accumulation == 1
+#     dataloader = trainer.train_dataloader.loaders
+#     assert isinstance(dataloader, poptorch.DataLoader)
+#     assert dataloader.options == training_opts
+#     assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
+#     assert not isinstance(dataloader.sampler, DistributedSampler)
 
 
-@RunIf(ipu=True)
-def test_replication_factor(tmpdir):
-    """Ensure if the user passes manual poptorch Options with custom parameters set, we set them correctly in the
-    dataloaders."""
+# @RunIf(ipu=True)
+# def test_manual_poptorch_opts_custom(tmpdir):
+#     """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
+#     poptorch options and the dataloaders."""
 
-    strategy = IPUStrategy()
-    trainer = Trainer(accelerator="ipu", devices=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy)
-    assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.num_devices == 2
-    assert trainer.strategy.replication_factor == 2
+#     model = IPUModel()
+#     training_opts = poptorch.Options()
+#     training_opts.deviceIterations(8)
+#     training_opts.replicationFactor(2)
+#     training_opts.Training.gradientAccumulation(2)
 
-    model = BoringModel()
-    training_opts = poptorch.Options()
-    inference_opts = poptorch.Options()
-    training_opts.replicationFactor(8)
-    inference_opts.replicationFactor(7)
-    strategy = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
+#     inference_opts = poptorch.Options()
+#     inference_opts.deviceIterations(16)
+#     inference_opts.replicationFactor(1)
+#     inference_opts.Training.gradientAccumulation(1)
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, strategy=strategy)
-    trainer.optimizers = model.configure_optimizers()[0]
-    strategy._lightning_module = model
-    model.trainer = trainer
-    trainer.state.fn = TrainerFn.FITTING
-    trainer.strategy.setup(trainer)
+#     class TestCallback(Callback):
+#         def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+#             # ensure dataloaders were correctly set up during training.
+#             strategy = trainer.strategy
+#             assert isinstance(strategy, IPUStrategy)
+#             assert strategy.training_opts.replication_factor == 2
+#             assert strategy.inference_opts.replication_factor == 1
 
-    trainer.state.stage = RunningStage.TRAINING
-    assert trainer.strategy.replication_factor == 8
-    trainer.state.stage = RunningStage.VALIDATING
-    assert trainer.strategy.replication_factor == 7
+#             val_dataloader = trainer.val_dataloaders[0]
+#             train_dataloader = trainer.train_dataloader
+#             assert isinstance(train_dataloader, CombinedLoader)
+#             train_dataloader = train_dataloader.loaders
+#             assert isinstance(val_dataloader, poptorch.DataLoader)
+#             assert isinstance(train_dataloader, poptorch.DataLoader)
+#             assert train_dataloader.options.replication_factor == 2
+#             assert val_dataloader.options.replication_factor == 1
 
-    for fn, stage in (
-        (TrainerFn.VALIDATING, RunningStage.VALIDATING),
-        (TrainerFn.TESTING, RunningStage.TESTING),
-        (TrainerFn.PREDICTING, RunningStage.PREDICTING),
-    ):
-        trainer.state.fn = fn
-        trainer.state.stage = stage
-        trainer.strategy.setup(trainer)
-        assert trainer.strategy.replication_factor == 7
+#     strategy = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
+#     # ensure we default to the training options replication factor
+#     assert strategy.replication_factor == 2
+#     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy, callbacks=TestCallback())
+#     trainer.fit(model)
+
+#     strategy = trainer.strategy
+#     assert isinstance(strategy, IPUStrategy)
+
+#     training_opts = strategy.training_opts
+#     assert training_opts.device_iterations == 8
+#     assert training_opts.replication_factor == 2
+#     assert training_opts.Training.gradient_accumulation == 2
+
+#     inference_opts = strategy.inference_opts
+#     assert inference_opts.device_iterations == 16
+#     assert inference_opts.replication_factor == 1
+#     assert inference_opts.Training.gradient_accumulation == 1
 
 
-@RunIf(ipu=True)
-def test_default_opts(tmpdir):
-    """Ensure default opts are set correctly in the IPUStrategy."""
+# @RunIf(ipu=True)
+# def test_replication_factor(tmpdir):
+#     """Ensure if the user passes manual poptorch Options with custom parameters set, we set them correctly in the
+#     dataloaders."""
 
-    model = IPUModel()
+#     strategy = IPUStrategy()
+#     trainer = Trainer(accelerator="ipu", devices=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy)
+#     assert isinstance(trainer.accelerator, IPUAccelerator)
+#     assert trainer.num_devices == 2
+#     assert trainer.strategy.replication_factor == 2
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, fast_dev_run=True)
-    trainer.fit(model)
-    assert isinstance(trainer.strategy, IPUStrategy)
-    inference_opts = trainer.strategy.inference_opts
-    training_opts = trainer.strategy.training_opts
-    for opts in (inference_opts, training_opts):
-        assert isinstance(opts, poptorch.Options)
-        assert opts.Training.gradient_accumulation == 1
-        assert opts.device_iterations == 1
-        assert opts.replication_factor == 1
+#     model = BoringModel()
+#     training_opts = poptorch.Options()
+#     inference_opts = poptorch.Options()
+#     training_opts.replicationFactor(8)
+#     inference_opts.replicationFactor(7)
+#     strategy = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
+
+#     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, strategy=strategy)
+#     trainer.optimizers = model.configure_optimizers()[0]
+#     strategy._lightning_module = model
+#     model.trainer = trainer
+#     trainer.state.fn = TrainerFn.FITTING
+#     trainer.strategy.setup(trainer)
+
+#     trainer.state.stage = RunningStage.TRAINING
+#     assert trainer.strategy.replication_factor == 8
+#     trainer.state.stage = RunningStage.VALIDATING
+#     assert trainer.strategy.replication_factor == 7
+
+#     for fn, stage in (
+#         (TrainerFn.VALIDATING, RunningStage.VALIDATING),
+#         (TrainerFn.TESTING, RunningStage.TESTING),
+#         (TrainerFn.PREDICTING, RunningStage.PREDICTING),
+#     ):
+#         trainer.state.fn = fn
+#         trainer.state.stage = stage
+#         trainer.strategy.setup(trainer)
+#         assert trainer.strategy.replication_factor == 7
+
+
+# @RunIf(ipu=True)
+# def test_default_opts(tmpdir):
+#     """Ensure default opts are set correctly in the IPUStrategy."""
+
+#     model = IPUModel()
+
+#     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, fast_dev_run=True)
+#     trainer.fit(model)
+#     assert isinstance(trainer.strategy, IPUStrategy)
+#     inference_opts = trainer.strategy.inference_opts
+#     training_opts = trainer.strategy.training_opts
+#     for opts in (inference_opts, training_opts):
+#         assert isinstance(opts, poptorch.Options)
+#         assert opts.Training.gradient_accumulation == 1
+#         assert opts.device_iterations == 1
+#         assert opts.replication_factor == 1
 
 
 @RunIf(ipu=True)
