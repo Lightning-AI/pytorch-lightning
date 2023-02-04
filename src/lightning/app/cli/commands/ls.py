@@ -18,6 +18,7 @@ from typing import Generator, List, Optional
 
 import click
 import rich
+from fastapi import HTTPException
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from rich.console import Console
 from rich.live import Live
@@ -27,7 +28,7 @@ from rich.text import Text
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.network import InternalServerError, LightningClient
+from lightning.app.utilities.network import LightningClient
 
 _FOLDER_COLOR = "sky_blue1"
 _FILE_COLOR = "white"
@@ -45,7 +46,9 @@ def ls(path: Optional[str] = None) -> List[str]:
 
     root = "/"
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
+
+        live.stop()
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -237,7 +240,7 @@ def _collect_artifacts(
                         page_token=response.next_page_token,
                         tokens=tokens,
                     )
-        except InternalServerError:
+        except HTTPException:
             # Note: This is triggered when the request is wrong.
             # This is currently happening due to looping through the user clusters.
             pass
