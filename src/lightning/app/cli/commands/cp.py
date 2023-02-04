@@ -22,7 +22,6 @@ from typing import Optional, Tuple, Union
 
 import click
 import requests
-import rich
 import urllib3
 from lightning_cloud.openapi import Externalv1LightningappInstance, ProjectIdStorageBody, V1CloudSpace
 from rich.live import Live
@@ -34,6 +33,7 @@ from lightning.app.cli.commands.ls import _collect_artifacts, _get_prefix
 from lightning.app.cli.commands.pwd import _pwd
 from lightning.app.source_code import FileUploader
 from lightning.app.utilities.app_helpers import Logger
+from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -55,7 +55,7 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
         pwd = _pwd()
 
         if pwd == "/" or len(pwd.split("/")) == 1:
-            return _error_and_exit("Uploading files at the project level isn't supported yet.")
+            return _error_and_exit("Uploading files at the project level isn't allowed yet.")
 
         client = LightningClient()
 
@@ -74,12 +74,18 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
 
 
 def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str, pwd: str) -> str:
-    remote_dst = os.path.join(*remote_dst.split("/")[3:])
+    remote_splits = [split for split in remote_dst.split("/") if split != ""]
+    remote_dst = os.path.join(*remote_splits)
 
     if not os.path.exists(local_src):
         return _error_and_exit(f"The provided source path {local_src} doesn't exist.")
 
-    project_id, lit_resource = _get_project_id_and_resource(pwd)
+    lit_resource = None
+
+    if len(remote_splits) > 1:
+        project_id, lit_resource = _get_project_id_and_resource(pwd)
+    else:
+        project_id = _get_project_id_from_name(remote_dst)
 
     local_src = Path(local_src).resolve()
     upload_paths = []
@@ -98,7 +104,11 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     for upload_path in upload_paths:
         for cluster in clusters.clusters:
             filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
-            filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
+            if lit_resource:
+                filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
+            else:
+                filename = "/" + filename
+
             response = client.lightningapp_instance_service_upload_project_artifact(
                 project_id=project_id,
                 body=ProjectIdStorageBody(cluster_id=cluster.cluster_id, filename=filename),
@@ -116,7 +126,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     progress = _get_progress_bar()
 
-    total_size = sum([Path(path).stat().st_size for path in upload_paths]) // len(clusters.clusters)
+    total_size = sum([Path(path).stat().st_size for path in upload_paths]) // max(len(clusters.clusters), 1)
     task_id = progress.add_task("upload", filename="", total=total_size)
 
     progress.start()
@@ -144,10 +154,7 @@ def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, ta
     )
     file_uploader.progress = progress
     file_uploader.task_id = task_id
-    try:
-        file_uploader.upload()
-    except ValueError:
-        pass
+    file_uploader.upload()
 
 
 def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
@@ -228,11 +235,6 @@ def _remove_remote(path: str) -> str:
     return path.replace("r:", "").replace("remote:", "")
 
 
-def _error_and_exit(msg: str) -> str:
-    rich.print(f"[red]ERROR[/red]: {msg}")
-    sys.exit(0)
-
-
 def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1LightningappInstance, V1CloudSpace]]:
     """Convert a root path to a project id and app id."""
     # TODO: Handle project level
@@ -260,6 +262,13 @@ def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1Lightni
             sys.exit(0)
 
     return project_id, lit_ressources[0]
+
+
+def _get_project_id_from_name(project_name: str) -> str:
+    # 1. Collect the projects of the user
+    client = LightningClient()
+    projects = client.projects_service_list_memberships()
+    return [project.project_id for project in projects.memberships if project.name == project_name][0]
 
 
 def _get_progress_bar():

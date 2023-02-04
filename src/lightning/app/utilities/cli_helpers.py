@@ -25,6 +25,7 @@ import arrow
 import click
 import packaging
 import requests
+import rich
 
 from lightning.app import __package_name__, __version__
 from lightning.app.core.constants import APP_SERVER_PORT
@@ -349,3 +350,8 @@ def _check_environment_and_redirect():
 
         _redirect_command(env_executable)
     return
+
+
+def _error_and_exit(msg: str) -> str:
+    rich.print(f"[red]ERROR[/red]: {msg}")
+    sys.exit(0)
