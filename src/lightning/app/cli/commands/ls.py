@@ -27,7 +27,7 @@ from rich.text import Text
 from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.network import LightningClient
+from lightning.app.utilities.network import InternalServerError, LightningClient
 
 _FOLDER_COLOR = "sky_blue1"
 _FILE_COLOR = "white"
@@ -212,30 +212,35 @@ def _collect_artifacts(
         if page_token in tokens:
             return
 
-        response = client.lightningapp_instance_service_list_project_artifacts(
-            project_id,
-            prefix=prefix,
-            cluster_id=cluster_id,
-            page_token=page_token,
-            include_download_url=include_download_url,
-            page_size=str(page_size),
-        )
-        if response:
-            for artifact in response.artifacts:
-                if ".lightning-app-sync" in artifact.filename:
-                    continue
-                yield artifact
+        try:
+            response = client.lightningapp_instance_service_list_project_artifacts(
+                project_id,
+                prefix=prefix,
+                cluster_id=cluster_id,
+                page_token=page_token,
+                include_download_url=include_download_url,
+                page_size=str(page_size),
+            )
+            if response:
+                for artifact in response.artifacts:
+                    if ".lightning-app-sync" in artifact.filename:
+                        continue
+                    yield artifact
 
-            if response.next_page_token != "":
-                tokens.append(page_token)
-                yield from _collect_artifacts(
-                    client,
-                    project_id,
-                    prefix=prefix,
-                    cluster_id=cluster_id,
-                    page_token=response.next_page_token,
-                    tokens=tokens,
-                )
+                if response.next_page_token != "":
+                    tokens.append(page_token)
+                    yield from _collect_artifacts(
+                        client,
+                        project_id,
+                        prefix=prefix,
+                        cluster_id=cluster_id,
+                        page_token=response.next_page_token,
+                        tokens=tokens,
+                    )
+        except InternalServerError:
+            # Note: This is triggered when the request is wrong.
+            # This is currently happening due to looping through the user clusters.
+            pass
 
 
 def _add_resource_prefix(prefix: str, resource_path: str):
