@@ -59,6 +59,7 @@ def test_filesystem(tmpdir):
         fs.listdir("/space")
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="TODO: Add support for windows")
 def test_filesystem_root(tmpdir):
     fs = FileSystem()
 
