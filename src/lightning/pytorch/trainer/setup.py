@@ -17,14 +17,14 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import (
+from lightning.pytorch.accelerators import (  # IPUAccelerator,
     CUDAAccelerator,
     HPUAccelerator,
-    IPUAccelerator,
     MPSAccelerator,
     TPUAccelerator,
 )
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
+
+# from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,
@@ -165,8 +165,8 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
     rank_zero_info(f"TPU available: {TPUAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
-    num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
-    rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+    # num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
+    # rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
     num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
     rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
@@ -185,11 +185,11 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
             f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
         )
 
-    if _IPU_AVAILABLE and not isinstance(trainer.accelerator, IPUAccelerator):
-        rank_zero_warn(
-            "IPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
-        )
+    # if _IPU_AVAILABLE and not isinstance(trainer.accelerator, IPUAccelerator):
+    #     rank_zero_warn(
+    #         "IPU available but not used. Set `accelerator` and `devices` using"
+    #         f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
+    #     )
 
     if _HPU_AVAILABLE and not isinstance(trainer.accelerator, HPUAccelerator):
         rank_zero_warn(
