@@ -57,3 +57,19 @@ def test_filesystem(tmpdir):
 
     with pytest.raises(RuntimeError, match="The provided path"):
         fs.listdir("/space")
+
+
+def test_filesystem_root(tmpdir):
+    fs = FileSystem()
+
+    with open(f"{tmpdir}/a.txt", "w") as f:
+        f.write("example")
+
+    os.makedirs(f"{tmpdir}/checkpoints", exist_ok=True)
+    with open(f"{tmpdir}/checkpoints/a.txt", "w") as f:
+        f.write("example")
+
+    assert fs.listdir("/") == []
+    fs.put(f"{tmpdir}/a.txt", "/")
+    fs.put(f"{tmpdir}/checkpoints", "/")
+    assert fs.listdir("/") == ["a.txt", "checkpoints"]
