@@ -22,7 +22,6 @@ from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -31,6 +30,7 @@ from lightning.pytorch.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.imports import (
     _HPU_AVAILABLE,
+    _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _PSUTIL_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,

@@ -23,9 +23,8 @@ import pytest
 from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
-from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
 from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
