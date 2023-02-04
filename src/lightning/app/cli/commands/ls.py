@@ -46,9 +46,7 @@ def ls(path: Optional[str] = None) -> List[str]:
 
     root = "/"
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
-        live.stop()
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
