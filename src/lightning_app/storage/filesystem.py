@@ -50,8 +50,13 @@ class FileSystem:
         if not dst_path.startswith("/"):
             raise Exception(f"The provided destination {dst_path} needs to start with `/`.")
 
+        if dst_path == "/":
+            dst_path = os.path.join(self._root, os.path.basename(src_path))
+        else:
+            dst_path = os.path.join(self._root, dst_path[1:])
+
         src = Path(src_path).resolve()
-        dst = Path(os.path.join(self._root, dst_path[1:])).resolve()
+        dst = Path(dst_path).resolve()
 
         return put_fn(src, dst, fs=self._fs)
 

@@ -22,9 +22,8 @@ from typing import Optional, Tuple, Union
 
 import click
 import requests
-import rich
 import urllib3
-from lightning_cloud.openapi import Externalv1LightningappInstance, IdArtifactsBody, V1CloudSpace
+from lightning_cloud.openapi import Externalv1LightningappInstance, ProjectIdStorageBody, V1CloudSpace
 from rich.live import Live
 from rich.progress import BarColumn, DownloadColumn, Progress, Task, TextColumn
 from rich.spinner import Spinner
@@ -34,6 +33,7 @@ from lightning_app.cli.commands.ls import _collect_artifacts, _get_prefix
 from lightning_app.cli.commands.pwd import _pwd
 from lightning_app.source_code import FileUploader
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.cli_helpers import _error_and_exit
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -55,7 +55,7 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
         pwd = _pwd()
 
         if pwd == "/" or len(pwd.split("/")) == 1:
-            return _error_and_exit("Uploading files at the project level isn't supported yet.")
+            return _error_and_exit("Uploading files at the project level isn't allowed yet.")
 
         client = LightningClient()
 
@@ -74,10 +74,18 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
 
 
 def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str, pwd: str) -> str:
+    remote_splits = [split for split in remote_dst.split("/") if split != ""]
+    remote_dst = os.path.join(*remote_splits)
+
     if not os.path.exists(local_src):
         return _error_and_exit(f"The provided source path {local_src} doesn't exist.")
 
-    project_id, app_id = _get_project_app_ids(pwd)
+    lit_resource = None
+
+    if len(remote_splits) > 1:
+        project_id, lit_resource = _get_project_id_and_resource(pwd)
+    else:
+        project_id = _get_project_id_from_name(remote_dst)
 
     local_src = Path(local_src).resolve()
     upload_paths = []
@@ -91,21 +99,34 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     upload_urls = []
 
+    clusters = client.projects_service_list_project_cluster_bindings(project_id)
+
     for upload_path in upload_paths:
-        filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
-        response = client.lightningapp_instance_service_upload_lightningapp_instance_artifact(
-            project_id=project_id,
-            id=app_id,
-            body=IdArtifactsBody(filename),
-            async_req=True,
-        )
-        upload_urls.append(response)
+        for cluster in clusters.clusters:
+            filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
+            if lit_resource:
+                filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
+            else:
+                filename = "/" + filename
+
+            response = client.lightningapp_instance_service_upload_project_artifact(
+                project_id=project_id,
+                body=ProjectIdStorageBody(cluster_id=cluster.cluster_id, filename=filename),
+                async_req=True,
+            )
+            upload_urls.append(response)
+
+    upload_urls = [upload_url.get().upload_url for upload_url in upload_urls]
 
     live.stop()
 
+    if not upload_paths:
+        print("There were no files to upload.")
+        return
+
     progress = _get_progress_bar()
 
-    total_size = sum([Path(path).stat().st_size for path in upload_paths])
+    total_size = sum([Path(path).stat().st_size for path in upload_paths]) // max(len(clusters.clusters), 1)
     task_id = progress.add_task("upload", filename="", total=total_size)
 
     progress.start()
@@ -126,7 +147,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: Task) -> Optional[Exception]:
     source_file = Path(source_file)
     file_uploader = FileUploader(
-        presigned_url.get().upload_url,
+        presigned_url,
         source_file,
         total_size=None,
         name=str(source_file),
@@ -143,13 +164,13 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     download_urls = []
     total_size = []
 
-    prefix = _get_prefix("/".join(pwd.split("/")[3:]), lit_resource)
+    prefix = _get_prefix("/".join(pwd.split("/")[3:]), lit_resource) + "/"
 
     for artifact in _collect_artifacts(client, project_id, prefix, include_download_url=True):
         path = os.path.join(local_dst, artifact.filename.replace(remote_src, ""))
         path = Path(path).resolve()
         os.makedirs(path.parent, exist_ok=True)
-        download_paths.append(Path(path).resolve())
+        download_paths.append(path)
         download_urls.append(artifact.url)
         total_size.append(int(artifact.size_bytes))
 
@@ -182,14 +203,17 @@ def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> No
     # Disable warning about making an insecure request
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    request = requests.get(url, stream=True, verify=False)
+    try:
+        request = requests.get(url, stream=True, verify=False)
 
-    chunk_size = 1024
+        chunk_size = 1024
 
-    with open(path, "wb") as fp:
-        for chunk in request.iter_content(chunk_size=chunk_size):
-            fp.write(chunk)  # type: ignore
-            progress.update(task_id, advance=len(chunk))
+        with open(path, "wb") as fp:
+            for chunk in request.iter_content(chunk_size=chunk_size):
+                fp.write(chunk)  # type: ignore
+                progress.update(task_id, advance=len(chunk))
+    except ConnectionError:
+        pass
 
 
 def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
@@ -209,29 +233,6 @@ def _is_remote(path: str) -> bool:
 
 def _remove_remote(path: str) -> str:
     return path.replace("r:", "").replace("remote:", "")
-
-
-def _error_and_exit(msg: str) -> str:
-    rich.print(f"[red]ERROR[/red]: {msg}")
-    sys.exit(0)
-
-
-# TODO: To be removed when upload is supported for CloudSpaces.
-def _get_project_app_ids(pwd: str) -> Tuple[str, str]:
-    """Convert a root path to a project id and app id."""
-    # TODO: Handle project level
-    project_name, app_name, *_ = pwd.split("/")[1:3]
-    client = LightningClient()
-    projects = client.projects_service_list_memberships()
-    project_id = [project.project_id for project in projects.memberships if project.name == project_name][0]
-    client = LightningClient()
-    lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
-    lit_apps = [lit_app for lit_app in lit_apps if lit_app.name == app_name]
-    if len(lit_apps) != 1:
-        print(f"ERROR: There isn't any Lightning App matching the name {app_name}.")
-        sys.exit(0)
-    lit_app = lit_apps[0]
-    return project_id, lit_app.id
 
 
 def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1LightningappInstance, V1CloudSpace]]:
@@ -261,6 +262,13 @@ def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1Lightni
             sys.exit(0)
 
     return project_id, lit_ressources[0]
+
+
+def _get_project_id_from_name(project_name: str) -> str:
+    # 1. Collect the projects of the user
+    client = LightningClient()
+    projects = client.projects_service_list_memberships()
+    return [project.project_id for project in projects.memberships if project.name == project_name][0]
 
 
 def _get_progress_bar():
