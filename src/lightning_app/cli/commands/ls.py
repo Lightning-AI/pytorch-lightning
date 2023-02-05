@@ -18,6 +18,7 @@ from typing import Generator, List, Optional
 
 import click
 import rich
+from fastapi import HTTPException
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from rich.console import Console
 from rich.live import Live
@@ -27,6 +28,7 @@ from rich.text import Text
 from lightning_app.cli.commands.cd import _CD_FILE
 from lightning_app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.cli_helpers import _error_and_exit
 from lightning_app.utilities.network import LightningClient
 
 _FOLDER_COLOR = "sky_blue1"
@@ -71,7 +73,15 @@ def ls(path: Optional[str] = None) -> List[str]:
         # TODO: Add support for CloudSpaces, etc..
         splits = root.split("/")[1:]
 
-        project_id = [project.project_id for project in projects.memberships if project.name == splits[0]][0]
+        project = [project for project in projects.memberships if project.name == splits[0]]
+
+        # This happens if the user changes cluster and the project doesn't exit.
+        if len(project) == 0:
+            return _error_and_exit(
+                f"There isn't any Lightning Project matching the name {splits[0]}." " HINT: Use `lightning cd`."
+            )
+
+        project_id = project[0].project_id
 
         lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
 
@@ -91,9 +101,7 @@ def ls(path: Optional[str] = None) -> List[str]:
             lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == splits[1]]
 
             if len(lit_ressources) == 0:
-
-                print(f"ERROR: There isn't any Lightning Ressource matching the name {splits[1]}.")
-                sys.exit(0)
+                _error_and_exit(f"There isn't any Lightning Ressource matching the name {splits[1]}.")
 
         lit_resource = lit_ressources[0]
 
@@ -212,32 +220,44 @@ def _collect_artifacts(
         if page_token in tokens:
             return
 
-        response = client.lightningapp_instance_service_list_project_artifacts(
-            project_id,
-            prefix=prefix,
-            cluster_id=cluster_id,
-            page_token=page_token,
-            include_download_url=include_download_url,
-            page_size=str(page_size),
-        )
-        yield from response.artifacts
-
-        if response.next_page_token != "":
-            tokens.append(page_token)
-            yield from _collect_artifacts(
-                client,
+        try:
+            response = client.lightningapp_instance_service_list_project_artifacts(
                 project_id,
                 prefix=prefix,
                 cluster_id=cluster_id,
-                page_token=response.next_page_token,
-                tokens=tokens,
+                page_token=page_token,
+                include_download_url=include_download_url,
+                page_size=str(page_size),
             )
+            if response:
+                for artifact in response.artifacts:
+                    if ".lightning-app-sync" in artifact.filename:
+                        continue
+                    yield artifact
+
+                if response.next_page_token != "":
+                    tokens.append(page_token)
+                    yield from _collect_artifacts(
+                        client,
+                        project_id,
+                        prefix=prefix,
+                        cluster_id=cluster_id,
+                        page_token=response.next_page_token,
+                        tokens=tokens,
+                    )
+        except HTTPException:
+            # Note: This is triggered when the request is wrong.
+            # This is currently happening due to looping through the user clusters.
+            pass
 
 
 def _add_resource_prefix(prefix: str, resource_path: str):
     if resource_path in prefix:
         return prefix
-    return "/" + os.path.join(resource_path, prefix)
+    prefix = os.path.join(resource_path, prefix)
+    if not prefix.startswith("/"):
+        prefix = "/" + prefix
+    return prefix
 
 
 def _get_prefix(prefix: str, lit_resource) -> str:
