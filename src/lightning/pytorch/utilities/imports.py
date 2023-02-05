@@ -27,11 +27,18 @@ _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
+_POPTORCH_AVAILABLE = package_available("poptorch")
 _PSUTIL_AVAILABLE = package_available("psutil")
 _RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 
+if _POPTORCH_AVAILABLE:
+    import poptorch
+
+    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
+else:
+    _IPU_AVAILABLE = False
 
 if _HABANA_FRAMEWORK_AVAILABLE:
     from habana_frameworks.torch.utils.library_loader import is_habana_available
