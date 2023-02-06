@@ -676,8 +676,10 @@ def test_deterministic_init(deterministic):
         _set_torch_flags(deterministic=deterministic)
     if deterministic == "warn":
         use_deterministic_patch.assert_called_once_with(True, warn_only=True)
+    elif deterministic is None:
+        use_deterministic_patch.assert_not_called()
     else:
-        use_deterministic_patch.assert_called_once_with(bool(deterministic))
+        use_deterministic_patch.assert_called_once_with(deterministic)
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
 
@@ -730,7 +732,7 @@ def test_sync_batchnorm_set(sync_batchnorm, plugins, expected):
     assert isinstance(trainer.strategy._layer_sync, expected)
 
 
-def test_sync_batchnorm_invalid_choice(tmpdir):
+def test_sync_batchnorm_invalid_choice():
     """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""
     custom = Mock(spec=LayerSync)
     with pytest.raises(
@@ -741,7 +743,7 @@ def test_sync_batchnorm_invalid_choice(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
+def test_sync_batchnorm_set_in_custom_strategy():
     """Tests if layer_sync is automatically set for custom strategy."""
 
     class CustomParallelStrategy(DDPStrategy):

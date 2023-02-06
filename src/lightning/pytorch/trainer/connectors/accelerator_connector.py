@@ -667,10 +667,10 @@ def _set_torch_flags(*, deterministic: Optional[Union[bool, _LITERAL_WARN]] = No
     if benchmark is not None:
         torch.backends.cudnn.benchmark = benchmark
 
-    deterministic = deterministic or False
     if deterministic == "warn":
         torch.use_deterministic_algorithms(True, warn_only=True)
-    else:
+    elif isinstance(deterministic, bool):
+        # do not call this if deterministic wasn't passed
         torch.use_deterministic_algorithms(deterministic)
     if deterministic:
         # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
