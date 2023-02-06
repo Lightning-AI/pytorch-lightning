@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.hpu import HPUAccelerator
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
+from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE, IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
@@ -72,7 +72,6 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _IPU_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
