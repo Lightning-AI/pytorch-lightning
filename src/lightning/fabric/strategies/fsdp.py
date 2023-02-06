@@ -18,12 +18,13 @@ from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECK
 
 import torch
 from torch import Tensor
-from torch.distributed import default_pg_timeout
+
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
+from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
