@@ -99,18 +99,6 @@ class HPUParallelStrategy(DDPStrategy):
     def determine_ddp_device_ids(self) -> None:
         return None
 
-    def _pre_configure_ddp(self) -> None:
-        self._static_graph = False
-        static_graph = self._ddp_kwargs.get("static_graph")
-        if static_graph:
-            # when _set_static_graph() is called find_unused_parameters does not have any significance.
-            # Resetting the value of find_unused_parameters to False which is the default value to DDP
-            self._ddp_kwargs["find_unused_parameters"] = False
-            self._static_graph = True
-        if static_graph is not None:
-            # DDP does not accept static_graph as a parameter, hence removing it from the list
-            del self._ddp_kwargs["static_graph"]
-
     def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]
         if self.global_rank != src:
