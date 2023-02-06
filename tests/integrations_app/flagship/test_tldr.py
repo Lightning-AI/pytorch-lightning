@@ -2,7 +2,7 @@ import os
 
 from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 
-from lightning.testing.testing import run_app_in_cloud
+from lightning.app.testing.testing import run_app_in_cloud
 
 
 def test_app_in_cloud():
