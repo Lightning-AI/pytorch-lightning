@@ -286,6 +286,7 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
 
     processed_dataloader = strategy.process_dataloader(dataloader)
+    assert processed_dataloader is dataloader
     mp_loader_mock.assert_not_called()  # no-op
 
     isinstance_return = False
