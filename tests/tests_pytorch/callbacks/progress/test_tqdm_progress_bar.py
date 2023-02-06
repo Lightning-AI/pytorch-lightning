@@ -136,8 +136,6 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
             return
 
     model = CustomModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
 
     # check the sanity dataloaders
     num_sanity_val_steps = 4

@@ -459,7 +459,6 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
 
     model = CustomBatchSizeModel(batch_size=16)
     model.validation_step = None
-    model.training_epoch_end = None
     scale_batch_size_kwargs = {"max_trials": 10, "steps_per_trial": 1, "init_val": 500, "mode": scale_method}
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
