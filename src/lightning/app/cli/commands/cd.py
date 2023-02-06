@@ -20,6 +20,7 @@ from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
+from lightning.app.cli.commands import ls
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
@@ -31,14 +32,10 @@ _CD_FILE = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 
 
 @click.argument("path", nargs=-1)
-def cd(path: Optional[Union[Tuple[str], str]]) -> None:
+def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
     """Change the current directory within the Lightning Cloud filesystem."""
 
-    from lightning.app.cli.commands.ls import ls
-
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
-        live.stop()
 
         root = "/"
 
@@ -75,7 +72,11 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
-            paths = [os.path.join(root, path) for path in ls(root, print=False)]
+            if verify:
+                if path.startswith("/"):
+                    paths = [os.path.join(path, p) for p in ls.ls(path, print=False, use_live=False)]
+                else:
+                    paths = [os.path.join(root, p) for p in ls.ls(root, print=False, use_live=False)]
 
             # generate new root
             if root == "/":
@@ -95,7 +96,7 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
                 else:
                     root = os.path.join(root, path)
 
-            if root != "/" and not any(p.startswith(root) for p in paths):
+            if verify and root != "/" and not any(p.startswith(root) or root.startswith(p) for p in paths):
                 _error_and_exit(f"no such file or directory: {path}")
 
             os.remove(_CD_FILE)

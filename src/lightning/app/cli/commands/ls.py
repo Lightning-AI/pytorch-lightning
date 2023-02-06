@@ -14,6 +14,7 @@
 
 import os
 import sys
+from contextlib import nullcontext
 from typing import Generator, List, Optional
 
 import click
@@ -25,7 +26,6 @@ from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
-from lightning.app.cli.commands.cd import _CD_FILE
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
@@ -38,8 +38,10 @@ logger = Logger(__name__)
 
 
 @click.argument("path", required=False)
-def ls(path: Optional[str] = None, print: bool = True) -> List[str]:
+def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) -> List[str]:
     """List the contents of a folder in the Lightning Cloud Filesystem."""
+
+    from lightning.app.cli.commands.cd import _CD_FILE
 
     if sys.platform == "win32":
         print("`ls` isn't supported on windows. Open an issue on Github.")
@@ -47,7 +49,11 @@ def ls(path: Optional[str] = None, print: bool = True) -> List[str]:
 
     root = "/"
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
+    context = (
+        Live(Spinner("point", text=Text("pending...", style="white")), transient=True) if use_live else nullcontext()
+    )
+
+    with context:
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
