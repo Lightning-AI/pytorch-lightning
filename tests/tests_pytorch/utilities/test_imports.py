@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ import pytest
 from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
+from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
 from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
+from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
