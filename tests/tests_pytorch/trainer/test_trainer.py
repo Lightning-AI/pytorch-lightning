@@ -2190,6 +2190,6 @@ def test_trainer_calls_strategy_on_exception():
 
     trainer = Trainer()
     with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock:
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Test exception"):
             trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)
