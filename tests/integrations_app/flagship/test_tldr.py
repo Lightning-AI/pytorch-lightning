@@ -19,15 +19,6 @@ def test_app_in_cloud():
         """
         f.write(app_string)
 
-        expected_strings = [
-            # don't include values for actual hardware availability as this may depend on environment.
-            "GPU available: ",
-            "All distributed processes registered.",
-            "674 K    Trainable params\n0         Non - trainable params\n674 K    Total params\n2.699   Total estimated model params size(MB)",
-            "Epoch 0:",
-            "`Trainer.fit` stopped: `max_epochs=2` reached.",
-            "Input text:Input text:\n summarize: ML Ops platforms come in many flavors from platforms that train models",
-        ]
 
         with run_app_in_cloud(_PATH_INTEGRATIONS_DIR, "test_app.py") as (_, _, fetch_logs, _):
             logs = fetch_logs()
