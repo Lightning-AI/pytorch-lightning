@@ -32,6 +32,8 @@ class _TunerExitException(Exception):
 
 
 def _replace_message(exception: BaseException, pattern: str, new_message: str) -> None:
+    # Consider replacing this with PEP 678 when Python 3.11 becomes the minimum supported version
+    # (see https://peps.python.org/pep-0678)
     exception.args = tuple(
         new_message if re.match(pattern, message, re.DOTALL) else message for message in exception.args
     )
