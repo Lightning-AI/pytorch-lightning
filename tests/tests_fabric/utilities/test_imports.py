@@ -23,7 +23,7 @@ def test_import_fabric_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        
+
         # pretend torch.distributed not available
         for name in list(torch.distributed.__dict__.keys()):
             if not name.startswith("__"):
