@@ -46,7 +46,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
-from lightning.pytorch.trainer.connectors.accelerator_connector import AcceleratorConnector
+from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -669,12 +669,48 @@ def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_device
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
-@pytest.mark.parametrize("deterministic", [True, False, "warn"])
+@pytest.mark.parametrize("deterministic", [None, True, False, "warn"])
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_deterministic_init(deterministic):
-    trainer = Trainer(accelerator="auto", deterministic=deterministic)
-    assert trainer._accelerator_connector.deterministic == deterministic
+    with mock.patch("torch.use_deterministic_algorithms") as use_deterministic_patch:
+        _set_torch_flags(deterministic=deterministic)
+    if deterministic == "warn":
+        use_deterministic_patch.assert_called_once_with(True, warn_only=True)
+    else:
+        use_deterministic_patch.assert_called_once_with(bool(deterministic))
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+
+
+@pytest.mark.parametrize("cudnn_benchmark", (False, True))
+@pytest.mark.parametrize(
+    ["benchmark_", "deterministic", "expected"],
+    [
+        (None, False, None),
+        (None, True, False),
+        (None, None, None),
+        (True, False, True),
+        (True, True, True),
+        (True, None, True),
+        (False, False, False),
+        (False, True, False),
+        (False, None, False),
+    ],
+)
+def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
+    """Verify benchmark option."""
+    original_val = torch.backends.cudnn.benchmark
+
+    torch.backends.cudnn.benchmark = cudnn_benchmark
+    if benchmark_ and deterministic:
+        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
+            _set_torch_flags(benchmark=benchmark_, deterministic=deterministic)
+    else:
+        _set_torch_flags(benchmark=benchmark_, deterministic=deterministic)
+    expected = cudnn_benchmark if expected is None else expected
+    assert torch.backends.cudnn.benchmark == expected
+
+    torch.backends.cudnn.benchmark = original_val
 
 
 @pytest.mark.parametrize(
