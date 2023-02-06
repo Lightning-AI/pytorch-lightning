@@ -22,6 +22,7 @@ from rich.text import Text
 
 from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
+from lightning.app.utilities.cli_helpers import _error_and_exit
 
 logger = Logger(__name__)
 
@@ -33,7 +34,11 @@ _CD_FILE = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 def cd(path: Optional[Union[Tuple[str], str]]) -> None:
     """Change the current directory within the Lightning Cloud filesystem."""
 
+    from lightning.app.cli.commands.ls import ls
+
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
+
+        live.stop()
 
         root = "/"
 
@@ -70,6 +75,8 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
+            paths = [os.path.join(root, path) for path in ls(root, print=False)]
+
             # generate new root
             if root == "/":
                 if path == "/":
@@ -81,13 +88,15 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
                 else:
                     root = _apply_double_dots(root, path)
             else:
-                # TODO: Validate the new path exists
                 if path.startswith(".."):
                     root = _apply_double_dots(root, path)
                 elif path.startswith("~"):
                     root = path[2:]
                 else:
                     root = os.path.join(root, path)
+
+            if root != "/" and not any(p.startswith(root) for p in paths):
+                _error_and_exit(f"no such file or directory: {path}")
 
             os.remove(_CD_FILE)
 
