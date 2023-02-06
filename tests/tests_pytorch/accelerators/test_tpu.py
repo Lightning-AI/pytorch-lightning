@@ -270,19 +270,25 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 @RunIf(tpu=True)
 @patch("pytorch.lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
+    dataset = RandomDataset(32, 64)
+    dataloader = DataLoader(dataset)
+    strategy = TPUSpawnStrategy()
+    isinstance_return = True
+
     import torch_xla.distributed.parallel_loader as parallel_loader
 
     class MpDeviceLoaderMock(MagicMock):
         def __instancecheck__(self, instance):
             # to make `isinstance(dataloader, MpDeviceLoader)` pass with a mock as class
-            return True
+            return isinstance_return
 
     mp_loader_mock = MpDeviceLoaderMock()
     monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
 
-    dataset = RandomDataset(32, 64)
-    dataloader = DataLoader(dataset)
-    strategy = TPUSpawnStrategy()
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    mp_loader_mock.assert_not_called()  # no-op
+
+    isinstance_return = False
     processed_dataloader = strategy.process_dataloader(dataloader)
     mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
