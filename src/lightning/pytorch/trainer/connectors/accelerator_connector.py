@@ -654,7 +654,9 @@ class AcceleratorConnector:
         return is_distributed
 
 
-def _set_torch_flags(*, deterministic: Optional[Union[bool, _LITERAL_WARN]] = None, benchmark: Optional[bool] = None):
+def _set_torch_flags(
+    *, deterministic: Optional[Union[bool, _LITERAL_WARN]] = None, benchmark: Optional[bool] = None
+) -> None:
     if deterministic:
         if benchmark is None:
             # Set benchmark to False to ensure determinism
