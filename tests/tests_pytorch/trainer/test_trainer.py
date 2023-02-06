@@ -20,6 +20,7 @@ from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
@@ -2177,3 +2178,17 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     trainer = Trainer(**trainer_kwargs)
     with pytest.raises(TypeError, match="must be a `Light"):
         trainer.fit(object())
+
+
+def test_trainer_calls_strategy_on_exception():
+    exception = RuntimeError("Test exception")
+
+    class ExceptionModel(BoringModel):
+        def on_fit_start(self):
+            raise exception
+
+    trainer = Trainer()
+    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock:
+        with pytest.raises(RuntimeError):
+            trainer.fit(ExceptionModel())
+    on_exception_mock.assert_called_once_with(exception)
