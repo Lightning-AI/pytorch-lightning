@@ -21,13 +21,13 @@ from torch.utils.data import DistributedSampler
 
 from lightning.pytorch import Callback, seed_everything, Trainer
 from lightning.pytorch.accelerators import IPUAccelerator
+from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import IPUPrecisionPlugin
 from lightning.pytorch.strategies.ipu import IPUStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.trainer.supporters import CombinedLoader
-from lightning.pytorch.utilities import _IPU_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

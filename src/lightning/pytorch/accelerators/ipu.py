@@ -14,10 +14,20 @@
 from typing import Any, Dict, List
 
 import torch
+from lightning_utilities.core.imports import package_available
 
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
-from lightning.pytorch.utilities.imports import _IPU_AVAILABLE
+
+_POPTORCH_AVAILABLE = package_available("poptorch")
+
+if _POPTORCH_AVAILABLE:
+    import poptorch
+
+    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
+else:
+    poptorch = None
+    _IPU_AVAILABLE = False
 
 
 class IPUAccelerator(Accelerator):
