@@ -678,10 +678,10 @@ def test_unsupported_tpu_choice(tpu_available):
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
+    import pytorch_lightning.accelerators.ipu as ipu_
     import pytorch_lightning.strategies.ipu as ipu
-    import pytorch_lightning.utilities.imports as imports
 
-    monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
     with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
@@ -690,7 +690,7 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu._XLA_AVAILABLE", return_value=False)
-@mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
+@mock.patch("pytorch_lightning.accelerators.ipu._IPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")

@@ -23,9 +23,7 @@ from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HIVEMIND_AVAILABLE,
     _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
-    _POPTORCH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHVISION_AVAILABLE,
 )
