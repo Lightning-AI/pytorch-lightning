@@ -111,7 +111,7 @@ jobs:
           LAI_USER: ${{ secrets.LAI_SSH_USER }}
           LAI_PASS: ${{ secrets.LAI_SSH_PASS }}
         run: |
-          ls -l _flagship-app
+          ls -l _flagship_app
           python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
             --capture=no -v --color=yes
 
