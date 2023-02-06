@@ -92,13 +92,6 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Adjust imports -> Lit
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: |
-          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-            --source_import="lightning_app,lightning_fabric,pytorch_lightning" \
-            --target_import="lightning.app,lightning.fabric,lightning.pytorch"
-
       - name: Adjust imports -> App
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
@@ -122,7 +115,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          python -m coverage run --source ${COVERAGE_SCOPE} \
+          python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
             -m pytest -m "not cloud" tests_app \
             --timeout=300 -vvvv --durations=50 \
             --junitxml=$PYTEST_ARTIFACT
@@ -146,7 +139,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: ${COVERAGE_SCOPE},cpu,pytest
+          flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false

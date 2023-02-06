@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import os
 import warnings
 from contextlib import contextmanager
@@ -19,6 +18,7 @@ from functools import lru_cache
 from typing import Dict, Generator, List, Optional, Set, Union
 
 import torch
+from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.utilities.imports import (
@@ -26,8 +26,6 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
-
-_log = logging.getLogger(__name__)
 
 
 class CUDAAccelerator(Accelerator):
@@ -252,7 +250,7 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
     # check that the user hasn't changed the precision already, this works for both `allow_tf32 = True` and
     # `set_float32_matmul_precision`
     if torch.get_float32_matmul_precision() == "highest":  # default
-        _log.info(
+        rank_zero_info(
             f"You are using a CUDA device ({torch.cuda.get_device_name(device)!r}) that has Tensor Cores. To properly"
             " utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off"
             " precision for performance. For more details, read https://pytorch.org/docs/stable/generated/"
