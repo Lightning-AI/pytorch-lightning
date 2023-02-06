@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,16 @@ import concurrent.futures
 import os
 import signal
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 
-from lightning_fabric.plugins.environments import SLURMEnvironment
-from lightning_fabric.utilities.imports import _IS_WINDOWS
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.exceptions import SIGTERMException
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -80,11 +81,11 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
     if auto_requeue:
         sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
         assert len(sigterm_handlers) == 2
-        assert sigterm_handlers[1].__qualname__ == "SignalConnector.sigterm_handler_fn"
+        assert sigterm_handlers[1].__qualname__ == "SignalConnector._sigterm_handler_fn"
 
         sigusr_handlers = signal.getsignal(requeue_signal).signal_handlers
         assert len(sigusr_handlers) == 1
-        assert sigusr_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr_handler_fn"
+        assert sigusr_handlers[0].__qualname__ == "SignalConnector._slurm_sigusr_handler_fn"
     else:
         sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
         assert len(sigterm_handlers) == 1
@@ -96,29 +97,27 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call")
-@mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12345"})
 def test_auto_requeue_job(call_mock):
     call_mock.return_value = 0
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = SignalConnector(trainer)
-    connector.slurm_sigusr_handler_fn(None, None)
+    connector._slurm_sigusr_handler_fn(None, None)
     call_mock.assert_called_once_with(["scontrol", "requeue", "12345"])
-    connector.teardown()
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call")
-@mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12346", "SLURM_ARRAY_JOB_ID": "12345", "SLURM_ARRAY_TASK_ID": "2"})
 def test_auto_requeue_array_job(call_mock):
     call_mock.return_value = 0
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = SignalConnector(trainer)
-    connector.slurm_sigusr_handler_fn(None, None)
+    connector._slurm_sigusr_handler_fn(None, None)
     call_mock.assert_called_once_with(["scontrol", "requeue", "12345_2"])
-    connector.teardown()
 
 
 def _registering_signals():
@@ -154,5 +153,20 @@ class SignalHandlers:
 )
 def test_has_already_handler(handler, expected_return):
     """Test that the SignalConnector detects whether a signal handler is already attached."""
-    with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
+    with mock.patch("lightning.pytorch.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
         assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return
+
+
+def test_sigterm_notifier_fn():
+    trainer = Mock()
+    launcher = Mock()
+    trainer.strategy.launcher = launcher
+    connector = SignalConnector(trainer)
+
+    assert not connector.received_sigterm
+    connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
+    launcher.kill.assert_called_once_with(15)
+    assert connector.received_sigterm
+    launcher.reset_mock()
+    connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
+    launcher.kill.assert_not_called()

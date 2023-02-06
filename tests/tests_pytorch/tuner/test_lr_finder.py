@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,25 +20,26 @@ import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.tuner.lr_finder import _LRFinder
-from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.tuner.lr_finder import _LRFinder
+from lightning.pytorch.tuner.tuning import Tuner
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.helpers.utils import getattr_recursive
 
 
-def test_error_on_more_than_1_optimizer(tmpdir):
+def test_error_with_multiple_optimizers(tmpdir):
     """Check that error is thrown when more than 1 optimizer is passed."""
 
     class CustomBoringModel(BoringModel):
         def __init__(self, lr):
             super().__init__()
             self.save_hyperparameters()
+            self.automatic_optimization = False
 
         def configure_optimizers(self):
             optimizer1 = torch.optim.SGD(self.parameters(), lr=self.hparams.lr)
@@ -47,7 +48,6 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
     model = CustomBoringModel(lr=1e-2)
 
-    # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     tuner = Tuner(trainer)
 

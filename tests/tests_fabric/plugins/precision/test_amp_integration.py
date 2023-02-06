@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import torch.nn as nn
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric import Fabric, seed_everything
+from lightning.fabric import Fabric, seed_everything
 
 
 class MixedPrecisionModule(nn.Module):

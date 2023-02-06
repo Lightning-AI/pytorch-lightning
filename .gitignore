@@ -49,9 +49,16 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning/app/
-src/lightning/fabric/
-src/lightning/pytorch/
+src/lightning_app/
+src/lightning_fabric/
+src/pytorch_lightning/
+!src/*/__about__.py
+!src/*/__main__.py
+!src/*/__setup__.py
+!src/*/__version__.py
+!src/*/MANIFEST.in
+!src/*/py.typed
+!src/*/README.md
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -166,6 +173,7 @@ cifar-10-batches-py
 tags
 .tags
 src/lightning_app/ui/*
+src/lightning/app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*

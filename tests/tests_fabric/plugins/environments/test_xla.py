@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ import pytest
 import torch
 from tests_fabric.helpers.runif import RunIf
 
-import lightning_fabric
-from lightning_fabric.plugins.environments import XLAEnvironment
+import lightning.fabric
+from lightning.fabric.plugins.environments import XLAEnvironment
 
 
 @RunIf(tpu=True)
@@ -72,8 +72,8 @@ def test_attributes_from_environment_variables():
 
 def test_detect(monkeypatch):
     """Test the detection of a xla environment configuration."""
-    monkeypatch.setattr(lightning_fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: False)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: False)
     assert not XLAEnvironment.detect()
 
-    monkeypatch.setattr(lightning_fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
     assert XLAEnvironment.detect()

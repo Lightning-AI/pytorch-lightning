@@ -180,9 +180,17 @@ Choose from the following options based on your expertise level and available in
 
 .. displayitem::
     :header: Bare Bones Cluster
-    :description: Train across machines on a network.
+    :description: Train across machines on a network using `torchrun`.
     :col_css: col-md-4
     :button_link: ../guide/multi_node/barebones.html
+    :height: 160
+    :tag: advanced
+
+.. displayitem::
+    :header: Other Cluster Environments
+    :description: MPI, LSF, Kubeflow
+    :col_css: col-md-4
+    :button_link: ../guide/multi_node/other.html
     :height: 160
     :tag: advanced
 

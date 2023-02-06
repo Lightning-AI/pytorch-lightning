@@ -1,7 +1,7 @@
 import pytest
 
-from lightning_app import CloudCompute
-from lightning_app.storage import Mount
+from lightning.app import CloudCompute
+from lightning.app.storage import Mount
 
 
 def test_cloud_compute_names():

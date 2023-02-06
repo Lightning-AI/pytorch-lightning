@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from lightning_fabric.loggers import CSVLogger
-from lightning_fabric.loggers.csv_logs import _ExperimentWriter
+from lightning.fabric.loggers import CSVLogger
+from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 
 
 def test_file_logger_automatic_versioning(tmpdir):
