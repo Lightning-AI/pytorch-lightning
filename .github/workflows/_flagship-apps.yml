@@ -90,8 +90,6 @@ jobs:
 
       - name: Install Lightning package
         run: pip install -e .[cloud,test] -f $TORCH_URL
-      - name: List pip dependency
-        run: pip --version && pip list
 
       - name: Install Repo
         run: pip install -e ./tests/_flagship_app
@@ -99,6 +97,9 @@ jobs:
       - name: Install Flagship Test Requirements
         run: pip install -r ./tests/_flagship_app/${{ matrix.requirements-txt }}
         if: ${{ matrix.requirements.txt }}
+
+      - name: List pip dependency
+        run: pip --version && pip list
 
       - name: Run the tests
         working-directory: tests/
