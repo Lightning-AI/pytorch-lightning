@@ -60,7 +60,7 @@ def test_sync_batchnorm_parity(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
-        strategy="ddp",
+        strategy="ddp_find_unused_parameters_true",
         devices=2,
         max_steps=3,
         sync_batchnorm=True,

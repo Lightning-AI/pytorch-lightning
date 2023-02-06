@@ -43,7 +43,7 @@ Here are some examples:
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with the DistributedDataParallel strategy on 4 GPUs, with options configured
-    trainer = Trainer(strategy=DDPStrategy(find_unused_parameters=False), accelerator="gpu", devices=4)
+    trainer = Trainer(strategy=DDPStrategy(static_graph=True), accelerator="gpu", devices=4)
 
     # Training with the DDP Spawn strategy using auto accelerator selection
     trainer = Trainer(strategy="ddp_spawn", accelerator="auto", devices=4)

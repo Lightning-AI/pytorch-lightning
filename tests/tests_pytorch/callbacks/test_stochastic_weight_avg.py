@@ -295,7 +295,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         "default_root_dir": tmpdir,
         "max_epochs": 5,
         "accelerator": "cpu",
-        "strategy": "ddp_spawn_find_unused_parameters_false" if ddp else None,
+        "strategy": "ddp_spawn" if ddp else None,
         "devices": 2 if ddp else 1,
         "limit_train_batches": 5,
         "limit_val_batches": 0,
