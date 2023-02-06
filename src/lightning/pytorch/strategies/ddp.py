@@ -374,7 +374,7 @@ class DDPStrategy(ParallelStrategy):
             new_message=(
                 "It looks like your LightningModule has parameters that were not used in producing the loss returned"
                 " by training_step. If this is intentional, you must enable the detection of unused parameters in DDP,"
-                " either by setting the string value `strategy='ddp_find_unused_parameters_true'"
+                " either by setting the string value `strategy='ddp_find_unused_parameters_true'`"
                 " or by setting the flag in the strategy with `strategy=DDPStrategy(find_unused_parameters=True)`."
             ),
         )
