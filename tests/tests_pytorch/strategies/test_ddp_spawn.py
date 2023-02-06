@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import tests_pytorch.helpers.pipelines as tpipes
-import torch
 from torch.multiprocessing import ProcessRaisedException
 
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer import Trainer
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
-
 from tests_pytorch.strategies.test_ddp_strategy import UnusedParametersModel
 
 
@@ -82,10 +80,11 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
 
 def test_ddp_spawn_find_unused_parameters_exception():
-    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
+    users."""
     # TODO: Update default
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn_find_unused_parameters_false", max_steps=2)
     with pytest.raises(
-            ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"
+        ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"
     ):
         trainer.fit(UnusedParametersModel())
