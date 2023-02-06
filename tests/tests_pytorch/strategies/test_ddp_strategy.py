@@ -276,3 +276,14 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     # Assert model parameters are identical after loading
     for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
+
+
+def test_ddp_strategy_find_unused_parameters_exception():
+    class Model(BoringModel):
+        def training_step(self, batch, batch_idx: int):
+            raise RuntimeError("Expected to have finished reduction in the prior iteration before starting a new one.")
+
+    # TODO: Update default
+    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_find_unused_parameters_false", max_steps=1)
+    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
+        trainer.fit(Model())
