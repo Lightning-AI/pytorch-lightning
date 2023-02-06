@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a `kill` method to launchers to kill all launched processes ([#16525](https://github.com/Lightning-AI/lightning/pull/16525))
 
+- Added suffix option to DDP strategy names to enable `find_unused_parameters=True`, for example `strategy="ddp_find_unused_parameters_true"` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
+
+
 ### Changed
 
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
@@ -47,6 +50,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Manual optimization is now required for working with multiple optimizers ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
+
+- DDP's `find_unused_parameters` now defaults to `False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
+
+- The strategy selected by `accelerator="hpu"` now defaults to `find_unused_parameters=False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
 
 
 ### Deprecated
