@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.argparse import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.utilities.argparse import (
     _devices_allowed_type,
     _get_abbrev_qualified_cls_name,
     _int_or_float_type,
@@ -104,7 +104,7 @@ def test_get_abbrev_qualified_cls_name():
     class NestedClass:
         pass
 
-    assert not __name__.startswith("pytorch_lightning.")
+    assert not __name__.startswith("lightning.pytorch.")
     expected_name = f"{__name__}.test_get_abbrev_qualified_cls_name.<locals>.NestedClass"
     assert _get_abbrev_qualified_cls_name(NestedClass) == expected_name
 

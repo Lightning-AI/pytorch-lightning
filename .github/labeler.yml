@@ -9,7 +9,8 @@ app:
   - 'requirements/app/**'
 
 pl:
-  - 'src/pytorch_lightning/**'
+  - "src/lightning/pytorch/**"
+  - "src/pytorch_lightning/*"
   - 'tests/tests_pytorch/**'
   - 'tests/legacy/**'
   - 'examples/pl_*/**'
@@ -17,7 +18,8 @@ pl:
   - 'requirements/pytorch/**'
 
 fabric:
-  - 'src/lightning_fabric/**'
+  - 'src/lightning/fabric/**'
+  - 'src/lightning_fabric/*'
   - 'tests/tests_fabric/**'
   - 'examples/fabric/**'
   - 'docs/source-fabric/**'

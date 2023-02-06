@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import StochasticWeightAveraging
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.strategies import DDPSpawnStrategy, Strategy
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -295,7 +295,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         "default_root_dir": tmpdir,
         "max_epochs": 5,
         "accelerator": "cpu",
-        "strategy": "ddp_spawn_find_unused_parameters_false" if ddp else None,
+        "strategy": "ddp_spawn" if ddp else None,
         "devices": 2 if ddp else 1,
         "limit_train_batches": 5,
         "limit_val_batches": 0,

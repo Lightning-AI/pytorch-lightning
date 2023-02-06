@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,13 +55,14 @@ RUN apt-get update -qq --fix-missing && \
 ENV \
     PATH="/root/miniconda3/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
+
 COPY environment.yml environment.yml
 
 RUN conda create -y --name $CONDA_ENV && \
     conda init bash && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    # drop unnecessary packages
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>'])])" && \
+    # drop unnecessary packages and channels
+    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'nvidia', 'torchvision'])])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
     conda clean -ya && \
@@ -89,10 +90,10 @@ RUN \
     pip install mkl==2021.4.0 && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
-      python ./requirements/pytorch/adjust-versions.py $fpath ${XLA_VERSION}; \
+      python requirements/pytorch/adjust-versions.py $fpath ${XLA_VERSION}; \
     done && \
     # install PL dependencies
-    pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
+    pip install --requirement requirements/pytorch/devel.txt && \
     # Install PyTorch XLA
     py_version=${PYTHON_VERSION/./} && \
     pip install "https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}-linux_x86_64.whl" && \
@@ -100,10 +101,8 @@ RUN \
     rm -rf lightning && \
     rm -rf /root/.cache \
 
-
 RUN \
     # Show what we have
-    pip --version && \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,14 +25,14 @@ import pytest
 import torch
 from torch import Tensor
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loops.dataloader import _EvaluationLoop
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loops.dataloader import _EvaluationLoop
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -502,7 +502,7 @@ def test_log_works_in_test_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     """This tests make sure we properly log_metrics to loggers."""
 
@@ -725,7 +725,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
@@ -840,7 +840,7 @@ expected4 = ""
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
@@ -852,7 +852,7 @@ def test_native_print_results(monkeypatch, inputs, expected):
 
 @pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
 def test_native_print_results_encodings(monkeypatch, encoding):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
@@ -942,7 +942,7 @@ def test_rich_print_results(inputs, expected):
     assert capture.get() == expected.lstrip()
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 @pytest.mark.parametrize("num_dataloaders", (1, 2))
 def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""

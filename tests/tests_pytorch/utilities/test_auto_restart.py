@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@ import inspect
 import pytest
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_fabric.utilities.seed import seed_everything
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import OnExceptionCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.exceptions import SIGTERMException
+from lightning.fabric.utilities.seed import seed_everything
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import OnExceptionCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
 
 

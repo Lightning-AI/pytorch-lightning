@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -269,14 +269,24 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
     ...     "lightning_app and pytorch_lightning are ours",
     ...     "def _lightning_app():",
     ...     ":class:`~lightning_app.core.flow.LightningFlow`",
+    ...     "http://pytorch_lightning.ai",
     ...     "from lightning import __version__",
     ...     "@lightning.ai"
     ... ]
     >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
     >>> _replace_imports(lns, mapping, lightning_by="lightning_fabric")  # doctest: +NORMALIZE_WHITESPACE
-    ['"lightning.app"', 'lightning.app', 'lightning_app/', 'delete_cloud_lightning_apps', 'from lightning.app import', \
-     'lightning_apps = []', 'lightning.app and lightning.pytorch are ours', 'def _lightning_app():', \
-     ':class:`~lightning.app.core.flow.LightningFlow`', 'from lightning_fabric import __version__', '@lightning.ai']
+    ['"lightning.app"', \
+     'lightning.app', \
+     'lightning_app/', \
+     'delete_cloud_lightning_apps', \
+     'from lightning.app import', \
+     'lightning_apps = []', \
+     'lightning.app and lightning.pytorch are ours', \
+     'def _lightning_app():', \
+     ':class:`~lightning.app.core.flow.LightningFlow`', \
+     'http://pytorch_lightning.ai', \
+     'from lightning_fabric import __version__', \
+     '@lightning.ai']
     """
     out = lines[:]
     for source_import, target_import in mapping:
@@ -333,31 +343,20 @@ def copy_replace_imports(
             fo.writelines(lines)
 
 
-def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reverse: Sequence[str]) -> None:
+def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
     # replace imports and copy the code
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
 
     mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
-    source_imports = mapping.values()
-    target_imports = mapping.keys()
-
-    for pkg_to, pkg_from in mapping.items():
-        if pkg_to.split(".")[-1] in reverse:
-            source_imports_, target_imports_ = target_imports, source_imports
-            pkg_to, pkg_from = pkg_from, pkg_to
-            lightning_by = pkg_from
-        else:
-            source_imports_, target_imports_ = source_imports, target_imports
-            lightning_by = ""
-
+    for pkg_from, pkg_to in mapping.items():
         copy_replace_imports(
             source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=source_imports_,
-            target_imports=target_imports_,
+            source_imports=mapping.keys(),
+            target_imports=mapping.values(),
             target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
-            lightning_by=lightning_by,
+            lightning_by=pkg_from,
         )
 
 

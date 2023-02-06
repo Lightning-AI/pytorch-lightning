@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 

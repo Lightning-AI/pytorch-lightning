@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@ import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from pytorch_lightning.trainer.states import TrainerFn
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -155,16 +155,25 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
         pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
         pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
         ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_spawn_find_unused_parameters_true", {"find_unused_parameters": True}),
         pytest.param(
             "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_true", {"find_unused_parameters": True}, marks=RunIf(skip_windows=True)
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             {"find_unused_parameters": False},
             marks=RunIf(skip_windows=True),
         ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_true",
+            {"find_unused_parameters": True},
+            marks=RunIf(skip_windows=True),
+        ),
     ],
 )
-def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_0):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

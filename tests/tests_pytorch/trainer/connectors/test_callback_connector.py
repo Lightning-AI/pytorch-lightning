@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.callbacks import (
+from lightning.pytorch import Callback, LightningModule, Trainer
+from lightning.pytorch.callbacks import (
     EarlyStopping,
     GradientAccumulationScheduler,
     LearningRateMonitor,
@@ -29,10 +29,10 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
-from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):

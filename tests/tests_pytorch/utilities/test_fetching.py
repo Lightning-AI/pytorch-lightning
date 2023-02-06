@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.profilers import SimpleProfiler
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from lightning.pytorch import LightningDataModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.profilers import SimpleProfiler
+from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
 

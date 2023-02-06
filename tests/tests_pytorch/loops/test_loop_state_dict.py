@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-from pytorch_lightning.loops import _FitLoop
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch.loops import _FitLoop
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 def test_loops_state_dict():
@@ -49,13 +49,13 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.manual_loop.state_dict": {},
-            "epoch_loop.manual_loop.optim_step_progress": {
+            "epoch_loop.manual_optimization.state_dict": {},
+            "epoch_loop.manual_optimization.optim_step_progress": {
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.optimizer_loop.state_dict": {},
-            "epoch_loop.optimizer_loop.optim_progress": {
+            "epoch_loop.automatic_optimization.state_dict": {},
+            "epoch_loop.automatic_optimization.optim_progress": {
                 "optimizer": {
                     "step": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
                     "zero_grad": {
@@ -63,7 +63,6 @@ def test_loops_state_dict_structure():
                         "current": {"ready": 0, "started": 0, "completed": 0},
                     },
                 },
-                "optimizer_position": 0,
             },
             "epoch_loop.val_loop.state_dict": {},
             "epoch_loop.val_loop.dataloader_progress": {

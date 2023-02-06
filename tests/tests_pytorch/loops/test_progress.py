@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ from copy import deepcopy
 
 import pytest
 
-from pytorch_lightning.loops.progress import (
+from lightning.pytorch.loops.progress import (
     BaseProgress,
     OptimizerProgress,
     ProcessedTracker,

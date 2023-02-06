@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,8 +70,6 @@ max-complexity = 10
 files = [
     "src/lightning",
     "src/pytorch_lightning",
-    "src/lightning_fabric",
-    "src/lightning_app",
 ]
 # This section is for folders with "-" as they are not valid python modules
 exclude = [
@@ -87,7 +85,7 @@ ignore_missing_imports = "True"
 show_error_codes = "True"
 warn_redundant_casts = "True"
 warn_unused_configs = "True"
-warn_unused_ignores = "True"
+warn_unused_ignores = "False"  # TODO: set to True when all mirror packages will be reversed
 allow_redefinition = "True"
 # disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
 disable_error_code = "attr-defined"
@@ -110,6 +108,10 @@ module = [
     "lightning.app.cli.commands.connection",
     "lightning.app.cli.commands.lightning_cli",
     "lightning.app.cli.commands.cmd_install",
+    "lightning.app.cli.commands.pwd",
+    "lightning.app.cli.commands.ls",
+    "lightning.app.cli.commands.cp",
+    "lightning.app.cli.commands.cd",
     "lightning.app.cli.cmd_install",
     "lightning.app.components.database.client",
     "lightning.app.components.database.server",
@@ -152,6 +154,7 @@ module = [
     "lightning.app.source_code.tar",
     "lightning.app.source_code.uploader",
     "lightning.app.storage.copier",
+    "lightning.app.storage.filesystem",
     "lightning.app.storage.drive",
     "lightning.app.storage.orchestrator",
     "lightning.app.storage.path",

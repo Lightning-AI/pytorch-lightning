@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import CheckpointIO
-from pytorch_lightning.strategies import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.plugins import CheckpointIO
+from lightning.pytorch.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -84,9 +84,19 @@ def test_fsdp_strategy_registry(cuda_count_1):
             {"find_unused_parameters": False},
         ),
         (
+            "ddp_find_unused_parameters_true",
+            DDPStrategy,
+            {"find_unused_parameters": True},
+        ),
+        (
             "ddp_spawn_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "spawn"},
+        ),
+        (
+            "ddp_spawn_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "spawn"},
         ),
         pytest.param(
             "ddp_fork_find_unused_parameters_false",
@@ -95,14 +105,28 @@ def test_fsdp_strategy_registry(cuda_count_1):
             marks=RunIf(skip_windows=True),
         ),
         pytest.param(
+            "ddp_fork_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
     ],
 )
-def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy, expected_init_params):
+def test_ddp_find_unused_parameters_strategy_registry(
+    tmpdir, strategy_name, strategy, expected_init_params, mps_count_0
+):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
     assert isinstance(trainer.strategy, strategy)
     assert strategy_name in StrategyRegistry

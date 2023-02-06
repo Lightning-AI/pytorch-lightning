@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,20 +15,20 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
-from pytorch_lightning.utilities import find_shared_parameters
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
+from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
+from lightning.pytorch.strategies import DDPStrategy, TPUSpawnStrategy
+from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
@@ -268,14 +268,20 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 
 
 @RunIf(tpu=True)
-@patch("torch_xla.distributed.parallel_loader.MpDeviceLoader")
-@patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
-def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
+@patch("pytorch.lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
+def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
+    import torch_xla.distributed.parallel_loader as parallel_loader
+
+    mp_loader_mock = Mock()
+    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
+
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
-    processed_dataloader = TPUSpawnStrategy().process_dataloader(dataloader)
-    mp_loader_mock.assert_called_with(dataloader, root_device_mock)
+    strategy = TPUSpawnStrategy()
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
+    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
 def test_warning_if_tpus_not_used(tpu_available):
