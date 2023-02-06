@@ -43,10 +43,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {app: "flashy", repo: "Lightning-Universe/Flashy-app", requirements-txt: ''}
-          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy", requirements-txt: ''}
-          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component", requirements-txt: ''}
-          - {app: "tldr", repo: "Lightning-Universe/TLDR-component", requirements-txt: 'tests/requirements.txt'}
+          - {app: "flashy", repo: "Lightning-Universe/Flashy-app", requirements: ''}
+          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy", requirements: ''}
+          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component", requirements: ''}
+          - {app: "tldr", repo: "Lightning-Universe/TLDR-component", requirements: 'tests/requirements.txt'}
 
           # TODO:
           # - Training Studio
@@ -95,8 +95,8 @@ jobs:
         run: pip install -e ./tests/_flagship_app
 
       - name: Install Flagship Test Requirements
-        run: pip install -r ./tests/_flagship_app/${{ matrix.requirements-txt }}
-        if: ${{ matrix.requirements.txt }}
+        run: pip install -r ./tests/_flagship_app/${{ matrix.requirements }}
+        if: ${{ matrix.requirements }}
 
       - name: List pip dependency
         run: pip --version && pip list
