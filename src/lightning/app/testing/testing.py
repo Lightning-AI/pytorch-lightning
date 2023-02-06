@@ -230,7 +230,7 @@ def _fetch_app_by_name(client, project_id, name):
     lit_apps = [
         app
         for app in client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
-        if app.name == name
+        if app.name == name or getattr(app, "display_name", None) == name
     ]
     if not len(lit_apps) == 1:
         raise ValueError(f"Expected to find just one app, found {len(lit_apps)}")
