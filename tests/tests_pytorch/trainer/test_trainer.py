@@ -2181,6 +2181,7 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
 
 
 def test_trainer_calls_strategy_on_exception():
+    """Test that when an exception occurs, the Trainer lets the strategy process it."""
     exception = RuntimeError("Test exception")
 
     class ExceptionModel(BoringModel):
