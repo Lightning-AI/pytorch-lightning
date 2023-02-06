@@ -44,7 +44,6 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.distributed import register_ddp_comm_hook
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
-from pytorch.utilities.exceptions import _replace_message
 
 log = logging.getLogger(__name__)
 
@@ -335,9 +334,11 @@ class DDPSpawnStrategy(ParallelStrategy):
             )
 
     def on_exception(self, exception: BaseException) -> None:
+        from pytorch.utilities.exceptions import _replace_message
+
         _replace_message(
             exception,
-            match_message="RuntimeError: Expected to have finished reduction in the prior iteration",
+            pattern=".*Expected to have finished reduction in the prior iteration.*",
             new_message=(
                 "It looks like your LightningModule has parameters that were not used in producing the loss returned"
                 " by training_step. If this is intentional, you must enable the detection of unused parameters in DDP,"

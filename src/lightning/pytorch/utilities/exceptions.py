@@ -31,6 +31,6 @@ class _TunerExitException(Exception):
     """Exception used to exit early while tuning."""
 
 
-def _replace_message(exception: BaseException, match_message: str, new_message: str) -> None:
-    if len(exception.args) == 1 and re.match(match_message, exception.args[0]):
+def _replace_message(exception: BaseException, pattern: str, new_message: str) -> None:
+    if len(exception.args) == 1 and re.match(pattern, exception.args[0], re.DOTALL):
         exception.args = (new_message,)
