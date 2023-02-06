@@ -81,7 +81,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: ${{ matrix.repo }}
-          path: tests/_flagship_app
+          path: tests/_flagship-app
 
       - name: Adjust env. for this App
         uses: ./.github/actions/prep-apps
@@ -92,10 +92,10 @@ jobs:
         run: pip install -e .[cloud,test] -f $TORCH_URL
 
       - name: Install Repo
-        run: pip install -e ./tests/_flagship_app
+        run: pip install -e ./tests/_flagship-app
 
       - name: Install Flagship Test Requirements
-        run: pip install -r ./tests/_flagship_app/${{ matrix.requirements }}
+        run: pip install -r ./tests/_flagship-app/${{ matrix.requirements }}
         if: ${{ matrix.requirements }}
 
       - name: List pip dependency
@@ -111,7 +111,7 @@ jobs:
           LAI_USER: ${{ secrets.LAI_SSH_USER }}
           LAI_PASS: ${{ secrets.LAI_SSH_PASS }}
         run: |
-          ls -l _flagship_app
+          ls -l _flagship-app
           python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
             --capture=no -v --color=yes
 
