@@ -43,9 +43,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {app: "flashy", repo: "Lightning-Universe/Flashy-app"}
-          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy"}
-          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component"}
+          - {app: "flashy", repo: "Lightning-Universe/Flashy-app", requirements-txt: ''}
+          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy", requirements-txt: ''}
+          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component", requirements-txt: ''}
+          - {app: "tldr", repo: "Lightning-Universe/TLDR-component", requirements-txt: 'tests/requirements.txt'}
 
           # TODO:
           # - Training Studio
@@ -80,7 +81,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: ${{ matrix.repo }}
-          path: tests/_flagship-app
+          path: tests/_flagship_app
 
       - name: Adjust env. for this App
         uses: ./.github/actions/prep-apps
@@ -91,6 +92,13 @@ jobs:
         run: pip install -e .[cloud,test] -f $TORCH_URL
       - name: List pip dependency
         run: pip --version && pip list
+
+      - name: Install Repo
+        run: pip install -e ./tests/_flagship_app
+
+      - name: Install Flagship Test Requirements
+        run: pip install -r ./tests/_flagship_app/${{ matrix.requirements-txt }}
+        if: ${{ matrix.requirements.txt }}
 
       - name: Run the tests
         working-directory: tests/
