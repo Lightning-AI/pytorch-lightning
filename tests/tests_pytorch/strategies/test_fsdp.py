@@ -9,12 +9,12 @@ import torch
 import torch.nn as nn
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
-from pytorch_lightning.strategies import FSDPStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+from lightning.pytorch.strategies import FSDPStrategy
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
@@ -288,7 +288,7 @@ def test_invalid_parameters_in_optimizer():
 
 
 @RunIf(min_torch="1.12")
-@mock.patch("pytorch_lightning.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
+@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
 def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
     with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):
@@ -322,7 +322,7 @@ def test_fsdp_activation_checkpointing():
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch("pytorch_lightning.strategies.fsdp.FullyShardedDataParallel") as fsdp_mock, mock.patch(
+    with mock.patch("lightning.pytorch.strategies.fsdp.FullyShardedDataParallel") as fsdp_mock, mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
     ) as ckpt_mock:
         strategy._setup_model(model)

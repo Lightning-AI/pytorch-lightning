@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -167,9 +167,6 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         """Clip gradients by norm."""
         parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something when ``Strategy.dispatch()`` gets called."""
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator[None, None, None]:

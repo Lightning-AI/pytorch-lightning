@@ -40,9 +40,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/pytorch/base.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        key: pip-${{ hashFiles('requirements/pytorch/base.txt') }}
+        restore-keys: pip-
+        enableCrossOsArchive: true
 
     - name: Install dependencies
       run: |

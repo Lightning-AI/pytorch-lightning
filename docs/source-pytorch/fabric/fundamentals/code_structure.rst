@@ -126,8 +126,8 @@ Here is how the code would be structured if we did that periodically during trai
         # Run training loop with validation
         train(fabric, model, optimizer, train_dataloader, val_dataloader)
 
-        # Test on unseed data
-        train(fabric, model, test_dataloader)
+        # Test on unseen data
+        test(fabric, model, test_dataloader)
 
 
     if __name__ == "__main__":

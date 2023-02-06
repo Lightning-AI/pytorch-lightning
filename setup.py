@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,8 +57,6 @@ _PACKAGE_MAPPING = {
     "app": "lightning_app",
     "fabric": "lightning_fabric",
 }
-# TODO: drop this reverse list when all packages are moved
-_MIRROR_PACKAGE_REVERSED = ("app", "fabric", "pytorch")
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
@@ -143,8 +141,9 @@ if __name__ == "__main__":
         if package_to_install == "lightning":
             # merge all requirements files
             assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        # replace imports and copy the code
-        assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING, reverse=_MIRROR_PACKAGE_REVERSED)
+        else:
+            # replace imports and copy the code
+            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     else:
         assert len(local_pkgs) > 0
         # PL as a package is distributed together with Fabric, so in such case there are more than one candidate

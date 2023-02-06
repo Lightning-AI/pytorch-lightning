@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,10 +41,8 @@ else:
     _IPU_AVAILABLE = False
 
 if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
+    from habana_frameworks.torch.utils.library_loader import is_habana_available
 
-    _HPU_AVAILABLE = is_habana_avaialble()
-    if _HPU_AVAILABLE:
-        _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
+    _HPU_AVAILABLE = is_habana_available()
 else:
     _HPU_AVAILABLE = False

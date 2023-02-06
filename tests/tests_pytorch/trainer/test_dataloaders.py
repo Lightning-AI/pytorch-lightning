@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,18 +24,18 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
-from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import (
+from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import (
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.data import has_len_all_ranks
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -47,9 +47,6 @@ class MultiValDataLoaderBoringModel(BoringModel):
     def validation_step(self, batch, batch_idx, dataloader_idx):
         return super().validation_step(batch, batch_idx)
 
-    def validation_epoch_end(self, *args, **kwargs):
-        pass
-
 
 class MultiTestDataLoaderBoringModel(BoringModel):
     def test_dataloader(self):
@@ -57,9 +54,6 @@ class MultiTestDataLoaderBoringModel(BoringModel):
 
     def test_step(self, batch, batch_idx, dataloader_idx):
         return super().test_step(batch, batch_idx)
-
-    def test_epoch_end(self, *args, **kwargs):
-        pass
 
 
 class MultiEvalDataLoaderModel(MultiValDataLoaderBoringModel, MultiTestDataLoaderBoringModel):
@@ -75,10 +69,8 @@ def test_fit_train_loader_only(tmpdir):
     model.test_dataloader = None
 
     model.validation_step = None
-    model.validation_epoch_end = None
 
     model.test_step = None
-    model.test_epoch_end = None
 
     trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir)
     trainer.fit(model, train_dataloaders=train_dataloader)
@@ -94,7 +86,6 @@ def test_fit_val_loader_only(tmpdir):
     model.test_dataloader = None
 
     model.test_step = None
-    model.test_epoch_end = None
 
     trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir)
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
@@ -208,7 +199,7 @@ class DummyModel(BoringModel):
         self.log("loss", self.global_step)
         return super().training_step(batch, batch_idx)
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         self.log("val_log", self.current_epoch)
 
 
@@ -543,7 +534,7 @@ def test_warning_on_zero_len_dataloader(tmpdir):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
-@patch("pytorch_lightning.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
 
@@ -573,7 +564,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
-@patch("pytorch_lightning.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
 
@@ -657,7 +648,7 @@ class MultiProcessModel(BoringModel):
     def training_step(self, batch, batch_idx):
         self.batches_seen.append(batch)
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         world_size = 2
         num_samples = NumpyRandomDataset.size
         all_batches = torch.cat(self.batches_seen)
@@ -1050,9 +1041,8 @@ def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
             val_reload_epochs.append(self.current_epoch)
             return super().val_dataloader()
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             val_check_epochs.append(self.current_epoch)
-            return super().validation_epoch_end(outputs)
 
     model = TestModel()
 
@@ -1273,17 +1263,6 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
         def predict(self, batch, batch_idx, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().predict(batch, batch_idx, dataloader_idx)
-
-        def assert_epoch_end_outputs(self, outputs, mode):
-            assert len(outputs) == 2
-            assert all(f"{mode}_loss_0" in x for x in outputs[0])
-            assert all(f"{mode}_loss_1" in x for x in outputs[1])
-
-        def validation_epoch_end(self, outputs):
-            self.assert_epoch_end_outputs(outputs, mode="val")
-
-        def test_epoch_end(self, outputs):
-            self.assert_epoch_end_outputs(outputs, mode="test")
 
         def train_dataloader(self):
             return {"a": DataLoader(RandomDataset(32, 64)), "b": DataLoader(RandomDataset(32, 64))}

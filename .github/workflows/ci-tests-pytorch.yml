@@ -43,28 +43,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           # only run PyTorch latest with Python latest
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           # run test under SLOW label
-          - {type: "slow", os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
-          - {type: "slow", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
-          - {type: "slow", os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
-          # "lightning" installs the monolithic package
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {type: "slow", os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {type: "slow", os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {type: "slow", os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          # "pytorch" installs the standalone package
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
 
     timeout-minutes: 70
 
@@ -106,9 +106,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
+        key: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
+        enableCrossOsArchive: true
 
     - name: Env. variables
       run: |
@@ -142,19 +142,12 @@ jobs:
         python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
         python requirements/pytorch/check-avail-extras.py
 
-    - name: Adjust tests -> Lit
-      if: ${{ matrix.pkg-name == 'lightning' }}
-      run: |
-        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="pytorch_lightning" \
-          --target_import="lightning.pytorch"
-
     - name: Adjust tests -> PL
       if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="lightning.fabric" \
-          --target_import="lightning_fabric"
+          --source_import="lightning.fabric,lightning.pytorch" \
+          --target_import="lightning_fabric,pytorch_lightning"
 
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
@@ -165,7 +158,7 @@ jobs:
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
-        python -m coverage run --source ${COVERAGE_SCOPE} \
+        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest . -v \
           --timeout=${TEST_TIMEOUT} --durations=50 \
           --reruns 3 --reruns-delay 1 \
@@ -192,6 +185,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
+        flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

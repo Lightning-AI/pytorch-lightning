@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@ from unittest.mock import ANY, MagicMock
 import pytest
 import torch
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.utilities.migration import migrate_checkpoint
-from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.utilities.migration import migrate_checkpoint
+from lightning.pytorch.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 
 
 @pytest.mark.parametrize(
@@ -186,10 +186,10 @@ def test_migrate_loop_structure_after_tbptt_removal():
     assert updated_checkpoint["loops"] == {
         "fit_loop": {
             "epoch_loop.state_dict": {"any": "state", "old_batch_loop_state_dict": old_batch_loop_state},
-            "epoch_loop.optimizer_loop.state_dict": state_automatic,
-            "epoch_loop.optimizer_loop.optim_progress": optim_progress_automatic,
-            "epoch_loop.manual_loop.state_dict": state_manual,
-            "epoch_loop.manual_loop.optim_step_progress": optim_progress_manual,
+            "epoch_loop.automatic_optimization.state_dict": state_automatic,
+            "epoch_loop.automatic_optimization.optim_progress": optim_progress_automatic,
+            "epoch_loop.manual_optimization.state_dict": state_manual,
+            "epoch_loop.manual_optimization.optim_step_progress": optim_progress_manual,
         }
     }
 
@@ -198,10 +198,12 @@ def test_migrate_loop_structure_after_optimizer_loop_removal():
     """Test the loop state migration after multiple optimizer support in automatic optimization was removed in
     2.0.0."""
     state_automatic = MagicMock()
+    state_manual = MagicMock()
     optim_progress_automatic = {
         "optimizer": MagicMock(),
         "optimizer_position": 33,
     }
+    optim_progress_manual = MagicMock()
     old_checkpoint = {
         "loops": {
             "fit_loop": {
@@ -209,6 +211,8 @@ def test_migrate_loop_structure_after_optimizer_loop_removal():
                 "epoch_loop.batch_loop.state_dict": MagicMock(),
                 "epoch_loop.batch_loop.optimizer_loop.state_dict": state_automatic,
                 "epoch_loop.batch_loop.optimizer_loop.optim_progress": optim_progress_automatic,
+                "epoch_loop.batch_loop.manual_loop.state_dict": state_manual,
+                "epoch_loop.batch_loop.manual_loop.optim_step_progress": optim_progress_manual,
             }
         }
     }
@@ -217,8 +221,9 @@ def test_migrate_loop_structure_after_optimizer_loop_removal():
     assert updated_checkpoint["loops"] == {
         "fit_loop": {
             "epoch_loop.state_dict": ANY,
-            "epoch_loop.optimizer_loop.state_dict": state_automatic,
-            # optimizer_position gets dropped:
-            "epoch_loop.optimizer_loop.optim_progress": {"optimizer": ANY},
+            "epoch_loop.automatic_optimization.state_dict": state_automatic,
+            "epoch_loop.automatic_optimization.optim_progress": {"optimizer": ANY},  # optimizer_position gets dropped
+            "epoch_loop.manual_optimization.state_dict": state_manual,
+            "epoch_loop.manual_optimization.optim_step_progress": optim_progress_manual,
         }
     }

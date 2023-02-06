@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -96,7 +96,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
             self.log("my_loss", batch_idx * (1 + local_rank), on_epoch=True)
             return super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs) -> None:
+        def on_train_epoch_end(self):
             local_rank = int(os.getenv("LOCAL_RANK"))
             if self.trainer.is_global_zero:
                 self.log("my_loss_2", (1 + local_rank), on_epoch=True, rank_zero_only=True)

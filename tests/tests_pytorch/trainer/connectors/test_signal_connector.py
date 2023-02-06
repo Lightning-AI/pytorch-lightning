@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import pytest
 
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.exceptions import SIGTERMException
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -97,8 +97,8 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call")
-@mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12345"})
 def test_auto_requeue_job(call_mock):
     call_mock.return_value = 0
@@ -109,8 +109,8 @@ def test_auto_requeue_job(call_mock):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call")
-@mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12346", "SLURM_ARRAY_JOB_ID": "12345", "SLURM_ARRAY_TASK_ID": "2"})
 def test_auto_requeue_array_job(call_mock):
     call_mock.return_value = 0
@@ -153,7 +153,7 @@ class SignalHandlers:
 )
 def test_has_already_handler(handler, expected_return):
     """Test that the SignalConnector detects whether a signal handler is already attached."""
-    with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
+    with mock.patch("lightning.pytorch.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
         assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return
 
 

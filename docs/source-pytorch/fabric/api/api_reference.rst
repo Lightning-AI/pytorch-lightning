@@ -89,6 +89,7 @@ Environments
     ~kubeflow.KubeflowEnvironment
     ~lightning.LightningEnvironment
     ~lsf.LSFEnvironment
+    ~mpi.MPIEnvironment
     ~slurm.SLURMEnvironment
     ~torchelastic.TorchElasticEnvironment
     ~xla.XLAEnvironment

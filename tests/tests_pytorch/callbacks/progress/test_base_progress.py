@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 def test_main_progress_bar_with_val_check_interval_int():

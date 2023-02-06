@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,14 +25,14 @@ from torch import nn, Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
-from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
+from lightning.pytorch.strategies import DeepSpeedStrategy
+from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -194,7 +194,7 @@ def test_warn_deepspeed_ignored(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    from pytorch_lightning.plugins.precision.deepspeed import warning_cache
+    from lightning.pytorch.plugins.precision.deepspeed import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
@@ -207,7 +207,7 @@ def test_warn_deepspeed_ignored(tmpdir):
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
-@mock.patch("pytorch_lightning.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
+@mock.patch("lightning.pytorch.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
 def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, mock_log_dir, tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
@@ -644,7 +644,6 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
 def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config):
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModelManualOptim()
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy=DeepSpeedStrategy(stage=3),
