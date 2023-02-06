@@ -140,7 +140,7 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
             if not name.startswith("__"):
                 delattr(torch.distributed, name)
 
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+        torch.distributed.is_available = lambda: False
 
         import lightning.pytorch
         """
