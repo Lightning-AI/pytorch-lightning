@@ -15,7 +15,7 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
@@ -272,7 +272,12 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     import torch_xla.distributed.parallel_loader as parallel_loader
 
-    mp_loader_mock = Mock(autospec=parallel_loader.MpDeviceLoader)
+    class MpDeviceLoaderMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make `isinstance(dataloader, MpDeviceLoader)` pass with a mock as class
+            return True
+
+    mp_loader_mock = MpDeviceLoaderMock()
     monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
 
     dataset = RandomDataset(32, 64)
