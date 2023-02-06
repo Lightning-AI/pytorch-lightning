@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
@@ -27,3 +29,8 @@ class SIGTERMException(SystemExit):
 
 class _TunerExitException(Exception):
     """Exception used to exit early while tuning."""
+
+
+def _replace_message(exception: BaseException, match_message: str, new_message: str) -> None:
+    if len(exception.args) == 1 and re.match(match_message, exception.args[0]):
+        exception.args = (new_message,)
