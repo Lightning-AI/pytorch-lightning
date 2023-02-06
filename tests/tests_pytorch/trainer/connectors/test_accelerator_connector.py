@@ -706,9 +706,9 @@ def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
     torch.backends.cudnn.benchmark = cudnn_benchmark
     if benchmark_ and deterministic:
         with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
-            _set_torch_flags(benchmark=benchmark_, deterministic=deterministic)
+            AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
     else:
-        _set_torch_flags(benchmark=benchmark_, deterministic=deterministic)
+        AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
     expected = cudnn_benchmark if expected is None else expected
     assert torch.backends.cudnn.benchmark == expected
 
