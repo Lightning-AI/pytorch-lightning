@@ -615,7 +615,7 @@ class DataHooks:
                     # skip device transfer for the first dataloader or anything you wish
                     pass
                 else:
-                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
+                    batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
                 return batch
 
         Raises:
