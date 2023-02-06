@@ -91,6 +91,12 @@ def test_multi_gpu_model_dp(tmpdir):
 
 
 class ReductionTestModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.train_outputs = []
+        self.val_outputs = []
+        self.test_outputs = []
+
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=2)
 
@@ -123,17 +129,32 @@ class ReductionTestModel(BoringModel):
         self.add_outputs(output, batch.device)
         return output
 
-    def training_epoch_end(self, outputs):
-        assert outputs[0]["loss"].shape == torch.Size([])
-        self._assert_extra_outputs(outputs)
+    def training_step_end(self, training_step_output):
+        # the strategy does this automatically, but since we want to store these in memory, we need to manually do it
+        # so that we can append the reduced value and not the per-rank value
+        training_step_output["loss"] = self.trainer.strategy.reduce(training_step_output["loss"])
+        self.train_outputs.append(training_step_output)
+        # return this or the DP strategy will reduce again
+        return training_step_output
 
-    def validation_epoch_end(self, outputs):
-        assert outputs[0]["x"].shape == torch.Size([2])
-        self._assert_extra_outputs(outputs)
+    def validation_step_end(self, validation_step_output):
+        self.val_outputs.append(validation_step_output)
+        # returning a value is not necessary because there's no modification
 
-    def test_epoch_end(self, outputs):
-        assert outputs[0]["y"].shape == torch.Size([2])
-        self._assert_extra_outputs(outputs)
+    def test_step_end(self, test_step_output):
+        self.test_outputs.append(test_step_output)
+
+    def on_train_epoch_end(self):
+        assert self.train_outputs[0]["loss"].shape == torch.Size([])
+        self._assert_extra_outputs(self.train_outputs)
+
+    def on_validation_epoch_end(self):
+        assert self.val_outputs[0]["x"].shape == torch.Size([2])
+        self._assert_extra_outputs(self.val_outputs)
+
+    def on_test_epoch_end(self):
+        assert self.test_outputs[0]["y"].shape == torch.Size([2])
+        self._assert_extra_outputs(self.test_outputs)
 
     def _assert_extra_outputs(self, outputs):
         out = outputs[0]["reduce_int"]
@@ -149,9 +170,6 @@ class ReductionTestModel(BoringModel):
 def test_dp_training_step_dict(tmpdir):
     """This test verifies that dp properly reduces dictionaries."""
     model = ReductionTestModel()
-    model.training_step_end = None
-    model.validation_step_end = None
-    model.test_step_end = None
 
     trainer = pl.Trainer(
         default_root_dir=tmpdir,

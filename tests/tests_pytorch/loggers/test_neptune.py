@@ -208,7 +208,7 @@ class TestNeptuneLogger(unittest.TestCase):
         """Verify that trained models do log data."""
         # given
         class LoggingModel(BoringModel):
-            def validation_epoch_end(self, outputs):
+            def on_validation_epoch_end(self):
                 self.log("some/key", 42)
 
         # and

@@ -808,7 +808,6 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             return self(batch)
 
     model = TestModel()
-    model.test_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
         limit_val_batches=1,
@@ -879,7 +878,6 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
             return self(batch)
 
     model = TestModel()
-    model.test_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
         limit_val_batches=1,
@@ -930,15 +928,10 @@ def test_disabled_training(tmpdir):
     class CurrentModel(BoringModel):
 
         training_step_invoked = False
-        training_epoch_end_invoked = False
 
         def training_step(self, *args, **kwargs):
             self.training_step_invoked = True
             return super().training_step(*args, **kwargs)
-
-        def training_epoch_end(self, *args, **kwargs):
-            self.training_epoch_end_invoked = True
-            return super().training_epoch_end(*args, **kwargs)
 
     model = CurrentModel()
 
@@ -965,7 +958,6 @@ def test_disabled_training(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
-    assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
 
     # check that limit_train_batches has no influence when fast_dev_run is turned on
     model = CurrentModel()
@@ -983,7 +975,6 @@ def test_disabled_training(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
-    assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
 
 
 def test_disabled_validation(tmpdir):
@@ -992,15 +983,10 @@ def test_disabled_validation(tmpdir):
     class CurrentModel(BoringModel):
 
         validation_step_invoked = False
-        validation_epoch_end_invoked = False
 
         def validation_step(self, *args, **kwargs):
             self.validation_step_invoked = True
             return super().validation_step(*args, **kwargs)
-
-        def validation_epoch_end(self, *args, **kwargs):
-            self.validation_epoch_end_invoked = True
-            return super().validation_epoch_end(*args, **kwargs)
 
     model = CurrentModel()
 
@@ -1020,7 +1006,6 @@ def test_disabled_validation(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
-    assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
     # check that limit_val_batches has no influence when fast_dev_run is turned on
     model = CurrentModel()
@@ -1031,7 +1016,6 @@ def test_disabled_validation(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
-    assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
@@ -1166,7 +1150,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomModel()
-    model.validation_epoch_end = None
     num_sanity_val_steps = 4
 
     trainer = Trainer(
@@ -1182,7 +1165,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
             return [DataLoader(RandomDataset(32, 64), batch_size=8), DataLoader(RandomDataset(32, 64))]
 
     model = CustomModelMixedVal()
-    model.validation_epoch_end = None
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
@@ -1208,7 +1190,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomModel()
-    model.validation_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir, num_sanity_val_steps=-1, limit_val_batches=limit_val_batches, max_steps=1
     )
@@ -1724,9 +1705,6 @@ class TestDummyModelForCheckpoint(BoringModel):
     def validation_step(self, batch, batch_idx):
         loss = self.step(batch)
         self.log("x", loss)
-
-    def validation_epoch_end(self, outputs) -> None:
-        pass
 
 
 @RunIf(skip_windows=True)

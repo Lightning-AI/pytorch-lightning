@@ -146,11 +146,11 @@ def test_adding_step_key(tmpdir):
             super().log_metrics(metrics, step)
 
     class CustomModel(BoringModel):
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "train_acc": self.logger.logged_step / 10})
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "val_acc": self.logger.logged_step / 10})
 

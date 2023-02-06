@@ -59,7 +59,3 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
 
     with pytest.raises(MisconfigurationException, match=match):
         trainer.fit(model)
-
-
-class CustomException(Exception):
-    pass

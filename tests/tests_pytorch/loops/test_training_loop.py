@@ -42,11 +42,6 @@ def test_outputs_format(tmpdir):
             HookedModel._check_output(outputs)
             super().on_train_batch_end(outputs, batch, batch_idx)
 
-        def training_epoch_end(self, outputs):
-            assert len(outputs) == 2
-            [HookedModel._check_output(output) for output in outputs]
-            super().training_epoch_end(outputs)
-
     model = HookedModel()
 
     # fit model
