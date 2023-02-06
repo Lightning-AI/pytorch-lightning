@@ -158,7 +158,8 @@ class _PredictionLoop(_DataLoaderLoop):
 
     def _on_predict_end(self) -> None:
         """Resets previous gradient status and calls ``on_predict_end`` hook."""
-        # clear memory. do not clear the predictions as they might be accessed after `trainer.predict`
+        if not self.return_predictions:
+            self._predictions = []
         self.epoch_batch_indices = []
 
         # hook
