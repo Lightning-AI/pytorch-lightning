@@ -43,6 +43,7 @@ from lightning.app.cli.commands.connection import (
 from lightning.app.cli.commands.cp import cp
 from lightning.app.cli.commands.logs import logs
 from lightning.app.cli.commands.ls import ls
+from lightning.app.cli.commands.mount import mount
 from lightning.app.cli.commands.pwd import pwd
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
@@ -127,6 +128,7 @@ _main.command()(ls)
 _main.command()(cd)
 _main.command()(cp)
 _main.command()(pwd)
+_main.command()(mount)
 show.command()(logs)
 
 
