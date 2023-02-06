@@ -47,6 +47,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.distributed import register_ddp_comm_hook
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
+from lightning.pytorch.utilities.exceptions import _replace_message
 
 if torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
@@ -367,8 +368,6 @@ class DDPStrategy(ParallelStrategy):
         )
 
     def on_exception(self, exception: BaseException) -> None:
-        from pytorch.utilities.exceptions import _replace_message
-
         _replace_message(
             exception,
             pattern=".*Expected to have finished reduction in the prior iteration.*",
