@@ -1342,12 +1342,12 @@ class CustomPredictionWriter(BasePredictionWriter):
         assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
-    def on_predict_epoch_end(self, trainer, pl_module, outputs):
+    def on_predict_epoch_end(self, trainer, pl_module):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
-        super().on_predict_epoch_end(trainer, pl_module, outputs)
+        super().on_predict_epoch_end(trainer, pl_module)
 
 
 def predict(
