@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from unittest.mock import ANY
 
 import pytest
 
-from pytorch_lightning.utilities.upgrade_checkpoint import main as upgrade_main
+from lightning.pytorch.utilities.upgrade_checkpoint import main as upgrade_main
 
 
 def test_upgrade_checkpoint_file_missing(tmp_path, caplog):
@@ -41,9 +41,9 @@ def test_upgrade_checkpoint_file_missing(tmp_path, caplog):
             assert "No checkpoint files with extension .other were found" in caplog.text
 
 
-@mock.patch("pytorch_lightning.utilities.upgrade_checkpoint.torch.save")
-@mock.patch("pytorch_lightning.utilities.upgrade_checkpoint.torch.load")
-@mock.patch("pytorch_lightning.utilities.upgrade_checkpoint.migrate_checkpoint")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.save")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.load")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.migrate_checkpoint")
 def test_upgrade_checkpoint_single_file(migrate_mock, load_mock, save_mock, tmp_path):
     file = tmp_path / "checkpoint.ckpt"
     file.touch()
@@ -55,9 +55,9 @@ def test_upgrade_checkpoint_single_file(migrate_mock, load_mock, save_mock, tmp_
     save_mock.assert_called_once_with(ANY, Path(file))
 
 
-@mock.patch("pytorch_lightning.utilities.upgrade_checkpoint.torch.save")
-@mock.patch("pytorch_lightning.utilities.upgrade_checkpoint.torch.load")
-@mock.patch("pytorch_lightning.utilities.upgrade_checkpoint.migrate_checkpoint")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.save")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.load")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.migrate_checkpoint")
 def test_upgrade_checkpoint_directory(migrate_mock, load_mock, save_mock, tmp_path):
     top_files = [tmp_path / "top0.ckpt", tmp_path / "top1.ckpt"]
     nested_files = [

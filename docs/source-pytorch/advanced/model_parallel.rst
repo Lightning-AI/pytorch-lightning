@@ -36,8 +36,8 @@ This means we cannot sacrifice throughput as much as if we were fine-tuning, bec
 
 Overall:
 
-* When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
-* When **pre-training** a model, use simpler optimizations such :ref:`sharded-training`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded-training`, scaling the number of GPUs to reach larger parameter sizes
+* When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`fully-sharded-training`, :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
+* When **pre-training** a model, use simpler optimizations such :ref:`sharded-training` or :ref:`deepspeed-zero-stage-2`, scaling the number of GPUs to reach larger parameter sizes
 * For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu strategy.
@@ -48,6 +48,7 @@ When Shouldn't I use an Optimized Distributed Strategy?
 =======================================================
 
 Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in the following cases, we recommend sticking to ordinary distributed strategies
+
 * When your model is small (ResNet50 of around 80M Parameters), unless you are using unusually large batch sizes or inputs.
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
@@ -808,36 +809,6 @@ You can use also use an environment variable via your PyTorch Lightning script:
 *****************
 DDP Optimizations
 *****************
-
-
-When Using DDP Strategies, Set find_unused_parameters=False
-===========================================================
-
-By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/Lightning-AI/lightning/discussions/6219>`_ for more details).
-When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
-
-.. tip::
-    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPStrategy
-
-    trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=2,
-        strategy=DDPStrategy(find_unused_parameters=False),
-    )
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPSpawnStrategy
-
-    trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=2,
-        strategy=DDPSpawnStrategy(find_unused_parameters=False),
-    )
 
 
 DDP Static Graph

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.strategies import Strategy
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -821,9 +821,7 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
-    train_manual_optimization(
-        tmpdir, "ddp_find_unused_parameters_false", model_cls=TestManualOptimizationDDPModelToggleModel
-    )
+    train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
 
 
 def test_lr_schedulers(tmpdir):
@@ -929,31 +927,28 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
+            optimizer1, optimizer2 = self.optimizers()
             # Discriminator.
-            optimizer_idx = 0
-            optimizer = self.optimizers()[optimizer_idx]
-            self.toggle_optimizer(optimizer, optimizer_idx)
+            self.toggle_optimizer(optimizer1)
 
             loss_d = self.step(batch)
             self.log("loss_d", loss_d, prog_bar=True)
 
-            optimizer.zero_grad()
+            optimizer1.zero_grad()
             self.manual_backward(loss_d)
-            optimizer.step()
-            self.untoggle_optimizer(optimizer_idx)
+            optimizer1.step()
+            self.untoggle_optimizer(optimizer1)
 
             # Generator.
-            optimizer_idx = 1
-            optimizer = self.optimizers()[optimizer_idx]
-            self.toggle_optimizer(optimizer, optimizer_idx)
+            self.toggle_optimizer(optimizer2)
 
             loss_g = self.step(batch)
             self.log("loss_g", loss_g, prog_bar=True)
 
-            optimizer.zero_grad()
+            optimizer2.zero_grad()
             self.manual_backward(loss_g)
-            optimizer.step()
-            self.untoggle_optimizer(optimizer_idx)
+            optimizer2.step()
+            self.untoggle_optimizer(optimizer2)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -980,17 +975,3 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
-
-
-def test_manual_optimization_training_step_signature(tmpdir):
-    """Test that Lightning raises an exception if the training_step signature has an optimier_idx by mistake."""
-
-    class ConfusedAutomaticManualModel(ManualOptModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
-
-    model = ConfusedAutomaticManualModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-
-    with pytest.raises(ValueError, match="Your `LightningModule.training_step` signature contains an `optimizer_idx`"):
-        trainer.fit(model)

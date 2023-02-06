@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,18 +24,17 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.trainer.supporters import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.supporters import (
     _nested_calc_num_data,
     CombinedDataset,
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
 )
-from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
-from pytorch_lightning.utilities.data import get_len
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.data import get_len
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -292,9 +291,8 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@pytest.mark.parametrize("use_fault_tolerant", [False, True])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, use_fault_tolerant, replace_sampler_ddp):
+def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
@@ -323,35 +321,24 @@ def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, use_fau
         }
     )
 
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
-        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
-        dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
-        _count = 0
-        _has_fastforward_sampler = False
+    trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
+    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
+    count = 0
 
     def _assert_distributed_sampler(v):
-        nonlocal _count
-        nonlocal _has_fastforward_sampler
-        _count += 1
-        if use_fault_tolerant:
-            _has_fastforward_sampler = True
-            assert isinstance(v, FastForwardSampler)
-            v = v._sampler
+        nonlocal count
+        count += 1
         if replace_sampler_ddp:
             assert isinstance(v, DistributedSampler)
         else:
             assert isinstance(v, (SequentialSampler, CustomSampler))
 
     apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
-    assert _count == 6
-    assert _has_fastforward_sampler == use_fault_tolerant
+    assert count == 6
 
     def _assert_dataset(loader):
         d = loader.dataset
-        if use_fault_tolerant:
-            assert isinstance(d, CaptureMapDataset)
-        else:
-            assert isinstance(d, CustomDataset)
+        assert isinstance(d, CustomDataset)
 
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
 

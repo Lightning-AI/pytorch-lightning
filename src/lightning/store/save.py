@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import logging
 import os
 import shutil
 import tarfile
-from pathlib import PurePath
+from pathlib import Path, PurePath
 
 import requests
 import torch
@@ -30,9 +30,11 @@ from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
 
 logging.basicConfig(level=logging.INFO)
 
-_LIGHTNING_DIR = os.path.join(os.path.expanduser("~"), ".lightning")
-_LIGHTNING_STORAGE_FILE = os.path.join(_LIGHTNING_DIR, ".model_storage")
-_LIGHTNING_STORAGE_DIR = os.path.join(_LIGHTNING_DIR, "model_store")
+_LIGHTNING_DIR = os.path.join(Path.home(), ".lightning")
+__STORAGE_FILE_NAME = ".model_storage"
+_LIGHTNING_STORAGE_FILE = os.path.join(_LIGHTNING_DIR, __STORAGE_FILE_NAME)
+__STORAGE_DIR_NAME = "model_store"
+_LIGHTNING_STORAGE_DIR = os.path.join(_LIGHTNING_DIR, __STORAGE_DIR_NAME)
 
 
 def _check_id(id: str) -> str:

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, Mock
 
 import torch
 
-from lightning_fabric.strategies import DataParallelStrategy
+from lightning.fabric.strategies import DataParallelStrategy
 
 
 def test_data_parallel_root_device():
@@ -33,7 +33,7 @@ def test_data_parallel_ranks():
     assert strategy.is_global_zero
 
 
-@mock.patch("lightning_fabric.strategies.dp.DataParallel")
+@mock.patch("lightning.fabric.strategies.dp.DataParallel")
 def test_data_parallel_setup_module(data_parallel_mock):
     strategy = DataParallelStrategy()
     strategy.parallel_devices = [0, 2, 1]
@@ -65,6 +65,6 @@ def test_dp_module_state_dict():
     assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
 
     # With DP applied (setup called)
-    with mock.patch("lightning_fabric.strategies.dp.DataParallel", DataParallelMock):
+    with mock.patch("lightning.fabric.strategies.dp.DataParallel", DataParallelMock):
         wrapped_module = strategy.setup_module(original_module)
         assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()

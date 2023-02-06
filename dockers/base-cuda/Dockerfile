@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -115,10 +115,9 @@ RUN \
     # install ColossalAI
     # TODO: 1.13 wheels are not released, remove skip once they are
     if [[ $PYTORCH_VERSION != "1.13" ]]; then \
-        PYTORCH_VERSION_COLOSSALAI=$(python -c "import torch; print(torch.__version__.split('+')[0][:4])") ; \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
-        pip install "colossalai==0.1.10+torch${PYTORCH_VERSION_COLOSSALAI}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
+        pip install "colossalai==0.1.12+torch${PYTORCH_VERSION}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
         python -c "import colossalai; print(colossalai.__version__)" ; \
     fi
 

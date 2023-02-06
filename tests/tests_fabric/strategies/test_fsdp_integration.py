@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ import torch
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric import Fabric
-from lightning_fabric.plugins import FSDPPrecision
-from lightning_fabric.strategies import FSDPStrategy
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric import Fabric
+from lightning.fabric.plugins import FSDPPrecision
+from lightning.fabric.strategies import FSDPStrategy
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
@@ -107,7 +107,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
-@mock.patch("lightning_fabric.wrappers._FabricModule")
+@mock.patch("lightning.fabric.wrappers._FabricModule")
 def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
     (sharding)."""

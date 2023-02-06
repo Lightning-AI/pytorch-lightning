@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.trainer.states import RunningStage
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf

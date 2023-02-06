@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

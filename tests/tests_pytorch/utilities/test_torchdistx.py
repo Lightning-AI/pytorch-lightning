@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@ import pytest
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.meta import _is_deferred
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.meta import _is_deferred
 from tests_pytorch.helpers.runif import RunIf
 
 _TORCHDISTX_AVAILABLE = RequirementCache("torchdistx")

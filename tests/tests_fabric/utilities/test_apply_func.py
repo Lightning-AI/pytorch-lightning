@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device
+from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device
 
 
 @pytest.mark.parametrize("should_return", [False, True])
