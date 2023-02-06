@@ -23,10 +23,11 @@ import pytest
 from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
 from torch.distributed import is_available
 
+from pytorch_lightning.accelerators.ipu import _POPTORCH_AVAILABLE
 from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
