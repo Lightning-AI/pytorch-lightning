@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ class LightningModule(
         if self._fabric:
             opts: MODULE_OPTIMIZERS = self._fabric_optimizers
         elif use_pl_optimizer:
-            opts = list(self.trainer.strategy._lightning_optimizers.values())
+            opts = self.trainer.strategy._lightning_optimizers
         else:
             opts = self.trainer.optimizers
 

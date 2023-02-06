@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -131,12 +131,12 @@ class _FitLoop(_Loop):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
-        return self.epoch_loop.optimizer_loop._skip_backward
+        return self.epoch_loop.automatic_optimization._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
-        self.epoch_loop.optimizer_loop._skip_backward = value
+        self.epoch_loop.automatic_optimization._skip_backward = value
 
     @property
     def _results(self) -> _ResultCollection:

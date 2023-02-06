@@ -38,16 +38,24 @@ local tputests = base.BaseTest {
       fi
 
       echo "--- Install packages ---"
+      # set particular PyTorch version
+      for fpath in `ls requirements/**/*.txt`; do
+        python requirements/pytorch/adjust-versions.py $fpath {PYTORCH_VERSION};
+      done
       PACKAGE_NAME=pytorch pip install .[dev]
       pip list
 
       pip install -q -r .actions/requirements.txt
-      python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning.fabric" --target_import="lightning_fabric"
+      python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+          --source_import="lightning.fabric,lightning.pytorch" \
+          --target_import="lightning_fabric,pytorch_lightning"
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
       echo "--- Sanity check TPU availability ---"
+      python -c "import torch_xla; print(torch_xla)"
+      python -c "from pytorch_lightning.accelerators.tpu import _XLA_AVAILABLE; print(str(_XLA_AVAILABLE))"
       python -c "from pytorch_lightning.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       echo "Sanity check passed!"
 

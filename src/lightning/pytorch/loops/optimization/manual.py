@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 @dataclass
 class ManualResult(OutputResult):
-    """A container to hold the result returned by the ``ManualLoop``.
+    """A container to hold the result returned by ``_ManualOptimization``.
 
     It is created from the output of :meth:`~lightning.pytorch.core.module.LightningModule.training_step`.
 
@@ -92,7 +92,7 @@ class _ManualOptimization(_Loop):
 
     def on_run_start(self) -> None:
         # inject logic around the optimizer step
-        for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
+        for lightning_optimizer in self.trainer.strategy._lightning_optimizers:
             lightning_optimizer._on_before_step = self._on_before_step
             lightning_optimizer._on_after_step = self._on_after_step
 
@@ -119,7 +119,7 @@ class _ManualOptimization(_Loop):
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, {}  # free memory
         # reset logic around the optimizer step
-        for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
+        for lightning_optimizer in self.trainer.strategy._lightning_optimizers:
             lightning_optimizer._on_before_step = do_nothing_closure
             lightning_optimizer._on_after_step = do_nothing_closure
         return output

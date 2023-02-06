@@ -139,6 +139,7 @@ environments
     KubeflowEnvironment
     LightningEnvironment
     LSFEnvironment
+    MPIEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
     XLAEnvironment

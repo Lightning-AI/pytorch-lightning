@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -990,7 +990,6 @@ class Trainer:
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         self.strategy.barrier("run-stage")
-        self.strategy.dispatch(self)
 
         if self.evaluating:
             return self._run_evaluate()
