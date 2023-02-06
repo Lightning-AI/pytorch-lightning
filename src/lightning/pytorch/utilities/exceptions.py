@@ -32,5 +32,6 @@ class _TunerExitException(Exception):
 
 
 def _replace_message(exception: BaseException, pattern: str, new_message: str) -> None:
-    if len(exception.args) == 1 and re.match(pattern, exception.args[0], re.DOTALL):
-        exception.args = (new_message,)
+    exception.args = tuple(
+        new_message if re.match(pattern, message, re.DOTALL) else message for message in exception.args
+    )
