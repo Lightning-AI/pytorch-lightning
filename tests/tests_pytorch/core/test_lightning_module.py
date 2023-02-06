@@ -21,12 +21,12 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from lightning.fabric import Fabric
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
 
