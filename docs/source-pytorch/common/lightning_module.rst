@@ -236,8 +236,8 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
 Train Epoch-level Operations
 ============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.module.LightningModule.training_step`,
-override the :meth:`~pytorch_lightning.core.module.LightningModule.on_training_epoch_end` method.
+In the case that you need to make use of all the outputs from each :meth:`~pytorch_lightning.LightningModule.training_step`,
+override the :meth:`~pytorch_lightning.LightningModule.on_training_epoch_end` method.
 
 .. code-block:: python
 
@@ -257,8 +257,9 @@ override the :meth:`~pytorch_lightning.core.module.LightningModule.on_training_e
 
     def on_train_epoch_end(self):
         all_preds = torch.stack(self.training_step_outputs)
-        self.training_step_outputs.clear()  # free memory
+        # do something with all preds
         ...
+        self.training_step_outputs.clear()  # free memory
 
 Training with DataParallel
 ==========================
@@ -372,9 +373,9 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
 Validation Epoch-level Metrics
 ==============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.module.LightningModule.validation_step`,
-override the :meth:`~pytorch_lightning.core.module.LightningModule.on_validation_epoch_end` method.
-Note that this method is called before :meth:`~pytorch_lightning.core.module.LightningModule.on_train_epoch_end`.
+In the case that you need to make use of all the outputs from each :meth:`~pytorch_lightning.LightningModule.validation_step`,
+override the :meth:`~pytorch_lightning.LightningModule.on_validation_epoch_end` method.
+Note that this method is called before :meth:`~pytorch_lightning.LightningModule.on_train_epoch_end`.
 
 .. code-block:: python
 
@@ -394,8 +395,9 @@ Note that this method is called before :meth:`~pytorch_lightning.core.module.Lig
 
     def on_validation_epoch_end(self):
         all_preds = torch.stack(self.validation_step_outputs)
-        self.validation_step_outputs.clear()  # free memory
+        # do something with all preds
         ...
+        self.validation_step_outputs.clear()  # free memory
 
 
 Validating with DataParallel

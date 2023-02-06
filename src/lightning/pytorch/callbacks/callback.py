@@ -107,7 +107,7 @@ class Callback:
 
                 def training_step(self):
                     loss = ...
-                    selgf.training_step_outputs.append(loss)
+                    self.training_step_outputs.append(loss)
                     return loss
 
 
