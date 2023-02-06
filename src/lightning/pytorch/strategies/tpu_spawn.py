@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -170,9 +170,14 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         TPUSpawnStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
+        if isinstance(dataloader, MpDeviceLoader):
+            # dataloader is already wrapped by MpDeviceLoader
+            return dataloader
+
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
+        dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
 
     def configure_ddp(self) -> None:

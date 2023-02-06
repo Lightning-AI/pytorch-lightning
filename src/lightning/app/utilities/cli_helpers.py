@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import arrow
 import click
 import packaging
 import requests
+import rich
 
 from lightning.app import __package_name__, __version__
 from lightning.app.core.constants import APP_SERVER_PORT
@@ -349,3 +350,8 @@ def _check_environment_and_redirect():
 
         _redirect_command(env_executable)
     return
+
+
+def _error_and_exit(msg: str) -> str:
+    rich.print(f"[red]ERROR[/red]: {msg}")
+    sys.exit(0)

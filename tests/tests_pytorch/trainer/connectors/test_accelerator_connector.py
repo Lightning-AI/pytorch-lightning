@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -625,10 +625,10 @@ def test_unsupported_tpu_choice(tpu_available):
 
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
+    import lightning.pytorch.accelerators.ipu as ipu_
     import lightning.pytorch.strategies.ipu as ipu
-    import lightning.pytorch.utilities.imports as imports
 
-    monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
     with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
@@ -637,7 +637,7 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.utilities.imports._IPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.ipu._IPU_AVAILABLE", return_value=False)
 @mock.patch("lightning.pytorch.utilities.imports._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")
