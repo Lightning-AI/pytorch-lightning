@@ -568,9 +568,9 @@ class ModelCheckpoint(Checkpoint):
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> _PATH:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
-        determine where to save checkpoints. The path for saving weights is set to either the
-        ``ModelCheckpoint``'s ``dirpath`` if passed in or else the ``Trainer``'s ``log_dir``, which gets determined
-        by the attached logger.
+        determine where to save checkpoints. The path for saving weights is set to either the ``ModelCheckpoint``'s
+        ``dirpath`` if passed in or else the ``Trainer``'s ``log_dir``, which gets determined by the attached
+        logger.
 
         The path gets extended with subdirectory "checkpoints".
         """

@@ -53,7 +53,6 @@ from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, Pro
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.dataloader.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
