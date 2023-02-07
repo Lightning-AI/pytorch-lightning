@@ -105,6 +105,7 @@ jobs:
         path: .wheels
         key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
+    - run: ls -lh .wheels/
 
     - name: Env. variables
       run: |
