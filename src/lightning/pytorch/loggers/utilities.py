@@ -16,7 +16,7 @@
 from pathlib import Path
 from typing import Any, List, Tuple, Union
 
-from lightning.pytorch.callbacks import Checkpoint
+import lightning.pytorch as pl
 
 
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
@@ -27,7 +27,9 @@ def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
         return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
-def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+def _scan_checkpoints(
+    checkpoint_callback: pl.callbacks.Checkpoint, logged_model_time: dict
+) -> List[Tuple[float, str, float, str]]:
     """Return the checkpoints to be logged.
 
     Args:
