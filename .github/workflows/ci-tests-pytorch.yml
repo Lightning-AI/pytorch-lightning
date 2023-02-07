@@ -119,7 +119,8 @@ jobs:
     - name: Build package & dependencies
       # if: TODO only on master
       run: |
-        pip wheel .[extra,test] --wheel-dir=".wheels" -f=${TORCH_URL}
+        pip install -q setuptools wheel
+        pip wheel .[extra,test] --wheel-dir=".wheels/" --only-binary -f=${TORCH_URL}
         ls -lh .wheels
 
     - name: Install package & dependencies
