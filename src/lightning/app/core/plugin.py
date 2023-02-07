@@ -47,6 +47,9 @@ class Plugin:
             command_name: The name of the command to run.
             config: The command config or ``None`` if the command doesn't require configuration.
         """
+        if self.app_url is None:
+            raise RuntimeError("The plugin must be set up before `run_app_command` can be called.")
+
         command = command_name.replace(" ", "_")
         resp = requests.post(self.app_url + f"/command/{command}", data=config.json() if config else None)
         if resp.status_code != 200:
