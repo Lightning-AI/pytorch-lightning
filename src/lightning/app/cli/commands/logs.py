@@ -31,7 +31,7 @@ logger = Logger(__name__)
 @click.argument("components", nargs=-1, required=False)
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def logs(app_name: str, components: List[str], follow: bool) -> None:
-    """Show cloud application logs. By default prints logs for all currently available components.
+    """Show cloud application logs. By default, prints logs for all currently available components.
 
     Example uses:
 
@@ -57,7 +57,7 @@ def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
     project = _get_project(client)
 
     apps = {
-        app.name: app
+        getattr(app, "display_name", app.name): app
         for app in client.lightningapp_instance_service_list_lightningapp_instances(
             project_id=project.project_id
         ).lightningapps
