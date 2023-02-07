@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional, Union
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.utilities.logger import _version
+from lightning.pytorch.loggers.utilities import _version
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
