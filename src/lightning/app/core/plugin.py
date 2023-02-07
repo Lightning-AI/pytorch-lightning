@@ -150,7 +150,7 @@ def _run_plugin(run: _Run) -> None:
         )
 
 
-def _start_plugin_server(host, port) -> None:
+def _start_plugin_server(host: str, port: int) -> None:
     """Start the plugin server which can be used to dispatch apps or run plugins."""
     fastapi_service = FastAPI()
 
