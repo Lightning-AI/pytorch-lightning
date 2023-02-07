@@ -16,7 +16,7 @@ runs:
   steps:
 
   - name: install dev. env
-    run: pip install -U -q pip setuptools wheel
+    run: pip install setuptools wheel
     shell: bash
 
   - name: Freeze local emv.

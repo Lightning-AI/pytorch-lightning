@@ -65,10 +65,10 @@ jobs:
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
+    timeout-minutes: 70
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: 1
-    timeout-minutes: 70
     steps:
     - uses: actions/checkout@v3
 
@@ -99,6 +99,13 @@ jobs:
         done
         cat requirements/pytorch/base.txt
 
+    - name: pip wheels cache
+      uses: actions/cache@v3
+      with:
+        path: .wheels
+        key: pip_wheels  # to not being cleand with crone
+        enableCrossOsArchive: true
+
     - name: Env. variables
       run: |
         # Switch PyTorch URL
@@ -110,20 +117,15 @@ jobs:
         # Decide timeout
         python -c "print('TEST_TIMEOUT=' + str(120 if '${{ matrix.type }}' == 'slow' else 60))" >> $GITHUB_ENV
 
-    - name: pip wheels cache
-      uses: actions/cache@v3
-      with:
-        path: .wheels
-        key: pip_wheels  # to not being cleand with crone
-        enableCrossOsArchive: true
-
     - name: Install package & dependencies
       run: |
         pip install -e .[extra,test] "pytest-timeout" --upgrade -f=${TORCH_URL} -f=".wheels/"
         pip list
-    - name: Dump dependencies
-      # if: TODO only on master
+    - name: Dump handy wheels
+      if: github.event_name == 'push'
       uses: ./.github/actions/pip-wheels
+      with:
+        torch-url: ${{ env.TORCH_URL }}
 
     - name: Cache datasets
       uses: actions/cache@v3
@@ -155,15 +157,7 @@ jobs:
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest . -v \
           --timeout=${TEST_TIMEOUT} --durations=50 \
-          --reruns 3 --reruns-delay 1 \
-          --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Upload pytest results
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+          --reruns 3 --reruns-delay 1
 
     - name: Statistics
       if: success()
