@@ -27,7 +27,7 @@ from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.supporters import (
-    _nested_calc_num_data,
+    _reduce_data,
     CombinedDataset,
     CombinedLoader,
     CombinedLoaderIterator,
@@ -280,7 +280,7 @@ def test_combined_loader_sequence_max_size_cycle():
 )
 def test_nested_calc_num_data(input_data, compute_func, expected_length):
     default = float("inf") if compute_func is min else float("-inf")
-    calculated_length = _nested_calc_num_data(input_data, compute_func, default)
+    calculated_length = _reduce_data(input_data, compute_func, default)
 
     assert calculated_length == expected_length
 

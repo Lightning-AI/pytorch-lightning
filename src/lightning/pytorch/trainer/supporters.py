@@ -23,6 +23,7 @@ from typing_extensions import TypedDict
 
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.types import _NUMBER
 
 
 @dataclass
@@ -57,7 +58,7 @@ class SharedCycleIteratorState:
 class CycleIterator:
     """Iterator for restarting a dataloader if it runs out of samples."""
 
-    def __init__(self, loader: Any, length: Union[int, float] = float("inf"), state: SharedCycleIteratorState = None):
+    def __init__(self, loader: Any, length: _NUMBER = float("inf"), state: SharedCycleIteratorState = None):
         """
         Args:
             loader: the loader to restart for cyclic (and optionally infinite) sampling
@@ -122,14 +123,15 @@ class CycleIterator:
         finally:
             self.counter += 1
 
-    def __len__(self) -> int:
+    def __len__(self) -> _NUMBER:
+        # TODO: returning float here is a hack
         return self.length
 
 
 class _CombinationMode(TypedDict):
     name: str
-    fn: Callable[[Union[int, float], ...], Union[int, float]]
-    default: Union[int, float]
+    fn: Callable[[_NUMBER, _NUMBER], _NUMBER]
+    default: _NUMBER
 
 
 _supported_modes = {
@@ -178,7 +180,10 @@ class CombinedDataset:
         """Compute the length of `CombinedDataset` according to the `mode`."""
         all_lengths = self._get_len_recursive(self.datasets)
         mode = _supported_modes[self._mode]
-        return _nested_calc_num_data(all_lengths, mode["fn"], mode["default"])
+        total_length = _reduce_data(all_lengths, mode["fn"], mode["default"])
+        if isinstance(total_length, float):
+            raise TypeError(f"The total size of the datasets must be an int, found {total_length}")
+        return total_length
 
 
 class CombinedLoader:
@@ -267,7 +272,7 @@ class CombinedLoader:
             cycle_iterator.length = length
 
         all_lengths = apply_to_collection(self.loaders, CycleIterator, lambda c: get_len(c.loader))
-        max_length = _nested_calc_num_data(all_lengths, max, float("-inf"))
+        max_length = _reduce_data(all_lengths, max, float("-inf"))
         apply_to_collection(self.loaders, CycleIterator, set_len, length=max_length)
 
     def __iter__(self) -> Any:
@@ -283,12 +288,12 @@ class CombinedLoader:
         self._iterator = iterator
         return iterator
 
-    def _calc_num_batches(self) -> Union[int, float]:
+    def _calc_num_batches(self) -> _NUMBER:
         from lightning.pytorch.utilities.data import get_len
 
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
         mode = _supported_modes[self._mode]
-        return _nested_calc_num_data(all_lengths, mode["fn"], mode["default"])
+        return _reduce_data(all_lengths, mode["fn"], mode["default"])
 
     def __len__(self) -> int:
         """Compute the number of batches."""
@@ -369,15 +374,13 @@ class CombinedLoaderIterator:
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
 
 
-def _nested_calc_num_data(
-    data: Any, pairwise_reduction: Callable[[Union[int, float], Union[int, float]], None], default: Union[int, float]
-) -> Union[int, float]:
+def _reduce_data(data: Any, pairwise_reduction: Callable[[_NUMBER, _NUMBER], _NUMBER], default: _NUMBER) -> _NUMBER:
     if data is None:
         raise TypeError(f"Expected data to be int, Sequence or Mapping, but got {type(data).__name__}")
 
     total = default
 
-    def reduce(v: Union[int, float]) -> None:
+    def reduce(v: _NUMBER) -> None:
         nonlocal total
         total = pairwise_reduction(total, v)
 
