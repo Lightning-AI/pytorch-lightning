@@ -90,15 +90,15 @@ Easy communication 🛰️ between components is supported with:
 
 - [Directional state updates](https://lightning.ai/lightning-docs/core_api/lightning_app/communication.html?highlight=directional%20state) from the Works to the Flow creating an event: When creating interactive apps, you will likely want your components to share information with each other. You might to rely on that information to control their execution, share progress in the UI, trigger a sequence of operations, or more.
 - [Storage](https://lightning.ai/lightning-docs/api_reference/storage.html): The Lightning Storage system makes it easy to share files between LightningWork so you can run your app both locally and in the cloud without changing the code.
-  - [Path](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.path.Path.html#lightning_app.storage.path.Path): The Path object is a reference to a specific file or directory from a LightningWork and can be used to transfer those files to another LightningWork (one way, from source to destination).
-  - [Payload](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.payload.Payload.html#lightning_app.storage.payload.Payload): The Payload object enables transferring of Python objects from one work to another in a similar fashion as Path.
-  - [Drive](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.drive.Drive.html#lightning_app.storage.drive.Drive): The Drive object provides a central place for your components to share data. The drive acts as an isolated folder and any component can access it by knowing its name.
+  - [Path](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.path.Path.html): The Path object is a reference to a specific file or directory from a LightningWork and can be used to transfer those files to another LightningWork (one way, from source to destination).
+  - [Payload](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.payload.Payload.html): The Payload object enables transferring of Python objects from one work to another in a similar fashion as Path.
+  - [Drive](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.drive.Drive.html): The Drive object provides a central place for your components to share data. The drive acts as an isolated folder and any component can access it by knowing its name.
 
 Lightning Apps have built-in support for [adding UIs](https://lightning.ai/lightning-docs/workflows/add_web_ui/) 🎨:
 
-- [StaticWebFrontEnd](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.web.StaticWebFrontend.html#lightning_app.frontend.web.StaticWebFrontend): A frontend that serves static files from a directory using FastAPI.
-- [StreamlitFrontend](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.stream_lit.StreamlitFrontend.html#lightning_app.frontend.stream_lit.StreamlitFrontend): A frontend for wrapping Streamlit code in your LightingFlow.
-- [ServeGradio](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.components.serve.gradio.ServeGradio.html#lightning_app.components.serve.gradio.ServeGradio): This class enables you to quickly create a `gradio` based UI for your Lightning App.
+- [StaticWebFrontEnd](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.web.StaticWebFrontend.html): A frontend that serves static files from a directory using FastAPI.
+- [StreamlitFrontend](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.stream_lit.StreamlitFrontend.html): A frontend for wrapping Streamlit code in your LightingFlow.
+- [ServeGradio](https://lightning.ai/docs/stable/api_reference/generated/lightning_app.components.serve.gradio_server.ServeGradio.html): This class enables you to quickly create a `gradio` based UI for your Lightning App.
 
 [Scheduling](https://lightning.ai/lightning-docs/glossary/scheduling.html) ⏲️: The Lightning Scheduling system makes it easy to schedule your components execution with any arbitrary conditions.
 

@@ -341,18 +341,6 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## Lightning Lite
-
-<div align="center">
-  <img src="docs/source-pytorch/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
-</div>
-
-In the PyTorch Lightning 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
-[blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
-[docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
-
-______________________________________________________________________
-
 ## Examples
 
 ###### Self-supervised Learning
