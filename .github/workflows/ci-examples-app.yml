@@ -75,7 +75,7 @@ jobs:
     - name: Install Lightning package & dependencies
       run: |
         # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
-        pip install .[dev] -U -f=${TORCH_URL} -f=".wheels/"
+        pip install .[dev] -U -f ${TORCH_URL} -f ".wheels/"
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'

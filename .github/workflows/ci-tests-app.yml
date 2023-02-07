@@ -74,7 +74,7 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[dev] -U -f=${TORCH_URL} -f=".wheels/"
+        pip install -e .[dev] -U -f ${TORCH_URL} -f ".wheels/"
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'

@@ -119,7 +119,7 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade -f=${TORCH_URL} -f=".wheels/"
+        pip install -e .[extra,test] "pytest-timeout" --upgrade -f ${TORCH_URL} -f ".wheels/"
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
