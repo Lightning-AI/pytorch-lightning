@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -613,15 +613,16 @@ class WorkRunner:
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)
             )
-            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
-            self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # kill the thread as the job is going to be terminated.
-        self.copier.join(0)
         if self.state_observer:
             if self.state_observer.started:
                 self.state_observer.join(0)
             self.state_observer = None
+        delta = Delta(DeepDiff(state, deepcopy(self.work.state), verbose_level=2))
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+
+        self.copier.join(0)
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):

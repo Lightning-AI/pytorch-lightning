@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -459,7 +459,6 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
 
     model = CustomBatchSizeModel(batch_size=16)
     model.validation_step = None
-    model.training_epoch_end = None
     scale_batch_size_kwargs = {"max_trials": 10, "steps_per_trial": 1, "init_val": 500, "mode": scale_method}
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)

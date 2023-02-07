@@ -20,6 +20,4 @@ jobs:
   test-flagships:
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/_flagship-apps.yml
-    with:
-      checkout: ${{ github.sha }}
     secrets: inherit

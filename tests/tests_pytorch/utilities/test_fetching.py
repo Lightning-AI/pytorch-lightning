@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -195,10 +195,10 @@ class RecommenderModel(BoringModel):
         torch.cuda._sleep(self.CYCLES_PER_MS * 50)
         return batch
 
-    def training_step_end(self, training_step_outputs):
+    def training_step_end(self, training_step_output):
         # emulate heavy routine
         torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return training_step_outputs
+        return training_step_output
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.1)
@@ -244,7 +244,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
                 loss.backward()
                 opt.step()
 
-        def training_epoch_end(self, *_):
+        def on_train_epoch_end(self):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
             assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
@@ -455,8 +455,6 @@ def test_fetching_is_profiled():
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
-
-        validation_epoch_end = None
 
     model = MyModel()
     fast_dev_run = 2

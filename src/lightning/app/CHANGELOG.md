@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
 
+- Prevent to `cd` into non existent folders ([#16645](https://github.com/Lightning-AI/lightning/pull/16645))
+- Enabled `cp` (upload) at project level ([#16631](https://github.com/Lightning-AI/lightning/pull/16631))
 - Enabled `ls` and `cp` (download) at project level ([#16622](https://github.com/Lightning-AI/lightning/pull/16622))
 - Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
  * `ls`: List files from your Cloud Platform Filesystem
@@ -42,6 +44,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
+
+- Fixed a deadlock causing apps not to exit properly when running locally ([#16623](https://github.com/Lightning-AI/lightning/pull/16623)))
+
 
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
 

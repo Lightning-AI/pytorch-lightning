@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,7 +70,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_train_start",
             "on_train_epoch_start",
             "on_train_epoch_end",
-            "training_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
@@ -85,7 +84,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_validation_batch_end",
             "validation_step",
             "validation_step_end",
-            "validation_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
@@ -100,7 +98,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_test_batch_end",
             "test_step",
             "test_step_end",
-            "test_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)

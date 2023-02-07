@@ -20,12 +20,12 @@ from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_local_to_remote(tmpdir, monkeypatch):
-    assert "/" == cd("/")
+    assert "/" == cd("/", verify=False)
 
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
     cp.cp(tmpdir, "r:.")
-    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't supported yet."
+    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -41,9 +41,15 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
         ]
     )
 
+    clusters = MagicMock()
+    clusters.clusters = [MagicMock()]
+    client.projects_service_list_project_cluster_bindings.return_value = clusters
+
+    client.lightningapp_instance_service_upload_project_artifact.return_value = MagicMock()
+
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
-    assert "/project-0/app-name-0" == cd("/project-0/app-name-0")
+    assert "/project-0/app-name-0" == cd("/project-0/app-name-0", verify=False)
 
     with open(f"{tmpdir}/a.txt", "w") as f:
         f.write("hello world !")
@@ -60,12 +66,12 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_cloud_to_local(tmpdir, monkeypatch):
-    assert "/" == cd("/")
+    assert "/" == cd("/", verify=False)
 
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
     cp.cp(tmpdir, "r:.")
-    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't supported yet."
+    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -110,7 +116,7 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
-    assert "/project-0/app-name-0" == cd("/project-0/app-name-0")
+    assert "/project-0/app-name-0" == cd("/project-0/app-name-0", verify=False)
 
     get_fn = requests.get
 

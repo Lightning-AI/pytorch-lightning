@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,8 +50,10 @@ log = logging.getLogger(__name__)
 _DDP_FORK_ALIASES = (
     "ddp_fork",
     "ddp_fork_find_unused_parameters_false",
+    "ddp_fork_find_unused_parameters_true",
     "ddp_notebook",
     "ddp_notebook_find_unused_parameters_false",
+    "ddp_notebook_find_unused_parameters_true",
 )
 
 
@@ -186,13 +188,6 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
-    def pre_configure_ddp(self) -> None:
-        # if unset, default `find_unused_parameters` `True`
-        # Many models require setting this parameter to True, as there are corner cases
-        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
-        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
@@ -206,7 +201,6 @@ class DDPSpawnStrategy(ParallelStrategy):
             )
 
     def configure_ddp(self) -> None:
-        self.pre_configure_ddp()
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
         self._register_ddp_hooks()
@@ -320,16 +314,19 @@ class DDPSpawnStrategy(ParallelStrategy):
             )
 
         entries = (
-            ("ddp_spawn_find_unused_parameters_false", "spawn"),
-            ("ddp_fork_find_unused_parameters_false", "fork"),
-            ("ddp_notebook_find_unused_parameters_false", "fork"),
+            ("ddp_spawn_find_unused_parameters_false", False, "spawn"),
+            ("ddp_spawn_find_unused_parameters_true", True, "spawn"),
+            ("ddp_fork_find_unused_parameters_false", False, "fork"),
+            ("ddp_fork_find_unused_parameters_true", True, "fork"),
+            ("ddp_notebook_find_unused_parameters_false", False, "fork"),
+            ("ddp_notebook_find_unused_parameters_true", True, "fork"),
         )
-        for name, start_method in entries:
+        for name, fup, start_method in entries:
             strategy_registry.register(
                 name,
                 cls,
-                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
-                find_unused_parameters=False,
+                description=f"DDP strategy with `find_unused_parameters` as {fup} and `start_method` '{start_method}'",
+                find_unused_parameters=fup,
                 start_method=start_method,
             )
 

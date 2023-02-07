@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,11 +41,6 @@ def test_outputs_format(tmpdir):
         def on_train_batch_end(self, outputs, batch, batch_idx):
             HookedModel._check_output(outputs)
             super().on_train_batch_end(outputs, batch, batch_idx)
-
-        def training_epoch_end(self, outputs):
-            assert len(outputs) == 2
-            [HookedModel._check_output(output) for output in outputs]
-            super().training_epoch_end(outputs)
 
     model = HookedModel()
 

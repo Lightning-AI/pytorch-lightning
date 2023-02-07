@@ -190,3 +190,6 @@ node_modules/
 
 # instalation artifacts
 requirements/base.txt
+
+# CI
+.wheels/

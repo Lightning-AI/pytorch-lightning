@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -248,7 +248,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
-    model.training_epoch_end = None
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     log_every_n_steps = 2
@@ -306,7 +305,6 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
             return [optimizer1, optimizer2]
 
     model = CustomBoringModel()
-    model.training_epoch_end = None
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     log_every_n_steps = 2
@@ -563,7 +561,6 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         enable_checkpointing=False,
     )
     model = TestModel()
-    model.training_epoch_end = None
     trainer.fit(model)
 
     expected = [0.1, 0.1, 0.1, 0.1, 0.1]
