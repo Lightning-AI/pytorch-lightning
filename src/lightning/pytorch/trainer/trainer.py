@@ -306,6 +306,13 @@ class Trainer:
 
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
+
+        Raises:
+            TypeError:
+                If ``gradient_clip_val`` is not an int or float
+            MisconfigurationException:
+                If ``gradient_clip_algorithm`` is invalid
+                If ``track_grad_norm` is not a positive number or inf
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -484,6 +491,10 @@ class Trainer:
                 If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
             datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+
+        Raises:
+            TypeError:
+                If ``model`` is not `LightningModule` or `torch._dynamo.OptimizedModule`
         """
         model = self._maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
@@ -564,6 +575,18 @@ class Trainer:
             like :meth:`~lightning.pytorch.core.module.LightningModule.validation_step`,
             :meth:`~lightning.pytorch.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -1929,6 +1952,10 @@ class Trainer:
                 )
                 return [optimizer], [scheduler]
 
+        Raises:
+            MisconfigurationException:
+                If estimated stepping batches cannot be computed due to different `accumulate_grad_batches`
+                at different epochs.
         """
         accumulation_scheduler = self.accumulation_scheduler
 
