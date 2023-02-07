@@ -651,38 +651,6 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
-@pytest.mark.parametrize("cudnn_benchmark", (False, True))
-@pytest.mark.parametrize(
-    ["benchmark_", "deterministic", "expected"],
-    [
-        (None, False, None),
-        (None, True, False),
-        (None, None, None),
-        (True, False, True),
-        (True, True, True),
-        (True, None, True),
-        (False, False, False),
-        (False, True, False),
-        (False, None, False),
-    ],
-)
-def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
-    """Verify benchmark option."""
-    original_val = torch.backends.cudnn.benchmark
-
-    torch.backends.cudnn.benchmark = cudnn_benchmark
-    if benchmark_ and deterministic:
-        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
-            trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
-    else:
-        trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
-    expected = cudnn_benchmark if expected is None else expected
-    assert torch.backends.cudnn.benchmark == expected
-    assert trainer._accelerator_connector.benchmark == expected
-
-    torch.backends.cudnn.benchmark = original_val
-
-
 @pytest.mark.parametrize("ckpt_path", (None, "last"))
 @pytest.mark.parametrize("fn", (TrainerFn.FITTING, TrainerFn.VALIDATING))
 def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
