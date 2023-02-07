@@ -39,12 +39,6 @@ class Logger(FabricLogger, ABC):
         """
         pass
 
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
-        locally."""
-        return None
-
 
 class DummyLogger(Logger):
     """Dummy logger for internal use.

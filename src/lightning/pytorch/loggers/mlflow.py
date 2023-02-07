@@ -110,9 +110,9 @@ class MLFlowLogger(Logger):
             If the ``mlflow.runName`` tag has already been set in `tags`, the value is overridden by the `run_name`.
         tracking_uri: Address of local or remote tracking server.
             If not provided, defaults to `MLFLOW_TRACKING_URI` environment variable if set, otherwise it falls
-            back to `file:<save_dir>`.
+            back to `file:<root_dir>`.
         tags: A dictionary tags for the experiment.
-        save_dir: A path to a local directory where the MLflow runs get saved.
+        root_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint`
@@ -142,7 +142,7 @@ class MLFlowLogger(Logger):
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
-        save_dir: Optional[str] = "./mlruns",
+        root_dir: Optional[str] = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
         artifact_location: Optional[str] = None,
@@ -154,7 +154,7 @@ class MLFlowLogger(Logger):
             )
         super().__init__()
         if not tracking_uri:
-            tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
+            tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{root_dir}"
 
         self._experiment_name = experiment_name
         self._experiment_id: Optional[str] = None
@@ -171,6 +171,40 @@ class MLFlowLogger(Logger):
         self._initialized = False
 
         self._mlflow_client = MlflowClient(tracking_uri)
+
+    @property
+    def root_dir(self) -> Optional[str]:
+        """The root file directory in which MLflow experiments are saved.
+
+        Return:
+            Local path to the root experiment directory if the tracking uri is local.
+            Otherwise returns `None`.
+        """
+        if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
+            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
+
+    @property
+    def log_dir(self) -> Optional[str]:
+        if self.root_dir is not None:
+            return os.path.join(self.root_dir, self.name, self.version)
+
+    @property
+    def name(self) -> Optional[str]:
+        """Get the experiment id.
+
+        Returns:
+            The experiment id.
+        """
+        return self.experiment_id
+
+    @property
+    def version(self) -> Optional[str]:
+        """Get the run id.
+
+        Returns:
+            The run id.
+        """
+        return self.run_id
 
     @property
     @rank_zero_experiment
@@ -292,35 +326,6 @@ class MLFlowLogger(Logger):
 
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """The root file directory in which MLflow experiments are saved.
-
-        Return:
-            Local path to the root experiment directory if the tracking uri is local.
-            Otherwise returns `None`.
-        """
-        if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
-
-    @property
-    def name(self) -> Optional[str]:
-        """Get the experiment id.
-
-        Returns:
-            The experiment id.
-        """
-        return self.experiment_id
-
-    @property
-    def version(self) -> Optional[str]:
-        """Get the run id.
-
-        Returns:
-            The run id.
-        """
-        return self.run_id
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
