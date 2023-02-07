@@ -26,6 +26,13 @@ def test_app_in_cloud():
             fetch_logs,
             name,
         ):
+            def check_training_finished(*_, **__):
+                locator = view_page.frame_locator("iframe").locator('ul:has-text("`Trainer.fit` stopped: `max_epochs=2` reached.")')
+                if len(locator.all_text_contents()):
+                    return True
+
+            wait_for(check_training_finished())
+
             logs = []
             while not logs:
                 sleep(1)
