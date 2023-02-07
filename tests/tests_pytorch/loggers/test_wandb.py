@@ -46,11 +46,11 @@ def test_wandb_logger_init(wandb, monkeypatch):
     # test wandb.init called when there is no W&B run
     wandb.run = None
     logger = WandbLogger(
-        name="test_name", save_dir="test_save_dir", version="test_id", project="test_project", resume="never"
+        name="test_name", root_dir="test_root_dir", version="test_id", project="test_project", resume="never"
     )
     logger.log_metrics({"acc": 1.0})
     wandb.init.assert_called_once_with(
-        name="test_name", dir="test_save_dir", id="test_id", project="test_project", resume="never", anonymous=None
+        name="test_name", dir="test_root_dir", id="test_id", project="test_project", resume="never", anonymous=None
     )
     wandb.init().log.assert_called_once_with({"acc": 1.0})
 
@@ -62,15 +62,17 @@ def test_wandb_logger_init(wandb, monkeypatch):
         name=None, dir=".", id=None, project="test_project", resume="allow", anonymous=None
     )
 
-    # test wandb.init set save_dir correctly after created
+    # test wandb.init set root_dir correctly after created
     wandb.run = None
     wandb.init.reset_mock()
     logger = WandbLogger()
-    assert logger.save_dir is not None
+    assert logger.root_dir is not None
+    assert logger.log_dir is None
     wandb.run = None
     wandb.init.reset_mock()
-    logger = WandbLogger(save_dir=".", dir=None)
-    assert logger.save_dir is not None
+    logger = WandbLogger(root_dir=".", dir=None)
+    assert logger.root_dir is not None
+    assert logger.log_dir is None
 
     # test wandb.init and setting logger experiment externally
     wandb.run = None
@@ -139,7 +141,7 @@ def test_wandb_pickle(wandb, tmpdir):
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
         # Access the experiment to ensure it's created
         assert trainer.logger.experiment, "missing experiment"
-        assert trainer.log_dir == logger.save_dir
+        assert trainer.log_dir == logger.log_dir
         pkl_bytes = pickle.dumps(trainer)
         trainer2 = pickle.loads(pkl_bytes)
 
@@ -160,7 +162,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
     monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
-    logger = WandbLogger(project="project", save_dir=str(tmpdir), offline=True)
+    logger = WandbLogger(project="project", root_dir=str(tmpdir), offline=True)
     # the logger get initialized
     assert logger.version == wandb.init().id
 
@@ -174,18 +176,18 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 
     assert logger.version == "1"
     assert logger.name == "project"
-    assert str(tmpdir) == logger.save_dir
+    assert str(tmpdir) == logger.root_dir
     assert not os.listdir(tmpdir)
 
     version = logger.version
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
-    assert trainer.log_dir == logger.save_dir
+    assert trainer.log_dir == logger.log_dir
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / "project" / version / "checkpoints")
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
-    assert trainer.log_dir == logger.save_dir
+    assert trainer.log_dir == logger.log_dir
 
 
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
@@ -198,7 +200,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     model = BoringModel()
 
     # test log_model=True
-    logger = WandbLogger(save_dir=tmpdir, log_model=True)
+    logger = WandbLogger(root_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -208,7 +210,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model='all'
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
-    logger = WandbLogger(save_dir=tmpdir, log_model="all")
+    logger = WandbLogger(root_dir=tmpdir, log_model="all")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -218,7 +220,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model=False
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
-    logger = WandbLogger(save_dir=tmpdir, log_model=False)
+    logger = WandbLogger(root_dir=tmpdir, log_model=False)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -229,7 +231,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = WandbLogger(save_dir=tmpdir, log_model=True)
+    logger = WandbLogger(root_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -255,7 +257,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init().reset_mock()
     wandb.Artifact.reset_mock()
-    logger = WandbLogger(save_dir=tmpdir, log_model=True, checkpoint_name="my-test-model")
+    logger = WandbLogger(root_dir=tmpdir, log_model=True, checkpoint_name="my-test-model")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -291,7 +293,7 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = WandbLogger(save_dir=tmpdir, log_model=True)
+    logger = WandbLogger(root_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     checkpoint_callback = ModelCheckpoint(monitor="step")
@@ -386,7 +388,7 @@ def test_wandb_log_media(wandb, tmpdir):
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
-        _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
+        _ = WandbLogger(root_dir=str(tmpdir), offline=True, log_model=True)
 
 
 @mock.patch("lightning.pytorch.loggers.wandb.Run", object)

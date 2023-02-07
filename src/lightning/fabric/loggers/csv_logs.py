@@ -148,15 +148,15 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        root_dir = self.root_dir
+        save_dir = os.path.join(self.root_dir, self.name)
 
-        if not os.path.isdir(root_dir):
-            log.warning("Missing logger folder: %s", root_dir)
+        if not os.path.isdir(save_dir):
+            log.warning("Missing logger folder: %s", save_dir)
             return 0
 
         existing_versions = []
-        for d in os.listdir(root_dir):
-            if os.path.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
+        for d in os.listdir(save_dir):
+            if os.path.isdir(os.path.join(save_dir, d)) and d.startswith("version_"):
                 existing_versions.append(int(d.split("_")[1]))
 
         if len(existing_versions) == 0:

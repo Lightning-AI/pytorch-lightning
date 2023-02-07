@@ -255,10 +255,10 @@ class WandbLogger(Logger):
 
     Args:
         name: Display name for the run.
-        save_dir: Path where data is saved.
+        root_dir: Path where data is saved.
         version: Sets the version, mainly used to resume a previous run.
         offline: Run offline (data can be streamed later to wandb servers).
-        dir: Same as save_dir.
+        dir: Same as root_dir.
         id: Same as version.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
@@ -289,7 +289,7 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: _PATH = ".",
+        root_dir: _PATH = ".",
         version: Optional[str] = None,
         offline: bool = False,
         dir: Optional[_PATH] = None,
@@ -331,8 +331,8 @@ class WandbLogger(Logger):
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
 
         # paths are processed as strings
-        if save_dir is not None:
-            save_dir = os.fspath(save_dir)
+        if root_dir is not None:
+            root_dir = os.fspath(root_dir)
         elif dir is not None:
             dir = os.fspath(dir)
 
@@ -340,7 +340,7 @@ class WandbLogger(Logger):
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
             project=project,
-            dir=save_dir or dir,
+            dir=root_dir or dir,
             id=version or id,
             resume="allow",
             anonymous=("allow" if anonymous else None),
@@ -348,7 +348,7 @@ class WandbLogger(Logger):
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")
-        self._save_dir = self._wandb_init.get("dir")
+        self._root_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         # start wandb run (to create an attach_id for distributed modes)
@@ -369,6 +369,41 @@ class WandbLogger(Logger):
         # cannot be pickled
         state["_experiment"] = None
         return state
+
+    @property
+    def root_dir(self) -> Optional[str]:
+        return self._root_dir
+
+    @property
+    def log_dir(self) -> Optional[str]:
+        """Gets the log directory.
+
+        Returns:
+            The path to the save directory.
+        """
+        if self.version is not None:
+            # the log dir (and the version) is only available when an experiment is created
+            return os.path.join(self._root_dir, self.name, self.version)
+
+    @property
+    def name(self) -> Optional[str]:
+        """The project name of this experiment.
+
+        Returns:
+            The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
+            name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
+        """
+        return self._project
+
+    @property
+    def version(self) -> Optional[str]:
+        """Gets the id of the experiment.
+
+        Returns:
+            The id of the experiment if the experiment exists else the id given to the constructor.
+        """
+        # don't create an experiment if we don't have one
+        return self._experiment.id if self._experiment else self._id
 
     @property
     @rank_zero_experiment
@@ -482,35 +517,6 @@ class WandbLogger(Logger):
         kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Gets the save directory.
-
-        Returns:
-            The path to the save directory.
-        """
-        return self._save_dir
-
-    @property
-    def name(self) -> Optional[str]:
-        """The project name of this experiment.
-
-        Returns:
-            The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
-            name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
-        """
-        return self._project
-
-    @property
-    def version(self) -> Optional[str]:
-        """Gets the id of the experiment.
-
-        Returns:
-            The id of the experiment if the experiment exists else the id given to the constructor.
-        """
-        # don't create an experiment if we don't have one
-        return self._experiment.id if self._experiment else self._id
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts

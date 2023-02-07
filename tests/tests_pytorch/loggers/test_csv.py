@@ -33,7 +33,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
 
-    logger = CSVLogger(save_dir=tmpdir, name="exp")
+    logger = CSVLogger(root_dir=tmpdir, name="exp")
 
     assert logger.version == 2
 
@@ -46,7 +46,7 @@ def test_file_logger_manual_versioning(tmpdir):
     root_dir.mkdir("version_1")
     root_dir.mkdir("version_2")
 
-    logger = CSVLogger(save_dir=tmpdir, name="exp", version=1)
+    logger = CSVLogger(root_dir=tmpdir, name="exp", version=1)
 
     assert logger.version == 1
 
@@ -58,7 +58,7 @@ def test_file_logger_named_version(tmpdir):
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"
 
-    logger = CSVLogger(save_dir=tmpdir, name=exp_name, version=expected_version)
+    logger = CSVLogger(root_dir=tmpdir, name=exp_name, version=expected_version)
     logger.log_hyperparams({"a": 1, "b": 2})
     logger.save()
     assert logger.version == expected_version
@@ -69,7 +69,7 @@ def test_file_logger_named_version(tmpdir):
 @pytest.mark.parametrize("name", ["", None])
 def test_file_logger_no_name(tmpdir, name):
     """Verify that None or empty name works."""
-    logger = CSVLogger(save_dir=tmpdir, name=name)
+    logger = CSVLogger(root_dir=tmpdir, name=name)
     logger.save()
     assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
@@ -112,7 +112,7 @@ def test_file_logger_log_hyperparams(tmpdir):
 def test_fit_csv_logger(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
-    logger = CSVLogger(save_dir=tmpdir)
+    logger = CSVLogger(root_dir=tmpdir)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=10, logger=logger, log_every_n_steps=1)
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
