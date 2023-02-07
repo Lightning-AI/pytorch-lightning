@@ -62,7 +62,7 @@ Why Fabric?
 Fabric differentiates itself from a fully-fledged trainer like :doc:`Lightning Trainer <../common/trainer>` in these key aspects:
 
 **Maximum Flexibility**
-Wite your own training and/or inference logic down to the individual optimizer calls.
+Write your own training and/or inference logic down to the individual optimizer calls.
 You aren't forced to conform to a standardized epoch-based training loop like the one in :doc:`Lightning Trainer <../common/trainer>`.
 This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors.
 Just remember: With great power comes a great responsibility.
