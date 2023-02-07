@@ -15,22 +15,19 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict
-from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
-import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
-from lightning.pytorch.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning.pytorch.utilities.fetching import _DataFetcher
 
 if _RICH_AVAILABLE:
     from rich import get_console
@@ -53,7 +50,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._data_fetcher: Optional[_DataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -125,8 +122,7 @@ class _EvaluationLoop(_DataLoaderLoop):
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
-        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(self.trainer, prefetch_batches=self.prefetch_batches)
 
         # hook
         self._on_evaluation_model_eval()
@@ -373,16 +369,3 @@ class _EvaluationLoop(_DataLoaderLoop):
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
                 print(os.linesep.join(lines))
-
-
-def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
-    lightning_module = trainer.lightning_module
-    step_fx_name = "test_step" if trainer.testing else "validation_step"
-    step_fx = getattr(lightning_module, step_fx_name)
-    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
-        rank_zero_warn(
-            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
-            "this signature is experimental and the behavior is subject to change."
-        )
-        return DataLoaderIterDataFetcher
-    return DataFetcher
