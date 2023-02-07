@@ -59,7 +59,16 @@ class _DataFetcher(Iterator):
         return self
 
     def __next__(self) -> Any:
-        raise NotImplementedError
+        self._start_profiler()
+        try:
+            data = next(self.dataloader_iter)
+        except StopIteration as e:
+            self.done = True
+            raise e
+        finally:
+            self._stop_profiler()
+        self.fetched += 1
+        return data
 
     def reset(self) -> None:
         self.fetched = 0
@@ -149,20 +158,16 @@ class _PrefetchDataFetcher(_DataFetcher):
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         self._start_profiler()
-
         try:
             batch = next(iterator)
-        except StopIteration as e:
+        finally:
             self._stop_profiler()
-            raise e
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
             # when we don't prefetch but the dataloader is sized, we use the length for `done`
             dataloader = self.dataloader
             assert isinstance(dataloader, Sized)  # `_has_len` is True
             self.done = self.fetched >= len(dataloader)
-
-        self._stop_profiler()
         self.batches.append(batch)
 
     def move_to_device(self, batch: Any) -> Any:
@@ -173,27 +178,6 @@ class _PrefetchDataFetcher(_DataFetcher):
     def reset(self) -> None:
         super().reset()
         self.batches = []
-
-
-class _DataLoaderIterWrapper(Iterator):
-
-    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
-    control."""
-
-    def __init__(self, iterator: Iterator, data_fetcher: _DataFetcher) -> None:
-        self.iterator = iterator
-        self.data_fetcher = data_fetcher
-
-    def __next__(self) -> Any:
-        try:
-            self.data_fetcher._start_profiler()
-            data = next(self.iterator)
-            self.data_fetcher._stop_profiler()
-            self.data_fetcher.fetched += 1
-            return data
-        except StopIteration as e:
-            self.data_fetcher.done = True
-            raise e
 
 
 class _DataLoaderIterDataFetcher(_DataFetcher):
@@ -226,3 +210,12 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
         if not self.done:
             return self.fetched, self.iterator
         raise StopIteration
+
+
+class _DataLoaderIterWrapper(Iterator):
+    def __init__(self, iterator: Iterator, data_fetcher: _DataLoaderIterDataFetcher) -> None:
+        self.iterator = iterator
+        self.data_fetcher = data_fetcher
+
+    def __next__(self) -> Any:
+        return super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()
