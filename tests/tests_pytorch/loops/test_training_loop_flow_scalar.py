@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops.optimization.optimizer_loop import Closure
-from pytorch_lightning.trainer.states import RunningStage
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops.optimization.automatic import Closure
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
@@ -54,7 +54,6 @@ def test__training_step__flow_scalar(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
-    assert not model.training_epoch_end_called
 
 
 def test__training_step__tr_step_end__flow_scalar(tmpdir):
@@ -93,7 +92,6 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert model.training_step_end_called
-    assert not model.training_epoch_end_called
 
 
 def test__training_step__epoch_end__flow_scalar(tmpdir):
@@ -106,18 +104,6 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
             self.training_step_called = True
             return acc
-
-        def training_epoch_end(self, outputs):
-            self.training_epoch_end_called = True
-
-            # verify we saw the current num of batches
-            assert len(outputs) == 2
-
-            for b in outputs:
-                # time = 1
-                assert len(b) == 1
-                assert "loss" in b
-                assert isinstance(b, dict)
 
         def backward(self, loss):
             return LightningModule.backward(self, loss)
@@ -138,7 +124,6 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
-    assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
     assert len(trainer.callback_metrics) == 0
@@ -147,19 +132,19 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
 
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure = trainer.fit_loop.epoch_loop.optimizer_loop._make_closure(kwargs, trainer.optimizers[0])
+    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0])
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
 
 
 def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
-    """Checks train_step + training_step_end + training_epoch_end (all with scalar return from train_step)."""
+    """Checks train_step + training_step_end (all with scalar return from train_step)."""
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -174,18 +159,6 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
             assert self.count_num_graphs({"loss": tr_step_output}) == 1
             self.training_step_end_called = True
             return tr_step_output
-
-        def training_epoch_end(self, outputs):
-            self.training_epoch_end_called = True
-
-            # verify we saw the current num of batches
-            assert len(outputs) == 2
-
-            for b in outputs:
-                # time = 1
-                assert len(b) == 1
-                assert "loss" in b
-                assert isinstance(b, dict)
 
         def backward(self, loss):
             return LightningModule.backward(self, loss)
@@ -206,7 +179,6 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert model.training_step_end_called
-    assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
     assert len(trainer.callback_metrics) == 0
@@ -215,13 +187,13 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
 
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure = trainer.fit_loop.epoch_loop.optimizer_loop._make_closure(kwargs, trainer.optimizers[0])
+    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0])
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
 
@@ -236,14 +208,8 @@ def test_train_step_no_return(tmpdir):
             loss = self.step(batch[0])
             self.log("a", loss, on_step=True, on_epoch=True)
 
-        def training_epoch_end(self, outputs) -> None:
-            assert len(outputs) == 0, outputs
-
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
-
-        def validation_epoch_end(self, outputs):
-            assert len(outputs) == 0, outputs
 
     model = TestModel()
     trainer_args = dict(default_root_dir=tmpdir, fast_dev_run=2)
@@ -298,7 +264,7 @@ def test_training_step_no_return_when_even(tmpdir):
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
         kwargs = {"batch": batch, "batch_idx": batch_idx}
-        out = trainer.fit_loop.epoch_loop.optimizer_loop.run(trainer.optimizers[0], kwargs)
+        out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
         if not batch_idx % 2:
             assert out == {}
 

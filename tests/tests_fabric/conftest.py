@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@ from typing import List
 import pytest
 import torch.distributed
 
-import lightning_fabric
+import lightning.fabric
 
 
 @pytest.fixture(scope="function", autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning_fabric.utilities.rank_zero import rank_zero_only
+    from lightning.fabric.utilities.rank_zero import rank_zero_only
 
     rank = getattr(rank_zero_only, "rank", None)
     yield
@@ -77,15 +77,15 @@ def reset_deterministic_algorithm():
 
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lightning_fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_fabric.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
 
 
 @pytest.fixture(scope="function")
 def tpu_available(xla_available, monkeypatch) -> None:
-    monkeypatch.setattr(lightning_fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
 
 
 @pytest.fixture
@@ -96,7 +96,7 @@ def caplog(caplog):
     """
     import logging
 
-    lightning_logger = logging.getLogger("lightning_fabric")
+    lightning_logger = logging.getLogger("lightning.fabric")
     propagate = lightning_logger.propagate
     lightning_logger.propagate = True
     yield caplog
@@ -152,7 +152,7 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
 
     # error out on our deprecation warnings - ensures the code and tests are kept up-to-date
     deprecation_error = pytest.mark.filterwarnings(
-        "error::lightning_fabric.utilities.rank_zero.LightningDeprecationWarning",
+        "error::lightning.fabric.utilities.rank_zero.LightningDeprecationWarning",
     )
     for item in items:
         item.add_marker(deprecation_error)

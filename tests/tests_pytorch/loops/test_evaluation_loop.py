@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,13 +18,12 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
+@mock.patch("lightning.pytorch.loops.dataloader.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end`
     hooks."""
@@ -111,7 +110,7 @@ def test_evaluation_loop_batch_sampler_set_epoch_called(tmpdir):
 
 
 @mock.patch(
-    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
+    "lightning.pytorch.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
 )
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
@@ -179,32 +178,3 @@ def test_memory_consumption_validation(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(BoringLargeBatchModel())
-
-
-def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir):
-    did_assert = False
-
-    class TestModel(BoringModel):
-        def on_test_batch_end(self, outputs, *_):
-            # check `test_step` returns something
-            assert outputs is not None
-
-    model = TestModel()
-    model.test_epoch_end = None
-    assert not is_overridden("test_epoch_end", model)
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
-    loop = trainer.test_loop.epoch_loop
-    original_advance = loop.advance
-
-    def assert_on_advance_end(*args, **kwargs):
-        original_advance(*args, **kwargs)
-        # should be empty
-        assert not loop._outputs
-        # sanity check
-        nonlocal did_assert
-        did_assert = True
-
-    loop.advance = assert_on_advance_end
-    trainer.test(model)
-    assert did_assert

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,16 +19,16 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DistributedSampler
 
-from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import IPUAccelerator
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import IPUPrecisionPlugin
-from pytorch_lightning.strategies.ipu import IPUStrategy
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _IPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch.accelerators import IPUAccelerator
+from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import IPUPrecisionPlugin
+from lightning.pytorch.strategies.ipu import IPUStrategy
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -46,15 +46,6 @@ class IPUModel(BoringModel):
 
     def test_step(self, batch, batch_idx):
         return self.step(batch)
-
-    def training_epoch_end(self, outputs) -> None:
-        pass
-
-    def validation_epoch_end(self, outputs) -> None:
-        pass
-
-    def test_epoch_end(self, outputs) -> None:
-        pass
 
 
 class IPUClassificationModel(ClassificationModel):
@@ -95,7 +86,7 @@ def test_auto_device_count():
 
 
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+@mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(_, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
         Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)

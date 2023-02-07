@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-from pytorch_lightning.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _set_sampler_epoch
 
 
 def test_set_sampler_epoch():

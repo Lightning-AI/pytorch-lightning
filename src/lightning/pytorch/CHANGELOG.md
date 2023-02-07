@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a `kill` method to launchers to kill all launched processes ([#16525](https://github.com/Lightning-AI/lightning/pull/16525))
 
+- Added suffix option to DDP strategy names to enable `find_unused_parameters=True`, for example `strategy="ddp_find_unused_parameters_true"` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
+
+
 ### Changed
 
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
@@ -47,6 +50,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Manual optimization is now required for working with multiple optimizers ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
+
+- DDP's `find_unused_parameters` now defaults to `False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
+
+- The strategy selected by `accelerator="hpu"` now defaults to `find_unused_parameters=False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
 
 
 ### Deprecated
@@ -94,6 +101,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `pytorch_lightning.profiler` module ([#16359](https://github.com/Lightning-AI/lightning/pull/16359))
 
 - Removed deadlock detection / process reconciliation (`PL_RECONCILE_PROCESS=1`) ([#16204](https://github.com/Lightning-AI/lightning/pull/16204))
+
+- Removed the `{training,validation,test}_epoch_end` hooks which would retain step outputs in memory. Alternative implementations are suggested by implementing their `on_*_epoch_end` hooks instead ([#16520](https://github.com/Lightning-AI/lightning/pull/16520))
+
+- Removed the `outputs` argument from the `on_predict_epoch_end` hook. You can access them via `trainer.predict_loop.predictions` ([#16655](https://github.com/Lightning-AI/lightning/pull/16655))
 
 - Removed support for the experimental `PL_FAULT_TOLERANT_TRAINING` environment flag ([#16516](https://github.com/Lightning-AI/lightning/pull/16516), [#16533](https://github.com/Lightning-AI/lightning/pull/16533))
 
@@ -144,6 +155,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `trainer.{fit,validate,test,predict}_loop` properties ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * Removed the default `Loop.run()` implementation ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * The loop classes are now marked as protected ([#16445](https://github.com/Lightning-AI/lightning/pull/16445))
+  * The fetching classes are now marked as protected ([#16664](https://github.com/Lightning-AI/lightning/pull/16664))
 
 - Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
   * Removed the `LightningModule.truncated_bptt_steps` attribute
@@ -194,6 +206,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed `optimizer_idx` argument from `Strategy.{optimizer_step,backward}` and all of its overrides in subclasses
   * Removed `Trainer.optimizer_frequencies` attribute
 
+- Removed `Strategy.dispatch` ([#16618](https://github.com/Lightning-AI/lightning/pull/16618))
+
+- Removed `PrecisionPlugin.dispatch` ([#16618](https://github.com/Lightning-AI/lightning/pull/16618))
+
 
 ### Fixed
 
@@ -204,6 +220,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed logging more than 100 parameters with `MLFlowLogger` and long values are truncated ([#16451](https://github.com/Lightning-AI/lightning/pull/16451))
 
 - Fixed strict availability check for `torch_xla` requirement ([#16476](https://github.com/Lightning-AI/lightning/pull/16476))
+
+- Fixed an issue where PL would wrap DataLoaders with XLA's MpDeviceLoader more than once ([#16571](https://github.com/Lightning-AI/lightning/pull/16571))
+
+- Fixed the batch_sampler reference for DataLoaders wrapped with XLA's MpDeviceLoader ([#16571](https://github.com/Lightning-AI/lightning/pull/16571))
+
+- Fixed an import error when `torch.distributed` is not available ([#16658](https://github.com/Lightning-AI/lightning/pull/16658))
 
 
 ## [1.9.0] - 2023-01-17

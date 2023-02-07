@@ -7,7 +7,7 @@ from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
-from lightning_fabric.utilities.data import (
+from lightning.fabric.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
@@ -17,7 +17,7 @@ from lightning_fabric.utilities.data import (
     has_iterable_dataset,
     has_len,
 )
-from lightning_fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.exceptions import MisconfigurationException
 
 
 def test_has_iterable_dataset():

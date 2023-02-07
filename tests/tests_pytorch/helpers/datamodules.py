@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.datamodule import LightningDataModule
+from lightning.pytorch.core.datamodule import LightningDataModule
 from tests_pytorch.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")

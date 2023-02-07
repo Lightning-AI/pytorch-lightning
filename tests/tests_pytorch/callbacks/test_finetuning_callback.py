@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ from torch import nn
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.pytorch import LightningModule, seed_everything, Trainer
+from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):

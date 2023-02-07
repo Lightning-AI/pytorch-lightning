@@ -7,12 +7,12 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
-from lightning_fabric.utilities.data import _replace_dunder_methods
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.data import (
+from lightning.fabric.utilities.data import _replace_dunder_methods
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _update_dataloader,
@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.data import (
     has_len_all_ranks,
     warning_cache,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_extract_batch_size():

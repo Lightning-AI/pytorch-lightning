@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import torch
 from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
-from lightning_fabric.accelerators import TPUAccelerator
-from lightning_fabric.accelerators.cuda import num_cuda_devices
-from lightning_fabric.accelerators.mps import MPSAccelerator
-from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.accelerators import TPUAccelerator
+from lightning.fabric.accelerators.cuda import num_cuda_devices
+from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
 
 class RunIf:

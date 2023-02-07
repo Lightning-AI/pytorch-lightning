@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import arrow
 import click
 import packaging
 import requests
+import rich
+from lightning_cloud.openapi import Externalv1LightningappInstance
 
 from lightning.app import __package_name__, __version__
 from lightning.app.core.constants import APP_SERVER_PORT
@@ -114,6 +116,10 @@ def _extract_command_from_openapi(openapi_resp: Dict) -> Dict[str, Dict[str, str
     return {p.replace("/command/", ""): _get_metadata_from_openapi(openapi_resp["paths"], p) for p in command_paths}
 
 
+def _get_app_display_name(app: Externalv1LightningappInstance) -> str:
+    return getattr(app, "display_name", None) or app.name
+
+
 class _LightningAppOpenAPIRetriever:
     def __init__(
         self,
@@ -178,14 +184,14 @@ class _LightningAppOpenAPIRetriever:
         project = _get_project(client)
         list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-        app_names = [lightningapp.name for lightningapp in list_apps.lightningapps]
+        app_names = [_get_app_display_name(lightningapp) for lightningapp in list_apps.lightningapps]
 
         if not self.app_id_or_name_or_url:
             print(f"ERROR: Provide an application name, id or url with --app_id=X. Found {app_names}")
             sys.exit(0)
 
         for app in list_apps.lightningapps:
-            if app.id == self.app_id_or_name_or_url or app.name == self.app_id_or_name_or_url:
+            if app.id == self.app_id_or_name_or_url or _get_app_display_name(app) == self.app_id_or_name_or_url:
                 if app.status.url == "":
                     print("The application is starting. Try in a few moments.")
                     sys.exit(0)
@@ -229,7 +235,7 @@ class _LightningAppOpenAPIRetriever:
                 self.url = app.status.url
                 self.openapi = resp.json()
                 self.app_id = app.id
-                self.app_name = app.name
+                self.app_name = _get_app_display_name(app)
 
 
 def _arrow_time_callback(
@@ -349,3 +355,8 @@ def _check_environment_and_redirect():
 
         _redirect_command(env_executable)
     return
+
+
+def _error_and_exit(msg: str) -> str:
+    rich.print(f"[red]ERROR[/red]: {msg}")
+    sys.exit(0)

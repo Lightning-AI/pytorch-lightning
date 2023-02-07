@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ from unittest.mock import patch
 import pytest
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.accelerators.tpu import _multi_process, _XLA_AVAILABLE, TPUAccelerator
+from lightning.fabric.accelerators.tpu import _multi_process, _XLA_AVAILABLE, TPUAccelerator
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
@@ -37,14 +37,14 @@ def sleep_fn(sleep_time: float) -> bool:
     return True
 
 
-@patch("lightning_fabric.accelerators.tpu.TPU_CHECK_TIMEOUT", 3)
+@patch("lightning.fabric.accelerators.tpu.TPU_CHECK_TIMEOUT", 3)
 @pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
 def test_result_returns_within_timeout_seconds():
     """Check that pl_multi_process returns within 3 seconds."""
     fn = _multi_process(sleep_fn)
 
     start = time.time()
-    from lightning_fabric.accelerators.tpu import TPU_CHECK_TIMEOUT
+    from lightning.fabric.accelerators.tpu import TPU_CHECK_TIMEOUT
 
     result = fn(TPU_CHECK_TIMEOUT * 0.5)
     end = time.time()

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import torch
 from torch import Tensor
@@ -169,10 +169,27 @@ class ModelHooks:
     def on_train_epoch_end(self) -> None:
         """Called in the training loop at the very end of the epoch.
 
-        To access all batch outputs at the end of the epoch, either:
+        To access all batch outputs at the end of the epoch, you can cache step outputs as an attribute of the
+        :class:`pytorch_lightning.LightningModule` and access them in this hook:
 
-        1. Implement `training_epoch_end` in the LightningModule OR
-        2. Cache data across steps on the attribute(s) of the `LightningModule` and access them in this hook
+        .. code-block:: python
+
+            class MyLightningModule(L.LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.training_step_outputs = []
+
+                def training_step(self):
+                    loss = ...
+                    self.training_step_outputs.append(loss)
+                    return loss
+
+                def on_train_epoch_end(self):
+                    # do something with all training_step outputs, for example:
+                    epoch_mean = torch.stack(self.training_step_outputs).mean()
+                    self.log("training_epoch_mean", epoch_mean)
+                    # free up the memory
+                    self.training_step_outputs.clear()
         """
 
     def on_validation_epoch_start(self) -> None:
@@ -190,7 +207,7 @@ class ModelHooks:
     def on_predict_epoch_start(self) -> None:
         """Called at the beginning of predicting."""
 
-    def on_predict_epoch_end(self, results: List[Any]) -> None:
+    def on_predict_epoch_end(self) -> None:
         """Called at the end of predicting."""
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
@@ -614,7 +631,7 @@ class DataHooks:
                     # skip device transfer for the first dataloader or anything you wish
                     pass
                 else:
-                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
+                    batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
                 return batch
 
         Raises:

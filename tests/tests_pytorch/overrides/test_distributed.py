@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ from typing import Iterable
 import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
 
-from lightning_fabric.utilities.data import has_len
-from pytorch_lightning import seed_everything
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.fabric.utilities.data import has_len
+from lightning.pytorch import seed_everything
+from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 
 
 @pytest.mark.parametrize("shuffle", [False, True])

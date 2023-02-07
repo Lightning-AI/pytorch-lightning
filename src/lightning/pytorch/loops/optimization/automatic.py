@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ class Closure(AbstractClosure[ClosureResult]):
 _OUTPUTS_TYPE = Dict[str, Any]
 
 
-class _OptimizerLoop(_Loop):
+class _AutomaticOptimization(_Loop):
     """Performs automatic optimization (forward, zero grad, backward, optimizer step)"""
 
     output_result_cls = ClosureResult

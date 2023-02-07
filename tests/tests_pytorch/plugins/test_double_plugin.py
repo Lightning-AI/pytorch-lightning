@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import DoublePrecisionPlugin
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import DoublePrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -45,9 +45,8 @@ class DoublePrecisionBoringModel(BoringModel):
         assert float_data.dtype == torch.float64
         return super().training_step(float_data, batch_idx)
 
-    def training_epoch_end(self, outputs) -> None:
+    def on_train_epoch_end(self):
         assert torch.tensor([0.0]).dtype == torch.float32
-        return super().training_epoch_end(outputs)
 
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64

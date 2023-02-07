@@ -11,8 +11,8 @@ It also returns the optional description and parameters for initialising the Str
 
 .. code-block:: python
 
-    # Training with the DDP Strategy with `find_unused_parameters` as False
-    trainer = Trainer(strategy="ddp_find_unused_parameters_false", accelerator="gpu", devices=4)
+    # Training with the DDP Strategy
+    trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with DeepSpeed ZeRO Stage 3 and CPU Offload
     trainer = Trainer(strategy="deepspeed_stage_3_offload", accelerator="gpu", devices=3)
