@@ -24,7 +24,7 @@ import psutil
 from lightning_utilities.core.imports import package_available
 from rich.progress import Progress
 
-from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
+from lightning_app.utilities.cli_helpers import _get_app_display_name, _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.log import get_logfile
@@ -169,8 +169,8 @@ def connect(app_name_or_id: str):
                 project = _get_project(client)
                 apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
                 click.echo(
-                    "We didn't find a matching App. Here are the available Apps that you can"
-                    f"connect to {[app.name for app in apps.lightningapps]}."
+                    "We didn't find a matching App. Here are the available Apps that you can "
+                    f"connect to {[_get_app_display_name(app) for app in apps.lightningapps]}."
                 )
                 return
 

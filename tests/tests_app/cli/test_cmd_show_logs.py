@@ -14,7 +14,8 @@ def test_show_logs_errors(_, client):
 
     # Response prep
     app = mock.MagicMock()
-    app.name = "MyFakeApp"
+    app.name = "My-FakeApp"
+    app.display_name = "My_FakeApp"
     work = mock.MagicMock()
     work.name = "MyFakeWork"
     flow = mock.MagicMock()
@@ -36,7 +37,7 @@ def test_show_logs_errors(_, client):
     result = runner.invoke(show.commands["logs"])
 
     assert result.exit_code == 1
-    assert "Please select one of available: [MyFakeApp]" in str(result.output)
+    assert "Please select one of the following: [My_FakeApp]" in str(result.output)
 
     # App does not exit
     apps = {app}
@@ -55,7 +56,7 @@ def test_show_logs_errors(_, client):
     client.return_value.lightningwork_service_list_lightningwork.return_value.lightningworks = works
     app.spec.flow_servers = flows
 
-    result = runner.invoke(show.commands["logs"], ["MyFakeApp", "NonExistentComponent"])
+    result = runner.invoke(show.commands["logs"], ["My_FakeApp", "NonExistentComponent"])
 
     assert result.exit_code == 1
-    assert "Component 'root.NonExistentComponent' does not exist in app MyFakeApp." in result.output
+    assert "Component 'root.NonExistentComponent' does not exist in app My_FakeApp." in result.output
