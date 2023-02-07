@@ -123,6 +123,7 @@ jobs:
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
+      continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
         torch-url: ${{ env.TORCH_URL }}
