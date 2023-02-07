@@ -31,11 +31,13 @@ logger = Logger(__name__)
 
 
 @click.argument("name", required=True)
+@click.argument("region", required=True)
 @click.argument("source", required=True)
 @click.argument("destination", required=False)
 @click.argument("project_name", required=False)
 def connect_data(
     name: str,
+    region: str,
     source: str,
     destination: str = "",
     project_name: str = "",
@@ -71,6 +73,7 @@ def connect_data(
                 project_id=project_id,
                 body=ProjectIdDataConnectionsBody(
                     name=name,
+                    region=region,
                     source=source.replace("s3://", ":s3:/"),
                     destination=destination,
                 ),
