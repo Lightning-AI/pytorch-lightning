@@ -45,7 +45,7 @@ from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.distributed import register_ddp_comm_hook
-from lightning.pytorch.utilities.exceptions import _replace_message
+from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
@@ -366,7 +366,7 @@ class DDPStrategy(ParallelStrategy):
         )
 
     def on_exception(self, exception: BaseException) -> None:
-        _replace_message(
+        _augment_message(
             exception,
             pattern=".*Expected to have finished reduction in the prior iteration.*",
             new_message=(
