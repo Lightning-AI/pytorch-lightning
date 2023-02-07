@@ -37,17 +37,6 @@ if _IPU_AVAILABLE:
     import poptorch
 
 
-class IPUModel(BoringModel):
-    def training_step(self, batch, batch_idx):
-        return self.step(batch)
-
-    def validation_step(self, batch, batch_idx):
-        return self.step(batch)
-
-    def test_step(self, batch, batch_idx):
-        return self.step(batch)
-
-
 class IPUClassificationModel(ClassificationModel):
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -115,7 +104,7 @@ def test_no_warning_strategy(tmpdir):
 @RunIf(ipu=True)
 @pytest.mark.parametrize("devices", [1, 4])
 def test_all_stages(tmpdir, devices):
-    model = IPUModel()
+    model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=devices)
     trainer.fit(model)
     trainer.validate(model)
@@ -126,7 +115,7 @@ def test_all_stages(tmpdir, devices):
 @RunIf(ipu=True)
 @pytest.mark.parametrize("devices", [1, 4])
 def test_inference_only(tmpdir, devices):
-    model = IPUModel()
+    model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=devices)
     trainer.validate(model)
@@ -181,7 +170,7 @@ def test_half_precision(tmpdir):
             assert trainer.precision == "16"
             raise SystemExit
 
-    model = IPUModel()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback()
     )
@@ -200,7 +189,7 @@ def test_pure_half_precision(tmpdir):
                 assert param.dtype == torch.float16
             raise SystemExit
 
-    model = IPUModel()
+    model = BoringModel()
     model = model.half()
     trainer = Trainer(
         default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback()
@@ -234,7 +223,7 @@ def test_device_iterations_ipu_strategy(tmpdir):
             assert poptorch_model._options.toDict()["device_iterations"] == 2
             raise SystemExit
 
-    model = IPUModel()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -260,7 +249,7 @@ def test_accumulated_batches(tmpdir):
             assert poptorch_model._options.Training.toDict()["gradient_accumulation"] == 2
             raise SystemExit
 
-    model = IPUModel()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -277,7 +266,7 @@ def test_accumulated_batches(tmpdir):
 def test_stages_correct(tmpdir):
     """Ensure all stages correctly are traced correctly by asserting the output for each stage."""
 
-    class StageModel(IPUModel):
+    class StageModel(BoringModel):
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             # tracing requires a loss value that depends on the model.
@@ -321,7 +310,7 @@ def test_stages_correct(tmpdir):
 
 @RunIf(ipu=True)
 def test_different_accumulate_grad_batches_fails(tmpdir):
-    model = IPUModel()
+    model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, accumulate_grad_batches={1: 2})
     with pytest.raises(
         MisconfigurationException, match="IPUs currently does not support different `accumulate_grad_batches`"
@@ -331,7 +320,7 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
 
 @RunIf(ipu=True)
 def test_clip_gradients_fails(tmpdir):
-    model = IPUModel()
+    model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, gradient_clip_val=10)
     with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
         trainer.fit(model)
@@ -340,7 +329,7 @@ def test_clip_gradients_fails(tmpdir):
 @RunIf(ipu=True)
 def test_autoreport(tmpdir):
     """Ensure autoreport dumps to a file."""
-    model = IPUModel()
+    model = BoringModel()
     autoreport_path = os.path.join(tmpdir, "report/")
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -358,7 +347,7 @@ def test_autoreport(tmpdir):
 def test_manual_poptorch_dataloader(tmpdir):
     model_options = poptorch.Options()
 
-    class IPUTestModel(IPUModel):
+    class IPUTestModel(BoringModel):
         def train_dataloader(self):
             dataloader = super().train_dataloader()
             # save to instance to compare the reference later
@@ -389,7 +378,7 @@ def test_manual_poptorch_dataloader(tmpdir):
 @RunIf(ipu=True)
 def test_manual_poptorch_opts(tmpdir):
     """Ensure if the user passes manual poptorch Options, we run with the correct object."""
-    model = IPUModel()
+    model = BoringModel()
     inference_opts = poptorch.Options()
     training_opts = poptorch.Options()
 
@@ -418,7 +407,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
     """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
     poptorch options and the dataloaders."""
 
-    model = IPUModel()
+    model = BoringModel()
     training_opts = poptorch.Options()
     training_opts.deviceIterations(8)
     training_opts.replicationFactor(2)
@@ -511,7 +500,7 @@ def test_replication_factor(tmpdir):
 def test_default_opts(tmpdir):
     """Ensure default opts are set correctly in the IPUStrategy."""
 
-    model = IPUModel()
+    model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, fast_dev_run=True)
     trainer.fit(model)
@@ -529,7 +518,7 @@ def test_default_opts(tmpdir):
 def test_multi_optimizers_fails(tmpdir):
     """Ensure if there are multiple optimizers, we throw an exception."""
 
-    class TestModel(IPUModel):
+    class TestModel(BoringModel):
         def configure_optimizers(self):
             return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
 
