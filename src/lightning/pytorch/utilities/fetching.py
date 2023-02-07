@@ -60,6 +60,7 @@ class _DataFetcher(Iterator):
 
     def __next__(self) -> Any:
         self._start_profiler()
+        assert self.dataloader_iter is not None
         try:
             data = next(self.dataloader_iter)
         except StopIteration as e:
