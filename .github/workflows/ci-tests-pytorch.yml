@@ -65,9 +65,10 @@ jobs:
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
-
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      FREEZE_REQUIREMENTS: 1
     timeout-minutes: 70
-
     steps:
     - uses: actions/checkout@v3
 
@@ -98,18 +99,6 @@ jobs:
         done
         cat requirements/pytorch/base.txt
 
-    - name: Get pip cache dir
-      id: pip-cache
-      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-    - name: pip cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
-        enableCrossOsArchive: true
-
     - name: Env. variables
       run: |
         # Switch PyTorch URL
@@ -121,14 +110,22 @@ jobs:
         # Decide timeout
         python -c "print('TEST_TIMEOUT=' + str(120 if '${{ matrix.type }}' == 'slow' else 60))" >> $GITHUB_ENV
 
-    - name: Install package & dependencies
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-        FREEZE_REQUIREMENTS: 1
+    - name: pip wheels cache
+      uses: actions/cache@v3
+      with:
+        path: .wheels
+        key: wheels-${{ hashFiles('requirements/pytorch/*.txt') }}
+        restore-keys: wheels-
+        enableCrossOsArchive: true
+    - name: Build package & dependencies
+      # if: TODO only on master
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
-        # TODO: installing the strategies from file as deepspeed expects already installed PyTorch and extras do not install base first
-        # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
+        pip wheel .[extra,test] -U --wheel-dir=".wheels" -f=${TORCH_URL}
+        ls -lh .wheels
+
+    - name: Install package & dependencies
+      run: |
+        pip install -e .[extra,test] "pytest-timeout" --upgrade -f=".wheels/"
         pip list
 
     - name: Cache datasets
