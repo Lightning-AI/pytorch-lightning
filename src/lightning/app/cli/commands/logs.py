@@ -31,7 +31,7 @@ logger = Logger(__name__)
 @click.argument("components", nargs=-1, required=False)
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def logs(app_name: str, components: List[str], follow: bool) -> None:
-    """Show cloud application logs. By default prints logs for all currently available components.
+    """Show cloud application logs. By default, prints logs for all currently available components.
 
     Example uses:
 
@@ -57,7 +57,7 @@ def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
     project = _get_project(client)
 
     apps = {
-        app.name: app
+        getattr(app, "display_name", None) or app.name: app
         for app in client.lightningapp_instance_service_list_lightningapp_instances(
             project_id=project.project_id
         ).lightningapps
@@ -70,12 +70,13 @@ def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
 
     if not app_name:
         raise click.ClickException(
-            f"You have not specified any Lightning App. Please select one of available: [{', '.join(apps.keys())}]"
+            f"You have not specified any Lightning App. Please select one of the following: [{', '.join(apps.keys())}]."
         )
 
     if app_name not in apps:
         raise click.ClickException(
-            f"The Lightning App '{app_name}' does not exist. Please select one of following: [{', '.join(apps.keys())}]"
+            f"The Lightning App '{app_name}' does not exist. "
+            f"Please select one of the following: [{', '.join(apps.keys())}]."
         )
 
     # Fetch all lightning works from given application
