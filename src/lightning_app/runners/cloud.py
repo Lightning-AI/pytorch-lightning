@@ -208,6 +208,67 @@ class CloudRuntime(Runtime):
             logger.error(e.body)
             sys.exit(1)
 
+    def cloudspace_dispatch(
+        self,
+        project_id: str,
+        cloudspace_id: str,
+        name: str,
+        cluster_id: str = None,
+    ):
+        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
+        such as the project and cluster IDs that are instead passed directly.
+
+        Args:
+            project_id: The ID of the project.
+            cloudspace_id: The ID of the cloudspace.
+            name: The name for the run.
+            cluster_id: The ID of the cluster to run on.
+
+        Raises:
+            ApiException: If there was an issue in the backend.
+            RuntimeError: If there are validation errors.
+            ValueError: If there are validation errors.
+        """
+        # Dispatch in four phases: resolution, validation, spec creation, API transactions
+        # Resolution
+        root = self._resolve_root()
+        ignore_functions = self._resolve_open_ignore_functions()
+        repo = self._resolve_repo(root, ignore_functions)
+        cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
+        cluster_id = self._resolve_cluster_id(cluster_id, project_id, [cloudspace])
+        queue_server_type = self._resolve_queue_server_type()
+
+        self.app._update_index_file()
+
+        # Validation
+        # TODO: Validate repo and surface to the user
+        # self._validate_repo(root, repo)
+        self._validate_work_build_specs_and_compute()
+        self._validate_drives()
+        self._validate_mounts()
+
+        # Spec creation
+        flow_servers = self._get_flow_servers()
+        network_configs = self._get_network_configs(flow_servers)
+        works = self._get_works()
+        run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
+        env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
+
+        # API transactions
+        run = self._api_create_run(project_id, cloudspace_id, run_body)
+        self._api_package_and_upload_repo(repo, run)
+
+        self._api_create_run_instance(
+            cluster_id,
+            project_id,
+            name,
+            cloudspace_id,
+            run.id,
+            V1LightningappInstanceState.RUNNING,
+            queue_server_type,
+            env_vars,
+        )
+
     def dispatch(
         self,
         name: str = "",
@@ -409,6 +470,13 @@ class CloudRuntime(Runtime):
     def _resolve_project(self) -> V1Membership:
         """Determine the project to run on, choosing a default if multiple projects are found."""
         return _get_project(self.backend.client)
+
+    def _resolve_cloudspace(self, project_id: str, cloudspace_id: str) -> V1CloudSpace:
+        """Get a cloudspace by project / cloudspace ID."""
+        return self.backend.client.cloud_space_service_get_cloud_space(
+            project_id=project_id,
+            id=cloudspace_id,
+        )
 
     def _resolve_existing_cloudspaces(self, project, cloudspace_name: str) -> List[V1CloudSpace]:
         """Lists all the cloudspaces with a name matching the provided cloudspace name."""
@@ -871,7 +939,7 @@ class CloudRuntime(Runtime):
         self,
         cluster_id: str,
         project_id: str,
-        cloudspace_name: str,
+        run_name: str,
         cloudspace_id: str,
         run_id: str,
         desired_state: V1LightningappInstanceState,
@@ -886,7 +954,7 @@ class CloudRuntime(Runtime):
             id=run_id,
             body=IdGetBody1(
                 cluster_id=cluster_id,
-                name=cloudspace_name,
+                name=run_name,
                 desired_state=desired_state,
                 queue_server_type=queue_server_type,
                 env=env_vars,
