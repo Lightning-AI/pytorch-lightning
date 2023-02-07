@@ -324,3 +324,13 @@ def test_apply_to_collection_frozen_dataclass():
     foo = Foo(0)
     with pytest.raises(ValueError, match="frozen dataclass was passed"):
         apply_to_collection(foo, int, lambda x: x + 1)
+
+
+def test_apply_to_collection_allow_frozen_dataclass():
+    @dataclasses.dataclass(frozen=True)
+    class Foo:
+        input: int
+
+    foo = Foo(0)
+    result = apply_to_collection(foo, int, lambda x: x + 1, allow_frozen=True)
+    assert foo == result

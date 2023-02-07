@@ -25,6 +25,7 @@ def apply_to_collection(
     *args: Any,
     wrong_dtype: Optional[Union[type, Tuple[type, ...]]] = None,
     include_none: bool = True,
+    allow_frozen: bool = False,
     **kwargs: Any,
 ) -> Any:
     """Recursively applies a function to all elements of a certain dtype.
@@ -37,6 +38,7 @@ def apply_to_collection(
         wrong_dtype: the given function won't be applied if this type is specified and the given collections
             is of the ``wrong_dtype`` even if it is of type ``dtype``
         include_none: Whether to include an element if the output of ``function`` is ``None``.
+        allow_frozen: Whether not to error upon encountering a frozen dataclass instance.
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
@@ -53,7 +55,14 @@ def apply_to_collection(
         out = []
         for k, v in data.items():
             v = apply_to_collection(
-                v, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+                v,
+                dtype,
+                function,
+                *args,
+                wrong_dtype=wrong_dtype,
+                include_none=include_none,
+                allow_frozen=allow_frozen,
+                **kwargs,
             )
             if include_none or v is not None:
                 out.append((k, v))
@@ -67,7 +76,14 @@ def apply_to_collection(
         out = []
         for d in data:
             v = apply_to_collection(
-                d, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+                d,
+                dtype,
+                function,
+                *args,
+                wrong_dtype=wrong_dtype,
+                include_none=include_none,
+                allow_frozen=allow_frozen,
+                **kwargs,
             )
             if include_none or v is not None:
                 out.append(v)
@@ -95,6 +111,7 @@ def apply_to_collection(
                     *args,
                     wrong_dtype=wrong_dtype,
                     include_none=include_none,
+                    allow_frozen=allow_frozen,
                     **kwargs,
                 )
             if not field_init or (not include_none and v is None):  # retain old value
@@ -102,6 +119,9 @@ def apply_to_collection(
             try:
                 setattr(result, field_name, v)
             except dataclasses.FrozenInstanceError as e:
+                if allow_frozen:
+                    # Quit early if we encounter a frozen data class; return `result` as is.
+                    break
                 raise ValueError(
                     "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
                 ) from e
