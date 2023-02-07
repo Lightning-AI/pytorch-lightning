@@ -50,19 +50,13 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
-    # -----------------------------------
-    # verify model has a training step
-    # -----------------------------------
+    # verify minimum training requirements
     has_training_step = is_overridden("training_step", model)
     if not has_training_step:
         raise MisconfigurationException(
             "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
-
-    # -----------------------------------
-    # verify model has optimizer
-    # -----------------------------------
     has_optimizers = is_overridden("configure_optimizers", model)
     if not has_optimizers:
         raise MisconfigurationException(
@@ -70,11 +64,11 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
+    # verify gradient accumulation setup
     overridden_optimizer_step = is_overridden("optimizer_step", model)
     overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
     automatic_optimization = model.automatic_optimization
     going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
-
     has_overridden_optimization_functions = overridden_optimizer_step or overridden_optimizer_zero_grad
     if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
         rank_zero_warn(
@@ -83,13 +77,9 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " (rather, they are called on every optimization step)."
         )
 
-    # -----------------------------------
-    # verify model for val loop
-    # -----------------------------------
-
+    # verify minimum validation requirements
     has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
     has_val_step = is_overridden("validation_step", model)
-
     if has_val_loader and not has_val_step:
         rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
     if has_val_step and not has_val_loader:
@@ -98,11 +88,25 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             category=PossibleUserWarning,
         )
 
+    # check legacy hooks are not present
+    if callable(getattr(model, "training_epoch_end", None)):
+        raise NotImplementedError(
+            f"Support for `training_epoch_end` has been removed in v2.0.0. `{type(model).__name__}` implements this"
+            " method. You can use the `on_train_epoch_end` hook instead. To access outputs, save them in-memory as"
+            " instance attributes."
+            " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+        )
+    if callable(getattr(model, "validation_epoch_end", None)):
+        raise NotImplementedError(
+            f"Support for `validation_epoch_end` has been removed in v2.0.0. `{type(model).__name__}` implements this"
+            " method. You can use the `on_validation_epoch_end` hook instead. To access outputs, save them in-memory as"
+            " instance attributes."
+            " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+        )
+
 
 def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) -> None:
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
-    trainer_method = "validate" if stage == "val" else stage
-
     has_step = is_overridden(step_name, model)
 
     # predict_step is not required to be overridden
@@ -112,11 +116,20 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
         elif not has_step and not is_overridden("forward", model):
             raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
     else:
-        # -----------------------------------
-        # verify model has an eval_step
-        # -----------------------------------
+        # verify minimum evaluation requirements
         if not has_step:
+            trainer_method = "validate" if stage == "val" else stage
             raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
+
+        # check legacy hooks are not present
+        epoch_end_name = "validation_epoch_end" if stage == "val" else "test_epoch_end"
+        if callable(getattr(model, epoch_end_name, None)):
+            raise NotImplementedError(
+                f"Support for `{epoch_end_name}` has been removed in v2.0.0. `{type(model).__name__}` implements this"
+                f" method. You can use the `on_{epoch_end_name}` hook instead. To access outputs, save them in-memory"
+                " as instance attributes."
+                " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+            )
 
 
 def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
