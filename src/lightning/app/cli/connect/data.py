@@ -47,8 +47,6 @@ def connect_data(
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
-        live.stop()
-
         client = LightningClient()
         projects = client.projects_service_list_memberships()
 
