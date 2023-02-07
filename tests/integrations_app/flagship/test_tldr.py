@@ -1,8 +1,12 @@
 import os
+from time import sleep
 
 from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 
-from lightning.app.testing.testing import run_app_in_cloud
+from lightning.app.testing.testing import run_app_in_cloud, wait_for
+from click.testing import CliRunner
+
+from lightning.app.cli.lightning_cli import show
 
 
 def test_app_in_cloud():
@@ -19,9 +23,28 @@ def test_app_in_cloud():
         """
         f.write(app_string)
 
-        with run_app_in_cloud(_PATH_INTEGRATIONS_DIR, "test_app.py") as (_, _, fetch_logs, _):
-            logs = list(fetch_logs())
 
-        # for curr_str in expected_strings:
-        #     assert curr_str in logs
-        print(logs)
+        with run_app_in_cloud(_PATH_INTEGRATIONS_DIR, "test_app.py", debug=True) as (
+            _,
+            view_page,
+            fetch_logs,
+            name,
+        ):
+            logs = []
+            while not logs:
+                sleep(1)
+                logs = list(fetch_logs())
+
+        expected_strings = [
+            # don't include values for actual hardware availability as this may depend on environment.
+            'GPU available: ',
+            'All distributed processes registered.',
+            '674 K    Trainable params\n0         Non - trainable params\n674 K    Total params\n2.699   Total estimated model params size(MB)',
+            'Epoch 0:',
+            '`Trainer.fit` stopped: `max_epochs=2` reached.',
+            'Input text:Input text:\n summarize: ML Ops platforms come in many flavors from platforms that train models'
+        ]
+
+        for curr_str in expected_strings:
+            assert any([curr_str in line for line in logs])
+        os.remove(os.path.join(_PATH_INTEGRATIONS_DIR, 'test_app.py'))
