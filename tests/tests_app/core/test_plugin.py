@@ -58,7 +58,7 @@ def test_run_app(mock_cloud_runtime, mock_plugin_server):
 
     assert response.status_code == status.HTTP_200_OK
 
-    mock_cloud_runtime.load_app_from_file.assert_called_once_with("/content/test_entrypoint")
+    mock_cloud_runtime.load_app_from_file.assert_called_once_with(str(Path("/content") / "test_entrypoint"))
 
     mock_cloud_runtime.assert_called_once_with(
         app=mock_app,
