@@ -72,8 +72,10 @@ ignore_missing_imports = true
 [tool.ruff]
  line-length = 120
  select = [
-     "E", "W",  # see: https://pypi.org/project/pycodestyle
-     "F",  # see: https://pypi.org/project/pyflakes
+    "E", "W",  # see: https://pypi.org/project/pycodestyle
+    "F",  # see: https://pypi.org/project/pyflakes
+    "D",  # see: https://pypi.org/project/pydocstyle
+    "N",  # see: https://pypi.org/project/pep8-naming
  ]
  ignore = [
      "E731",
@@ -91,10 +93,41 @@ ignore_missing_imports = true
  ]
  ignore-init-module-imports = true
 
- # [tool.ruff.per-file-ignores]
- # "setup.py" = ["D100", "SIM115"]
- # "__about__.py" = ["D100"]
- # "__init__.py" = ["D100"]
+[tool.ruff.per-file-ignores]
+"setup.py" = ["D100", "SIM115"]
+"__about__.py" = ["D100"]
+"__init__.py" = ["D100"]
+"src/**" = [
+    "D100",  # todo # Missing docstring in public module
+    "D101",  # todo # Missing docstring in public class
+    "D102",  # todo # Missing docstring in public method
+    "D103",  # todo # Missing docstring in public function
+    "D104",  # todo # Missing docstring in public package
+    "D105",  # todo # Missing docstring in magic method
+    "D107",  # todo # Missing docstring in `__init__`
+    "D205",  # todo # 1 blank line required between summary line and description
+    "D401",  # todo # First line of docstring should be in imperative mood: ...
+    "D415",  # todo # First line should end with a period, question mark, or exclamation point"
+    "D417",  # todo # Missing argument descriptions in the docstring: ...
+]
+"tests/**" = [
+    "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D105",  # todo # Missing docstring in magic method
+    "D107",  # todo # Missing docstring in `__init__`
+    "D205",  # todo # 1 blank line required between summary line and description
+    "D401",  # todo # First line of docstring should be in imperative mood: ...
+    "D403",  # todo # First word of the first line should be properly capitalized
+    "D415",  # todo # First line should end with a period, question mark, or exclamation point"
+    "D417",  # todo # Missing argument descriptions in the docstring: ...
+]
+
+[tool.ruff.pydocstyle]
+# Use Google-style docstrings.
+convention = "google"
 
  [tool.ruff.mccabe]
  max-complexity = 10

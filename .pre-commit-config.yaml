@@ -27,19 +27,13 @@ repos:
         args: [--py37-plus]
         name: Upgrade code
 
-  - repo: https://github.com/PyCQA/docformatter
-    rev: v1.5.1
-    hooks:
-      - id: docformatter
-        args: [--in-place, --wrap-summaries=120, --wrap-descriptions=120]
-
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 22.12.0
+    rev: 23.1.0
     hooks:
       - id: black
         name: Black code
@@ -60,7 +54,7 @@ repos:
       - id: yesqa
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.238
+    rev: v0.0.243
     hooks:
       - id: ruff
         args: ["--fix"]

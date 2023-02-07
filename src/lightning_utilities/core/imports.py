@@ -212,16 +212,20 @@ class LazyModule(ModuleType):
 
 
 def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyModule:
-    """Returns a proxy module object that will lazily import the given module the first time it is used. Example usage::
+    """Returns a proxy module object that will lazily import the given module the first time it is used.
+
+    Example usage:
 
         # Lazy version of `import tensorflow as tf`
         tf = lazy_import("tensorflow")
         # Other commands
         # Now the module is loaded
         tf.__version__
+
     Args:
         module_name: the fully-qualified module name to import
         callback: a callback function to call before importing the module
+
     Returns:
         a proxy module object that will be lazily imported when first used
     """
@@ -232,7 +236,6 @@ def requires(*module_path: str, raise_exception: bool = True) -> Callable:
     """Wrapper for early import failure with some nice exception message.
 
     Example:
-
         >>> @requires("libpath", raise_exception=bool(int(os.getenv("LIGHTING_TESTING", "0"))))
         ... def my_cwd():
         ...     from pathlib import Path
