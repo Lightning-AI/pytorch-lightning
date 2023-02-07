@@ -68,7 +68,7 @@ def test_tensorboard_automatic_versioning(tmpdir):
     (root_dir / "version_0").mkdir()
     (root_dir / "version_1").mkdir()
 
-    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning")
+    logger = TensorBoardLogger(root_dir=tmpdir, name="tb_versioning")
     assert logger.version == 2
 
 
@@ -81,7 +81,7 @@ def test_tensorboard_manual_versioning(tmpdir):
     (root_dir / "version_1").mkdir()
     (root_dir / "version_2").mkdir()
 
-    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=1)
+    logger = TensorBoardLogger(root_dir=tmpdir, name="tb_versioning", version=1)
 
     assert logger.version == 1
 
@@ -93,7 +93,7 @@ def test_tensorboard_named_version(tmpdir):
     (tmpdir / name).mkdir()
     expected_version = "2020-02-05-162402"
 
-    logger = TensorBoardLogger(save_dir=tmpdir, name=name, version=expected_version)
+    logger = TensorBoardLogger(root_dir=tmpdir, name=name, version=expected_version)
     logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
 
     assert logger.version == expected_version
@@ -104,7 +104,7 @@ def test_tensorboard_named_version(tmpdir):
 @pytest.mark.parametrize("name", ["", None])
 def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works."""
-    logger = TensorBoardLogger(save_dir=tmpdir, name=name)
+    logger = TensorBoardLogger(root_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
     assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
@@ -125,31 +125,31 @@ def test_tensorboard_log_sub_dir(tmpdir):
     trainer_args = dict(default_root_dir=tmpdir, max_steps=1)
 
     # no sub_dir specified
-    save_dir = tmpdir / "logs"
-    logger = TestLogger(save_dir)
+    root_dir = tmpdir / "logs"
+    logger = TestLogger(root_dir)
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(save_dir, "name", "version")
+    assert trainer.logger.log_dir == os.path.join(root_dir, "name", "version")
 
     # sub_dir specified
-    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    logger = TestLogger(root_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(save_dir, "name", "version", "sub_dir")
+    assert trainer.logger.log_dir == os.path.join(root_dir, "name", "version", "sub_dir")
 
     # test home dir (`~`) handling
-    save_dir = "~/tmp"
-    explicit_save_dir = os.path.expanduser(save_dir)
-    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    root_dir = "~/tmp"
+    explicit_root_dir = os.path.expanduser(root_dir)
+    logger = TestLogger(root_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+    assert trainer.logger.log_dir == os.path.join(explicit_root_dir, "name", "version", "sub_dir")
 
     # test env var (`$`) handling
     test_env_dir = "some_directory"
     os.environ["test_env_dir"] = test_env_dir
-    save_dir = "$test_env_dir/tmp"
-    explicit_save_dir = f"{test_env_dir}/tmp"
-    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    root_dir = "$test_env_dir/tmp"
+    explicit_root_dir = f"{test_env_dir}/tmp"
+    logger = TestLogger(root_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+    assert trainer.logger.log_dir == os.path.join(explicit_root_dir, "name", "version", "sub_dir")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
@@ -286,14 +286,14 @@ def test_tensorboard_finalize(monkeypatch, tmpdir):
         import tensorboardX as tb
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
-    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger = TensorBoardLogger(root_dir=tmpdir)
     assert logger._experiment is None
     logger.finalize("any")
 
     # no log calls, no experiment created -> nothing to flush
     logger.experiment.assert_not_called()
 
-    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger = TensorBoardLogger(root_dir=tmpdir)
     logger.log_metrics({"flush_me": 11.1})  # trigger creation of an experiment
     logger.finalize("any")
 
@@ -304,7 +304,7 @@ def test_tensorboard_finalize(monkeypatch, tmpdir):
 
 def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     model = BoringModel()
-    logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
+    logger = TensorBoardLogger(root_dir=tmpdir, default_hp_metric=False)
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
@@ -316,7 +316,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
 
 @mock.patch("lightning.pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
-    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
+    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``root_dir``,
     and relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
@@ -325,19 +325,7 @@ def test_tensorboard_with_symlink(log, tmpdir):
     os.makedirs(source, exist_ok=True)
     os.symlink(source, dest)
 
-    logger = TensorBoardLogger(save_dir=dest, name="")
+    logger = TensorBoardLogger(root_dir=dest, name="")
     _ = logger.version
 
     log.warning.assert_not_called()
-
-
-def test_tensorboard_missing_folder_warning(tmpdir, caplog):
-    """Verify that the logger throws a warning for invalid directory."""
-
-    name = "fake_dir"
-    logger = TensorBoardLogger(save_dir=tmpdir, name=name)
-
-    with caplog.at_level(logging.WARNING):
-        assert logger.version == 0
-
-    assert "Missing logger folder:" in caplog.text

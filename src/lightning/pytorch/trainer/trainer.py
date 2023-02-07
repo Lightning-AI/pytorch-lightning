@@ -223,7 +223,7 @@ class Trainer:
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
                 ``False`` will disable logging. If multiple loggers are provided, local files
-                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of he first logger.
+                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
 
             log_every_n_steps: How often to log within steps.
@@ -1578,7 +1578,10 @@ class Trainer:
 
     @property
     def log_dir(self) -> Optional[str]:
-        log_dir = self.loggers[0].log_dir if len(self.loggers) > 0 else self.default_root_dir
+        if len(self.loggers) > 0:
+            log_dir = self.loggers[0].log_dir or self.default_root_dir
+        else:
+            log_dir = self.default_root_dir
         log_dir = self.strategy.broadcast(log_dir)
         return log_dir
 

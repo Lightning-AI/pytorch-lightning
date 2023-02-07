@@ -67,7 +67,7 @@ class CSVLogger(Logger, FabricCSVLogger):
     r"""
     Log to local file system in yaml and CSV format.
 
-    Logs are saved to ``os.path.join(save_dir, name, version)``.
+    Logs are saved to ``os.path.join(root_dir, name, version)``.
 
     Example:
         >>> from lightning.pytorch import Trainer
@@ -76,7 +76,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         >>> trainer = Trainer(logger=logger)
 
     Args:
-        save_dir: Save directory
+        root_dir: The root directory in which all your experiments with different names and versions will be stored.
         name: Experiment name. Defaults to ``'lightning_logs'``.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
@@ -88,50 +88,19 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     def __init__(
         self,
-        save_dir: _PATH,
+        root_dir: _PATH,
         name: str = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
     ):
         super().__init__(
-            root_dir=save_dir,
+            root_dir=root_dir,
             name=name,
             version=version,
             prefix=prefix,
             flush_logs_every_n_steps=flush_logs_every_n_steps,
         )
-        self._save_dir = os.fspath(save_dir)
-
-    @property
-    def root_dir(self) -> str:
-        """Parent directory for all checkpoint subdirectories.
-
-        If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
-        be saved in "save_dir/version"
-        """
-        return os.path.join(self.save_dir, self.name)
-
-    @property
-    def log_dir(self) -> str:
-        """The log directory for this run.
-
-        By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
-        constructor's version parameter instead of ``None`` or an int.
-        """
-        # create a pseudo standard path
-        version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
-        return log_dir
-
-    @property
-    def save_dir(self) -> str:
-        """The current directory where logs are saved.
-
-        Returns:
-            The path to current directory where logs are saved.
-        """
-        return self._save_dir
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:

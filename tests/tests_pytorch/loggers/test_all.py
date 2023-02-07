@@ -61,10 +61,10 @@ ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogge
 ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
 
 
-def _get_logger_args(logger_class, save_dir):
+def _get_logger_args(logger_class, root_dir):
     logger_args = {}
-    if "save_dir" in inspect.getfullargspec(logger_class).args:
-        logger_args.update(save_dir=str(save_dir))
+    if "root_dir" in inspect.getfullargspec(logger_class).args:
+        logger_args.update(root_dir=str(root_dir))
     if "offline_mode" in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline_mode=True)
     if "offline" in inspect.getfullargspec(logger_class).args:
@@ -74,8 +74,8 @@ def _get_logger_args(logger_class, save_dir):
     return logger_args
 
 
-def _instantiate_logger(logger_class, save_dir, **override_kwargs):
-    args = _get_logger_args(logger_class, save_dir)
+def _instantiate_logger(logger_class, root_dir, **override_kwargs):
+    args = _get_logger_args(logger_class, root_dir)
     args.update(**override_kwargs)
     logger = logger_class(**args)
     return logger
@@ -197,7 +197,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     # make sure we restored properly
     assert trainer2.logger.name == logger.name
-    assert trainer2.logger.save_dir == logger.save_dir
+    assert trainer2.logger.root_dir == logger.root_dir
 
 
 @pytest.mark.parametrize("tuner_method", ["lr_find", "scale_batch_size"])
@@ -272,7 +272,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         "lightning.pytorch.loggers.comet.CometOfflineExperiment"
     ):
         _patch_comet_atexit(monkeypatch)
-        logger = _instantiate_logger(CometLogger, save_dir=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(CometLogger, root_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
@@ -280,7 +280,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
         "lightning.pytorch.loggers.mlflow.Metric"
     ) as Metric, mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"):
-        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(MLFlowLogger, root_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_batch.assert_called_once_with(
             run_id=ANY, metrics=[Metric(key="tmp-test", value=1.0, timestamp=ANY, step=0)]
@@ -290,7 +290,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch("lightning.pytorch.loggers.neptune.neptune"), mock.patch(
         "lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True
     ):
-        logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", root_dir=tmpdir, prefix=prefix)
         assert logger.experiment.__getitem__.call_count == 2
         logger.log_metrics({"test": 1.0}, step=0)
         assert logger.experiment.__getitem__.call_count == 3
@@ -304,7 +304,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         import tensorboardX as tb
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
-    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
+    logger = _instantiate_logger(TensorBoardLogger, root_dir=tmpdir, prefix=prefix)
     logger.log_metrics({"test": 1.0}, step=0)
     logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
@@ -312,7 +312,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch("lightning.pytorch.loggers.wandb.wandb") as wandb, mock.patch(
         "lightning.pytorch.loggers.wandb.Run", new=mock.Mock
     ):
-        logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(WandbLogger, root_dir=tmpdir, prefix=prefix)
         wandb.run = None
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
@@ -323,7 +323,7 @@ def test_logger_default_name(tmpdir, monkeypatch):
     """Test that the default logger name is lightning_logs."""
 
     # CSV
-    logger = CSVLogger(save_dir=tmpdir)
+    logger = CSVLogger(root_dir=tmpdir)
     assert logger.name == "lightning_logs"
 
     # TensorBoard
@@ -333,7 +333,7 @@ def test_logger_default_name(tmpdir, monkeypatch):
         import tensorboardX as tb
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
-    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
+    logger = _instantiate_logger(TensorBoardLogger, root_dir=tmpdir)
     assert logger.name == "lightning_logs"
 
     # MLflow
@@ -341,7 +341,7 @@ def test_logger_default_name(tmpdir, monkeypatch):
         "lightning.pytorch.loggers.mlflow.MlflowClient"
     ) as mlflow_client:
         mlflow_client().get_experiment_by_name.return_value = None
-        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
+        logger = _instantiate_logger(MLFlowLogger, root_dir=tmpdir)
 
         _ = logger.experiment
         logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)

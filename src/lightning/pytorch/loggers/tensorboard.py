@@ -49,7 +49,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
     Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
-    ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
+    ``os.path.join(root_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
 
     Example:
@@ -63,8 +63,8 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         trainer = Trainer(logger=logger)
 
     Args:
-        save_dir: Save directory
-        name: Experiment name. Defaults to ``'default'``. If it is the empty string then no per-experiment
+        root_dir: The root directory in which all your experiments with different names and versions will be stored.
+        name: Experiment name. Defaults to ``'lightning_logs'``. If it is the empty string then no per-experiment
             subdirectory is used.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
@@ -76,9 +76,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         prefix: A string to put at the beginning of metric keys.
-        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
-            logs are saved in ``/save_dir/name/version/``.
+        sub_dir: Sub-directory to group TensorBoard logs. If a ``sub_dir`` argument is passed
+            then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
+            logs are saved in ``/root_dir/name/version/``.
         \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
@@ -98,7 +98,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
     def __init__(
         self,
-        save_dir: _PATH,
+        root_dir: _PATH,
         name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
@@ -108,7 +108,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         **kwargs: Any,
     ):
         super().__init__(
-            root_dir=save_dir,
+            root_dir=root_dir,
             name=name,
             version=version,
             default_hp_metric=default_hp_metric,
@@ -120,40 +120,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             rank_zero_warn("You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.")
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
         self.hparams: Union[Dict[str, Any], Namespace] = {}
-
-    @property
-    def root_dir(self) -> str:
-        """Parent directory for all tensorboard checkpoint subdirectories.
-
-        If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
-        be saved in "save_dir/version"
-        """
-        return os.path.join(super().root_dir, self.name)
-
-    @property
-    def log_dir(self) -> str:
-        """The directory for this run's tensorboard checkpoint.
-
-        By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
-        constructor's version parameter instead of ``None`` or an int.
-        """
-        # create a pseudo standard path ala test-tube
-        version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
-        if isinstance(self.sub_dir, str):
-            log_dir = os.path.join(log_dir, self.sub_dir)
-        log_dir = os.path.expandvars(log_dir)
-        log_dir = os.path.expanduser(log_dir)
-        return log_dir
-
-    @property
-    def save_dir(self) -> str:
-        """Gets the save directory where the TensorBoard experiments are saved.
-
-        Returns:
-            The local path to the save directory where the TensorBoard experiments are saved.
-        """
-        return self._root_dir
 
     @rank_zero_only
     def log_hyperparams(
@@ -227,24 +193,3 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             checkpoint_callback: the model checkpoint callback instance
         """
         pass
-
-    def _get_next_version(self) -> int:
-        root_dir = self.root_dir
-
-        try:
-            listdir_info = self._fs.listdir(root_dir)
-        except OSError:
-            log.warning("Missing logger folder: %s", root_dir)
-            return 0
-
-        existing_versions = []
-        for listing in listdir_info:
-            d = listing["name"]
-            bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
-                dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
-        if len(existing_versions) == 0:
-            return 0
-
-        return max(existing_versions) + 1
