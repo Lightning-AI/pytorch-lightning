@@ -2,18 +2,12 @@
 Fabric (Beta)
 #############
 
-Fabric allows you to scale any PyTorch model with just a few lines of code!
-With Fabric, you can easily scale your model to run on distributed devices using the strategy of your choice while keeping complete control over the training loop and optimization logic.
+Fabric is the fast and lightweight way to scale your models without boilerplate code.
 
-With only a few changes to your code, Fabric allows you to:
-
-- Automatic placement of models and data onto the device
-- Automatic support for mixed precision (speedup and smaller memory footprint)
-- Seamless switching between hardware (CPU, GPU, TPU)
-- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
-- Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
-- Multi-node support (TorchElastic, SLURM, and more)
-- You keep complete control of your training loop
+- Handles all the boilerplate device logic for you
+- Easily switch from debugging on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
+- Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
+- Designed with multi-billion parameter models in mind
 
 
 .. code-block:: diff
@@ -55,6 +49,32 @@ With only a few changes to your code, Fabric allows you to:
 
 
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
+
+
+----
+
+
+***********
+Why Fabric?
+***********
+
+Fabric differentiates itself from a fully-fledged trainer like `Lightning Trainer <TODO include link>`_ in these key aspects:
+
+**Maximum Flexibility**
+You write your own training and/or inference logic down to the individual optimizer calls.
+This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors.
+Just remember: With great power comes a great responsibility.
+
+**Personalization**
+While a general-purpose trainer like `Lightning Trainer <TODO include link>`_ contains all features *any* researcher could ever ask for,
+it may contain way more stuff than you, the individual, would ever need.
+This can make it more difficult to adapt it to your domain of research than it should be, but at the same time, building a well-tested, efficient and hackable trainer is very time-consuming.
+Fabric bridges this gap by providing important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but at the same time it leaves the design and orchestration fully up to you.
+
+**Opt-in Philosophy**
+Everything in Fabric is opt-in.
+Think of it as a toolbox: You take out the tools (Fabric functions) you need and leave the other ones behind.
+This makes it easier to develop and debug your PyTorch code as you gradually add more features to it.
 
 
 ----
