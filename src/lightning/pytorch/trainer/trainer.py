@@ -310,6 +310,7 @@ class Trainer:
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float
+
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid
                 If ``track_grad_norm` is not a positive number or inf
