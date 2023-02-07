@@ -16,7 +16,7 @@ Base class used to build new callbacks.
 
 """
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -135,7 +135,7 @@ class Callback:
     def on_predict_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the predict epoch begins."""
 
-    def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: List[Any]) -> None:
+    def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the predict epoch ends."""
 
     def on_validation_batch_start(
