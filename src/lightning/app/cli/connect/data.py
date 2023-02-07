@@ -75,7 +75,7 @@ def connect_data(
                 body=ProjectIdDataConnectionsBody(
                     name=name,
                     region=region,
-                    source=source.replace("s3://", ":s3:/"),
+                    source=source,
                     destination=destination,
                 ),
                 project_id=project_id,
