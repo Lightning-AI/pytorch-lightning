@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,14 +21,14 @@ import torch
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import TPUAccelerator
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.strategies import TPUSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla import _XLALauncher
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.strategies import TPUSpawnStrategy
+from lightning.pytorch.strategies.launchers.xla import _XLALauncher
+from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -509,6 +509,7 @@ class AutoScaler(LightningFlow):
                 scale_in_interval=10,
             )
         )
+
 
         # Example 2: Customizing the scaling logic
         class MyAutoScaler(L.app.components.AutoScaler):

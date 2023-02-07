@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.tuner.tuning import Tuner
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -447,7 +447,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
 
 
 @pytest.mark.parametrize("scale_method, expected_batch_size", [("power", 62), ("binsearch", 100)])
-@patch("pytorch_lightning.tuner.batch_size_scaling.is_oom_error", return_value=True)
+@patch("lightning.pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
 def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expected_batch_size):
     class CustomBatchSizeModel(BatchSizeModel):
         def training_step(self, *_, **__):
@@ -459,7 +459,6 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
 
     model = CustomBatchSizeModel(batch_size=16)
     model.validation_step = None
-    model.training_epoch_end = None
     scale_batch_size_kwargs = {"max_trials": 10, "steps_per_trial": 1, "init_val": 500, "mode": scale_method}
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)

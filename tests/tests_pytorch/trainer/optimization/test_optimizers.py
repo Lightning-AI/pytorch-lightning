@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,16 +18,16 @@ import pytest
 import torch
 from torch import optim
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.core.optimizer import (
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.core.optimizer import (
     _configure_optimizers,
     _configure_schedulers_automatic_opt,
     _init_optimizers_and_lr_schedulers,
 )
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import LRSchedulerConfig
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.types import LRSchedulerConfig
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -77,7 +77,6 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     model = Model()
     model.automatic_optimization = False
-    model.training_epoch_end = None
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
     trainer.fit(model)
 
@@ -540,7 +539,6 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
             self.on_save_checkpoint_called = True
 
     model = Model()
-    model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called
 
@@ -577,7 +575,6 @@ def test_lr_scheduler_step_hook(tmpdir):
             return [optimizer], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
-    model.training_epoch_end = None
     max_epochs = 3
     limit_train_batches = 2
     trainer = Trainer(

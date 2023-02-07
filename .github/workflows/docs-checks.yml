@@ -60,9 +60,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-
+          key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-test-${{ matrix.pkg-name }}-
 
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
@@ -125,9 +124,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-
+          key: docs-make-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-make-${{ matrix.pkg-name }}-
 
       - name: Install package & dependencies
         env:
