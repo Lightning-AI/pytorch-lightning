@@ -26,8 +26,9 @@ from torch.autograd.profiler import record_function
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+
+_KINETO_AVAILABLE = torch.profiler.kineto_available()
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList

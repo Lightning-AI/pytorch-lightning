@@ -25,7 +25,6 @@ _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
-_KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
 _PSUTIL_AVAILABLE = package_available("psutil")
