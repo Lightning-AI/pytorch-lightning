@@ -99,7 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]
+        pkg-name: ["lightning", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:

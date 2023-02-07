@@ -39,16 +39,17 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: deploy-docs-pip-${{ hashFiles('requirements/app/*.txt') }}
+          key: deploy-docs-pip-${{ hashFiles('requirements/**/*.txt') }}
           restore-keys: deploy-docs-pip-
 
       - name: Install package & dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
         run: |
           pip --version
-          pip install -e . --quiet -r requirements/app/docs.txt \
-            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
+          pip install -e . -r requirements/app/docs.txt \
+            -f ${TORCH_URL} -f pypi
           pip list
 
       - name: Make Documentation
