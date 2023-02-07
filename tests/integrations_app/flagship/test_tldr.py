@@ -3,7 +3,7 @@ from time import sleep
 
 from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 
-from lightning.app.testing.testing import run_app_in_cloud
+from lightning.app.testing.testing import run_app_in_cloud, wait_for
 
 
 def test_app_in_cloud():
