@@ -47,6 +47,8 @@ class _PredictionLoop(_DataLoaderLoop):
     @property
     def predictions(self) -> List[Any]:
         """The cached predictions."""
+        if self._predictions == []:
+            return self._predictions
         return self._predictions[0] if self.num_dataloaders == 1 else self._predictions
 
     @property
