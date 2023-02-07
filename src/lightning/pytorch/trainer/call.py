@@ -48,6 +48,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         if not trainer.interrupted:
             trainer.state.status = TrainerStatus.INTERRUPTED
             trainer._call_callback_hooks("on_exception", exception)
+            trainer.strategy.on_exception(exception)
             for logger in trainer.loggers:
                 logger.finalize("failed")
     except BaseException as exception:
