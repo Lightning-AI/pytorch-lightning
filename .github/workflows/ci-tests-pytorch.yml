@@ -124,11 +124,12 @@ jobs:
     - name: Dump dependencies
       # if: TODO only on master
       run: |
-        pip install -q setuptools wheel
-        pip freeze > requirements.dump
+        pip install -U -q pip setuptools wheel
+        pip freeze > requires.dump
+        python -c "fp = 'requires.dump' ; lines = open(fp).readlines() ; fw = open(fp, 'w') ; fw.writelines([ln for ln in lines if '-e ' not in ln])"
         cat requirements.dump
-        pip wheel -r requirements.dump --prefer-binary --wheel-dir=".wheels/" -f=${TORCH_URL}
-        ls -lh .wheels
+        pip wheel -r requires.dump --prefer-binary --wheel-dir=".wheels/" -f=${TORCH_URL}
+        ls -lh .wheels/
 
     - name: Cache datasets
       uses: actions/cache@v3
