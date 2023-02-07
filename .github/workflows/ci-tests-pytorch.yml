@@ -128,6 +128,11 @@ jobs:
         pip install -e .[extra,test] "pytest-timeout" --upgrade -f=".wheels/"
         pip list
 
+    - name: PipDepTree
+      run: |
+        pip install -q pipdeptree
+        pipdeptree --warn silence | grep -E '^\w+'
+
     - name: Cache datasets
       uses: actions/cache@v3
       with:
