@@ -383,7 +383,7 @@ class WandbLogger(Logger):
         """
         if self.version is not None:
             # the log dir (and the version) is only available when an experiment is created
-            return os.path.join(self._root_dir, self.name, self.version)
+            return os.path.join(self.root_dir, self.name, self.version)
 
     @property
     def name(self) -> Optional[str]:

@@ -76,7 +76,7 @@ class CometLogger(Logger):
         comet_logger = CometLogger(
             api_key=os.environ.get("COMET_API_KEY"),
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
-            save_dir=".",  # Optional
+            root_dir=".",  # Optional
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
             experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
@@ -92,7 +92,7 @@ class CometLogger(Logger):
 
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            save_dir=".",
+            root_dir=".",
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
@@ -183,7 +183,7 @@ class CometLogger(Logger):
         api_key: Required in online mode. API key, found on Comet.ml. If not given, this
             will be loaded from the environment variable COMET_API_KEY or ~/.comet.config
             if either exists.
-        save_dir: Required in offline mode. The path for the directory to save local
+        root_dir: Required in offline mode. The path for the directory to save local
             comet logs. If given, this also sets the directory for saving checkpoints.
         project_name: Optional. Send your experiment to a specific project.
             Otherwise will be sent to Uncategorized Experiments.
@@ -192,9 +192,9 @@ class CometLogger(Logger):
             This is used to determine version number
         experiment_name: Optional. String representing the name for this particular experiment on Comet.ml.
         experiment_key: Optional. If set, restores from existing experiment.
-        offline: If api_key and save_dir are both given, this determines whether
+        offline: If api_key and root_dir are both given, this determines whether
             the experiment will be in online or offline mode. This is useful if you use
-            save_dir to control the checkpoints directory and have a ~/.comet.config
+            root_dir to control the checkpoints directory and have a ~/.comet.config
             file but still want to run offline experiments.
         prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `workspace`, `log_code`, etc. used by
@@ -204,7 +204,7 @@ class CometLogger(Logger):
         ModuleNotFoundError:
             If required Comet package is not installed on the device.
         MisconfigurationException:
-            If neither ``api_key`` nor ``save_dir`` are passed as arguments.
+            If neither ``api_key`` nor ``root_dir`` are passed as arguments.
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -212,7 +212,7 @@ class CometLogger(Logger):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        save_dir: Optional[str] = None,
+        root_dir: Optional[str] = None,
         project_name: Optional[str] = None,
         rest_api_key: Optional[str] = None,
         experiment_name: Optional[str] = None,
@@ -227,26 +227,26 @@ class CometLogger(Logger):
             )
         super().__init__()
         self._experiment = None
-        self._save_dir: Optional[str]
+        self._root_dir: Optional[str]
         self.rest_api_key: Optional[str]
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         api_key = api_key or comet_ml.config.get_api_key(None, comet_ml.config.get_config())
 
-        if api_key is not None and save_dir is not None:
+        if api_key is not None and root_dir is not None:
             self.mode = "offline" if offline else "online"
             self.api_key = api_key
-            self._save_dir = save_dir
+            self._root_dir = root_dir
         elif api_key is not None:
             self.mode = "online"
             self.api_key = api_key
-            self._save_dir = None
-        elif save_dir is not None:
+            self._root_dir = None
+        elif root_dir is not None:
             self.mode = "offline"
-            self._save_dir = save_dir
+            self._root_dir = root_dir
         else:
-            # If neither api_key nor save_dir are passed as arguments, raise an exception
-            raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
+            # If neither api_key nor root_dir are passed as arguments, raise an exception
+            raise MisconfigurationException("CometLogger requires either api_key or root_dir during initialization.")
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
@@ -264,6 +264,67 @@ class CometLogger(Logger):
         else:
             self.rest_api_key = None
             self.comet_api = None
+
+    @property
+    def root_dir(self) -> Optional[str]:
+        """Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+        """
+        return self._root_dir
+
+    @property
+    def log_dir(self) -> Optional[str]:
+        return os.path.join(self.root_dir, self.name, self.version)
+
+    @property
+    def name(self) -> str:
+        """Gets the project name.
+
+        Returns:
+            The project name if it is specified, else "comet-default".
+        """
+        # Don't create an experiment if we don't have one
+        if self._experiment is not None and self._experiment.project_name is not None:
+            return self._experiment.project_name
+
+        if self._project_name is not None:
+            return self._project_name
+
+        return "comet-default"
+
+    @property
+    def version(self) -> str:
+        """Gets the version.
+
+        Returns:
+            The first one of the following that is set in the following order
+
+            1. experiment id.
+            2. experiment key.
+            3. "COMET_EXPERIMENT_KEY" environment variable.
+            4. future experiment key.
+
+            If none are present generates a new guid.
+        """
+        # Don't create an experiment if we don't have one
+        if self._experiment is not None:
+            return self._experiment.id
+
+        if self._experiment_key is not None:
+            return self._experiment_key
+
+        if "COMET_EXPERIMENT_KEY" in os.environ:
+            return os.environ["COMET_EXPERIMENT_KEY"]
+
+        if self._future_experiment_key is not None:
+            return self._future_experiment_key
+
+        # Pre-generate an experiment key
+        self._future_experiment_key = comet_ml.generate_guid()
+
+        return self._future_experiment_key
 
     @property
     @rank_zero_experiment
@@ -299,7 +360,7 @@ class CometLogger(Logger):
                     )
             else:
                 self._experiment = CometOfflineExperiment(
-                    offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
+                    offline_directory=self.root_dir, project_name=self._project_name, **self._kwargs
                 )
             self._experiment.log_other("Created from", "pytorch-lightning")
         finally:
@@ -351,63 +412,6 @@ class CometLogger(Logger):
             return
         self.experiment.end()
         self.reset_experiment()
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Gets the save directory.
-
-        Returns:
-            The path to the save directory.
-        """
-        return self._save_dir
-
-    @property
-    def name(self) -> str:
-        """Gets the project name.
-
-        Returns:
-            The project name if it is specified, else "comet-default".
-        """
-        # Don't create an experiment if we don't have one
-        if self._experiment is not None and self._experiment.project_name is not None:
-            return self._experiment.project_name
-
-        if self._project_name is not None:
-            return self._project_name
-
-        return "comet-default"
-
-    @property
-    def version(self) -> str:
-        """Gets the version.
-
-        Returns:
-            The first one of the following that is set in the following order
-
-            1. experiment id.
-            2. experiment key.
-            3. "COMET_EXPERIMENT_KEY" environment variable.
-            4. future experiment key.
-
-            If none are present generates a new guid.
-        """
-        # Don't create an experiment if we don't have one
-        if self._experiment is not None:
-            return self._experiment.id
-
-        if self._experiment_key is not None:
-            return self._experiment_key
-
-        if "COMET_EXPERIMENT_KEY" in os.environ:
-            return os.environ["COMET_EXPERIMENT_KEY"]
-
-        if self._future_experiment_key is not None:
-            return self._future_experiment_key
-
-        # Pre-generate an experiment key
-        self._future_experiment_key = comet_ml.generate_guid()
-
-        return self._future_experiment_key
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
