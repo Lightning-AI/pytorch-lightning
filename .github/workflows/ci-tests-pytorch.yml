@@ -120,7 +120,7 @@ jobs:
       # if: TODO only on master
       run: |
         pip install -q setuptools wheel
-        pip wheel .[extra,test] --wheel-dir=".wheels/" --only-binary=:all: -f=${TORCH_URL}
+        pip wheel .[extra,test] --prefer-binary --wheel-dir=".wheels/" -f=${TORCH_URL}
         ls -lh .wheels
 
     - name: Install package & dependencies
