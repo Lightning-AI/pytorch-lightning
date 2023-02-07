@@ -155,7 +155,14 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+
+        # pretend torch.distributed not available
+        for name in list(torch.distributed.__dict__.keys()):
+            if not name.startswith("__"):
+                delattr(torch.distributed, name)
+
+        torch.distributed.is_available = lambda: False
+
         import pytorch_lightning
         """
     )
