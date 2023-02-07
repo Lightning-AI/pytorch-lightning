@@ -568,32 +568,13 @@ class ModelCheckpoint(Checkpoint):
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> _PATH:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
-        determine where to save checkpoints. The path for saving weights is set in this priority:
-
-        1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
-        2.  The ``Logger``'s ``log_dir`` if the trainer has loggers
-        3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
+        determine where to save checkpoints. The path for saving weights is set to either the
+        ``ModelCheckpoint``'s ``dirpath`` if passed in or else the ``Trainer``'s ``log_dir``, which gets determined
+        by the attached logger.
 
         The path gets extended with subdirectory "checkpoints".
         """
-        if self.dirpath is not None:
-            # short circuit if dirpath was passed to ModelCheckpoint
-            return self.dirpath
-
-        if len(trainer.loggers) > 0:
-            if trainer.loggers[0].save_dir is not None:
-                save_dir = trainer.loggers[0].save_dir
-            else:
-                save_dir = trainer.default_root_dir
-            name = trainer.loggers[0].name
-            version = trainer.loggers[0].version
-            version = version if isinstance(version, str) else f"version_{version}"
-            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
-        else:
-            # if no loggers, use default_root_dir
-            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
-
-        return ckpt_path
+        return self.dirpath if self.dirpath is not None else os.path.join(trainer.log_dir, "checkpoints")
 
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder

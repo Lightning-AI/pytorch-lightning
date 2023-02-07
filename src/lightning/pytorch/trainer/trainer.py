@@ -1578,16 +1578,9 @@ class Trainer:
 
     @property
     def log_dir(self) -> Optional[str]:
-        if len(self.loggers) > 0:
-            if not isinstance(self.loggers[0], TensorBoardLogger):
-                dirpath = self.loggers[0].save_dir
-            else:
-                dirpath = self.loggers[0].log_dir
-        else:
-            dirpath = self.default_root_dir
-
-        dirpath = self.strategy.broadcast(dirpath)
-        return dirpath
+        log_dir = self.loggers[0].log_dir if len(self.loggers) > 0 else self.default_root_dir
+        log_dir = self.strategy.broadcast(log_dir)
+        return log_dir
 
     @property
     def is_global_zero(self) -> bool:
