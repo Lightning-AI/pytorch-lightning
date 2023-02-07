@@ -34,17 +34,17 @@ from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
 from lightning.app.cli.commands.cd import cd
-from lightning.app.cli.commands.connection import (
-    _list_app_commands,
-    _retrieve_connection_to_an_app,
-    connect,
-    disconnect,
-)
 from lightning.app.cli.commands.cp import cp
 from lightning.app.cli.commands.logs import logs
 from lightning.app.cli.commands.ls import ls
-from lightning.app.cli.commands.mount import mount
 from lightning.app.cli.commands.pwd import pwd
+from lightning.app.cli.connect.app import (
+    _list_app_commands,
+    _retrieve_connection_to_an_app,
+    connect_app,
+    disconnect_app,
+)
+from lightning.app.cli.connect.data import connect_data
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -122,13 +122,25 @@ def show() -> None:
     pass
 
 
-_main.command()(connect)
-_main.command()(disconnect)
+@_main.group()
+def connect() -> None:
+    """Show resource connections."""
+    pass
+
+
+@_main.group()
+def disconnect() -> None:
+    """Show resource connections."""
+    pass
+
+
+connect.command("app")(connect_app)
+disconnect.command("app")(disconnect_app)
+connect.command("data")(connect_data)
 _main.command()(ls)
 _main.command()(cd)
 _main.command()(cp)
 _main.command()(pwd)
-_main.command()(mount)
 show.command()(logs)
 
 
@@ -242,7 +254,7 @@ def login() -> None:
 def logout() -> None:
     """Log out of your lightning.ai account."""
     Auth().clear()
-    disconnect(logout=True)
+    disconnect_app(logout=True)
 
 
 def _run_app(

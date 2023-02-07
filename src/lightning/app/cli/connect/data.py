@@ -16,23 +16,30 @@ import sys
 from typing import List
 
 import click
-from lightning_cloud.openapi import IdCodeconfigBody, V1MountPath
+from lightning_cloud.openapi import ProjectIdDataConnectionsBody
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
+from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.network import LightningClient
 
 logger = Logger(__name__)
 
 
-@click.argument("cloud_space_name", required=True)
+@click.argument("name", required=True)
 @click.argument("source", required=True)
-@click.argument("destination", required=True)
-def mount(cloud_space_name: str, source: str, destination: str) -> List[str]:
-    """Mount data to a CloudSpace."""
+@click.argument("destination", required=False)
+@click.argument("project_name", required=False)
+def connect_data(
+    name: str,
+    source: str,
+    destination: str = "",
+    project_name: str = "",
+) -> List[str]:
+    """Create a new data connection."""
 
     if sys.platform == "win32":
         print("`ls` isn't supported on windows. Open an issue on Github.")
@@ -40,40 +47,33 @@ def mount(cloud_space_name: str, source: str, destination: str) -> List[str]:
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
+        live.stop()
+
         client = LightningClient()
         projects = client.projects_service_list_memberships()
 
-        cloud_space = None
+        project_id = None
 
         for project in projects.memberships:
 
-            project_id = project.project_id
-            for cloud_space in client.cloud_space_service_list_cloud_spaces(project_id=project_id).cloudspaces:
-                if cloud_space.name == cloud_space_name:
-                    break
+            if project.name == project_name:
+                project_id = project.project_id
 
-        if cloud_space is None:
-            _error_and_exit(f"No CloudSpace with the name {cloud_space_name} was found.")
-
-        mount_paths = cloud_space.code_config.mount_paths
-
-        new_mount_path = V1MountPath(source=source.replace("s3://", ":s3:/"), destination=destination)
-
-        if new_mount_path not in mount_paths:
-            mount_paths.append(new_mount_path)
-
-        if cloud_space.code_config.compute_config.name == "":
-            cloud_space.code_config.compute_config.name = "cpu"
+        if project_id is None:
+            project_id = _get_project(client).project_id
 
         live.stop()
 
-        response = client.cloud_space_service_update_cloud_space_instance_config(
+        if not source.startswith("s3://"):
+            _error_and_exit(
+                "Only public s3 folder are supported for now. Please, open a Github issue with your use case."
+            )
+
+        client.data_connection_service_create_data_connection(
             project_id=project_id,
-            id=cloud_space.id,
-            body=IdCodeconfigBody(
-                mount_paths=mount_paths,
-                compute_config=cloud_space.code_config.compute_config,
+            body=ProjectIdDataConnectionsBody(
+                name=name,
+                source=source.replace("s3://", ":s3:/"),
+                destination=destination,
             ),
         )
-
-        print(response)

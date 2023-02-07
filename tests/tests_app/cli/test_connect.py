@@ -7,7 +7,7 @@ import psutil
 import pytest
 
 from lightning.app import _PROJECT_ROOT
-from lightning.app.cli.commands.connection import (
+from lightning.app.cli.connect.app import (
     _list_app_commands,
     _resolve_command_path,
     _retrieve_connection_to_an_app,

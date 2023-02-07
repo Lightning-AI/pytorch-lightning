@@ -26,7 +26,7 @@ from rich.spinner import Spinner
 from rich.text import Text
 
 from lightning.app.cli.commands.cd import _CD_FILE
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+from lightning.app.cli.connect.app import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
