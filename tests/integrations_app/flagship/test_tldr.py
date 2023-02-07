@@ -34,7 +34,7 @@ def test_app_in_cloud():
                 if len(locator.all_text_contents()):
                     return True
 
-            wait_for(check_training_finished())
+            wait_for(view_page, check_training_finished)
 
             logs = []
             while not logs:
