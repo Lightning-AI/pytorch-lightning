@@ -143,7 +143,7 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     download_urls = []
     total_size = []
 
-    prefix = _get_prefix("/".join(pwd.split("/")[3:]), lit_resource) + "/"
+    prefix = _get_prefix(os.sep.join(pwd.split(os.sep)[3:]), lit_resource) + os.sep
 
     for artifact in _collect_artifacts(client, project_id, prefix, include_download_url=True):
         path = os.path.join(local_dst, artifact.filename.replace(remote_src, ""))
