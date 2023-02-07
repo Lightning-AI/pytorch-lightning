@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import sys
-from typing import List
 
 import click
 import rich
@@ -41,7 +40,7 @@ def connect_data(
     source: str,
     destination: str = "",
     project_name: str = "",
-) -> List[str]:
+) -> None:
     """Create a new data connection."""
 
     if sys.platform == "win32":
