@@ -215,7 +215,8 @@ class CloudRuntime(Runtime):
         name: str,
         cluster_id: str = None,
     ):
-        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids.
+        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
+        such as the project and cluster IDs that are instead passed directly.
 
         Args:
             project_id: The ID of the project.
