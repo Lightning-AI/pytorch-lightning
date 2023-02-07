@@ -196,7 +196,6 @@ class CombinedLoader:
                 batches) is done.
             * ``"max_size_cycle"`` which raises StopIteration after the longest loader (the one with most batches) is
                 done, while cycling through the shorter loaders.
-            * ``"sequential"`` which iterates through the laoaders in sequence.
 
     Examples:
         >>> loaders = {'a': DataLoader(range(6), batch_size=4),
