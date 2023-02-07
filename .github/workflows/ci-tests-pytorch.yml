@@ -114,13 +114,12 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .wheels
-        key: wheels-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: wheels-
+        key: pip-wheels
         enableCrossOsArchive: true
     - name: Build package & dependencies
       # if: TODO only on master
       run: |
-        pip wheel .[extra,test] -U --wheel-dir=".wheels" -f=${TORCH_URL}
+        pip wheel .[extra,test] --wheel-dir=".wheels" -f=${TORCH_URL}
         ls -lh .wheels
 
     - name: Install package & dependencies
