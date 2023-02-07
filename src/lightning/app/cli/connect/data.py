@@ -87,8 +87,7 @@ def connect_data(
             #     id=response.id,
             # )
             # print(response)
-        except Exception as e:
-            print(e)
+        except Exception:
             _error_and_exit("The data connection creation failed.")
 
     rich.print(f"[green]Succeeded[/green]: You have created a new data connection {name}.")
