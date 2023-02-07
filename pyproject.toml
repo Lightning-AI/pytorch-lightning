@@ -107,7 +107,7 @@ module = [
     "lightning.app.cli.commands.app_commands",
     "lightning.app.cli.commands.lightning_cli",
     "lightning.app.cli.commands.cmd_install",
-    "lightning.app.cli.commands.connect.app",
+    "lightning.app.cli.connect.app",
     "lightning.app.cli.commands.pwd",
     "lightning.app.cli.commands.ls",
     "lightning.app.cli.commands.cp",
