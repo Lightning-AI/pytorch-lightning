@@ -155,6 +155,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `trainer.{fit,validate,test,predict}_loop` properties ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * Removed the default `Loop.run()` implementation ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * The loop classes are now marked as protected ([#16445](https://github.com/Lightning-AI/lightning/pull/16445))
+  * The fetching classes are now marked as protected ([#16664](https://github.com/Lightning-AI/lightning/pull/16664))
 
 - Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
   * Removed the `LightningModule.truncated_bptt_steps` attribute
