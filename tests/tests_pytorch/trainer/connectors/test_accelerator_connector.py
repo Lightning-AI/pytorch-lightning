@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
-from lightning.pytorch.trainer.connectors.accelerator_connector import AcceleratorConnector
+from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -363,8 +363,10 @@ def test_exception_invalid_strategy():
     (
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_true", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
+        ("ddp_find_unused_parameters_true", DDPStrategy),
         ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
@@ -625,10 +627,10 @@ def test_unsupported_tpu_choice(tpu_available):
 
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
+    import lightning.pytorch.accelerators.ipu as ipu_
     import lightning.pytorch.strategies.ipu as ipu
-    import lightning.pytorch.utilities.imports as imports
 
-    monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
     with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
@@ -637,7 +639,7 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.utilities.imports._IPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.ipu._IPU_AVAILABLE", return_value=False)
 @mock.patch("lightning.pytorch.utilities.imports._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")
@@ -667,12 +669,50 @@ def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_device
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
-@pytest.mark.parametrize("deterministic", [True, False, "warn"])
+@pytest.mark.parametrize("deterministic", [None, True, False, "warn"])
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_deterministic_init(deterministic):
-    trainer = Trainer(accelerator="auto", deterministic=deterministic)
-    assert trainer._accelerator_connector.deterministic == deterministic
+    with mock.patch("torch.use_deterministic_algorithms") as use_deterministic_patch:
+        _set_torch_flags(deterministic=deterministic)
+    if deterministic == "warn":
+        use_deterministic_patch.assert_called_once_with(True, warn_only=True)
+    elif deterministic is None:
+        use_deterministic_patch.assert_not_called()
+    else:
+        use_deterministic_patch.assert_called_once_with(deterministic)
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+
+
+@pytest.mark.parametrize("cudnn_benchmark", (False, True))
+@pytest.mark.parametrize(
+    ["benchmark_", "deterministic", "expected"],
+    [
+        (None, False, None),
+        (None, True, False),
+        (None, None, None),
+        (True, False, True),
+        (True, True, True),
+        (True, None, True),
+        (False, False, False),
+        (False, True, False),
+        (False, None, False),
+    ],
+)
+def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
+    """Verify benchmark option."""
+    original_val = torch.backends.cudnn.benchmark
+
+    torch.backends.cudnn.benchmark = cudnn_benchmark
+    if benchmark_ and deterministic:
+        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
+            AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
+    else:
+        AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
+    expected = cudnn_benchmark if expected is None else expected
+    assert torch.backends.cudnn.benchmark == expected
+
+    torch.backends.cudnn.benchmark = original_val
 
 
 @pytest.mark.parametrize(
@@ -692,7 +732,7 @@ def test_sync_batchnorm_set(sync_batchnorm, plugins, expected):
     assert isinstance(trainer.strategy._layer_sync, expected)
 
 
-def test_sync_batchnorm_invalid_choice(tmpdir):
+def test_sync_batchnorm_invalid_choice():
     """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""
     custom = Mock(spec=LayerSync)
     with pytest.raises(
@@ -703,7 +743,7 @@ def test_sync_batchnorm_invalid_choice(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
+def test_sync_batchnorm_set_in_custom_strategy():
     """Tests if layer_sync is automatically set for custom strategy."""
 
     class CustomParallelStrategy(DDPStrategy):

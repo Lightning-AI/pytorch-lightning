@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,10 @@ from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
+from lightning.app.cli.commands import ls
 from lightning.app.cli.connect.app import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
+from lightning.app.utilities.cli_helpers import _error_and_exit
 
 logger = Logger(__name__)
 
@@ -30,7 +32,7 @@ _CD_FILE = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 
 
 @click.argument("path", nargs=-1)
-def cd(path: Optional[Union[Tuple[str], str]]) -> None:
+def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
     """Change the current directory within the Lightning Cloud filesystem."""
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
@@ -70,6 +72,12 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
+            if verify:
+                if path.startswith("/"):
+                    paths = [os.path.join(path, p) for p in ls.ls(path, print=False, use_live=False)]
+                else:
+                    paths = [os.path.join(root, p) for p in ls.ls(root, print=False, use_live=False)]
+
             # generate new root
             if root == "/":
                 if path == "/":
@@ -81,13 +89,15 @@ def cd(path: Optional[Union[Tuple[str], str]]) -> None:
                 else:
                     root = _apply_double_dots(root, path)
             else:
-                # TODO: Validate the new path exists
                 if path.startswith(".."):
                     root = _apply_double_dots(root, path)
                 elif path.startswith("~"):
                     root = path[2:]
                 else:
                     root = os.path.join(root, path)
+
+            if verify and root != "/" and not any(p.startswith(root) or root.startswith(p) for p in paths):
+                _error_and_exit(f"no such file or directory: {path}")
 
             os.remove(_CD_FILE)
 

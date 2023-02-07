@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ def test_sync_batchnorm_parity(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
-        strategy="ddp",
+        strategy="ddp_find_unused_parameters_true",
         devices=2,
         max_steps=3,
         sync_batchnorm=True,

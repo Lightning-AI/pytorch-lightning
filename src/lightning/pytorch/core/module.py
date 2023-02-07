@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,13 +48,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-from lightning.pytorch.utilities.types import (
-    _METRIC,
-    EPOCH_OUTPUT,
-    LRSchedulerPLType,
-    LRSchedulerTypeUnion,
-    STEP_OUTPUT,
-)
+from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -753,10 +747,10 @@ class LightningModule(
                 return {"pred": out}
 
 
-            def training_step_end(self, training_step_outputs):
-                gpu_0_pred = training_step_outputs[0]["pred"]
-                gpu_1_pred = training_step_outputs[1]["pred"]
-                gpu_n_pred = training_step_outputs[n]["pred"]
+            def training_step_end(self, training_step_output):
+                gpu_0_pred = training_step_output[0]["pred"]
+                gpu_1_pred = training_step_output[1]["pred"]
+                gpu_n_pred = training_step_output[n]["pred"]
 
                 # this softmax now uses the full batch
                 loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
@@ -766,50 +760,10 @@ class LightningModule(
             See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        """Called at the end of the training epoch with the outputs of all training steps. Use this in case you
-        need to do something with all the outputs returned by :meth:`training_step`.
-
-        .. code-block:: python
-
-            # the pseudocode for these calls
-            train_outs = []
-            for train_batch in train_data:
-                out = training_step(train_batch)
-                train_outs.append(out)
-            training_epoch_end(train_outs)
-
-        Args:
-            outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers, the lists
-                have the dimensions (n_batches, n_optimizers). Dimensions of length 1 are squeezed.
-
-        Return:
-            None
-
-        Note:
-            If this method is not overridden, this won't be called.
-
-        .. code-block:: python
-
-            def training_epoch_end(self, training_step_outputs):
-                # do something with all training_step outputs
-                for out in training_step_outputs:
-                    ...
-        """
-
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
-
-        .. code-block:: python
-
-            # the pseudocode for these calls
-            val_outs = []
-            for val_batch in val_data:
-                out = validation_step(val_batch)
-                val_outs.append(out)
-            validation_epoch_end(val_outs)
 
         Args:
             batch: The output of your :class:`~torch.utils.data.DataLoader`.
@@ -824,13 +778,10 @@ class LightningModule(
         .. code-block:: python
 
             # pseudocode of order
-            val_outs = []
             for val_batch in val_data:
                 out = validation_step(val_batch)
                 if defined("validation_step_end"):
                     out = validation_step_end(out)
-                val_outs.append(out)
-            val_outs = validation_epoch_end(val_outs)
 
 
         .. code-block:: python
@@ -939,64 +890,11 @@ class LightningModule(
             See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
-    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        """Called at the end of the validation epoch with the outputs of all validation steps.
-
-        .. code-block:: python
-
-            # the pseudocode for these calls
-            val_outs = []
-            for val_batch in val_data:
-                out = validation_step(val_batch)
-                val_outs.append(out)
-            validation_epoch_end(val_outs)
-
-        Args:
-            outputs: List of outputs you defined in :meth:`validation_step`, or if there
-                are multiple dataloaders, a list containing a list of outputs for each dataloader.
-
-        Return:
-            None
-
-        Note:
-            If you didn't define a :meth:`validation_step`, this won't be called.
-
-        Examples:
-            With a single dataloader:
-
-            .. code-block:: python
-
-                def validation_epoch_end(self, val_step_outputs):
-                    for out in val_step_outputs:
-                        ...
-
-            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
-            one entry per dataloader, while the inner list contains the individual outputs of
-            each validation step for that dataloader.
-
-            .. code-block:: python
-
-                def validation_epoch_end(self, outputs):
-                    for dataloader_output_result in outputs:
-                        dataloader_outs = dataloader_output_result.dataloader_i_outputs
-
-                    self.log("final_metric", final_value)
-        """
-
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
         such as accuracy.
-
-        .. code-block:: python
-
-            # the pseudocode for these calls
-            test_outs = []
-            for test_batch in test_data:
-                out = test_step(test_batch)
-                test_outs.append(out)
-            test_epoch_end(test_outs)
 
         Args:
             batch: The output of your :class:`~torch.utils.data.DataLoader`.
@@ -1115,56 +1013,6 @@ class LightningModule(
 
         See Also:
             See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
-        """
-
-    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        """Called at the end of a test epoch with the output of all test steps.
-
-        .. code-block:: python
-
-            # the pseudocode for these calls
-            test_outs = []
-            for test_batch in test_data:
-                out = test_step(test_batch)
-                test_outs.append(out)
-            test_epoch_end(test_outs)
-
-        Args:
-            outputs: List of outputs you defined in :meth:`test_step_end`, or if there
-                are multiple dataloaders, a list containing a list of outputs for each dataloader
-
-        Return:
-            None
-
-        Note:
-            If you didn't define a :meth:`test_step`, this won't be called.
-
-        Examples:
-            With a single dataloader:
-
-            .. code-block:: python
-
-                def test_epoch_end(self, outputs):
-                    # do something with the outputs of all test batches
-                    all_test_preds = test_step_outputs.predictions
-
-                    some_result = calc_all_results(all_test_preds)
-                    self.log(some_result)
-
-            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
-            one entry per dataloader, while the inner list contains the individual outputs of
-            each test step for that dataloader.
-
-            .. code-block:: python
-
-                def test_epoch_end(self, outputs):
-                    final_value = 0
-                    for dataloader_outputs in outputs:
-                        for test_step_out in dataloader_outputs:
-                            # do something
-                            final_value += test_step_out
-
-                    self.log("final_metric", final_value)
         """
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:

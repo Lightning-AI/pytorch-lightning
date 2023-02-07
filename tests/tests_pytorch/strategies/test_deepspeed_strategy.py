@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -644,7 +644,6 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
 def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config):
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModelManualOptim()
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy=DeepSpeedStrategy(stage=3),

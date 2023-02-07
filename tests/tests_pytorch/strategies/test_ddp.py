@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -163,8 +163,9 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
     [
         ("ddp", {}),
         ("ddp_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_find_unused_parameters_true", {"find_unused_parameters": True}),
     ],
 )
-def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_0):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
