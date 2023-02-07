@@ -71,7 +71,7 @@ def connect_data(
             )
 
         try:
-            client.data_connection_service_create_data_connection(
+            _ = client.data_connection_service_create_data_connection(
                 body=ProjectIdDataConnectionsBody(
                     name=name,
                     region=region,

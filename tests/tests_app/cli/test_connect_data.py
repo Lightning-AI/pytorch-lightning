@@ -17,13 +17,14 @@ def test_connect_data(monkeypatch):
     )
     monkeypatch.setattr(data, "LightningClient", MagicMock(return_value=client))
 
-    data.connect_data("imagenet", "s3://imagenet", destination="", project_name="project-0")
+    data.connect_data("imagenet", region="us-east-1", source="s3://imagenet", destination="", project_name="project-0")
 
     client.data_connection_service_create_data_connection.assert_called_with(
         project_id="project-id-0",
         body=ProjectIdDataConnectionsBody(
             destination="",
+            region="us-east-1",
             name="imagenet",
-            source=":s3:/imagenet",
+            source="s3://imagenet",
         ),
     )
