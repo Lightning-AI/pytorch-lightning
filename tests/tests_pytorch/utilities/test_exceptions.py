@@ -46,6 +46,10 @@ def test_augment_message():
     _augment_message(exception, "Message 2", "New message 2")
     if _PYTHON_GREATER_EQUAL_3_11_0:
         assert exception.__notes__ == ["New message 2"]
-        assert exception.args == ("Message 1", "Message 2", "Message 3",)
+        assert exception.args == (
+            "Message 1",
+            "Message 2",
+            "Message 3",
+        )
     else:
         assert exception.args == ("Message 1", "New message 2", "Message 3")

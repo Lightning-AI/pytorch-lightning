@@ -13,8 +13,8 @@
 # limitations under the License.
 import re
 
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_11_0
 from lightning.fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_11_0
 
 
 class SIGTERMException(SystemExit):
