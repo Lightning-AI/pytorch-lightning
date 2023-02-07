@@ -34,7 +34,6 @@ from lightning.pytorch.trainer.supporters import (
     CycleIterator,
 )
 from lightning.pytorch.utilities.data import get_len
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -73,16 +72,16 @@ def test_none_length_cycle_iterator():
 def test_combined_dataset(dataset_1, dataset_2):
     """Verify the length of the CombinedDataset."""
     datasets = [dataset_1, dataset_2]
-    combined_dataset = CombinedDataset(datasets)
+    combined_dataset = CombinedDataset(datasets, "max_size_cycle")
+    assert len(combined_dataset) == 20
 
-    assert combined_dataset.max_len == 20
-    assert combined_dataset.min_len == len(combined_dataset) == 10
+    combined_dataset = CombinedDataset(datasets, "min_size")
+    assert len(combined_dataset) == 10
 
 
 def test_combined_dataset_length_mode_error():
-    dset = CombinedDataset([range(10)])
-    with pytest.raises(MisconfigurationException, match="Invalid Mode"):
-        dset._calc_num_data([range(10)], "test")
+    with pytest.raises(ValueError, match="Unsupported mode 'test'"):
+        CombinedDataset([], mode="test")
 
 
 def test_combined_loader_iterator_dict_min_size():
@@ -104,20 +103,15 @@ def test_combined_loader_iterator_dict_min_size():
 
 def test_combined_loader_init_mode_error():
     """Test the ValueError when constructing `CombinedLoader`"""
-    with pytest.raises(MisconfigurationException, match="Invalid Mode"):
+    with pytest.raises(ValueError, match="Unsupported mode 'testtt'"):
         CombinedLoader([range(10)], "testtt")
 
 
 def test_combined_loader_loader_type_error():
     """Test the ValueError when wrapping the loaders."""
+    combined_loader = CombinedLoader(None, "max_size_cycle")
     with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
-        CombinedLoader(None, "max_size_cycle")
-
-
-def test_combined_loader_calc_length_mode_error():
-    """Test the ValueError when calculating the number of batches."""
-    with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
-        CombinedLoader._calc_num_batches(None)
+        len(combined_loader)
 
 
 def test_combined_loader_dict_min_size():
@@ -285,7 +279,8 @@ def test_combined_loader_sequence_max_size_cycle():
     ],
 )
 def test_nested_calc_num_data(input_data, compute_func, expected_length):
-    calculated_length = _nested_calc_num_data(input_data, compute_func)
+    default = float("inf") if compute_func is min else float("-inf")
+    calculated_length = _nested_calc_num_data(input_data, compute_func, default)
 
     assert calculated_length == expected_length
 
@@ -435,5 +430,5 @@ def test_combined_dataloader_for_training_with_ddp(
     trainer.reset_train_dataloader(model=model)
     assert trainer.train_dataloader is not None
     assert isinstance(trainer.train_dataloader, CombinedLoader)
-    assert trainer.train_dataloader.mode == mode
+    assert trainer.train_dataloader._mode == mode
     assert trainer.num_training_batches == expected_length_after_ddp
