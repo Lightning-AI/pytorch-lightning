@@ -16,12 +16,12 @@ from typing import Any, Optional
 
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
+from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import _DataFetcher
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 log = logging.getLogger(__name__)

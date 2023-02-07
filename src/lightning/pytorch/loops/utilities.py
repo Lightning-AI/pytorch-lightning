@@ -21,10 +21,10 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.loops import _Loop
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.loops.progress import BaseProgress
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import Strategy
-from lightning.pytorch.utilities.fetching import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
