@@ -48,7 +48,9 @@ def connect_data(
         print("`ls` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
+
+        live.stop()
 
         client = LightningClient()
         projects = client.projects_service_list_memberships()
@@ -70,15 +72,23 @@ def connect_data(
 
         try:
             client.data_connection_service_create_data_connection(
-                project_id=project_id,
                 body=ProjectIdDataConnectionsBody(
                     name=name,
                     region=region,
                     source=source.replace("s3://", ":s3:/"),
                     destination=destination,
                 ),
+                project_id=project_id,
             )
-        except Exception:
+
+            # Note: Expose through lightning show data {DATA_NAME}
+            # response = client.data_connection_service_list_data_connection_artifacts(
+            #     project_id=project_id,
+            #     id=response.id,
+            # )
+            # print(response)
+        except Exception as e:
+            print(e)
             _error_and_exit("The data connection creation failed.")
 
-    rich.print("[green]Succeeded[/green]: You have created a new data connection.")
+    rich.print(f"[green]Succeeded[/green]: You have created a new data connection {name}.")
