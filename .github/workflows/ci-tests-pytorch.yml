@@ -114,24 +114,21 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .wheels
-        key: pip-wheels
+        key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
-    - name: Build package & dependencies
-      # if: TODO only on master
-      run: |
-        pip install -q setuptools wheel
-        pip wheel .[extra,test] --prefer-binary --wheel-dir=".wheels/" -f=${TORCH_URL}
-        ls -lh .wheels
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade -f=".wheels/"
+        pip install -e .[extra,test] "pytest-timeout" --upgrade -f=${TORCH_URL} -f=".wheels/"
         pip list
-
-    - name: PipDepTree
+    - name: Dump dependencies
+      # if: TODO only on master
       run: |
-        pip install -q pipdeptree
-        pipdeptree --warn silence | grep -E '^\w+'
+        pip install -q setuptools wheel
+        pip freeze > requirements.dump
+        cat requirements.dump
+        pip wheel -r requirements.dump --prefer-binary --wheel-dir=".wheels/" -f=${TORCH_URL}
+        ls -lh .wheels
 
     - name: Cache datasets
       uses: actions/cache@v3
