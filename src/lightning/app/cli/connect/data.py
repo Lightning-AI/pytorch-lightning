@@ -16,6 +16,7 @@ import sys
 from typing import List
 
 import click
+import rich
 from lightning_cloud.openapi import ProjectIdDataConnectionsBody
 from rich.live import Live
 from rich.spinner import Spinner
@@ -45,7 +46,7 @@ def connect_data(
         print("`ls` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
+    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
 
         client = LightningClient()
         projects = client.projects_service_list_memberships()
@@ -65,15 +66,16 @@ def connect_data(
                 "Only public s3 folder are supported for now. Please, open a Github issue with your use case."
             )
 
-        response = client.data_connection_service_create_data_connection(
-            project_id=project_id,
-            body=ProjectIdDataConnectionsBody(
-                name=name,
-                source=source.replace("s3://", ":s3:/"),
-                destination=destination,
-            ),
-        )
+        try:
+            client.data_connection_service_create_data_connection(
+                project_id=project_id,
+                body=ProjectIdDataConnectionsBody(
+                    name=name,
+                    source=source.replace("s3://", ":s3:/"),
+                    destination=destination,
+                ),
+            )
+        except Exception:
+            _error_and_exit("The data connection creation failed.")
 
-        live.stop()
-
-        print(f"Succeeded. You have created a new data connection: {response}")
+    rich.print("[green]Succeeded[/green]: You have created a new data connection.")
