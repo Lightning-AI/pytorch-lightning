@@ -60,14 +60,12 @@ def connect_data(
         if project_id is None:
             project_id = _get_project(client).project_id
 
-        live.stop()
-
         if not source.startswith("s3://"):
             _error_and_exit(
                 "Only public s3 folder are supported for now. Please, open a Github issue with your use case."
             )
 
-        client.data_connection_service_create_data_connection(
+        response = client.data_connection_service_create_data_connection(
             project_id=project_id,
             body=ProjectIdDataConnectionsBody(
                 name=name,
@@ -75,3 +73,7 @@ def connect_data(
                 destination=destination,
             ),
         )
+
+        live.stop()
+
+        print(f"Succeeded. You have created a new data connection: {response}")
