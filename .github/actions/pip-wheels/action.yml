@@ -27,12 +27,13 @@ runs:
 
   - name: Filter self pkg
     run: |
+      import os
       fp = 'requirements.dump'
       with open(fp) as fo:
-        lines = fo.readlines()
-      lines = [ln for ln in lines if '-e ' not in ln]
+        lines = [ln.strip() for ln in fo.readlines()]
+      lines = [ln.split('+')[0] for ln in lines if '-e ' not in ln]
       with open(fp, 'w') as fw:
-        fw.writelines(lines)
+        fw.writelines([ln + os.linesep for ln in lines])
     shell: python
 
   - name: Dump wheels
@@ -40,6 +41,6 @@ runs:
       cat requirements.dump
       pip wheel -r requirements.dump --prefer-binary \
         --wheel-dir=${{ inputs.wheel-dir }} \
-        -f=${{ inputs.torch-url }}
+        -f ${{ inputs.torch-url }}
       ls -lh ${{ inputs.wheel-dir }}
     shell: bash
