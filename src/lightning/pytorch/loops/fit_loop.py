@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
-import lightning.pytorch as pl
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
 from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning.pytorch.utilities.fetching import _DataFetcher
+from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +72,7 @@ class _FitLoop(_Loop):
         self.epoch_progress = Progress()
 
         self._is_fresh_start_epoch: bool = True
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._data_fetcher: Optional[_DataFetcher] = None
 
     @property
     def total_batch_idx(self) -> int:
@@ -217,8 +215,7 @@ class _FitLoop(_Loop):
         if self.epoch_loop._should_check_val_epoch():
             self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
-        data_fetcher_cls = _select_data_fetcher(self.trainer)
-        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(self.trainer, self.prefetch_batches)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
@@ -324,14 +321,3 @@ class _FitLoop(_Loop):
 
     def _iteration_based_training(self) -> bool:
         return self.trainer.max_steps != -1
-
-
-def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
-    training_step_fx = getattr(trainer.lightning_module, "training_step")
-    if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-        rank_zero_warn(
-            "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-            "this signature is experimental and the behavior is subject to change."
-        )
-        return DataLoaderIterDataFetcher
-    return DataFetcher
