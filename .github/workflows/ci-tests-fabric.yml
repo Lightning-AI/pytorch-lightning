@@ -99,8 +99,8 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/"
-        pip install -r requirements/fabric/strategies.txt -f ".wheels/"
+        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
+        pip install -r requirements/fabric/strategies.txt -f ".wheels/" --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
