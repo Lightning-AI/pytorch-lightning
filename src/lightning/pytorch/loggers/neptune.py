@@ -248,6 +248,30 @@ class NeptuneLogger(Logger):
             # make sure that we've log integration version for outside `Run` instances
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
+    @property
+    def root_dir(self) -> Optional[str]:
+        """The root directory where experiment metadata get saved."""
+        return os.path.join(os.getcwd(), ".neptune")
+
+    @property
+    def log_dir(self) -> Optional[str]:
+        """The log directory of the experiment which in this case is ``None`` because Neptune does not save
+        locally."""
+        return None
+
+    @property
+    def name(self) -> Optional[str]:
+        """Return the experiment name or 'offline-name' when exp is run in offline mode."""
+        return self._run_name
+
+    @property
+    def version(self) -> Optional[str]:
+        """Return the experiment version.
+
+        It's Neptune Run's short_id
+        """
+        return self._run_short_id
+
     def _retrieve_run_data(self) -> None:
         assert self._run_instance is not None
         self._run_instance.wait()
@@ -434,16 +458,6 @@ class NeptuneLogger(Logger):
 
         super().finalize(status)
 
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
-        locally.
-
-        Returns:
-            the root directory where experiment logs get saved
-        """
-        return os.path.join(os.getcwd(), ".neptune")
-
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
@@ -530,16 +544,3 @@ class NeptuneLogger(Logger):
                 yield path
             else:
                 yield from cls._dict_paths(v, path)
-
-    @property
-    def name(self) -> Optional[str]:
-        """Return the experiment name or 'offline-name' when exp is run in offline mode."""
-        return self._run_name
-
-    @property
-    def version(self) -> Optional[str]:
-        """Return the experiment version.
-
-        It's Neptune Run's short_id
-        """
-        return self._run_short_id
