@@ -181,7 +181,6 @@ class _PrefetchDataFetcher(_DataFetcher):
 
 
 class _DataLoaderIterDataFetcher(_DataFetcher):
-
     """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for
     users to implement their own pre-fetching logic. This feature can be activated as follows:
 
@@ -195,15 +194,11 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
                 ...
     """
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.store_on_device = False
-
     def __iter__(self) -> "_DataLoaderIterDataFetcher":
         super().__iter__()
         iterator = self.dataloader_iter
         assert iterator is not None
-        self.iterator = iter(_DataLoaderIterWrapper(iterator, self))
+        self.iterator = iter(_DataFetcherWrapper(self))
         return self
 
     def __next__(self) -> Tuple[int, Iterator]:
@@ -212,9 +207,8 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
         raise StopIteration
 
 
-class _DataLoaderIterWrapper(Iterator):
-    def __init__(self, iterator: Iterator, data_fetcher: _DataLoaderIterDataFetcher) -> None:
-        self.iterator = iterator
+class _DataFetcherWrapper(Iterator):
+    def __init__(self, data_fetcher: _DataLoaderIterDataFetcher) -> None:
         self.data_fetcher = data_fetcher
 
     def __next__(self) -> Any:
