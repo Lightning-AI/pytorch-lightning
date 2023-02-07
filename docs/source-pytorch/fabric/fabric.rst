@@ -9,6 +9,7 @@ Fabric is the fast and lightweight way to scale your models without boilerplate 
 - Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
 - Designed with multi-billion parameter models in mind
 
+|
 
 .. code-block:: diff
 
