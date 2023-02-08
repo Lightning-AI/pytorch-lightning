@@ -83,7 +83,7 @@ def test_prediction_writer_hook_call_intervals():
     assert cb.write_on_epoch_end.call_count == 1
 
 
-@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
+@pytest.mark.parametrize("num_workers", [0, 2])
 def test_prediction_writer_batch_indices(num_workers):
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()

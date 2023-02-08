@@ -778,7 +778,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
 
 @pytest.mark.parametrize("should_fail", [False, True])
-@pytest.mark.parametrize("persistent_workers", [pytest.param(False, marks=RunIf(slow=True)), True])
+@pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
