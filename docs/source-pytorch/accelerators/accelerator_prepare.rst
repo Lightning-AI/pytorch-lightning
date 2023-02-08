@@ -105,19 +105,27 @@ Note if you use any built in metrics or custom metrics that use `TorchMetrics <h
 
 It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
 
-.. testcode::
+.. code-block:: python
+
+    def __init__(self):
+        super().__init__()
+        self.outputs = []
+
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         tensors = self(x)
+        self.outputs.append(tensors)
         return tensors
 
 
-    def test_epoch_end(self, outputs):
-        mean = torch.mean(self.all_gather(outputs))
+    def on_test_epoch_end(self):
+        mean = torch.mean(self.all_gather(self.outputs))
+        self.outputs.clear()  # free memory
 
         # When logging only on rank 0, don't forget to add
-        # ``rank_zero_only=True`` to avoid deadlocks on synchronization.
+        # `rank_zero_only=True` to avoid deadlocks on synchronization.
+        # caveat: monitoring this is unimplemented. see https://github.com/Lightning-AI/lightning/issues/15852
         if self.trainer.is_global_zero:
             self.log("my_reduced_metric", mean, rank_zero_only=True)
 

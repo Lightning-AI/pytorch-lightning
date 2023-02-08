@@ -45,9 +45,8 @@ class DoublePrecisionBoringModel(BoringModel):
         assert float_data.dtype == torch.float64
         return super().training_step(float_data, batch_idx)
 
-    def training_epoch_end(self, outputs) -> None:
+    def on_train_epoch_end(self):
         assert torch.tensor([0.0]).dtype == torch.float32
-        return super().training_epoch_end(outputs)
 
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64

@@ -125,21 +125,8 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
         """
-        if deterministic:
-            if benchmark is None:
-                # Set benchmark to False to ensure determinism
-                benchmark = False
-            elif benchmark:
-                rank_zero_warn(
-                    "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
-                    " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
-                )
-        # TODO: move to gpu accelerator
-        if benchmark is not None:
-            torch.backends.cudnn.benchmark = benchmark
-        self.benchmark = torch.backends.cudnn.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self._init_deterministic(deterministic)
+        _set_torch_flags(deterministic=deterministic, benchmark=benchmark)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
@@ -191,14 +178,6 @@ class AcceleratorConnector:
 
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
-
-    def _init_deterministic(self, deterministic: Optional[Union[bool, _LITERAL_WARN]]) -> None:
-        self.deterministic = deterministic or False  # default to False if not set
-        if deterministic == "warn":
-            torch.use_deterministic_algorithms(True, warn_only=True)
-        if self.deterministic:
-            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
-            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     def _check_config_and_set_final_flags(
         self,
@@ -673,3 +652,28 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
+
+
+def _set_torch_flags(
+    *, deterministic: Optional[Union[bool, _LITERAL_WARN]] = None, benchmark: Optional[bool] = None
+) -> None:
+    if deterministic:
+        if benchmark is None:
+            # Set benchmark to False to ensure determinism
+            benchmark = False
+        elif benchmark:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+            )
+    if benchmark is not None:
+        torch.backends.cudnn.benchmark = benchmark
+
+    if deterministic == "warn":
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    elif isinstance(deterministic, bool):
+        # do not call this if deterministic wasn't passed
+        torch.use_deterministic_algorithms(deterministic)
+    if deterministic:
+        # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
