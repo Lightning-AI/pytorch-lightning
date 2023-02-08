@@ -1,10 +1,13 @@
+import sys
 from unittest.mock import MagicMock
 
+import pytest
 from lightning_cloud.openapi import ProjectIdDataConnectionsBody, V1ListMembershipsResponse, V1Membership
 
 from lightning.app.cli.connect import data
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_connect_data(monkeypatch):
 
     client = MagicMock()
