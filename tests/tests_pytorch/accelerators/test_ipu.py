@@ -47,15 +47,6 @@ class IPUModel(BoringModel):
     def test_step(self, batch, batch_idx):
         return self.step(batch)
 
-    def training_epoch_end(self, outputs) -> None:
-        pass
-
-    def validation_epoch_end(self, outputs) -> None:
-        pass
-
-    def test_epoch_end(self, outputs) -> None:
-        pass
-
 
 class IPUClassificationModel(ClassificationModel):
     def training_step(self, batch, batch_idx):

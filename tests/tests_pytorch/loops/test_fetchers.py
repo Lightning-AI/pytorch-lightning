@@ -20,10 +20,10 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.profilers import SimpleProfiler
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
@@ -47,7 +47,7 @@ class SizedDataset(Dataset):
 @pytest.mark.parametrize("dataset_cls", [IterDataset, SizedDataset])
 @pytest.mark.parametrize("prefetch_batches", list(range(5)))
 def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
-    fetcher = DataFetcher(prefetch_batches=prefetch_batches)
+    fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
     assert fetcher.prefetch_batches == prefetch_batches
 
     if use_combined_loader:
@@ -87,7 +87,7 @@ def test_profiler_closing(use_combined_loader):
         def __iter__(self):
             return iter(self.list)
 
-    fetcher = DataFetcher()
+    fetcher = _PrefetchDataFetcher()
     if use_combined_loader:
         loader = CombinedLoader([DataLoader(TestDataset()), DataLoader(TestDataset())])
     else:
@@ -115,7 +115,7 @@ class EmptySizedDataset(Dataset):
 @pytest.mark.parametrize("prefetch_batches", list(range(2)))
 def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     loader = DataLoader(dataset_cls())
-    fetcher = DataFetcher(prefetch_batches=prefetch_batches)
+    fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
     fetcher.setup(loader)
 
     assert not fetcher.done
@@ -124,7 +124,7 @@ def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
 
 
 def test_misconfiguration_error():
-    fetcher = DataFetcher()
+    fetcher = _PrefetchDataFetcher()
     loader = DataLoader(range(10))
     fetcher.setup(loader)
     with pytest.raises(
@@ -195,10 +195,10 @@ class RecommenderModel(BoringModel):
         torch.cuda._sleep(self.CYCLES_PER_MS * 50)
         return batch
 
-    def training_step_end(self, training_step_outputs):
+    def training_step_end(self, training_step_output):
         # emulate heavy routine
         torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return training_step_outputs
+        return training_step_output
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.1)
@@ -224,7 +224,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer.fit_loop._data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.fit_loop._data_fetcher, _DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -244,7 +244,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
                 loss.backward()
                 opt.step()
 
-        def training_epoch_end(self, *_):
+        def on_train_epoch_end(self):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
             assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
@@ -258,7 +258,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
 def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter, batch_idx):
-            assert isinstance(data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(data_fetcher, _DataLoaderIterDataFetcher)
             assert data_fetcher.fetched == batch_idx
             batch = next(dataloader_iter)
             assert data_fetcher.fetched == batch_idx + 1
@@ -455,8 +455,6 @@ def test_fetching_is_profiled():
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
-
-        validation_epoch_end = None
 
     model = MyModel()
     fast_dev_run = 2

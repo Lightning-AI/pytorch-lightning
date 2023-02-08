@@ -1601,6 +1601,50 @@ class TestOpen:
         assert "`lightning open` command has not been enabled" in out
 
 
+class TestCloudspaceDispatch:
+    def test_cloudspace_dispatch(self, monkeypatch):
+        """Tests that the cloudspace_dispatch method calls the expected API endpoints."""
+        mock_client = mock.MagicMock()
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+        )
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="project", project_id="project_id")]
+        )
+        mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(id="run_id")
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="instance_id"
+        )
+
+        cluster = Externalv1Cluster(id="test", spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL))
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[V1ProjectClusterBinding(cluster_id="test")],
+        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([cluster])
+        mock_client.cluster_service_get_cluster.return_value = cluster
+
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        mock_local_source = mock.MagicMock()
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock_local_source)
+
+        cloud_runtime = cloud.CloudRuntime(app=mock.MagicMock(), entrypoint=Path("."))
+
+        cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name")
+
+        mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
+            project_id="project_id",
+            cloudspace_id="cloudspace_id",
+            body=mock.ANY,
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.assert_called_once_with(
+            project_id="project_id", cloudspace_id="cloudspace_id", id="run_id", body=mock.ANY
+        )
+
+        assert mock_client.cloud_space_service_create_lightning_run_instance.call_args.kwargs["body"].name == "run_name"
+
+
 @mock.patch("lightning.app.core.queues.QueuingSystem", MagicMock())
 @mock.patch("lightning.app.runners.backends.cloud.LightningClient", MagicMock())
 def test_get_project(monkeypatch):

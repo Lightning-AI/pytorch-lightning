@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import Mock
+
 import pytest
 import torch
 
@@ -18,6 +20,10 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.configuration_validator import (
+    __verify_eval_loop_configuration,
+    __verify_train_val_loop_configuration,
+)
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count
 
@@ -158,3 +164,28 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
 
     with pytest.raises(MisconfigurationException, match=match_pattern):
         trainer.fit(model)
+
+
+def test_legacy_epoch_end_hooks():
+    class TrainingEpochEndModel(BoringModel):
+        def training_epoch_end(self, outputs):
+            pass
+
+    class ValidationEpochEndModel(BoringModel):
+        def validation_epoch_end(self, outputs):
+            pass
+
+    trainer = Mock()
+    with pytest.raises(NotImplementedError, match="training_epoch_end` has been removed in v2.0"):
+        __verify_train_val_loop_configuration(trainer, TrainingEpochEndModel())
+    with pytest.raises(NotImplementedError, match="validation_epoch_end` has been removed in v2.0"):
+        __verify_train_val_loop_configuration(trainer, ValidationEpochEndModel())
+
+    class TestEpochEndModel(BoringModel):
+        def test_epoch_end(self, outputs):
+            pass
+
+    with pytest.raises(NotImplementedError, match="validation_epoch_end` has been removed in v2.0"):
+        __verify_eval_loop_configuration(ValidationEpochEndModel(), "val")
+    with pytest.raises(NotImplementedError, match="test_epoch_end` has been removed in v2.0"):
+        __verify_eval_loop_configuration(TestEpochEndModel(), "test")

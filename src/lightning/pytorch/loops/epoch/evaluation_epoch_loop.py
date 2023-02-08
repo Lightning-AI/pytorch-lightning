@@ -13,16 +13,14 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from functools import lru_cache
 from typing import Any, Optional, Union
 
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class _EvaluationEpochLoop(_Loop):
@@ -36,9 +34,8 @@ class _EvaluationEpochLoop(_Loop):
         super().__init__()
         self.batch_progress = BatchProgress()
 
-        self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches: Union[int, float] = 0
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._data_fetcher: Optional[_DataFetcher] = None
         self._dl_batch_idx = [0]
 
     @property
@@ -46,9 +43,7 @@ class _EvaluationEpochLoop(_Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
-    def run(
-        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
-    ) -> EPOCH_OUTPUT:
+    def run(self, data_fetcher: _DataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict) -> None:
         self.reset()
         self.on_run_start(data_fetcher, dl_max_batches, kwargs)
         while not self.done:
@@ -58,13 +53,12 @@ class _EvaluationEpochLoop(_Loop):
             except StopIteration:
                 break
         self._restarting = False
-        return self.on_run_end()
+        self.on_run_end()
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._dl_max_batches = 0
         self._data_fetcher = None
-        self._outputs = []
 
         if not self.restarting:
             self.batch_progress.reset_on_run()
@@ -75,9 +69,7 @@ class _EvaluationEpochLoop(_Loop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-    def on_run_start(
-        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
-    ) -> None:
+    def on_run_start(self, data_fetcher: _DataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
         Args:
@@ -108,7 +100,7 @@ class _EvaluationEpochLoop(_Loop):
 
     def advance(
         self,
-        data_fetcher: AbstractDataFetcher,
+        data_fetcher: _DataFetcher,
         kwargs: OrderedDict,
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
@@ -120,7 +112,7 @@ class _EvaluationEpochLoop(_Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             batch_idx = self.batch_progress.current.ready
             batch = next(data_fetcher)
         else:
@@ -154,22 +146,11 @@ class _EvaluationEpochLoop(_Loop):
             self.trainer._logger_connector.update_eval_step_metrics(self._dl_batch_idx[dataloader_idx])
             self._dl_batch_idx[dataloader_idx] += 1
 
-        # track epoch level outputs
-        if self._should_track_batch_outputs_for_epoch_end() and output is not None:
-            self._outputs.append(output)
-
         if not self.batch_progress.is_last_batch and self.trainer.received_sigterm:
             raise SIGTERMException
 
-    def on_run_end(self) -> EPOCH_OUTPUT:
-        """Returns the outputs of the whole run."""
-        outputs, self._outputs = self._outputs, []  # free memory
+    def on_run_end(self) -> None:
         self._data_fetcher = None
-        return outputs
-
-    def teardown(self) -> None:
-        # in case the model changes
-        self._should_track_batch_outputs_for_epoch_end.cache_clear()
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
@@ -252,14 +233,6 @@ class _EvaluationEpochLoop(_Loop):
         kwargs.move_to_end("batch_idx", last=False)
         kwargs.move_to_end("batch", last=False)
         return kwargs
-
-    @lru_cache(1)
-    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
-        """Whether the batch outputs should be stored for later usage."""
-        model = self.trainer.lightning_module
-        if self.trainer.testing:
-            return is_overridden("test_epoch_end", model)
-        return is_overridden("validation_epoch_end", model)
 
     def _reset_dl_batch_idx(self, num_dataloaders: int) -> None:
         self._dl_batch_idx = [0] * num_dataloaders

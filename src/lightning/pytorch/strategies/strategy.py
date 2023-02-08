@@ -528,6 +528,10 @@ class Strategy(ABC):
         """Called in the training loop before anything happens for that batch."""
         pass
 
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the trainer execution is interrupted by an exception."""
+        pass
+
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy

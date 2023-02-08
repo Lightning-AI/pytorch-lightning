@@ -13,11 +13,12 @@
 # limitations under the License.
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 
 from lightning.pytorch import loops  # import as loops to avoid circular imports
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
@@ -25,13 +26,10 @@ from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
-_OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
 
 class _TrainingEpochLoop(loops._Loop):
@@ -74,7 +72,6 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop = loops._EvaluationLoop(verbose=False)
 
         self._results = _ResultCollection(training=True)
-        self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
         self._batches_that_stepped: int = 0
 
@@ -128,7 +125,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         return False
 
-    def run(self, data_fetcher: AbstractDataFetcher) -> _OUTPUTS_TYPE:
+    def run(self, data_fetcher: _DataFetcher) -> None:
         self.reset()
         self.on_run_start(data_fetcher)
         while not self.done:
@@ -139,7 +136,6 @@ class _TrainingEpochLoop(loops._Loop):
             except StopIteration:
                 break
         self._restarting = False
-        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
@@ -164,9 +160,7 @@ class _TrainingEpochLoop(loops._Loop):
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
 
-        self._outputs = []
-
-    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
+    def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
@@ -180,7 +174,7 @@ class _TrainingEpochLoop(loops._Loop):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
-    def advance(self, data_fetcher: AbstractDataFetcher) -> None:
+    def advance(self, data_fetcher: _DataFetcher) -> None:
         """Runs a single training batch.
 
         Raises:
@@ -192,7 +186,7 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             batch_idx = self.batch_idx + 1
             batch = next(data_fetcher)
         else:
@@ -240,13 +234,6 @@ class _TrainingEpochLoop(loops._Loop):
 
         self.batch_progress.increment_completed()
 
-        if batch_output and is_overridden("training_epoch_end", self.trainer.lightning_module):
-            # batch_output may be empty
-            # automatic: can be empty if all optimizers skip their batches
-            # manual: #9052 added support for raising `StopIteration` in the `training_step`. If that happens,
-            # then `advance` doesn't finish and an empty dict is returned
-            self._outputs.append(batch_output)
-
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
@@ -275,10 +262,6 @@ class _TrainingEpochLoop(loops._Loop):
         # which might not be the case depending on what's in the `*_epoch_end` hooks
         if not self._is_training_done and self.trainer.received_sigterm:
             raise SIGTERMException
-
-    def on_run_end(self) -> _OUTPUTS_TYPE:
-        outputs, self._outputs = self._outputs, []
-        return outputs
 
     def teardown(self) -> None:
         self._results.cpu()

@@ -561,8 +561,7 @@ class Trainer:
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
-            like :meth:`~lightning.pytorch.core.module.LightningModule.validation_step`,
-            :meth:`~lightning.pytorch.core.module.LightningModule.validation_epoch_end`, etc.
+            like :meth:`~lightning.pytorch.LightningModule.validation_step` etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
         if model is None:
@@ -654,8 +653,7 @@ class Trainer:
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
-            like :meth:`~lightning.pytorch.core.module.LightningModule.test_step`,
-            :meth:`~lightning.pytorch.core.module.LightningModule.test_epoch_end`, etc.
+            like :meth:`~lightning.pytorch.LightningModule.test_step` etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
         if model is None:

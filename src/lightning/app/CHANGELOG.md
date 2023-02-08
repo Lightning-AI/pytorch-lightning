@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
 
+- Prevent to `cd` into non existent folders ([#16645](https://github.com/Lightning-AI/lightning/pull/16645))
 - Enabled `cp` (upload) at project level ([#16631](https://github.com/Lightning-AI/lightning/pull/16631))
 - Enabled `ls` and `cp` (download) at project level ([#16622](https://github.com/Lightning-AI/lightning/pull/16622))
 - Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
@@ -20,6 +21,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
  * `pwd`: Return the current folder in your Cloud Platform Filesystem
  * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
+
+- Added `lightning connect data` to register data connection to s3 buckets ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+
 
 ### Changed
 
@@ -30,6 +34,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Renamed `lightning.app.components.LiteMultiNode` to `lightning.app.components.FabricMultiNode` ([#16505](https://github.com/Lightning-AI/lightning/pull/16505))
+
+
+- Changed the command `lightning connect` to `lightning connect app` for consistency ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
 
 
 ### Deprecated
@@ -43,6 +50,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
+
+- Fixed a deadlock causing apps not to exit properly when running locally ([#16623](https://github.com/Lightning-AI/lightning/pull/16623)))
+
 
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
 

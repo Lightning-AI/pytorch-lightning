@@ -57,17 +57,14 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
-          # run test under SLOW label
-          - {type: "slow", os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
-          - {type: "slow", os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
-          - {type: "slow", os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
           # "pytorch" installs the standalone package
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
-
     timeout-minutes: 70
-
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      FREEZE_REQUIREMENTS: 1
     steps:
     - uses: actions/checkout@v3
 
@@ -87,7 +84,6 @@ jobs:
         python .actions/assistant.py replace_oldest_ver
 
     - name: Pull legacy checkpoints
-      if: ${{ matrix.type != 'slow' }}
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Adjust PyTorch versions in requirements files
@@ -98,16 +94,11 @@ jobs:
         done
         cat requirements/pytorch/base.txt
 
-    - name: Get pip cache dir
-      id: pip-cache
-      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-    - name: pip cache
+    - name: pip wheels cache
       uses: actions/cache@v3
       with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
+        path: .wheels
+        key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
 
     - name: Env. variables
@@ -116,20 +107,16 @@ jobs:
         python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
-        # Whether to run slow tests
-        python -c "print('PL_RUN_SLOW_TESTS=' + str(int('${{ matrix.type }}' == 'slow')))" >> $GITHUB_ENV
-        # Decide timeout
-        python -c "print('TEST_TIMEOUT=' + str(120 if '${{ matrix.type }}' == 'slow' else 60))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
-        # TODO: installing the strategies from file as deepspeed expects already installed PyTorch and extras do not install base first
-        # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
+        pip install -e .[extra,test] "pytest-timeout" --upgrade -f ${TORCH_URL} -f ".wheels/"
         pip list
+    - name: Dump handy wheels
+      if: github.event_name == 'push'
+      uses: ./.github/actions/pip-wheels
+      with:
+        torch-url: ${{ env.TORCH_URL }}
 
     - name: Cache datasets
       uses: actions/cache@v3
@@ -159,17 +146,7 @@ jobs:
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest . -v \
-          --timeout=${TEST_TIMEOUT} --durations=50 \
-          --reruns 3 --reruns-delay 1 \
-          --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Upload pytest results
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+          -m pytest . -v --timeout=60 --durations=50 --reruns 3 --reruns-delay 1
 
     - name: Statistics
       if: success()
