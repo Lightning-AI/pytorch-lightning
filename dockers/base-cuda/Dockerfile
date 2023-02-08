@@ -96,7 +96,8 @@ RUN \
     done && \
 
     # Install base requirements \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    pip install -r requirements/pytorch/base.txt "setuptools==59.5.0" \
+      --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
 
 ENV \
@@ -115,14 +116,24 @@ RUN \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
-    pip install --no-cache-dir horovod && \
+    grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt && \
+    pip install --no-cache-dir -r requirements/pytorch/horovod.txt "setuptools==59.5.0" && \
     horovodrun --check-build
 
 RUN \
     # CUDA 10.2 doesn't support ampere architecture (8.0).
-    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then \
+      export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; \
+      echo $TORCH_CUDA_ARCH_LIST; \
+    fi && \
     # install NVIDIA apex
-    pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
+    pip install -v \
+      --disable-pip-version-check \
+      --no-cache-dir \
+      --global-option="--cpp_ext" \
+      --global-option="--cuda_ext" \
+      https://github.com/NVIDIA/apex/archive/refs/heads/master.zip  \
+      "setuptools==59.5.0" && \
     python -c "from apex import amp"
 
 RUN \
@@ -130,7 +141,7 @@ RUN \
     if [[ $PYTORCH_VERSION != "1.13" ]]; then \
         CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") ; \
         CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") ; \
-        pip install "bagua-cuda$CUDA_VERSION_BAGUA" ; \
+        pip install "bagua-cuda$CUDA_VERSION_BAGUA" "setuptools==59.5.0" ; \
         if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then \
           python -c "import bagua_core; bagua_core.install_deps()"; \
         fi ; \
@@ -144,7 +155,8 @@ RUN \
         PYTORCH_VERSION_COLOSSALAI=$(python -c "import torch; print(torch.__version__.split('+')[0][:4])") ; \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
-        pip install "colossalai==0.1.10+torch${PYTORCH_VERSION_COLOSSALAI}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
+        pip install "colossalai==0.1.10+torch${PYTORCH_VERSION_COLOSSALAI}cu${CUDA_VERSION_COLOSSALAI}" "setuptools==59.5.0" \
+          --find-links https://release.colossalai.org ; \
         python -c "import colossalai; print(colossalai.__version__)" ; \
     fi
 
