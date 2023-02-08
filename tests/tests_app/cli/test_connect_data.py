@@ -8,6 +8,25 @@ from lightning.app.cli.connect import data
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+def test_connect_data_no_project(monkeypatch):
+
+    client = MagicMock()
+    client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(memberships=[])
+    monkeypatch.setattr(data, "LightningClient", MagicMock(return_value=client))
+
+    _error_and_exit = MagicMock()
+    monkeypatch.setattr(data, "_error_and_exit", _error_and_exit)
+
+    _get_project = MagicMock()
+    _get_project.return_value = V1Membership(name="project-0", project_id="project-id-0")
+    monkeypatch.setattr(data, "_get_project", _get_project)
+
+    data.connect_data("imagenet", region="us-east-1", source="imagenet", destination="", project_name="project-0")
+
+    _get_project.assert_called()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_connect_data(monkeypatch):
 
     client = MagicMock()
@@ -19,6 +38,14 @@ def test_connect_data(monkeypatch):
         ]
     )
     monkeypatch.setattr(data, "LightningClient", MagicMock(return_value=client))
+
+    _error_and_exit = MagicMock()
+    monkeypatch.setattr(data, "_error_and_exit", _error_and_exit)
+    data.connect_data("imagenet", region="us-east-1", source="imagenet", destination="", project_name="project-0")
+
+    _error_and_exit.assert_called_with(
+        "Only public S3 folders are supported for now. Please, open a Github issue with your use case."
+    )
 
     data.connect_data("imagenet", region="us-east-1", source="s3://imagenet", destination="", project_name="project-0")
 

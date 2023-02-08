@@ -59,12 +59,13 @@ def connect_data(
 
             if project.name == project_name:
                 project_id = project.project_id
+                break
 
         if project_id is None:
             project_id = _get_project(client).project_id
 
         if not source.startswith("s3://"):
-            _error_and_exit(
+            return _error_and_exit(
                 "Only public S3 folders are supported for now. Please, open a Github issue with your use case."
             )
 
