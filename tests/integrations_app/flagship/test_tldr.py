@@ -1,4 +1,3 @@
-import os
 from time import sleep
 
 from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
@@ -18,7 +17,7 @@ def test_app_in_cloud():
         # Validate the logs.
         has_logs = False
         while not has_logs:
-            logs = list(fetch_logs('multinode.ws.0'))
+            logs = list(fetch_logs("multinode.ws.0"))
             for log in logs:
                 if "`Trainer.fit` stopped: `max_epochs=2` reached." in log:
                     has_logs = True
