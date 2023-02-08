@@ -16,7 +16,6 @@ import sys
 
 import click
 import rich
-from lightning_cloud.openapi import ProjectIdDataConnectionsBody
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
@@ -32,12 +31,14 @@ logger = Logger(__name__)
 @click.argument("name", required=True)
 @click.argument("region", required=True)
 @click.argument("source", required=True)
+@click.argument("secret_arn_name", required=False)
 @click.argument("destination", required=False)
 @click.argument("project_name", required=False)
 def connect_data(
     name: str,
     region: str,
     source: str,
+    secret_arn_name: str = "",
     destination: str = "",
     project_name: str = "",
 ) -> None:
@@ -69,22 +70,23 @@ def connect_data(
             )
 
         try:
-            _ = client.data_connection_service_create_data_connection(
-                body=ProjectIdDataConnectionsBody(
-                    name=name,
-                    region=region,
-                    source=source,
-                    destination=destination,
-                ),
-                project_id=project_id,
-            )
+            # _ = client.data_connection_service_create_data_connection(
+            #     body=ProjectIdDataConnectionsBody(
+            #         name=name,
+            #         region=region,
+            #         source=source,
+            #         destination=destination,
+            #         secret_arn_name=secret_arn_name,
+            #     ),
+            #     project_id=project_id,
+            # )
 
             # Note: Expose through lightning show data {DATA_NAME}
-            # response = client.data_connection_service_list_data_connection_artifacts(
-            #     project_id=project_id,
-            #     id=response.id,
-            # )
-            # print(response)
+            response = client.data_connection_service_list_data_connection_artifacts(
+                project_id=project_id,
+                id="01grr6f2dj1pe5dcnrbfavvyeg",
+            )
+            print(response)
         except Exception:
             _error_and_exit("The data connection creation failed.")
 
