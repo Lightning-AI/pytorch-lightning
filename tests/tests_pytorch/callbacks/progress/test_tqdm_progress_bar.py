@@ -162,9 +162,9 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     n = trainer.num_training_batches
     m = trainer.num_val_batches
     assert len(trainer.train_dataloader) == n
-    # main progress bar should have reached the end (train batches + val batches)
-    assert pbar.main_progress_bar.total == n + sum(m)
-    assert pbar.main_progress_bar.n == n + sum(m)
+    # main progress bar should have reached the end
+    assert pbar.main_progress_bar.total == n
+    assert pbar.main_progress_bar.n == n
     assert pbar.main_progress_bar.leave
 
     # check val progress bar total
@@ -214,9 +214,9 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     assert 1 == pbar.val_progress_bar.n
     assert 1 == pbar.val_progress_bar.total
 
-    # the main progress bar should display 2 batches (1 train, 1 val)
-    assert 2 == pbar.main_progress_bar.total
-    assert 2 == pbar.main_progress_bar.n
+    # the main progress bar should display 1 batch
+    assert 1 == pbar.main_progress_bar.total
+    assert 1 == pbar.main_progress_bar.n
 
     trainer.validate(model)
 
@@ -266,24 +266,18 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
     trainer.fit(model)
-    assert (
-        pbar.train_batches_seen + pbar.val_batches_seen
-        == 3 * pbar.main_progress_bar.total + trainer.num_sanity_val_steps
-    )
+    assert pbar.train_batches_seen == 3 * pbar.main_progress_bar.total
+    assert pbar.val_batches_seen == 3 * pbar.val_progress_bar.total + trainer.num_sanity_val_steps
     assert pbar.test_batches_seen == 0
 
     trainer.validate(model)
-    assert (
-        pbar.train_batches_seen + pbar.val_batches_seen
-        == 3 * pbar.main_progress_bar.total + pbar.val_progress_bar.total + trainer.num_sanity_val_steps
-    )
+    assert pbar.train_batches_seen == 3 * pbar.main_progress_bar.total
+    assert pbar.val_batches_seen == 4 * pbar.val_progress_bar.total + trainer.num_sanity_val_steps
     assert pbar.test_batches_seen == 0
 
     trainer.test(model)
-    assert (
-        pbar.train_batches_seen + pbar.val_batches_seen
-        == 3 * pbar.main_progress_bar.total + pbar.val_progress_bar.total + trainer.num_sanity_val_steps
-    )
+    assert pbar.train_batches_seen == 3 * pbar.main_progress_bar.total
+    assert pbar.val_batches_seen == 4 * pbar.val_progress_bar.total + trainer.num_sanity_val_steps
     assert pbar.test_batches_seen == pbar.test_progress_bar.total
 
 
@@ -345,13 +339,13 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 @pytest.mark.parametrize(
     "train_batches,val_batches,refresh_rate,train_updates,val_updates",
     [
-        [2, 3, 1, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3]],
+        [2, 3, 1, [0, 1, 2], [0, 1, 2, 3]],
         [0, 0, 3, None, None],
         [1, 0, 3, [0, 1], None],
-        [1, 1, 3, [0, 2], [0, 1]],
+        [1, 1, 3, [0, 1], [0, 1]],
         [5, 0, 3, [0, 3, 5], None],
-        [5, 2, 3, [0, 3, 6, 7], [0, 2]],
-        [5, 2, 6, [0, 6, 7], [0, 2]],
+        [5, 2, 3, [0, 3, 5], [0, 2]],
+        [5, 2, 6, [0, 5], [0, 2]],
     ],
 )
 def test_main_progress_bar_update_amount(
@@ -562,7 +556,7 @@ def test_tqdm_progress_bar_can_be_pickled():
 
 @pytest.mark.parametrize(
     ["val_check_interval", "main_progress_bar_updates", "val_progress_bar_updates"],
-    [(4, [0, 3, 6, 9, 12, 14], [0, 3, 6, 7]), (0.5, [0, 3, 6, 9, 12, 15, 18, 21], [0, 3, 6, 7])],
+    [(4, [0, 3, 6, 7], [0, 3, 6, 7]), (0.5, [0, 3, 6, 7], [0, 3, 6, 7])],
 )
 def test_progress_bar_max_val_check_interval(
     tmpdir, val_check_interval, main_progress_bar_updates, val_progress_bar_updates
@@ -592,12 +586,11 @@ def test_progress_bar_max_val_check_interval(
     assert trainer.val_check_batch == val_check_batch
     val_checks_per_epoch = math.ceil(limit_batches // val_check_batch)
     pbar_callback = trainer.progress_bar_callback
-    total_val_batches = limit_batches * val_checks_per_epoch
 
     assert pbar_callback.val_progress_bar.n == limit_batches
     assert pbar_callback.val_progress_bar.total == limit_batches
-    assert pbar_callback.main_progress_bar.n == limit_batches + total_val_batches
-    assert pbar_callback.main_progress_bar.total == limit_batches + total_val_batches
+    assert pbar_callback.main_progress_bar.n == limit_batches
+    assert pbar_callback.main_progress_bar.total == limit_batches
     assert pbar_callback.is_enabled
 
 
