@@ -36,4 +36,3 @@ def test_app_in_cloud():
 
     for curr_str in expected_strings:
         assert any([curr_str in line for line in logs])
-    os.remove(os.path.join(_PATH_INTEGRATIONS_DIR, "test_app.py"))
