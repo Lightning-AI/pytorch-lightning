@@ -1373,8 +1373,6 @@ class Trainer:
 
             ValueError:
                 If `val_check_interval` is not less than or equal to the number of the training batches.
-
-
         """
         source = self._data_connector._train_dataloader_source
         pl_module = model or self.lightning_module
