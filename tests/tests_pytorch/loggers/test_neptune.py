@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -208,7 +208,7 @@ class TestNeptuneLogger(unittest.TestCase):
         """Verify that trained models do log data."""
         # given
         class LoggingModel(BoringModel):
-            def validation_epoch_end(self, outputs):
+            def on_validation_epoch_end(self):
                 self.log("some/key", 42)
 
         # and

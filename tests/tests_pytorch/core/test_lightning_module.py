@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -177,7 +177,6 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             return [optimizer_1, optimizer_2]
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=0)
     trainer.fit(model)
@@ -280,7 +279,6 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             return [optimizer_1, optimizer_2, optimizer_3]
 
     model = TestModel()
-    model.training_epoch_end = None
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8)
     trainer.fit(model)
 

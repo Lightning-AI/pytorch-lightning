@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
 from torch.utils.data.dataloader import DataLoader
@@ -26,43 +25,8 @@ def _profile_nothing() -> None:
     pass
 
 
-class AbstractDataFetcher(ABC):
-
-    """This base class should be used to implement a ``DataFetcher``. It is required to override the
-    ``fetching_function`` with fetching logic.
-
-    Example::
-
-        class SimpleDataFetcher(AbstractDataFetcher):
-            def fetching_function(self):
-                while True:
-                    try:
-                        return next(self.dataloader_iter), False
-                    except StopIteration:
-                        return None, True
-    """
-
-    @abstractmethod
-    def fetching_function(self) -> Any:
-        """Override with your own fetching logic."""
-
-    @abstractmethod
-    def prefetching(self) -> None:
-        """Override with your own pre-fetching logic."""
-
-    def on_fetch_start(self) -> Any:
-        """Hook to override to handle the logic before fetching a batch."""
-
-    def on_fetch_end(self, batch: Any, start_output: Any) -> None:
-        """Hook to extend which handles the logic after fetching a batch."""
-
-    def wait(self) -> None:
-        """Hook to override to indicate the `DataFetcher` to wait for an event."""
-
-    def __init__(self, prefetch_batches: int = 0) -> None:
-        if prefetch_batches < 0:
-            raise MisconfigurationException("`prefetch_batches` should at least be 0.")
-        self.prefetch_batches = prefetch_batches
+class _DataFetcher(Iterator):
+    def __init__(self) -> None:
         self._dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
         self.fetched: int = 0
@@ -89,14 +53,23 @@ class AbstractDataFetcher(ABC):
             return self.dataloader_iter.loader_iters
         return self.dataloader_iter
 
-    def __iter__(self) -> "AbstractDataFetcher":
+    def __iter__(self) -> "_DataFetcher":
         self.reset()
         self.dataloader_iter = iter(self.dataloader)
-        self.prefetching()
         return self
 
     def __next__(self) -> Any:
-        return self.fetching_function()
+        self._start_profiler()
+        assert self.dataloader_iter is not None
+        try:
+            data = next(self.dataloader_iter)
+        except StopIteration as e:
+            self.done = True
+            raise e
+        finally:
+            self._stop_profiler()
+        self.fetched += 1
+        return data
 
     def reset(self) -> None:
         self.fetched = 0
@@ -115,7 +88,7 @@ def _no_op_batch_to_device(batch: Any) -> Any:
     return batch
 
 
-class DataFetcher(AbstractDataFetcher):
+class _PrefetchDataFetcher(_DataFetcher):
     """This class is used to control batch fetching flow.
 
     Args:
@@ -125,7 +98,10 @@ class DataFetcher(AbstractDataFetcher):
     """
 
     def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
-        super().__init__(prefetch_batches=prefetch_batches)
+        super().__init__()
+        if prefetch_batches < 0:
+            raise ValueError("`prefetch_batches` should at least be 0.")
+        self.prefetch_batches = prefetch_batches
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
         self.batches: List[Any] = []
@@ -141,15 +117,8 @@ class DataFetcher(AbstractDataFetcher):
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
-    def on_fetch_start(self) -> Any:
-        self._start_profiler()
-
-    def on_fetch_end(self, batch: Any, start_output: Any) -> None:
-        """Hook to extend which handles the logic after fetching a batch."""
-        self._stop_profiler()
-        self.batches.append(batch)
-
-    def prefetching(self) -> None:
+    def __iter__(self) -> "_PrefetchDataFetcher":
+        super().__iter__()
         iterator = self.dataloader_iter
         assert iterator is not None
         for _ in range(self.prefetch_batches):
@@ -157,11 +126,12 @@ class DataFetcher(AbstractDataFetcher):
                 self._fetch_next_batch(iterator)
             except StopIteration:
                 # this would only happen when prefetch_batches > the number of batches available and makes
-                # `fetching_function` jump directly to the empty iterator case without trying to fetch again
+                # `__next__` jump directly to the empty iterator case without trying to fetch again
                 self.done = True
                 break
+        return self
 
-    def fetching_function(self) -> Any:
+    def __next__(self) -> Any:
         assert self.dataloader_iter is not None
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
@@ -185,23 +155,21 @@ class DataFetcher(AbstractDataFetcher):
         else:
             # the iterator is empty
             raise StopIteration
-        self.wait()
         return self.move_to_device(batch)
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
-        start_output = self.on_fetch_start()
+        self._start_profiler()
         try:
             batch = next(iterator)
-        except StopIteration as e:
+        finally:
             self._stop_profiler()
-            raise e
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
             # when we don't prefetch but the dataloader is sized, we use the length for `done`
             dataloader = self.dataloader
             assert isinstance(dataloader, Sized)  # `_has_len` is True
             self.done = self.fetched >= len(dataloader)
-        self.on_fetch_end(batch, start_output)
+        self.batches.append(batch)
 
     def move_to_device(self, batch: Any) -> Any:
         if self.store_on_device:
@@ -213,39 +181,13 @@ class DataFetcher(AbstractDataFetcher):
         self.batches = []
 
 
-class StepFuncDataLoaderIter(Iterator):
-
-    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
-    control."""
-
-    def __init__(self, iterator: Iterator, data_fetcher: AbstractDataFetcher) -> None:
-        self.iterator = iterator
-        self.data_fetcher = data_fetcher
-
-    def __next__(self) -> Any:
-        try:
-            self.data_fetcher._start_profiler()
-            data = next(self.iterator)
-            self.data_fetcher._stop_profiler()
-            self.data_fetcher.fetched += 1
-            return data
-        except StopIteration as e:
-            self.data_fetcher.done = True
-            raise e
-
-
-class DataLoaderIterDataFetcher(AbstractDataFetcher):
-
+class _DataLoaderIterDataFetcher(_DataFetcher):
     """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for
     users to implement their own pre-fetching logic. This feature can be activated as follows:
 
     Example::
 
         Class MyModel(LightningModule):
-
-            def __init__(self):
-                self.automatic_optimization = False
-
             def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
                 # it is the user responsibility to fetch and move the batch to the right device.
                 batch = next(dataloader_iter)
@@ -253,17 +195,22 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 ...
     """
 
-    def __init__(self, prefetch_batches: int = 0) -> None:
-        # prefetch batches is not used for this class
-        super().__init__()
-        self.store_on_device = False
-
-    def prefetching(self) -> None:
+    def __iter__(self) -> "_DataLoaderIterDataFetcher":
+        super().__iter__()
         iterator = self.dataloader_iter
         assert iterator is not None
-        self.iterator = iter(StepFuncDataLoaderIter(iterator, self))
+        self.iterator = iter(_DataFetcherWrapper(self))
+        return self
 
-    def fetching_function(self) -> Tuple[int, Iterator]:
+    def __next__(self) -> Tuple[int, Iterator]:
         if not self.done:
             return self.fetched, self.iterator
         raise StopIteration
+
+
+class _DataFetcherWrapper(Iterator):
+    def __init__(self, data_fetcher: _DataLoaderIterDataFetcher) -> None:
+        self.data_fetcher = data_fetcher
+
+    def __next__(self) -> Any:
+        return super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()

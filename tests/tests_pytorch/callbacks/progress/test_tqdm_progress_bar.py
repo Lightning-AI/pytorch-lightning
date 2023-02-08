@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -136,8 +136,6 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
             return
 
     model = CustomModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
 
     # check the sanity dataloaders
     num_sanity_val_steps = 4

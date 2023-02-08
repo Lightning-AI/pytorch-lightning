@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,23 +15,19 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict
-from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
-import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
-from lightning.pytorch.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-from lightning.pytorch.utilities.types import EPOCH_OUTPUT
+from lightning.pytorch.utilities.fetching import _DataFetcher
 
 if _RICH_AVAILABLE:
     from rich import get_console
@@ -51,11 +47,10 @@ class _EvaluationLoop(_DataLoaderLoop):
         self.verbose = verbose
 
         self._results = _ResultCollection(training=False)
-        self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._data_fetcher: Optional[_DataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -113,7 +108,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         """Resets the internal state of the loop."""
         self._max_batches = self._get_max_batches()
         # bookkeeping
-        self._outputs = []
         self._logged_outputs = []
 
         if isinstance(self._max_batches, int):
@@ -128,8 +122,7 @@ class _EvaluationLoop(_DataLoaderLoop):
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
-        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(self.trainer, prefetch_batches=self.prefetch_batches)
 
         # hook
         self._on_evaluation_model_eval()
@@ -154,10 +147,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         kwargs = OrderedDict()
         if self.num_dataloaders > 1:
             kwargs["dataloader_idx"] = dataloader_idx
-        dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
-
-        # store batch level output per dataloader
-        self._outputs.append(dl_outputs)
+        self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
 
         if not self.trainer.sanity_checking:
             # indicate the loop has run
@@ -180,10 +170,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         """Runs the ``_on_evaluation_epoch_end`` hook."""
         # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
         self.trainer._logger_connector.epoch_end_reached()
-
-        # hook
-        self._evaluation_epoch_end(self._outputs)
-        self._outputs = []  # free memory
+        self.trainer._logger_connector._evaluation_epoch_end()
 
         # hook
         self._on_evaluation_epoch_end()
@@ -216,7 +203,6 @@ class _EvaluationLoop(_DataLoaderLoop):
             self._data_fetcher.teardown()
             self._data_fetcher = None
         self._results.cpu()
-        self.epoch_loop.teardown()
 
     def _get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader."""
@@ -278,19 +264,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
         self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
         self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-
-    def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
-        """Runs ``{validation/test}_epoch_end``"""
-        self.trainer._logger_connector._evaluation_epoch_end()
-
-        # with a single dataloader don't pass a 2D list
-        output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
-            outputs[0] if len(outputs) > 0 and self.num_dataloaders == 1 else outputs
-        )
-
-        # call the model epoch end
-        hook_name = "test_epoch_end" if self.trainer.testing else "validation_epoch_end"
-        self.trainer._call_lightning_module_hook(hook_name, output_or_outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
@@ -396,16 +369,3 @@ class _EvaluationLoop(_DataLoaderLoop):
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
                 print(os.linesep.join(lines))
-
-
-def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
-    lightning_module = trainer.lightning_module
-    step_fx_name = "test_step" if trainer.testing else "validation_step"
-    step_fx = getattr(lightning_module, step_fx_name)
-    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
-        rank_zero_warn(
-            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
-            "this signature is experimental and the behavior is subject to change."
-        )
-        return DataLoaderIterDataFetcher
-    return DataFetcher

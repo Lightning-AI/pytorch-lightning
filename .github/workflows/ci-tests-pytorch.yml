@@ -65,9 +65,10 @@ jobs:
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
-
     timeout-minutes: 70
-
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      FREEZE_REQUIREMENTS: 1
     steps:
     - uses: actions/checkout@v3
 
@@ -98,16 +99,11 @@ jobs:
         done
         cat requirements/pytorch/base.txt
 
-    - name: Get pip cache dir
-      id: pip-cache
-      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-    - name: pip cache
+    - name: pip wheels cache
       uses: actions/cache@v3
       with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
+        path: .wheels
+        key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
 
     - name: Env. variables
@@ -122,14 +118,14 @@ jobs:
         python -c "print('TEST_TIMEOUT=' + str(120 if '${{ matrix.type }}' == 'slow' else 60))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
-        # TODO: installing the strategies from file as deepspeed expects already installed PyTorch and extras do not install base first
-        # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
+        pip install -e .[extra,test] "pytest-timeout" --upgrade -f ${TORCH_URL} -f ".wheels/"
         pip list
+    - name: Dump handy wheels
+      if: github.event_name == 'push'
+      uses: ./.github/actions/pip-wheels
+      with:
+        torch-url: ${{ env.TORCH_URL }}
 
     - name: Cache datasets
       uses: actions/cache@v3
@@ -158,18 +154,10 @@ jobs:
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
-        python -m coverage run --source ${COVERAGE_SCOPE} \
+        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest . -v \
           --timeout=${TEST_TIMEOUT} --durations=50 \
-          --reruns 3 --reruns-delay 1 \
-          --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Upload pytest results
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+          --reruns 3 --reruns-delay 1
 
     - name: Statistics
       if: success()
@@ -185,6 +173,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
+        flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

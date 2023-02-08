@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import torch
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loops.optimization.optimizer_loop import ClosureResult
+from lightning.pytorch.loops.optimization.automatic import ClosureResult
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
@@ -59,7 +59,3 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
 
     with pytest.raises(MisconfigurationException, match=match):
         trainer.fit(model)
-
-
-class CustomException(Exception):
-    pass
