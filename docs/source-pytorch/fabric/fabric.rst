@@ -64,14 +64,15 @@ Fabric differentiates itself from a fully-fledged trainer like :doc:`Lightning T
 **Maximum Flexibility**
 Write your own training and/or inference logic down to the individual optimizer calls.
 You aren't forced to conform to a standardized epoch-based training loop like the one in :doc:`Lightning Trainer <../common/trainer>`.
+You can do flexible iteration based training, meta-learning, cross-validation and other types of optimization algorithms without digging into framework internals.
 This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors.
 Just remember: With great power comes a great responsibility.
 
 **Personalization**
 While a general-purpose trainer like :doc:`Lightning Trainer <../common/trainer>` contains all features *any* researcher could ever ask for,
 it may contain way more stuff than you, the individual, would ever need.
-This can make it more difficult to adapt it to your domain of research than it should be, but at the same time, building a well-tested, efficient and hackable trainer is very time-consuming.
-Fabric bridges this gap by providing important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but at the same time it leaves the design and orchestration fully up to you.
+This makes it more difficult to study and trust the internals than it should be, but at the same time, building a well-tested, efficient and hackable trainer yourself is very time-consuming.
+Fabric bridges this gap by providing important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but leaves the design and orchestration fully up to you.
 
 **Opt-in Philosophy**
 Everything in Fabric is opt-in.
