@@ -1,12 +1,10 @@
 import os
+from textwrap import dedent
 from time import sleep
 
 from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 
 from lightning.app.testing.testing import run_app_in_cloud
-from lightning.app.utilities.imports import _is_playwright_available
-
-from textwrap import dedent
 
 
 def test_app_in_cloud():
@@ -14,7 +12,7 @@ def test_app_in_cloud():
     with open(os.path.join(_PATH_INTEGRATIONS_DIR, "test_app.py"), "w") as f:
         app_string = dedent(
             dedent(
-        """
+                """
         # !pip install git+https://github.com/Lightning-AI/LAI-TLDR-Component git+https://github.com/Lightning-AI/lightning-LLMs
         # !curl https://raw.githubusercontent.com/Shivanandroy/T5-Finetuning-PyTorch/main/data/news_summary.csv --create-dirs -o ${HOME}/data/summary/news.csv -C -
         import lightning
