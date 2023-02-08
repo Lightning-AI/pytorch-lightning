@@ -44,8 +44,7 @@ def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) ->
     from lightning.app.cli.commands.cd import _CD_FILE
 
     if sys.platform == "win32":
-        print("`ls` isn't supported on windows. Open an issue on Github.")
-        sys.exit(0)
+        _error_and_exit("`ls` isn't supported on windows. Open an issue on Github.")
 
     root = "/"
 

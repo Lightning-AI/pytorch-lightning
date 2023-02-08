@@ -44,8 +44,7 @@ def connect_data(
     """Create a new data connection."""
 
     if sys.platform == "win32":
-        print("`ls` isn't supported on windows. Open an issue on Github.")
-        sys.exit(0)
+        _error_and_exit("Data connection isn't supported on windows. Open an issue on Github.")
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
 
@@ -66,7 +65,7 @@ def connect_data(
 
         if not source.startswith("s3://"):
             _error_and_exit(
-                "Only public s3 folder are supported for now. Please, open a Github issue with your use case."
+                "Only public S3 folders are supported for now. Please, open a Github issue with your use case."
             )
 
         try:

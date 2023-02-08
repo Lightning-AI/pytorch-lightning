@@ -124,13 +124,13 @@ def show() -> None:
 
 @_main.group()
 def connect() -> None:
-    """Show resource connections."""
+    """Connect apps and data."""
     pass
 
 
 @_main.group()
 def disconnect() -> None:
-    """Show resource connections."""
+    """Disconnect apps."""
     pass
 
 

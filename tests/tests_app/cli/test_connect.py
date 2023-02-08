@@ -20,10 +20,10 @@ from lightning.app.utilities.commands import base
 
 def monkeypatch_connection(monkeypatch, tmpdir, ppid):
     connection_path = os.path.join(tmpdir, ppid)
-    monkeypatch.setattr("lightning.app.cli.commands.connection._clean_lightning_connection", MagicMock())
-    monkeypatch.setattr("lightning.app.cli.commands.connection._PPID", ppid)
-    monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION", tmpdir)
-    monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION_FOLDER", connection_path)
+    monkeypatch.setattr("lightning.app.cli.connect.app._clean_lightning_connection", MagicMock())
+    monkeypatch.setattr("lightning.app.cli.connect.app._PPID", ppid)
+    monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION", tmpdir)
+    monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION_FOLDER", connection_path)
     return connection_path
 
 
