@@ -63,8 +63,8 @@ class TQDMProgressBar(ProgressBarBase):
     :mod:`tqdm` package and shows up to four different bars:
 
         - **sanity check progress:** the progress during the sanity check run
-        - **main progress:** shows training + validation progress combined. It also accounts for
-          multiple validation runs during training when
+        - **main progress:** shows the training progress. It will pause if validation starts and will resume
+          when it ends, and also accounts for multiple validation runs during training when
           :paramref:`~lightning.pytorch.trainer.trainer.Trainer.val_check_interval` is used.
         - **validation progress:** only visible during validation;
           shows total progress over all validation datasets.
