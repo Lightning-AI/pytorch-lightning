@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]
+        pkg-name: ["lightning", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
@@ -45,14 +45,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: aws-actions/configure-aws-credentials@v1
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
       - run: aws s3 sync s3://sphinx-packages/ pypi/
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -65,12 +65,12 @@ jobs:
 
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
           pip install -e . -U -v -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
 
       - name: Adjust docs refs
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
           pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
@@ -84,10 +84,12 @@ jobs:
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
           pip list
 
+      - run: python -c "print('DOCS_DIR=' + str('source' if '${{ matrix.pkg-name }}' == 'lightning' else 'source-pytorch'))" >> $GITHUB_ENV
+
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        working-directory: ./docs/${{ env.DOCS_DIR }}
         run: |
           make doctest
           make coverage
@@ -124,8 +126,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: docs-make-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: docs-make-${{ matrix.pkg-name }}-
+          key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-make-
 
       - name: Install package & dependencies
         env:
@@ -137,13 +139,15 @@ jobs:
           pip list
         shell: bash
 
+      - run: python -c "print('DOCS_DIR=' + str('source' if '${{ matrix.pkg-name }}' == 'lightning' else 'source-pytorch'))" >> $GITHUB_ENV
+
       - name: Make Documentation
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        working-directory: ./docs/${{ env.DOCS_DIR }}
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        working-directory: ./docs/${{ env.DOCS_DIR }}
         run: |
           make linkcheck
         continue-on-error: true
