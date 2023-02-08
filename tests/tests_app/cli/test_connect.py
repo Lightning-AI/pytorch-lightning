@@ -113,7 +113,7 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     lightningapps = MagicMock()
 
     app = MagicMock()
-    app.name = "example"
+    app.display_name = "example"
     app.id = "1234"
 
     lightningapps.lightningapps = [app]

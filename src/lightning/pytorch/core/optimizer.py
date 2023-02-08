@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ class LightningOptimizer:
 
         self._optimizer = optimizer
         self._strategy: Optional[pl.strategies.Strategy] = None
-        self._optimizer_idx = 0
         # to inject logic around the optimizer step, particularly useful with manual optimization
         self._on_before_step = do_nothing_closure
         self._on_after_step = do_nothing_closure
@@ -55,7 +54,7 @@ class LightningOptimizer:
 
     @classmethod
     def _to_lightning_optimizer(
-        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy", opt_idx: int
+        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
     ) -> "LightningOptimizer":
         if isinstance(optimizer, LightningOptimizer):
             # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
@@ -64,7 +63,6 @@ class LightningOptimizer:
         else:
             lightning_optimizer = cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
-        lightning_optimizer._optimizer_idx = opt_idx
         return lightning_optimizer
 
     @contextmanager
@@ -102,7 +100,7 @@ class LightningOptimizer:
         Example::
 
             # Scenario for a GAN using manual optimization
-            def training_step(...):
+            def training_step(self, batch, batch_idx):
                 opt_gen, opt_dis = self.optimizers()
 
                 ...
@@ -124,7 +122,7 @@ class LightningOptimizer:
 
 
             # A more advanced example
-            def training_step(self, batch, batch_idx, ...):
+            def training_step(self, batch, batch_idx):
                 opt_gen, opt_dis = self.optimizers()
 
                 ...
@@ -218,16 +216,9 @@ def _configure_optimizers(
         for opt_dict in optim_conf:
             _validate_optim_conf(opt_dict)
         optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-        scheduler_dict = (
-            lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
-            if isinstance(scheduler, dict)
-            else {"scheduler": scheduler, "opt_idx": opt_idx}
-        )
-
+        scheduler_dict = lambda scheduler: dict(scheduler) if isinstance(scheduler, dict) else {"scheduler": scheduler}
         lr_schedulers = [
-            scheduler_dict(opt_dict["lr_scheduler"], opt_idx)
-            for opt_idx, opt_dict in enumerate(optim_conf)
-            if "lr_scheduler" in opt_dict
+            scheduler_dict(opt_dict["lr_scheduler"]) for opt_dict in optim_conf if "lr_scheduler" in opt_dict
         ]
     # single list or tuple, multiple optimizer
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizable) for opt in optim_conf):

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ from unittest.mock import DEFAULT, patch
 import pytest
 from torch import tensor
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CometLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CometLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -30,11 +30,11 @@ def _patch_comet_atexit(monkeypatch):
     monkeypatch.setattr(atexit, "register", lambda _: None)
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_online(comet):
     """Test comet online with mocks."""
     # Test api_key given
-    with patch("pytorch_lightning.loggers.comet.CometExperiment") as comet_experiment:
+    with patch("lightning.pytorch.loggers.comet.CometExperiment") as comet_experiment:
         logger = CometLogger(api_key="key", workspace="dummy-test", project_name="general")
 
         _ = logger.experiment
@@ -42,7 +42,7 @@ def test_comet_logger_online(comet):
         comet_experiment.assert_called_once_with(api_key="key", workspace="dummy-test", project_name="general")
 
     # Test both given
-    with patch("pytorch_lightning.loggers.comet.CometExperiment") as comet_experiment:
+    with patch("lightning.pytorch.loggers.comet.CometExperiment") as comet_experiment:
         logger = CometLogger(save_dir="test", api_key="key", workspace="dummy-test", project_name="general")
 
         _ = logger.experiment
@@ -50,7 +50,7 @@ def test_comet_logger_online(comet):
         comet_experiment.assert_called_once_with(api_key="key", workspace="dummy-test", project_name="general")
 
     # Test already exists
-    with patch("pytorch_lightning.loggers.comet.CometExistingExperiment") as comet_existing:
+    with patch("lightning.pytorch.loggers.comet.CometExistingExperiment") as comet_existing:
         logger = CometLogger(
             experiment_key="test",
             experiment_name="experiment",
@@ -67,13 +67,13 @@ def test_comet_logger_online(comet):
 
         comet_existing().set_name.assert_called_once_with("experiment")
 
-    with patch("pytorch_lightning.loggers.comet.API") as api:
+    with patch("lightning.pytorch.loggers.comet.API") as api:
         CometLogger(api_key="key", workspace="dummy-test", project_name="general", rest_api_key="rest")
 
         api.assert_called_once_with("rest")
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_no_api_key_given(comet):
     """Test that CometLogger fails to initialize if both api key and save_dir are missing."""
     with pytest.raises(MisconfigurationException, match="requires either api_key or save_dir"):
@@ -81,7 +81,7 @@ def test_comet_logger_no_api_key_given(comet):
         CometLogger(workspace="dummy-test", project_name="general")
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_experiment_name(comet):
     """Test that Comet Logger experiment name works correctly."""
 
@@ -89,7 +89,7 @@ def test_comet_logger_experiment_name(comet):
     experiment_name = "My Name"
 
     # Test api_key given
-    with patch("pytorch_lightning.loggers.comet.CometExperiment") as comet_experiment:
+    with patch("lightning.pytorch.loggers.comet.CometExperiment") as comet_experiment:
         logger = CometLogger(api_key=api_key, experiment_name=experiment_name)
         assert logger._experiment is None
 
@@ -98,7 +98,7 @@ def test_comet_logger_experiment_name(comet):
         comet_experiment().set_name.assert_called_once_with(experiment_name)
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_manual_experiment_key(comet):
     """Test that Comet Logger respects manually set COMET_EXPERIMENT_KEY."""
 
@@ -115,7 +115,7 @@ def test_comet_logger_manual_experiment_key(comet):
 
     # Test api_key given
     with patch.dict(os.environ, {"COMET_EXPERIMENT_KEY": experiment_key}):
-        with patch("pytorch_lightning.loggers.comet.CometExperiment", side_effect=save_os_environ) as comet_experiment:
+        with patch("lightning.pytorch.loggers.comet.CometExperiment", side_effect=save_os_environ) as comet_experiment:
             logger = CometLogger(api_key=api_key)
             assert logger.version == experiment_key
             assert logger._experiment is None
@@ -126,8 +126,8 @@ def test_comet_logger_manual_experiment_key(comet):
     assert instantiation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
 
 
-@patch("pytorch_lightning.loggers.comet.CometOfflineExperiment")
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.CometOfflineExperiment")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch):
     """Test that the logger creates the folders and files in the right place."""
     _patch_comet_atexit(monkeypatch)
@@ -160,34 +160,34 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     assert trainer.log_dir == logger.save_dir
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_name_default(comet):
     """Test that CometLogger.name don't create an Experiment and returns a default value."""
 
     api_key = "key"
 
-    with patch("pytorch_lightning.loggers.comet.CometExperiment"):
+    with patch("lightning.pytorch.loggers.comet.CometExperiment"):
         logger = CometLogger(api_key=api_key)
         assert logger._experiment is None
         assert logger.name == "comet-default"
         assert logger._experiment is None
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_name_project_name(comet):
     """Test that CometLogger.name does not create an Experiment and returns project name if passed."""
 
     api_key = "key"
     project_name = "My Project Name"
 
-    with patch("pytorch_lightning.loggers.comet.CometExperiment"):
+    with patch("lightning.pytorch.loggers.comet.CometExperiment"):
         logger = CometLogger(api_key=api_key, project_name=project_name)
         assert logger._experiment is None
         assert logger.name == project_name
         assert logger._experiment is None
 
 
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_version_without_experiment(comet):
     """Test that CometLogger.version does not create an Experiment."""
 
@@ -195,7 +195,7 @@ def test_comet_version_without_experiment(comet):
     experiment_name = "My Name"
     comet.generate_guid.return_value = "1234"
 
-    with patch("pytorch_lightning.loggers.comet.CometExperiment"):
+    with patch("lightning.pytorch.loggers.comet.CometExperiment"):
         logger = CometLogger(api_key=api_key, experiment_name=experiment_name)
         assert logger._experiment is None
 
@@ -213,8 +213,8 @@ def test_comet_version_without_experiment(comet):
         assert second_version != first_version
 
 
-@patch("pytorch_lightning.loggers.comet.CometExperiment")
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.CometExperiment")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     """Test that CometLogger removes the epoch key from the metrics dict and passes it as argument."""
     _patch_comet_atexit(monkeypatch)
@@ -223,8 +223,8 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
 
 
-@patch("pytorch_lightning.loggers.comet.CometExperiment")
-@patch("pytorch_lightning.loggers.comet.comet_ml")
+@patch("lightning.pytorch.loggers.comet.CometExperiment")
+@patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
     """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
     _patch_comet_atexit(monkeypatch)

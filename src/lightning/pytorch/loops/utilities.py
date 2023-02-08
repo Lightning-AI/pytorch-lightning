@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,9 @@ from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import BaseProgress
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import Strategy
+from lightning.pytorch.utilities.fetching import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -130,3 +132,23 @@ def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
         sampler = getattr(dataloader, sampler_name, None)
         if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
             sampler.set_epoch(epoch)
+
+
+def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _DataFetcher:
+    lightning_module = trainer.lightning_module
+    if trainer.testing:
+        step_fx_name = "test_step"
+    elif trainer.training:
+        step_fx_name = "training_step"
+    elif trainer.validating or trainer.sanity_checking:
+        step_fx_name = "validation_step"
+    else:
+        raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return _DataLoaderIterDataFetcher()
+    return _PrefetchDataFetcher(prefetch_batches=prefetch_batches)

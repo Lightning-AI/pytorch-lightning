@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@ import torch
 import torch.nn as nn
 from torch.nn import DataParallel
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.overrides.data_parallel import (
+from lightning.pytorch import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
+from lightning.pytorch.overrides.data_parallel import (
     LightningParallelModule,
     python_scalar_to_tensor,
     unsqueeze_scalar_tensor,
 )
-from pytorch_lightning.trainer.states import RunningStage
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.runif import RunIf
 
 

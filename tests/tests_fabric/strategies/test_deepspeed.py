@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import torch
 from tests_fabric.helpers.runif import RunIf
 from torch.optim import Optimizer
 
-from lightning_fabric.accelerators import CPUAccelerator
-from lightning_fabric.strategies import DeepSpeedStrategy
+from lightning.fabric.accelerators import CPUAccelerator
+from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @pytest.fixture

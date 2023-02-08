@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ from unittest.mock import call, MagicMock, patch
 import pytest
 import torch
 
-from pytorch_lightning import __version__, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import NeptuneLogger
+from lightning.pytorch import __version__, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import NeptuneLogger
 
 
 def fetchable_paths(value):
@@ -88,10 +88,10 @@ def tmpdir_unittest_fixture(request, tmpdir):
     request.cls.tmpdir = tmpdir
 
 
-@patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
+@patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
     def run(self, *args, **kwargs):
-        with mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
+        with mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
             super().run(*args, **kwargs)
 
     def test_neptune_online(self, neptune):
@@ -117,7 +117,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(logger._run_short_id, "OFFLINE")
         self.assertEqual(logger._run_name, "offline-name")
 
-    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):
         created_run = Run()
         logger = NeptuneLogger(run=created_run)
@@ -127,7 +127,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(logger.version, "TEST-42")
         self.assertEqual(neptune.init_run.call_count, 0)
 
-    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
@@ -139,7 +139,7 @@ class TestNeptuneLogger(unittest.TestCase):
         neptune.init_run.assert_called_once_with(name="Test name", run="TEST-42")
         self.assertIsNotNone(unpickled.experiment)
 
-    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
     def test_online_with_wrong_kwargs(self, neptune):
         """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
         in init."""
@@ -208,7 +208,7 @@ class TestNeptuneLogger(unittest.TestCase):
         """Verify that trained models do log data."""
         # given
         class LoggingModel(BoringModel):
-            def validation_epoch_end(self, outputs):
+            def on_validation_epoch_end(self):
                 self.log("some/key", 42)
 
         # and

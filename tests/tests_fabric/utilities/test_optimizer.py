@@ -3,7 +3,7 @@ import collections
 import torch
 from torch import Tensor
 
-from lightning_fabric.utilities.optimizer import _optimizer_to_device
+from lightning.fabric.utilities.optimizer import _optimizer_to_device
 
 
 def test_optimizer_to_device():

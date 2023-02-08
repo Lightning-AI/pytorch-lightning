@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,15 @@ def test_import_fabric_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
-        import lightning_fabric
+
+        # pretend torch.distributed not available
+        for name in list(torch.distributed.__dict__.keys()):
+            if not name.startswith("__"):
+                delattr(torch.distributed, name)
+
+        torch.distributed.is_available = lambda: False
+
+        import lightning.fabric
         """
     )
     # run in complete isolation
@@ -36,12 +43,12 @@ def test_import_deepspeed_lazily():
     """Test that we are importing deepspeed only when necessary."""
     code = dedent(
         """
-        import lightning_fabric
+        import lightning.fabric
         import sys
 
         assert 'deepspeed' not in sys.modules
-        from lightning_fabric.strategies import DeepSpeedStrategy
-        from lightning_fabric.plugins import DeepSpeedPrecision
+        from lightning.fabric.strategies import DeepSpeedStrategy
+        from lightning.fabric.plugins import DeepSpeedPrecision
         assert 'deepspeed' not in sys.modules
 
         import deepspeed

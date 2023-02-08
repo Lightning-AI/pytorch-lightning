@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@ from unittest.mock import patch
 
 import pytest
 
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.trainer import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 def test_no_val_on_train_epoch_loop_restart(tmpdir):
@@ -66,12 +66,12 @@ def test_should_stop_early_stopping_conditions_not_met(
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
     trainer.num_training_batches = 10
     trainer.should_stop = True
-    trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = global_step
+    trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.optimizer.step.total.completed = global_step
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
     trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
 
     message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.loops"):
         assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
 
     assert (message in caplog.text) is raise_info_msg

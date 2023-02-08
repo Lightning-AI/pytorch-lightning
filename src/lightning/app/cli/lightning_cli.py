@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,13 +33,17 @@ from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
+from lightning.app.cli.commands.cd import cd
 from lightning.app.cli.commands.connection import (
     _list_app_commands,
     _retrieve_connection_to_an_app,
     connect,
     disconnect,
 )
+from lightning.app.cli.commands.cp import cp
 from lightning.app.cli.commands.logs import logs
+from lightning.app.cli.commands.ls import ls
+from lightning.app.cli.commands.pwd import pwd
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -119,6 +123,10 @@ def show() -> None:
 
 _main.command()(connect)
 _main.command()(disconnect)
+_main.command()(ls)
+_main.command()(cd)
+_main.command()(cp)
+_main.command()(pwd)
 show.command()(logs)
 
 

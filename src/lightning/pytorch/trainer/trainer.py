@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -573,8 +573,7 @@ class Trainer:
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
-            like :meth:`~lightning.pytorch.core.module.LightningModule.validation_step`,
-            :meth:`~lightning.pytorch.core.module.LightningModule.validation_epoch_end`, etc.
+            like :meth:`~lightning.pytorch.LightningModule.validation_step` etc.
             The length of the list corresponds to the number of validation dataloaders used.
 
         Raises:
@@ -678,8 +677,7 @@ class Trainer:
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
-            like :meth:`~lightning.pytorch.core.module.LightningModule.test_step`,
-            :meth:`~lightning.pytorch.core.module.LightningModule.test_epoch_end`, etc.
+            like :meth:`~lightning.pytorch.LightningModule.test_step` etc.
             The length of the list corresponds to the number of test dataloaders used.
 
         Raises:
@@ -1036,7 +1034,6 @@ class Trainer:
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         self.strategy.barrier("run-stage")
-        self.strategy.dispatch(self)
 
         if self.evaluating:
             return self._run_evaluate()
