@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import torch
 from torch import Tensor
@@ -207,7 +207,7 @@ class ModelHooks:
     def on_predict_epoch_start(self) -> None:
         """Called at the beginning of predicting."""
 
-    def on_predict_epoch_end(self, results: List[Any]) -> None:
+    def on_predict_epoch_end(self) -> None:
         """Called at the end of predicting."""
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
@@ -631,7 +631,7 @@ class DataHooks:
                     # skip device transfer for the first dataloader or anything you wish
                     pass
                 else:
-                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
+                    batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
                 return batch
 
         Raises:
