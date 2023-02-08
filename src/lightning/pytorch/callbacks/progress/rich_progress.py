@@ -362,7 +362,7 @@ class RichProgressBar(ProgressBarBase):
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_disabled:
             return
-        total_batches = self.total_batches_current_epoch
+        total_batches = self.total_train_batches
         train_description = self._get_train_description(trainer.current_epoch)
 
         if self.main_progress_bar_id is not None and self._leave:
@@ -470,7 +470,7 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
-        self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
+        self._update(self.main_progress_bar_id, self.train_batch_idx)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
@@ -491,9 +491,6 @@ class RichProgressBar(ProgressBarBase):
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
         elif self.val_progress_bar_id is not None:
-            # check to see if we should update the main training progress bar
-            if self.main_progress_bar_id is not None:
-                self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
             self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
