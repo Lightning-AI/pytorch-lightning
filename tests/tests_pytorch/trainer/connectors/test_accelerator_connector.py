@@ -64,7 +64,7 @@ def test_accelerator_invalid_choice():
 
 @pytest.mark.parametrize("invalid_strategy", ["cocofruit", object()])
 def test_invalid_strategy_choice(invalid_strategy):
-    with pytest.raises(ValueError, match=f"You selected an invalid strategy name:"):
+    with pytest.raises(ValueError, match="You selected an invalid strategy name:"):
         AcceleratorConnector(strategy=invalid_strategy)
 
 
