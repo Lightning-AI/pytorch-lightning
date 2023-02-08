@@ -4,12 +4,11 @@ from time import sleep
 from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 
 from lightning.app.testing.testing import run_app_in_cloud
-
 from lightning.app.utilities.imports import _is_playwright_available
 
 if _is_playwright_available():
     import playwright
-    from playwright.sync_api import expect, Page
+
 
 def test_app_in_cloud():
 
@@ -45,12 +44,12 @@ def test_app_in_cloud():
             while True:
                 sleep(10)
                 try:
-                    logs = list(fetch_logs('multinode.ws.0'))
+                    logs = list(fetch_logs("multinode.ws.0"))
                     if any(["`Trainer.fit` stopped: `max_epochs=2` reached." in line for line in logs]):
                         break
                 except (
-                        playwright._impl._api_types.Error,
-                        playwright._impl._api_types.TimeoutError,
+                    playwright._impl._api_types.Error,
+                    playwright._impl._api_types.TimeoutError,
                 ):
                     pass
 
