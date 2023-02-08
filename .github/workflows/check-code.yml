@@ -34,8 +34,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e '.[test]' --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install mypy types-setuptools # don't use --upgrade to respect the version installed via setup.py
+        # don't use --upgrade to respect the version installed via setup.py
+        pip install -e '.[test]' mypy types-setuptools \
+          --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
     - name: Pull re-usable 🤖 actions️
@@ -49,6 +50,9 @@ jobs:
       with:
         unfold: true
 
+    # see: https://github.com/python/mypy/issues/10600#issuecomment-857351152
+    - run: yes | mypy src --install-types || true
+
     - name: Check typing
       # mypy uses the config file found in the following order:
       # 1. mypy.ini
@@ -59,6 +63,18 @@ jobs:
       # 6. ~/.mypy.ini
       # https://mypy.readthedocs.io/en/stable/config_file.html
       run: mypy
+
+    - name: suggest ignores
+      if: failure()
+      run: |
+        mypy --no-error-summary 2>&1 \
+          | tr ':' ' ' \
+          | awk '{print $1}' \
+          | sort \
+          | uniq \
+          | sed 's/\.py//g;  s|src/||g;  s|\/__init__||g;  s|\/|\.|g' \
+          | xargs -I {} echo '"{}",' \
+        || true
 
 
   pre-commit:
