@@ -20,8 +20,8 @@ clean:
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
-	rm -rf ./docs/source-app/generated
-	rm -rf ./docs/source-app/*/generated
+	rm -rf ./docs/source/generated
+	rm -rf ./docs/source/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -45,7 +45,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/app/docs.txt
-	cd docs/source-app && $(MAKE) html
+	cd docs/source && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

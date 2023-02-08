@@ -91,7 +91,7 @@ Run the app above with the following command:
 
 .. code-block:: bash
 
-    lightning run app docs/source-app/workflows/share_files_between_components/app.py
+    lightning run app docs/source/workflows/share_files_between_components/app.py
 
 .. code-block:: console
 

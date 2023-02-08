@@ -312,7 +312,7 @@ subprojects:
       - ".actions/**"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
-      - "docs/source-app/**"
+      - "docs/source/**"
       - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
       - "requirements/app/**"

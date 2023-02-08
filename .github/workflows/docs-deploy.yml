@@ -53,7 +53,7 @@ jobs:
           pip list
 
       - name: Make Documentation
-        working-directory: ./docs/source-app
+        working-directory: ./docs/source
         run: |
           # First run the same pipeline as Read-The-Docs
           make clean

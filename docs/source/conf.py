@@ -328,7 +328,7 @@ autodoc_mock_imports = MOCK_PACKAGES
 def linkcode_resolve(domain, info):
     def find_source():
         # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source-app/conf.py#L286
+        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
         obj = sys.modules[info["module"]]
         for part in info["fullname"].split("."):
             obj = getattr(obj, part)
