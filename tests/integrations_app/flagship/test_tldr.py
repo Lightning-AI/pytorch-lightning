@@ -24,7 +24,7 @@ def test_app_in_cloud():
         """
         f.write(app_string)
 
-        with run_app_in_cloud(_PATH_INTEGRATIONS_DIR, "test_app.py", debug=True) as (
+        with run_app_in_cloud(_PATH_INTEGRATIONS_DIR, "test_app.py") as (
             _,
             view_page,
             fetch_logs,
