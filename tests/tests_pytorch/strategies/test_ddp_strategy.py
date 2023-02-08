@@ -276,3 +276,22 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     # Assert model parameters are identical after loading
     for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
+
+
+class UnusedParametersModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.intermediate_layer = torch.nn.Linear(32, 32)
+
+    def training_step(self, batch, batch_idx):
+        with torch.no_grad():
+            batch = self.intermediate_layer(batch)
+        return super().training_step(batch, batch_idx)
+
+
+def test_ddp_strategy_find_unused_parameters_exception():
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
+    users."""
+    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
+    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
+        trainer.fit(UnusedParametersModel())
