@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "releasing/*"]  # fixme
   pull_request:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_NIGHTLY: ${{ github.event_name == 'schedule' }}
+  PUSH_NIGHTLY: true  # fixme: ${{ github.event_name == 'schedule' }}
   PUSH_RELEASE: ${{ github.event_name == 'release' }}
 
 jobs:
@@ -103,10 +103,11 @@ jobs:
         include:
           # These are the base images for PL release docker images,
           # so include at least all of the combinations in release-dockers.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
+          # FIXME: py3.9
+          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.3.1"}
+          - {python_version: "3.8", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.8", pytorch_version: "1.12", cuda_version: "11.3.1"}
+          - {python_version: "3.8", pytorch_version: "1.13", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
