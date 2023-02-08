@@ -5,7 +5,7 @@ Fabric (Beta)
 Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
 
 - Handles all the boilerplate device logic for you
-- Easily switch from debugging on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
+- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
 - Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
 - Designed with multi-billion parameter models in mind
 
