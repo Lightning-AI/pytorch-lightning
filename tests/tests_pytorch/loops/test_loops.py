@@ -26,7 +26,6 @@ from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCh
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import BaseProgress
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restarting_loops_recursive():
