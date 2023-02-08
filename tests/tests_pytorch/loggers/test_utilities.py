@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.utilities.logger import _version
+from lightning.pytorch.loggers.utilities import _version
 
 
 def test_version(tmpdir):
