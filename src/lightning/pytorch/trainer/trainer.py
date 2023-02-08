@@ -309,11 +309,11 @@ class Trainer:
 
         Raises:
             TypeError:
-                If ``gradient_clip_val`` is not an int or float
+                If ``gradient_clip_val`` is not an int or float.
 
             MisconfigurationException:
-                If ``gradient_clip_algorithm`` is invalid
-                If ``track_grad_norm` is not a positive number or inf
+                If ``gradient_clip_algorithm`` is invalid.
+                If ``track_grad_norm` is not a positive number or inf.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -495,7 +495,7 @@ class Trainer:
 
         Raises:
             TypeError:
-                If ``model`` is not `LightningModule` or `torch._dynamo.OptimizedModule`
+                If ``model`` is not `LightningModule` or `torch._dynamo.OptimizedModule`.
         """
         model = self._maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
@@ -580,7 +580,7 @@ class Trainer:
         Raises:
             TypeError:
                 If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
-                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
 
             MisconfigurationException:
                 If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
@@ -681,6 +681,17 @@ class Trainer:
             like :meth:`~lightning.pytorch.core.module.LightningModule.test_step`,
             :meth:`~lightning.pytorch.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -773,6 +784,17 @@ class Trainer:
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
@@ -1345,6 +1367,17 @@ class Trainer:
 
         Args:
             model: The ``LightningModule`` if calling this outside of the trainer scope.
+
+        Raises:
+            MisconfigurationException:
+                When using an `IterableDataset`, if `Trainer(limit_train_batches)` is not `1.0` or an int.
+                When you requested to check ``limit_train_batches`` of the `train_dataloader`
+                but ``limit_train_batches`` * ``orig_train_batches` < 1.
+
+            ValueError:
+                If `val_check_interval` is not less than or equal to the number of the training batches.
+
+
         """
         source = self._data_connector._train_dataloader_source
         pl_module = model or self.lightning_module
@@ -1726,6 +1759,9 @@ class Trainer:
             weights_only: If ``True``, will only save the model weights.
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
+        Raises:
+            AttributeError:
+                If the model is not attached to the Trainer before calling this method.
         """
         if self.model is None:
             raise AttributeError(
