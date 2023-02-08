@@ -37,7 +37,7 @@ _LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
 
 
 @click.argument("app_name_or_id", required=True)
-def connect(app_name_or_id: str):
+def connect_app(app_name_or_id: str):
     """Connect your local terminal to a running lightning app.
 
     After connecting, the lightning CLI will respond to commands exposed by the app.
@@ -79,8 +79,8 @@ def connect(app_name_or_id: str):
             else:
                 click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
         else:
-            disconnect()
-            connect(app_name_or_id)
+            disconnect_app()
+            connect_app(app_name_or_id)
 
     elif app_name_or_id.startswith("localhost"):
 
@@ -217,7 +217,7 @@ def connect(app_name_or_id: str):
         ).wait()
 
 
-def disconnect(logout: bool = False):
+def disconnect_app(logout: bool = False):
     """Disconnect from an App."""
     _clean_lightning_connection()
 
