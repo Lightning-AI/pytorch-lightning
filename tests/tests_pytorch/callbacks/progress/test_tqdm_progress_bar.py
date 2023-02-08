@@ -584,7 +584,7 @@ def test_progress_bar_max_val_check_interval(
         max(1, int(limit_batches * val_check_interval)) if isinstance(val_check_interval, float) else val_check_interval
     )
     assert trainer.val_check_batch == val_check_batch
-    val_checks_per_epoch = math.ceil(limit_batches // val_check_batch)
+    math.ceil(limit_batches // val_check_batch)
     pbar_callback = trainer.progress_bar_callback
 
     assert pbar_callback.val_progress_bar.n == limit_batches
