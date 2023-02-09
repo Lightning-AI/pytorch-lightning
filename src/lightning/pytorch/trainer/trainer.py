@@ -26,14 +26,12 @@ import math
 import os
 import warnings
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
-from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Dict, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
-import torch.distributed as dist
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import module_available
 from packaging.version import Version
@@ -48,7 +46,7 @@ from lightning.fabric.utilities.data import _auto_add_worker_init_fn
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import Accelerator, TPUAccelerator
+from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -338,9 +336,9 @@ class Trainer:
         # init loops
         self.fit_loop = _FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         self.fit_loop.epoch_loop = _TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop()
-        self.test_loop = _EvaluationLoop()
-        self.predict_loop = _PredictionLoop()
+        self.validate_loop = _EvaluationLoop(inference_mode=inference_mode)
+        self.test_loop = _EvaluationLoop(inference_mode=inference_mode)
+        self.predict_loop = _PredictionLoop(inference_mode=inference_mode)
         self.fit_loop.trainer = self
         self.validate_loop.trainer = self
         self.test_loop.trainer = self
@@ -391,8 +389,6 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
-
-        self._inference_mode: bool = inference_mode
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -1022,9 +1018,7 @@ class Trainer:
         # reload dataloaders
         self._evaluation_loop._reload_evaluation_dataloaders()
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(
-            self.accelerator, self._inference_mode
-        ):
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1032,8 +1026,7 @@ class Trainer:
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         self.reset_predict_dataloader(self.lightning_module)
-        with _evaluation_context(self.accelerator, self._inference_mode):
-            return self.predict_loop.run()
+        return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
         val_loop = self.fit_loop.epoch_loop.val_loop
@@ -1956,17 +1949,3 @@ class Trainer:
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-
-
-@contextmanager
-def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
-    # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
-    context_manager_class = (
-        torch.inference_mode
-        if inference_mode
-        and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
-        and not isinstance(accelerator, TPUAccelerator)
-        else torch.no_grad
-    )
-    with context_manager_class():
-        yield
