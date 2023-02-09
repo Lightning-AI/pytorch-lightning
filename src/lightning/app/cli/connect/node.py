@@ -70,7 +70,7 @@ def get_lightning_daemon_command(node_prefix: str):
 def connect_node(name: str) -> None:
     """Create a new node connection."""
     # print system architecture and OS
-    if sys.platform != "darwin" or platform.processor() != 'arm':
+    if sys.platform != "darwin" or platform.processor() != "arm":
         _error_and_exit("Node connection is only supported from M1 Macs at the moment")
 
     # check if docker client is installed or not
@@ -161,7 +161,12 @@ def connect_node(name: str) -> None:
 
         # wait for 30 seconds for connection to be established
         while time.time() - connection_check_start_time < 30:
-            out = subprocess.run(f'docker container ls -f name={CODE_SERVER_CONTAINER} ' + '--format "{{.Status}}"', shell=True, check=True, capture_output=True)
+            out = subprocess.run(
+                f"docker container ls -f name={CODE_SERVER_CONTAINER} " + '--format "{{.Status}}"',
+                shell=True,
+                check=True,
+                capture_output=True,
+            )
 
             if "Up" in str(out.stdout):
                 code_server_running = True
@@ -180,7 +185,9 @@ def connect_node(name: str) -> None:
 
             # Sleeping for 0.5 seconds
             time.sleep(0.5)
-    rich.print(f"[green]Succeeded[/green]: node {name} has been connected to lightning. \n Go to https://{name}.{CLOUD_PROXY_HOST} to access the node.")
+    rich.print(
+        f"[green]Succeeded[/green]: node {name} has been connected to lightning. \n Go to https://{name}.{CLOUD_PROXY_HOST} to access the node."
+    )
 
 
 @click.argument("name", required=True)
