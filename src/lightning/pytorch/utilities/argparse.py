@@ -15,12 +15,11 @@
 
 import inspect
 import os
-from argparse import _ArgumentGroup, Namespace
+from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
 from typing import Any, Callable, cast, List, Tuple, Type, TypeVar, Union
-
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 _ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
