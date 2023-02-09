@@ -36,6 +36,7 @@ from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cloud import is_running_in_cloud
 from lightning.app.utilities.imports import _is_aiohttp_available, requires
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+from lightning.app.structures.dict import Dict as LDict
 
 if _is_aiohttp_available():
     import aiohttp
@@ -563,7 +564,7 @@ class AutoScaler(LightningFlow):
         super().__init__()
         self.num_replicas = 0
         self._work_registry = {}
-
+        self.ws = LDict()
         self._work_cls = work_cls
         self._work_args = work_args
         self._work_kwargs = work_kwargs
@@ -599,9 +600,8 @@ class AutoScaler(LightningFlow):
     def ready(self) -> bool:
         return self.load_balancer.ready
 
-    @property
-    def workers(self) -> List[LightningWork]:
-        return [self.get_work(i) for i in range(self.num_replicas)]
+    def issue_unique_name(self) -> str:
+        return f"worker_{uuid.uuid4().hex}"
 
     def create_work(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
@@ -614,38 +614,10 @@ class AutoScaler(LightningFlow):
         )
         return self._work_cls(*self._work_args, **self._work_kwargs)
 
-    def add_work(self, work) -> str:
-        """Adds a new LightningWork instance.
-
-        Returns:
-            The name of the new work attribute.
-        """
-        work_attribute = uuid.uuid4().hex
-        work_attribute = f"worker_{self.num_replicas}_{str(work_attribute)}"
-        setattr(self, work_attribute, work)
-        self._work_registry[self.num_replicas] = work_attribute
-        self.num_replicas += 1
-        return work_attribute
-
-    def remove_work(self, index: int) -> str:
-        """Removes the ``index`` th LightningWork instance."""
-        work_attribute = self._work_registry[index]
-        del self._work_registry[index]
-        work = getattr(self, work_attribute)
-        work.stop()
-        self.num_replicas -= 1
-        return work_attribute
-
-    def get_work(self, index: int) -> LightningWork:
-        """Returns the ``LightningWork`` instance with the given index."""
-        work_attribute = self._work_registry[index]
-        work = getattr(self, work_attribute)
-        return work
-
     def run(self):
         if not self.load_balancer.is_running:
             self.load_balancer.run()
-        for work in self.workers:
+        for work in self.ws.items():
             work.run()
         if self.load_balancer.url:
             self.fake_trigger += 1  # Note: change state to keep calling `run`.
@@ -696,7 +668,7 @@ class AutoScaler(LightningFlow):
     @property
     def num_pending_works(self) -> int:
         """The number of pending works."""
-        return sum(work.is_pending for work in self.workers)
+        return sum(work.is_pending for _, work in self.ws.items())
 
     def autoscale(self) -> None:
         """Adjust the number of works based on the target number returned by ``self.scale``."""
@@ -718,10 +690,9 @@ class AutoScaler(LightningFlow):
             num_workers_to_add = num_target_workers - self.num_replicas
             for _ in range(num_workers_to_add):
                 logger.info(f"Scaling out from {self.num_replicas} to {self.num_replicas + 1}")
-                work = self.create_work()
-                # TODO: move works into structures
-                new_work_id = self.add_work(work)
-                logger.info(f"Work created: '{new_work_id}'")
+                work_id = self.issue_unique_name()
+                self.ws[work_id] = self.create_work()
+                logger.info(f"Work created: '{work_id}'")
             if num_workers_to_add > 0:
                 self._last_autoscale = time.time()
 
