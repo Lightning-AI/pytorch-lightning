@@ -24,11 +24,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning import cli_lightning_logo
-from pytorch_lightning.core import LightningModule
-from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning.pytorch import cli_lightning_logo
+from lightning.pytorch.core import LightningModule
+from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -221,8 +221,8 @@ def main(args: Namespace) -> None:
     # ------------------------
     # If use distributed training  PyTorch recommends to use DistributedDataParallel.
     # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
-    dm = MNISTDataModule.from_argparse_args(args)
-    trainer = Trainer.from_argparse_args(args)
+    dm = MNISTDataModule()
+    trainer = Trainer(accelerator="gpu", devices=1)
 
     # ------------------------
     # 3 START TRAINING
@@ -234,15 +234,8 @@ if __name__ == "__main__":
     cli_lightning_logo()
     parser = ArgumentParser()
 
-    # Add program level args, if any.
-    # ------------------------
-    # Add LightningDataLoader args
-    parser = MNISTDataModule.add_argparse_args(parser)
     # Add model specific args
     parser = GAN.add_argparse_args(parser)
-    # Add trainer args
-    parser = Trainer.add_argparse_args(parser)
-    # Parse all arguments
     args = parser.parse_args()
 
     main(args)

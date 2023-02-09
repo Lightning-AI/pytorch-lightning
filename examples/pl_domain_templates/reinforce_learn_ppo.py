@@ -457,8 +457,7 @@ class PPOLightning(LightningModule):
 
 def main(args) -> None:
     model = PPOLightning(**vars(args))
-
-    trainer = Trainer.from_argparse_args(args)
+    trainer = Trainer(accelerator="gpu", devices=1, val_check_interval=100)
     trainer.fit(model)
 
 
@@ -467,8 +466,6 @@ if __name__ == "__main__":
     seed_everything(0)
 
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser = Trainer.add_argparse_args(parent_parser)
-
     parser = PPOLightning.add_model_specific_args(parent_parser)
     args = parser.parse_args()
 
