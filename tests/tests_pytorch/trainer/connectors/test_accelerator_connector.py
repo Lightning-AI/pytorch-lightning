@@ -864,7 +864,9 @@ def test_connector_defaults_match_trainer_defaults():
 
     trainer_defaults = get_defaults(Trainer)
     connector_defaults = get_defaults(AcceleratorConnector)
+    lut = {"amp_type": "amp_backend"}
 
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
+        name = lut.get(name, name)
         assert connector_default == trainer_defaults[name]
