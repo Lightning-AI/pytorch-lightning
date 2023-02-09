@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import platform
 import shlex
 import subprocess
 import sys
+import time
 
 import click
 import rich
@@ -63,8 +65,21 @@ def get_lightning_daemon_command(node_prefix: str):
 @click.argument("name", required=True)
 def connect_node(name: str) -> None:
     """Create a new node connection."""
-    if sys.platform == "win32":
-        _error_and_exit("Node connection isn't supported on windows. Open an issue on Github.")
+    # print system architecture and OS
+    if sys.platform != "darwin" or platform.processor() != 'arm':
+        _error_and_exit("Node connection is only supported from M1 Macs at the moment")
+
+    # check if docker client is installed or not
+    try:
+        subprocess.run("docker --version", shell=True, check=True, capture_output=True)
+    except subprocess.CalledProcessError:
+        _error_and_exit("Docker client is not installed. Please install docker and try again.")
+
+    # check if docker daemon is running or not
+    try:
+        subprocess.run("docker ps", shell=True, check=True, capture_output=True)
+    except subprocess.CalledProcessError:
+        _error_and_exit("Docker daemon is not running. Please start docker and try again.")
 
     if "lightning.ai" in CLOUD_PROXY_HOST:
         _error_and_exit("Node connection isn't publicly available. Open an issue on Github.")
@@ -125,7 +140,10 @@ def connect_node(name: str) -> None:
         code_server_running = False
         lightning_daemon_running = False
         live.update(Spinner("point", text=Text("establishing connection ...", style="white")))
-        while True:
+        connection_check_start_time = time.time()
+
+        # wait for 30 seconds for connection to be established
+        while time.time() - connection_check_start_time < 30:
             out = subprocess.run(f'docker container ls -f name={CODE_SERVER_CONTAINER} ' + '--format "{{.Status}}"', shell=True, check=True, capture_output=True)
             if "Up" in str(out.stdout):
                 code_server_running = True
@@ -136,6 +154,9 @@ def connect_node(name: str) -> None:
 
             if code_server_running and lightning_daemon_running:
                 break
+
+            # Sleeping for 0.5 seconds
+            time.sleep(0.5)
     rich.print(f"[green]Succeeded[/green]: node {name} has been connected to lightning. \n Go to https://{name}.{CLOUD_PROXY_HOST} to access the node.")
 
 
