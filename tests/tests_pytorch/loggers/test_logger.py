@@ -26,8 +26,8 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import Logger, TensorBoardLogger
 from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
+from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.logger import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
