@@ -41,15 +41,7 @@ Learn the basics of model development with Lightning. Researchers and machine le
    :tag: basic
 
 .. displayitem::
-   :header: Level 4: Enable script parameters
-   :description: Add parameters to your script so you can run from the commandline.
-   :button_link: ../common/hyperparameters.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Level 5: Understand and visualize your model
+   :header: Level 4: Understand and visualize your model
    :description: Remove bottlenecks and visualize your model
    :button_link: ../levels/basic_level_5.html
    :col_css: col-md-6
@@ -58,7 +50,7 @@ Learn the basics of model development with Lightning. Researchers and machine le
 
 .. displayitem::
    :description: Use your model for predictions.
-   :header: Level 6: Predict with your model
+   :header: Level 5: Predict with your model
    :button_link: core_level_6.html
    :col_css: col-md-6
    :height: 150
