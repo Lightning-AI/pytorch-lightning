@@ -16,7 +16,6 @@ import sys
 
 import click
 import rich
-from lightning_cloud.openapi import ProjectIdDataConnectionsBody
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
@@ -42,6 +41,8 @@ def connect_data(
     project_name: str = "",
 ) -> None:
     """Create a new data connection."""
+
+    from lightning_cloud.openapi import ProjectIdDataConnectionsBody
 
     if sys.platform == "win32":
         _error_and_exit("Data connection isn't supported on windows. Open an issue on Github.")
