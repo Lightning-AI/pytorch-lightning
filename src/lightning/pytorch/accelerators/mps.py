@@ -14,13 +14,15 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.imports import package_available
 
 from lightning.fabric.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PSUTIL_AVAILABLE
+
+_PSUTIL_AVAILABLE = package_available("psutil")
 
 
 class MPSAccelerator(Accelerator):

@@ -14,12 +14,14 @@
 from typing import Any, Dict, List, Union
 
 import torch
+from lightning_utilities.core.imports import package_available
 
 from lightning.fabric.accelerators.cpu import _parse_cpu_cores
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PSUTIL_AVAILABLE
+
+_PSUTIL_AVAILABLE = package_available("psutil")
 
 
 class CPUAccelerator(Accelerator):

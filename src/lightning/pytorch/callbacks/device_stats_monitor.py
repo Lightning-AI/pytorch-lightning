@@ -20,12 +20,15 @@ Monitors and logs device stats during training.
 """
 from typing import Any, Dict, Optional
 
+from lightning_utilities.core.imports import package_available
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PSUTIL_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
+
+_PSUTIL_AVAILABLE = package_available("psutil")
 
 
 class DeviceStatsMonitor(Callback):
