@@ -196,6 +196,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the `using_lbfgs` argument from `LightningModule.optimizer_step` hook ([#16538](https://github.com/Lightning-AI/lightning/pull/16538))
 
+- Removed the `Trainer.data_parallel` property. Use `isinstance(trainer.strategy, ParallelStrategy)` instead ([#16703](https://github.com/Lightning-AI/lightning/pull/16703))
 
 - Removed support for multiple optimizers in automatic optimization mode ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
   * Removed `opt_idx` argument from `BaseFinetuning.finetune_function` callback method
