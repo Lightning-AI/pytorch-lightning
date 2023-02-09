@@ -91,10 +91,6 @@ class LightningModule(
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
-        # torch/nn/modules/module.py#L227)
-        torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
-
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 

@@ -308,8 +308,7 @@ class Trainer:
                 evaluation (``validate``/``test``/``predict``).
         """
         super().__init__()
-        Trainer._log_api_event("init")
-        log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
+        log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
 
         if default_root_dir is not None:
@@ -499,8 +498,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[str] = None,
     ) -> None:
-        Trainer._log_api_event("fit")
-        log.detail(f"{self.__class__.__name__}: trainer fit stage")
+        log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
@@ -588,8 +586,7 @@ class Trainer:
         # --------------------
         # SETUP HOOK
         # --------------------
-        Trainer._log_api_event("validate")
-        log.detail(f"{self.__class__.__name__}: trainer validate stage")
+        log.debug(f"{self.__class__.__name__}: trainer validate stage")
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -680,8 +677,7 @@ class Trainer:
         # --------------------
         # SETUP HOOK
         # --------------------
-        Trainer._log_api_event("test")
-        log.detail(f"{self.__class__.__name__}: trainer test stage")
+        log.debug(f"{self.__class__.__name__}: trainer test stage")
 
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
@@ -774,8 +770,7 @@ class Trainer:
         # --------------------
         # SETUP HOOK
         # --------------------
-        Trainer._log_api_event("predict")
-        log.detail(f"{self.__class__.__name__}: trainer predict stage")
+        log.debug(f"{self.__class__.__name__}: trainer predict stage")
 
         self.state.fn = TrainerFn.PREDICTING
         self.state.status = TrainerStatus.RUNNING
@@ -844,13 +839,13 @@ class Trainer:
         verify_loop_configurations(self)
 
         # hook
-        log.detail(f"{self.__class__.__name__}: preparing data")
+        log.debug(f"{self.__class__.__name__}: preparing data")
         self._data_connector.prepare_data()
 
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        log.detail(f"{self.__class__.__name__}: setting up strategy environment")
+        log.debug(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
         self.__setup_profiler()
 
@@ -858,10 +853,10 @@ class Trainer:
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
-            log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
+            log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
 
-        log.detail(f"{self.__class__.__name__}: configuring sharded model")
+        log.debug(f"{self.__class__.__name__}: configuring sharded model")
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
 
         # ----------------------------
@@ -906,18 +901,18 @@ class Trainer:
         self._log_hyperparams()
 
         if self.strategy.restore_checkpoint_after_setup:
-            log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
+            log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
-        log.detail(f"{self.__class__.__name__}: restoring training state")
+        log.debug(f"{self.__class__.__name__}: restoring training state")
         self._checkpoint_connector.restore_training_state()
 
         self._checkpoint_connector.resume_end()
 
         results = self._run_stage()
 
-        log.detail(f"{self.__class__.__name__}: trainer tearing down")
+        log.debug(f"{self.__class__.__name__}: trainer tearing down")
         self._teardown()
 
         # ----------------------------
@@ -928,7 +923,7 @@ class Trainer:
             self._call_callback_hooks("on_fit_end")
             self._call_lightning_module_hook("on_fit_end")
 
-        log.detail(f"{self.__class__.__name__}: calling teardown hooks")
+        log.debug(f"{self.__class__.__name__}: calling teardown hooks")
         self._call_teardown_hook()
 
         self.state.status = TrainerStatus.FINISHED
@@ -1297,10 +1292,6 @@ class Trainer:
         pl_module._current_fx_name = prev_fx_name
 
         return output
-
-    @staticmethod
-    def _log_api_event(event: str) -> None:
-        torch._C._log_api_usage_once("lightning.trainer." + event)
 
     def __setup_profiler(self) -> None:
         assert self.state.fn is not None
