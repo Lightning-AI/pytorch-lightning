@@ -162,7 +162,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     n = trainer.num_training_batches
     m = trainer.num_val_batches
     assert len(trainer.train_dataloader) == n
-    # main progress bar should have reached the end
+    # train progress bar should have reached the end
     assert pbar.train_progress_bar.total == n
     assert pbar.train_progress_bar.n == n
     assert pbar.train_progress_bar.leave
@@ -214,7 +214,7 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     assert 1 == pbar.val_progress_bar.n
     assert 1 == pbar.val_progress_bar.total
 
-    # the main progress bar should display 1 batch
+    # the train progress bar should display 1 batch
     assert 1 == pbar.train_progress_bar.total
     assert 1 == pbar.train_progress_bar.n
 
@@ -351,7 +351,7 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 def test_train_progress_bar_update_amount(
     tmpdir, train_batches: int, val_batches: int, refresh_rate: int, train_updates, val_updates
 ):
-    """Test that the main progress updates with the correct amount together with the val progress.
+    """Test that the train progress updates with the correct amount together with the val progress.
 
     At the end of the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh
     rate.

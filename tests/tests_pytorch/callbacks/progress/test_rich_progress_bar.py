@@ -77,7 +77,7 @@ def test_rich_progress_bar(tmpdir, dataset):
 
     with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
         trainer.fit(model)
-    # 2 for main progress bar and 1 for val progress bar
+    # 2 for train progress bar and 1 for val progress bar
     assert mocked.call_count == 3
 
     with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:

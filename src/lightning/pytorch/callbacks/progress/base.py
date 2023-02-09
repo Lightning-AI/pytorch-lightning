@@ -187,7 +187,7 @@ class ProgressBarBase(Callback):
 
         The :class:`~lightning.pytorch.trainer.trainer.Trainer` will call this in e.g. pre-training
         routines like the :ref:`learning rate finder <advanced/training_tricks:Learning Rate Finder>`.
-        to temporarily enable and disable the main progress bar.
+        to temporarily enable and disable the training progress bar.
         """
         raise NotImplementedError
 
