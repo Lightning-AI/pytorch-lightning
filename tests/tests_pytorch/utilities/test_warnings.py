@@ -22,8 +22,6 @@ if __name__ == "__main__":
     # check that logging is properly configured
     import logging
 
-    from lightning.pytorch import _DETAIL
-
     root_logger = logging.getLogger()
     lightning_logger = logging.getLogger("lightning.pytorch")
     # should have a `StreamHandler`
@@ -45,17 +43,5 @@ if __name__ == "__main__":
         # level is set to INFO
         lightning_logger.debug("test3")
 
-    output = stderr.getvalue()
-    assert output == "test2\n", repr(output)
-
-    stderr = StringIO()
-    lightning_logger.handlers[0].stream = stderr
-    with redirect_stderr(stderr):
-        # Lightning should not output DETAIL level logging by default
-        lightning_logger.detail("test1")
-        lightning_logger.setLevel(_DETAIL)
-        lightning_logger.detail("test2")
-        # logger should not output anything for DEBUG statements if set to DETAIL
-        lightning_logger.debug("test3")
     output = stderr.getvalue()
     assert output == "test2\n", repr(output)
