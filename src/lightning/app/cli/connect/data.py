@@ -16,6 +16,7 @@ import sys
 
 import click
 import rich
+from lightning_cloud.openapi import Create, V1AwsDataConnection
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
@@ -60,33 +61,35 @@ def connect_data(
 
             if project.name == project_name:
                 project_id = project.project_id
+                break
 
         if project_id is None:
             project_id = _get_project(client).project_id
 
         if not source.startswith("s3://"):
-            _error_and_exit(
+            return _error_and_exit(
                 "Only public S3 folders are supported for now. Please, open a Github issue with your use case."
             )
 
         try:
-            # _ = client.data_connection_service_create_data_connection(
-            #     body=ProjectIdDataConnectionsBody(
-            #         name=name,
-            #         region=region,
-            #         source=source,
-            #         destination=destination,
-            #         secret_arn_name=secret_arn_name,
-            #     ),
-            #     project_id=project_id,
-            # )
+            client.data_connection_service_create_data_connection(
+                body=Create(
+                    name=name,
+                    aws=V1AwsDataConnection(
+                        region=region,
+                        source=source,
+                        destination=destination,
+                        secret_arn_name=secret_arn_name,
+                    ),
+                ),
+                project_id=project_id,
+            )
 
             # Note: Expose through lightning show data {DATA_NAME}
-            response = client.data_connection_service_list_data_connection_artifacts(
-                project_id=project_id,
-                id="01grr6f2dj1pe5dcnrbfavvyeg",
-            )
-            print(response)
+            # response = client.data_connection_service_list_data_connection_artifacts(
+            #     project_id=project_id,
+            #     id=response.id,
+            # )
         except Exception:
             _error_and_exit("The data connection creation failed.")
 

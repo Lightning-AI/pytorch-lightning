@@ -24,10 +24,10 @@ from torch.utils.data.dataloader import DataLoader
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
+from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.utilities import _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.fetching import _DataFetcher
 
 if _RICH_AVAILABLE:
     from rich import get_console

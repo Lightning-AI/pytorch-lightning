@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional, Union
 import torch
 
 from lightning.pytorch import loops  # import as loops to avoid circular imports
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
@@ -25,7 +26,6 @@ from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
