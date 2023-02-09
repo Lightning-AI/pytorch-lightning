@@ -62,7 +62,6 @@ and Lightning will use the correct one.
 .. testcode::
 
     class DataModule(LightningDataModule):
-
         ...
 
         def train_dataloader(self):
@@ -122,7 +121,6 @@ For more details, refer to :paramref:`~pytorch_lightning.trainer.trainer.Trainer
 
     class LitModel(LightningModule):
         def train_dataloader(self):
-
             loader_a = DataLoader(range(6), batch_size=4)
             loader_b = DataLoader(range(15), batch_size=5)
 
@@ -143,7 +141,6 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
     class LitModel(LightningModule):
         def train_dataloader(self):
-
             loader_a = DataLoader(range(8), batch_size=4)
             loader_b = DataLoader(range(16), batch_size=2)
 
@@ -159,7 +156,6 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
     class LitModel(LightningModule):
         def train_dataloader(self):
-
             loader_a = DataLoader(range(8), batch_size=4)
             loader_b = DataLoader(range(16), batch_size=4)
             loader_c = DataLoader(range(32), batch_size=4)

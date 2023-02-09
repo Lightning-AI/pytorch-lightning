@@ -302,16 +302,12 @@ Here is what the structure would look like in plain Python:
 
     # FitLoop
     for epoch in range(max_epochs):
-
         # TrainingEpochLoop
         for batch_idx, batch in enumerate(train_dataloader):
-
             # TrainingBatchLoop
             for split_batch in tbptt_split(batch):
-
                 # OptimizerLoop
                 for optimizer_idx, opt in enumerate(optimizers):
-
                     loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
                     ...
 
