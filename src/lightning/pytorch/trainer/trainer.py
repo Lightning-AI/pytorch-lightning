@@ -1117,8 +1117,6 @@ class Trainer:
         # these could have become stale if metrics are defined in `setup`
         self.lightning_module._metric_attributes = None
 
-        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
-        # It might be related to xla tensors blocked when moving the cpu kill loggers.
         for logger in self.loggers:
             logger.finalize("success")
 
