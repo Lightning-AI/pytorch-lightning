@@ -27,6 +27,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+
 jobs:
   make-doctest:
     runs-on: ubuntu-latest
@@ -67,7 +70,7 @@ jobs:
         # This is needed as App docs is heavily using/referring to lightning package
         if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
-          pip install -e . -U -v -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
+          pip install -e . -U -v -f pypi -f ${TORCH_URL}
 
       - name: Adjust docs refs
         if: ${{ matrix.pkg-name == 'lightning' }}
@@ -77,14 +80,17 @@ jobs:
             --source_import="pytorch_lightning,lightning_fabric" \
             --target_import="lightning.pytorch,lightning.fabric"
 
+      - name: adjust paths
+        run: |
+          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
+          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
+
       - name: Install this package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
-
-      - run: python -c "print('DOCS_DIR=' + str('source' if '${{ matrix.pkg-name }}' == 'lightning' else 'source-pytorch'))" >> $GITHUB_ENV
 
       - name: Test Documentation
         env:
@@ -129,17 +135,19 @@ jobs:
           key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-make-
 
+      - name: adjust paths
+        run: |
+          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
+          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
+
       - name: Install package & dependencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip --version
-          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
+          pip install -e . -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
         shell: bash
-
-      - run: python -c "print('DOCS_DIR=' + str('source' if '${{ matrix.pkg-name }}' == 'lightning' else 'source-pytorch'))" >> $GITHUB_ENV
 
       - name: Make Documentation
         working-directory: ./docs/${{ env.DOCS_DIR }}
