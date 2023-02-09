@@ -45,7 +45,7 @@ LIGHTNING_DAEMON_CONTAINER = "lightning-daemon"
 LIGHTNING_DAEMON_IMAGE = "ghcr.io/gridai/lightning-daemon:v0.1"
 
 
-def get_code_server_docker_command():
+def get_code_server_docker_command() -> str:
     return (
         f"docker run "
         f"-p {CODE_SERVER_PORT}:{CODE_SERVER_PORT} "
@@ -55,7 +55,7 @@ def get_code_server_docker_command():
     )
 
 
-def get_lightning_daemon_command(node_prefix: str):
+def get_lightning_daemon_command(node_prefix: str) -> str:
     return (
         f"docker run "
         f"-e LIGHTNING_BYOM_CLOUD_PROXY_HOST=https://{node_prefix}.{CLOUD_PROXY_HOST} "
