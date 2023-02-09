@@ -29,18 +29,17 @@ from lightning.app.utilities.cli_helpers import _error_and_exit
 
 logger = Logger(__name__)
 
-NETWORK_NAME = "lightning-byom"
+NETWORK_NAME = "lightning-maverick"
 CMD_CREATE_NETWORK = f"docker network create {NETWORK_NAME}"
 
 CODE_SERVER_CONTAINER = "code-server"
-CODE_SERVER_IMAGE = "ghcr.io/gridai/lightning-byom-code-server:v0.1"
+CODE_SERVER_IMAGE = "ghcr.io/gridai/lightning-maverick-code-server:v0.1"
 CODE_SERVER_PORT = 8443
 
 LIGHTNING_CLOUD_URL = get_lightning_cloud_url()
 ROOT_DOMAIN = LIGHTNING_CLOUD_URL.split("//")[1]
 CLOUD_PROXY_HOST = f"byom.{ROOT_DOMAIN}"
 
-LIGHTNING_DAEMON_NODE_PREFIX = ""
 LIGHTNING_DAEMON_CONTAINER = "lightning-daemon"
 LIGHTNING_DAEMON_IMAGE = "ghcr.io/gridai/lightning-daemon:v0.1"
 
@@ -55,10 +54,10 @@ def get_code_server_docker_command() -> str:
     )
 
 
-def get_lightning_daemon_command(node_prefix: str) -> str:
+def get_lightning_daemon_command(prefix: str) -> str:
     return (
         f"docker run "
-        f"-e LIGHTNING_BYOM_CLOUD_PROXY_HOST=https://{node_prefix}.{CLOUD_PROXY_HOST} "
+        f"-e LIGHTNING_BYOM_CLOUD_PROXY_HOST=https://{prefix}.{CLOUD_PROXY_HOST} "
         f"-e LIGHTNING_BYOM_RESOURCE_URL=http://{CODE_SERVER_CONTAINER}:{CODE_SERVER_PORT} "
         f"--net {NETWORK_NAME} "
         f"--name {LIGHTNING_DAEMON_CONTAINER} "
@@ -67,11 +66,11 @@ def get_lightning_daemon_command(node_prefix: str) -> str:
 
 
 @click.argument("name", required=True)
-def connect_node(name: str) -> None:
-    """Create a new node connection."""
+def connect_maverick(name: str) -> None:
+    """Create a new maverick connection."""
     # print system architecture and OS
     if sys.platform != "darwin" or platform.processor() != "arm":
-        _error_and_exit("Node connection is only supported from M1 Macs at the moment")
+        _error_and_exit("Maverick connection is only supported from M1 Macs at the moment")
 
     # check if docker client is installed or not
     try:
@@ -86,7 +85,7 @@ def connect_node(name: str) -> None:
         _error_and_exit("Docker daemon is not running. Please start docker and try again.")
 
     if "lightning.ai" in CLOUD_PROXY_HOST:
-        _error_and_exit("Node connection isn't publicly available. Open an issue on Github.")
+        _error_and_exit("Maverick connection isn't publicly available. Open an issue on Github.")
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
         # run network creation in the background
@@ -186,15 +185,15 @@ def connect_node(name: str) -> None:
             # Sleeping for 0.5 seconds
             time.sleep(0.5)
     rich.print(
-        f"[green]Succeeded[/green]: node {name} has been connected to lightning. \n "
-        f"Go to https://{name}.{CLOUD_PROXY_HOST} to access the node."
+        f"[green]Succeeded[/green]: maverick {name} has been connected to lightning. \n "
+        f"Go to https://{name}.{CLOUD_PROXY_HOST} to access the maverick."
     )
 
 
 @click.argument("name", required=True)
-def disconnect_node(name: str) -> None:
-    # disconnect node stop and remove the docker containers
-    with Live(Spinner("point", text=Text("disconnecting node...", style="white")), transient=True):
+def disconnect_maverick(name: str) -> None:
+    # disconnect stop and remove the docker containers
+    with Live(Spinner("point", text=Text("disconnecting maverick...", style="white")), transient=True):
         subprocess.run(f"docker stop {CODE_SERVER_CONTAINER}", shell=True, capture_output=True)
         subprocess.run(f"docker stop {LIGHTNING_DAEMON_CONTAINER}", shell=True, capture_output=True)
-    rich.print(f"[green]Succeeded[/green]: node {name} has been disconnected from lightning.")
+    rich.print(f"[green]Succeeded[/green]: maverick {name} has been disconnected from lightning.")

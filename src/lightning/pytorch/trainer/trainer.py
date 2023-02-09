@@ -1378,10 +1378,6 @@ class Trainer:
             return self.strategy.distributed_sampler_kwargs
 
     @property
-    def data_parallel(self) -> bool:
-        return isinstance(self.strategy, ParallelStrategy)
-
-    @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         return (
@@ -1667,9 +1663,7 @@ class Trainer:
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> Dict:
-        # TODO: the true typing return can include dictionaries as defined in
-        # `lightning.pytorch.trainer.connectors.logger_connector.result._OUT_DICT`
+    def callback_metrics(self) -> _OUT_DICT:
         return self._logger_connector.callback_metrics
 
     @property

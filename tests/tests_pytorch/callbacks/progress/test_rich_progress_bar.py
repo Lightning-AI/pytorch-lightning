@@ -77,8 +77,8 @@ def test_rich_progress_bar(tmpdir, dataset):
 
     with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
         trainer.fit(model)
-    # 3 for main progress bar and 1 for val progress bar
-    assert mocked.call_count == 4
+    # 2 for train progress bar and 1 for val progress bar
+    assert mocked.call_count == 3
 
     with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
         trainer.validate(model)
@@ -214,16 +214,17 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 @pytest.mark.parametrize(
     "refresh_rate,train_batches,val_batches,expected_call_count",
     [
-        (3, 6, 6, 4 + 3),
-        (4, 6, 6, 3 + 3),
-        (7, 6, 6, 2 + 2),
-        (1, 2, 3, 5 + 4),
+        # note: there is always one extra update at the very end (+1)
+        (3, 6, 6, 2 + 2 + 1),
+        (4, 6, 6, 2 + 2 + 1),
+        (7, 6, 6, 1 + 1 + 1),
+        (1, 2, 3, 2 + 3 + 1),
         (1, 0, 0, 0 + 0),
         (3, 1, 0, 1 + 0),
-        (3, 1, 1, 1 + 2),
+        (3, 1, 1, 1 + 1 + 1),
         (3, 5, 0, 2 + 0),
-        (3, 5, 2, 3 + 2),
-        (6, 5, 2, 2 + 2),
+        (3, 5, 2, 2 + 1 + 1),
+        (6, 5, 2, 1 + 1 + 1),
     ],
 )
 def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches, val_batches, expected_call_count):
@@ -246,8 +247,8 @@ def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches
 
     if train_batches > 0:
         fit_main_bar = trainer.progress_bar_callback.progress.tasks[0]
-        assert fit_main_bar.completed == train_batches + val_batches
-        assert fit_main_bar.total == train_batches + val_batches
+        assert fit_main_bar.completed == train_batches
+        assert fit_main_bar.total == train_batches
         assert fit_main_bar.visible
     if val_batches > 0:
         fit_val_bar = trainer.progress_bar_callback.progress.tasks[1]
@@ -293,9 +294,9 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
     )
     trainer.fit(model)
 
-    fit_main_progress_bar = progress_bar.progress.tasks[1]
-    assert fit_main_progress_bar.completed == 7 + 3 * 4
-    assert fit_main_progress_bar.total == 7 + 3 * 4
+    fit_train_progress_bar = progress_bar.progress.tasks[1]
+    assert fit_train_progress_bar.completed == 7
+    assert fit_train_progress_bar.total == 7
 
     fit_val_bar = progress_bar.progress.tasks[2]
     assert fit_val_bar.completed == 4
@@ -334,12 +335,12 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True, logger=CSVLogger(tmpdir))
 
     trainer.fit(model)
-    main_progress_bar_id = progress_bar.main_progress_bar_id
+    train_progress_bar_id = progress_bar.train_progress_bar_id
     val_progress_bar_id = progress_bar.val_progress_bar_id
     rendered = progress_bar.progress.columns[-1]._renderable_cache
 
     for key in ("loss", "v_num", "train_loss"):
-        assert key in rendered[main_progress_bar_id][1]
+        assert key in rendered[train_progress_bar_id][1]
         assert key not in rendered[val_progress_bar_id][1]
 
 
@@ -454,7 +455,7 @@ def test_rich_progress_bar_reset_bars():
     assert bar._progress_stopped is False
 
     def _set_fake_bar_ids():
-        bar.main_progress_bar_id = 0
+        bar.train_progress_bar_id = 0
         bar.val_sanity_progress_bar_id = 1
         bar.val_progress_bar_id = 2
         bar.test_progress_bar_id = 3
@@ -469,7 +470,7 @@ def test_rich_progress_bar_reset_bars():
         bar.teardown(Mock(), Mock(), Mock())
 
         # assert all bars are reset
-        assert bar.main_progress_bar_id is None
+        assert bar.train_progress_bar_id is None
         assert bar.val_sanity_progress_bar_id is None
         assert bar.val_progress_bar_id is None
         assert bar.test_progress_bar_id is None
@@ -506,7 +507,7 @@ def test_rich_progress_bar_disabled(tmpdir):
         trainer.predict(model)
 
     mocked.assert_not_called()
-    assert bar.main_progress_bar_id is None
+    assert bar.train_progress_bar_id is None
     assert bar.val_sanity_progress_bar_id is None
     assert bar.val_progress_bar_id is None
     assert bar.test_progress_bar_id is None
