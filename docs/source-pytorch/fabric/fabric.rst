@@ -61,6 +61,9 @@ Why Fabric?
 
 Fabric differentiates itself from a fully-fledged trainer like :doc:`Lightning Trainer <../common/trainer>` in these key aspects:
 
+**Fast to implement**
+There is no need to restructure your code: Just change a few lines in the PyTorch script and you'll be able to leverage Fabric features.
+
 **Maximum Flexibility**
 Write your own training and/or inference logic down to the individual optimizer calls.
 You aren't forced to conform to a standardized epoch-based training loop like the one in :doc:`Lightning Trainer <../common/trainer>`.
@@ -68,16 +71,11 @@ You can do flexible iteration based training, meta-learning, cross-validation an
 This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors.
 Just remember: With great power comes a great responsibility.
 
-**Personalization**
-While a general-purpose trainer like :doc:`Lightning Trainer <../common/trainer>` contains all features *any* researcher could ever ask for,
-it may contain way more stuff than you, the individual, would ever need.
-This makes it more difficult to study and trust the internals than it should be, but at the same time, building a well-tested, efficient and hackable trainer yourself is very time-consuming.
-Fabric bridges this gap by providing important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but leaves the design and orchestration fully up to you.
-
-**Opt-in Philosophy**
-Everything in Fabric is opt-in.
-Think of it as a toolbox: You take out the tools (Fabric functions) you need and leave the other ones behind.
+**Maximum Control**
+The :doc:`Lightning Trainer <../common/trainer>` has many built in features to make research simpler with less boilerplate, but debugging it requires some familiarity with the framework internals.
+In Fabric, everything is opt-in. Think of it as a toolbox: You take out the tools (Fabric functions) you need and leave the other ones behind.
 This makes it easier to develop and debug your PyTorch code as you gradually add more features to it.
+Fabric provides important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but leaves the design and orchestration fully up to you.
 
 
 ----
