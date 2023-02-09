@@ -68,16 +68,18 @@ jobs:
         path: .wheels
         key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
+    - run: ls -lh .wheels/
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[dev] -U -f ${TORCH_URL} -f ".wheels/"
+        pip install -e .[dev] -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
+      continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
         torch-url: ${{ env.TORCH_URL }}
