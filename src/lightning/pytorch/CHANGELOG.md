@@ -221,6 +221,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed `PrecisionPlugin.dispatch` ([#16618](https://github.com/Lightning-AI/lightning/pull/16618))
 
+- Removed the unused `lightning.pytorch.utilities.metrics.metrics_to_scalars` function ([#16681](https://github.com/Lightning-AI/lightning/pull/16681))
 
 ### Fixed
 
