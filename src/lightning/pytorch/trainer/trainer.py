@@ -1599,10 +1599,6 @@ class Trainer:
             return self.strategy.distributed_sampler_kwargs
 
     @property
-    def data_parallel(self) -> bool:
-        return isinstance(self.strategy, ParallelStrategy)
-
-    @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         return (
@@ -1959,6 +1955,7 @@ class Trainer:
 
 
 @contextmanager
+# TODO
 def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
     # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
     context_manager_class = (
