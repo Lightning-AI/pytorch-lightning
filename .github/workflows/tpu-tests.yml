@@ -43,11 +43,10 @@ jobs:
     env:
       PYTHON_VER: 3.8
     strategy:
-      fail-fast: true
+      fail-fast: false
       max-parallel: 1  # run sequential
       matrix:
-        # TODO: add also lightning
-        pkg-name: ["fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch", "lightning"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:
