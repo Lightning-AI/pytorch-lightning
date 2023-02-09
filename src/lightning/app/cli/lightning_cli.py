@@ -45,6 +45,7 @@ from lightning.app.cli.connect.app import (
     disconnect_app,
 )
 from lightning.app.cli.connect.data import connect_data
+from lightning.app.cli.connect.node import connect_node, disconnect_node
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -136,7 +137,9 @@ def disconnect() -> None:
 
 connect.command("app")(connect_app)
 disconnect.command("app")(disconnect_app)
-connect.command("data")(connect_data)
+connect.command("node", hidden=True)(connect_node)
+disconnect.command("node", hidden=True)(disconnect_node)
+connect.command("data", hidden=True)(connect_data)
 _main.command()(ls)
 _main.command()(cd)
 _main.command()(cp)
