@@ -26,22 +26,22 @@ from lightning.pytorch.loops.utilities import _no_grad_context
 @pytest.mark.parametrize("trainer_fn", ("validate", "test", "predict"))
 def test_eval_inference_mode(tmp_path, trainer_fn):
     class BoringModelNoGrad(BoringModel):
-        def assert_not_enabeld(self):
+        def assert_not_enabled(self):
             assert not torch.is_grad_enabled()
             assert not torch.is_inference_mode_enabled()
 
-        on_test_start = assert_not_enabeld
-        on_validation_start = assert_not_enabeld
-        on_predict_start = assert_not_enabeld
+        on_test_start = assert_not_enabled
+        on_validation_start = assert_not_enabled
+        on_predict_start = assert_not_enabled
 
     class BoringModelForInferenceMode(BoringModel):
-        def assert_enabeld(self):
+        def assert_enabled(self):
             assert not torch.is_grad_enabled()
             assert torch.is_inference_mode_enabled()
 
-        on_test_start = assert_enabeld
-        on_validation_start = assert_enabeld
-        on_predict_start = assert_enabeld
+        on_test_start = assert_enabled
+        on_validation_start = assert_enabled
+        on_predict_start = assert_enabled
 
     trainer = Trainer(default_root_dir=tmp_path, logger=False, inference_mode=False, fast_dev_run=True)
     getattr(trainer, trainer_fn)(BoringModelNoGrad())
