@@ -250,7 +250,7 @@ class PLAppSummary(Callback):
 
     def on_init_end(self, trainer: "pl.Trainer") -> None:
         current_frame = inspect.currentframe()
-        # Trainer.init() -> Trainer._call_callback_hooks() -> Callback.on_init_end()
+        # Trainer.init() -> call._call_callback_hooks(trainer) -> Callback.on_init_end()
         frame = current_frame.f_back.f_back
         init_args = {}
         for local_args in collect_init_args(frame, []):

@@ -24,6 +24,7 @@ from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPT
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
@@ -197,26 +198,27 @@ class _TrainingEpochLoop(loops._Loop):
 
         self.batch_progress.increment_ready()
 
-        self.trainer._logger_connector.on_batch_start(batch, batch_idx)
+        trainer = self.trainer
+        trainer._logger_connector.on_batch_start(batch, batch_idx)
 
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
             # hook
-            self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx)
-            response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx)
-            self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx)
+            call._call_callback_hooks(trainer, "on_train_batch_start", batch, batch_idx)
+            response = call._call_lightning_module_hook(trainer, "on_train_batch_start", batch, batch_idx)
+            call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
             if response == -1:
                 self.batch_progress.increment_processed()
                 raise StopIteration
 
             self.batch_progress.increment_started()
 
-            with self.trainer.profiler.profile("run_training_batch"):
-                if self.trainer.lightning_module.automatic_optimization:
+            with trainer.profiler.profile("run_training_batch"):
+                if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(self.trainer.optimizers[0], kwargs)
+                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
                 else:
                     batch_output = self.manual_optimization.run(kwargs)
 
@@ -228,16 +230,16 @@ class _TrainingEpochLoop(loops._Loop):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        self.trainer._call_callback_hooks("on_train_batch_end", batch_output, batch, batch_idx)
-        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_output, batch, batch_idx)
-        self.trainer._logger_connector.on_batch_end()
+        call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
+        call._call_lightning_module_hook(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
+        trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
-        self.trainer._logger_connector.update_train_step_metrics()
+        trainer._logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
         # -----------------------------------------
@@ -325,14 +327,16 @@ class _TrainingEpochLoop(loops._Loop):
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
                 so they have to be updated separately.
         """
-        if not self.trainer.lr_scheduler_configs or not self.trainer.lightning_module.automatic_optimization:
+        trainer = self.trainer
+
+        if not trainer.lr_scheduler_configs or not trainer.lightning_module.automatic_optimization:
             return
 
-        for config in self.trainer.lr_scheduler_configs:
+        for config in trainer.lr_scheduler_configs:
             if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
-            current_idx = self.batch_idx if interval == "step" else self.trainer.current_epoch
+            current_idx = self.batch_idx if interval == "step" else trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
@@ -344,7 +348,7 @@ class _TrainingEpochLoop(loops._Loop):
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
                         if config.strict:
-                            avail_metrics = list(self.trainer.callback_metrics)
+                            avail_metrics = list(trainer.callback_metrics)
                             raise MisconfigurationException(
                                 f"ReduceLROnPlateau conditioned on metric {monitor_key}"
                                 f" which is not available. Available metrics are: {avail_metrics}."
@@ -361,7 +365,8 @@ class _TrainingEpochLoop(loops._Loop):
                 self.scheduler_progress.increment_ready()
 
                 # update LR
-                self.trainer._call_lightning_module_hook(
+                call._call_lightning_module_hook(
+                    trainer,
                     "lr_scheduler_step",
                     config.scheduler,
                     monitor_val,
