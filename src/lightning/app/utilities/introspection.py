@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,16 +79,13 @@ class LightningModuleVisitor(LightningVisitor):
         "save_hyperparameters",
         "test_step",
         "test_step_end",
-        "test_epoch_end",
         "to_onnx",
         "to_torchscript",
         "training_step",
         "training_step_end",
-        "training_epoch_end",
         "unfreeze",
         "validation_step",
         "validation_step_end",
-        "validation_epoch_end",
     }
 
     hooks: Set[str] = {

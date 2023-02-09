@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCh
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import BaseProgress
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restarting_loops_recursive():
@@ -216,7 +215,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             return [super(ValidationModel, self).val_dataloader() for _ in range(n_dataloaders)]
 
     model = ValidationModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -279,7 +277,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -446,7 +443,6 @@ def test_loop_state_on_complete_run(tmpdir):
             return DataLoader(RandomDataset(32, n_batches))
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -781,7 +777,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
 
 @pytest.mark.parametrize("should_fail", [False, True])
-@pytest.mark.parametrize("persistent_workers", [pytest.param(False, marks=RunIf(slow=True)), True])
+@pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance

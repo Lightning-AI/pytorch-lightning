@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,21 @@
 
 import os
 import sys
+from contextlib import nullcontext
 from typing import Generator, List, Optional
 
 import click
 import rich
+from fastapi import HTTPException
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
-from lightning.app.cli.commands.cd import _CD_FILE
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+from lightning.app.cli.connect.app import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
+from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
 
 _FOLDER_COLOR = "sky_blue1"
@@ -36,16 +38,21 @@ logger = Logger(__name__)
 
 
 @click.argument("path", required=False)
-def ls(path: Optional[str] = None) -> List[str]:
+def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) -> List[str]:
     """List the contents of a folder in the Lightning Cloud Filesystem."""
 
+    from lightning.app.cli.commands.cd import _CD_FILE
+
     if sys.platform == "win32":
-        print("`ls` isn't supported on windows. Open an issue on Github.")
-        sys.exit(0)
+        _error_and_exit("`ls` isn't supported on windows. Open an issue on Github.")
 
     root = "/"
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
+    context = (
+        Live(Spinner("point", text=Text("pending...", style="white")), transient=True) if use_live else nullcontext()
+    )
+
+    with context:
 
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -63,25 +70,39 @@ def ls(path: Optional[str] = None) -> List[str]:
 
         if root == "/":
             project_names = [project.name for project in projects.memberships]
-            _print_names_with_colors(project_names, [_FOLDER_COLOR] * len(project_names))
+            if print:
+                _print_names_with_colors(project_names, [_FOLDER_COLOR] * len(project_names))
             return project_names
 
         # Note: Root format has the following structure:
         # /{PROJECT_NAME}/{APP_NAME}/{ARTIFACTS_PATHS}
-        # TODO: Add support for CloudSpaces, etc..
         splits = root.split("/")[1:]
 
-        project_id = [project.project_id for project in projects.memberships if project.name == splits[0]][0]
+        project = [project for project in projects.memberships if project.name == splits[0]]
 
-        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
+        # This happens if the user changes cluster and the project doesn't exit.
+        if len(project) == 0:
+            return _error_and_exit(
+                f"There isn't any Lightning Project matching the name {splits[0]}." " HINT: Use `lightning cd`."
+            )
 
-        lit_cloud_spaces = client.cloud_space_service_list_cloud_spaces(project_id=project_id).cloudspaces
+        project_id = project[0].project_id
+
+        # Parallelise calls
+        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project_id, async_req=True
+        )
+        lit_cloud_spaces = client.cloud_space_service_list_cloud_spaces(project_id=project_id, async_req=True)
+
+        lit_apps = lit_apps.get().lightningapps
+        lit_cloud_spaces = lit_cloud_spaces.get().cloudspaces
 
         if len(splits) == 1:
             apps = [lit_app.name for lit_app in lit_apps]
             cloud_spaces = [lit_cloud_space.name for lit_cloud_space in lit_cloud_spaces]
             ressource_names = sorted(set(cloud_spaces + apps))
-            _print_names_with_colors(ressource_names, [_FOLDER_COLOR] * len(ressource_names))
+            if print:
+                _print_names_with_colors(ressource_names, [_FOLDER_COLOR] * len(ressource_names))
             return ressource_names
 
         lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == splits[1]]
@@ -91,9 +112,7 @@ def ls(path: Optional[str] = None) -> List[str]:
             lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == splits[1]]
 
             if len(lit_ressources) == 0:
-
-                print(f"ERROR: There isn't any Lightning Ressource matching the name {splits[1]}.")
-                sys.exit(0)
+                _error_and_exit(f"There isn't any Lightning Ressource matching the name {splits[1]}.")
 
         lit_resource = lit_ressources[0]
 
@@ -131,16 +150,17 @@ def ls(path: Optional[str] = None) -> List[str]:
                 # display files otherwise folders
                 colors.append(_FILE_COLOR if len(artifact_splits) == depth + 1 else _FOLDER_COLOR)
 
-    if app_paths and cloud_spaces_paths:
-        if app_paths:
-            rich.print("Lightning App")
-            _print_names_with_colors(app_paths, app_colors)
+    if print:
+        if app_paths and cloud_spaces_paths:
+            if app_paths:
+                rich.print("Lightning App")
+                _print_names_with_colors(app_paths, app_colors)
 
-        if cloud_spaces_paths:
-            rich.print("Lightning CloudSpaces")
-            _print_names_with_colors(cloud_spaces_paths, cloud_spaces_colors)
-    else:
-        _print_names_with_colors(app_paths + cloud_spaces_paths, app_colors + cloud_spaces_colors)
+            if cloud_spaces_paths:
+                rich.print("Lightning CloudSpaces")
+                _print_names_with_colors(cloud_spaces_paths, cloud_spaces_colors)
+        else:
+            _print_names_with_colors(app_paths + cloud_spaces_paths, app_colors + cloud_spaces_colors)
 
     return app_paths + cloud_spaces_paths
 
@@ -212,32 +232,43 @@ def _collect_artifacts(
         if page_token in tokens:
             return
 
-        response = client.lightningapp_instance_service_list_project_artifacts(
-            project_id,
-            prefix=prefix,
-            cluster_id=cluster_id,
-            page_token=page_token,
-            include_download_url=include_download_url,
-            page_size=str(page_size),
-        )
-        yield from response.artifacts
-
-        if response.next_page_token != "":
-            tokens.append(page_token)
-            yield from _collect_artifacts(
-                client,
+        try:
+            response = client.lightningapp_instance_service_list_project_artifacts(
                 project_id,
                 prefix=prefix,
                 cluster_id=cluster_id,
-                page_token=response.next_page_token,
-                tokens=tokens,
+                page_token=page_token,
+                include_download_url=include_download_url,
+                page_size=str(page_size),
             )
+            for artifact in response.artifacts:
+                if ".lightning-app-sync" in artifact.filename:
+                    continue
+                yield artifact
+
+            if response.next_page_token != "":
+                tokens.append(page_token)
+                yield from _collect_artifacts(
+                    client,
+                    project_id,
+                    prefix=prefix,
+                    cluster_id=cluster_id,
+                    page_token=response.next_page_token,
+                    tokens=tokens,
+                )
+        except HTTPException:
+            # Note: This is triggered when the request is wrong.
+            # This is currently happening due to looping through the user clusters.
+            pass
 
 
 def _add_resource_prefix(prefix: str, resource_path: str):
     if resource_path in prefix:
         return prefix
-    return "/" + os.path.join(resource_path, prefix)
+    prefix = os.path.join(resource_path, prefix)
+    if not prefix.startswith("/"):
+        prefix = "/" + prefix
+    return prefix
 
 
 def _get_prefix(prefix: str, lit_resource) -> str:

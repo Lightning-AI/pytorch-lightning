@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@ from typing import Any, Dict, Optional, Union
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.utilities.logger import _version
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
@@ -267,11 +266,11 @@ def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
     Return:
         Dictionary with the standard metrics to be displayed in the progress bar.
     """
-
     items_dict: Dict[str, Union[int, str]] = {}
     if trainer.loggers:
-        version = _version(trainer.loggers)
-        if version is not None:
+        from lightning.pytorch.loggers.utilities import _version
+
+        if (version := _version(trainer.loggers)) is not None:
             if isinstance(version, str):
                 # show last 4 places of long version strings
                 version = version[-4:]

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import Logger, TensorBoardLogger
 from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
+from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.logger import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
@@ -146,11 +146,11 @@ def test_adding_step_key(tmpdir):
             super().log_metrics(metrics, step)
 
     class CustomModel(BoringModel):
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "train_acc": self.logger.logged_step / 10})
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "val_acc": self.logger.logged_step / 10})
 

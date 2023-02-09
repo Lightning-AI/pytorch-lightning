@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ class ManualResult(OutputResult):
         elif training_step_output is not None:
             raise MisconfigurationException(
                 "In manual optimization, `training_step` must either return a Tensor, "
-                "a dict with extras to pass to `training_epoch_end` or have no return."
+                "a dict with extras to pass to `training_step_end` or have no return."
             )
 
         if "loss" in extra:

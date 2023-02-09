@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -263,7 +263,6 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     options = dict(
         standalone="PL_RUN_STANDALONE_TESTS",
         min_cuda_gpus="PL_RUN_CUDA_TESTS",
-        slow="PL_RUN_SLOW_TESTS",
         ipu="PL_RUN_IPU_TESTS",
         tpu="PL_RUN_TPU_TESTS",
     )

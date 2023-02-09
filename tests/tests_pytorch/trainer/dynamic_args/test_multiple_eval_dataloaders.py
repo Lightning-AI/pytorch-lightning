@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 from torch.utils.data import Dataset
 
@@ -42,41 +43,8 @@ class RandomDatasetB(Dataset):
         return self.len
 
 
-def test_multiple_eval_dataloaders_tuple(tmpdir):
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            if dataloader_idx == 0:
-                assert batch.sum() == 0
-            elif dataloader_idx == 1:
-                assert batch.sum() == 11
-            else:
-                raise Exception("should only have two dataloaders")
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
-        def val_dataloader(self):
-            dl1 = torch.utils.data.DataLoader(RandomDatasetA(32, 64), batch_size=11)
-            dl2 = torch.utils.data.DataLoader(RandomDatasetB(32, 64), batch_size=11)
-            return [dl1, dl2]
-
-    model = TestModel()
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        enable_model_summary=False,
-    )
-
-    trainer.fit(model)
-
-
-def test_multiple_eval_dataloaders_list(tmpdir):
+@pytest.mark.parametrize("seq_type", (tuple, list))
+def test_multiple_eval_dataloaders_seq(tmpdir, seq_type):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
@@ -89,10 +57,9 @@ def test_multiple_eval_dataloaders_list(tmpdir):
         def val_dataloader(self):
             dl1 = torch.utils.data.DataLoader(RandomDatasetA(32, 64), batch_size=11)
             dl2 = torch.utils.data.DataLoader(RandomDatasetB(32, 64), batch_size=11)
-            return dl1, dl2
+            return seq_type((dl1, dl2))
 
     model = TestModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,

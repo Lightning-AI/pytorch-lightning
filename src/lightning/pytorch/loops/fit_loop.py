@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
-import lightning.pytorch as pl
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
-from lightning.pytorch.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
+from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 log = logging.getLogger(__name__)
 
@@ -76,8 +72,7 @@ class _FitLoop(_Loop):
         self.epoch_progress = Progress()
 
         self._is_fresh_start_epoch: bool = True
-        self._outputs: _EPOCH_OUTPUTS_TYPE = []
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._data_fetcher: Optional[_DataFetcher] = None
 
     @property
     def total_batch_idx(self) -> int:
@@ -220,8 +215,7 @@ class _FitLoop(_Loop):
         if self.epoch_loop._should_check_val_epoch():
             self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
-        data_fetcher_cls = _select_data_fetcher(self.trainer)
-        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(self.trainer, self.prefetch_batches)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
@@ -239,9 +233,6 @@ class _FitLoop(_Loop):
             log.detail(f"{self.__class__.__name__}: resetting train dataloader")
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
-
-        # reset outputs here instead of in `reset` as they are not accumulated between epochs
-        self._outputs = []
 
         if self.trainer.train_dataloader is not None:
             assert isinstance(self.trainer.train_dataloader, CombinedLoader)
@@ -273,23 +264,11 @@ class _FitLoop(_Loop):
         assert self._data_fetcher is not None
         self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
-            self._outputs = self.epoch_loop.run(self._data_fetcher)
+            self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
         # inform logger the batch loop has finished
         self.trainer._logger_connector.epoch_end_reached()
-
-        # get the model and call model.training_epoch_end
-        model = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model) and self._outputs:
-            return_value = self.trainer._call_lightning_module_hook("training_epoch_end", self._outputs)
-            if return_value is not None:
-                raise MisconfigurationException(
-                    "`training_epoch_end` expects a return of None. "
-                    "HINT: remove the return statement in `training_epoch_end`."
-                )
-        # free memory
-        self._outputs = []
 
         self.epoch_progress.increment_processed()
 
@@ -342,14 +321,3 @@ class _FitLoop(_Loop):
 
     def _iteration_based_training(self) -> bool:
         return self.trainer.max_steps != -1
-
-
-def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
-    training_step_fx = getattr(trainer.lightning_module, "training_step")
-    if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-        rank_zero_warn(
-            "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-            "this signature is experimental and the behavior is subject to change."
-        )
-        return DataLoaderIterDataFetcher
-    return DataFetcher

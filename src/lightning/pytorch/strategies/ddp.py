@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.distributed import register_ddp_comm_hook
+from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
@@ -190,13 +191,6 @@ class DDPStrategy(ParallelStrategy):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def pre_configure_ddp(self) -> None:
-        # if unset, default `find_unused_parameters` `True`
-        # Many models require setting this parameter to True, as there are corner cases
-        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
-        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         if self.root_device.type == "cuda" and self._is_single_process_single_device:
@@ -263,7 +257,6 @@ class DDPStrategy(ParallelStrategy):
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-        self.pre_configure_ddp()
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
         self._register_ddp_hooks()
@@ -361,9 +354,27 @@ class DDPStrategy(ParallelStrategy):
             find_unused_parameters=False,
         )
         strategy_registry.register(
+            "ddp_find_unused_parameters_true",
+            cls,
+            description="DDP Strategy with `find_unused_parameters` as True",
+            find_unused_parameters=True,
+        )
+        strategy_registry.register(
             cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__}",
+        )
+
+    def on_exception(self, exception: BaseException) -> None:
+        _augment_message(
+            exception,
+            pattern=".*Expected to have finished reduction in the prior iteration.*",
+            new_message=(
+                "It looks like your LightningModule has parameters that were not used in producing the loss returned"
+                " by training_step. If this is intentional, you must enable the detection of unused parameters in DDP,"
+                " either by setting the string value `strategy='ddp_find_unused_parameters_true'`"
+                " or by setting the flag in the strategy with `strategy=DDPStrategy(find_unused_parameters=True)`."
+            ),
         )
 
     def teardown(self) -> None:

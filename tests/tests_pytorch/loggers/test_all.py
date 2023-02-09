@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -97,13 +97,11 @@ def _test_loggers_fit_test(tmpdir, logger_class):
             self.log("train_some_val", loss)
             return {"loss": loss}
 
-        def validation_epoch_end(self, outputs) -> None:
-            avg_val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss**0.5})
+        def on_validation_epoch_end(self):
+            self.log_dict({"early_stop_on": torch.tensor(1), "val_loss": torch.tensor(0.5)})
 
-        def test_epoch_end(self, outputs) -> None:
-            avg_test_loss = torch.stack([x["y"] for x in outputs]).mean()
-            self.log("test_loss", avg_test_loss)
+        def on_test_epoch_end(self):
+            self.log("test_loss", torch.tensor(2))
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs) -> None:

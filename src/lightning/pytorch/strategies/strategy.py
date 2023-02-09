@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -526,6 +526,10 @@ class Strategy(ABC):
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
+        pass
+
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the trainer execution is interrupted by an exception."""
         pass
 
     def __getstate__(self) -> Dict:

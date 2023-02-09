@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import LightningDataModule, LightningModule
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class RandomDictDataset(Dataset):
@@ -89,14 +89,14 @@ class BoringModel(LightningModule):
                 def training_step(self, ...):
                     ...  # do your own thing
 
-                training_epoch_end = None  # disable hook
+                training_step_end = None  # disable hook
 
         or
 
         Example::
 
             model = BoringModel()
-            model.training_epoch_end = None  # disable hook
+            model.training_step_end = None  # disable hook
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
@@ -117,26 +117,14 @@ class BoringModel(LightningModule):
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
-    def training_step_end(self, training_step_outputs: STEP_OUTPUT) -> STEP_OUTPUT:
-        return training_step_outputs
-
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        outputs = cast(List[Dict[str, Tensor]], outputs)
-        torch.stack([x["loss"] for x in outputs]).mean()
+    def training_step_end(self, training_step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        return training_step_output
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"x": self.step(batch)}
 
-    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        outputs = cast(List[Dict[str, Tensor]], outputs)
-        torch.stack([x["x"] for x in outputs]).mean()
-
     def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"y": self.step(batch)}
-
-    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        outputs = cast(List[Dict[str, Tensor]], outputs)
-        torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)

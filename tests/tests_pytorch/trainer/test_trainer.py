@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@ import math
 import os
 import pickle
 from argparse import Namespace
-from contextlib import nullcontext
+from contextlib import nullcontext, suppress
 from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
@@ -651,38 +652,6 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
-@pytest.mark.parametrize("cudnn_benchmark", (False, True))
-@pytest.mark.parametrize(
-    ["benchmark_", "deterministic", "expected"],
-    [
-        (None, False, None),
-        (None, True, False),
-        (None, None, None),
-        (True, False, True),
-        (True, True, True),
-        (True, None, True),
-        (False, False, False),
-        (False, True, False),
-        (False, None, False),
-    ],
-)
-def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
-    """Verify benchmark option."""
-    original_val = torch.backends.cudnn.benchmark
-
-    torch.backends.cudnn.benchmark = cudnn_benchmark
-    if benchmark_ and deterministic:
-        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
-            trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
-    else:
-        trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
-    expected = cudnn_benchmark if expected is None else expected
-    assert torch.backends.cudnn.benchmark == expected
-    assert trainer._accelerator_connector.benchmark == expected
-
-    torch.backends.cudnn.benchmark = original_val
-
-
 @pytest.mark.parametrize("ckpt_path", (None, "last"))
 @pytest.mark.parametrize("fn", (TrainerFn.FITTING, TrainerFn.VALIDATING))
 def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
@@ -808,7 +777,6 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             return self(batch)
 
     model = TestModel()
-    model.test_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
         limit_val_batches=1,
@@ -879,7 +847,6 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
             return self(batch)
 
     model = TestModel()
-    model.test_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
         limit_val_batches=1,
@@ -930,15 +897,10 @@ def test_disabled_training(tmpdir):
     class CurrentModel(BoringModel):
 
         training_step_invoked = False
-        training_epoch_end_invoked = False
 
         def training_step(self, *args, **kwargs):
             self.training_step_invoked = True
             return super().training_step(*args, **kwargs)
-
-        def training_epoch_end(self, *args, **kwargs):
-            self.training_epoch_end_invoked = True
-            return super().training_epoch_end(*args, **kwargs)
 
     model = CurrentModel()
 
@@ -965,7 +927,6 @@ def test_disabled_training(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
-    assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
 
     # check that limit_train_batches has no influence when fast_dev_run is turned on
     model = CurrentModel()
@@ -983,7 +944,6 @@ def test_disabled_training(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
-    assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
 
 
 def test_disabled_validation(tmpdir):
@@ -992,15 +952,10 @@ def test_disabled_validation(tmpdir):
     class CurrentModel(BoringModel):
 
         validation_step_invoked = False
-        validation_epoch_end_invoked = False
 
         def validation_step(self, *args, **kwargs):
             self.validation_step_invoked = True
             return super().validation_step(*args, **kwargs)
-
-        def validation_epoch_end(self, *args, **kwargs):
-            self.validation_epoch_end_invoked = True
-            return super().validation_epoch_end(*args, **kwargs)
 
     model = CurrentModel()
 
@@ -1020,7 +975,6 @@ def test_disabled_validation(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
-    assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
     # check that limit_val_batches has no influence when fast_dev_run is turned on
     model = CurrentModel()
@@ -1031,7 +985,6 @@ def test_disabled_validation(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
-    assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
@@ -1166,7 +1119,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomModel()
-    model.validation_epoch_end = None
     num_sanity_val_steps = 4
 
     trainer = Trainer(
@@ -1182,7 +1134,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
             return [DataLoader(RandomDataset(32, 64), batch_size=8), DataLoader(RandomDataset(32, 64))]
 
     model = CustomModelMixedVal()
-    model.validation_epoch_end = None
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
@@ -1208,7 +1159,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomModel()
-    model.validation_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir, num_sanity_val_steps=-1, limit_val_batches=limit_val_batches, max_steps=1
     )
@@ -1361,12 +1311,12 @@ class CustomPredictionWriter(BasePredictionWriter):
         assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
-    def on_predict_epoch_end(self, trainer, pl_module, outputs):
+    def on_predict_epoch_end(self, trainer, pl_module):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
-        super().on_predict_epoch_end(trainer, pl_module, outputs)
+        super().on_predict_epoch_end(trainer, pl_module)
 
 
 def predict(
@@ -1724,9 +1674,6 @@ class TestDummyModelForCheckpoint(BoringModel):
     def validation_step(self, batch, batch_idx):
         loss = self.step(batch)
         self.log("x", loss)
-
-    def validation_epoch_end(self, outputs) -> None:
-        pass
 
 
 @RunIf(skip_windows=True)
@@ -2177,3 +2124,19 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     trainer = Trainer(**trainer_kwargs)
     with pytest.raises(TypeError, match="must be a `Light"):
         trainer.fit(object())
+
+
+@pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
+def test_trainer_calls_strategy_on_exception(exception_type):
+    """Test that when an exception occurs, the Trainer lets the strategy process it."""
+    exception = exception_type("Test exception")
+
+    class ExceptionModel(BoringModel):
+        def on_fit_start(self):
+            raise exception
+
+    trainer = Trainer()
+    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock:
+        with suppress(Exception):
+            trainer.fit(ExceptionModel())
+    on_exception_mock.assert_called_once_with(exception)

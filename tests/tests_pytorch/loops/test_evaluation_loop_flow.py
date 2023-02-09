@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,7 +45,6 @@ def test__eval_step__flow(tmpdir):
 
     model = TestModel()
     model.validation_step_end = None
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -60,7 +59,6 @@ def test__eval_step__flow(tmpdir):
     # make sure correct steps were called
     assert model.validation_step_called
     assert not model.validation_step_end_called
-    assert not model.validation_epoch_end_called
 
     # simulate training manually
     trainer.state.stage = RunningStage.TRAINING
@@ -104,7 +102,6 @@ def test__eval_step__eval_step_end__flow(tmpdir):
             return LightningModule.backward(self, loss)
 
     model = TestModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -119,7 +116,6 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     # make sure correct steps were called
     assert model.validation_step_called
     assert model.validation_step_end_called
-    assert not model.validation_epoch_end_called
 
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
@@ -155,16 +151,6 @@ def test__eval_step__epoch_end__flow(tmpdir):
                 self.out_b = out
             return out
 
-        def validation_epoch_end(self, outputs):
-            self.validation_epoch_end_called = True
-            assert len(outputs) == 2
-
-            out_a = outputs[0]
-            out_b = outputs[1]
-
-            assert out_a == self.out_a
-            assert out_b == self.out_b
-
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -185,7 +171,6 @@ def test__eval_step__epoch_end__flow(tmpdir):
     # make sure correct steps were called
     assert model.validation_step_called
     assert not model.validation_step_end_called
-    assert model.validation_epoch_end_called
 
 
 def test__validation_step__step_end__epoch_end__flow(tmpdir):
@@ -214,16 +199,6 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
             assert self.last_out == out
             return out
 
-        def validation_epoch_end(self, outputs):
-            self.validation_epoch_end_called = True
-            assert len(outputs) == 2
-
-            out_a = outputs[0]
-            out_b = outputs[1]
-
-            assert out_a == self.out_a
-            assert out_b == self.out_b
-
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -243,4 +218,3 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
     # make sure correct steps were called
     assert model.validation_step_called
     assert model.validation_step_end_called
-    assert model.validation_epoch_end_called
