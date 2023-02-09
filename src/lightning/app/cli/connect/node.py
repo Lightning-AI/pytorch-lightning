@@ -46,20 +46,24 @@ LIGHTNING_DAEMON_IMAGE = "ghcr.io/gridai/lightning-daemon:v0.1"
 
 
 def get_code_server_docker_command():
-    return f"docker run " \
-           f"-p {CODE_SERVER_PORT}:{CODE_SERVER_PORT} " \
-           f"--net {NETWORK_NAME} " \
-           f"--name {CODE_SERVER_CONTAINER} " \
-           f"--rm {CODE_SERVER_IMAGE}"
+    return (
+        f"docker run "
+        f"-p {CODE_SERVER_PORT}:{CODE_SERVER_PORT} "
+        f"--net {NETWORK_NAME} "
+        f"--name {CODE_SERVER_CONTAINER} "
+        f"--rm {CODE_SERVER_IMAGE}"
+    )
 
 
 def get_lightning_daemon_command(node_prefix: str):
-    return f"docker run " \
-           f"-e LIGHTNING_BYOM_CLOUD_PROXY_HOST=https://{node_prefix}.{CLOUD_PROXY_HOST} " \
-           f"-e LIGHTNING_BYOM_RESOURCE_URL=http://{CODE_SERVER_CONTAINER}:{CODE_SERVER_PORT} " \
-           f"--net {NETWORK_NAME} " \
-           f"--name {LIGHTNING_DAEMON_CONTAINER} " \
-           f"--rm {LIGHTNING_DAEMON_IMAGE}"
+    return (
+        f"docker run "
+        f"-e LIGHTNING_BYOM_CLOUD_PROXY_HOST=https://{node_prefix}.{CLOUD_PROXY_HOST} "
+        f"-e LIGHTNING_BYOM_RESOURCE_URL=http://{CODE_SERVER_CONTAINER}:{CODE_SERVER_PORT} "
+        f"--net {NETWORK_NAME} "
+        f"--name {LIGHTNING_DAEMON_CONTAINER} "
+        f"--rm {LIGHTNING_DAEMON_IMAGE}"
+    )
 
 
 @click.argument("name", required=True)
@@ -96,11 +100,15 @@ def connect_node(name: str) -> None:
 
         # if code server is already running, ignore.
         # If not, but container exists, remove it and run. Otherwise, run.
-        out = subprocess.run(f"docker ps -q -f name={CODE_SERVER_CONTAINER}", shell=True, check=True, capture_output=True)
+        out = subprocess.run(
+            f"docker ps -q -f name={CODE_SERVER_CONTAINER}", shell=True, check=True, capture_output=True
+        )
         if out.stdout:
             pass
         else:
-            out = subprocess.run(f"docker container ls -aq -f name={CODE_SERVER_CONTAINER}", shell=True, check=True, capture_output=True)
+            out = subprocess.run(
+                f"docker container ls -aq -f name={CODE_SERVER_CONTAINER}", shell=True, check=True, capture_output=True
+            )
             if out.stdout:
                 subprocess.run(f"docker rm -f {CODE_SERVER_CONTAINER}", shell=True, check=True)
             else:
@@ -117,16 +125,25 @@ def connect_node(name: str) -> None:
 
         # if lightning daemon is already running, ignore.
         # If not, but container exists, remove it and run. Otherwise, run.
-        out = subprocess.run(f"docker ps -q -f name={LIGHTNING_DAEMON_CONTAINER}", shell=True, check=True, capture_output=True)
+        out = subprocess.run(
+            f"docker ps -q -f name={LIGHTNING_DAEMON_CONTAINER}", shell=True, check=True, capture_output=True
+        )
         if out.stdout:
             pass
         else:
-            out = subprocess.run(f"docker container ls -aq -f name={LIGHTNING_DAEMON_CONTAINER}", shell=True, check=True, capture_output=True)
+            out = subprocess.run(
+                f"docker container ls -aq -f name={LIGHTNING_DAEMON_CONTAINER}",
+                shell=True,
+                check=True,
+                capture_output=True,
+            )
             if out.stdout:
                 subprocess.run(f"docker rm -f {LIGHTNING_DAEMON_CONTAINER}", shell=True, check=True)
             else:
                 live.update(Spinner("point", text=Text("pulling lightning daemon image", style="white")))
-                out = subprocess.run(f"docker pull {LIGHTNING_DAEMON_IMAGE}", shell=True, check=True, capture_output=True)
+                out = subprocess.run(
+                    f"docker pull {LIGHTNING_DAEMON_IMAGE}", shell=True, check=True, capture_output=True
+                )
                 error = out.stderr
                 if error:
                     live.stop()
@@ -145,10 +162,16 @@ def connect_node(name: str) -> None:
         # wait for 30 seconds for connection to be established
         while time.time() - connection_check_start_time < 30:
             out = subprocess.run(f'docker container ls -f name={CODE_SERVER_CONTAINER} ' + '--format "{{.Status}}"', shell=True, check=True, capture_output=True)
+
             if "Up" in str(out.stdout):
                 code_server_running = True
 
-            out = subprocess.run(f'docker container ls -f name={LIGHTNING_DAEMON_CONTAINER} ' + '--format "{{.Status}}"', shell=True, check=True, capture_output=True)
+            out = subprocess.run(
+                f"docker container ls -f name={LIGHTNING_DAEMON_CONTAINER} " + '--format "{{.Status}}"',
+                shell=True,
+                check=True,
+                capture_output=True,
+            )
             if "Up" in str(out.stdout):
                 lightning_daemon_running = True
 
@@ -163,8 +186,7 @@ def connect_node(name: str) -> None:
 @click.argument("name", required=True)
 def disconnect_node(name: str) -> None:
     # disconnect node stop and remove the docker containers
-    with Live(Spinner("point", text=Text("disconnecting node...", style="white")), transient=True) as live:
+    with Live(Spinner("point", text=Text("disconnecting node...", style="white")), transient=True):
         subprocess.run(f"docker stop {CODE_SERVER_CONTAINER}", shell=True, capture_output=True)
         subprocess.run(f"docker stop {LIGHTNING_DAEMON_CONTAINER}", shell=True, capture_output=True)
     rich.print(f"[green]Succeeded[/green]: node {name} has been disconnected from lightning.")
-
