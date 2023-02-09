@@ -186,7 +186,8 @@ def connect_node(name: str) -> None:
             # Sleeping for 0.5 seconds
             time.sleep(0.5)
     rich.print(
-        f"[green]Succeeded[/green]: node {name} has been connected to lightning. \n Go to https://{name}.{CLOUD_PROXY_HOST} to access the node."
+        f"[green]Succeeded[/green]: node {name} has been connected to lightning. \n "
+        f"Go to https://{name}.{CLOUD_PROXY_HOST} to access the node."
     )
 
 
