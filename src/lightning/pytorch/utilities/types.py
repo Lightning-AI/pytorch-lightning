@@ -43,7 +43,6 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
-_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
 
 @runtime_checkable

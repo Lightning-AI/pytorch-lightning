@@ -78,13 +78,7 @@ from lightning.pytorch.trainer.connectors.signal_connector import SignalConnecto
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
-from lightning.pytorch.utilities.argparse import (
-    _defaults_from_env_vars,
-    add_argparse_args,
-    from_argparse_args,
-    parse_argparser,
-    parse_env_variables,
-)
+from lightning.pytorch.utilities.argparse import _defaults_from_env_vars, parse_env_variables
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -1704,20 +1698,8 @@ class Trainer:
         return {k: v.default for k, v in init_signature.parameters.items()}
 
     @classmethod
-    def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> Any:
-        return from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return parse_argparser(cls, arg_parser)
-
-    @classmethod
     def match_env_arguments(cls) -> Namespace:
         return parse_env_variables(cls)
-
-    @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> Union[_ArgumentGroup, ArgumentParser]:
-        return add_argparse_args(cls, parent_parser, **kwargs)
 
     """
     State properties
