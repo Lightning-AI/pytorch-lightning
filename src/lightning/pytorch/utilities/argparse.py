@@ -19,7 +19,10 @@ from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, List, Tuple, Type, TypeVar, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import lightning.pytorch as pl
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 _ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
