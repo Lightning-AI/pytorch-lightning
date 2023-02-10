@@ -162,10 +162,10 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     n = trainer.num_training_batches
     m = trainer.num_val_batches
     assert len(trainer.train_dataloader) == n
-    # main progress bar should have reached the end (train batches + val batches)
-    assert pbar.main_progress_bar.total == n + sum(m)
-    assert pbar.main_progress_bar.n == n + sum(m)
-    assert pbar.main_progress_bar.leave
+    # train progress bar should have reached the end
+    assert pbar.train_progress_bar.total == n
+    assert pbar.train_progress_bar.n == n
+    assert pbar.train_progress_bar.leave
 
     # check val progress bar total
     assert pbar.val_progress_bar.total_values == m
@@ -214,9 +214,9 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     assert 1 == pbar.val_progress_bar.n
     assert 1 == pbar.val_progress_bar.total
 
-    # the main progress bar should display 2 batches (1 train, 1 val)
-    assert 2 == pbar.main_progress_bar.total
-    assert 2 == pbar.main_progress_bar.n
+    # the train progress bar should display 1 batch
+    assert 1 == pbar.train_progress_bar.total
+    assert 1 == pbar.train_progress_bar.n
 
     trainer.validate(model)
 
@@ -266,24 +266,18 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
     trainer.fit(model)
-    assert (
-        pbar.train_batches_seen + pbar.val_batches_seen
-        == 3 * pbar.main_progress_bar.total + trainer.num_sanity_val_steps
-    )
+    assert pbar.train_batches_seen == 3 * pbar.train_progress_bar.total
+    assert pbar.val_batches_seen == 3 * pbar.val_progress_bar.total + trainer.num_sanity_val_steps
     assert pbar.test_batches_seen == 0
 
     trainer.validate(model)
-    assert (
-        pbar.train_batches_seen + pbar.val_batches_seen
-        == 3 * pbar.main_progress_bar.total + pbar.val_progress_bar.total + trainer.num_sanity_val_steps
-    )
+    assert pbar.train_batches_seen == 3 * pbar.train_progress_bar.total
+    assert pbar.val_batches_seen == 4 * pbar.val_progress_bar.total + trainer.num_sanity_val_steps
     assert pbar.test_batches_seen == 0
 
     trainer.test(model)
-    assert (
-        pbar.train_batches_seen + pbar.val_batches_seen
-        == 3 * pbar.main_progress_bar.total + pbar.val_progress_bar.total + trainer.num_sanity_val_steps
-    )
+    assert pbar.train_batches_seen == 3 * pbar.train_progress_bar.total
+    assert pbar.val_batches_seen == 4 * pbar.val_progress_bar.total + trainer.num_sanity_val_steps
     assert pbar.test_batches_seen == pbar.test_progress_bar.total
 
 
@@ -345,19 +339,19 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 @pytest.mark.parametrize(
     "train_batches,val_batches,refresh_rate,train_updates,val_updates",
     [
-        [2, 3, 1, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3]],
+        [2, 3, 1, [0, 1, 2], [0, 1, 2, 3]],
         [0, 0, 3, None, None],
         [1, 0, 3, [0, 1], None],
-        [1, 1, 3, [0, 2], [0, 1]],
+        [1, 1, 3, [0, 1], [0, 1]],
         [5, 0, 3, [0, 3, 5], None],
-        [5, 2, 3, [0, 3, 6, 7], [0, 2]],
-        [5, 2, 6, [0, 6, 7], [0, 2]],
+        [5, 2, 3, [0, 3, 5], [0, 2]],
+        [5, 2, 6, [0, 5], [0, 2]],
     ],
 )
-def test_main_progress_bar_update_amount(
+def test_train_progress_bar_update_amount(
     tmpdir, train_batches: int, val_batches: int, refresh_rate: int, train_updates, val_updates
 ):
-    """Test that the main progress updates with the correct amount together with the val progress.
+    """Test that the train progress updates with the correct amount together with the val progress.
 
     At the end of the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh
     rate.
@@ -376,7 +370,7 @@ def test_main_progress_bar_update_amount(
     with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
     if train_batches > 0:
-        assert progress_bar.main_progress_bar.n_values == train_updates
+        assert progress_bar.train_progress_bar.n_values == train_updates
     if val_batches > 0:
         assert progress_bar.val_progress_bar.n_values == val_updates
 
@@ -417,7 +411,7 @@ def test_tensor_to_float_conversion(tmpdir):
     torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
     assert trainer.progress_bar_metrics["b"] == 1.0
     assert trainer.progress_bar_metrics["c"] == 2.0
-    pbar = trainer.progress_bar_callback.main_progress_bar
+    pbar = trainer.progress_bar_callback.train_progress_bar
     actual = str(pbar.postfix)
     assert actual.endswith("a=0.123, b=1.000, c=2.000"), actual
 
@@ -561,11 +555,11 @@ def test_tqdm_progress_bar_can_be_pickled():
 
 
 @pytest.mark.parametrize(
-    ["val_check_interval", "main_progress_bar_updates", "val_progress_bar_updates"],
-    [(4, [0, 3, 6, 9, 12, 14], [0, 3, 6, 7]), (0.5, [0, 3, 6, 9, 12, 15, 18, 21], [0, 3, 6, 7])],
+    ["val_check_interval", "train_progress_bar_updates", "val_progress_bar_updates"],
+    [(4, [0, 3, 6, 7], [0, 3, 6, 7]), (0.5, [0, 3, 6, 7], [0, 3, 6, 7])],
 )
 def test_progress_bar_max_val_check_interval(
-    tmpdir, val_check_interval, main_progress_bar_updates, val_progress_bar_updates
+    tmpdir, val_check_interval, train_progress_bar_updates, val_progress_bar_updates
 ):
     limit_batches = 7
     model = BoringModel()
@@ -583,21 +577,20 @@ def test_progress_bar_max_val_check_interval(
         trainer.fit(model)
 
     pbar = trainer.progress_bar_callback
-    assert pbar.main_progress_bar.n_values == main_progress_bar_updates
+    assert pbar.train_progress_bar.n_values == train_progress_bar_updates
     assert pbar.val_progress_bar.n_values == val_progress_bar_updates
 
     val_check_batch = (
         max(1, int(limit_batches * val_check_interval)) if isinstance(val_check_interval, float) else val_check_interval
     )
     assert trainer.val_check_batch == val_check_batch
-    val_checks_per_epoch = math.ceil(limit_batches // val_check_batch)
+    math.ceil(limit_batches // val_check_batch)
     pbar_callback = trainer.progress_bar_callback
-    total_val_batches = limit_batches * val_checks_per_epoch
 
     assert pbar_callback.val_progress_bar.n == limit_batches
     assert pbar_callback.val_progress_bar.total == limit_batches
-    assert pbar_callback.main_progress_bar.n == limit_batches + total_val_batches
-    assert pbar_callback.main_progress_bar.total == limit_batches + total_val_batches
+    assert pbar_callback.train_progress_bar.n == limit_batches
+    assert pbar_callback.train_progress_bar.total == limit_batches
     assert pbar_callback.is_enabled
 
 
@@ -629,16 +622,14 @@ def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
     total_train_batches = total_train_samples // (train_batch_size * world_size)
     val_check_batch = max(1, int(total_train_batches * val_check_interval))
     assert trainer.val_check_batch == val_check_batch
-    val_checks_per_epoch = total_train_batches / val_check_batch
     total_val_batches = total_val_samples // (val_batch_size * world_size)
     pbar_callback = trainer.progress_bar_callback
 
     if trainer.is_global_zero:
         assert pbar_callback.val_progress_bar.n == total_val_batches
         assert pbar_callback.val_progress_bar.total == total_val_batches
-        total_val_batches = total_val_batches * val_checks_per_epoch
-        assert pbar_callback.main_progress_bar.n == (total_train_batches + total_val_batches) // world_size
-        assert pbar_callback.main_progress_bar.total == (total_train_batches + total_val_batches) // world_size
+        assert pbar_callback.train_progress_bar.n == total_train_batches // world_size
+        assert pbar_callback.train_progress_bar.total == total_train_batches // world_size
         assert pbar_callback.is_enabled
 
 

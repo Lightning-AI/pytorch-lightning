@@ -75,7 +75,7 @@ class CheckpointConnector:
         """
         self._ckpt_path = checkpoint_path
         if not checkpoint_path:
-            log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
+            log.debug("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
