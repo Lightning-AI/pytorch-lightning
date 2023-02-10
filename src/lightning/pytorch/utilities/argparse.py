@@ -19,7 +19,7 @@ from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, List, Tuple, Type, TypeVar, Union, TYPE_CHECKING
+from typing import Any, Callable, cast, Type, TypeVar, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import lightning.pytorch as pl
@@ -43,10 +43,8 @@ def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(c
         Namespace(devices=42)
         >>> del os.environ["PL_TRAINER_DEVICES"]
     """
-    cls_arg_defaults = get_init_arguments_and_types(cls)
-
     env_args = {}
-    for arg_name, _, _ in cls_arg_defaults:
+    for arg_name in inspect.signature(cls).parameters:
         env = template % {"cls_name": cls.__name__.upper(), "cls_argument": arg_name.upper()}
         val = os.environ.get(env)
         if not (val is None or val == ""):
@@ -58,49 +56,13 @@ def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(c
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, Any]]:
-    r"""Scans the class signature and returns argument names, types and default values.
-
-    Returns:
-        List with tuples of 3 values:
-        (argument name, set with argument types, argument default value).
-
-    Examples:
-
-        >>> from lightning.pytorch import Trainer
-        >>> args = get_init_arguments_and_types(Trainer)
-
-    """
-    cls_default_params = inspect.signature(cls).parameters
-    name_type_default = []
-    for arg in cls_default_params:
-        arg_type = cls_default_params[arg].annotation
-        arg_default = cls_default_params[arg].default
-        try:
-            if type(arg_type).__name__ == "_LiteralGenericAlias":
-                # Special case: Literal[a, b, c, ...]
-                arg_types = tuple({type(a) for a in arg_type.__args__})
-            elif "typing.Literal" in str(arg_type) or "typing_extensions.Literal" in str(arg_type):
-                # Special case: Union[Literal, ...]
-                arg_types = tuple({type(a) for union_args in arg_type.__args__ for a in union_args.__args__})
-            else:
-                # Special case: ComposedType[type0, type1, ...]
-                arg_types = tuple(arg_type.__args__)
-        except (AttributeError, TypeError):
-            arg_types = (arg_type,)
-
-        name_type_default.append((arg, arg_types, arg_default))
-
-    return name_type_default
-
-
 def _defaults_from_env_vars(fn: _T) -> _T:
     @wraps(fn)
     def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
         cls = self.__class__  # get the class
         if args:  # in case any args passed move them to kwargs
-            # parse only the argument names
-            cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
+            # parse the argument names
+            cls_arg_names = inspect.signature(cls).parameters
             # convert args to kwargs
             kwargs.update(dict(zip(cls_arg_names, args)))
         env_variables = vars(parse_env_variables(cls))
