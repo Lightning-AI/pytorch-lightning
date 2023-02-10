@@ -50,7 +50,7 @@
 | ---------------------------------------- | ---------------------------------------------------------------------------------- |
 | .github/workflows/release-pypi.yml       | Publish a release to PyPI.                                                         |
 | .github/workflows/release-docker.yml     | Build Docker images from dockers/\*/Dockerfile and publish them on hub.docker.com. |
-| .github/workflows/legacy-checkpoints.yml | App on request generate legacy checkpoints and upload them to AWS S3.              |
+| .github/workflows/_legacy-checkpoints.yml | App on request generate legacy checkpoints and upload them to AWS S3.              |
 
 ## Bots
 
