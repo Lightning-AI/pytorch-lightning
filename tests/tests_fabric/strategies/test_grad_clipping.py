@@ -84,6 +84,7 @@ def test_errors_deepspeed():
         strategy.clip_gradients_value(Mock(), Mock())
 
 
+@RunIf(min_torch='1.13')
 def test_fsdp_error():
     strategy = FSDPStrategy()
     with pytest.raises(
