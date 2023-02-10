@@ -15,11 +15,11 @@
 from collections import OrderedDict
 from typing import Any, Optional, Union
 
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.fetching import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 

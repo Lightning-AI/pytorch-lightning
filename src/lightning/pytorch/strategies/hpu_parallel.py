@@ -22,13 +22,13 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.utilities.distributed import group as _group
+from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.overrides.torch_distributed import broadcast_object_list
 from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
