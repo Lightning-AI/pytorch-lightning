@@ -28,18 +28,18 @@ _T = TypeVar("_T", bound=Callable[..., Any])
 _ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
 
 
-def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def _parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Examples:
 
         >>> from lightning.pytorch import Trainer
-        >>> parse_env_variables(Trainer)
+        >>> _parse_env_variables(Trainer)
         Namespace()
         >>> import os
         >>> os.environ["PL_TRAINER_DEVICES"] = '42'
         >>> os.environ["PL_TRAINER_BLABLABLA"] = '1.23'
-        >>> parse_env_variables(Trainer)
+        >>> _parse_env_variables(Trainer)
         Namespace(devices=42)
         >>> del os.environ["PL_TRAINER_DEVICES"]
     """
@@ -65,7 +65,7 @@ def _defaults_from_env_vars(fn: _T) -> _T:
             cls_arg_names = inspect.signature(cls).parameters
             # convert args to kwargs
             kwargs.update(dict(zip(cls_arg_names, args)))
-        env_variables = vars(parse_env_variables(cls))
+        env_variables = vars(_parse_env_variables(cls))
         # update the kwargs by env variables
         kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
 

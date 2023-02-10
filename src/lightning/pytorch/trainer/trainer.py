@@ -78,7 +78,7 @@ from lightning.pytorch.trainer.connectors.signal_connector import SignalConnecto
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
-from lightning.pytorch.utilities.argparse import _defaults_from_env_vars, parse_env_variables
+from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
