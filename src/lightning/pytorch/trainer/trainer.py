@@ -37,7 +37,6 @@ import torch.distributed as dist
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import module_available
 from packaging.version import Version
-from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -54,6 +53,7 @@ from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.loggers.utilities import _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.dataloader.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
@@ -903,7 +903,7 @@ class Trainer:
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        self._log_hyperparams()
+        _log_hyperparams(self)
 
         if self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
@@ -935,45 +935,6 @@ class Trainer:
         self.state.stage = None
 
         return results
-
-    def _log_hyperparams(self) -> None:
-        if not self.loggers:
-            return
-        # log hyper-parameters
-        hparams_initial = None
-
-        # save exp to get started (this is where the first experiment logs are written)
-        datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
-
-        if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
-            datamodule_hparams = self.datamodule.hparams_initial
-            lightning_hparams = self.lightning_module.hparams_initial
-            inconsistent_keys = []
-            for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-                if type(lm_val) != type(dm_val):
-                    inconsistent_keys.append(key)
-                elif isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val):
-                    inconsistent_keys.append(key)
-                elif lm_val != dm_val:
-                    inconsistent_keys.append(key)
-            if inconsistent_keys:
-                raise MisconfigurationException(
-                    f"Error while merging hparams: the keys {inconsistent_keys} are present "
-                    "in both the LightningModule's and LightningDataModule's hparams "
-                    "but have different values."
-                )
-            hparams_initial = {**lightning_hparams, **datamodule_hparams}
-        elif self.lightning_module._log_hyperparams:
-            hparams_initial = self.lightning_module.hparams_initial
-        elif datamodule_log_hyperparams:
-            hparams_initial = self.datamodule.hparams_initial
-
-        for logger in self.loggers:
-            if hparams_initial is not None:
-                logger.log_hyperparams(hparams_initial)
-            logger.log_graph(self.lightning_module)
-            logger.save()
 
     def _teardown(self) -> None:
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
