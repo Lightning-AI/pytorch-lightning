@@ -34,11 +34,5 @@ def _tree_flatten(pytree: PyTree) -> Tuple[List[Any], TreeSpec]:
     return result, TreeSpec(node_type, context, children_specs)
 
 
-def _tree_map(fn: Any, pytree: PyTree) -> PyTree:
-    # COPIED TO USE OUR MODIFIED `_tree_flatten`
-    flat_args, spec = _tree_flatten(pytree)
-    return tree_unflatten([fn(i) for i in flat_args], spec)
-
-
 def _map_and_unflatten(fn: Any, values: List[Any], spec: TreeSpec) -> PyTree:
     return tree_unflatten([fn(i) for i in values], spec)
