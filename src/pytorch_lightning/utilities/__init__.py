@@ -22,7 +22,6 @@ from pytorch_lightning.utilities.enums import GradClipAlgorithmType  # noqa: F40
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HIVEMIND_AVAILABLE,
-    _HPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHVISION_AVAILABLE,

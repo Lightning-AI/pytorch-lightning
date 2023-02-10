@@ -15,9 +15,9 @@ from typing import cast, Optional, Union
 
 from typing_extensions import get_args, Literal
 
+from pytorch_lightning.accelerators.hpu import _HPU_AVAILABLE
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
 if _HPU_AVAILABLE:
     from habana_frameworks.torch.hpex import hmp
