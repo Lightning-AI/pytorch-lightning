@@ -35,7 +35,6 @@ on:
         default: false
         required: false
         type: boolean
-    secrets: inherit
 
 defaults:
   run:
