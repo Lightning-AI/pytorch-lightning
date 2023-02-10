@@ -2074,58 +2074,6 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
     logger.finalize.assert_called_once_with("failed")
 
 
-@RunIf(min_torch="2.0.0")
-def test_trainer_compiled_model(tmp_path, monkeypatch):
-    trainer_kwargs = {
-        "default_root_dir": tmp_path,
-        "fast_dev_run": True,
-        "logger": False,
-        "enable_checkpointing": False,
-        "enable_model_summary": False,
-        "enable_progress_bar": False,
-    }
-
-    model = BoringModel()
-    compiled_model = torch.compile(model)
-    assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
-
-    # can train with compiled model
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(compiled_model)
-    assert trainer.model._compiler_ctx["compiler"] == "dynamo"
-
-    # the compiled model can be uncompiled
-    to_uncompiled_model = BoringModel.to_uncompiled(compiled_model)
-    assert model._compiler_ctx is None
-    assert compiled_model._compiler_ctx is None
-    assert to_uncompiled_model._compiler_ctx is None
-
-    # the compiled model needs to be passed
-    with pytest.raises(ValueError, match="required to be a compiled LightningModule"):
-        BoringModel.to_uncompiled(to_uncompiled_model)
-
-    # the uncompiled model can be fitted
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
-    assert trainer.model._compiler_ctx is None
-
-    # some strategies do not support it
-    compiled_model = torch.compile(model)
-    mock_cuda_count(monkeypatch, 1)
-    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
-    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(compiled_model)
-
-    # ddp does
-    trainer = Trainer(strategy="ddp", **trainer_kwargs)
-    trainer.fit(compiled_model)
-
-    # an exception is raised
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.raises(TypeError, match="must be a `Light"):
-        trainer.fit(object())
-
-
 @pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
 def test_trainer_calls_strategy_on_exception(exception_type):
     """Test that when an exception occurs, the Trainer lets the strategy process it."""
