@@ -19,10 +19,10 @@ import torch
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import HPUAccelerator
+from pytorch_lightning.accelerators.hpu import _HPU_AVAILABLE
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

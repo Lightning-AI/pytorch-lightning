@@ -20,11 +20,11 @@ from torch.optim.optimizer import Optimizer
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO
 from lightning_fabric.utilities.types import _DEVICE
+from pytorch_lightning.accelerators.hpu import _HPU_AVAILABLE
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 

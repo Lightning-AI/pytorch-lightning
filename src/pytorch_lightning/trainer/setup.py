@@ -24,6 +24,7 @@ from pytorch_lightning.accelerators import (
     MPSAccelerator,
     TPUAccelerator,
 )
+from pytorch_lightning.accelerators.hpu import _HPU_AVAILABLE
 from pytorch_lightning.accelerators.ipu import _IPU_AVAILABLE
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.profilers import (
@@ -34,7 +35,6 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
