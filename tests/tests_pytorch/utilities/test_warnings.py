@@ -18,6 +18,8 @@ Needs to be run outside of `pytest` as it captures all the warnings.
 from contextlib import redirect_stderr
 from io import StringIO
 
+import lightning.pytorch  # noqa: F401
+
 if __name__ == "__main__":
     # check that logging is properly configured
     import logging
