@@ -18,7 +18,7 @@ set -e
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
 test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
-source="${STANDALONE_COVERAGE_SOURCE:-"lightning.pytorch"}"
+source="${PL_STANDALONE_COVERAGE_SOURCE:-"lightning.pytorch"}"
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
