@@ -184,7 +184,7 @@ class FSDPStrategy(ParallelStrategy):
         return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     def setup_environment(self) -> None:
-        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
         # determine which process we are and world size
@@ -223,7 +223,7 @@ class FSDPStrategy(ParallelStrategy):
         ):
             del self.kwargs["auto_wrap_policy"]
 
-        log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+        log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
 
         wrapped_module = FullyShardedDataParallel(
             module=model,
@@ -290,7 +290,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
+        log.debug(f"{self.__class__.__name__}: entered model_sharded_context.")
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             process_group=self.process_group,
