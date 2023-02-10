@@ -90,3 +90,13 @@ class MixedPrecision(Precision):
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
         return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+
+
+def _optimizer_handles_unscaling(optimizer: Any) -> bool:
+    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
+    :class:`torch.cuda.amp.GradScaler`.
+
+    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
+    value will only be reliable for built-in PyTorch optimizers.
+    """
+    return getattr(optimizer, "_step_supports_amp_scaling", False)

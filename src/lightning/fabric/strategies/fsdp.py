@@ -127,6 +127,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
+        self._module: "FullyShardedDataParallel" = ...
 
     @property
     def root_device(self) -> torch.device:
@@ -201,6 +202,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
             _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
 
+        self._module = module
+
         return wrapped_module
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
@@ -266,6 +269,28 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def clip_gradients_norm(
+        self,
+        optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ):
+        """Clip gradients by norm."""
+        from lightning.fabric.wrappers import _unwrap_objects
+
+        optimizer = _unwrap_objects(optimizer)
+        self._unscale_params(optimizer)
+        return self._module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+
+    def clip_gradients_value(self, optimizer, clip_val: Union[float, int]):
+        """Clip gradients by value."""
+
+        raise NotImplementedError(
+            "FSDP currently does not support to clip gradients by value. "
+            "Consider clipping by norm instead or choose another strategy!"
+        )
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
