@@ -11,144 +11,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import functools
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Iterable, Iterator, List, Literal, Sized
 
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch.utils.data import Dataset
-from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
-from torch.utils.data.dataset import IterableDataset
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 from typing_extensions import TypedDict
 
 from lightning.fabric.utilities.data import sized_len
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import _NUMBER
+from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
 
-@dataclass
-class SharedCycleIteratorState:
-    """A state shared between all CycleIterators in a CombinedLoader.
-
-    With a shared state, the iterators can decide to terminate based on the state of all others. If the mode is
-    *max_size_cycle*, all iterators need to have finished before the combined loading is considered finished, and
-    otherwise any iterator finishing early will lead to all iterators ending early.
-    """
-
-    mode: str = "max_size_cycle"
-    dataloaders: List[DataLoader] = field(default_factory=lambda: [])
-    has_finished: Dict[int, bool] = field(default_factory=lambda: {})
-    has_reset: bool = False
-
-    def reset(self) -> None:
-        for dataloader in self.dataloaders:
-            self.has_finished[id(dataloader)] = False
-        self.has_reset = True
-
-    @property
-    def done(self) -> bool:
-        if not self.has_reset:
-            raise MisconfigurationException("Please call reset once all dataloaders have been added.")
-        if len(self.dataloaders) == 1:
-            return False
-        decision_fn = all if self.mode == "max_size_cycle" else any
-        return decision_fn(self.has_finished.values())
-
-
-class CycleIterator:
-    """Iterator for restarting a dataloader if it runs out of samples."""
-
-    def __init__(self, loader: Any, length: _NUMBER = float("inf"), state: SharedCycleIteratorState = None):
-        """
-        Args:
-            loader: the loader to restart for cyclic (and optionally infinite) sampling
-            length: the number of batches to sample (with restarted loaders if necessary) before raising StopIteration
-        """
-        if not state:
-            state = SharedCycleIteratorState()
-            state.dataloaders.append(loader)
-            state.reset()
-        else:
-            state.dataloaders.append(loader)
-
-        self.state = state
-
-        self.length = length
-        self.loader = loader
-        self._loader_iter = None
-        self.counter = 0
-        self.state = state
-
-    def __iter__(self) -> Any:
-        """Creates the internal iterator and returns self.
-
-        Returns:
-            CycleIterator: self
-        """
-        self.counter = 0
-        self.state.reset()
-        self._loader_iter = iter(self.loader)
-        return self
-
-    def __next__(self) -> Any:
-        """
-        Fetches the next batch from internal dataloader and restarts
-        it if necessary
-        Returns:
-            Any: the resulting batch
-        Raises:
-            StopIteration: if more then :attr:`length` batches have been returned
-        """
-        assert isinstance(self._loader_iter, Iterator)
-
-        # Note: if self.length is `inf`, then the iterator will never stop
-        if self.counter >= self.__len__() or self.state.done:
-            raise StopIteration
-
-        try:
-            return next(self._loader_iter)
-
-        except StopIteration:
-
-            # inform the shared state this loader has completed
-            self.state.has_finished[id(self.loader)] = True
-
-            # check if iteration should be stopped.
-            if self.state.done:
-                raise StopIteration
-
-            self._loader_iter = iter(self.loader)
-            return next(self._loader_iter)
-
-        finally:
-            self.counter += 1
-
-    def __len__(self) -> _NUMBER:
-        # TODO: returning float here is a hack
-        return self.length
+class _NoneSentinel:
+    pass
 
 
 class _CombinationMode(TypedDict):
     name: str
-    fn: Callable[[_NUMBER, _NUMBER], _NUMBER]
-    default: _NUMBER
+    fn: Callable[[List[int]], int]
 
 
 _supported_modes = {
-    "min_size": _CombinationMode(name="min_size", fn=min, default=float("inf")),
-    "max_size_cycle": _CombinationMode(name="max_size_cycle", fn=max, default=float("-inf")),
+    "min_size": _CombinationMode(name="min_size", fn=min),
+    "max_size_cycle": _CombinationMode(name="max_size_cycle", fn=max),
 }
 
+_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle"]
 
-class CombinedDataset:
+
+class _CombinedDataset(Sized):
     """Combine multiple datasets."""
 
-    def __init__(self, datasets: Any, mode: str = "min_size"):
+    def __init__(self, datasets: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size"):
         """
         Args:
             datasets: Collections of Iterables.
-            mode: whether to use the minimum number of batches in all samples or the maximum
-                number of batches in all samples.
+            mode: Mode to use when computing the length.
         """
         if mode not in _supported_modes:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
@@ -159,34 +55,16 @@ class CombinedDataset:
     def datasets(self) -> Any:
         return self._datasets
 
-    def _get_len_recursive(self, data: Any) -> Union[int, List, Dict]:
-        if isinstance(data, int):
-            return data
-        if isinstance(data, Mapping):
-            if any(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data.values()):
-                return {k: self._get_len_recursive(v) for k, v in data.items()}
-        elif isinstance(data, Sequence):
-            data = list(data)
-            if any(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data):
-                return [self._get_len_recursive(v) for v in data]
-
-        length = sized_len(data)
-        if length is None:
-            raise ValueError(f"Couldn't compute the length of {data}")
-        return length
-
-    @functools.lru_cache(maxsize=1)
     def __len__(self) -> int:
         """Compute the length of `CombinedDataset` according to the `mode`."""
-        all_lengths = self._get_len_recursive(self.datasets)
-        mode = _supported_modes[self._mode]
-        total_length = _reduce_data(all_lengths, mode["fn"], mode["default"])
-        if isinstance(total_length, float):
-            raise TypeError(f"The total size of the datasets must be an int, found {total_length}")
-        return total_length
+        lengths = [length for ds in _tree_flatten(self._datasets)[0] if (length := sized_len(ds)) is not None]
+        if not lengths:
+            raise NotImplementedError("All datasets are iterable-style datasets.")
+        fn = _supported_modes[self._mode]["fn"]
+        return fn(lengths)
 
 
-class CombinedLoader:
+class CombinedLoader(Iterable):
     """Combines different dataloaders and allows sampling in parallel.
 
     Args:
@@ -217,171 +95,91 @@ class CombinedLoader:
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
     """
 
-    def __init__(self, loaders: Any, mode: str = "min_size"):
+    def __init__(self, loaders: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
         if mode not in _supported_modes:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
+        self._loaders = loaders
+        self._loaders_flattened, self._loaders_spec = _tree_flatten(loaders)
 
-        self.loaders = loaders
-
-        datasets = apply_to_collection(
-            self.loaders, Iterable, getattr, "dataset", None, wrong_dtype=(Sequence, Mapping)
+        # FIXME(carlos): why do we even need this?
+        datasets = _map_and_unflatten(
+            lambda x: getattr(x, "dataset", None), self._loaders_flattened, self._loaders_spec
         )
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
-        self.dataset = CombinedDataset(datasets, mode)
+        self.dataset = _CombinedDataset(datasets, mode)
 
         self._mode = mode
-        self._wrap_loaders_max_size_cycle()
+        self._loader_iters: List[Iterator] = []
+        self._consumed: List[bool] = []
 
-        self._iterator: Optional[Iterator] = None  # assigned in __iter__
+    @property
+    def loaders(self) -> Any:
+        """Return the original collection of loaders."""
+        return self._loaders
 
     @property
     def sampler(self) -> Any:
         """Return a collections of samplers extracted from loaders."""
-        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, "sampler", None)
+        return _map_and_unflatten(lambda x: getattr(x, "sampler", None), self._loaders_flattened, self._loaders_spec)
 
     @property
     def batch_sampler(self) -> Any:
         """Return a collections of batch samplers extracted from loaders."""
-        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, "batch_sampler", None)
-
-    def _wrap_loaders_max_size_cycle(self) -> None:
-        """Wraps all loaders to make sure they are cycled until the longest loader is exhausted.
-
-        Returns:
-            the wrapped loaders
-        """
-        if self._mode != "max_size_cycle" or not isinstance(self.loaders, (Sequence, Mapping)):
-            return
-        length = self._calc_num_batches()
-        state = SharedCycleIteratorState()
-        self.loaders = apply_to_collection(
-            self.loaders, Iterable, CycleIterator, length=length, state=state, wrong_dtype=(Sequence, Mapping)
+        return _map_and_unflatten(
+            lambda x: getattr(x, "batch_sampler", None), self._loaders_flattened, self._loaders_spec
         )
-        state.reset()
 
-    def _apply_cycle_iterator_length(self) -> None:
-        """When the model is `max_size_cycle`, compute the length across all ``CycleIterator`` and re-assign it to
-        all dataloaders."""
-        if self._mode != "max_size_cycle":
-            return
+    def __next__(self) -> Any:
+        n = len(self._loader_iters)
+        out = [_NoneSentinel()] * n  # values per iterator
+        for i in range(n):
+            try:
+                out[i] = next(self._loader_iters[i])
+            except StopIteration:
+                self._consumed[i] = True
+                if all(self._consumed):
+                    raise StopIteration
+                if self._mode == "max_size_cycle":
+                    # reset the consumed dataloader
+                    self._loader_iters[i] = iter(self._loaders_flattened[i])
+                    out[i] = next(self._loader_iters[i])
+                    continue
+                elif self._mode == "min_size":
+                    raise
+        if any(isinstance(v, _NoneSentinel) for v in out):
+            raise RuntimeError("Something went wrong! Please open an issue on GitHub.")
+        return tree_unflatten(out, self._loaders_spec)
 
-        from lightning.pytorch.utilities.data import get_len
-
-        def set_len(cycle_iterator: CycleIterator, length: int) -> None:
-            cycle_iterator.length = length
-
-        all_lengths = apply_to_collection(self.loaders, CycleIterator, lambda c: get_len(c.loader))
-        max_length = _reduce_data(all_lengths, max, float("-inf"))
-        apply_to_collection(self.loaders, CycleIterator, set_len, length=max_length)
-
-    def __iter__(self) -> Any:
-        """Create and return an iterator, `CombinedLoaderIterator`, for the combined loader."""
-
-        # prevent `NotImplementedError` from PyTorch:
-        # https://github.com/pytorch/pytorch/blob/v1.9.0/torch/utils/data/dataloader.py#L541
-        def __getstate__patch__(*_: Any) -> Dict:
-            return {}
-
-        _BaseDataLoaderIter.__getstate__ = __getstate__patch__  # type: ignore[assignment]
-        iterator = CombinedLoaderIterator(self.loaders)
-        self._iterator = iterator
-        return iterator
-
-    def _calc_num_batches(self) -> _NUMBER:
-        from lightning.pytorch.utilities.data import get_len
-
-        all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
-        mode = _supported_modes[self._mode]
-        return _reduce_data(all_lengths, mode["fn"], mode["default"])
+    def __iter__(self) -> Iterator:
+        self._loader_iters = [iter(loader) for loader in self._loaders_flattened]
+        self._consumed = [False] * len(self._loaders_flattened)
+        return self
 
     def __len__(self) -> int:
         """Compute the number of batches."""
-        length = self._calc_num_batches()
-        if isinstance(length, float):
-            raise TypeError(f"Number of batches must be an int, found {length}")
-        return length
-
-    @staticmethod
-    def _shutdown_workers_and_reset_iterator(dataloader: DataLoader) -> None:
-        if hasattr(dataloader, "_iterator") and isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
-            dataloader._iterator._shutdown_workers()
-        dataloader._iterator = None
+        lengths = []
+        for dl in self._loaders_flattened:
+            length = sized_len(dl)
+            if length is None:
+                raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
+            lengths.append(length)
+        fn = _supported_modes[self._mode]["fn"]
+        return fn(lengths)
 
     def reset(self) -> None:
-        if self._iterator:
-            self._iterator._loader_iters = None
-        if self.loaders is not None:
-            apply_to_collection(self.loaders, DataLoader, self._shutdown_workers_and_reset_iterator)
-        self._iterator = None
+        self._loader_iters = []
+        self._consumed = []
+        for loader in self._loaders_flattened:
+            _shutdown_workers_and_reset_iterator(loader)
+
+    def _update_index(self, dataloader: Iterable, index: int) -> None:
+        # mutation needs to be done using this method to avoid stale references
+        self._loaders_flattened[index] = dataloader
+        self._loaders = tree_unflatten(self._loaders_flattened, self._loaders_spec)
 
 
-class CombinedLoaderIterator:
-    """Custom Iterator returning data from multiple loaders, and allows sampling in parallel."""
-
-    def __init__(self, loaders: Any):
-        """
-        Args:
-            loaders: the loaders to sample from. Can be all kind of collection
-        """
-        self.loaders = loaders
-        self._loader_iters: Any = None
-
-    @property
-    def loader_iters(self) -> Any:
-        """Get the `_loader_iters` and create one if it is None."""
-        if self._loader_iters is None:
-            self._loader_iters = self.create_loader_iters(self.loaders)
-
-        return self._loader_iters
-
-    def __iter__(self) -> Any:
-        return self
-
-    def __next__(self) -> Any:
-        """Fetches the next batch from multiple data loaders.
-
-        Returns:
-            a collections of batch data
-        """
-        return self.request_next_batch(self.loader_iters)
-
-    @staticmethod
-    def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
-        """Return the batch of data from multiple iterators.
-
-        Args:
-            loader_iters: a collections of iterators
-
-        Returns
-            Any: a collections of batch data
-        """
-        return apply_to_collection(loader_iters, Iterator, next)
-
-    @staticmethod
-    def create_loader_iters(
-        loaders: Union[Any, Iterator, Sequence, Mapping]
-    ) -> Union[Any, Iterator, Sequence, Mapping]:
-        """Create and return a collection of iterators from loaders.
-
-        Args:
-            loaders: a collections of loaders
-
-        Returns
-            a collections of iterators
-        """
-        # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
-        return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
-
-
-def _reduce_data(data: Any, pairwise_reduction: Callable[[_NUMBER, _NUMBER], _NUMBER], default: _NUMBER) -> _NUMBER:
-    if data is None:
-        raise TypeError(f"Expected data to be int, Sequence or Mapping, but got {type(data).__name__}")
-
-    total = default
-
-    def reduce(v: _NUMBER) -> None:
-        nonlocal total
-        total = pairwise_reduction(total, v)
-
-    apply_to_collection(data, (int, float), reduce)
-    return total
+def _shutdown_workers_and_reset_iterator(dataloader: DataLoader) -> None:
+    if hasattr(dataloader, "_iterator"):
+        if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
+            dataloader._iterator._shutdown_workers()
+        dataloader._iterator = None

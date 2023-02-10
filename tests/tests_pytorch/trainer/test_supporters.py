@@ -18,46 +18,16 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
+from torch.utils._pytree import tree_flatten
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
+from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.supporters import (
-    _reduce_data,
-    CombinedDataset,
-    CombinedLoader,
-    CombinedLoaderIterator,
-    CycleIterator,
-)
-from lightning.pytorch.utilities.data import get_len
+from lightning.pytorch.trainer.supporters import _CombinedDataset, CombinedLoader
 from tests_pytorch.helpers.runif import RunIf
-
-
-def test_cycle_iterator():
-    """Test the cycling function of `CycleIterator`"""
-
-    iterator = CycleIterator(range(100), 1000)
-    assert len(iterator) == 1000
-    for idx, item in enumerate(iterator):
-        assert item < 100
-
-    assert idx == len(iterator) - 1
-
-
-def test_none_length_cycle_iterator():
-    """Test the infinite cycling function of `CycleIterator`"""
-    iterator = CycleIterator(range(100))
-    assert iterator.__len__() == float("inf")
-
-    # test infinite loop
-    for idx, item in enumerate(iterator):
-        if idx == 1000:
-            break
-    assert item == 0
 
 
 @pytest.mark.parametrize(
@@ -72,65 +42,75 @@ def test_none_length_cycle_iterator():
 def test_combined_dataset(dataset_1, dataset_2):
     """Verify the length of the CombinedDataset."""
     datasets = [dataset_1, dataset_2]
-    combined_dataset = CombinedDataset(datasets, "max_size_cycle")
+    combined_dataset = _CombinedDataset(datasets, "max_size_cycle")
     assert len(combined_dataset) == 20
 
-    combined_dataset = CombinedDataset(datasets, "min_size")
+    combined_dataset = _CombinedDataset(datasets, "min_size")
     assert len(combined_dataset) == 10
 
 
 def test_combined_dataset_length_mode_error():
     with pytest.raises(ValueError, match="Unsupported mode 'test'"):
-        CombinedDataset([], mode="test")
+        _CombinedDataset([], mode="test")
 
 
-def test_combined_loader_iterator_dict_min_size():
+def test_combined_dataset_no_length():
+    class Foo:
+        # map-style
+        def __len__(self):
+            return 5
+
+    class Bar:
+        # iterable style
+        ...
+
+    class Baz:
+        # None length
+        def __len__(self):
+            pass
+
+    cd = _CombinedDataset([Foo(), Bar(), Baz()])
+    assert len(cd) == 5
+
+    cd = _CombinedDataset(Bar)
+    with pytest.raises(NotImplementedError, match="All datasets are iterable-style"):
+        len(cd)
+
+
+def test_combined_loader_dict_min_size():
     """Test `CombinedLoaderIterator` given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
         "b": torch.utils.data.DataLoader(range(20), batch_size=5),
     }
+    cl = CombinedLoader(loaders, "min_size")
 
-    combined_iter = CombinedLoaderIterator(loaders)
-
-    for idx, item in enumerate(combined_iter):
+    for idx, item in enumerate(cl):
         assert isinstance(item, dict)
         assert len(item) == 2
         assert "a" in item and "b" in item
-
     assert idx == min(len(loaders["a"]), len(loaders["b"])) - 1
 
+    loaders = [
+        torch.utils.data.DataLoader(range(10), batch_size=4),
+        torch.utils.data.DataLoader(range(20), batch_size=5),
+    ]
+    combined_loader = CombinedLoader(loaders, "min_size")
 
-def test_combined_loader_init_mode_error():
-    """Test the ValueError when constructing `CombinedLoader`"""
+    assert len(combined_loader) == min(len(v) for v in loaders)
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(item, list)
+        assert len(item) == 2
+    assert idx == len(combined_loader) - 1
+
+
+def test_combined_loader_raises():
     with pytest.raises(ValueError, match="Unsupported mode 'testtt'"):
         CombinedLoader([range(10)], "testtt")
 
-
-def test_combined_loader_loader_type_error():
-    """Test the ValueError when wrapping the loaders."""
     combined_loader = CombinedLoader(None, "max_size_cycle")
-    with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
+    with pytest.raises(NotImplementedError, match="NoneType` does not define `__len__"):
         len(combined_loader)
-
-
-def test_combined_loader_dict_min_size():
-    """Test `CombinedLoader` of mode 'min_size' given mapping loaders."""
-    loaders = {
-        "a": torch.utils.data.DataLoader(range(10), batch_size=4),
-        "b": torch.utils.data.DataLoader(range(20), batch_size=5),
-    }
-
-    combined_loader = CombinedLoader(loaders, "min_size")
-
-    assert len(combined_loader) == min(len(v) for v in loaders.values())
-
-    for idx, item in enumerate(combined_loader):
-        assert isinstance(item, dict)
-        assert len(item) == 2
-        assert "a" in item and "b" in item
-
-    assert idx == len(combined_loader) - 1
 
 
 def test_combined_loader_dict_max_size_cycle():
@@ -209,7 +189,7 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
             break
 
     if mode == "max_size_cycle":
-        assert combined_loader.loaders[0].state.done == (not has_break)
+        assert all(combined_loader._consumed) == (not has_break)
     expected = (10 if mode == "max_size_cycle" else 5) if use_multiple_dataloaders else 5
     assert (expected - 1) == idx, (mode, use_multiple_dataloaders)
 
@@ -265,26 +245,6 @@ def test_combined_loader_sequence_max_size_cycle():
     assert idx == len(combined_loader) - 1
 
 
-@pytest.mark.parametrize(
-    ["input_data", "compute_func", "expected_length"],
-    [
-        ([*range(10), list(range(1, 20))], min, 0),
-        ([*range(10), list(range(1, 20))], max, 19),
-        ([*range(10), {str(i): i for i in range(1, 20)}], min, 0),
-        ([*range(10), {str(i): i for i in range(1, 20)}], max, 19),
-        ({**{str(i): i for i in range(10)}, "nested": {str(i): i for i in range(1, 20)}}, min, 0),
-        ({**{str(i): i for i in range(10)}, "nested": {str(i): i for i in range(1, 20)}}, max, 19),
-        ({**{str(i): i for i in range(10)}, "nested": list(range(20))}, min, 0),
-        ({**{str(i): i for i in range(10)}, "nested": list(range(20))}, max, 19),
-    ],
-)
-def test_nested_calc_num_data(input_data, compute_func, expected_length):
-    default = float("inf") if compute_func is min else float("-inf")
-    calculated_length = _reduce_data(input_data, compute_func, default)
-
-    assert calculated_length == expected_length
-
-
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, replace_sampler_ddp):
@@ -318,24 +278,17 @@ def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, replace
 
     trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
     dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
-    count = 0
 
-    def _assert_distributed_sampler(v):
-        nonlocal count
-        count += 1
-        if replace_sampler_ddp:
-            assert isinstance(v, DistributedSampler)
-        else:
-            assert isinstance(v, (SequentialSampler, CustomSampler))
+    samplers_flattened = tree_flatten(dataloader.sampler)[0]
+    assert len(samplers_flattened) == 6
+    if replace_sampler_ddp:
+        assert all(isinstance(s, DistributedSampler) for s in samplers_flattened)
+    else:
+        assert all(isinstance(s, (SequentialSampler, CustomSampler)) for s in samplers_flattened)
 
-    apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
-    assert count == 6
-
-    def _assert_dataset(loader):
-        d = loader.dataset
-        assert isinstance(d, CustomDataset)
-
-    apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
+    datasets_flattened = tree_flatten(dataloader.dataset.datasets)[0]
+    assert len(datasets_flattened) == 6
+    assert all(isinstance(ds, CustomDataset) for ds in datasets_flattened)
 
 
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
@@ -385,11 +338,13 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
         },
         mode="max_size_cycle",
     )
-    assert get_len(dataloader) == float("inf")
-    assert len(dataloader.loaders["b"].loader) == 8
+    with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
+        len(dataloader)
+    assert len(dataloader.loaders["b"]) == 8
     dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
-    assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
-    assert get_len(dataloader) == float("inf")
+    assert len(dataloader.loaders["b"]) == 4 if replace_sampler_ddp else 8
+    with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
+        len(dataloader)
 
 
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
