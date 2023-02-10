@@ -139,8 +139,6 @@ def _retry_wrapper(self, func: Callable) -> Callable:
             try:
                 return func(self, *args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as e:
-                if e.status == 500:
-                    raise HTTPException(status_code=500, detail=ast.literal_eval(e.body.decode("utf-8"))["message"])
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
                 if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
                     consecutive_errors += 1
