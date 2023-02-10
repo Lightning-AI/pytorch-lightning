@@ -30,8 +30,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
- * `strategy="fsdp_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
- * `lightning.fabric.plugins.precision.native_amp` is now `lightning.fabric.plugins.precision.amp`
+  * `strategy="fsdp_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
+  * `lightning.fabric.plugins.precision.native_amp` is now `lightning.fabric.plugins.precision.amp`
 
 
 - Enabled all shorthand strategy names that can be supported in the CLI ([#16485](https://github.com/Lightning-AI/lightning/pull/16485))
@@ -52,18 +52,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+-
+
+
+## [1.9.1] - 2023-02-10
+
+### Fixed
+
 - Fixed error handling for `accelerator="mps"` and `ddp` strategy pairing ([#16455](https://github.com/Lightning-AI/lightning/pull/16455))
-
-
 - Fixed strict availability check for `torch_xla` requirement ([#16476](https://github.com/Lightning-AI/lightning/pull/16476))
-
-
 - Fixed an issue where PL would wrap DataLoaders with XLA's MpDeviceLoader more than once ([#16571](https://github.com/Lightning-AI/lightning/pull/16571))
-
-
 - Fixed the batch_sampler reference for DataLoaders wrapped with XLA's MpDeviceLoader ([#16571](https://github.com/Lightning-AI/lightning/pull/16571))
-
-
 - Fixed an import error when `torch.distributed` is not available ([#16658](https://github.com/Lightning-AI/lightning/pull/16658))
 
 
