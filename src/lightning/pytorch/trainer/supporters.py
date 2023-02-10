@@ -21,13 +21,12 @@ from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatte
 
 
 class _CombinationMode(TypedDict):
-    name: str
     fn: Callable[[List[int]], int]
 
 
 _supported_modes = {
-    "min_size": _CombinationMode(name="min_size", fn=min),
-    "max_size_cycle": _CombinationMode(name="max_size_cycle", fn=max),
+    "min_size": _CombinationMode(fn=min),
+    "max_size_cycle": _CombinationMode(fn=max),
 }
 
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle"]
