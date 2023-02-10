@@ -97,7 +97,7 @@ class CombinedLoader(Iterable):
         self._loaders = loaders
         self._loaders_flattened, self._loaders_spec = _tree_flatten(loaders)
 
-        # FIXME(carlos): why do we even need this?
+        # TODO(carlos): doing this might not be necessary
         datasets = _map_and_unflatten(
             lambda x: getattr(x, "dataset", None), self._loaders_flattened, self._loaders_spec
         )
