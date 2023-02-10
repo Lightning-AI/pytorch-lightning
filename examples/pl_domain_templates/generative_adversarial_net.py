@@ -148,7 +148,7 @@ class GAN(LightningModule):
     def adversarial_loss(y_hat, y):
         return F.binary_cross_entropy_with_logits(y_hat, y)
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch):
         imgs, _ = batch
 
         opt_g, opt_d = self.optimizers()
