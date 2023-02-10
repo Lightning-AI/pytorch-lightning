@@ -6,10 +6,22 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
+  pull_request:  # this shall test only the part of workflow before publishing
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - '.github/actions/pkg-publish/*'
+      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_build-packages.yml"
+      - ".github/workflows/release-pypi.yml"
 
 defaults:
   run:
     shell: bash
+
+env:
+  FREEZE_REQUIREMENTS: 1
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 jobs:
 
@@ -44,12 +56,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: install Package
-      env:
-        PACKAGE_NAME: "lightning"
-      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      run: |
+        pip install . -f ${TORCH_URL}
+        pip list
     - name: package Version
       id: lai-package
-      run: python -c "import lightning as L; print(f'version={L.__version__}')" >> $GITHUB_OUTPUT
+      run: python -c "import lightning ; print(f'version={lightning.__version__}')" >> $GITHUB_OUTPUT
 
 
   signaling:
