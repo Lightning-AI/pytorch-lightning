@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.9.2] - 2023-02-DD
+
+### Added
+
+-
+
+
+### Changed
+
+-
+
+
+### Deprecated
+
+-
+
+
+### Removed
+
+-
+
+
+### Fixed
+
+-
+
+
+
 ## [1.9.1] - 2023-02-10
 
 ### Added
@@ -13,10 +41,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added experimental support for interruptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
 - Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
 - Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
- * `ls`: List files from your Cloud Platform Filesystem
- * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
- * `pwd`: Return the current folder in your Cloud Platform Filesystem
- * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
+  * `ls`: List files from your Cloud Platform Filesystem
+  * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
+  * `pwd`: Return the current folder in your Cloud Platform Filesystem
+  * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
 - Prevent to `cd` into non existent folders ([#16645](https://github.com/Lightning-AI/lightning/pull/16645))
 - Enabled `cp` (upload) at project level ([#16631](https://github.com/Lightning-AI/lightning/pull/16631))
 - Enabled `ls` and `cp` (download) at project level ([#16622](https://github.com/Lightning-AI/lightning/pull/16622))
@@ -40,6 +68,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
 - Fixed malformed path when downloading files using `lightning cp` ([#16626](https://github.com/Lightning-AI/lightning/pull/16626))
 - Fixed app name in URL ([#16575](https://github.com/Lightning-AI/lightning/pull/16575))
+
 
 ## [1.9.0] - 2023-01-17
 
