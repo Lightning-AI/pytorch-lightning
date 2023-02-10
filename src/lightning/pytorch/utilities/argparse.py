@@ -19,7 +19,7 @@ from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, Type, TypeVar, Union, TYPE_CHECKING
+from typing import Any, Callable, cast, Type, TYPE_CHECKING, TypeVar, Union
 
 if TYPE_CHECKING:
     import lightning.pytorch as pl
