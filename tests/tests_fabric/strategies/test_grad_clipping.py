@@ -10,11 +10,7 @@ from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy
 
 class _MyFabricGradNorm(BoringFabric):
     def after_backward(self, model, optimizer):
-        self.strategy.clip_gradients_norm(
-            optimizer,
-            max_norm=0.05,
-            error_if_nonfinite=False
-        )
+        self.strategy.clip_gradients_norm(optimizer, max_norm=0.05, error_if_nonfinite=False)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
