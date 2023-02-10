@@ -6,6 +6,14 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - '.github/actions/pkg-publish/*'
+      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_build-packages.yml"
+      - ".github/workflows/release-pypi.yml"
 
 defaults:
   run:
@@ -174,6 +182,7 @@ jobs:
   legacy-checkpoints:
     needs: [build-packages]
     uses: ./.github/workflows/_legacy-checkpoints.yml
+    if: github.event_name != 'pull_request'
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
