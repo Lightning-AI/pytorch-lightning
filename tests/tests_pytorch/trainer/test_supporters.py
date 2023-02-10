@@ -189,7 +189,7 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
             break
 
     if mode == "max_size_cycle":
-        assert all(combined_loader._consumed) == (not has_break)
+        assert all(combined_loader._iterator._consumed) == (not has_break)
     expected = (10 if mode == "max_size_cycle" else 5) if use_multiple_dataloaders else 5
     assert (expected - 1) == idx, (mode, use_multiple_dataloaders)
 

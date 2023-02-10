@@ -11,22 +11,71 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Iterator, List, Literal, Sized
+from typing import Any, Callable, Iterable, Iterator, List, Literal, Optional, Sized, Type
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
-from typing_extensions import TypedDict
+from typing_extensions import Self, TypedDict
 
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
 
+class _ModeIterator(Iterator[List]):
+    def __init__(self, iterables: List[Iterable]) -> None:
+        self.iterables = iterables
+        self.iterators: List[Iterator] = []
+
+    def __iter__(self) -> Self:  # type: ignore[valid-type]
+        self.iterators = [iter(iterable) for iterable in self.iterables]
+        return self
+
+    def reset(self) -> None:
+        self.iterators = []
+
+
+class _MaxSizeCycle(_ModeIterator):
+    def __init__(self, iterables: List[Iterable]) -> None:
+        super().__init__(iterables)
+        self._consumed: List[bool] = []
+
+    def __next__(self) -> List:
+        n = len(self.iterators)
+        out = [None] * n  # values per iterator
+        for i in range(n):
+            try:
+                out[i] = next(self.iterators[i])
+            except StopIteration:
+                self._consumed[i] = True
+                if all(self._consumed):
+                    raise
+                # reset the consumed dataloader
+                self.iterators[i] = iter(self.iterables[i])
+                out[i] = next(self.iterators[i])
+        return out
+
+    def __iter__(self) -> Self:  # type: ignore[valid-type]
+        super().__iter__()
+        self._consumed = [False] * len(self.iterables)
+        return self
+
+    def reset(self) -> None:
+        super().reset()
+        self._consumed = []
+
+
+class _MinSize(_ModeIterator):
+    def __next__(self) -> List:
+        return [next(it) for it in self.iterators]
+
+
 class _CombinationMode(TypedDict):
     fn: Callable[[List[int]], int]
+    iterator: Type[_ModeIterator]
 
 
 _supported_modes = {
-    "min_size": _CombinationMode(fn=min),
-    "max_size_cycle": _CombinationMode(fn=max),
+    "min_size": _CombinationMode(fn=min, iterator=_MinSize),
+    "max_size_cycle": _CombinationMode(fn=max, iterator=_MaxSizeCycle),
 }
 
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle"]
@@ -93,6 +142,7 @@ class CombinedLoader(Iterable):
     def __init__(self, loaders: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
         if mode not in _supported_modes:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
+        # TODO(carlos): rename loaders to iterables
         self._loaders = loaders
         self._loaders_flattened, self._loaders_spec = _tree_flatten(loaders)
 
@@ -104,8 +154,7 @@ class CombinedLoader(Iterable):
         self.dataset = _CombinedDataset(datasets, mode)
 
         self._mode = mode
-        self._loader_iters: List[Iterator] = []
-        self._consumed: List[bool] = []
+        self._iterator: Optional[_ModeIterator] = None
 
     @property
     def loaders(self) -> Any:
@@ -125,27 +174,15 @@ class CombinedLoader(Iterable):
         )
 
     def __next__(self) -> Any:
-        n = len(self._loader_iters)
-        out = [None] * n  # values per iterator
-        for i in range(n):
-            try:
-                out[i] = next(self._loader_iters[i])
-            except StopIteration:
-                self._consumed[i] = True
-                if all(self._consumed):
-                    raise
-                if self._mode == "max_size_cycle":
-                    # reset the consumed dataloader
-                    self._loader_iters[i] = iter(self._loaders_flattened[i])
-                    out[i] = next(self._loader_iters[i])
-                    continue
-                elif self._mode == "min_size":
-                    raise
+        assert self._iterator is not None
+        out = next(self._iterator)
         return tree_unflatten(out, self._loaders_spec)
 
-    def __iter__(self) -> Iterator:
-        self._loader_iters = [iter(loader) for loader in self._loaders_flattened]
-        self._consumed = [False] * len(self._loaders_flattened)
+    def __iter__(self) -> Self:  # type: ignore[valid-type]
+        cls = _supported_modes[self._mode]["iterator"]
+        iterator = cls(self._loaders_flattened)
+        iter(iterator)
+        self._iterator = iterator
         return self
 
     def __len__(self) -> int:
@@ -160,8 +197,9 @@ class CombinedLoader(Iterable):
         return fn(lengths)
 
     def reset(self) -> None:
-        self._loader_iters = []
-        self._consumed = []
+        if self._iterator is not None:
+            self._iterator.reset()
+            self._iterator = None
         for loader in self._loaders_flattened:
             _shutdown_workers_and_reset_iterator(loader)
 
