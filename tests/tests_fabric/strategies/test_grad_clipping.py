@@ -24,7 +24,6 @@ class _MyFabricGradNorm(BoringFabric):
                 pass
 
 
-
 class _MyFabricGradVal(BoringFabric):
     def after_backward(self, model, optimizer):
         self.strategy.clip_gradients_value(optimizer, clip_val=1e-10)
