@@ -27,7 +27,7 @@ class PyTorchServer(L.app.components.PythonServer):
 
     def setup(self):
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self._model = torchvision.models.resnet18(pretrained=True).to(self._device)
+        self._model = torchvision.models.resnet18().to(self._device)
 
     def predict(self, requests: BatchRequestModel):
         transforms = torchvision.transforms.Compose(

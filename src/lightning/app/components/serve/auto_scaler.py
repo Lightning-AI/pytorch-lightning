@@ -563,7 +563,6 @@ class AutoScaler(LightningFlow):
     ) -> None:
         super().__init__()
         self.num_replicas = 0
-        self._work_registry = {}
         self.ws = LDict()
         self._work_cls = work_cls
         self._work_args = work_args
@@ -617,7 +616,7 @@ class AutoScaler(LightningFlow):
     def run(self):
         if not self.load_balancer.is_running:
             self.load_balancer.run()
-        for work in self.ws.items():
+        for work in self.ws.values():
             work.run()
         if self.load_balancer.url:
             self.fake_trigger += 1  # Note: change state to keep calling `run`.
@@ -668,7 +667,17 @@ class AutoScaler(LightningFlow):
     @property
     def num_pending_works(self) -> int:
         """The number of pending works."""
-        return sum(work.is_pending for _, work in self.ws.items())
+        return sum(work.is_pending for work in self.ws.values())
+
+    @property
+    def num_running_works(self) -> int:
+        """The number of pending works."""
+        return sum(work.is_running for work in self.ws.values())
+
+    @property
+    def num_stopped_works(self) -> int:
+        """The number of pending works."""
+        return sum(work.has_stopped for work in self.ws.values())
 
     def autoscale(self) -> None:
         """Adjust the number of works based on the target number returned by ``self.scale``."""
@@ -680,14 +689,14 @@ class AutoScaler(LightningFlow):
         # ensure min_replicas <= num_replicas <= max_replicas
         num_target_workers = max(
             self.min_replicas,
-            min(self.max_replicas, self.scale(self.num_replicas, metrics)),
+            min(self.max_replicas, self.scale(self.num_running_works + self.num_pending_works, metrics)),
         )
 
         # scale-out
         if time.time() - self._last_autoscale > self.scale_out_interval:
             # TODO figuring out number of workers to add only based on num_replicas isn't right because pending works
             #  are not added to num_replicas
-            num_workers_to_add = num_target_workers - self.num_replicas
+            num_workers_to_add = num_target_workers - self.num_running_works
             for _ in range(num_workers_to_add):
                 logger.info(f"Scaling out from {self.num_replicas} to {self.num_replicas + 1}")
                 work_id = self.issue_unique_name()
@@ -701,14 +710,22 @@ class AutoScaler(LightningFlow):
             # TODO figuring out number of workers to remove only based on num_replicas isn't right because pending works
             #  are not added to num_replicas
             num_workers_to_remove = self.num_replicas - num_target_workers
+            work_names = self.ws.keys()
             for _ in range(num_workers_to_remove):
-                logger.info(f"Scaling in from {self.num_replicas} to {self.num_replicas - 1}")
-                removed_work_id = self.remove_work(self.num_replicas - 1)
-                logger.info(f"Work removed: '{removed_work_id}'")
+                for work_name in work_names:
+                    # stop running work
+                    if self.ws[work_name].is_running:
+                        logger.info(f"Scaling in from {self.num_replicas} to {self.num_replicas - 1}")
+                        self.ws[work_name].stop()
+                        logger.info(f"Work stopped: '{work_name}'")
+                        break
+
             if num_workers_to_remove > 0:
                 self._last_autoscale = time.time()
 
-        self.load_balancer.update_servers(self.workers)
+        logger.info(f"{self.num_running_works} running, {self.num_pending_works} pending, {self.num_stopped_works} stopped")
+
+        self.load_balancer.update_servers(self.ws.values())
 
     def configure_layout(self):
         tabs = [
