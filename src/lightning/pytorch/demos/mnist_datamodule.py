@@ -159,8 +159,6 @@ class MNISTDataModule(LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        *args: Any,
-        **kwargs: Any,
     ) -> None:
         """
         Args:
@@ -171,7 +169,7 @@ class MNISTDataModule(LightningDataModule):
             seed: starting seed for RNG.
             batch_size: desired batch size.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         if num_workers and _IS_WINDOWS:
             # see: https://stackoverflow.com/a/59680818
             warn(
