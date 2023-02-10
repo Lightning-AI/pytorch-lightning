@@ -6,7 +6,7 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
-  pull_request:
+  pull_request:  # this shall test only the part of workflow before publishing
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
