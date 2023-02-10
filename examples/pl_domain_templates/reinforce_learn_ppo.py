@@ -376,15 +376,11 @@ class PPOLightning(LightningModule):
         loss_critic = (qval - value).pow(2).mean()
         return loss_critic
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx):
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Carries out a single update to actor and critic network from a batch of replay buffer.
 
         Args:
             batch: batch of replay buffer/trajectory data
-            batch_idx: not used
-
-        Returns:
-            loss
         """
         state, action, old_logp, qval, adv = batch
 
