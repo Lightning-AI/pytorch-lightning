@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Added `lightning open` command ([#16482](https://github.com/Lightning-AI/lightning/pull/16482))
-- Added experimental support for incorruptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
+- Added experimental support for interruptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
 - Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
 - Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
  * `ls`: List files from your Cloud Platform Filesystem
