@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Callable, Generator, Iterable, Optional, Tuple
+from typing import Any, Callable, Generator, Iterable, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -157,7 +157,7 @@ def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _D
 
 
 def _no_grad_context(loop_run: Callable) -> Callable:
-    def _decorator(self, *args, **kwargs):
+    def _decorator(self: _Loop, *args: Any, **kwargs: Any) -> Any:
         if not isinstance(self, _Loop):
             raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
         if not hasattr(self, "inference_mode"):
