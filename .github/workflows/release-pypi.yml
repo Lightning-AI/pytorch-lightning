@@ -182,7 +182,6 @@ jobs:
   legacy-checkpoints:
     needs: [build-packages]
     uses: ./.github/workflows/_legacy-checkpoints.yml
-    if: github.event_name != 'pull_request'
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
