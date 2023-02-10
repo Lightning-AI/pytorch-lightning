@@ -1689,19 +1689,6 @@ class Trainer:
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
-    Parsing properties
-    """
-
-    @classmethod
-    def default_attributes(cls) -> dict:
-        init_signature = inspect.signature(cls)
-        return {k: v.default for k, v in init_signature.parameters.items()}
-
-    @classmethod
-    def match_env_arguments(cls) -> Namespace:
-        return parse_env_variables(cls)
-
-    """
     State properties
     """
 
