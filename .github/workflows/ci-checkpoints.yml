@@ -1,4 +1,4 @@
-name: PyPI
+name: Validate legacy ckpts
 
 on:
   push:
