@@ -59,6 +59,7 @@ def test_grad_clipping_val(strategy, num_devices, precision):
     fabric = _MyFabricGradVal(accelerator=accelerator, strategy=strategy, devices=num_devices, precision=precision)
     fabric.run()
 
+
 @RunIf(deepspeed=True)
 def test_errors_deepspeed():
     strategy = DeepSpeedStrategy()
