@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ast
 import socket
 import time
 from functools import wraps
@@ -22,7 +21,6 @@ from urllib.parse import urljoin
 import lightning_cloud
 import requests
 import urllib3
-from fastapi import HTTPException
 from lightning_cloud.rest_client import create_swagger_client, GridRestClient
 from requests import Session
 from requests.adapters import HTTPAdapter
