@@ -18,7 +18,7 @@ from typing import Dict, Optional
 
 import requests
 
-from lightning.app.cli.commands.connection import (
+from lightning.app.cli.connect.app import (
     _clean_lightning_connection,
     _install_missing_requirements,
     _resolve_command_path,

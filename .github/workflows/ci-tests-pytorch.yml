@@ -57,10 +57,6 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
-          # run test under SLOW label
-          - {type: "slow", os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
-          - {type: "slow", os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
-          - {type: "slow", os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
           # "pytorch" installs the standalone package
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
@@ -88,7 +84,6 @@ jobs:
         python .actions/assistant.py replace_oldest_ver
 
     - name: Pull legacy checkpoints
-      if: ${{ matrix.type != 'slow' }}
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Adjust PyTorch versions in requirements files
@@ -105,6 +100,7 @@ jobs:
         path: .wheels
         key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
+    - run: ls -lh .wheels/
 
     - name: Env. variables
       run: |
@@ -112,17 +108,14 @@ jobs:
         python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
-        # Whether to run slow tests
-        python -c "print('PL_RUN_SLOW_TESTS=' + str(int('${{ matrix.type }}' == 'slow')))" >> $GITHUB_ENV
-        # Decide timeout
-        python -c "print('TEST_TIMEOUT=' + str(120 if '${{ matrix.type }}' == 'slow' else 60))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade -f ${TORCH_URL} -f ".wheels/"
+        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
+      continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
         torch-url: ${{ env.TORCH_URL }}
@@ -155,9 +148,7 @@ jobs:
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest . -v \
-          --timeout=${TEST_TIMEOUT} --durations=50 \
-          --reruns 3 --reruns-delay 1
+          -m pytest . -v --timeout=60 --durations=50 --reruns 3 --reruns-delay 1
 
     - name: Statistics
       if: success()

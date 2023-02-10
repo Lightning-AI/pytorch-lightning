@@ -640,7 +640,7 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
 @mock.patch("lightning.pytorch.accelerators.ipu._IPU_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.utilities.imports._HPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.hpu._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
