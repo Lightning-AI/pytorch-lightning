@@ -1117,8 +1117,6 @@ class Trainer:
         # these could have become stale if metrics are defined in `setup`
         self.lightning_module._metric_attributes = None
 
-        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
-        # It might be related to xla tensors blocked when moving the cpu kill loggers.
         for logger in self.loggers:
             logger.finalize("success")
 
@@ -1216,14 +1214,7 @@ class Trainer:
 
         for callback in self.callbacks:
             with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
-                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
-            if state is not None:
-                # TODO: Remove this error message in v2.0
-                raise ValueError(
-                    f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` was deprecated in v1.6"
-                    f" and is no longer supported as of v1.8. Please override `Callback.state_dict` to return state"
-                    f" to be saved."
-                )
+                callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
 
         if pl_module:
             # restore current_fx when nested context
@@ -1599,10 +1590,6 @@ class Trainer:
             return self.strategy.distributed_sampler_kwargs
 
     @property
-    def data_parallel(self) -> bool:
-        return isinstance(self.strategy, ParallelStrategy)
-
-    @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         return (
@@ -1888,9 +1875,7 @@ class Trainer:
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> Dict:
-        # TODO: the true typing return can include dictionaries as defined in
-        # `lightning.pytorch.trainer.connectors.logger_connector.result._OUT_DICT`
+    def callback_metrics(self) -> _OUT_DICT:
         return self._logger_connector.callback_metrics
 
     @property
