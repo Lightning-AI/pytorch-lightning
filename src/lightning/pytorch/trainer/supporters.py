@@ -20,10 +20,6 @@ from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
 
-class _NoneSentinel:
-    pass
-
-
 class _CombinationMode(TypedDict):
     name: str
     fn: Callable[[List[int]], int]
@@ -131,14 +127,14 @@ class CombinedLoader(Iterable):
 
     def __next__(self) -> Any:
         n = len(self._loader_iters)
-        out = [_NoneSentinel()] * n  # values per iterator
+        out = [None] * n  # values per iterator
         for i in range(n):
             try:
                 out[i] = next(self._loader_iters[i])
             except StopIteration:
                 self._consumed[i] = True
                 if all(self._consumed):
-                    raise StopIteration
+                    raise
                 if self._mode == "max_size_cycle":
                     # reset the consumed dataloader
                     self._loader_iters[i] = iter(self._loaders_flattened[i])
@@ -146,8 +142,6 @@ class CombinedLoader(Iterable):
                     continue
                 elif self._mode == "min_size":
                     raise
-        if any(isinstance(v, _NoneSentinel) for v in out):
-            raise RuntimeError("Something went wrong! Please open an issue on GitHub.")
         return tree_unflatten(out, self._loaders_spec)
 
     def __iter__(self) -> Iterator:
