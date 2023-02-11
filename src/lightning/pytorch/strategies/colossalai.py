@@ -348,12 +348,6 @@ class ColossalAIStrategy(DDPStrategy):
                     "ColossalAI does not support gradient accumulation now. Please set `accumulate_grad_batches` to 1."
                 )
 
-            accumulation_scheduler = trainer.accumulation_scheduler
-            if accumulation_scheduler.epochs != [0]:
-                raise ValueError(
-                    "ColossalAI currently does not support different `accumulate_grad_batches` at different epochs."
-                )
-
         if not isinstance(self.precision_plugin, ColossalAIPrecisionPlugin):
             raise ValueError("`ColossalAIStrategy` is only compatible with `ColossalAIPrecisionPlugin`.")
 
