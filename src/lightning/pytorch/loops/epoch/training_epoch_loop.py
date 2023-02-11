@@ -115,13 +115,13 @@ class _TrainingEpochLoop(loops._Loop):
         if self.trainer.should_stop:
             # early stopping
             min_epochs = self.trainer.fit_loop.min_epochs
-            should_stop_early = self.trainer.fit_loop._can_stop_early
-            if not should_stop_early:
+            can_stop_early = self.trainer.fit_loop._can_stop_early
+            if not can_stop_early:
                 self._warning_cache.info(
                     f"Trainer was signaled to stop but the required `min_epochs={min_epochs!r}` or"
                     f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
                 )
-            return should_stop_early
+            return can_stop_early
 
         return False
 
