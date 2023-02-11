@@ -37,7 +37,7 @@ from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, IterableDataset
 
-from pytorch_lightning import cli_lightning_logo, LightningModule, seed_everything, Trainer
+from lightning.pytorch import cli_lightning_logo, LightningModule, seed_everything, Trainer
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
@@ -189,6 +189,8 @@ class PPOLightning(LightningModule):
         self.max_episode_len = max_episode_len
         self.clip_ratio = clip_ratio
         self.save_hyperparameters()
+
+        self.automatic_optimization = False
 
         self.env = gym.make(env)
         # value network
@@ -374,16 +376,11 @@ class PPOLightning(LightningModule):
         loss_critic = (qval - value).pow(2).mean()
         return loss_critic
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx, optimizer_idx):
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Carries out a single update to actor and critic network from a batch of replay buffer.
 
         Args:
             batch: batch of replay buffer/trajectory data
-            batch_idx: not used
-            optimizer_idx: idx that controls optimizing actor or critic network
-
-        Returns:
-            loss
         """
         state, action, old_logp, qval, adv = batch
 
@@ -394,23 +391,25 @@ class PPOLightning(LightningModule):
         self.log("avg_ep_reward", self.avg_ep_reward, prog_bar=True, on_step=False, on_epoch=True)
         self.log("avg_reward", self.avg_reward, prog_bar=True, on_step=False, on_epoch=True)
 
-        if optimizer_idx == 0:
-            loss_actor = self.actor_loss(state, action, old_logp, qval, adv)
-            self.log("loss_actor", loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        optimizer_actor, optimizer_critic = self.optimizers()
 
-            return loss_actor
+        loss_actor = self.actor_loss(state, action, old_logp, qval, adv)
+        self.manual_backward(loss_actor)
+        optimizer_actor.step()
+        optimizer_actor.zero_grad()
 
-        if optimizer_idx == 1:
-            loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
-            self.log("loss_critic", loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
+        self.manual_backward(loss_critic)
+        optimizer_critic.step()
+        optimizer_critic.zero_grad()
 
-            return loss_critic
+        self.log("loss_critic", loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log("loss_actor", loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer."""
         optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.lr_actor)
         optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.lr_critic)
-
         return optimizer_actor, optimizer_critic
 
     def optimizer_step(self, *args, **kwargs):

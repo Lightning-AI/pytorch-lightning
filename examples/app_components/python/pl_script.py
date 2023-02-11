@@ -1,5 +1,5 @@
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 if __name__ == "__main__":
     model = BoringModel()
