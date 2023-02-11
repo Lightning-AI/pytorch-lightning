@@ -12,7 +12,7 @@ def _is_leaf(pytree: PyTree) -> bool:
     flatten_fn = SUPPORTED_NODES[node_type].flatten_fn
     child_pytrees, context = flatten_fn(pytree)
     # TODO: extra types?
-    return all(isinstance(child, (int, float)) for child in child_pytrees)
+    return all(isinstance(child, (int, float, str)) for child in child_pytrees)
 
 
 def _tree_flatten(pytree: PyTree) -> Tuple[List[Any], TreeSpec]:

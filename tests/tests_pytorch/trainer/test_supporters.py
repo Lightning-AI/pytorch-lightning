@@ -387,3 +387,17 @@ def test_combined_dataloader_for_training_with_ddp(
     assert isinstance(trainer.train_dataloader, CombinedLoader)
     assert trainer.train_dataloader._mode == mode
     assert trainer.num_training_batches == expected_length_after_ddp
+
+
+def test_kk():
+    datasets = [["a", "b", "c"], ["d", "e"]]
+    cl = CombinedLoader(datasets, "sequential")
+    iter(cl)
+    print(next(cl))
+    print(next(cl))
+    print(next(cl))
+    print(next(cl))
+    print(next(cl))
+    print("=" * 10)
+    for batch in cl:
+        print(batch)

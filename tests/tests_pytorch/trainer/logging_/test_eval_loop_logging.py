@@ -843,7 +843,7 @@ expected4 = ""
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
-    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
@@ -855,7 +855,7 @@ def test_native_print_results(monkeypatch, inputs, expected):
 
 @pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
 def test_native_print_results_encodings(monkeypatch, encoding):
-    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 

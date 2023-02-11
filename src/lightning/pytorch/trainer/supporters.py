@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Iterator, List, Literal, Optional, Sized, Type
+from collections.abc import Iterable, Iterator
+from typing import Any, Callable, List, Literal, Optional, Sized, Tuple, Type, TypeVar
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 from typing_extensions import Self, TypedDict
@@ -19,11 +20,16 @@ from typing_extensions import Self, TypedDict
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
+_T = TypeVar("_T")
 
-class _ModeIterator(Iterator[List]):
+
+class _ModeIterator(Iterator[_T]):
     def __init__(self, iterables: List[Iterable]) -> None:
         self.iterables = iterables
         self.iterators: List[Iterator] = []
+
+    def __next__(self) -> _T:
+        raise NotImplementedError
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
         self.iterators = [iter(iterable) for iterable in self.iterables]
@@ -33,7 +39,7 @@ class _ModeIterator(Iterator[List]):
         self.iterators = []
 
 
-class _MaxSizeCycle(_ModeIterator):
+class _MaxSizeCycle(_ModeIterator[List]):
     def __init__(self, iterables: List[Iterable]) -> None:
         super().__init__(iterables)
         self._consumed: List[bool] = []
@@ -63,9 +69,44 @@ class _MaxSizeCycle(_ModeIterator):
         self._consumed = []
 
 
-class _MinSize(_ModeIterator):
+class _MinSize(_ModeIterator[List]):
     def __next__(self) -> List:
         return [next(it) for it in self.iterators]
+
+
+class _Sequential(_ModeIterator[Tuple[int, Any]]):
+    def __init__(self, iterables: List[Iterable]) -> None:
+        super().__init__(iterables)
+        self._iterator_idx = 0  # what would be dataloader_idx
+        self._idx = 0  # what would be batch_idx
+
+    def __next__(self) -> Tuple[int, Any]:
+        n = len(self.iterators)
+        if n == 0:
+            raise StopIteration
+        try:
+            out = next(self.iterators[self._iterator_idx])
+            index = self._idx
+            self._idx += 1
+            # the return is enumerated by default
+            return index, out
+        except StopIteration:
+            self._iterator_idx += 1
+            self._idx = 0
+            if self._iterator_idx >= n:
+                raise
+            return self.__next__()
+
+    def __iter__(self) -> Self:  # type: ignore[valid-type]
+        super().__iter__()
+        self._iterator_idx = 0
+        self._idx = 0
+        return self
+
+    def reset(self) -> None:
+        super().reset()
+        self._iterator_idx = 0
+        self._idx = 0
 
 
 class _CombinationMode(TypedDict):
@@ -76,9 +117,10 @@ class _CombinationMode(TypedDict):
 _supported_modes = {
     "min_size": _CombinationMode(fn=min, iterator=_MinSize),
     "max_size_cycle": _CombinationMode(fn=max, iterator=_MaxSizeCycle),
+    "sequential": _CombinationMode(fn=sum, iterator=_Sequential),
 }
 
-_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle"]
+_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
 
 
 class _CombinedDataset(Sized):
@@ -137,6 +179,16 @@ class CombinedLoader(Iterable):
         ...     print(item)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
+        >>> combined_loader = CombinedLoader(loaders, 'sequential')
+        >>> len(combined_loader)
+        5
+        >>> for item in combined_loader:
+        ...     print(*item)
+        0 tensor([0, 1, 2, 3])
+        1 tensor([4, 5])
+        0 tensor([0, 1, 2, 3, 4])
+        1 tensor([5, 6, 7, 8, 9])
+        2 tensor([10, 11, 12, 13, 14])
     """
 
     def __init__(self, loaders: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
@@ -176,6 +228,8 @@ class CombinedLoader(Iterable):
     def __next__(self) -> Any:
         assert self._iterator is not None
         out = next(self._iterator)
+        if isinstance(self._iterator, _Sequential):
+            return out
         return tree_unflatten(out, self._loaders_spec)
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]

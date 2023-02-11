@@ -120,6 +120,7 @@ class _FitLoop(_Loop):
 
     @property
     def prefetch_batches(self) -> int:
+        # FIXME(carlos): still need this?
         is_unsized = self.trainer.num_training_batches == float("inf")
         return int(is_unsized)
 

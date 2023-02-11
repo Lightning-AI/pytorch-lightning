@@ -54,7 +54,7 @@ from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.utilities import _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
-from lightning.pytorch.loops.dataloader.evaluation_loop import _EvaluationLoop
+from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
 from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
@@ -429,18 +429,20 @@ class Trainer:
 
         self.should_stop = False
         self.state = TrainerState()
+
+        # FIXME(carlos): consider allowing single dataloader for simplicity
+        self.train_dataloader: Optional[CombinedLoader] = None
+        self.test_dataloaders: Optional[CombinedLoader] = None
+        self.val_dataloaders: Optional[CombinedLoader] = None
+        self.predict_dataloaders: Optional[CombinedLoader] = None
+
+        # FIXME(carlos): these need to be updated, and moved to the loops
         self.num_training_batches = float("inf")
-
-        self.train_dataloader: Optional[Union[CombinedLoader, TRAIN_DATALOADERS]] = None
-
         self.num_sanity_val_batches: List[Union[int, float]] = []
         self.num_test_batches: List[Union[int, float]] = []
         self.num_val_batches: List[Union[int, float]] = []
         self.num_predict_batches: List[Union[int, float]] = []
 
-        self.test_dataloaders: Optional[List[DataLoader]] = None
-        self.val_dataloaders: Optional[List[DataLoader]] = None
-        self.predict_dataloaders: Optional[List[DataLoader]] = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
@@ -1253,6 +1255,7 @@ class Trainer:
         if not (source.is_defined() and has_step and enable_training):
             return
 
+        # FIXME(carlos): do not set yet
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
 
         if self.overfit_batches > 0:
@@ -1369,9 +1372,10 @@ class Trainer:
             ):
                 self._last_val_dl_reload_epoch = self.current_epoch
 
-            self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
+            self.num_val_batches, iterables = self._data_connector._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
+            self.val_dataloaders = CombinedLoader(iterables, "sequential")
 
     def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
@@ -1384,9 +1388,10 @@ class Trainer:
         has_step = is_overridden("test_step", pl_module)
         enable_testing = self.limit_test_batches > 0
         if source.is_defined() and has_step and enable_testing:
-            self.num_test_batches, self.test_dataloaders = self._data_connector._reset_eval_dataloader(
+            self.num_test_batches, iterables = self._data_connector._reset_eval_dataloader(
                 RunningStage.TESTING, model=pl_module
             )
+            self.test_dataloaders = CombinedLoader(iterables, "sequential")
 
     def reset_predict_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the predict dataloader and determines the number of batches.
@@ -1398,9 +1403,10 @@ class Trainer:
         pl_module = self.lightning_module or model
         enable_prediction = self.limit_predict_batches > 0
         if source.is_defined() and enable_prediction:
-            self.num_predict_batches, self.predict_dataloaders = self._data_connector._reset_eval_dataloader(
+            self.num_predict_batches, iterables = self._data_connector._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )
+            self.predict_dataloaders = CombinedLoader(iterables, "sequential")
 
     """
     Accelerator properties
