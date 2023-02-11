@@ -107,6 +107,16 @@ def test_unsupported_accelerators(accelerators_class):
     scheduler = GradientAccumulationScheduler({1: 2})
     model = BoringModel()
     trainer = Trainer()
-    trainer._accelerator_connector.accelerator = Mock(spec=accelerators_class)
+    trainer._accelerator_connector.strategy = Mock(accelerator=Mock(spec=accelerators_class))
     with pytest.raises(RuntimeError, match="does not support `accumulate_grad_batches` changing between epochs"):
+        scheduler.on_train_start(trainer, model)
+
+
+def test_unsupported_manual_optimization():
+    """Test that an error is raised when attempting to use the callback with manual optimization."""
+    scheduler = GradientAccumulationScheduler({1: 2})
+    model = BoringModel()
+    model.automatic_optimization = False
+    trainer = Trainer()
+    with pytest.raises(RuntimeError, match="Automatic gradient accumulation and the `GradientAccumulationScheduler`"):
         scheduler.on_train_start(trainer, model)

@@ -99,23 +99,23 @@ class GradientAccumulationScheduler(Callback):
         return accumulate_grad_batches
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Performns a configuration validation before training starts and raises errors for incompatible settings."""
+
+        if not pl_module.automatic_optimization:
+            raise RuntimeError(
+                """Automatic gradient accumulation and the `GradientAccumulationScheduler` is not supported for
+                manual optimization. Please remove the callback or switch to automatic optimization."""
+            )
+
         overridden_optimizer_step = is_overridden("optimizer_step", pl_module)
         overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", pl_module)
-        automatic_optimization = pl_module.automatic_optimization
         going_to_accumulate_grad_batches = self.going_to_accumulate_grad_batches()
         has_overridden_optimization_functions = overridden_optimizer_step or overridden_optimizer_zero_grad
-        if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
+        if has_overridden_optimization_functions and going_to_accumulate_grad_batches:
             rank_zero_warn(
                 "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
                 " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
                 " (rather, they are called on every optimization step)."
-            )
-        if not automatic_optimization:
-            raise RuntimeError(
-                # TODO:
-                # "Automatic gradient accumulation is not supported for manual optimization."
-                # f" Remove `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches})`"
-                # " or switch to automatic optimization."
             )
 
         # local import to avoid circular import
