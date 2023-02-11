@@ -33,7 +33,6 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import module_available
 from packaging.version import Version
-from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -75,6 +74,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerSta
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
+from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
