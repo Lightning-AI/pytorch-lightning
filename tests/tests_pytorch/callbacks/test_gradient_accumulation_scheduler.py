@@ -120,3 +120,25 @@ def test_unsupported_manual_optimization():
     trainer = Trainer()
     with pytest.raises(RuntimeError, match="Automatic gradient accumulation and the `GradientAccumulationScheduler`"):
         scheduler.on_train_start(trainer, model)
+
+
+def test_warn_if_model_has_overridden_optimization_hooks():
+    """Test that the callback warns if optimization hooks were overridden in the LightningModule."""
+    class OverriddenOptimizerStepModel(BoringModel):
+        def optimizer_step(self, *args, **kwargs):
+            super().optimizer_step(*args, **kwargs)
+
+    class OverriddenZeroGradModel(BoringModel):
+        def optimizer_zero_grad(self, *args, **kwargs):
+            super().optimizer_zero_grad(*args, **kwargs)
+
+    scheduler = GradientAccumulationScheduler({1: 2})
+    trainer = Trainer()
+
+    model = OverriddenOptimizerStepModel()
+    with pytest.warns(UserWarning, match="the hooks will not be called on every batch"):
+        scheduler.on_train_start(trainer, model)
+
+    model = OverriddenZeroGradModel()
+    with pytest.warns(UserWarning, match="the hooks will not be called on every batch"):
+        scheduler.on_train_start(trainer, model)
