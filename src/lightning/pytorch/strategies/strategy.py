@@ -481,7 +481,7 @@ class Strategy(ABC):
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
         if self.lightning_module is not None:
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            log.debug(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
         assert self.accelerator is not None
