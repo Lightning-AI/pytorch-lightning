@@ -38,7 +38,7 @@ from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning.pytorch.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, Timer
 from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
