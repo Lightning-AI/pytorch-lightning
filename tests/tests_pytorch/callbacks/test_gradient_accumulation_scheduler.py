@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
 from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import IPUAccelerator
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.strategies import ColossalAIStrategy, DeepSpeedStrategy
-from lightning.pytorch.accelerators import IPUAccelerator
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
