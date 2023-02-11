@@ -124,6 +124,7 @@ def test_unsupported_manual_optimization():
 
 def test_warn_if_model_has_overridden_optimization_hooks():
     """Test that the callback warns if optimization hooks were overridden in the LightningModule."""
+
     class OverriddenOptimizerStepModel(BoringModel):
         def optimizer_step(self, *args, **kwargs):
             super().optimizer_step(*args, **kwargs)
