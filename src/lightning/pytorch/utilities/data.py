@@ -134,15 +134,6 @@ def has_len_all_ranks(
     return has_len
 
 
-def get_len(dataloader: object) -> Union[int, float]:
-    """Return the length of the given DataLoader.
-
-    If ``__len__`` method is not implemented, return float('inf').
-    """
-    length = sized_len(dataloader)
-    return float("inf") if length is None else length
-
-
 def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
