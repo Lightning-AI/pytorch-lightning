@@ -233,7 +233,7 @@ class _FitLoop(_Loop):
 
         # reset train dataloader
         if not self._is_fresh_start_epoch and trainer._data_connector._should_reload_train_dl:
-            log.detail(f"{self.__class__.__name__}: resetting train dataloader")
+            log.debug(f"{self.__class__.__name__}: resetting train dataloader")
             trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
@@ -255,7 +255,7 @@ class _FitLoop(_Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        log.detail(f"{self.__class__.__name__}: advancing loop")
+        log.debug(f"{self.__class__.__name__}: advancing loop")
 
         trainer = self.trainer
         assert trainer.train_dataloader is not None
@@ -308,7 +308,7 @@ class _FitLoop(_Loop):
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
-        log.detail(f"{self.__class__.__name__}: train run ended")
+        log.debug(f"{self.__class__.__name__}: train run ended")
 
         trainer = self.trainer
         call._call_callback_hooks(trainer, "on_train_end")

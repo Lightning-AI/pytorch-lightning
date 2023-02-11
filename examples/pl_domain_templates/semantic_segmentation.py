@@ -24,8 +24,8 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import cli_lightning_logo, LightningModule, Trainer
-from pytorch_lightning.loggers import WandbLogger
+from lightning.pytorch import cli_lightning_logo, LightningModule, Trainer
+from lightning.pytorch.loggers import WandbLogger
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
