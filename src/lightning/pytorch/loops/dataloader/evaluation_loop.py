@@ -25,7 +25,7 @@ from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
 from lightning.pytorch.loops.fetchers import _DataFetcher
-from lightning.pytorch.loops.utilities import _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
 
@@ -41,10 +41,11 @@ class _EvaluationLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self, verbose: bool = True) -> None:
+    def __init__(self, verbose: bool = True, inference_mode: bool = True) -> None:
         super().__init__()
         self.epoch_loop = _EvaluationEpochLoop()
         self.verbose = verbose
+        self.inference_mode = inference_mode
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
@@ -88,6 +89,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         max_batches = self._get_max_batches()
         return sum(max_batches) == 0
 
+    @_no_grad_context
     def run(self) -> List[_OUT_DICT]:
         if self.skip:
             return []

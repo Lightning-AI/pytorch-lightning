@@ -69,7 +69,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.automatic_optimization = _AutomaticOptimization()
         self.manual_optimization = _ManualOptimization()
 
-        self.val_loop = loops._EvaluationLoop(verbose=False)
+        self.val_loop = loops._EvaluationLoop(verbose=False, inference_mode=False)
 
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
