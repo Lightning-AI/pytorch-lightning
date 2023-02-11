@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Iterator, List, Literal, Optional, Sized, Type
+from typing import Any, Callable, Iterable, Iterator, List, Literal, Optional, Sized, Type, TypeVar
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 from typing_extensions import Self, TypedDict
@@ -19,11 +19,16 @@ from typing_extensions import Self, TypedDict
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
+_T = TypeVar("_T")
 
-class _ModeIterator(Iterator[List]):
+
+class _ModeIterator(Iterator[_T]):
     def __init__(self, iterables: List[Iterable]) -> None:
         self.iterables = iterables
         self.iterators: List[Iterator] = []
+
+    def __next__(self) -> _T:
+        raise NotImplementedError
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
         self.iterators = [iter(iterable) for iterable in self.iterables]
@@ -33,7 +38,7 @@ class _ModeIterator(Iterator[List]):
         self.iterators = []
 
 
-class _MaxSizeCycle(_ModeIterator):
+class _MaxSizeCycle(_ModeIterator[List]):
     def __init__(self, iterables: List[Iterable]) -> None:
         super().__init__(iterables)
         self._consumed: List[bool] = []
@@ -63,7 +68,7 @@ class _MaxSizeCycle(_ModeIterator):
         self._consumed = []
 
 
-class _MinSize(_ModeIterator):
+class _MinSize(_ModeIterator[List]):
     def __next__(self) -> List:
         return [next(it) for it in self.iterators]
 
@@ -142,11 +147,11 @@ class CombinedLoader(Iterable):
     def __init__(self, loaders: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
         if mode not in _supported_modes:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
-        # TODO(carlos): rename loaders to iterables
+        # TODO(carmocca): rename loaders to iterables
         self._loaders = loaders
         self._loaders_flattened, self._loaders_spec = _tree_flatten(loaders)
 
-        # TODO(carlos): doing this might not be necessary
+        # TODO(carmocca): doing this might not be necessary
         datasets = _map_and_unflatten(
             lambda x: getattr(x, "dataset", None), self._loaders_flattened, self._loaders_spec
         )
