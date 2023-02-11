@@ -33,6 +33,7 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import module_available
 from packaging.version import Version
+from pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -86,7 +87,6 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
-from pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
