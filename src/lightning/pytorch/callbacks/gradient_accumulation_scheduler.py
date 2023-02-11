@@ -27,12 +27,6 @@ from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.accelerators import IPUAccelerator
-from lightning.pytorch.strategies import ColossalAIStrategy, DeepSpeedStrategy
-
-
-_UNSUPPORTED_STRATEGIES = (DeepSpeedStrategy, ColossalAIStrategy)
-_UNSUPPORTED_ACCELERATORS = (IPUAccelerator, )
 
 
 class GradientAccumulationScheduler(Callback):
@@ -123,15 +117,23 @@ class GradientAccumulationScheduler(Callback):
                 # f" Remove `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches})`"
                 # " or switch to automatic optimization."
             )
-        if isinstance(trainer.accelerator, _UNSUPPORTED_ACCELERATORS):
+
+        # local import to avoid circular import
+        from lightning.pytorch.accelerators import IPUAccelerator
+        from lightning.pytorch.strategies import ColossalAIStrategy, DeepSpeedStrategy
+
+        unsupported_strategies = (DeepSpeedStrategy, ColossalAIStrategy)
+        unsupported_accelerators = (IPUAccelerator,)
+
+        if isinstance(trainer.accelerator, unsupported_accelerators):
             raise RuntimeError(
-                f"The `{type(trainer.accelerator).__name__}` does not support `accumulate_grad_batches`"
-                " at different epochs."
+                f"The `{type(trainer.accelerator).__name__}` does not support `accumulate_grad_batches` changing"
+                " between epochs."
             )
-        if isinstance(trainer.strategy, _UNSUPPORTED_STRATEGIES):
+        if isinstance(trainer.strategy, unsupported_strategies):
             raise RuntimeError(
-                f"The `{type(trainer.strategy).__name__}` does not support `accumulate_grad_batches`"
-                " at different epochs."
+                f"The `{type(trainer.strategy).__name__}` does not support `accumulate_grad_batches` changing"
+                " between epochs."
             )
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:

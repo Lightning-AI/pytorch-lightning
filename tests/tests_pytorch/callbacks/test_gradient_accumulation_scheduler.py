@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import pytest
 
@@ -20,6 +20,8 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.strategies import ColossalAIStrategy, DeepSpeedStrategy
+from lightning.pytorch.accelerators import IPUAccelerator
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
@@ -86,3 +88,25 @@ def test_invalid_keys_for_grad_accum_scheduler(scheduling):
 def test_invalid_values_for_grad_accum_scheduler(scheduling):
     with pytest.raises(MisconfigurationException, match="Accumulation factor should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
+
+
+@pytest.mark.parametrize("strategy_class", [ColossalAIStrategy, DeepSpeedStrategy])
+def test_unsupported_strategies(strategy_class):
+    """Test that an error is raised for strategies that require the gradient accumulation factor to be fixed."""
+    scheduler = GradientAccumulationScheduler({1: 2})
+    model = BoringModel()
+    trainer = Trainer()
+    trainer._accelerator_connector.strategy = Mock(spec=strategy_class)
+    with pytest.raises(RuntimeError, match="does not support `accumulate_grad_batches` changing between epochs"):
+        scheduler.on_train_start(trainer, model)
+
+
+@pytest.mark.parametrize("accelerators_class", [IPUAccelerator])
+def test_unsupported_accelerators(accelerators_class):
+    """Test that an error is raised for accelerators that require the gradient accumulation factor to be fixed."""
+    scheduler = GradientAccumulationScheduler({1: 2})
+    model = BoringModel()
+    trainer = Trainer()
+    trainer._accelerator_connector.accelerator = Mock(spec=accelerators_class)
+    with pytest.raises(RuntimeError, match="does not support `accumulate_grad_batches` changing between epochs"):
+        scheduler.on_train_start(trainer, model)
