@@ -120,7 +120,7 @@ class Trainer:
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
+        accumulate_grad_batches: int = 1,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: int = -1,
@@ -156,8 +156,8 @@ class Trainer:
             accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
-            accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
-                Default: ``None``.
+            accumulate_grad_batches: Accumulates gradients over k batches before stepping the optimizer.
+                Default: 1.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -343,6 +343,8 @@ class Trainer:
         self.test_loop.trainer = self
         self.predict_loop.trainer = self
 
+        self.accumulate_grad_batches = accumulate_grad_batches
+
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
@@ -352,7 +354,6 @@ class Trainer:
             default_root_dir,
             enable_model_summary,
             max_time,
-            accumulate_grad_batches,
         )
 
         # init data flags
@@ -1832,14 +1833,6 @@ class Trainer:
                 return [optimizer], [scheduler]
 
         """
-        accumulation_scheduler = self.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "Estimated stepping batches cannot be computed with different"
-                " `accumulate_grad_batches` at different epochs."
-            )
-
         # infinite training
         if self.max_epochs == -1:
             return float("inf") if self.max_steps == -1 else self.max_steps
@@ -1855,9 +1848,7 @@ class Trainer:
             return self.max_steps
 
         assert self.max_epochs is not None
-        self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
-        effective_batch_size = self.accumulate_grad_batches
-        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)
+        max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps

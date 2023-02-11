@@ -25,6 +25,8 @@ from typing import Any, Dict
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class GradientAccumulationScheduler(Callback):
@@ -58,9 +60,6 @@ class GradientAccumulationScheduler(Callback):
         # because epoch (key) should be zero-indexed.
         >>> accumulator = GradientAccumulationScheduler(scheduling={4: 2})
         >>> trainer = Trainer(callbacks=[accumulator])
-
-        # alternatively, pass the scheduling dict directly to the Trainer
-        >>> trainer = Trainer(accumulate_grad_batches={4: 2})
     """
 
     def __init__(self, scheduling: Dict[int, int]):
@@ -82,7 +81,7 @@ class GradientAccumulationScheduler(Callback):
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch < 0:
             raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
-        if minimal_epoch != 0:  # if user didnt define first epoch accumulation factor
+        if minimal_epoch != 0:  # if user didn't define first epoch accumulation factor
             scheduling.update({0: 1})
 
         self.scheduling = scheduling
@@ -98,6 +97,27 @@ class GradientAccumulationScheduler(Callback):
                 accumulate_grad_batches = self.scheduling[iter_epoch]
                 break
         return accumulate_grad_batches
+
+    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        overridden_optimizer_step = is_overridden("optimizer_step", pl_module)
+        overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", pl_module)
+        automatic_optimization = pl_module.automatic_optimization
+        going_to_accumulate_grad_batches = self.going_to_accumulate_grad_batches()
+        has_overridden_optimization_functions = overridden_optimizer_step or overridden_optimizer_zero_grad
+        if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
+            rank_zero_warn(
+                "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
+                " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
+                " (rather, they are called on every optimization step)."
+            )
+
+        if not automatic_optimization:
+            raise RuntimeError(
+                # TODO:
+                # "Automatic gradient accumulation is not supported for manual optimization."
+                # f" Remove `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches})`"
+                # " or switch to automatic optimization."
+            )
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
         trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)
