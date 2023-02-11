@@ -76,3 +76,23 @@ def test_should_stop_early_stopping_conditions_not_met(
 
     assert (message in caplog.text) is raise_info_msg
     assert trainer.fit_loop._can_stop_early is early_stop
+
+
+def test_regression(tmp_path):
+    
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        num_sanity_val_steps=0,
+        limit_val_batches=2,
+        limit_train_batches=2,
+        max_epochs=3,
+        min_epochs=3,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.should_stop = True
+    trainer.fit_loop.epoch_loop.val_loop.run = Mock()
+    trainer.fit(model)
+    assert trainer.fit_loop.epoch_loop.val_loop.run.call_count == 3
