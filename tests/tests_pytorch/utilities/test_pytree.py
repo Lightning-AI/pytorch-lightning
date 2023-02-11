@@ -39,3 +39,7 @@ def test_flatten_unflatten():
     dl1, dl2 = DataLoader(range(3), batch_size=4), DataLoader(range(5), batch_size=5)
     loaders = {"a": dl1, "b": dl2}
     assert_tree_flatten_unflatten(loaders, [dl1, dl2])
+
+    dataset1, dataset2 = ["a", "b"], ["c"]
+    datasets = [[dataset1, dataset2]]
+    assert_tree_flatten_unflatten(datasets, [dataset1, dataset2])
