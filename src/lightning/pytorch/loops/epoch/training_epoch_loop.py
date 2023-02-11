@@ -390,7 +390,7 @@ class _TrainingEpochLoop(loops._Loop):
             return True
 
         if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
-            # check validation if we are stopping early due to `Trainer.should_stop` being set (e.g. by early stopping)
+            # allow validation if requesting to stop early through `Trainer.should_stop` (e.g. by early stopping)
             # and when the loop allows to stop (min_epochs/steps met)
             return True
 
