@@ -86,7 +86,7 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
-from pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
+from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
