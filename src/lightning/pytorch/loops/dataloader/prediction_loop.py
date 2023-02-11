@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch.loops.dataloader.dataloader_loop import _DataLoaderLoop
 from lightning.pytorch.loops.epoch.prediction_epoch_loop import _PredictionEpochLoop
-from lightning.pytorch.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _set_sampler_epoch
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
@@ -17,10 +17,11 @@ class _PredictionLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, inference_mode: bool = True) -> None:
         super().__init__()
         self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
         self.epoch_loop = _PredictionEpochLoop()
+        self.inference_mode = inference_mode
 
         self._results = None  # for `trainer._results` access
         self._predictions: List[List[Any]] = []  # num_dataloaders x batches
@@ -77,6 +78,7 @@ class _PredictionLoop(_DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
+    @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
         if self.skip:
             return None
