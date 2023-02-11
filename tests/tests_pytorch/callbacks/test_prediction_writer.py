@@ -16,7 +16,6 @@ from unittest.mock import ANY, call, Mock
 import pytest
 from torch.utils.data import DataLoader
 
-import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -111,10 +110,10 @@ def test_prediction_writer_batch_indices(num_workers):
 
 def test_prediction_writer_partial_support_for_combined_loader():
     """Test partial support for CombinedLoader: prediction works but sample indices don't get tracked."""
-    pl.loops.epoch.prediction_epoch_loop.warning_cache.clear()
 
     class PredictionModel(BoringModel):
         def predict_dataloader(self):
+            # FIXME(carlos): this should work
             return CombinedLoader(
                 {
                     "a": DataLoader(RandomDataset(32, 8), batch_size=2),
@@ -131,7 +130,7 @@ def test_prediction_writer_partial_support_for_combined_loader():
     model = PredictionModel()
     writer = DummyPredictionWriter("batch_and_epoch")
     trainer = Trainer(callbacks=writer)
-    with pytest.warns(UserWarning, match="Lightning couldn't infer the indices fetched for your dataloader."):
+    with pytest.warns(UserWarning, match="infer the batch indices fetched from your dataloader: `CombinedLoader"):
         trainer.predict(model)
 
     writer.write_on_batch_end.assert_has_calls(

@@ -23,7 +23,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("lightning.pytorch.loops.dataloader.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
+@mock.patch("lightning.pytorch.loops.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end`
     hooks."""

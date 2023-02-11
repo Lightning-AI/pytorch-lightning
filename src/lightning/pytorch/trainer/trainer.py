@@ -1567,6 +1567,7 @@ class Trainer:
     def prediction_writer_callbacks(self) -> List[BasePredictionWriter]:
         """A list of all instances of :class:`~lightning.pytorch.callbacks.prediction_writer.BasePredictionWriter`
         found in the Trainer.callbacks list."""
+        # FIXME(carlos): get rid of this property
         return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property

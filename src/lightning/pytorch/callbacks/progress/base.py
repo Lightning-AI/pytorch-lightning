@@ -117,7 +117,7 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
+        return self.trainer.predict_loop.batch_progress.current.processed
 
     @property
     def total_train_batches(self) -> Union[int, float]:

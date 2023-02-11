@@ -86,6 +86,7 @@ class _PrefetchDataFetcher(_DataFetcher):
     Args:
         prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
             whether a batch is the last one (available with :attr:`self.done`) under any training setup.
+        # FIXME(carlos): remove this from the fetcher to simplify
         store_on_device: Whether to store the pre-fetched batches on device.
     """
 
