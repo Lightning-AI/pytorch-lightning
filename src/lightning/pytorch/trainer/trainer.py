@@ -475,7 +475,9 @@ class Trainer:
 
         Raises:
             TypeError:
-                If ``model`` is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+                If ``model`` is not `LightningModule` for torch version less than 2.0
+                and if ``model`` is not `LightningModule` or `torch._dynamo.OptimizedModule` for torch versions
+                greater than or equal to 2.0.
         """
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
