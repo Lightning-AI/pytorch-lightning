@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -80,8 +80,11 @@ def test_should_stop_early_stopping_conditions_not_met(
 
 @pytest.mark.parametrize("min_epochs,min_steps,val_count", [(3, None, 3), (None, 3, 2)])
 def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, tmp_path):
-    """Regression test for issue #15708. Test that the request for `should_stop=True` only triggers validation when
-    Trainer is allowed to stop (min_epochs/steps is satisfied)."""
+    """Regression test for issue #15708.
+
+    Test that the request for `should_stop=True` only triggers validation when Trainer is allowed to stop
+    (min_epochs/steps is satisfied).
+    """
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
