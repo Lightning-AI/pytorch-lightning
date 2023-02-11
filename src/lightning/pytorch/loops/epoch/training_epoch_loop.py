@@ -115,13 +115,13 @@ class _TrainingEpochLoop(loops._Loop):
         if self.trainer.should_stop:
             # early stopping
             min_epochs = self.trainer.fit_loop.min_epochs
-            should_stop_early = self.trainer.fit_loop._should_stop_early
-            if not should_stop_early:
+            can_stop_early = self.trainer.fit_loop._can_stop_early
+            if not can_stop_early:
                 self._warning_cache.info(
                     f"Trainer was signaled to stop but the required `min_epochs={min_epochs!r}` or"
                     f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
                 )
-            return should_stop_early
+            return can_stop_early
 
         return False
 
@@ -389,7 +389,9 @@ class _TrainingEpochLoop(loops._Loop):
         if is_last_batch and is_infinite_dataset:
             return True
 
-        if self.trainer.should_stop:
+        if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
+            # allow validation if requesting to stop early through `Trainer.should_stop` (e.g. by early stopping)
+            # and when the loop allows to stop (min_epochs/steps met)
             return True
 
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
