@@ -6,7 +6,7 @@ on:
     branches: ["master", "release/*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
-  pull_request:  # fixme
+  pull_request_target:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
@@ -28,6 +28,7 @@ defaults:
     shell: bash
 
 env:
+  FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 jobs:
@@ -39,8 +40,6 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["lightning", "pytorch"]
-    env:
-      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -108,8 +107,6 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["lightning", "pytorch"]
-    env:
-      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
