@@ -20,6 +20,8 @@ from tests_pytorch.helpers.runif import RunIf
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy, wrap
+else:
+    size_based_auto_wrap_policy = object
 
 if _TORCH_GREATER_EQUAL_2_0:
     from torch.distributed.fsdp.wrap import _FSDPPolicy
