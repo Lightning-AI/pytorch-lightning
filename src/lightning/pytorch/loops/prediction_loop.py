@@ -8,7 +8,7 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _select_data_fetcher
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer.supporters import _Sequential
@@ -19,8 +19,9 @@ from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 class _PredictionLoop(_Loop):
     """Top-level loop where prediction starts."""
 
-    def __init__(self) -> None:
+    def __init__(self, inference_mode: bool = True) -> None:
         super().__init__()
+        self.inference_mode = inference_mode
         self.epoch_batch_indices: List[
             List[List[int]]
         ] = []  # dataloaders x batches x samples. used by PredictionWriter
@@ -90,6 +91,7 @@ class _PredictionLoop(_Loop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
+    @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
         if self.skip:
             return None

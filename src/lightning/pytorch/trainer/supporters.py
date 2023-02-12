@@ -194,11 +194,11 @@ class CombinedLoader(Iterable):
     def __init__(self, loaders: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
         if mode not in _supported_modes:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
-        # TODO(carlos): rename loaders to iterables
+        # TODO(carmocca): rename loaders to iterables
         self._loaders = loaders
         self._loaders_flattened, self._loaders_spec = _tree_flatten(loaders)
 
-        # TODO(carlos): doing this might not be necessary
+        # TODO(carmocca): doing this might not be necessary
         datasets = _map_and_unflatten(
             lambda x: getattr(x, "dataset", None), self._loaders_flattened, self._loaders_spec
         )

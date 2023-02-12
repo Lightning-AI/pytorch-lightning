@@ -9,34 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added experimental support for interruptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
-
-- Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
-
-- Prevent to `cd` into non existent folders ([#16645](https://github.com/Lightning-AI/lightning/pull/16645))
-- Enabled `cp` (upload) at project level ([#16631](https://github.com/Lightning-AI/lightning/pull/16631))
-- Enabled `ls` and `cp` (download) at project level ([#16622](https://github.com/Lightning-AI/lightning/pull/16622))
-- Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
- * `ls`: List files from your Cloud Platform Filesystem
- * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
- * `pwd`: Return the current folder in your Cloud Platform Filesystem
- * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
-
-- Added `lightning connect data` to register data connection to s3 buckets ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+-
 
 
 ### Changed
 
-- Changed the default `LightningClient(retry=False)` to `retry=True` ([#16382](https://github.com/Lightning-AI/lightning/pull/16382))
-
-
-- Add support for async predict method in PythonServer and remove torch context ([#16453](https://github.com/Lightning-AI/lightning/pull/16453))
-
-
-- Renamed `lightning.app.components.LiteMultiNode` to `lightning.app.components.FabricMultiNode` ([#16505](https://github.com/Lightning-AI/lightning/pull/16505))
-
-
-- Changed the command `lightning connect` to `lightning connect app` for consistency ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+-
 
 
 ### Deprecated
@@ -51,12 +29,44 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed a deadlock causing apps not to exit properly when running locally ([#16623](https://github.com/Lightning-AI/lightning/pull/16623)))
+-
 
 
+## [1.9.1] - 2023-02-10
+
+### Added
+- Added `lightning open` command ([#16482](https://github.com/Lightning-AI/lightning/pull/16482))
+- Added experimental support for interruptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
+- Added FileSystem abstraction to simply manipulation of files ([#16581](https://github.com/Lightning-AI/lightning/pull/16581))
+- Added Storage Commands ([#16606](https://github.com/Lightning-AI/lightning/pull/16606))
+  * `ls`: List files from your Cloud Platform Filesystem
+  * `cd`: Change the current directory within your Cloud Platform filesystem (terminal session based)
+  * `pwd`: Return the current folder in your Cloud Platform Filesystem
+  * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
+- Prevent to `cd` into non existent folders ([#16645](https://github.com/Lightning-AI/lightning/pull/16645))
+- Enabled `cp` (upload) at project level ([#16631](https://github.com/Lightning-AI/lightning/pull/16631))
+- Enabled `ls` and `cp` (download) at project level ([#16622](https://github.com/Lightning-AI/lightning/pull/16622))
+- Added `lightning connect data` to register data connection to s3 buckets ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+- Added support for running with multiprocessing in the cloud ([#16624](https://github.com/Lightning-AI/lightning/pull/16624))
+- Initial plugin server ([#16523](https://github.com/Lightning-AI/lightning/pull/16523))
+- Connect and Disconnect node ([#16700](https://github.com/Lightning-AI/lightning/pull/16700))
+
+### Changed
+
+- Changed the default `LightningClient(retry=False)` to `retry=True` ([#16382](https://github.com/Lightning-AI/lightning/pull/16382))
+- Add support for async predict method in PythonServer and remove torch context ([#16453](https://github.com/Lightning-AI/lightning/pull/16453))
+- Renamed `lightning.app.components.LiteMultiNode` to `lightning.app.components.FabricMultiNode` ([#16505](https://github.com/Lightning-AI/lightning/pull/16505))
+- Changed the command `lightning connect` to `lightning connect app` for consistency ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+- Refactor cloud dispatch and update to new API ([#16456](https://github.com/Lightning-AI/lightning/pull/16456))
+- Updated app URLs to the latest format ([#16568](https://github.com/Lightning-AI/lightning/pull/16568))
+
+### Fixed
+
+- Fixed a deadlock causing apps not to exit properly when running locally ([#16623](https://github.com/Lightning-AI/lightning/pull/16623))
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
-
 - Fixed malformed path when downloading files using `lightning cp` ([#16626](https://github.com/Lightning-AI/lightning/pull/16626))
+- Fixed app name in URL ([#16575](https://github.com/Lightning-AI/lightning/pull/16575))
+
 
 ## [1.9.0] - 2023-01-17
 
