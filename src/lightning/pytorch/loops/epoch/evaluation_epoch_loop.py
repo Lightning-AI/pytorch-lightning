@@ -119,6 +119,10 @@ class _EvaluationEpochLoop(_Loop):
             batch_idx, batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
+        dataloader_idx = kwargs.get("dataloader_idx", 0)
+        batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+
         # configure step_kwargs
         kwargs = self._build_kwargs(kwargs, batch, batch_idx)
 
@@ -142,7 +146,6 @@ class _EvaluationEpochLoop(_Loop):
 
         # log batch metrics
         if not self.trainer.sanity_checking:
-            dataloader_idx = kwargs.get("dataloader_idx", 0)
             self.trainer._logger_connector.update_eval_step_metrics(self._dl_batch_idx[dataloader_idx])
             self._dl_batch_idx[dataloader_idx] += 1
 

@@ -193,6 +193,9 @@ class _TrainingEpochLoop(loops._Loop):
             batch_idx, batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
+        batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+        batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
+
         kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
 
         self.batch_progress.increment_ready()

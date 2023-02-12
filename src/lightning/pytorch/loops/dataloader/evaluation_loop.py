@@ -137,13 +137,8 @@ class _EvaluationLoop(_DataLoaderLoop):
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader
 
-        def batch_to_device(batch: Any) -> Any:
-            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
-            return batch
-
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
+        self._data_fetcher.setup(dataloader)
         dl_max_batches = self._max_batches[dataloader_idx]
 
         kwargs = OrderedDict()

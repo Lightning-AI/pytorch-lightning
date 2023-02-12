@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
@@ -256,13 +256,8 @@ class _FitLoop(_Loop):
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.train_dataloader
 
-        def batch_to_device(batch: Any) -> Any:
-            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
-            return batch
-
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
+        self._data_fetcher.setup(dataloader)
         with self.trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(self._data_fetcher)
 
