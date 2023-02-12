@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Renamed `TQDMProgressBar.main_progress_bar` to `TQDMProgressBar.train_progress_bar` ([#16695](https://github.com/Lightning-AI/lightning/pull/16695))
 
+- Marked `lightning.pytorch.utilities.supporters.CombinedDataset` as protected ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 
 - Disabled strict loading in multiprocessing launcher ("ddp_spawn", etc.) when loading weights back into the main process ([#16365](https://github.com/Lightning-AI/lightning/pull/16365))
 
@@ -271,6 +272,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed class methods from Trainer: `default_attributes()`, `from_argparse_args()`, `parse_argparser()`, `match_env_arguments()`, `add_argparse_args()`
   * Removed functions from `lightning.pytorch.utilities.argparse`: `from_argparse_args()`, `parse_argparser()`, `parse_env_variables()`, `get_init_arguments_and_types()`, `add_argparse_args()`
 
+
+- Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 
 ### Fixed
 

@@ -71,7 +71,7 @@ from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnecto
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
@@ -137,7 +137,7 @@ class Trainer:
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        multiple_trainloader_mode: str = "max_size_cycle",
+        multiple_trainloader_mode: _LITERAL_SUPPORTED_MODES = "max_size_cycle",
         inference_mode: bool = True,
     ) -> None:
         r"""
