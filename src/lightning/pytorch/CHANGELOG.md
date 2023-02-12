@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Generalized `Optimizer` validation to accommodate both FSDP 1.x and 2.x ([#16733](https://github.com/Lightning-AI/lightning/pull/16733))
+
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
  * `strategy="fsdp_native"` is now `strategy="fsdp"`
  * `strategy="fsdp_native_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
