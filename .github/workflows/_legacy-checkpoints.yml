@@ -85,7 +85,7 @@ jobs:
       if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         pip install -q -r .actions/requirements.txt
-        python .actions/assistant.py copy_replace_imports --source_dir="./tests/legacy" \
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
           --source_import="lightning.fabric,lightning.pytorch" \
           --target_import="lightning_fabric,pytorch_lightning"
 
