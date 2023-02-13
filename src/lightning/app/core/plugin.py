@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
 
+import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -104,22 +105,35 @@ class _Run(BaseModel):
 def _run_plugin(run: _Run) -> None:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     with tempfile.TemporaryDirectory() as tmpdir:
+        download_path = os.path.join(tmpdir, "source.tar.gz")
+        source_path = os.path.join(tmpdir, "source")
+        os.makedirs(source_path)
+
         # Download the tarball
         try:
-            subprocess.run(
-                ["curl", run.source_code_url, "|", "tar", "-xz", "--no-overwrite-dir", "-m", "-C", tmpdir],
-                shell=True,
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
+            response = requests.get(run.source_code_url)
+
+            with open(download_path, "wb") as f:
+                f.write(response.content)
+        except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error downloading plugin source. Out: {str(e.stdout)}. Err: {str(e.stderr)}.",
+                detail=f"Error downloading plugin source: {str(e)}.",
+            )
+
+        # Extract
+        try:
+            with tarfile.TarFile(download_path, "r") as tf:
+                tf.extractall(source_path)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error extracting plugin source: {str(e)}.",
             )
 
         # Import the plugin
         try:
-            plugin = _load_plugin_from_file(os.path.join(tmpdir, run.plugin_entrypoint))
+            plugin = _load_plugin_from_file(os.path.join(source_path, run.plugin_entrypoint))
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(e)}."
