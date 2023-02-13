@@ -391,7 +391,7 @@ def run_app_in_cloud(
                 yield log_event.message
 
         try:
-            yield admin_page, view_page, fetch_logs, name
+            yield view_page, fetch_logs, name
         except KeyboardInterrupt:
             pass
         finally:
