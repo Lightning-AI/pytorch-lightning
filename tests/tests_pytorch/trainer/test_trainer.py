@@ -973,8 +973,6 @@ def test_disabled_validation(tmpdir):
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
 
 
-
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 
