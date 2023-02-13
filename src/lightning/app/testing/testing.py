@@ -325,59 +325,6 @@ def run_app_in_cloud(
             record_video_dir=os.path.join(_Config.video_location, TEST_APP_NAME),
             record_har_path=_Config.har_location,
         )
-        admin_page = context.new_page()
-        print(f"The Lightning App Token is: {token}")
-        print(f"The Lightning App user key is: {_Config.key}")
-        print(f"The Lightning App user id is: {_Config.id}")
-        admin_page.goto(_Config.url)
-        admin_page.evaluate(
-            """data => {
-            window.localStorage.setItem('gridUserId', data[0]);
-            window.localStorage.setItem('gridUserKey', data[1]);
-            window.localStorage.setItem('gridUserToken', data[2]);
-        }
-        """,
-            [_Config.id, _Config.key, token],
-        )
-        if LIGHTNING_CLOUD_PROJECT_ID:
-            admin_page.evaluate(
-                """data => {
-                window.localStorage.setItem('gridDefaultProjectIdOverride', JSON.stringify(data[0]));
-            }
-            """,
-                [LIGHTNING_CLOUD_PROJECT_ID],
-            )
-        admin_page.goto(f"{_Config.url}/{_Config.username}/apps", timeout=60 * 1000)
-
-        # Closing the Complete your profile dialog
-        try:
-            dialog = admin_page.locator("text=Complete your profile")
-            dialog.wait_for(timeout=10 * 1000, state="visible")
-            print("'Complete your profile' dialog visible, closing it.")
-            admin_page.locator('input[name="firstName"]').fill("first")
-            admin_page.locator('input[name="lastName"]').fill("last")
-            admin_page.locator('input[name="email"]').fill("e2e.test.admin@lightning.ai")
-            admin_page.locator('input[name="organization"]').fill("Lightning AI")
-            button = admin_page.locator('button:has-text("Confirm")')
-            button.wait_for(timeout=3 * 1000)
-            button.click()
-        except playwright._impl._api_types.TimeoutError:
-            print("'Complete your profile' dialog not visible, skipping.")
-
-        # Closing the Create Project dialog.
-        try:
-            project_dialog = admin_page.locator("text=Create a project")
-            project_dialog.wait_for(timeout=10 * 1000, state="visible")
-            print("'Create Project' dialog visible, closing it.")
-            project_name_input = admin_page.locator('input[type="text"]')
-            project_name_input.fill("Default Project")
-            button = admin_page.locator('button:has-text("Continue")')
-            button.wait_for(timeout=3 * 1000)
-            button.click()
-        except playwright._impl._api_types.TimeoutError:
-            print("'Create Project' dialog not visible, skipping.")
-
-        admin_page.locator(f'[data-cy="{name}"]').click()
 
         client = LightningClient()
         project_id = _get_project(client).project_id
