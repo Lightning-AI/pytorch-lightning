@@ -101,7 +101,6 @@ jobs:
         bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
     - name: Upload checkpoints to GitHub Actions artifact
-      working-directory: ${{ env.legacy_dir }}
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
