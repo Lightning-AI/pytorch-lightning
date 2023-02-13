@@ -10,7 +10,7 @@ from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy
 
 class _MyFabricGradNorm(BoringFabric):
     def after_backward(self, model, optimizer):
-        self.strategy.clip_gradients_norm(optimizer, max_norm=0.05, error_if_nonfinite=True)
+        self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
@@ -26,7 +26,7 @@ class _MyFabricGradNorm(BoringFabric):
 
 class _MyFabricGradVal(BoringFabric):
     def after_backward(self, model, optimizer):
-        self.strategy.clip_gradients_value(optimizer, clip_val=1e-10)
+        self.clip_gradients(model, optimizer, clip_val=1e-10)
 
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
@@ -78,7 +78,7 @@ def test_errors_deepspeed():
             "Make sure to set the `gradient_clipping` value in your Config."
         ),
     ):
-        strategy.clip_gradients_norm(Mock(), Mock(), Mock(), Mock())
+        strategy.clip_gradients_norm(Mock(), Mock(), Mock(), Mock(), Mock())
 
     with pytest.raises(
         NotImplementedError,
@@ -87,7 +87,7 @@ def test_errors_deepspeed():
             "Make sure to set the `gradient_clipping` value in your Config."
         ),
     ):
-        strategy.clip_gradients_value(Mock(), Mock())
+        strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
 @RunIf(min_torch="1.13")
@@ -100,4 +100,4 @@ def test_fsdp_error():
             "Consider clipping by norm instead or choose another strategy!"
         ),
     ):
-        strategy.clip_gradients_value(Mock(), Mock())
+        strategy.clip_gradients_value(Mock(), Mock(), Mock())
