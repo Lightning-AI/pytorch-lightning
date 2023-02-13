@@ -271,6 +271,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed `LightningDataModule` methods: `add_argparse_args()`, `from_argparse_args()`, `parse_argparser()`, `get_init_arguments_and_types()`
   * Removed class methods from Trainer: `default_attributes()`, `from_argparse_args()`, `parse_argparser()`, `match_env_arguments()`, `add_argparse_args()`
   * Removed functions from `lightning.pytorch.utilities.argparse`: `from_argparse_args()`, `parse_argparser()`, `parse_env_variables()`, `get_init_arguments_and_types()`, `add_argparse_args()`
+  * Removed functions from `lightning.pytorch.utilities.parsing`: `import str_to_bool()`, `str_to_bool_or_int()`, `str_to_bool_or_str()`
 
 
 - Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
