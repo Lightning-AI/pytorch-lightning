@@ -123,7 +123,7 @@ def _run_plugin(run: _Run) -> None:
 
         # Extract
         try:
-            with tarfile.TarFile(download_path, "r") as tf:
+            with tarfile.TarFile(download_path, "r:gz") as tf:
                 tf.extractall(source_path)
         except Exception as e:
             raise HTTPException(
