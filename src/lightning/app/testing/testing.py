@@ -282,7 +282,7 @@ def run_app_in_cloud(
     token = res.json()["token"]
 
     # 3. Disconnect from the App if any.
-    Popen("lightning disconnect", shell=True).wait()
+    Popen("lightning logout", shell=True).wait()
 
     # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -392,6 +392,9 @@ def run_app_in_cloud(
 
         admin_page.locator(f'[data-cy="{name}"]').click()
 
+        app_url = admin_page.url
+        admin_page.goto(app_url + "/logs")
+
         client = LightningClient()
         project_id = _get_project(client).project_id
 
@@ -404,6 +407,7 @@ def run_app_in_cloud(
             process.start()
 
         view_page = context.new_page()
+        view_page.goto(f"{app_url}/view?fullscreen=true")
         i = 1
         while True:
             app = _fetch_app_by_name(client, project_id, name)
@@ -411,12 +415,12 @@ def run_app_in_cloud(
 
             # wait until the app is running and openapi.json is ready
             if app.status.phase == V1LightningappInstanceState.RUNNING:
-                view_page.goto(f"{app.status.url}/view")
-                status_code = requests.get(f"{app.status.url}/openapi.json").status_code
+                view_page.goto(f"{app_url}/view?fullscreen=true")
+                status_code = requests.get(f"{app_url}/openapi.json").status_code
                 if status_code == 200:
                     print("App is running, continuing with testing...")
                     break
-                msg = f"Received status code {status_code} at {app.status.url!r}"
+                msg = f"Received status code {status_code} at {app_url!r}"
             elif app.status.phase not in (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.NOT_STARTED):
                 # there's a race condition if the app goes from pending to running to something else before we evaluate
                 # the condition above. avoid it by checking stopped explicitly
