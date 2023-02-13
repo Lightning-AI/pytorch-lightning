@@ -189,19 +189,6 @@ def collect_init_args(
     return path_args
 
 
-def flatten_dict(source: Dict[str, Any], result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    if result is None:
-        result = {}
-
-    for k, v in source.items():
-        if isinstance(v, dict):
-            _ = flatten_dict(v, result)
-        else:
-            result[k] = v
-
-    return result
-
-
 def save_hyperparameters(
     obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
 ) -> None:

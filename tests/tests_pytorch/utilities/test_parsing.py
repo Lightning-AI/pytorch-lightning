@@ -21,7 +21,6 @@ from lightning.pytorch.utilities.parsing import (
     AttributeDict,
     clean_namespace,
     collect_init_args,
-    flatten_dict,
     get_init_args,
     is_picklable,
     lightning_getattr,
@@ -296,11 +295,3 @@ def test_attribute_dict(tmpdir):
     ad = AttributeDict({"key1": 1})
     ad.key1 = 123
     assert ad.key1 == 123
-
-
-def test_flatten_dict(tmpdir):
-    d = {"1": 1, "_": {"2": 2, "_": {"3": 3, "4": 4}}}
-
-    expected = {"1": 1, "2": 2, "3": 3, "4": 4}
-
-    assert flatten_dict(d) == expected
