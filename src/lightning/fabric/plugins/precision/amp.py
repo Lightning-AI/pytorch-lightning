@@ -91,6 +91,13 @@ class MixedPrecision(Precision):
         # https://github.com/pytorch/pytorch/issues/67233
         return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
 
+    def unscale_gradients_(self, optimizer):
+        scaler = getattr(self.precision, "scaler", None)
+        if scaler is not None:
+            if _optimizer_handles_unscaling(optimizer):
+                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
+            scaler.unscale_(optimizer)
+
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
     """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
