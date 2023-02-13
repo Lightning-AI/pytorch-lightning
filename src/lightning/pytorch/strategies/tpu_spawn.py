@@ -13,10 +13,9 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -37,9 +36,8 @@ from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.connectors.data_connector import DataConnector
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -98,15 +96,12 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return xm.xla_device()
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
-        def check_has_len(dataloader: DataLoader) -> None:
-            if not has_len(dataloader):
-                raise MisconfigurationException(
-                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
-                )
-
-        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
+    def _validate_dataloader(dataloader: object) -> None:
+        if not has_len(dataloader):
+            raise TypeError(
+                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
+                " HINT: You can mock the length on your dataset to bypass this error."
+            )
 
     @staticmethod
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:

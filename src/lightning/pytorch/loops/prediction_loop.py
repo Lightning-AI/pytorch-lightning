@@ -61,7 +61,6 @@ class _PredictionLoop(_Loop):
     @property
     def num_dataloaders(self) -> int:
         """Returns the number of prediction dataloaders."""
-        # FIXME(carlos): can I remove this?
         combined_loader = self.trainer.predict_dataloaders
         assert combined_loader is not None
         return len(combined_loader._loaders_flattened)
@@ -113,16 +112,11 @@ class _PredictionLoop(_Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        # FIXME(carlos): move these two somewhere else
-        # _set_sampler_epoch(dataloader, self.trainer.fit_loop.epoch_progress.current.processed)
-        # self.trainer.strategy.process_dataloader(dataloader)
-
         combined_loader = self.trainer.predict_dataloaders
-        assert self.trainer.predict_dataloaders is not None
+        assert combined_loader is not None
         iter(combined_loader)
         assert isinstance(combined_loader._iterator, _Sequential)
 
-        # FIXME(carlos): once we support regular dataloader, we wont need this
         num_dataloaders = self.num_dataloaders
         self.epoch_batch_indices = [[] for _ in range(num_dataloaders)]
         self._predictions = [[] for _ in range(num_dataloaders)]

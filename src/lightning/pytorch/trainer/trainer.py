@@ -54,7 +54,7 @@ from lightning.pytorch.loggers.utilities import _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
-from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
+from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress, _set_sampler_epoch
 from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
@@ -1384,13 +1384,22 @@ class Trainer:
             model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._data_connector._predict_dataloader_source
-        pl_module = self.lightning_module or model
         enable_prediction = self.limit_predict_batches > 0
-        if source.is_defined() and enable_prediction:
-            self.num_predict_batches, iterables = self._data_connector._reset_eval_dataloader(
-                RunningStage.PREDICTING, model=pl_module
-            )
-            self.predict_dataloaders = CombinedLoader(iterables, "sequential")
+        if not source.is_defined() or not enable_prediction:
+            return
+
+        pl_module = self.lightning_module or model
+        self.num_predict_batches, iterables = self._data_connector._reset_eval_dataloader(
+            RunningStage.PREDICTING, model=pl_module
+        )
+        combined_loader = CombinedLoader(iterables, "sequential")
+        for i, dl in enumerate(combined_loader._loaders_flattened):
+            # some users want validation shuffling based on the training progress
+            _set_sampler_epoch(dl, self.fit_loop.epoch_progress.current.processed)
+            # allow the strategy to inject logic
+            dl = self.strategy.process_dataloader(dl)
+            combined_loader._update_index(dl, i)
+        self.predict_dataloaders = combined_loader
 
     """
     Accelerator properties
