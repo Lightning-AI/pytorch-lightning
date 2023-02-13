@@ -40,8 +40,8 @@ class LightningPlugin:
     def run(self, name: str, entrypoint: str) -> None:
         """Override with the logic to execute on the client side."""
 
-    def start_job(self, name: str, app_entrypoint: str) -> None:
-        """Start a job in the cloudspace associated with this plugin.
+    def run_job(self, name: str, app_entrypoint: str) -> None:
+        """Run a job in the cloudspace associated with this plugin.
 
         Args:
             name: The name of the job.
