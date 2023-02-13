@@ -245,8 +245,8 @@ def run_app_in_cloud(
 ) -> Generator:
     """This utility is used to automate testing e2e application with lightning.ai."""
     # 1. Validate the provide app_folder is correct.
-    if not os.path.exists(os.path.join(app_folder, "app.py")):
-        raise Exception("The app folder should contain an app.py file.")
+    if not os.path.exists(os.path.join(app_folder, app_name)):
+        raise Exception(f"The app folder should contain an {app_name} file.")
     if app_folder.endswith("/"):
         app_folder = app_folder[:-1]
 
