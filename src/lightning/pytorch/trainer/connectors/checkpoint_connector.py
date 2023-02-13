@@ -22,7 +22,6 @@ import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
-from torchmetrics import Metric
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment
@@ -76,7 +75,7 @@ class CheckpointConnector:
         """
         self._ckpt_path = checkpoint_path
         if not checkpoint_path:
-            log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
+            log.debug("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
@@ -276,12 +275,6 @@ class CheckpointConnector:
 
         # restore model state_dict
         self.trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
-
-        # reset metrics states on non-rank 0 as all states have been accumulated on rank 0 via syncing on checkpointing.
-        if not self.trainer.is_global_zero:
-            for module in self.trainer.lightning_module.modules():
-                if isinstance(module, Metric):
-                    module.reset()
 
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.

@@ -1,4 +1,4 @@
-name: Building packages
+name: Call building packages
 
 on:
   workflow_call:

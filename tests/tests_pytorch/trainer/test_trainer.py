@@ -17,9 +17,10 @@ import math
 import os
 import pickle
 from argparse import Namespace
-from contextlib import nullcontext
+from contextlib import nullcontext, suppress
 from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
@@ -1310,12 +1311,12 @@ class CustomPredictionWriter(BasePredictionWriter):
         assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
-    def on_predict_epoch_end(self, trainer, pl_module, outputs):
+    def on_predict_epoch_end(self, trainer, pl_module):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
-        super().on_predict_epoch_end(trainer, pl_module, outputs)
+        super().on_predict_epoch_end(trainer, pl_module)
 
 
 def predict(
@@ -2073,53 +2074,17 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
     logger.finalize.assert_called_once_with("failed")
 
 
-@RunIf(min_torch="2.0.0")
-def test_trainer_compiled_model(tmp_path, monkeypatch):
-    trainer_kwargs = {
-        "default_root_dir": tmp_path,
-        "fast_dev_run": True,
-        "logger": False,
-        "enable_checkpointing": False,
-        "enable_model_summary": False,
-        "enable_progress_bar": False,
-    }
+@pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
+def test_trainer_calls_strategy_on_exception(exception_type):
+    """Test that when an exception occurs, the Trainer lets the strategy process it."""
+    exception = exception_type("Test exception")
 
-    model = BoringModel()
-    compiled_model = torch.compile(model)
-    assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
+    class ExceptionModel(BoringModel):
+        def on_fit_start(self):
+            raise exception
 
-    # can train with compiled model
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(compiled_model)
-    assert trainer.model._compiler_ctx["compiler"] == "dynamo"
-
-    # the compiled model can be uncompiled
-    to_uncompiled_model = BoringModel.to_uncompiled(compiled_model)
-    assert model._compiler_ctx is None
-    assert compiled_model._compiler_ctx is None
-    assert to_uncompiled_model._compiler_ctx is None
-
-    # the compiled model needs to be passed
-    with pytest.raises(ValueError, match="required to be a compiled LightningModule"):
-        BoringModel.to_uncompiled(to_uncompiled_model)
-
-    # the uncompiled model can be fitted
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
-    assert trainer.model._compiler_ctx is None
-
-    # some strategies do not support it
-    compiled_model = torch.compile(model)
-    mock_cuda_count(monkeypatch, 1)
-    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
-    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(compiled_model)
-
-    # ddp does
-    trainer = Trainer(strategy="ddp", **trainer_kwargs)
-    trainer.fit(compiled_model)
-
-    # an exception is raised
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.raises(TypeError, match="must be a `Light"):
-        trainer.fit(object())
+    trainer = Trainer()
+    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock:
+        with suppress(Exception):
+            trainer.fit(ExceptionModel())
+    on_exception_mock.assert_called_once_with(exception)

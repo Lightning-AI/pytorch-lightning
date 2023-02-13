@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch.loops.dataloader.dataloader_loop import _DataLoaderLoop
 from lightning.pytorch.loops.epoch.prediction_epoch_loop import _PredictionEpochLoop
-from lightning.pytorch.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _set_sampler_epoch
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
@@ -17,13 +17,14 @@ class _PredictionLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, inference_mode: bool = True) -> None:
         super().__init__()
-        self.predictions: List[List[Any]] = []
         self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
         self.epoch_loop = _PredictionEpochLoop()
+        self.inference_mode = inference_mode
 
         self._results = None  # for `trainer._results` access
+        self._predictions: List[List[Any]] = []  # num_dataloaders x batches
         self._return_predictions: bool = False
 
     @property
@@ -43,6 +44,13 @@ class _PredictionLoop(_DataLoaderLoop):
         # For non `DDPSpawnStrategy` plugin, the `return_predictions` is True by default unless user decide otherwise.
         self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
         self.epoch_loop.return_predictions = self._return_predictions
+
+    @property
+    def predictions(self) -> List[Any]:
+        """The cached predictions."""
+        if self._predictions == []:
+            return self._predictions
+        return self._predictions[0] if self.num_dataloaders == 1 else self._predictions
 
     @property
     def num_dataloaders(self) -> int:
@@ -70,6 +78,7 @@ class _PredictionLoop(_DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
+    @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
         if self.skip:
             return None
@@ -88,7 +97,7 @@ class _PredictionLoop(_DataLoaderLoop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        self.predictions = []
+        self._predictions = []
         self.epoch_batch_indices = []
 
         super().reset()
@@ -116,7 +125,7 @@ class _PredictionLoop(_DataLoaderLoop):
         dl_predictions, dl_batch_indices = self.epoch_loop.run(
             dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
-        self.predictions.append(dl_predictions)
+        self._predictions.append(dl_predictions)
         self.epoch_batch_indices.append(dl_batch_indices)
 
     def on_run_end(self) -> Optional[_PREDICT_OUTPUT]:
@@ -145,18 +154,16 @@ class _PredictionLoop(_DataLoaderLoop):
         Returns:
             the results for all dataloaders
         """
-        results = self.predictions
-
-        self.trainer._call_callback_hooks("on_predict_epoch_end", results)
-        self.trainer._call_lightning_module_hook("on_predict_epoch_end", results)
+        self.trainer._call_callback_hooks("on_predict_epoch_end")
+        self.trainer._call_lightning_module_hook("on_predict_epoch_end")
 
         if self.return_predictions:
-            return results[0] if self.num_dataloaders == 1 else results
+            return self.predictions
 
     def _on_predict_end(self) -> None:
         """Resets previous gradient status and calls ``on_predict_end`` hook."""
-        # clear memory. the predictions are extracted in `on_predict_epoch_end`.
-        self.predictions = []
+        if not self.return_predictions:
+            self._predictions = []
         self.epoch_batch_indices = []
 
         # hook

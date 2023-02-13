@@ -156,7 +156,7 @@ if _RICH_AVAILABLE:
             if (
                 self._trainer.state.fn != "fit"
                 or self._trainer.sanity_checking
-                or self._trainer.progress_bar_callback.main_progress_bar_id != task.id
+                or self._trainer.progress_bar_callback.train_progress_bar_id != task.id
             ):
                 return Text()
             if self._trainer.training and task.id not in self._tasks:
@@ -256,7 +256,7 @@ class RichProgressBar(ProgressBarBase):
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[CustomProgress] = None
-        self.main_progress_bar_id: Optional["TaskID"]
+        self.train_progress_bar_id: Optional["TaskID"]
         self.val_sanity_progress_bar_id: Optional["TaskID"] = None
         self.val_progress_bar_id: Optional["TaskID"]
         self.test_progress_bar_id: Optional["TaskID"]
@@ -280,10 +280,10 @@ class RichProgressBar(ProgressBarBase):
         return not self.is_enabled
 
     @property
-    def main_progress_bar(self) -> Task:
+    def train_progress_bar(self) -> Task:
         assert self.progress is not None
-        assert self.main_progress_bar_id is not None
-        return self.progress.tasks[self.main_progress_bar_id]
+        assert self.train_progress_bar_id is not None
+        return self.progress.tasks[self.train_progress_bar_id]
 
     @property
     def val_sanity_check_bar(self) -> Task:
@@ -362,18 +362,18 @@ class RichProgressBar(ProgressBarBase):
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_disabled:
             return
-        total_batches = self.total_batches_current_epoch
+        total_batches = self.total_train_batches
         train_description = self._get_train_description(trainer.current_epoch)
 
-        if self.main_progress_bar_id is not None and self._leave:
+        if self.train_progress_bar_id is not None and self._leave:
             self._stop_progress()
             self._init_progress(trainer)
         if self.progress is not None:
-            if self.main_progress_bar_id is None:
-                self.main_progress_bar_id = self._add_task(total_batches, train_description)
+            if self.train_progress_bar_id is None:
+                self.train_progress_bar_id = self._add_task(total_batches, train_description)
             else:
                 self.progress.reset(
-                    self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
+                    self.train_progress_bar_id, total=total_batches, description=train_description, visible=True
                 )
 
         self.refresh()
@@ -470,7 +470,7 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
-        self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
+        self._update(self.train_progress_bar_id, self.train_batch_idx)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
@@ -491,9 +491,6 @@ class RichProgressBar(ProgressBarBase):
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
         elif self.val_progress_bar_id is not None:
-            # check to see if we should update the main training progress bar
-            if self.main_progress_bar_id is not None:
-                self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
             self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
@@ -544,7 +541,7 @@ class RichProgressBar(ProgressBarBase):
             self._progress_stopped = True
 
     def _reset_progress_bar_ids(self) -> None:
-        self.main_progress_bar_id = None
+        self.train_progress_bar_id = None
         self.val_sanity_progress_bar_id = None
         self.val_progress_bar_id = None
         self.test_progress_bar_id = None

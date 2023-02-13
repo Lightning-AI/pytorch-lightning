@@ -481,7 +481,7 @@ class Strategy(ABC):
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
         if self.lightning_module is not None:
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            log.debug(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
         assert self.accelerator is not None
@@ -526,6 +526,10 @@ class Strategy(ABC):
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
+        pass
+
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the trainer execution is interrupted by an exception."""
         pass
 
     def __getstate__(self) -> Dict:

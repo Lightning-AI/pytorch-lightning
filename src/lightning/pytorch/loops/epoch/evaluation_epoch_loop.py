@@ -15,11 +15,11 @@
 from collections import OrderedDict
 from typing import Any, Optional, Union
 
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
@@ -35,7 +35,7 @@ class _EvaluationEpochLoop(_Loop):
         self.batch_progress = BatchProgress()
 
         self._dl_max_batches: Union[int, float] = 0
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._data_fetcher: Optional[_DataFetcher] = None
         self._dl_batch_idx = [0]
 
     @property
@@ -43,7 +43,7 @@ class _EvaluationEpochLoop(_Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
-    def run(self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict) -> None:
+    def run(self, data_fetcher: _DataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict) -> None:
         self.reset()
         self.on_run_start(data_fetcher, dl_max_batches, kwargs)
         while not self.done:
@@ -69,9 +69,7 @@ class _EvaluationEpochLoop(_Loop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-    def on_run_start(
-        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
-    ) -> None:
+    def on_run_start(self, data_fetcher: _DataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
         Args:
@@ -102,7 +100,7 @@ class _EvaluationEpochLoop(_Loop):
 
     def advance(
         self,
-        data_fetcher: AbstractDataFetcher,
+        data_fetcher: _DataFetcher,
         kwargs: OrderedDict,
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
@@ -114,7 +112,7 @@ class _EvaluationEpochLoop(_Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             batch_idx = self.batch_progress.current.ready
             batch = next(data_fetcher)
         else:

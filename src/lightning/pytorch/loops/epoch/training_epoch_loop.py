@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional, Union
 import torch
 
 from lightning.pytorch import loops  # import as loops to avoid circular imports
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
@@ -25,7 +26,6 @@ from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
@@ -69,7 +69,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.automatic_optimization = _AutomaticOptimization()
         self.manual_optimization = _ManualOptimization()
 
-        self.val_loop = loops._EvaluationLoop(verbose=False)
+        self.val_loop = loops._EvaluationLoop(verbose=False, inference_mode=False)
 
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
@@ -115,17 +115,17 @@ class _TrainingEpochLoop(loops._Loop):
         if self.trainer.should_stop:
             # early stopping
             min_epochs = self.trainer.fit_loop.min_epochs
-            should_stop_early = self.trainer.fit_loop._should_stop_early
-            if not should_stop_early:
+            can_stop_early = self.trainer.fit_loop._can_stop_early
+            if not can_stop_early:
                 self._warning_cache.info(
                     f"Trainer was signaled to stop but the required `min_epochs={min_epochs!r}` or"
                     f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
                 )
-            return should_stop_early
+            return can_stop_early
 
         return False
 
-    def run(self, data_fetcher: AbstractDataFetcher) -> None:
+    def run(self, data_fetcher: _DataFetcher) -> None:
         self.reset()
         self.on_run_start(data_fetcher)
         while not self.done:
@@ -160,7 +160,7 @@ class _TrainingEpochLoop(loops._Loop):
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
+    def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
@@ -174,7 +174,7 @@ class _TrainingEpochLoop(loops._Loop):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
-    def advance(self, data_fetcher: AbstractDataFetcher) -> None:
+    def advance(self, data_fetcher: _DataFetcher) -> None:
         """Runs a single training batch.
 
         Raises:
@@ -186,7 +186,7 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             batch_idx = self.batch_idx + 1
             batch = next(data_fetcher)
         else:
@@ -389,7 +389,9 @@ class _TrainingEpochLoop(loops._Loop):
         if is_last_batch and is_infinite_dataset:
             return True
 
-        if self.trainer.should_stop:
+        if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
+            # allow validation if requesting to stop early through `Trainer.should_stop` (e.g. by early stopping)
+            # and when the loop allows to stop (min_epochs/steps met)
             return True
 
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
