@@ -14,19 +14,16 @@
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional
 
-import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.component import _set_flow_context
 from lightning.app.utilities.enum import AppStage
-from lightning.app.utilities.network import LightningClient
+from lightning.app.utilities.load_app import _load_plugin_from_file
 
 logger = Logger(__name__)
 
@@ -35,65 +32,26 @@ class Plugin:
     """A ``Plugin`` is a single-file Python class that can be executed within a cloudspace to perform actions."""
 
     def __init__(self) -> None:
-        self.app_url = None
+        self.project_id = None
+        self.cloudspace_id = None
+        self.cluster_id = None
 
     def run(self, name: str, entrypoint: str) -> None:
         """Override with the logic to execute on the client side."""
 
-    def run_app_command(self, command_name: str, config: Optional[BaseModel] = None) -> Dict[str, Any]:
-        """Run a command on the app associated with this plugin.
+    def start_job(self, name: str, app_entrypoint: str) -> None:
+        """Start a job in the cloudspace associated with this plugin.
 
         Args:
-            command_name: The name of the command to run.
-            config: The command config or ``None`` if the command doesn't require configuration.
+            name: The name of the job.
+            app_entrypoint: The path of the file containing the app to run.
         """
-        if self.app_url is None:
-            raise RuntimeError("The plugin must be set up before `run_app_command` can be called.")
-
-        command = command_name.replace(" ", "_")
-        resp = requests.post(self.app_url + f"/command/{command}", data=config.json() if config else None)
-        if resp.status_code != 200:
-            try:
-                detail = str(resp.json())
-            except Exception:
-                detail = "Internal Server Error"
-            raise RuntimeError(f"Failed with status code {resp.status_code}. Detail: {detail}")
-
-        return resp.json()
-
-    def _setup(self, app_id: str) -> None:
-        client = LightningClient()
-        project_id = _get_project(client).project_id
-        response = client.lightningapp_instance_service_list_lightningapp_instances(
-            project_id=project_id, app_id=app_id
-        )
-        if len(response.lightningapps) > 1:
-            raise RuntimeError(f"Found multiple apps with ID: {app_id}")
-        if len(response.lightningapps) == 0:
-            raise RuntimeError(f"Found no apps with ID: {app_id}")
-        self.app_url = response.lightningapps[0].status.url
-
-
-class _Run(BaseModel):
-    plugin_name: str
-    project_id: str
-    cloudspace_id: str
-    name: str
-    entrypoint: str
-    cluster_id: Optional[str] = None
-    app_id: Optional[str] = None
-
-
-def _run_plugin(run: _Run) -> None:
-    """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
-    if run.app_id is None and run.plugin_name == "app":
         from lightning.app.runners.cloud import CloudRuntime
 
-        # TODO: App dispatch should be a plugin
-        # Dispatch the run
+        # Dispatch the job
         _set_flow_context()
 
-        entrypoint_file = Path("/content") / run.entrypoint
+        entrypoint_file = Path("/content") / app_entrypoint
 
         app = CloudRuntime.load_app_from_file(str(entrypoint_file.resolve().absolute()))
 
@@ -112,45 +70,50 @@ def _run_plugin(run: _Run) -> None:
 
         try:
             runtime.cloudspace_dispatch(
-                project_id=run.project_id,
-                cloudspace_id=run.cloudspace_id,
-                name=run.name,
-                cluster_id=run.cluster_id,
+                project_id=self.project_id,
+                cloudspace_id=self.cloudspace_id,
+                name=name,
+                cluster_id=self.cluster_id,
             )
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-    elif run.app_id is not None:
-        from lightning.app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
-        from lightning.app.utilities.commands.base import _download_command
 
-        retriever = _LightningAppOpenAPIRetriever(run.app_id)
+    def _setup(
+        self,
+        project_id: str,
+        cloudspace_id: str,
+        cluster_id: str,
+    ) -> None:
+        self.project_id = project_id
+        self.cloudspace_id = cloudspace_id
+        self.cluster_id = cluster_id
 
-        metadata = retriever.api_commands[run.plugin_name]  # type: ignore
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+class _Run(BaseModel):
+    plugin_entrypoint: str
+    source_code_url: str
+    project_id: str
+    cloudspace_id: str
+    cluster_id: str
+    name: str
+    entrypoint: str
 
-            target_file = os.path.join(tmpdir, f"{run.plugin_name}.py")
-            plugin = _download_command(
-                run.plugin_name,
-                metadata["cls_path"],
-                metadata["cls_name"],
-                run.app_id,
-                target_file=target_file,
-            )
 
-            if isinstance(plugin, Plugin):
-                plugin._setup(app_id=run.app_id)
-                plugin.run(run.name, run.entrypoint)
-            else:
-                # This should never be possible but we check just in case
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"The plugin {run.plugin_name} is an incorrect type.",
-                )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="App ID must be specified unless `plugin_name='app'`."
+def _run_plugin(run: _Run) -> None:
+    """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Download the tarball
+        os.system(f"curl '{run.source_code_url}' | tar -xz --no-overwrite-dir -m - {tmpdir}")
+
+        # Import the plugin
+        plugin = _load_plugin_from_file(os.path.join(tmpdir, run.plugin_entrypoint))
+
+        plugin._setup(
+            project_id=run.project_id,
+            cloudspace_id=run.cloudspace_id,
+            cluster_id=run.cluster_id,
         )
+        plugin.run(run.name, run.entrypoint)
 
 
 def _start_plugin_server(host: str, port: int) -> None:

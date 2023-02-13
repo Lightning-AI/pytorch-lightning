@@ -19,12 +19,13 @@ import traceback
 import types
 from contextlib import contextmanager
 from copy import copy
-from typing import Dict, List, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Type, TYPE_CHECKING, Union
 
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
     from lightning.app import LightningApp, LightningFlow, LightningWork
+    from lightning.app.core.plugin import Plugin
 
 from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
 
@@ -45,17 +46,15 @@ def _prettifiy_exception(filepath: str):
     sys.exit(1)
 
 
-def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
-    """Load a LightningApp from a file.
-
-    Arguments:
-        filepath:  The path to the file containing the LightningApp.
-        raise_exception: If True, raise an exception if the app cannot be loaded.
-    """
+def _load_objects_from_file(
+    filepath: str,
+    target_type: Type,
+    raise_exception: bool = False,
+    mock_imports: bool = False,
+) -> List[Any]:
+    """TODO: docstring"""
 
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
-
-    from lightning.app.core.app import LightningApp
 
     # In order for imports to work in a non-package, Python normally adds the current working directory to the
     # system path, not however when running from an entry point like the `lightning` CLI command. So we do it manually:
@@ -75,7 +74,33 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
             raise e
         _prettifiy_exception(filepath)
 
-    apps = [v for v in module.__dict__.values() if isinstance(v, LightningApp)]
+    return [v for v in module.__dict__.values() if isinstance(v, target_type)]
+
+
+def _load_plugin_from_file(filepath: str) -> "Plugin":
+    from lightning.app.core.plugin import Plugin
+
+    plugins = _load_objects_from_file(filepath, Plugin, raise_exception=True, mock_imports=False)
+
+    if len(plugins) > 1:
+        raise RuntimeError(f"There should not be multiple plugins instantiated within the file. Found {plugins}")
+    if len(plugins) == 1:
+        return plugins[0]
+
+    raise RuntimeError(f"The provided file {filepath} does not contain a Plugin.")
+
+
+def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
+    """Load a LightningApp from a file.
+
+    Arguments:
+        filepath:  The path to the file containing the LightningApp.
+        raise_exception: If True, raise an exception if the app cannot be loaded.
+    """
+    from lightning.app.core.app import LightningApp
+
+    apps = _load_objects_from_file(filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports)
+
     if len(apps) > 1:
         raise MisconfigurationException(f"There should not be multiple apps instantiated within a file. Found {apps}")
     if len(apps) == 1:

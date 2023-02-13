@@ -67,11 +67,6 @@ class FileUploader:
             Amount of retries
         disconnect_retry_wait_seconds: int
             Amount of seconds between disconnect retry
-
-        Returns
-        -------
-        str
-            ETag from response
         """
         disconnect_retries = retries
         while disconnect_retries > 0:
@@ -87,10 +82,11 @@ class FileUploader:
         raise ValueError("Unable to upload file after multiple attempts")
 
     def _upload_data(self, s: requests.Session, url: str, data: bytes):
-        resp = s.put(url, data=data)
-        if "ETag" not in resp.headers:
-            raise ValueError(f"Unexpected response from {url}, response: {resp.content}")
-        return resp.headers["ETag"]
+        response = s.put(url, files={"uploaded_file": data})
+        # assert resp.status_code == 200
+        # response = s.put(url, data=data)
+        if response.status_code != 200:
+            raise ValueError(f"Unexpected response from {url}, response: {response.content}")
 
     def upload(self) -> None:
         """Upload files from source dir into target path in S3."""

@@ -109,7 +109,7 @@ def _download_command(
     app_id: Optional[str] = None,
     debug_mode: bool = False,
     target_file: Optional[str] = None,
-) -> Union[ClientCommand, Plugin]:
+) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
     command_name = command_name.replace(" ", "_")
@@ -143,10 +143,8 @@ def _download_command(
     command_type = getattr(mod, cls_name)
     if issubclass(command_type, ClientCommand):
         command = command_type(method=None)
-    elif issubclass(command_type, Plugin):
-        command = command_type()
     else:
-        raise ValueError(f"Expected class {cls_name} for command {command_name} to be a `ClientCommand` or `Plugin`.")
+        raise ValueError(f"Expected class {cls_name} for command {command_name} to be a `ClientCommand`.")
     if tmpdir and os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
     return command
@@ -233,7 +231,8 @@ def _prepare_plugins(app) -> List:
     for plugin_mapping in plugins:
         for plugin_name, plugin in plugin_mapping.items():
             if isinstance(plugin, Plugin):
-                _upload(plugin_name, "plugins", plugin)
+                formatted_name = f"{plugin_name}_{plugin.__class__.__name__}"
+                _upload(formatted_name, "plugins", plugin)
 
 
 def _process_api_request(app, request: _APIRequest):
