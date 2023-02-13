@@ -104,17 +104,33 @@ def _run_plugin(run: _Run) -> None:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     with tempfile.TemporaryDirectory() as tmpdir:
         # Download the tarball
-        os.system(f"curl '{run.source_code_url}' | tar -xz --no-overwrite-dir -m - {tmpdir}")
+        try:
+            os.system(f"curl '{run.source_code_url}' | tar -xz --no-overwrite-dir -m - {tmpdir}")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error downloading plugin source: {str(e)}."
+            )
 
         # Import the plugin
-        plugin = _load_plugin_from_file(os.path.join(tmpdir, run.plugin_entrypoint))
+        try:
+            plugin = _load_plugin_from_file(os.path.join(tmpdir, run.plugin_entrypoint))
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(e)}."
+            )
 
-        plugin._setup(
-            project_id=run.project_id,
-            cloudspace_id=run.cloudspace_id,
-            cluster_id=run.cluster_id,
-        )
-        plugin.run(run.name, run.entrypoint)
+        # Setup and run the plugin
+        try:
+            plugin._setup(
+                project_id=run.project_id,
+                cloudspace_id=run.cloudspace_id,
+                cluster_id=run.cluster_id,
+            )
+            plugin.run(run.name, run.entrypoint)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(e)}."
+            )
 
 
 def _start_plugin_server(host: str, port: int) -> None:
