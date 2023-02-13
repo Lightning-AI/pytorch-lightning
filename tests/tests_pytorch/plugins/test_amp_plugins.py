@@ -142,7 +142,6 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         accelerator="gpu",
         devices=2,
         precision=16,
-        track_grad_norm=2,
         # use a tiny value to make sure it works
         gradient_clip_val=1e-3,
         gradient_clip_algorithm="value",

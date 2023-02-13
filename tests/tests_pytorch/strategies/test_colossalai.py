@@ -153,7 +153,6 @@ def test_warn_colossalai_ignored(tmpdir):
         devices=1,
         precision=16,
         strategy="colossalai",
-        track_grad_norm=2,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -161,7 +160,6 @@ def test_warn_colossalai_ignored(tmpdir):
 
     with pytest.warns(UserWarning, match="will be ignored since ColossalAI handles the backward"):
         trainer.fit(model)
-    assert any("track_grad_norm=2.0)' but this is not supported" in w for w in warning_cache)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):

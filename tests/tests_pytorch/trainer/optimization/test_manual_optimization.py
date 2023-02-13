@@ -390,7 +390,6 @@ def test_multiple_optimizers_step(tmpdir):
         precision=16,
         accelerator="gpu",
         devices=1,
-        track_grad_norm=2,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:

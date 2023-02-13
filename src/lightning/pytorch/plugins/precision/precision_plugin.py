@@ -24,7 +24,7 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins import Precision as FabricPrecision
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.core.hooks import CheckpointHooks
-from lightning.pytorch.utilities import grad_norm, GradClipAlgorithmType
+from lightning.pytorch.utilities import GradClipAlgorithmType
 
 
 class PrecisionPlugin(FabricPrecision, CheckpointHooks):
@@ -76,7 +76,6 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         trainer = model.trainer
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer)
         trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer)
-        self._track_grad_norm(trainer)
         self._clip_gradients(
             model,
             optimizer,
@@ -110,21 +109,6 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         """Hook to run the optimizer step."""
         closure = partial(self._wrap_closure, model, optimizer, closure)
         return optimizer.step(closure=closure, **kwargs)
-
-    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
-        if trainer.track_grad_norm == -1:
-            return
-
-        kwargs = {}
-        if len(trainer.loggers) == 1:
-            kwargs["group_separator"] = trainer.loggers[0].group_separator
-
-        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
-        if grad_norm_dict:
-            prev_fx = trainer.lightning_module._current_fx_name
-            trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
-            trainer.lightning_module.log_grad_norm(grad_norm_dict)
-            trainer.lightning_module._current_fx_name = prev_fx
 
     def _clip_gradients(
         self,
