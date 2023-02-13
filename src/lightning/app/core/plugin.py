@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -105,10 +106,15 @@ def _run_plugin(run: _Run) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         # Download the tarball
         try:
-            os.system(f"curl '{run.source_code_url}' | tar -xz --no-overwrite-dir -m -C {tmpdir}")
-        except Exception as e:
+            subprocess.run(
+                ["curl", run.source_code_url, "|", "tar", "-xz", "--no-overwrite-dir", "-m", "-C", tmpdir],
+                shell=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error downloading plugin source: {str(e)}."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error downloading plugin source. Out: {str(e.stdout)}. Err: {str(e.stderr)}.",
             )
 
         # Import the plugin
