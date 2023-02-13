@@ -247,8 +247,7 @@ accumulate_grad_batches
 
 |
 
-Accumulates grads every k batches or as set up in the dict.
-Trainer also calls ``optimizer.step()`` for the last indivisible step number.
+Accumulates gradients over k batches before stepping the optimizer.
 
 .. testcode::
 
@@ -260,8 +259,7 @@ Example::
     # accumulate every 4 batches (effective batch size is batch*4)
     trainer = Trainer(accumulate_grad_batches=4)
 
-    # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
-    trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation schedules.
 
 
 benchmark
