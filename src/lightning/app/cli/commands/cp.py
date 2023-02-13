@@ -87,7 +87,8 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     else:
         project_id = _get_project_id_from_name(remote_dst)
 
-    remote_dst = os.path.join(*remote_splits[2:])
+    if len(remote_splits) > 2:
+        remote_dst = os.path.join(*remote_splits[2:])
 
     local_src = Path(local_src).resolve()
     upload_paths = []
