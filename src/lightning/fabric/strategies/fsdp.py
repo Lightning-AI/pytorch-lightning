@@ -281,7 +281,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from lightning.fabric.wrappers import _unwrap_objects
 
         optimizer = _unwrap_objects(optimizer)
-        self._unscale_params(optimizer)
+        self.precision.unscale_gradients_(optimizer)
         return self._module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     def clip_gradients_value(self, optimizer, clip_val: Union[float, int]):
