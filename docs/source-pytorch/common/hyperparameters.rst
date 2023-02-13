@@ -1,11 +1,5 @@
 :orphan:
 
-.. testsetup:: *
-
-    from argparse import ArgumentParser, Namespace
-
-    sys.argv = ["foo"]
-
 Configure hyperparameters from the CLI
 --------------------------------------
 
@@ -22,7 +16,7 @@ ArgumentParser
 The :class:`~argparse.ArgumentParser` is a built-in feature in Python that let's you build CLI programs.
 You can use it to make hyperparameters and other training settings available from the command line:
 
-.. testcode::
+.. code-block:: python
 
     from argparse import ArgumentParser
 
