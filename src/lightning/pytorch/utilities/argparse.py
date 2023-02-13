@@ -19,16 +19,12 @@ from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, Type, TYPE_CHECKING, TypeVar, Union
-
-if TYPE_CHECKING:
-    import lightning.pytorch as pl
+from typing import Any, Callable, cast, Type, TypeVar
 
 _T = TypeVar("_T", bound=Callable[..., Any])
-_ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
 
 
-def _parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def _parse_env_variables(cls: Type, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Examples:
