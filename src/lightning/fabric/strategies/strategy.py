@@ -306,13 +306,6 @@ class Strategy(ABC):
         self.accelerator.teardown()
         self.checkpoint_io.teardown()
 
-    def _unscale_params(self, optimizer):
-        scaler = getattr(self.precision, "scaler", None)
-        if scaler is not None:
-            if _optimizer_handles_unscaling(optimizer):
-                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
-            scaler.unscale_(optimizer)
-
     def clip_gradients_norm(
         self,
         optimizer,
@@ -324,7 +317,7 @@ class Strategy(ABC):
         from lightning.fabric.wrappers import _unwrap_objects
 
         optimizer = _unwrap_objects(optimizer)
-        self._unscale_params(optimizer)
+        self.precision.unscale_gradients_(optimizer)
         parameters = self.precision.main_params(optimizer)
         return torch.nn.utils.clip_grad_norm_(
             parameters, max_norm=max_norm, norm_type=norm_type, error_if_nonfinite=error_if_nonfinite
@@ -335,7 +328,7 @@ class Strategy(ABC):
         from lightning.fabric.wrappers import _unwrap_objects
 
         optimizer = _unwrap_objects(optimizer)
-        self._unscale_params(optimizer)
+        self.precision.unscale_gradients_(optimizer)
         parameters = self.precision.main_params(optimizer)
         return torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
