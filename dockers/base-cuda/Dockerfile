@@ -117,7 +117,7 @@ RUN \
     if [[ $PYTORCH_VERSION != "1.13" ]]; then \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
-        pip install "colossalai==0.2.3+torch${PYTORCH_VERSION}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
+        pip install "colossalai==0.2.3+torch${PYTORCH_VERSION}cu${CUDA_VERSION_COLOSSALAI}"; \
         python -c "import colossalai; print(colossalai.__version__)" ; \
     fi
 
