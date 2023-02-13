@@ -49,4 +49,4 @@ LightningCLI
 
 Python's argument parser works well for simple use cases, but it can become cumbersome to maintain for larger projects.
 For example, every time you add, change, or delete an argument from your model, you will have to add, edit, or remove the corresponding ``parser.add_argument`` code.
-The :doc:`Lightning CLI <cli/lightning_cli>` provides a seamless integration with the Trainer and LightningModule for which the CLI arguments get generated automatically for you!
+The :doc:`Lightning CLI <../cli/lightning_cli>` provides a seamless integration with the Trainer and LightningModule for which the CLI arguments get generated automatically for you!
