@@ -378,7 +378,7 @@ def test_manual_poptorch_dataloader(tmpdir):
 
     assert isinstance(trainer.strategy, IPUStrategy)
     assert trainer.strategy.training_opts is other_options
-    dataloader = trainer.train_dataloader.loaders
+    dataloader = trainer.train_dataloader.iterables
     assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
     # dataloader uses the options in the model, not the strategy
     assert dataloader.options is model_options
@@ -406,7 +406,7 @@ def test_manual_poptorch_opts(tmpdir):
     assert trainer.strategy.training_opts == training_opts
     assert trainer.strategy.inference_opts == inference_opts
 
-    dataloader = trainer.train_dataloader.loaders
+    dataloader = trainer.train_dataloader.iterables
     assert isinstance(dataloader, poptorch.DataLoader)
     assert dataloader.options == training_opts
     assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
@@ -440,7 +440,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
             val_dataloader = trainer.val_dataloaders[0]
             train_dataloader = trainer.train_dataloader
             assert isinstance(train_dataloader, CombinedLoader)
-            train_dataloader = train_dataloader.loaders
+            train_dataloader = train_dataloader.iterables
             assert isinstance(val_dataloader, poptorch.DataLoader)
             assert isinstance(train_dataloader, poptorch.DataLoader)
             assert train_dataloader.options.replication_factor == 2

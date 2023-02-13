@@ -242,7 +242,7 @@ class DataConnector:
         - Wrapping the dataloader based on strategy-specific logic
         """
         if isinstance(dataloader, CombinedLoader):
-            for i, dl in enumerate(dataloader._loaders_flattened):
+            for i, dl in enumerate(dataloader._flattened):
                 dataloader._update_index(self._prepare_dataloader(dl, shuffle=shuffle, mode=mode), i)
             return dataloader
 
@@ -344,7 +344,7 @@ class DataConnector:
 
         for loader in dataloaders:
             apply_to_collection(
-                loader.loaders if isinstance(loader, CombinedLoader) else loader,
+                loader.iterables if isinstance(loader, CombinedLoader) else loader,
                 DataLoader,
                 self._check_eval_shuffling,
                 mode=mode,

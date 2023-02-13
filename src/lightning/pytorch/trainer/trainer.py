@@ -296,11 +296,8 @@ class Trainer:
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
-            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
-                In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
-                and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
-                reload when reaching the minimum length of datasets.
-                Default: ``"max_size_cycle"``.
+            multiple_trainloader_mode: How to loop over the datasets when there are multiple iterables.
+                See :class:`lightning.pytorch.trainer.supporters.CombinedLoader`.
 
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
@@ -1252,7 +1249,7 @@ class Trainer:
             mode=RunningStage.TRAINING,
         )
         loaders = (
-            self.train_dataloader.loaders
+            self.train_dataloader.iterables
             if isinstance(self.train_dataloader, CombinedLoader)
             else self.train_dataloader
         )
@@ -1263,7 +1260,7 @@ class Trainer:
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(loaders, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
 
-        # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
+        # wrap the sequence of train iterables to a CombinedLoader object for computing the num_training_batches
         if not isinstance(self.train_dataloader, CombinedLoader):
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
