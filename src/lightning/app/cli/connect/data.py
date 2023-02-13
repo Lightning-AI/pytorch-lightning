@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ast
 import sys
 
 import click
+import lightning_cloud
 import rich
 from rich.live import Live
 from rich.spinner import Spinner
@@ -29,11 +31,11 @@ logger = Logger(__name__)
 
 
 @click.argument("name", required=True)
-@click.argument("region", required=True)
-@click.argument("source", required=True)
-@click.argument("secret_arn_name", required=False)
-@click.argument("destination", required=False)
-@click.argument("project_name", required=False)
+@click.option("--region", required=True)
+@click.option("--source", required=True)
+@click.option("--secret_arn_name", required=False)
+@click.option("--destination", required=False)
+@click.option("--project_name", required=False)
 def connect_data(
     name: str,
     region: str,
@@ -91,7 +93,8 @@ def connect_data(
             #     project_id=project_id,
             #     id=response.id,
             # )
-        except Exception:
-            _error_and_exit("The data connection creation failed.")
+        except lightning_cloud.openapi.rest.ApiException as e:
+            message = ast.literal_eval(e.body.decode("utf-8"))["message"]
+            _error_and_exit(f"The data connection creation failed. Message: {message}")
 
     rich.print(f"[green]Succeeded[/green]: You have created a new data connection {name}.")
