@@ -1125,24 +1125,6 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
-def test_different_accumulate_grad_batches_fails(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accumulate_grad_batches={1: 2},
-        accelerator="gpu",
-        devices=1,
-        strategy="deepspeed",
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    with pytest.raises(
-        MisconfigurationException, match="DeepSpeed currently does not support different `accumulate_grad_batches`"
-    ):
-        trainer.fit(model)
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_specific_gpu_device_id(tmpdir):
     class TestCallback(Callback):

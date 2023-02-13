@@ -250,7 +250,6 @@ utilities
     :toctree: api
     :nosignatures:
 
-    argparse
     data
     deepspeed
     distributed

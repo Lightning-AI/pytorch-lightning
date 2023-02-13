@@ -99,26 +99,6 @@ def test_gradient_clip_algorithm_error(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
-def test_gradient_accumulation_raises(tmpdir):
-    model = ModelParallelBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        devices=1,
-        precision=16,
-        strategy="colossalai",
-        max_epochs=1,
-        accumulate_grad_batches={0: 1, 4: 2, 8: 3},
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="ColossalAI currently does not support different `accumulate_grad_batches` at different epochs.",
-    ):
-        trainer.fit(model)
-
-
-@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
 def test_colossalai_optimizer(tmpdir):
     model = BoringModel()
     trainer = Trainer(
