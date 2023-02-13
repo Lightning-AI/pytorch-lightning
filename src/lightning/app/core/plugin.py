@@ -28,8 +28,9 @@ from lightning.app.utilities.load_app import _load_plugin_from_file
 logger = Logger(__name__)
 
 
-class Plugin:
-    """A ``Plugin`` is a single-file Python class that can be executed within a cloudspace to perform actions."""
+class LightningPlugin:
+    """A ``LightningPlugin`` is a single-file Python class that can be executed within a cloudspace to perform
+    actions."""
 
     def __init__(self) -> None:
         self.project_id = None

@@ -31,7 +31,7 @@ from pydantic import BaseModel
 
 from lightning.app.api.http_methods import Post
 from lightning.app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
-from lightning.app.core.plugin import Plugin
+from lightning.app.core.plugin import LightningPlugin
 from lightning.app.utilities import frontend
 from lightning.app.utilities.app_helpers import is_overridden, Logger
 from lightning.app.utilities.cloud import _get_project
@@ -230,7 +230,7 @@ def _prepare_plugins(app) -> List:
     plugins = app.root.configure_plugins()
     for plugin_mapping in plugins:
         for plugin_name, plugin in plugin_mapping.items():
-            if isinstance(plugin, Plugin):
+            if isinstance(plugin, LightningPlugin):
                 formatted_name = f"{plugin_name}_{plugin.__class__.__name__}"
                 _upload(formatted_name, "plugins", plugin)
 

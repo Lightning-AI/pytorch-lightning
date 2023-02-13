@@ -21,7 +21,7 @@ from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, 
 
 from deepdiff import DeepHash
 
-from lightning.app.core.plugin import Plugin
+from lightning.app.core.plugin import LightningPlugin
 from lightning.app.core.work import LightningWork
 from lightning.app.frontend import Frontend
 from lightning.app.storage import Path
@@ -741,7 +741,7 @@ class LightningFlow:
         """
         raise NotImplementedError
 
-    def configure_plugins(self) -> Optional[List[Dict[str, Plugin]]]:
+    def configure_plugins(self) -> Optional[List[Dict[str, LightningPlugin]]]:
         """Configure the plugins of this LightningFlow.
 
         Returns a list of dictionaries mapping a plugin name to a :class:`lightning_app.core.plugin.Plugin`.

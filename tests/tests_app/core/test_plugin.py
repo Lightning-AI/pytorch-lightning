@@ -5,7 +5,7 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from lightning.app.core.plugin import _Run, _start_plugin_server, Plugin
+from lightning.app.core.plugin import _Run, _start_plugin_server, LightningPlugin
 
 
 @pytest.fixture()
@@ -92,7 +92,7 @@ def test_run_plugin(mock_retriever, mock_download_command, mock_plugin_server):
         app_id="test_app_id",
     )
 
-    mock_plugin = mock.MagicMock(spec=Plugin)
+    mock_plugin = mock.MagicMock(spec=LightningPlugin)
     mock_download_command.return_value = mock_plugin
 
     mock_retriever.return_value.api_commands = {

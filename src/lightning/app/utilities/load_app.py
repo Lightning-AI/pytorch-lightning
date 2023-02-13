@@ -25,7 +25,7 @@ from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
     from lightning.app import LightningApp, LightningFlow, LightningWork
-    from lightning.app.core.plugin import Plugin
+    from lightning.app.core.plugin import LightningPlugin
 
 from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
 
@@ -77,10 +77,10 @@ def _load_objects_from_file(
     return [v for v in module.__dict__.values() if isinstance(v, target_type)]
 
 
-def _load_plugin_from_file(filepath: str) -> "Plugin":
-    from lightning.app.core.plugin import Plugin
+def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
+    from lightning.app.core.plugin import LightningPlugin
 
-    plugins = _load_objects_from_file(filepath, Plugin, raise_exception=True, mock_imports=False)
+    plugins = _load_objects_from_file(filepath, LightningPlugin, raise_exception=True, mock_imports=False)
 
     if len(plugins) > 1:
         raise RuntimeError(f"There should not be multiple plugins instantiated within the file. Found {plugins}")
