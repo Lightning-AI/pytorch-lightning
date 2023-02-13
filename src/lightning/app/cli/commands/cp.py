@@ -57,7 +57,7 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
         if pwd == "/" or len(pwd.split("/")) == 1:
             return _error_and_exit("Uploading files at the project level isn't allowed yet.")
 
-        client = LightningClient()
+        client = LightningClient(retry=False)
 
         src_path, src_remote = _sanitize_path(src_path, pwd)
         dst_path, dst_remote = _sanitize_path(dst_path, pwd)
@@ -87,6 +87,8 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     else:
         project_id = _get_project_id_from_name(remote_dst)
 
+    remote_dst = os.path.join(*remote_splits[2:])
+
     local_src = Path(local_src).resolve()
     upload_paths = []
 
@@ -100,6 +102,8 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     upload_urls = []
 
     clusters = client.projects_service_list_project_cluster_bindings(project_id)
+
+    live.stop()
 
     for upload_path in upload_paths:
         for cluster in clusters.clusters:
