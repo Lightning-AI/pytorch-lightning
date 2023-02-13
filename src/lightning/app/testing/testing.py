@@ -14,6 +14,7 @@
 
 import asyncio
 import datetime
+import json
 import os
 import shutil
 import subprocess
@@ -36,6 +37,7 @@ from rich.color import ANSI_COLOR_NAMES
 
 from lightning.app import LightningApp, LightningFlow
 from lightning.app.cli.lightning_cli import run_app
+from lightning.app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning.app.runners.multiprocess import MultiProcessRuntime
 from lightning.app.testing.config import _Config
 from lightning.app.utilities.app_logs import _app_logs_reader
@@ -49,7 +51,8 @@ from lightning.app.utilities.packaging.lightning_utils import get_dist_path_if_e
 from lightning.app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
-    from playwright.sync_api import sync_playwright
+    import playwright
+    from playwright.sync_api import HttpCredentials, sync_playwright
 
 
 def _on_error_callback(ws_app, *_):
