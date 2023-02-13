@@ -31,11 +31,21 @@ logger = Logger(__name__)
 
 
 @click.argument("name", required=True)
-@click.option("--region", required=True)
-@click.option("--source", required=True)
-@click.option("--secret_arn_name", required=False)
-@click.option("--destination", required=False)
-@click.option("--project_name", required=False)
+@click.option("--region", help="The AWS region of your bucket. Example: `us-west-1`.", required=True)
+@click.option(
+    "--source", help="The URL path to your AWS S3 folder. Example: `s3://pl-flash-data/images/`.", required=True
+)
+@click.option(
+    "--secret_arn_name",
+    help="The name of role stored as a secret on Lightning AI to access your data. "
+    "Learn more with https://gist.github.com/tchaton/12ad4b788012e83c0eb35e6223ae09fc. "
+    "Example: `my_role`.",
+    required=False,
+)
+@click.option(
+    "--destination", help="Where your data should appear in the cloud. Currently not supported.", required=False
+)
+@click.option("--project_name", help="The project name on which to create the data connection.", required=False)
 def connect_data(
     name: str,
     region: str,
