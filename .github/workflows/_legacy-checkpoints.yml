@@ -81,6 +81,7 @@ jobs:
       if: inputs.pl_version != ''
 
     - name: Adjust tests -> PL
+      working-directory: ./
       if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests/legacy" \
