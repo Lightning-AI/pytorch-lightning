@@ -110,10 +110,6 @@ class TestPrecisionModel(BoringModel):
         clip_val = self.trainer.gradient_clip_val
         torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
 
-    def log_grad_norm(self, grad_norm_dict):
-        self.check_grads_unscaled()
-        assert len(grad_norm_dict)
-
     def configure_gradient_clipping(self, *args, **kwargs):
         # let lightning clip
         super().configure_gradient_clipping(*args, **kwargs)
