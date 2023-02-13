@@ -164,8 +164,9 @@ class CombinedLoader(Iterable):
                 from each iterable.
 
     Examples:
-        >>> loaders = {'a': DataLoader(range(6), batch_size=4),
-        ...            'b': DataLoader(range(15), batch_size=5)}
+        >>> from torch.utils.data import DataLoader
+        >>> iterables = {'a': DataLoader(range(6), batch_size=4),
+        ...              'b': DataLoader(range(15), batch_size=5)}
         >>> combined_loader = CombinedLoader(iterables, 'max_size_cycle')
         >>> len(combined_loader)
         3
