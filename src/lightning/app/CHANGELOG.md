@@ -22,7 +22,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  * `pwd`: Return the current folder in your Cloud Platform Filesystem
  * `cp`: Copy files between your Cloud Platform Filesystem and local filesystem
 
-- Added `lightning connect data` to register data connection to s3 buckets ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+- Added `lightning connect data` to register data connection to public s3 buckets ([#16670](https://github.com/Lightning-AI/lightning/pull/16670))
+
+- Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
 
 
 ### Changed
