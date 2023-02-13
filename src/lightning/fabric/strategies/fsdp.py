@@ -128,7 +128,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
-        self._module: "FullyShardedDataParallel" = ...
 
     @property
     def root_device(self) -> torch.device:
