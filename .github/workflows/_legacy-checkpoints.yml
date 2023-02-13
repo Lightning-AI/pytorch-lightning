@@ -36,6 +36,9 @@ on:
         required: false
         type: boolean
 
+env:
+  PACKAGE_NAME: pytorch
+
 defaults:
   run:
     shell: bash
