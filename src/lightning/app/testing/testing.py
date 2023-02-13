@@ -268,19 +268,6 @@ def run_app_in_cloud(
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
-    url = _Config.url
-    if url.endswith("/"):
-        url = url[:-1]
-    payload = {"apiKey": _Config.api_key, "username": _Config.username}
-    url_login = url + "/v1/auth/login"
-    res = requests.post(url_login, data=json.dumps(payload))
-    if "token" not in res.json():
-        raise RuntimeError(
-            f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
-        )
-
-    token = res.json()["token"]
-
     # 3. Disconnect from the App if any.
     Popen("lightning disconnect", shell=True).wait()
 
