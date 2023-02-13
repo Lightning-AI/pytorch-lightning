@@ -68,9 +68,9 @@ def test_v0_app_example_byoc_cloud() -> None:
         os.path.join(_PATH_EXAMPLES, "app_v0"),
         extra_args=["--cluster-id", os.environ.get("LIGHTNING_BYOC_CLUSTER_ID")],
     ) as (
-        _,
         view_page,
         fetch_logs,
+        app_name
     ):
         run_v0_app(fetch_logs, view_page)
 
@@ -78,7 +78,6 @@ def test_v0_app_example_byoc_cloud() -> None:
 @pytest.mark.cloud
 def test_v0_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_v0")) as (
-        _,
         view_page,
         fetch_logs,
         _,

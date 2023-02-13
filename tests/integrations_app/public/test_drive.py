@@ -11,7 +11,6 @@ from lightning.app.testing.testing import run_app_in_cloud
 def test_drive_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_drive")) as (
         _,
-        _,
         fetch_logs,
         _,
     ):

@@ -11,7 +11,6 @@ from lightning.app.testing.testing import run_app_in_cloud, wait_for
 def test_template_react_ui_example_cloud() -> None:
     """This test ensures streamlit works in the cloud by clicking a button and checking the logs."""
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_template_react_ui")) as (
-        _,
         view_page,
         fetch_logs,
         _,
