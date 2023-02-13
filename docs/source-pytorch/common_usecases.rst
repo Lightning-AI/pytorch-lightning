@@ -33,6 +33,13 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
+   :header: Configure hyperparameters from the CLI
+   :description: Enable basic CLI with Lightning.
+   :col_css: col-md-12
+   :button_link: common/hyperparameters.html
+   :height: 100
+
+.. displayitem::
    :header: Customize the progress bar
    :description: Change the progress bar behavior.
    :col_css: col-md-12
@@ -54,7 +61,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
-   :header: Configure hyperparameters from the CLI
+   :header: Eliminate config boilerplate
    :description: Control your training via CLI and YAML.
    :col_css: col-md-12
    :button_link: cli/lightning_cli.html
