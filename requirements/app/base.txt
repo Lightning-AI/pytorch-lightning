@@ -12,7 +12,7 @@ beautifulsoup4>=4.8.0, <4.11.2
 inquirer>=2.10.0, <=3.1.2
 psutil<5.9.5
 click<=8.1.3
-fastapi<0.89.0  # strict; TODO: broken serializations
+fastapi<0.92.0  # strict; TODO: broken serializations
 
 dateutils<=0.6.12
 Jinja2<=3.1.2
