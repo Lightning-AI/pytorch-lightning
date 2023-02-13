@@ -39,6 +39,7 @@ from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.seed import reset_seed
+from lightning.fabric.utilities.types import Steppable
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
@@ -272,19 +273,22 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     def clip_gradients_norm(
         self,
-        optimizer,
+        module: "FullyShardedDataParallel",
+        optimizer: Steppable,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
-    ):
+    ) -> None:
         """Clip gradients by norm."""
         from lightning.fabric.wrappers import _unwrap_objects
 
         optimizer = _unwrap_objects(optimizer)
         self.precision.unscale_gradients_(optimizer)
-        return self._module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    def clip_gradients_value(self, optimizer, clip_val: Union[float, int]):
+    def clip_gradients_value(
+        self, module: "FullyShardedDataParallel", optimizer: Steppable, clip_val: Union[float, int]
+    ) -> None:
         """Clip gradients by value."""
 
         raise NotImplementedError(

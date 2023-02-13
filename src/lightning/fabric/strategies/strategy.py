@@ -26,10 +26,9 @@ from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
+from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp, Steppable
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -308,26 +307,21 @@ class Strategy(ABC):
 
     def clip_gradients_norm(
         self,
-        optimizer,
+        module: torch.nn.Module,
+        optimizer: Steppable,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
-    ):
+    ) -> Optional[torch.Tensor]:
         """Clip gradients by norm."""
-        from lightning.fabric.wrappers import _unwrap_objects
-
-        optimizer = _unwrap_objects(optimizer)
         self.precision.unscale_gradients_(optimizer)
         parameters = self.precision.main_params(optimizer)
         return torch.nn.utils.clip_grad_norm_(
             parameters, max_norm=max_norm, norm_type=norm_type, error_if_nonfinite=error_if_nonfinite
         )
 
-    def clip_gradients_value(self, optimizer, clip_val: Union[float, int]):
+    def clip_gradients_value(self, module: torch.nn.Module, optimizer: Steppable, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
-        from lightning.fabric.wrappers import _unwrap_objects
-
-        optimizer = _unwrap_objects(optimizer)
         self.precision.unscale_gradients_(optimizer)
         parameters = self.precision.main_params(optimizer)
         return torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)

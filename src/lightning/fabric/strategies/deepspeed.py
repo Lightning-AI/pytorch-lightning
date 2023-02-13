@@ -34,7 +34,7 @@ from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.types import _PATH, Steppable
 
 # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
@@ -488,17 +488,20 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def clip_gradients_norm(
         self,
-        optimizer,
+        module: "deepspeed.DeepSpeedEngine",
+        optimizer: Steppable,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
-    ):
+    ) -> None:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "
             "Make sure to set the `gradient_clipping` value in your Config."
         )
 
-    def clip_gradients_value(self, optimizer, clip_val: Union[float, int]):
+    def clip_gradients_value(
+        self, module: "deepspeed.DeepSpeedEngine", optimizer: Steppable, clip_val: Union[float, int]
+    ) -> None:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "
             "Make sure to set the `gradient_clipping` value in your Config."
