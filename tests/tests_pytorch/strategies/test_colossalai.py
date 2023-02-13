@@ -136,7 +136,6 @@ def test_warn_colossalai_ignored(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    from lightning.pytorch.plugins.precision.colossalai import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since ColossalAI handles the backward"):
         trainer.fit(model)
