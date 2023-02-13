@@ -80,6 +80,13 @@ jobs:
         pip list
       if: inputs.pl_version != ''
 
+    - name: Adjust tests -> PL
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      run: |
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests/legacy" \
+          --source_import="lightning.fabric,lightning.pytorch" \
+          --target_import="lightning_fabric,pytorch_lightning"
+
     - name: Pull legacy checkpoints
       working-directory: ./
       run: bash .actions/pull_legacy_checkpoints.sh
