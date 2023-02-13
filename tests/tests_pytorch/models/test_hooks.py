@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -67,7 +67,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     assert 0 == model.on_before_zero_grad_called
 
 
-def test_training_epoch_end_metrics_collection(tmpdir):
+def test_on_train_epoch_end_metrics_collection(tmpdir):
     """Test that progress bar metrics also get collected at the end of an epoch."""
     num_epochs = 3
 
@@ -77,7 +77,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
             self.log_dict({"step_metric": torch.tensor(-1), "shared_metric": 100}, logger=False, prog_bar=True)
             return output
 
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             epoch = self.current_epoch
             # both scalar tensors and Python numbers are accepted
             self.log_dict(
@@ -99,40 +99,6 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         assert metrics[f"epoch_metric_{i}"] == i
 
 
-def test_training_epoch_end_metrics_collection_on_override(tmpdir):
-    """Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch."""
-
-    class OverriddenModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.len_outputs = 0
-
-        def on_train_epoch_start(self):
-            self.num_train_batches = 0
-
-        def training_epoch_end(self, outputs):
-            self.len_outputs = len(outputs)
-
-        def on_train_batch_end(self, outputs, batch, batch_idx):
-            self.num_train_batches += 1
-
-    class NotOverriddenModel(BoringModel):
-        def on_train_epoch_start(self):
-            self.num_train_batches = 0
-
-        def on_train_batch_end(self, outputs, batch, batch_idx):
-            self.num_train_batches += 1
-
-    overridden_model = OverriddenModel()
-    not_overridden_model = NotOverriddenModel()
-    not_overridden_model.training_epoch_end = None
-
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, overfit_batches=2)
-
-    trainer.fit(overridden_model)
-    assert overridden_model.len_outputs == overridden_model.num_train_batches
-
-
 @pytest.mark.parametrize(
     "accelerator,expected_device_str",
     [
@@ -141,7 +107,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     ],
 )
 @mock.patch(
-    "pytorch_lightning.strategies.Strategy.lightning_module",
+    "lightning.pytorch.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_device_str):
@@ -214,7 +180,6 @@ def test_transfer_batch_hook_ddp(tmpdir):
 
     model = TestModel()
     model.validation_step = None
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -286,14 +251,6 @@ class HookedModel(BoringModel):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
-    def validation_epoch_end(self, *args, **kwargs):
-        # `BoringModel` does not have a return for `validation_step_end` so this would fail
-        pass
-
-    def test_epoch_end(self, *args, **kwargs):
-        # `BoringModel` does not have a return for `test_step_end` so this would fail
-        pass
-
     def _train_batch(self, *args, **kwargs):
         if self.automatic_optimization:
             return self._auto_train_batch(*args, **kwargs)
@@ -318,16 +275,16 @@ class HookedModel(BoringModel):
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_before_zero_grad", args=(trainer, model, ANY)),
                     dict(name="on_before_zero_grad", args=(ANY,)),
-                    dict(name="optimizer_zero_grad", args=(current_epoch, i, ANY, 0)),
+                    dict(name="optimizer_zero_grad", args=(current_epoch, i, ANY)),
                     dict(name="Callback.on_before_backward", args=(trainer, model, ANY)),
                     dict(name="on_before_backward", args=(ANY,)),
                     # DeepSpeed handles backward internally
-                    *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
+                    *([dict(name="backward", args=(ANY,))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
                     # note: unscaling happens here in the case of AMP
-                    dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
-                    dict(name="on_before_optimizer_step", args=(ANY, 0)),
+                    dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
+                    dict(name="on_before_optimizer_step", args=(ANY,)),
                     *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(
                         name="clip_gradients",
@@ -336,18 +293,17 @@ class HookedModel(BoringModel):
                     ),
                     dict(
                         name="configure_gradient_clipping",
-                        args=(ANY, 0),
+                        args=(ANY,),
                         kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
                     ),
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
                     # the actual call to `PrecisionPlugin.optimizer_step`
                     dict(
                         name="optimizer_step",
-                        args=(current_epoch, i, ANY, 0, ANY),
-                        kwargs=dict(on_tpu=False, using_lbfgs=False),
+                        args=(current_epoch, i, ANY, ANY),
                     ),
                     *(
-                        [dict(name="lr_scheduler_step", args=(ANY, 0, None))]
+                        [dict(name="lr_scheduler_step", args=(ANY, None))]
                         if i == (trainer.num_training_batches - 1)
                         else []
                     ),
@@ -373,14 +329,14 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_before_backward", args=(trainer, model, ANY)),
                     dict(name="on_before_backward", args=(ANY,)),
                     # DeepSpeed handles backward internally
-                    *([dict(name="backward", args=(ANY, None, None))] if not using_deepspeed else []),
+                    *([dict(name="backward", args=(ANY,))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
                     # `manual_backward` calls the previous 3
                     dict(name="manual_backward", args=(ANY,)),
                     dict(name="closure"),
-                    dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
-                    dict(name="on_before_optimizer_step", args=(ANY, 0)),
+                    dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
+                    dict(name="on_before_optimizer_step", args=(ANY,)),
                     *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
@@ -392,12 +348,10 @@ class HookedModel(BoringModel):
 
     @staticmethod
     def _eval_epoch(fn, trainer, model, batches, key, device=torch.device("cpu")):
-        outputs = {key: ANY}
         return [
             dict(name=f"Callback.on_{fn}_epoch_start", args=(trainer, model)),
             dict(name=f"on_{fn}_epoch_start"),
             *HookedModel._eval_batch(fn, trainer, model, batches, key, device=device),
-            dict(name=f"{fn}_epoch_end", args=([outputs] * batches,)),
             dict(name=f"Callback.on_{fn}_epoch_end", args=(trainer, model)),
             dict(name=f"on_{fn}_epoch_end"),
         ]
@@ -547,13 +501,12 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="on_validation_end"),
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
-        dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
-        # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_train_epoch_end`
+        dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
+        # `ModelCheckpoint.save_checkpoint` is called here
         dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
         dict(name="on_train_end"),
         dict(name="Callback.on_fit_end", args=(trainer, model)),
@@ -626,12 +579,12 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, 2, current_epoch=1, current_batch=0),
-        dict(name="training_epoch_end", args=([dict(loss=ANY)] * 2,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
+        dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
+        # `ModelCheckpoint.save_checkpoint` is called here
         dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
         dict(name="on_train_end"),
         dict(name="Callback.on_fit_end", args=(trainer, model)),
@@ -705,12 +658,12 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, steps_after_reload, current_batch=1),
-        dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
+        dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
+        # `ModelCheckpoint.save_checkpoint` is called here
         dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
         dict(name="on_train_end"),
         dict(name="Callback.on_fit_end", args=(trainer, model)),
@@ -790,9 +743,8 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="Callback.on_predict_epoch_start", args=(trainer, model)),
         dict(name="on_predict_epoch_start"),
         *model._predict_batch(trainer, model, batches),
-        # TODO: `predict_epoch_end`
-        dict(name="Callback.on_predict_epoch_end", args=(trainer, model, [[ANY] * batches])),
-        dict(name="on_predict_epoch_end", args=([[ANY] * batches],)),
+        dict(name="Callback.on_predict_epoch_end", args=(trainer, model)),
+        dict(name="on_predict_epoch_end"),
         dict(name="Callback.on_predict_end", args=(trainer, model)),
         dict(name="on_predict_end"),
         # TODO: `on_predict_model_train`
@@ -800,9 +752,6 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="teardown", kwargs=dict(stage="predict")),
     ]
     assert called == expected
-
-
-# TODO: add test for tune
 
 
 def test_hooks_with_different_argument_names(tmpdir):
@@ -839,7 +788,6 @@ def test_hooks_with_different_argument_names(tmpdir):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomBoringModel()
-    model.test_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 

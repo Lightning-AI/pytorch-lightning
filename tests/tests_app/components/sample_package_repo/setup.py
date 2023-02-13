@@ -34,7 +34,7 @@ setup(
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.6",
     entry_points={
-        "lightning_app.external_components": [
+        "lightning.app.external_components": [
             f"{LIGHTNING_COMPONENT_INFO['entry_point']}= "
             f"{LIGHTNING_COMPONENT_INFO['package']}:exported_lightning_components",
         ],

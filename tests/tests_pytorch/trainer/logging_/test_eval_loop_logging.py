@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,14 +25,14 @@ import pytest
 import torch
 from torch import Tensor
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loops.dataloader import EvaluationLoop
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loops.dataloader import _EvaluationLoop
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -56,7 +56,6 @@ def test__validation_step__log(tmpdir):
 
     model = TestModel()
     model.validation_step_end = None
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -79,7 +78,7 @@ def test__validation_step__log(tmpdir):
 
 
 def test__validation_step__epoch_end__log(tmpdir):
-    """Tests that validation_epoch_end can log."""
+    """Tests that on_validation_epoch_end can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -94,7 +93,7 @@ def test__validation_step__epoch_end__log(tmpdir):
             self.log("d", out["x"], on_step=True, on_epoch=True)
             return out
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self.log("g", torch.tensor(2, device=self.device), on_epoch=True)
 
     model = TestModel()
@@ -124,7 +123,7 @@ def test__validation_step__epoch_end__log(tmpdir):
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     class TestModel(BoringModel):
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self.log("c", torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
             self.log("d/e/f", 2)
 
@@ -188,10 +187,8 @@ def test_eval_logging_auto_reduce(tmpdir):
             self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
             return {"x": loss}
 
-        def validation_epoch_end(self, outputs) -> None:
-            for passed_in, manually_tracked in zip(outputs, self.val_losses):
-                assert passed_in["x"] == manually_tracked
-            self.manual_epoch_end_mean = torch.stack([x["x"] for x in outputs]).mean()
+        def on_validation_epoch_end(self) -> None:
+            self.manual_epoch_end_mean = torch.stack(self.val_losses).mean()
 
     model = TestModel()
     trainer = Trainer(
@@ -217,10 +214,10 @@ def test_eval_logging_auto_reduce(tmpdir):
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
-    """Tests that test_epoch_end can be used to log, and we return them in the results."""
+    """Tests that on_test_epoch_end can be used to log, and we return them in the results."""
 
     class TestModel(BoringModel):
-        def test_epoch_end(self, outputs):
+        def on_test_epoch_end(self):
             self.log("c", torch.tensor(2))
             self.log("d/e/f", 2)
 
@@ -255,7 +252,6 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
             return super().test_dataloader()
 
     model = TestModel()
-    model.test_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -332,7 +328,6 @@ def test_log_works_in_val_callback(tmpdir):
             self.log("val_loss", loss)
 
     model = TestModel()
-    model.validation_epoch_end = None
     cb = TestCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -459,7 +454,6 @@ def test_log_works_in_test_callback(tmpdir):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
 
     model = TestModel()
-    model.test_epoch_end = None
     cb = TestCallback()
     trainer = Trainer(
         default_root_dir=tmpdir, limit_test_batches=2, num_sanity_val_steps=0, max_epochs=2, callbacks=[cb]
@@ -502,7 +496,7 @@ def test_log_works_in_test_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     """This tests make sure we properly log_metrics to loggers."""
 
@@ -533,7 +527,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             return {"y": loss}
 
     model = ExtendedModel()
-    model.validation_epoch_end = None
 
     # Initialize a trainer
     trainer = Trainer(
@@ -596,6 +589,8 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     class TestModel(BoringModel):
+        val_outputs = [[], []]
+
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
             value = 1 + batch_idx
@@ -604,7 +599,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
             self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
             return out
 
-        def training_epoch_end(self, outputs):
+        def on_training_epoch_end(self):
             metrics = self.trainer.progress_bar_metrics
             v = 15 if self.current_epoch == 0 else 150
             assert metrics["batch_idx_epoch"] == (v / 5.0)
@@ -613,10 +608,13 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
             value = (1 + batch_idx) * (1 + dataloader_idx)
             if self.current_epoch != 0:
                 value *= 10
+            self.val_outputs[dataloader_idx].append(value)
             self.log("val_loss", value, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-            return value
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
+            outputs = self.val_outputs
+            self.val_outputs = [[], []]
+
             if self.current_epoch == 0:
                 assert sum(outputs[0]) / 5 == 3
                 assert sum(outputs[1]) / 5 == 6
@@ -658,6 +656,8 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 )
 def test_metrics_and_outputs_device(tmpdir, accelerator):
     class TestModel(BoringModel):
+        outputs = []
+
         def on_before_backward(self, loss: Tensor) -> None:
             # the loss should be on the correct device before backward
             assert loss.device.type == accelerator
@@ -667,13 +667,13 @@ def test_metrics_and_outputs_device(tmpdir, accelerator):
             y = x * 2
             assert x.requires_grad is True
             assert y.grad_fn is None  # disabled by validation
-
             self.log("foo", y)
+            self.outputs.append(y)
             return y
 
-        def validation_epoch_end(self, outputs):
-            # the step outputs were not moved
-            assert all(o.device == self.device for o in outputs)
+        def on_validation_epoch_end(self):
+            # the step outputs were not moved after returning them
+            assert all(o.device == self.device for o in self.outputs)
             # and the logged metrics aren't
             assert self.trainer.callback_metrics["foo"].device.type == accelerator
 
@@ -706,7 +706,6 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
 
     model = CustomBoringModel()
-    model.test_epoch_end = None
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     results = trainer.test(model)
 
@@ -725,15 +724,19 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     class CustomBoringModel(BoringModel):
-        def test_step(self, batch, batch_idx, dataloader_idx):
-            self.log("foo", dataloader_idx + 1)
-            return dataloader_idx + 1
+        outputs = [[], []]
 
-        def test_epoch_end(self, outputs) -> None:
-            self.log("foobar", sum(sum(o) for o in outputs))
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            value = dataloader_idx + 1
+            self.log("foo", value)
+            self.outputs[dataloader_idx].append(value)
+            return value
+
+        def on_test_epoch_end(self):
+            self.log("foobar", sum(sum(o) for o in self.outputs))
 
         def test_dataloader(self):
             return [super().test_dataloader(), super().test_dataloader()]
@@ -742,7 +745,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1, logger=TensorBoardLogger(tmpdir))
     results = trainer.test(model)
 
-    # what's logged in `test_epoch_end` gets included in the results of each dataloader
+    # what's logged in `on_test_epoch_end` gets included in the results of each dataloader
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
     cb_metrics = set(trainer.callback_metrics)
     assert cb_metrics == {"foo/dataloader_idx_0", "foo/dataloader_idx_1", "foobar"}
@@ -840,26 +843,26 @@ expected4 = ""
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
     with redirect_stdout(StringIO()) as out:
-        EvaluationLoop._print_results(*inputs)
+        _EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
 
 
 @pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
 def test_native_print_results_encodings(monkeypatch, encoding):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
     out = mock.Mock()
     out.encoding = encoding
     with redirect_stdout(out) as out:
-        EvaluationLoop._print_results(*inputs0)
+        _EvaluationLoop._print_results(*inputs0)
 
     # Attempt to encode everything the file is told to write with the given encoding
     for call_ in out.method_calls:
@@ -937,12 +940,12 @@ expected3 = """
 def test_rich_print_results(inputs, expected):
     console = get_console()
     with console.capture() as capture:
-        EvaluationLoop._print_results(*inputs)
+        _EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert capture.get() == expected.lstrip()
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 @pytest.mark.parametrize("num_dataloaders", (1, 2))
 def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""
@@ -959,9 +962,6 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
 
         def test_dataloader(self):
             return [super().test_dataloader()] * num_dataloaders
-
-        validation_epoch_end = None
-        test_epoch_end = None
 
     limit_batches = 4
     max_epochs = 3

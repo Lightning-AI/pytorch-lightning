@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
 
 
 class LitClassifier(LightningModule):
@@ -26,6 +26,9 @@ class LitClassifier(LightningModule):
 
         self.l1 = torch.nn.Linear(28 * 28, self.hparams.hidden_dim)
         self.l2 = torch.nn.Linear(self.hparams.hidden_dim, 10)
+
+        self.val_outptus = []
+        self.test_outputs = []
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -42,16 +45,15 @@ class LitClassifier(LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         probs = self(x)
-        # we currently return the accuracy as the validation_step/test_step is run on the IPU devices.
-        # Outputs from the step functions are sent to the host device, where we calculate the metrics in
-        # validation_epoch_end and test_epoch_end for the test_step.
         acc = self.accuracy(probs, y)
+        self.val_outputs.append(acc)
         return acc
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
         acc = self.accuracy(logits, y)
+        self.test_outputs.append(acc)
         return acc
 
     def accuracy(self, logits, y):
@@ -61,13 +63,15 @@ class LitClassifier(LightningModule):
         acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
         return acc
 
-    def validation_epoch_end(self, outputs) -> None:
+    def on_validation_epoch_end(self) -> None:
         # since the training step/validation step and test step are run on the IPU device
         # we must log the average loss outside the step functions.
-        self.log("val_acc", torch.stack(outputs).mean(), prog_bar=True)
+        self.log("val_acc", torch.stack(self.val_outptus).mean(), prog_bar=True)
+        self.val_outptus.clear()
 
-    def test_epoch_end(self, outputs) -> None:
-        self.log("test_acc", torch.stack(outputs).mean())
+    def on_test_epoch_end(self) -> None:
+        self.log("test_acc", torch.stack(self.test_outputs).mean())
+        self.test_outputs.clear()
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
@@ -75,9 +79,7 @@ class LitClassifier(LightningModule):
 
 if __name__ == "__main__":
     dm = MNISTDataModule(batch_size=32)
-
     model = LitClassifier()
-
     trainer = Trainer(max_epochs=2, accelerator="ipu", devices=8)
 
     trainer.fit(model, datamodule=dm)

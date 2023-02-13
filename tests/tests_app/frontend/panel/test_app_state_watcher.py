@@ -11,8 +11,8 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
-from lightning_app.utilities.state import AppState
+from lightning.app.frontend.panel.app_state_watcher import AppStateWatcher
+from lightning.app.utilities.state import AppState
 
 FLOW_SUB = "lit_flow"
 FLOW = f"root.{FLOW_SUB}"

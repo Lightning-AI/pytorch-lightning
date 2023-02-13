@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
@@ -30,8 +30,8 @@ def test__training_step__flow_dict(tmpdir):
             self.training_step_called = True
             return {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -49,7 +49,6 @@ def test__training_step__flow_dict(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
-    assert not model.training_epoch_end_called
 
 
 def test__training_step__tr_step_end__flow_dict(tmpdir):
@@ -69,8 +68,8 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -88,7 +87,6 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert model.training_step_end_called
-    assert not model.training_epoch_end_called
 
 
 def test__training_step__epoch_end__flow_dict(tmpdir):
@@ -103,21 +101,8 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
             out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
             return out
 
-        def training_epoch_end(self, outputs):
-            self.training_epoch_end_called = True
-
-            # verify we saw the current num of batches
-            assert len(outputs) == 2
-            assert len({id(output) for output in outputs}) == 2
-            assert [output["batch_idx"] for output in outputs] == [0, 1]
-
-            for b in outputs:
-                assert isinstance(b, dict)
-                assert self.count_num_graphs(b) == 0
-                assert {"random_things", "loss", "batch_idx"} == set(b.keys())
-
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -135,7 +120,6 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
-    assert model.training_epoch_end_called
 
 
 def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
@@ -156,21 +140,8 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def training_epoch_end(self, outputs):
-            self.training_epoch_end_called = True
-
-            # verify we saw the current num of batches
-            assert len(outputs) == 2
-            assert len({id(output) for output in outputs}) == 2
-            assert [output["batch_idx"] for output in outputs] == [0, 1]
-
-            for b in outputs:
-                assert isinstance(b, dict)
-                assert self.count_num_graphs(b) == 0
-                assert {"random_things", "loss", "batch_idx"} == set(b.keys())
-
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+        def backward(self, loss):
+            return LightningModule.backward(self, loss)
 
     model = TestModel()
     model.val_dataloader = None
@@ -188,4 +159,3 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
     # make sure correct steps were called
     assert model.training_step_called
     assert model.training_step_end_called
-    assert model.training_epoch_end_called

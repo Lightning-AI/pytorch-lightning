@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,10 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 from tests_fabric.helpers.runif import RunIf
+from torch.optim import Optimizer
 
-from lightning_fabric.accelerators import CPUAccelerator
-from lightning_fabric.strategies import DeepSpeedStrategy
+from lightning.fabric.accelerators import CPUAccelerator
+from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @pytest.fixture
@@ -151,3 +152,172 @@ def test_deepspeed_requires_joint_setup():
         NotImplementedError, match=escape("does not support setting up the module and optimizer(s) independently")
     ):
         strategy.setup_optimizer(Mock())
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_save_checkpoint_storage_options(tmp_path):
+    """Test that the DeepSpeed strategy does not accept storage options for saving checkpoints."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(TypeError, match=escape("DeepSpeedStrategy.save_checkpoint(..., storage_options=...)` is not")):
+        strategy.save_checkpoint(path=tmp_path, state=Mock(), storage_options=Mock())
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_save_checkpoint_one_deepspeed_engine_required(tmp_path):
+    """Test that the DeepSpeed strategy can only save one DeepSpeedEngine per checkpoint."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+
+    # missing DeepSpeedEngine
+    with pytest.raises(ValueError, match="Could not find a DeepSpeed model in the provided checkpoint state."):
+        strategy.save_checkpoint(path=tmp_path, state={})
+    with pytest.raises(ValueError, match="Could not find a DeepSpeed model in the provided checkpoint state."):
+        strategy.save_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+
+    # multiple DeepSpeedEngine
+    model1 = Mock(spec=torch.nn.Module)
+    model1.modules.return_value = [Mock(spec=DeepSpeedEngine)]
+    model2 = Mock(spec=torch.nn.Module)
+    model2.modules.return_value = [Mock(spec=DeepSpeedEngine)]
+    with pytest.raises(ValueError, match="Found multiple DeepSpeed engine modules in the given state."):
+        strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
+    """Test that the DeepSpeed engine and optimizer get separated from the client state."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+
+    # Model only
+    model = Mock(spec=DeepSpeedEngine, optimizer=None)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=tmp_path, state={"model": model, "test": "data"})
+    # the client_state should not contain any deepspeed engine or deepspeed optimizer
+    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+
+    # Model and optimizer
+    optimizer = Mock()
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
+    # the client_state should not contain any deepspeed engine or deepspeed optimizer
+    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
+    """Test that the strategy warns if there are keys in the user dict that collide internally with DeepSpeed."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+    optimizer = Mock()
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+    # `mp_world_size` is an internal key
+    with pytest.warns(UserWarning, match="Your state has keys that collide with DeepSpeed's internal"):
+        strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "mp_world_size": 2})
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_no_state(tmp_path):
+    """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(ValueError, match=escape("Got DeepSpeedStrategy.load_checkpoint(..., state=None")):
+        strategy.load_checkpoint(path=tmp_path, state=None)
+    with pytest.raises(ValueError, match=escape("Got DeepSpeedStrategy.load_checkpoint(..., state={})")):
+        strategy.load_checkpoint(path=tmp_path, state={})
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(tmp_path):
+    """Test that the DeepSpeed strategy can only load one DeepSpeedEngine per checkpoint."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+
+    # missing DeepSpeedEngine
+    with pytest.raises(ValueError, match="Could not find a DeepSpeed model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"other": "data"})
+    with pytest.raises(ValueError, match="Could not find a DeepSpeed model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+
+    # multiple DeepSpeedEngine
+    model1 = Mock(spec=torch.nn.Module)
+    model1.modules.return_value = [Mock(spec=DeepSpeedEngine)]
+    model2 = Mock(spec=torch.nn.Module)
+    model2.modules.return_value = [Mock(spec=DeepSpeedEngine)]
+    with pytest.raises(ValueError, match="Found multiple DeepSpeed engine modules in the given state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_client_state_missing(tmp_path):
+    """Test that the DeepSpeed strategy raises a custom error when client state couldn't be loaded by DeepSpeed."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+    optimizer = Mock()
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+
+    # If the DeepSpeed engine fails to load the checkpoint file (e.g., file not found), it prints a warning and
+    # returns None from its function call
+    model.load_checkpoint.return_value = [None, None]
+
+    # Check for our custom user error
+    with pytest.raises(RuntimeError, match="DeepSpeed was unable to load the checkpoint"):
+        strategy.load_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
+    """Test that the DeepSpeed strategy properly updates the state variables and returns additional metadata."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+    optimizer = Mock()
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+
+    # the client state contains the additional user data that was proveded when saving, plus some deepspeed metadata
+    loaded_client_state = {"user_data": {"iteration": 5}, "deepspeed_metadata": "data"}
+    model.load_checkpoint.return_value = [None, loaded_client_state]
+
+    state = {"model": model, "user_data": {"iteration": 0}}
+    metadata = strategy.load_checkpoint(path=tmp_path, state=state)
+
+    # the user's state gets updated with the loaded value
+    assert state == {"model": model, "user_data": {"iteration": 5}}
+    # additional metadata gets separated from client state
+    assert metadata == {"deepspeed_metadata": "data"}
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("optimzer_state_requested", [True, False])
+def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_requested, tmp_path):
+    """Test that the DeepSpeed strategy loads the optimizer state only when requested."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+    optimizer = Mock(spec=Optimizer)
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+
+    # required, otherwise mock cannot be unpacked
+    model.load_checkpoint.return_value = [None, {}]
+
+    state = {"model": model}
+    if optimzer_state_requested:
+        state["optimizer"] = optimizer
+
+    strategy.load_checkpoint(path=tmp_path, state=state)
+    model.load_checkpoint.assert_called_with(
+        tmp_path,
+        tag="checkpoint",
+        load_optimizer_states=optimzer_state_requested,
+        load_lr_scheduler_states=False,
+        load_module_strict=True,
+    )

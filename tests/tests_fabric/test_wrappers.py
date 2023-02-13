@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_fabric.fabric import Fabric
-from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning.fabric.fabric import Fabric
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
 
 
 class EmptyFabric(Fabric):

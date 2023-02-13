@@ -2,19 +2,15 @@
 Fabric (Beta)
 #############
 
-Fabric allows you to scale any PyTorch model with just a few lines of code!
-With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
+Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
 
-With only a few changes to your code, Fabric allows you to:
+- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
+- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
+- Handles all the boilerplate device logic for you
+- Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
+- Designed with multi-billion parameter models in mind
 
-- Automatic placement of models and data onto the device
-- Automatic support for mixed precision (speedup and smaller memory footprint)
-- Seamless switching between hardware (CPU, GPU, TPU)
-- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
-- Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
-- Multi-node support (TorchElastic, SLURM, and more)
-- You keep full control of your training loop
-
+|
 
 .. code-block:: diff
 
@@ -51,9 +47,36 @@ With only a few changes to your code, Fabric allows you to:
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
+              lr_scheduler.step()
 
 
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
+
+
+----
+
+
+***********
+Why Fabric?
+***********
+
+Fabric differentiates itself from a fully-fledged trainer like :doc:`Lightning Trainer <../common/trainer>` in these key aspects:
+
+**Fast to implement**
+There is no need to restructure your code: Just change a few lines in the PyTorch script and you'll be able to leverage Fabric features.
+
+**Maximum Flexibility**
+Write your own training and/or inference logic down to the individual optimizer calls.
+You aren't forced to conform to a standardized epoch-based training loop like the one in :doc:`Lightning Trainer <../common/trainer>`.
+You can do flexible iteration based training, meta-learning, cross-validation and other types of optimization algorithms without digging into framework internals.
+This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors.
+Just remember: With great power comes a great responsibility.
+
+**Maximum Control**
+The :doc:`Lightning Trainer <../common/trainer>` has many built in features to make research simpler with less boilerplate, but debugging it requires some familiarity with the framework internals.
+In Fabric, everything is opt-in. Think of it as a toolbox: You take out the tools (Fabric functions) you need and leave the other ones behind.
+This makes it easier to develop and debug your PyTorch code as you gradually add more features to it.
+Fabric provides important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but leaves the design and orchestration fully up to you.
 
 
 ----
@@ -231,7 +254,7 @@ Examples
 .. displayitem::
     :header: Image Classification
     :description: Train an image classifier on the MNIST dataset
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier
     :col_css: col-md-4
     :height: 150
     :tag: basic
@@ -239,7 +262,7 @@ Examples
 .. displayitem::
     :header: GAN
     :description: Train a GAN that generates realistic human faces
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
@@ -247,14 +270,23 @@ Examples
 .. displayitem::
     :header: Meta-Learning
     :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
 
 .. displayitem::
+    :header: Large Language Models
+    :description: Pre-train a GPT-2 language model on OpenWebText data
+    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. displayitem::
     :header: Reinforcement Learning
-    :description: Coming soon
+    :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 150
 

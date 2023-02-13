@@ -6,8 +6,8 @@
 Fabric in Notebooks
 ###################
 
-Fabric works exactly the same way in notebooks (Jupyter, Google Colab, Kaggle, etc.) if you only run in a single process or a single GPU.
-If you want to use multiprocessing, for example multi-GPU, you can put your code in a function and pass that function to the
+Fabric works the same way in notebooks (Jupyter, Google Colab, Kaggle, etc.) if you only run in a single process or GPU.
+If you want to use multiprocessing, for example, multi-GPU, you can put your code in a function and pass that function to the
 :meth:`~lightning_fabric.fabric.Fabric.launch` method:
 
 
@@ -16,7 +16,6 @@ If you want to use multiprocessing, for example multi-GPU, you can put your code
 
     # Notebook Cell
     def train(fabric):
-
         model = ...
         optimizer = ...
         model, optimizer = fabric.setup(model, optimizer)

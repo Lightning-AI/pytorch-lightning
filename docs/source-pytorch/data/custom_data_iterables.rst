@@ -37,7 +37,6 @@ as Lightning takes care of GPU placement. In case you want to use some data tran
 
     class CustomClassifier(LitClassifier):
         def train_dataloader(self):
-
             # Random resized crop
             decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
@@ -71,7 +70,6 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
 
         class CustomLitClassifier(LitClassifier):
             def train_dataloader(self):
-
                 # To run with different data, see documentation of nvidia.dali.fn.readers.file
                 # points to https://github.com/NVIDIA/DALI_extra
                 data_root_dir = os.environ["DALI_EXTRA_PATH"]
@@ -114,9 +112,3 @@ Lightning needs to know a lot on the internals of these iterables.
   This makes sure that each GPU sees a different part of the dataset.
   As sampling can be implemented in arbitrary ways with custom iterables,
   there is no way for Lightning to know, how to replace the sampler.
-
-- When training fails for some reason, Lightning is able to extract all of the relevant data from the model,
-  optimizers, trainer and dataloader to resume it at the exact same batch it crashed.
-  This feature is called fault-tolerance and is limited to PyTorch DataLoaders.
-  Lighning needs to know a lot about sampling, fast forwarding and random number handling to enable fault tolerance,
-  meaning that it cannot be supported for arbitrary iterables.

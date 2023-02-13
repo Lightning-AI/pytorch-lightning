@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@ from functools import partial
 import torch
 import torch.distributed as dist
 
-from lightning_fabric.plugins.environments import LightningEnvironment
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
-from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers import _MultiProcessingLauncher
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
+from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
+from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_tpu import wrap_launch_function
 

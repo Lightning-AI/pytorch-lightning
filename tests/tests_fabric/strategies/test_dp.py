@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import torch
 
-from lightning_fabric.strategies import DataParallelStrategy
+from lightning.fabric.strategies import DataParallelStrategy
 
 
 def test_data_parallel_root_device():
@@ -33,7 +33,7 @@ def test_data_parallel_ranks():
     assert strategy.is_global_zero
 
 
-@mock.patch("lightning_fabric.strategies.dp.DataParallel")
+@mock.patch("lightning.fabric.strategies.dp.DataParallel")
 def test_data_parallel_setup_module(data_parallel_mock):
     strategy = DataParallelStrategy()
     strategy.parallel_devices = [0, 2, 1]
@@ -48,3 +48,23 @@ def test_data_parallel_module_to_device():
     module = Mock()
     strategy.module_to_device(module)
     module.to.assert_called_with(torch.device("cuda", 2))
+
+
+def test_dp_module_state_dict():
+    """Test that the module state dict gets retrieved without the prefixed wrapper keys from DP."""
+
+    class DataParallelMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make the strategy's `isinstance(model, DataParallel)` pass with a mock as class
+            return True
+
+    strategy = DataParallelStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")])
+
+    # Without DP applied (no setup call)
+    original_module = torch.nn.Linear(2, 3)
+    assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
+
+    # With DP applied (setup called)
+    with mock.patch("lightning.fabric.strategies.dp.DataParallel", DataParallelMock):
+        wrapped_module = strategy.setup_module(original_module)
+        assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()

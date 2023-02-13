@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning_fabric.strategies import DDPStrategy
-from lightning_fabric.strategies.ddp import _DDPBackwardSyncControl
+from lightning.fabric.strategies import DDPStrategy
+from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 
 
 @pytest.mark.parametrize(
@@ -65,7 +65,7 @@ def test_ddp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 def test_ddp_extra_kwargs(ddp_mock):
     """Test that additional kwargs passed to the DDPStrategy get passed down to the DistributedDataParallel
     wrapper."""
@@ -79,3 +79,23 @@ def test_ddp_extra_kwargs(ddp_mock):
     strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")], find_unused_parameters=True)
     strategy.setup_module(module)
     ddp_mock.assert_called_with(module=module, device_ids=None, find_unused_parameters=True)
+
+
+def test_ddp_module_state_dict():
+    """Test that the module state dict gets retrieved without the prefixed wrapper keys from DDP."""
+
+    class DistributedDataParallelMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make the strategy's `isinstance(model, DistributedDataParallel)` pass with a mock as class
+            return True
+
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")])
+
+    # Without DDP applied (no setup call)
+    original_module = torch.nn.Linear(2, 3)
+    assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
+
+    # With DDP applied (setup called)
+    with mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel", DistributedDataParallelMock):
+        wrapped_module = strategy.setup_module(original_module)
+        assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
@@ -83,6 +83,7 @@ class BasicGAN(LightningModule):
         self, hidden_dim: int = 128, learning_rate: float = 0.001, b1: float = 0.5, b2: float = 0.999, **kwargs
     ):
         super().__init__()
+        self.automatic_optimization = False
         self.hidden_dim = hidden_dim
         self.learning_rate = learning_rate
         self.b1 = b1
@@ -105,49 +106,56 @@ class BasicGAN(LightningModule):
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
 
-    def training_step(self, batch, batch_idx, optimizer_idx=None):
+    def training_step(self, batch, batch_idx):
         imgs, _ = batch
         self.last_imgs = imgs
 
+        optimizer1, optimizer2 = self.optimizers()
+
         # train generator
-        if optimizer_idx == 0:
-            # sample noise
-            z = torch.randn(imgs.shape[0], self.hidden_dim)
-            z = z.type_as(imgs)
+        # sample noise
+        self.toggle_optimizer(optimizer1)
+        z = torch.randn(imgs.shape[0], self.hidden_dim)
+        z = z.type_as(imgs)
 
-            # generate images
-            self.generated_imgs = self(z)
+        # generate images
+        self.generated_imgs = self(z)
 
-            # ground truth result (ie: all fake)
-            # put on GPU because we created this tensor inside training_loop
-            valid = torch.ones(imgs.size(0), 1)
-            valid = valid.type_as(imgs)
+        # ground truth result (ie: all fake)
+        # put on GPU because we created this tensor inside training_loop
+        valid = torch.ones(imgs.size(0), 1)
+        valid = valid.type_as(imgs)
 
-            # adversarial loss is binary cross-entropy
-            g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
-            self.log("g_loss", g_loss, prog_bar=True, logger=True)
-            return g_loss
+        # adversarial loss is binary cross-entropy
+        g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
+        self.log("g_loss", g_loss, prog_bar=True, logger=True)
+        self.manual_backward(g_loss)
+        optimizer1.step()
+        optimizer1.zero_grad()
+        self.untoggle_optimizer(optimizer1)
 
         # train discriminator
-        if optimizer_idx == 1:
-            # Measure discriminator's ability to classify real from generated samples
+        # Measure discriminator's ability to classify real from generated samples
+        self.toggle_optimizer(optimizer2)
+        # how well can it label as real?
+        valid = torch.ones(imgs.size(0), 1)
+        valid = valid.type_as(imgs)
 
-            # how well can it label as real?
-            valid = torch.ones(imgs.size(0), 1)
-            valid = valid.type_as(imgs)
+        real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
 
-            real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+        # how well can it label as fake?
+        fake = torch.zeros(imgs.size(0), 1)
+        fake = fake.type_as(fake)
 
-            # how well can it label as fake?
-            fake = torch.zeros(imgs.size(0), 1)
-            fake = fake.type_as(fake)
+        fake_loss = self.adversarial_loss(self.discriminator(self.generated_imgs.detach()), fake)
 
-            fake_loss = self.adversarial_loss(self.discriminator(self.generated_imgs.detach()), fake)
-
-            # discriminator loss is the average of these
-            d_loss = (real_loss + fake_loss) / 2
-            self.log("d_loss", d_loss, prog_bar=True, logger=True)
-            return d_loss
+        # discriminator loss is the average of these
+        d_loss = (real_loss + fake_loss) / 2
+        self.log("d_loss", d_loss, prog_bar=True, logger=True)
+        self.manual_backward(d_loss)
+        optimizer2.step()
+        optimizer2.zero_grad()
+        self.untoggle_optimizer(optimizer2)
 
     def configure_optimizers(self):
         lr = self.learning_rate

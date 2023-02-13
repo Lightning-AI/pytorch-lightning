@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,13 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import CheckpointIO
-from pytorch_lightning.strategies import (
-    DDPFullyShardedStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
+from lightning.pytorch import Trainer
+from lightning.pytorch.plugins import CheckpointIO
+from lightning.pytorch.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     StrategyRegistry,
     TPUSpawnStrategy,
 )
@@ -67,17 +65,14 @@ def test_tpu_spawn_debug_strategy_registry(xla_available):
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
-def test_fsdp_strategy_registry(tmpdir):
-
+@RunIf(min_torch="1.12")
+def test_fsdp_strategy_registry(cuda_count_1):
     strategy = "fsdp"
-
     assert strategy in StrategyRegistry
-    assert StrategyRegistry[strategy]["strategy"] == DDPFullyShardedStrategy
+    assert StrategyRegistry[strategy]["strategy"] == FSDPStrategy
 
-    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-        trainer = Trainer(strategy=strategy)
-
-    assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+    trainer = Trainer(accelerator="cuda", strategy=strategy)
+    assert isinstance(trainer.strategy, FSDPStrategy)
 
 
 @pytest.mark.parametrize(
@@ -89,9 +84,19 @@ def test_fsdp_strategy_registry(tmpdir):
             {"find_unused_parameters": False},
         ),
         (
+            "ddp_find_unused_parameters_true",
+            DDPStrategy,
+            {"find_unused_parameters": True},
+        ),
+        (
             "ddp_spawn_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "spawn"},
+        ),
+        (
+            "ddp_spawn_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "spawn"},
         ),
         pytest.param(
             "ddp_fork_find_unused_parameters_false",
@@ -100,29 +105,29 @@ def test_fsdp_strategy_registry(tmpdir):
             marks=RunIf(skip_windows=True),
         ),
         pytest.param(
+            "ddp_fork_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
-        (
-            "ddp_sharded_spawn_find_unused_parameters_false",
-            DDPSpawnShardedStrategy,
-            {"find_unused_parameters": False},
-        ),
-        (
-            "ddp_sharded_find_unused_parameters_false",
-            DDPShardedStrategy,
-            {"find_unused_parameters": False},
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
         ),
     ],
 )
-def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy, expected_init_params):
-    if "sharded" in strategy_name:
-        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-            trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
+def test_ddp_find_unused_parameters_strategy_registry(
+    tmpdir, strategy_name, strategy, expected_init_params, mps_count_0
+):
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
     assert isinstance(trainer.strategy, strategy)
     assert strategy_name in StrategyRegistry
     assert StrategyRegistry[strategy_name]["init_params"] == expected_init_params

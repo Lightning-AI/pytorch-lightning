@@ -4,7 +4,7 @@
 Callbacks
 #########
 
-Callbacks enable you, or the users of your code, to add new behavior to the training loop without the need to modify the source code in-place.
+Callbacks enable you, or the users of your code, to add new behavior to the training loop without needing to modify the source code.
 
 
 ----
@@ -64,7 +64,7 @@ Multiple callbacks
 ******************
 
 The callback system is designed to easily run multiple callbacks at the same time.
-You can simply pass a list to Fabric:
+You can pass a list to Fabric:
 
 .. code-block:: python
 
@@ -81,7 +81,7 @@ You can simply pass a list to Fabric:
     callback2.any_callback_method(arg1=..., arg2=...)
 
 
-The :meth:`~lightning_fabric.fabric.Fabric.call` simply takes care of calling the callback objects in the order they are given to Fabric.
+The :meth:`~lightning_fabric.fabric.Fabric.call` calls the callback objects in the order they were given to Fabric.
 Not all objects registered via ``Fabric(callbacks=...)`` must implement a method with the given name.
 The ones that have a matching method name will get called.
 
@@ -93,7 +93,7 @@ The ones that have a matching method name will get called.
 Next steps
 **********
 
-Callbacks are a powerful tool to build a Trainer. Learn how in our comprehensive guide.
+Callbacks are a powerful tool for building a Trainer. Learn how in our comprehensive guide.
 
 .. raw:: html
 

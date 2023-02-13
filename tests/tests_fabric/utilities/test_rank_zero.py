@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_fabric.utilities.rank_zero import _get_rank
+from lightning.fabric.utilities.rank_zero import _get_rank
 
 
 @pytest.mark.parametrize(
@@ -26,8 +26,8 @@ def test_rank_zero_known_environment_variables(env_vars, expected):
     with mock.patch.dict(os.environ, env_vars):
         # force module reload to re-trigger the rank_zero_only.rank global computation
         sys.modules.pop("lightning_utilities.core.rank_zero", None)
-        sys.modules.pop("lightning_fabric.utilities.rank_zero", None)
-        from lightning_fabric.utilities.rank_zero import rank_zero_only
+        sys.modules.pop("lightning.fabric.utilities.rank_zero", None)
+        from lightning.fabric.utilities.rank_zero import rank_zero_only
 
         @rank_zero_only
         def foo():

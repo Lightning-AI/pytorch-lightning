@@ -64,7 +64,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.10 and above.
+We are fully compatible with any stable PyTorch version v1.11 and above.
 
 .. raw:: html
 
@@ -201,7 +201,6 @@ Current Lightning Users
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
    advanced/model_parallel
-   clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
@@ -225,10 +224,8 @@ Current Lightning Users
    Debugging <debug/debugging>
    Early stopping <common/early_stopping>
    Experiment manager (Logger) <visualize/experiment_managers>
-   Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/finetuning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
-   Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
    Half precision <common/precision>
    HPU <accelerators/hpu>
@@ -255,7 +252,6 @@ Current Lightning Users
    Strategy <extensions/strategy>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
-   Sweep <clouds/run_intermediate>
    SWA <advanced/training_tricks>
    SLURM <clouds/cluster_advanced>
    Transfer learning <advanced/transfer_learning>

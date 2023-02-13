@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@ from unittest.mock import ANY, call, Mock
 import pytest
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import BasePredictionWriter
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.runif import RunIf
+import lightning.pytorch as pl
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import BasePredictionWriter
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 class DummyPredictionWriter(BasePredictionWriter):
@@ -83,7 +82,7 @@ def test_prediction_writer_hook_call_intervals():
     assert cb.write_on_epoch_end.call_count == 1
 
 
-@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
+@pytest.mark.parametrize("num_workers", [0, 2])
 def test_prediction_writer_batch_indices(num_workers):
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()

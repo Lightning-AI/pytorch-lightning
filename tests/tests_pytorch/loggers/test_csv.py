@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.saving import load_hparams_from_yaml
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.loggers.csv_logs import ExperimentWriter
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.saving import load_hparams_from_yaml
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.loggers.csv_logs import ExperimentWriter
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

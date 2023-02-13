@@ -34,14 +34,6 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :tag: expert
 
 .. displayitem::
-   :header: Level 25: Explore fault-tolerance in-depth
-   :description: Understand the details of fault-tolerance.
-   :col_css: col-md-6
-   :button_link: ../clouds/fault_tolerant_training_faq.html
-   :height: 150
-   :tag: expert
-
-.. displayitem::
    :header: Level 26: Make your own profiler
    :description: Make your own profiler.
    :col_css: col-md-6

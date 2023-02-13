@@ -14,7 +14,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
     fabric = Fabric()
 
-**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders.
+**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
 
 .. code-block:: python
 
@@ -83,6 +83,7 @@ All steps combined, this is how your code will change:
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
+              lr_scheduler.step()
 
 
 That's it! You can now train on any device at any scale with a switch of a flag.

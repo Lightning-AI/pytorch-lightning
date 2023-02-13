@@ -33,7 +33,7 @@ Installation
 Prerequisites
 =============
 
-Python version: 3.7, 3.8, 3.9, 3.10
+Python version: 3.8, 3.9, 3.10
 
 Install Intel® Neural Compressor
 ================================
@@ -70,6 +70,7 @@ Load the pretrained model with PyTorch Lightning:
     import torch
     from pytorch_lightning import LightningModule
     from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
+
 
     # BERT Model definition
     class GLUETransformer(LightningModule):

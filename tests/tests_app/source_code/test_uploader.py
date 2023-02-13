@@ -3,7 +3,7 @@ from unittest.mock import ANY, MagicMock
 
 import pytest
 
-from lightning_app.source_code import uploader
+from lightning.app.source_code import uploader
 
 # keeping as global var so individual tests can access/modify it
 response = {"response": MagicMock(headers={"ETag": "test-etag"})}
@@ -21,7 +21,7 @@ class MockedRequestSession(MagicMock):
 
 
 @mock.patch("builtins.open", mock.mock_open(read_data="test-data"))
-@mock.patch("lightning_app.source_code.uploader.requests.Session", MockedRequestSession)
+@mock.patch("lightning.app.source_code.uploader.requests.Session", MockedRequestSession)
 def test_file_uploader():
     file_uploader = uploader.FileUploader(
         presigned_url="https://test-url", source_file="test.txt", total_size=100, name="test.txt"
@@ -36,7 +36,7 @@ def test_file_uploader():
 
 
 @mock.patch("builtins.open", mock.mock_open(read_data="test-data"))
-@mock.patch("lightning_app.source_code.uploader.requests.Session", MockedRequestSession)
+@mock.patch("lightning.app.source_code.uploader.requests.Session", MockedRequestSession)
 def test_file_uploader_failing_when_no_etag():
     response["response"] = MagicMock(headers={})
     presigned_url = "https://test-url"

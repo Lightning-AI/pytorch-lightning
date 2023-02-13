@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
+from io import StringIO
 from unittest import mock
 from unittest.mock import Mock
 
@@ -19,7 +21,8 @@ import pytest
 import torch.distributed.run
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.cli import _run_model
+from lightning.fabric.cli import _get_supported_strategies, _run_model
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 @pytest.fixture
@@ -45,7 +48,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
 
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
@@ -54,9 +57,9 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
-@pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
+@pytest.mark.parametrize("strategy", _get_supported_strategies())
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
@@ -65,9 +68,29 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     assert os.environ["LT_STRATEGY"] == strategy
 
 
+def test_cli_get_supported_strategies():
+    """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in
+    the CLI."""
+    if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
+        assert len(_get_supported_strategies()) == 7
+        assert "fsdp" in _get_supported_strategies()
+    else:
+        assert len(_get_supported_strategies()) == 6
+        assert "fsdp" not in _get_supported_strategies()
+
+
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
+def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _run_model.main([fake_script, "--strategy", strategy])
+    assert e.value.code == 2
+    assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
+
+
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
@@ -137,7 +160,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     ],
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=5)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=5)
 def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setattr(torch.distributed, "run", torchrun_mock)

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 
 
 def test_initialize_state():
@@ -29,8 +29,6 @@ def test_initialize_state():
     [pytest.param(dict(fast_dev_run=True), id="Fast-Run"), pytest.param(dict(max_steps=1), id="Single-Step")],
 )
 def test_trainer_fn_while_running(tmpdir, extra_params):
-    trainer = Trainer(default_root_dir=tmpdir, **extra_params, auto_lr_find=True)
-
     class TestModel(BoringModel):
         def __init__(self, expected_fn, expected_stage):
             super().__init__()
@@ -58,9 +56,7 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.testing
 
-    model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
-    trainer.tune(model)
-    assert trainer.state.finished
+    trainer = Trainer(default_root_dir=tmpdir, **extra_params)
 
     model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
     trainer.fit(model)

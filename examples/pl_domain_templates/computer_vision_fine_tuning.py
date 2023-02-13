@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,11 +54,11 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
 
-from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
-from pytorch_lightning.callbacks.finetuning import BaseFinetuning
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.utilities import rank_zero_info
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch.callbacks.finetuning import BaseFinetuning
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.utilities import rank_zero_info
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
@@ -75,7 +75,7 @@ class MilestonesFinetuning(BaseFinetuning):
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(modules=pl_module.feature_extractor, train_bn=self.train_bn)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer):
         if epoch == self.milestones[0]:
             # unfreeze 5 last layers
             self.unfreeze_and_add_param_group(

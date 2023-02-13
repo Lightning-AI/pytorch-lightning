@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,14 +30,14 @@ import torch
 import yaml
 from torch import optim
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.cloud_io import _load as pl_load
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+import lightning.pytorch as pl
+from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -59,9 +59,8 @@ class LogInTwoMethods(BoringModel):
         self.log("early_stop_on", out["loss"])
         return out
 
-    def validation_epoch_end(self, outputs):
-        outs = torch.stack([x["x"] for x in outputs]).mean()
-        self.log("val_acc", outs)
+    def on_validation_epoch_end(self):
+        self.log("val_acc", torch.tensor(1.23))
 
 
 def mock_training_epoch_loop(trainer):
@@ -214,9 +213,8 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
             self.log("val_log", log_value)
             return super().validation_step(batch, batch_idx)
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self.val_loop_count += 1
-            super().validation_epoch_end(outputs)
             self.scores.append(self.trainer.logged_metrics[monitor])
 
         def configure_optimizers(self):
@@ -648,7 +646,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@mock.patch("pytorch_lightning.callbacks.model_checkpoint.time")
+@mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
     seconds_per_batch = 7
@@ -829,7 +827,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     monitor += [5, 7, 8] if mode == "max" else [8, 7, 5]
 
     class CurrentModel(LogInTwoMethods):
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             val_loss = monitor[self.current_epoch]
             self.log("abc", val_loss)
 
@@ -863,7 +861,6 @@ def test_checkpoint_repeated_strategy(tmpdir):
             self.log("val_loss", loss)
 
     model = ExtendedBoringModel()
-    model.validation_epoch_end = None
     trainer_kwargs = {
         "max_epochs": 1,
         "limit_train_batches": 2,
@@ -900,9 +897,6 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
             loss = self.step(batch)
             self.log("val_loss", loss)
             return {"val_loss": loss}
-
-        def validation_epoch_end(self, *_):
-            ...
 
     def assert_trainer_init(trainer):
         assert trainer.global_step == 0

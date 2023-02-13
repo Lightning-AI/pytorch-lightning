@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,125 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops import TrainingEpochLoop
-from pytorch_lightning.trainer.trainer import Trainer
-
-_out00 = {"loss": 0.0}
-_out01 = {"loss": 0.1}
-_out02 = {"loss": 0.2}
-_out03 = {"loss": 0.3}
-_out10 = {"loss": 1.0}
-_out11 = {"loss": 1.1}
-_out12 = {"loss": 1.2}
-_out13 = {"loss": 1.3}
-
-
-class TestPrepareOutputs:
-    def prepare_outputs(self, fn, batch_outputs, num_optimizers, automatic_optimization):
-        lightning_module = LightningModule()
-        lightning_module.automatic_optimization = automatic_optimization
-        return fn(
-            batch_outputs,
-            lightning_module=lightning_module,
-            num_optimizers=num_optimizers,  # does not matter for manual optimization
-        )
-
-    def prepare_outputs_training_epoch_end(self, batch_outputs, num_optimizers, automatic_optimization=True):
-        return self.prepare_outputs(
-            TrainingEpochLoop._prepare_outputs_training_epoch_end,
-            batch_outputs,
-            num_optimizers,
-            automatic_optimization=automatic_optimization,
-        )
-
-    def prepare_outputs_training_batch_end(self, batch_outputs, num_optimizers, automatic_optimization=True):
-        return self.prepare_outputs(
-            TrainingEpochLoop._prepare_outputs_training_batch_end,
-            batch_outputs,
-            num_optimizers,
-            automatic_optimization=automatic_optimization,
-        )
-
-    @pytest.mark.parametrize(
-        "num_optimizers,batch_outputs,expected",
-        [
-            (1, [], []),
-            (1, [[]], []),
-            # 1 batch
-            (1, [[{0: _out00}]], [_out00]),
-            # 2 batches
-            (1, [[{0: _out00}], [{0: _out01}]], [_out00, _out01]),
-            # 1 batch, 2 optimizers
-            (2, [[{0: _out00, 1: _out01}]], [_out00, _out01]),
-            # 2 batches, 2 optimizers
-            (2, [[{0: _out00, 1: _out01}], [{0: _out10, 1: _out11}]], [[_out00, _out01], [_out10, _out11]]),
-            # 4 batches, 2 optimizers, different frequency
-            (
-                2,
-                [[{0: _out00}], [{1: _out10}], [{1: _out11}], [{0: _out01}]],
-                [[_out00], [_out10], [_out11], [_out01]],
-            ),
-        ],
-    )
-    def test_prepare_outputs_training_epoch_end_automatic(self, num_optimizers, batch_outputs, expected):
-        """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
-        currently expects in the case of automatic optimization."""
-        assert self.prepare_outputs_training_epoch_end(batch_outputs, num_optimizers) == expected
-
-    @pytest.mark.parametrize(
-        "batch_outputs,expected",
-        [
-            ([], []),
-            ([[]], []),
-            # 1 batch
-            ([[_out00]], [_out00]),
-            # 2 batches
-            ([[_out00], [_out01]], [_out00, _out01]),
-            # skipped outputs
-            ([[_out00], [], [], [_out03]], [_out00, _out03]),
-        ],
-    )
-    def test_prepare_outputs_training_epoch_end_manual(self, batch_outputs, expected):
-        """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
-        currently expects in the case of manual optimization."""
-        assert self.prepare_outputs_training_epoch_end(batch_outputs, -1, automatic_optimization=False) == expected
-
-    @pytest.mark.parametrize(
-        "num_optimizers,batch_end_outputs,expected",
-        [
-            (1, [], []),
-            (1, [[]], []),
-            # 1 optimizer
-            (1, [{0: _out00}], _out00),
-            # 2 optimizers
-            (2, [{0: _out00, 1: _out01}], [_out00, _out01]),
-        ],
-    )
-    def test_prepare_outputs_training_batch_end_automatic(self, num_optimizers, batch_end_outputs, expected):
-        """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
-        currently expects in the case of automatic optimization."""
-
-        assert self.prepare_outputs_training_batch_end(batch_end_outputs, num_optimizers) == expected
-
-    @pytest.mark.parametrize(
-        "batch_end_outputs,expected",
-        [
-            ([], []),
-            ([[]], []),
-            # skipped outputs
-            ([_out00, None, _out02], [_out00, _out02]),
-        ],
-    )
-    def test_prepare_outputs_training_batch_end_manual(self, batch_end_outputs, expected):
-        """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
-        currently expects in the case of manual optimization."""
-        assert self.prepare_outputs_training_batch_end(batch_end_outputs, -1, automatic_optimization=False) == expected
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.trainer import Trainer
 
 
 def test_no_val_on_train_epoch_loop_restart(tmpdir):
@@ -179,13 +66,38 @@ def test_should_stop_early_stopping_conditions_not_met(
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
     trainer.num_training_batches = 10
     trainer.should_stop = True
-    trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = global_step
+    trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.optimizer.step.total.completed = global_step
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
     trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
 
     message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.loops"):
         assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
 
     assert (message in caplog.text) is raise_info_msg
-    assert trainer.fit_loop._should_stop_early is early_stop
+    assert trainer.fit_loop._can_stop_early is early_stop
+
+
+@pytest.mark.parametrize("min_epochs,min_steps,val_count", [(3, None, 3), (None, 3, 2)])
+def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, tmp_path):
+    """Regression test for issue #15708.
+
+    Test that the request for `should_stop=True` only triggers validation when Trainer is allowed to stop
+    (min_epochs/steps is satisfied).
+    """
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        num_sanity_val_steps=0,
+        limit_val_batches=2,
+        limit_train_batches=2,
+        max_epochs=3,
+        min_epochs=min_epochs,
+        min_steps=min_steps,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.should_stop = True  # Request to stop before min_epochs/min_steps are reached
+    trainer.fit_loop.epoch_loop.val_loop.run = Mock()
+    trainer.fit(model)
+    assert trainer.fit_loop.epoch_loop.val_loop.run.call_count == val_count

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,23 +15,21 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
-from unittest import mock
 from unittest.mock import ANY
 
 import pytest
 import torch
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import Loop
-from pytorch_lightning.trainer.progress import BaseProgress
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops import _Loop
+from lightning.pytorch.loops.progress import BaseProgress
 
 
 def test_restarting_loops_recursive():
-    class MyLoop(Loop):
+    class MyLoop(_Loop):
         def __init__(self, loop=None):
             super().__init__()
             self.child = loop
@@ -52,7 +50,7 @@ class CustomException(Exception):
 
 
 def test_loop_restore():
-    class Simple(Loop):
+    class Simple(_Loop):
         def __init__(self, dataset: Iterator):
             super().__init__()
             self.iteration_count = 0
@@ -119,7 +117,7 @@ def test_loop_hierarchy():
     class SimpleProgress(BaseProgress):
         increment: int = 0
 
-    class Simple(Loop):
+    class Simple(_Loop):
         def __init__(self, a):
             super().__init__()
             self.a = a
@@ -197,7 +195,6 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
@@ -218,20 +215,20 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             return [super(ValidationModel, self).val_dataloader() for _ in range(n_dataloaders)]
 
     model = ValidationModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     # simulate a failure
     with pytest.raises(CustomException):
         trainer.fit(model)
 
-    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    ckpt_path = str(tmpdir / "on_exception.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
     total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
@@ -266,40 +263,20 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-@pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
-@pytest.mark.parametrize("stop_optimizer", (1, 2))
-def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer, n_optimizers, tmpdir):
-    stop_optimizer = stop_optimizer if stop_optimizer < n_optimizers else 0
+def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, tmpdir):
     n_epochs = 3
     n_batches = 3
 
     class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            if n_optimizers > 1:
-                self.configure_optimizers = self.configure_optimizers_multiple
-
-        def training_step(self, batch, batch_idx, optimizer_idx=0):
-            if self.trainer.current_epoch == stop_epoch and batch_idx == stop_batch and optimizer_idx == stop_optimizer:
+        def training_step(self, batch, batch_idx):
+            if self.trainer.current_epoch == stop_epoch and batch_idx == stop_batch:
                 raise CustomException
             return super().training_step(batch, batch_idx)
 
-        def configure_optimizers_multiple(self):
-            optimizers = [torch.optim.Adam(self.layer.parameters(), lr=0.1) for _ in range(n_optimizers)]
-
-            lr_scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizers[0], step_size=1)
-            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizers[1], step_size=1)
-            # no scheduler for optimizer_2
-            lr_schedulers = [lr_scheduler_0, {"scheduler": lr_scheduler_1, "interval": "step"}]
-
-            return optimizers, lr_schedulers
-
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -309,52 +286,43 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        enable_checkpointing=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     # simulate a failure
     with pytest.raises(CustomException):
         trainer.fit(model)
 
-    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    ckpt_path = str(tmpdir / "on_exception.ckpt")
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
-    optim_progress = trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress
+    optim_progress = trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress
     sch_progress = trainer.fit_loop.epoch_loop.scheduler_progress
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
     nbe_batches_completed = stop_epoch * n_batches
     be_batches_completed = stop_batch
-    be_batches_ready = stop_batch + 1
     # lightning applies leftover accumulated gradients when the epoch ends
     has_leftover_accumulation_batches = n_batches % accumulate_grad_batches != 0
     # number of batches that will call `optimizer.step()` during non-breaking and breaking epochs
     nbe_stepping_batches = nbe_batches_completed // accumulate_grad_batches
     be_stepping_batches = be_batches_completed // accumulate_grad_batches
 
-    nbe_total_opt_steps = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    does_last_be_batch_step = be_batches_ready % accumulate_grad_batches == 0 or has_leftover_accumulation_batches
-    be_total_opt_steps = be_stepping_batches * n_optimizers + does_last_be_batch_step * stop_optimizer
+    nbe_total_opt_steps = nbe_stepping_batches + has_leftover_accumulation_batches
+    be_total_opt_steps = be_stepping_batches
     assert optim_progress.optimizer_steps == nbe_total_opt_steps + be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     has_opt_stepped_in_be = stop_batch + 1 >= accumulate_grad_batches
 
-    nbe_total_zero_grad = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    does_last_be_batch_zero_grad = be_batches_completed % accumulate_grad_batches == 0
+    nbe_total_zero_grad = nbe_stepping_batches + has_leftover_accumulation_batches
     # `max` because the first batch always zero-grads
-    be_total_zero_grad = max(1, be_stepping_batches) * n_optimizers + stop_optimizer * does_last_be_batch_zero_grad
+    be_total_zero_grad = max(1, be_stepping_batches)
     assert optim_progress.optimizer.zero_grad.total.completed == nbe_total_zero_grad + be_total_zero_grad
     assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
 
     nbe_sch_steps = stop_epoch
     be_sch_steps = 0  # the current epoch did not complete
-    if n_optimizers > 1:
-        # assumes that the scheduler config is unchanged
-        # `* 1` because there is only one step-level scheduler
-        nbe_sch_steps = stop_epoch + nbe_stepping_batches + has_leftover_accumulation_batches * 1
-        # `0 +` for the epoch-level scheduler
-        be_sch_steps = 0 + be_stepping_batches
     assert sch_progress.total.completed == nbe_sch_steps + be_sch_steps
     assert sch_progress.current.completed == be_sch_steps
 
@@ -394,14 +362,13 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
             "current": {"ready": be_sch_steps, "completed": be_sch_steps},
         },
-        "epoch_loop.manual_loop.state_dict": ANY,
-        "epoch_loop.manual_loop.optim_step_progress": {
+        "epoch_loop.manual_optimization.state_dict": ANY,
+        "epoch_loop.manual_optimization.optim_step_progress": {
             "total": {"ready": 0, "completed": 0},
             "current": {"ready": 0, "completed": 0},
         },
-        "epoch_loop.optimizer_loop.state_dict": {},
-        "epoch_loop.optimizer_loop.optim_progress": {
-            "optimizer_position": stop_optimizer,
+        "epoch_loop.automatic_optimization.state_dict": {},
+        "epoch_loop.automatic_optimization.optim_progress": {
             "optimizer": {
                 "step": {
                     "total": {
@@ -428,8 +395,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
-        "epoch_loop.val_loop._results": ANY,
-        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -446,7 +411,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     # test resetting manually, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
-    trainer.fit_loop.epoch_loop.optimizer_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch
@@ -456,7 +420,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert batch_progress.current.ready == be_batches_completed
     assert batch_progress.current.completed == be_batches_completed
 
-    optim_progress = trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress
+    optim_progress = trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress
     assert optim_progress.optimizer.step.current.ready == be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     assert optim_progress.optimizer.zero_grad.current.ready == be_total_zero_grad
@@ -468,38 +432,17 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("n_optimizers", (1, 3, 5))
-def test_loop_state_on_complete_run(n_optimizers, tmpdir):
+def test_loop_state_on_complete_run(tmpdir):
     n_epochs = 3
     n_batches = 3
     accumulate_grad_batches = 1
 
     class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            if n_optimizers > 1:
-                self.configure_optimizers = self.configure_optimizers_multiple
-
-        def training_step(self, batch, batch_idx, optimizer_idx=0):
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers_multiple(self):
-            optimizers = [torch.optim.Adam(self.layer.parameters(), lr=0.1) for _ in range(n_optimizers)]
-
-            lr_scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizers[0], step_size=1)
-            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizers[1], step_size=1)
-            # no scheduler for optimizer_2
-            lr_schedulers = [lr_scheduler_0, {"scheduler": lr_scheduler_1, "interval": "step"}]
-
-            return optimizers, lr_schedulers
-
         def train_dataloader(self):
             # override to test the `is_last_batch` value
             return DataLoader(RandomDataset(32, n_batches))
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -519,9 +462,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
 
     n_sch_steps_total = n_epochs
     n_sch_steps_current = 1
-    if n_optimizers > 1:
-        n_sch_steps_total = n_epochs + n_epochs * n_batches
-        n_sch_steps_current = n_batches + 1
 
     expected = {
         "state_dict": ANY,
@@ -559,35 +499,34 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
             "total": {"ready": n_sch_steps_total, "completed": n_sch_steps_total},
             "current": {"ready": n_sch_steps_current, "completed": n_sch_steps_current},
         },
-        "epoch_loop.manual_loop.state_dict": ANY,
-        "epoch_loop.manual_loop.optim_step_progress": {
+        "epoch_loop.manual_optimization.state_dict": ANY,
+        "epoch_loop.manual_optimization.optim_step_progress": {
             "total": {"ready": 0, "completed": 0},
             "current": {"ready": 0, "completed": 0},
         },
-        "epoch_loop.optimizer_loop.state_dict": {},
-        "epoch_loop.optimizer_loop.optim_progress": {
-            "optimizer_position": n_optimizers,
+        "epoch_loop.automatic_optimization.state_dict": {},
+        "epoch_loop.automatic_optimization.optim_progress": {
             "optimizer": {
                 "step": {
                     "total": {
-                        "ready": n_epochs * n_batches * n_optimizers,
-                        "completed": n_epochs * n_batches * n_optimizers,
+                        "ready": n_epochs * n_batches,
+                        "completed": n_epochs * n_batches,
                     },
                     "current": {
-                        "ready": n_batches * n_optimizers,
-                        "completed": n_batches * n_optimizers,
+                        "ready": n_batches,
+                        "completed": n_batches,
                     },
                 },
                 "zero_grad": {
                     "total": {
-                        "ready": n_epochs * n_batches * n_optimizers,
-                        "started": n_epochs * n_batches * n_optimizers,
-                        "completed": n_epochs * n_batches * n_optimizers,
+                        "ready": n_epochs * n_batches,
+                        "started": n_epochs * n_batches,
+                        "completed": n_epochs * n_batches,
                     },
                     "current": {
-                        "ready": n_batches * n_optimizers,
-                        "started": n_batches * n_optimizers,
-                        "completed": n_batches * n_optimizers,
+                        "ready": n_batches,
+                        "started": n_batches,
+                        "completed": n_batches,
                     },
                 },
             },
@@ -596,8 +535,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
-        "epoch_loop.val_loop._results": ANY,
-        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -627,7 +564,7 @@ def test_fit_loop_reset(tmpdir):
     mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=2.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
-    optimizer_loop = epoch_loop.optimizer_loop
+    optimizer_loop = epoch_loop.automatic_optimization
     assert not fit_loop.restarting
     assert not epoch_loop.restarting
     assert not optimizer_loop.restarting
@@ -637,7 +574,6 @@ def test_fit_loop_reset(tmpdir):
     # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
-    optimizer_loop.reset()
 
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
@@ -654,7 +590,6 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.completed == 1
 
     assert optimizer_loop.restarting
-    assert optimizer_loop.optim_progress.optimizer_position == 1
 
     # reset state loaded from a checkpoint from the end of an epoch
     end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=4.ckpt"))
@@ -669,7 +604,6 @@ def test_fit_loop_reset(tmpdir):
     # resetting from a end-of-epoch checkpoint SHOULD reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
-    optimizer_loop.reset()
 
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
@@ -685,10 +619,7 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.processed == 3
     assert epoch_loop.batch_progress.current.completed == 3
 
-    assert optimizer_loop.optim_progress.optimizer_position == 1
 
-
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     ["train_datasets", "val_datasets"],
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
@@ -733,10 +664,11 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
     trainer.fit(model)
 
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
     assert not os.path.exists(ckpt_path), "Shouldn't have failed"
     state_dict = trainer.fit_loop.state_dict()
     expected_global_step = trainer.global_step
@@ -771,6 +703,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
     with pytest.raises(CustomException):
         # will stop during validation
@@ -844,7 +777,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
 
 @pytest.mark.parametrize("should_fail", [False, True])
-@pytest.mark.parametrize("persistent_workers", [pytest.param(False, marks=RunIf(slow=True)), True])
+@pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
