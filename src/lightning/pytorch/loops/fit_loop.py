@@ -16,12 +16,12 @@ from typing import Any, Optional
 
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
+from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.fetching import _DataFetcher
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 log = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ class _FitLoop(_Loop):
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
-    def _should_stop_early(self) -> bool:
+    def _can_stop_early(self) -> bool:
         met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
         met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
         return met_min_epochs and met_min_steps
@@ -170,7 +170,7 @@ class _FitLoop(_Loop):
             rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
             return True
 
-        if self.trainer.should_stop and self._should_stop_early:
+        if self.trainer.should_stop and self._can_stop_early:
             rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
             return True
 
@@ -230,7 +230,7 @@ class _FitLoop(_Loop):
 
         # reset train dataloader
         if not self._is_fresh_start_epoch and self.trainer._data_connector._should_reload_train_dl:
-            log.detail(f"{self.__class__.__name__}: resetting train dataloader")
+            log.debug(f"{self.__class__.__name__}: resetting train dataloader")
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
@@ -252,7 +252,7 @@ class _FitLoop(_Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        log.detail(f"{self.__class__.__name__}: advancing loop")
+        log.debug(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.train_dataloader
 
@@ -302,7 +302,7 @@ class _FitLoop(_Loop):
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
-        log.detail(f"{self.__class__.__name__}: train run ended")
+        log.debug(f"{self.__class__.__name__}: train run ended")
 
         # hook
         self.trainer._call_callback_hooks("on_train_end")

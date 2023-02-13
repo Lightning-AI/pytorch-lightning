@@ -82,7 +82,7 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
+        log.debug(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
@@ -169,11 +169,11 @@ class DDPStrategy(ParallelStrategy):
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
-        log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
-        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
@@ -192,7 +192,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def _register_ddp_hooks(self) -> None:
-        log.detail(f"{self.__class__.__name__}: registering ddp hooks")
+        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
         if self.root_device.type == "cuda" and self._is_single_process_single_device:
             assert isinstance(self.model, DistributedDataParallel)
             register_ddp_comm_hook(
@@ -203,7 +203,7 @@ class DDPStrategy(ParallelStrategy):
             )
 
     def _enable_model_averaging(self) -> None:
-        log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
+        log.debug(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
@@ -256,7 +256,7 @@ class DDPStrategy(ParallelStrategy):
         return optimizer_output
 
     def configure_ddp(self) -> None:
-        log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
+        log.debug(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
         self._register_ddp_hooks()
@@ -290,7 +290,7 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
-        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
+        log.debug(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         assert self.model is not None
         self.model.to(self.root_device)
 
@@ -378,7 +378,7 @@ class DDPStrategy(ParallelStrategy):
         )
 
     def teardown(self) -> None:
-        log.detail(f"{self.__class__.__name__}: tearing down strategy")
+        log.debug(f"{self.__class__.__name__}: tearing down strategy")
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):

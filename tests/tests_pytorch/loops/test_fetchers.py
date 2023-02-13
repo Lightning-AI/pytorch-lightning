@@ -20,10 +20,10 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.profilers import SimpleProfiler
 from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.fetching import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
@@ -121,18 +121,6 @@ def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     assert not fetcher.done
     assert not list(fetcher)
     assert fetcher.done
-
-
-def test_misconfiguration_error():
-    fetcher = _PrefetchDataFetcher()
-    loader = DataLoader(range(10))
-    fetcher.setup(loader)
-    with pytest.raises(
-        MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
-    ):
-        fetcher.loader_iters
-    iter(fetcher)
-    assert fetcher.loader_iters
 
 
 def get_cycles_per_ms() -> float:

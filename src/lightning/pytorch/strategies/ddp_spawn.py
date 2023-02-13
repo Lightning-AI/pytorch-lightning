@@ -166,7 +166,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
-        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        log.debug(f"{self.__class__.__name__}: setting up distributed...")
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
@@ -344,7 +344,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         )
 
     def teardown(self) -> None:
-        log.detail(f"{self.__class__.__name__}: tearing down strategy")
+        log.debug(f"{self.__class__.__name__}: tearing down strategy")
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
