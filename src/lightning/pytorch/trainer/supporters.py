@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Iterable, Iterator
-from typing import Any, Callable, List, Literal, Optional, Sized, Tuple, Type, TypeVar
+from collections.abc import Iterable
+from typing import Any, Callable, Iterator, List, Literal, Optional, Sized, Tuple, Type, TypeVar
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict
