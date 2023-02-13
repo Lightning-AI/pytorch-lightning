@@ -105,7 +105,7 @@ def _run_plugin(run: _Run) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         # Download the tarball
         try:
-            os.system(f"curl '{run.source_code_url}' | tar -xz --no-overwrite-dir -m - {tmpdir}")
+            os.system(f"curl '{run.source_code_url}' | tar -xz --no-overwrite-dir -m -C {tmpdir}")
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error downloading plugin source: {str(e)}."
