@@ -34,6 +34,7 @@ from lightning.pytorch.demos.boring_classes import (
 )
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
@@ -1340,8 +1341,8 @@ def test_request_dataloader(tmpdir):
 def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            for idx in range(num_loaders):
-                assert isinstance(self.trainer.train_dataloader.loaders[idx].loader.sampler, SequentialSampler)
+            assert isinstance(self.trainer.train_dataloader, CombinedLoader)
+            assert all(isinstance(s, SequentialSampler) for s in self.trainer.train_dataloader.sampler)
             return super().training_step(batch[0], batch_idx)
 
         def _create_dataloader(self):

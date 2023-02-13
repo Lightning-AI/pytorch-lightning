@@ -62,6 +62,12 @@ def test_accelerator_invalid_choice():
         Trainer(accelerator="invalid")
 
 
+@pytest.mark.parametrize("invalid_strategy", ["cocofruit", object()])
+def test_invalid_strategy_choice(invalid_strategy):
+    with pytest.raises(ValueError, match="You selected an invalid strategy name:"):
+        AcceleratorConnector(strategy=invalid_strategy)
+
+
 @RunIf(skip_windows=True, standalone=True)
 def test_strategy_choice_ddp_on_cpu(tmpdir):
     """Test that selecting DDPStrategy on CPU works."""
@@ -351,13 +357,6 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
-def test_exception_invalid_strategy():
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_cpu'\)` is not a valid"):
-        Trainer(strategy="ddp_cpu")
-    with pytest.raises(MisconfigurationException, match=r"strategy='tpu_spawn'\)` is not a valid"):
-        Trainer(strategy="tpu_spawn")
-
-
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     (
@@ -411,7 +410,7 @@ def test_strategy_choice_cpu_instance(strategy_class):
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2):
+def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2, mps_count_0):
     trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
@@ -640,7 +639,7 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
 @mock.patch("lightning.pytorch.accelerators.ipu._IPU_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.utilities.imports._HPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.hpu._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1

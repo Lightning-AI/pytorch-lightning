@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Generator, Iterable, Optional, Tuple
+from typing import Any, Callable, Generator, Iterable, Optional, Tuple
 
 import torch
+import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
@@ -152,3 +154,25 @@ def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _D
         )
         return _DataLoaderIterDataFetcher()
     return _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
+
+
+def _no_grad_context(loop_run: Callable) -> Callable:
+    def _decorator(self: _Loop, *args: Any, **kwargs: Any) -> Any:
+        if not isinstance(self, _Loop):
+            raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
+        if not hasattr(self, "inference_mode"):
+            raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
+        context_manager = (
+            torch.inference_mode
+            if (
+                self.inference_mode
+                # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
+                and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
+                and not isinstance(self.trainer.accelerator, TPUAccelerator)
+            )
+            else torch.no_grad
+        )
+        with context_manager():
+            return loop_run(self, *args, **kwargs)
+
+    return _decorator

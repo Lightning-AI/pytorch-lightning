@@ -17,7 +17,7 @@ from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tup
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.utilities.data import has_len
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.trainer.supporters import _shutdown_workers_and_reset_iterator, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
@@ -44,14 +44,6 @@ class _DataFetcher(Iterator):
                 f"`{self.__class__.__name__}` should have been `setup` with a dataloader iterable."
             )
         return self._dataloader
-
-    @property
-    def loader_iters(self) -> Any:
-        if self.dataloader_iter is None:
-            raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
-        if isinstance(self.dataloader, CombinedLoader):
-            return self.dataloader_iter.loader_iters
-        return self.dataloader_iter
 
     def __iter__(self) -> "_DataFetcher":
         self.reset()
@@ -80,7 +72,7 @@ class _DataFetcher(Iterator):
         if isinstance(self._dataloader, CombinedLoader):
             self._dataloader.reset()
         if isinstance(self._dataloader, DataLoader):
-            CombinedLoader._shutdown_workers_and_reset_iterator(self._dataloader)
+            _shutdown_workers_and_reset_iterator(self._dataloader)
         self.dataloader_iter = None
 
 
