@@ -53,7 +53,7 @@ def connect_data(
 
         live.stop()
 
-        client = LightningClient()
+        client = LightningClient(retry=False)
         projects = client.projects_service_list_memberships()
 
         project_id = None
