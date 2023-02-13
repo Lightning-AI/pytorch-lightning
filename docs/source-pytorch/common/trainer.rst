@@ -123,8 +123,7 @@ So you can run it like so:
 
 
 If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
-The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
-running accelerator callback ``on_train_end`` to clean up memory. The trainer object will also set
+The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown. The trainer object will also set
 an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
 resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
 
