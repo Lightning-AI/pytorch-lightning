@@ -283,7 +283,7 @@ Example::
     # accumulate every 4 batches (effective batch size is batch*4)
     trainer = Trainer(accumulate_grad_batches=4)
 
-See also: :ref:`gradient_accumulation`
+See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation schedules.
 
 
 benchmark
