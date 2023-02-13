@@ -143,3 +143,14 @@ def test_warn_if_model_has_overridden_optimization_hooks():
     model = OverriddenZeroGradModel()
     with pytest.warns(UserWarning, match="the hooks will not be called on every batch"):
         scheduler.on_train_start(trainer, model)
+
+
+def test_raises_when_accumulate_grad_batches_with_callback(tmp_path):
+    """Test that it is not allowed to set both the Trainer argument and also pass a callback."""
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accumulate_grad_batches=2,
+        callbacks=[GradientAccumulationScheduler({0: 2})]
+    )
+    with pytest.raises(ValueError, match="`accumulate_grad_batches` and are using the `GradientAccumulationScheduler`"):
+        trainer.fit(BoringModel())
