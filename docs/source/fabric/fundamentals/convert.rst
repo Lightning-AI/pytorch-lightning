@@ -4,9 +4,9 @@
 Convert PyTorch code to Fabric
 ##############################
 
-Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale your PyTorch models.
+Here are five easy steps to let :class:`~lightning.fabric.fabric.Fabric` scale your PyTorch models.
 
-**Step 1:** Create the :class:`~lightning_fabric.fabric.Fabric` object at the beginning of your training code.
+**Step 1:** Create the :class:`~lightning.fabric.fabric.Fabric` object at the beginning of your training code.
 
 .. code-block:: python
 
@@ -14,14 +14,14 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
     fabric = Fabric()
 
-**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
+**Step 2:** Call :meth:`~lightning.fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
 
 .. code-block:: python
 
     model, optimizer = fabric.setup(model, optimizer)
     dataloader = fabric.setup_dataloaders(dataloader)
 
-**Step 3:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
+**Step 3:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning.fabric.fabric.Fabric` will take care of it.
 
 .. code-block:: diff
 
@@ -41,7 +41,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
     lightning run model path/to/train.py
 
-or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
+or use the :meth:`~lightning.fabric.fabric.Fabric.launch` method in a notebook.
 Learn more about :doc:`launching distributed training <launch>`.
 
 |

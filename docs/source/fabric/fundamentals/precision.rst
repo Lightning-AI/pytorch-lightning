@@ -131,7 +131,7 @@ Fabric automatically casts the data type and operations in the ``forward`` of yo
     # Precision does NOT get applied here (only in forward)
     loss = loss_function(output, target)
 
-If you want to enable operations in lower bit-precision **outside** your model's ``forward()``, you can use the :meth:`~lightning_fabric.fabric.Fabric.autocast` context manager:
+If you want to enable operations in lower bit-precision **outside** your model's ``forward()``, you can use the :meth:`~lightning.fabric.fabric.Fabric.autocast` context manager:
 
 .. code-block:: python
 

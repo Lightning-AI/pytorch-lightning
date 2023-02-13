@@ -95,7 +95,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
         --accelerator=cuda \
         --precision=16
 
-:class:`~lightning_fabric.fabric.Fabric` can also figure it out automatically for you!
+:class:`~lightning.fabric.fabric.Fabric` can also figure it out automatically for you!
 
 .. code-block:: bash
 

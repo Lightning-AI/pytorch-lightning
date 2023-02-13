@@ -64,9 +64,9 @@ This replaces any occurrences of ``loss.backward()`` and makes your code acceler
 to_device
 =========
 
-Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors, or collections of tensors to
-the current device. By default :meth:`~lightning_fabric.fabric.Fabric.setup` and
-:meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` already move the model and data to the correct
+Use :meth:`~lightning.fabric.fabric.Fabric.to_device` to move models, tensors, or collections of tensors to
+the current device. By default :meth:`~lightning.fabric.fabric.Fabric.setup` and
+:meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
 
 .. code-block:: python
@@ -94,7 +94,7 @@ autocast
 ========
 
 Let the precision backend autocast the block of code under this context manager. This is optional and already done by
-Fabric for the model's forward method (once the model was :meth:`~lightning_fabric.fabric.Fabric.setup`).
+Fabric for the model's forward method (once the model was :meth:`~lightning.fabric.fabric.Fabric.setup`).
 You need this only if you wish to autocast more operations outside the ones in model forward:
 
 .. code-block:: python
@@ -206,11 +206,11 @@ all_gather, all_reduce, broadcast
 =================================
 
 You can send tensors and other data between processes using collective operations.
-The three most common ones, :meth:`~lightning_fabric.fabric.Fabric.broadcast`, :meth:`~lightning_fabric.fabric.Fabric.all_gather` and :meth:`~lightning_fabric.fabric.Fabric.all_reduce` are available directly on the Fabric object for convenience:
+The three most common ones, :meth:`~lightning.fabric.fabric.Fabric.broadcast`, :meth:`~lightning.fabric.fabric.Fabric.all_gather` and :meth:`~lightning.fabric.fabric.Fabric.all_reduce` are available directly on the Fabric object for convenience:
 
-- :meth:`~lightning_fabric.fabric.Fabric.broadcast`: Send a tensor from one process to all others.
-- :meth:`~lightning_fabric.fabric.Fabric.all_gather`: Gather tensors from every process and stack them.
-- :meth:`~lightning_fabric.fabric.Fabric.all_reduce`: Apply a reduction function on tensors across processes (sum, mean, etc.).
+- :meth:`~lightning.fabric.fabric.Fabric.broadcast`: Send a tensor from one process to all others.
+- :meth:`~lightning.fabric.fabric.Fabric.all_gather`: Gather tensors from every process and stack them.
+- :meth:`~lightning.fabric.fabric.Fabric.all_reduce`: Apply a reduction function on tensors across processes (sum, mean, etc.).
 
 .. code-block:: python
 
