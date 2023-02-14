@@ -69,9 +69,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - Name
      - Class
      - Description
-   * - bagua
-     - :class:`~pytorch_lightning.strategies.BaguaStrategy`
-     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu_intermediate:Bagua>`
    * - colossalai
      - :class:`~pytorch_lightning.strategies.ColossalAIStrategy`
      - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
