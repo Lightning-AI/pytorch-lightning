@@ -42,11 +42,10 @@ class _EvaluationLoop(_Loop):
         super().__init__()
         self.verbose = verbose
         self.inference_mode = inference_mode
-        self.batch_progress = BatchProgress()
+        self.batch_progress = BatchProgress()  # across dataloaders
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
-        self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
         self._data_fetcher: Optional[_DataFetcher] = None
 
@@ -64,8 +63,6 @@ class _EvaluationLoop(_Loop):
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
             raise ValueError(f'`{type(self).__name__}` only supports the `CombinedLoader(mode="sequential")` mode.')
-        if combined_loader._iterator is None:
-            raise RuntimeError("The iterator has not been created yet.")
         return combined_loader._iterator._iterator_idx
 
     @property
@@ -74,12 +71,6 @@ class _EvaluationLoop(_Loop):
         combined_loader = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         assert combined_loader is not None
         return combined_loader._flattened[self.current_dataloader_idx]
-
-    @property
-    def prefetch_batches(self) -> int:
-        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
-        is_unsized = batches[self.current_dataloader_idx] == float("inf")
-        return int(is_unsized)
 
     @property
     def max_batches(self) -> List[Union[int, float]]:
@@ -111,11 +102,7 @@ class _EvaluationLoop(_Loop):
                 else:
                     batch_idx, batch = next(self._data_fetcher)
                 self.batch_progress.is_last_batch = self._data_fetcher.done
-                dataloader_idx = self.current_dataloader_idx
-                if batch_idx >= self.max_batches[dataloader_idx]:
-                    self._data_fetcher.dataloader._iterator._use_next_iterator()
-                    continue
-                self._evaluation_step(batch, batch_idx, dataloader_idx)
+                self._evaluation_step(batch, batch_idx, self.current_dataloader_idx)
                 self._restarting = False
             except StopIteration:
                 break
@@ -126,9 +113,6 @@ class _EvaluationLoop(_Loop):
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         trainer = self.trainer
-        combined_loader = trainer.test_dataloaders if trainer.testing else trainer.val_dataloaders
-        assert combined_loader is not None
-        iter(combined_loader)
 
         self._has_run = False
         self._logged_outputs = []
@@ -141,13 +125,17 @@ class _EvaluationLoop(_Loop):
         if trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(trainer, prefetch_batches=self.prefetch_batches)
+        data_fetcher = _select_data_fetcher(trainer)
         if isinstance(data_fetcher, _DataLoaderIterDataFetcher) and self.num_dataloaders > 1:
             raise NotImplementedError(
                 "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
             )
+        combined_loader = trainer.test_dataloaders if trainer.testing else trainer.val_dataloaders
+        assert combined_loader is not None
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
+        # set the per-dataloader limits
+        combined_loader._iterator.limits = self.max_batches
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
@@ -285,14 +273,6 @@ class _EvaluationLoop(_Loop):
         assert stage is not None
         stage = stage.dataloader_prefix
         self.trainer.profiler.stop(f"[{type(self).__name__}].{stage}_dataloader_idx_{self.current_dataloader_idx}_next")
-
-    def _num_completed_batches_reached(self) -> bool:
-        epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
-        dataloader_consumed_successfully = self.batch_progress.is_last_batch and self._has_completed()
-        return epoch_finished_on_completed or dataloader_consumed_successfully
-
-    def _has_completed(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
 
     def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual evaluation step together with all the necessary bookkeeping and the hooks tied to it.

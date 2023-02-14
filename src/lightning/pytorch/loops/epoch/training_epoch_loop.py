@@ -295,14 +295,6 @@ class _TrainingEpochLoop(loops._Loop):
         epoch_finished_on_ready = self.batch_progress.current.ready == self.trainer.num_training_batches
         return epoch_finished_on_ready or self.batch_progress.is_last_batch
 
-    def _num_completed_batches_reached(self) -> bool:
-        epoch_finished_on_completed = self.batch_progress.current.completed == self.trainer.num_training_batches
-        dataloader_consumed_successfully = self.batch_progress.is_last_batch and self._has_completed()
-        return epoch_finished_on_completed or dataloader_consumed_successfully
-
-    def _has_completed(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
-
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current
         step."""

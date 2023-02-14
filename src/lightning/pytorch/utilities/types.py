@@ -40,8 +40,9 @@ TRAIN_DATALOADERS = Union[
     Dict[str, DataLoader],
     Dict[str, Dict[str, DataLoader]],
     Dict[str, Sequence[DataLoader]],
+    Any,
 ]
-EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
+EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Any]
 
 
 @runtime_checkable

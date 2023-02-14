@@ -75,15 +75,36 @@ class _MinSize(_ModeIterator[List]):
 
 
 class _Sequential(_ModeIterator[Tuple[int, Any]]):
-    def __init__(self, iterables: List[Iterable]) -> None:
+    def __init__(self, iterables: List[Iterable], limits: Optional[List[int]] = None) -> None:
         super().__init__(iterables)
         self._iterator_idx = 0  # what would be dataloader_idx
         self._idx = 0  # what would be batch_idx
+        self.limits = limits
+
+    @property
+    def limits(self) -> Optional[List[int]]:
+        return self._limits
+
+    @limits.setter
+    def limits(self, limits: Optional[List[int]]) -> None:
+        if limits is not None and len(limits) != len(self.iterables):
+            raise ValueError(
+                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
+            )
+        self._limits = limits
 
     def __next__(self) -> Tuple[int, Any]:
         n = len(self.iterators)
         if n == 0 or self._iterator_idx >= n:
             raise StopIteration
+
+        # if limits are set, go to the correct iterator
+        if self.limits is not None:
+            while self.limits[self._iterator_idx] <= self._idx:
+                self._use_next_iterator()
+                if self._iterator_idx >= n:
+                    raise StopIteration
+
         try:
             out = next(self.iterators[self._iterator_idx])
             index = self._idx
@@ -91,6 +112,7 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
             # the return is enumerated by default
             return index, out
         except StopIteration:
+            # try the next iterator
             self._use_next_iterator()
             return self.__next__()
 
@@ -207,7 +229,8 @@ class CombinedLoader(Iterable):
         self.dataset = _CombinedDataset(datasets, mode)
 
         self._mode = mode
-        self._iterator: Optional[_ModeIterator] = None
+        # create the iterator on __init__ to avoid nullity checks
+        self._iterator = self._create_iterator()
 
     @property
     def iterables(self) -> Any:
@@ -225,17 +248,13 @@ class CombinedLoader(Iterable):
         return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self._flattened, self._spec)
 
     def __next__(self) -> Any:
-        assert self._iterator is not None
         out = next(self._iterator)
         if isinstance(self._iterator, _Sequential):
             return out
         return tree_unflatten(out, self._spec)
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
-        cls = _supported_modes[self._mode]["iterator"]
-        iterator = cls(self._flattened)
-        iter(iterator)
-        self._iterator = iterator
+        self._iterator = self._create_iterator()
         return self
 
     def __len__(self) -> int:
@@ -250,11 +269,15 @@ class CombinedLoader(Iterable):
         return fn(lengths)
 
     def reset(self) -> None:
-        if self._iterator is not None:
-            self._iterator.reset()
-            self._iterator = None
+        self._iterator.reset()
         for iterable in self._flattened:
             _shutdown_workers_and_reset_iterator(iterable)
+
+    def _create_iterator(self) -> _ModeIterator:
+        cls = _supported_modes[self._mode]["iterator"]
+        iterator = cls(self._flattened)
+        iter(iterator)
+        return iterator
 
     def _update_index(self, dataloader: Iterable, index: int) -> None:
         # mutation needs to be done using this method to avoid stale references

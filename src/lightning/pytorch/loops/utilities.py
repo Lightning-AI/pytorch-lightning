@@ -136,7 +136,7 @@ def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
             sampler.set_epoch(epoch)
 
 
-def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _DataFetcher:
+def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
     lightning_module = trainer.lightning_module
     if trainer.testing:
         step_fx_name = "test_step"
@@ -155,7 +155,7 @@ def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _D
             "this signature is experimental and the behavior is subject to change."
         )
         return _DataLoaderIterDataFetcher()
-    return _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
+    return _PrefetchDataFetcher()
 
 
 def _no_grad_context(loop_run: Callable) -> Callable:

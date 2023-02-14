@@ -26,7 +26,7 @@ class _PredictionLoop(_Loop):
             List[List[int]]
         ] = []  # dataloaders x batches x samples. used by PredictionWriter
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
-        self.batch_progress = Progress()
+        self.batch_progress = Progress()  # across dataloaders
 
         self._warning_cache = WarningCache()
         self._data_fetcher: Optional[_DataFetcher] = None
@@ -72,8 +72,6 @@ class _PredictionLoop(_Loop):
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
             raise ValueError(f'`{type(self).__name__}` only supports the `CombinedLoader(mode="sequential")` mode.')
-        if combined_loader._iterator is None:
-            raise RuntimeError("The iterator has not been created yet.")
         return combined_loader._iterator._iterator_idx
 
     @property
@@ -106,11 +104,7 @@ class _PredictionLoop(_Loop):
                 else:
                     batch_idx, batch = next(self._data_fetcher)
                 self.batch_progress.is_last_batch = self._data_fetcher.done
-                dataloader_idx = self.current_dataloader_idx
-                if batch_idx >= self.max_batches[dataloader_idx]:
-                    self._data_fetcher.dataloader._iterator._use_next_iterator()
-                    continue
-                self._predict_step(batch, batch_idx, dataloader_idx)
+                self._predict_step(batch, batch_idx, self.current_dataloader_idx)
                 self._restarting = False
             except StopIteration:
                 break
@@ -119,29 +113,29 @@ class _PredictionLoop(_Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        combined_loader = self.trainer.predict_dataloaders
-        assert combined_loader is not None
-        iter(combined_loader)
-
-        num_dataloaders = self.num_dataloaders
-        self.epoch_batch_indices = [[] for _ in range(num_dataloaders)]
-        self._predictions = [[] for _ in range(num_dataloaders)]
-
         self.batch_progress.reset_on_run()
 
-        # TODO(carmocca): add unsized support for predict dataloaders
+        # TODO(carmocca): add unsized support test with predict dataloaders
         data_fetcher = _select_data_fetcher(self.trainer)
         if isinstance(data_fetcher, _DataLoaderIterDataFetcher) and self.num_dataloaders > 1:
             raise NotImplementedError(
                 "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
             )
+        combined_loader = self.trainer.predict_dataloaders
+        assert combined_loader is not None
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
+        # set the per-dataloader limits
+        combined_loader._iterator.limits = self.max_batches
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
         data_fetcher._stop_profiler = self._on_after_fetch
         self._data_fetcher = data_fetcher
+
+        num_dataloaders = self.num_dataloaders
+        self.epoch_batch_indices = [[] for _ in range(num_dataloaders)]
+        self._predictions = [[] for _ in range(num_dataloaders)]
 
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""

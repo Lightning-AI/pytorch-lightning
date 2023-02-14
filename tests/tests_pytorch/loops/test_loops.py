@@ -831,5 +831,3 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
     # on sanity checking end, the workers are being deleted too.
     assert val_dataloader.count_shutdown_workers == 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
-    assert train_dataloader._iterator is None
-    assert val_dataloader._iterator is None
