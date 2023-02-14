@@ -241,10 +241,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def setup_precision_plugin(self) -> None:
         with _patch_cuda_is_available():
-            from colossalai.gemini import ChunkManager, GeminiManager
             from colossalai.nn.optimizer import CPUAdam, HybridAdam
-            from colossalai.nn.parallel import ZeroDDP
-            from colossalai.tensor import ProcessGroup
             from colossalai.zero import ZeroOptimizer
 
         super().setup_precision_plugin()
