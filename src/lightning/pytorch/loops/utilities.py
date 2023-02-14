@@ -145,7 +145,6 @@ def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _D
     elif trainer.validating or trainer.sanity_checking:
         step_fx_name = "validation_step"
     elif trainer.predicting:
-        # TODO(carlos): write test for iterdatafetcher with predict
         step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
