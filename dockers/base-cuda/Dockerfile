@@ -95,7 +95,7 @@ RUN \
       if [[ -z "$PRE_RELEASE" ]] ; then python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; else python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} --remove_torch_ver ; fi  \
     done && \
     # Install base requirements \
-    if [[ -z "$PRE_RELEASE" ]] ; then export TORCH_WHEEL_OPTIONS="--find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" ; else export TORCH_WHEEL_OPTIONS="--index-url https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM} --pre"; fi && \
+    if [[ -z "$PRE_RELEASE" ]] ; then export TORCH_WHEEL_OPTIONS="--find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" ; else export TORCH_WHEEL_OPTIONS="--extra-index-url https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM} --pre"; fi && \
     pip install -r requirements/pytorch/base.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS} && \
     rm assistant.py
 
