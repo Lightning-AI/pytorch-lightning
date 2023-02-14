@@ -21,6 +21,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.13
 ARG MAX_ALLOWED_NCCL=2.16.2
+ARG PRE_RELEASE
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -91,17 +92,17 @@ RUN \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
-      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
+      if [[ -z "$PRE_RELEASE" ]] ; then python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; else python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} --remove_torch_ver ; fi  \
     done && \
-
     # Install base requirements \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    if [[ -z "$PRE_RELEASE" ]] ; then export TORCH_WHEEL_OPTIONS="--find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" ; else export TORCH_WHEEL_OPTIONS="--index-url https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM} --pre"; fi && \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS} && \
     rm assistant.py
 
 
 RUN \
     # install Bagua
-    if [[ $PYTORCH_VERSION != "1.13" ]]; then \
+    if [[ $PYTORCH_VERSION != "1.13" ]] && [[ $PYTORCH_VERSION != "2.0" ]]; then \
         CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") ; \
         CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") ; \
         pip install "bagua-cuda$CUDA_VERSION_BAGUA" ; \
@@ -114,7 +115,7 @@ RUN \
 RUN \
     # install ColossalAI
     # TODO: 1.13 wheels are not released, remove skip once they are
-    if [[ $PYTORCH_VERSION != "1.13" ]]; then \
+    if [[ $PYTORCH_VERSION != "1.13" ]] && [[ $PYTORCH_VERSION != "2.0" ]]; then \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
         pip install "colossalai==0.1.12+torch${PYTORCH_VERSION}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
@@ -126,7 +127,7 @@ RUN \
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS}
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
