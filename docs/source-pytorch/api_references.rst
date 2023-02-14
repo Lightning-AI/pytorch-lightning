@@ -217,7 +217,6 @@ strategies
     ColossalAIStrategy
     DDPSpawnStrategy
     DDPStrategy
-    DataParallelStrategy
     DeepSpeedStrategy
     FSDPStrategy
     HPUParallelStrategy

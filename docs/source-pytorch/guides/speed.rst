@@ -49,19 +49,6 @@ GPU Training Speedup Tips
 When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
 Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/model_parallel>`.
 
-Prefer DDP Over DP
-^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs three GPU transfers for EVERY batch:
-
-1. Copy the model to the device.
-2. Copy the data to the device.
-3. Copy the outputs of each device back to the main device.
-
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
-    :alt: Animation showing DP execution.
-    :width: 500
-    :align: center
-
 |
 
 Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations, making DDP much faster than DP:
