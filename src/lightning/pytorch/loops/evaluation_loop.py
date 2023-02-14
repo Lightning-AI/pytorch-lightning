@@ -307,21 +307,22 @@ class _EvaluationLoop(_Loop):
         batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
         batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
-        # configure step_kwargs
-        kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
 
         self.batch_progress.increment_ready()
 
-        trainer._logger_connector.on_batch_start(**kwargs)
+        trainer._logger_connector.on_batch_start(**step_kwargs)
 
+        batch_start_end_kwargs = step_kwargs.copy()
+        batch_start_end_kwargs.setdefault("dataloader_idx", dataloader_idx)
         hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
-        call._call_callback_hooks(trainer, hook_name, *kwargs.values(), dataloader_idx)
-        call._call_lightning_module_hook(trainer, hook_name, *kwargs.values(), dataloader_idx)
+        call._call_callback_hooks(trainer, hook_name, *batch_start_end_kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, *batch_start_end_kwargs.values())
 
         self.batch_progress.increment_started()
 
         hook_name = "test_step" if trainer.testing else "validation_step"
-        output = call._call_strategy_hook(trainer, hook_name, *kwargs.values())
+        output = call._call_strategy_hook(trainer, hook_name, *step_kwargs.values())
 
         hook_name = "test_step_end" if trainer.testing else "validation_step_end"
         model_output = call._call_lightning_module_hook(trainer, hook_name, output)
@@ -331,8 +332,8 @@ class _EvaluationLoop(_Loop):
         self.batch_progress.increment_processed()
 
         hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
-        call._call_callback_hooks(trainer, hook_name, output, *kwargs.values(), dataloader_idx)
-        call._call_lightning_module_hook(trainer, hook_name, output, *kwargs.values(), dataloader_idx)
+        call._call_callback_hooks(trainer, hook_name, output, *batch_start_end_kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, output, *batch_start_end_kwargs.values())
 
         trainer._logger_connector.on_batch_end()
 

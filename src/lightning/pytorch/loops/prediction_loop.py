@@ -178,13 +178,16 @@ class _PredictionLoop(_Loop):
 
         any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
 
-        call._call_callback_hooks(trainer, "on_predict_batch_start", batch, batch_idx, dataloader_idx)
-        call._call_lightning_module_hook(trainer, "on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+
+        batch_start_end_kwargs = step_kwargs.copy()
+        batch_start_end_kwargs.setdefault("dataloader_idx", dataloader_idx)
+        call._call_callback_hooks(trainer, "on_predict_batch_start", *batch_start_end_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_start", *batch_start_end_kwargs.values())
 
         self.batch_progress.increment_started()
 
         # configure step_kwargs
-        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
         predictions = call._call_strategy_hook(trainer, "predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
@@ -192,8 +195,8 @@ class _PredictionLoop(_Loop):
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
-        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *batch_start_end_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *batch_start_end_kwargs.values())
 
         self.batch_progress.increment_completed()
 
