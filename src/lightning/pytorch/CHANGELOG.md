@@ -294,7 +294,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the `LightningModule.log_grad_norm()` hook method ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
 
 
-- Removed the `QuantizationAwareTraining` callback ([#xxxx](https://github.com/Lightning-AI/lightning/pull/xxxx))
+- Removed the `QuantizationAwareTraining` callback ([#16750](https://github.com/Lightning-AI/lightning/pull/16750))
 
 
 ### Fixed
