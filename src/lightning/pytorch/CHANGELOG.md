@@ -294,6 +294,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the `LightningModule.log_grad_norm()` hook method ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
 
 
+- Removed the `QuantizationAwareTraining` callback ([#xxxx](https://github.com/Lightning-AI/lightning/pull/xxxx))
+
+
 ### Fixed
 
 - Fixed an attribute error and improved input validation for invalid strategy types being passed to Trainer ([#16693](https://github.com/Lightning-AI/lightning/pull/16693))
