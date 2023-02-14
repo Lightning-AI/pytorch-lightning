@@ -47,6 +47,7 @@ class FlowCommands(LightningFlow):
             self.stop()
 
     def trigger_method(self, name: str):
+        print(name)
         self.names.append(name)
 
     def sweep(self, config: SweepConfig):
@@ -146,7 +147,7 @@ def test_configure_commands(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["lightning", "user", "command", "--name=something"])
     connect_app("localhost")
     _run_app_command("localhost", None)
-    sleep(0.5)
+    sleep(2)
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
