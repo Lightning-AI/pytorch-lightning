@@ -1294,8 +1294,8 @@ class CustomPredictionWriter(BasePredictionWriter):
     def on_predict_epoch_end(self, trainer, pl_module):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
-                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
-                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
+                assert isinstance(trainer.predict_dataloaders.batch_sampler[idx].sampler, UnrepeatedDistributedSampler)
+                assert isinstance(trainer.predict_dataloaders.batch_sampler[idx], IndexBatchSamplerWrapper)
         super().on_predict_epoch_end(trainer, pl_module)
 
 

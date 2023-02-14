@@ -774,13 +774,13 @@ class DistribSamplerCallback(Callback):
         assert train_sampler.seed == self.expected_seed[0]
 
     def on_validation_start(self, trainer, pl_module):
-        val_sampler = trainer.val_dataloaders[0].sampler
+        val_sampler = trainer.val_dataloaders.sampler[0]
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
         assert val_sampler.seed == self.expected_seed[1]
 
     def on_test_start(self, trainer, pl_module):
-        test_sampler = trainer.test_dataloaders[0].sampler
+        test_sampler = trainer.test_dataloaders.sampler[0]
         assert isinstance(test_sampler, DistributedSampler)
         assert not test_sampler.shuffle
         assert test_sampler.seed == self.expected_seed[2]

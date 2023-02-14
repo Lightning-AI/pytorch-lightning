@@ -120,9 +120,7 @@ class _EvaluationLoop(_Loop):
             except StopIteration:
                 break
         self._restarting = False
-
         self.on_advance_end()
-        self._restarting = False
         return self.on_run_end()
 
     def reset(self) -> None:
