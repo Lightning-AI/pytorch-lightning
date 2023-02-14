@@ -42,7 +42,7 @@ local tputests = base.BaseTest {
       for fpath in `ls requirements/**/*.txt`; do
         python requirements/pytorch/adjust-versions.py $fpath {PYTORCH_VERSION};
       done
-      PACKAGE_NAME=pytorch pip install .[dev]
+      PACKAGE_NAME=pytorch pip install .[extra,examples,test]
       pip list
 
       pip install -q -r .actions/requirements.txt
