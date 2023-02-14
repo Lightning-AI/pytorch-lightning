@@ -42,7 +42,7 @@ local tputests = base.BaseTest {
       for fpath in `ls requirements/**/*.txt`; do
         python requirements/pytorch/adjust-versions.py $fpath {PYTORCH_VERSION};
       done
-      PACKAGE_NAME=pytorch pip install .[dev]
+      PACKAGE_NAME=pytorch pip install .[extra,test]
       pip list
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
