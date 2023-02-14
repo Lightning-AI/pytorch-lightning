@@ -18,6 +18,7 @@ from contextlib import nullcontext
 from typing import Generator, List, Optional
 
 import click
+import lightning_cloud
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from rich.console import Console
@@ -255,7 +256,7 @@ def _collect_artifacts(
                     page_token=response.next_page_token,
                     tokens=tokens,
                 )
-        except Exception:
+        except lightning_cloud.openapi.rest.ApiException:
             # Note: This is triggered when the request is wrong.
             # This is currently happening due to looping through the user clusters.
             pass
