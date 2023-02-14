@@ -5,19 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.9.2] - 2023-02-DD
-
-### Changed
-
--
-
-
-### Deprecated
-
--
-
-
-### Fixed
+## [1.9.2] - 2023-02-15
 
 - Fixed an attribute error and improved input validation for invalid strategy types being passed to Fabric ([#16693](https://github.com/Lightning-AI/lightning/pull/16693))
 

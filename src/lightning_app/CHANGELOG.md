@@ -5,35 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.9.2] - 2023-02-DD
+## [1.9.2] - 2023-02-15
 
 ### Added
 
 - Added Storage Commands ([#16740](https://github.com/Lightning-AI/lightning/pull/16740))
   * `rm`: Delete files from your Cloud Platform Filesystem
-
 - Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
-
-
-### Changed
-
--
-
-
-### Deprecated
-
--
-
-
-### Removed
-
--
-
-
-### Fixed
-
--
-
 
 
 ## [1.9.1] - 2023-02-10
