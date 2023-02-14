@@ -266,6 +266,7 @@ def test_multi_gpu_model_colossalai_fit_test(tmpdir):
         precision=16,
         strategy=ColossalAIStrategy(initial_scale=32),
         max_epochs=1,
+        num_sanity_val_steps=0,
     )
     trainer.fit(model, datamodule=dm)
 
