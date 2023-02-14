@@ -25,7 +25,6 @@ from lightning.pytorch.trainer.configuration_validator import (
     __verify_train_val_loop_configuration,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.conftest import mock_cuda_count
 
 
 def test_wrong_train_setting(tmpdir):
