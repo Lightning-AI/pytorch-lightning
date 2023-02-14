@@ -20,21 +20,16 @@
 # - WILLIAM FALCON
 
 """Trainer to automate the training."""
-import inspect
 import logging
 import math
 import os
 import warnings
-from argparse import _ArgumentGroup, ArgumentParser, Namespace
-from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, Type, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import module_available
-from packaging.version import Version
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -75,13 +70,7 @@ from lightning.pytorch.trainer.connectors.signal_connector import SignalConnecto
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
-from lightning.pytorch.utilities.argparse import (
-    _defaults_from_env_vars,
-    add_argparse_args,
-    from_argparse_args,
-    parse_argparser,
-    parse_env_variables,
-)
+from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -120,7 +109,7 @@ class Trainer:
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
+        accumulate_grad_batches: int = 1,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: int = -1,
@@ -156,8 +145,8 @@ class Trainer:
             accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
-            accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
-                Default: ``None``.
+            accumulate_grad_batches: Accumulates gradients over k batches before stepping the optimizer.
+                Default: 1.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -343,6 +332,8 @@ class Trainer:
         self.test_loop.trainer = self
         self.predict_loop.trainer = self
 
+        self.accumulate_grad_batches = accumulate_grad_batches
+
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
@@ -352,7 +343,6 @@ class Trainer:
             default_root_dir,
             enable_model_summary,
             max_time,
-            accumulate_grad_batches,
         )
 
         # init data flags
@@ -820,7 +810,7 @@ class Trainer:
         self.strategy.setup_environment()
         self.__setup_profiler()
 
-        self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
+        call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
@@ -828,7 +818,7 @@ class Trainer:
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
 
         log.debug(f"{self.__class__.__name__}: configuring sharded model")
-        self._call_configure_sharded_model()  # allow user to setup in model sharded environment
+        call._call_configure_sharded_model(self)  # allow user to setup in model sharded environment
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -866,8 +856,8 @@ class Trainer:
 
         # hook
         if self.state.fn == TrainerFn.FITTING:
-            self._call_callback_hooks("on_fit_start")
-            self._call_lightning_module_hook("on_fit_start")
+            call._call_callback_hooks(self, "on_fit_start")
+            call._call_lightning_module_hook(self, "on_fit_start")
 
         _log_hyperparams(self)
 
@@ -891,11 +881,11 @@ class Trainer:
         # ----------------------------
         # hook
         if self.state.fn == TrainerFn.FITTING:
-            self._call_callback_hooks("on_fit_end")
-            self._call_lightning_module_hook("on_fit_end")
+            call._call_callback_hooks(self, "on_fit_end")
+            call._call_lightning_module_hook(self, "on_fit_end")
 
         log.debug(f"{self.__class__.__name__}: calling teardown hooks")
-        self._call_teardown_hook()
+        call._call_teardown_hook(self)
 
         self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
@@ -979,7 +969,7 @@ class Trainer:
             self._logger_connector.reset_results()
             self._logger_connector.reset_metrics()
 
-            self._call_callback_hooks("on_sanity_check_start")
+            call._call_callback_hooks(self, "on_sanity_check_start")
 
             # reload dataloaders
             val_loop._reload_evaluation_dataloaders()
@@ -991,7 +981,7 @@ class Trainer:
             with torch.no_grad():
                 val_loop.run()
 
-            self._call_callback_hooks("on_sanity_check_end")
+            call._call_callback_hooks(self, "on_sanity_check_end")
 
             # reset logger connector
             self._logger_connector.reset_results()
@@ -1003,215 +993,6 @@ class Trainer:
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
-
-    def _call_setup_hook(self) -> None:
-        assert self.state.fn is not None
-        fn = self.state.fn
-
-        self.strategy.barrier("pre_setup")
-
-        if self.datamodule is not None:
-            self._call_lightning_datamodule_hook("setup", stage=fn)
-        self._call_callback_hooks("setup", stage=fn)
-        self._call_lightning_module_hook("setup", stage=fn)
-
-        self.strategy.barrier("post_setup")
-
-    def _call_configure_sharded_model(self) -> None:
-        with self.strategy.model_sharded_context():
-            # experimental support for torchdistx
-            if module_available("torchdistx.deferred_init"):
-                from torchdistx.deferred_init import materialize_module
-
-                materialize_module(self.lightning_module)
-
-            self._call_lightning_module_hook("configure_sharded_model")
-
-    def _call_teardown_hook(self) -> None:
-        assert self.state.fn is not None
-        fn = self.state.fn
-
-        if self.datamodule is not None:
-            self._call_lightning_datamodule_hook("teardown", stage=fn)
-
-        self._call_callback_hooks("teardown", stage=fn)
-        self._call_lightning_module_hook("teardown", stage=fn)
-
-        self.lightning_module._current_fx_name = None
-        # these could have become stale if metrics are defined in `setup`
-        self.lightning_module._metric_attributes = None
-
-        for logger in self.loggers:
-            logger.finalize("success")
-
-        # summarize profile results
-        self.profiler.describe()
-
-    def _call_lightning_module_hook(
-        self,
-        hook_name: str,
-        *args: Any,
-        pl_module: Optional["pl.LightningModule"] = None,
-        **kwargs: Any,
-    ) -> Any:
-        pl_module = pl_module or self.lightning_module
-
-        if pl_module is None:
-            raise TypeError("No `LightningModule` is available to call hooks on.")
-
-        fn = getattr(pl_module, hook_name)
-        if not callable(fn):
-            return
-
-        prev_fx_name = pl_module._current_fx_name
-        pl_module._current_fx_name = hook_name
-
-        with self.profiler.profile(f"[LightningModule]{pl_module.__class__.__name__}.{hook_name}"):
-            output = fn(*args, **kwargs)
-
-        # restore current_fx when nested context
-        pl_module._current_fx_name = prev_fx_name
-
-        return output
-
-    def _call_lightning_datamodule_hook(
-        self,
-        hook_name: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        if self.datamodule is None:
-            raise TypeError("No `LightningDataModule` is available to call hooks on.")
-
-        fn = getattr(self.datamodule, hook_name)
-        if callable(fn):
-            with self.profiler.profile(f"[LightningDataModule]{self.datamodule.__class__.__name__}.{hook_name}"):
-                return fn(*args, **kwargs)
-
-    def _call_callback_hooks(
-        self,
-        hook_name: str,
-        *args: Any,
-        monitoring_callbacks: Optional[bool] = None,
-        **kwargs: Any,
-    ) -> None:
-        log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
-
-        pl_module = self.lightning_module
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = hook_name
-
-        callbacks = self.callbacks
-        if monitoring_callbacks is True:
-            # the list of "monitoring callbacks" is hard-coded to these two. we could add an API to define this
-            callbacks = [cb for cb in callbacks if isinstance(cb, (EarlyStopping, Checkpoint))]
-        elif monitoring_callbacks is False:
-            callbacks = [cb for cb in callbacks if not isinstance(cb, (EarlyStopping, Checkpoint))]
-
-        for callback in callbacks:
-            fn = getattr(callback, hook_name)
-            if callable(fn):
-                with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
-                    fn(self, self.lightning_module, *args, **kwargs)
-
-        if pl_module:
-            # restore current_fx when nested context
-            pl_module._current_fx_name = prev_fx_name
-
-    def _call_callbacks_state_dict(self) -> Dict[str, dict]:
-        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
-        `Callback.state_key`."""
-        callback_state_dicts = {}
-        for callback in self.callbacks:
-            state_dict = callback.state_dict()
-            if state_dict:
-                callback_state_dicts[callback.state_key] = state_dict
-        return callback_state_dicts
-
-    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook."""
-        pl_module = self.lightning_module
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = "on_save_checkpoint"
-
-        for callback in self.callbacks:
-            with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
-                callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
-
-        if pl_module:
-            # restore current_fx when nested context
-            pl_module._current_fx_name = prev_fx_name
-
-    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """Called when loading a model checkpoint.
-
-        Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
-        `_call_callback_hooks` because we have special logic for getting callback_states.
-        """
-        pl_module = self.lightning_module
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = "on_load_checkpoint"
-
-        callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
-
-        if callback_states is None:
-            return
-
-        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
-        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
-        difference = callback_states.keys() - current_callbacks_keys
-        if difference:
-            rank_zero_warn(
-                "Be aware that when using `ckpt_path`,"
-                " callbacks used to create the checkpoint need to be provided during `Trainer` instantiation."
-                f" Please add the following callbacks: {list(difference)}.",
-            )
-
-        for callback in self.callbacks:
-            with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
-                callback.on_load_checkpoint(self, self.lightning_module, checkpoint)
-
-        if pl_module:
-            # restore current_fx when nested context
-            pl_module._current_fx_name = prev_fx_name
-
-    def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
-        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
-        callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
-
-        if callback_states is None:
-            return
-
-        for callback in self.callbacks:
-            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
-            if state:
-                state = deepcopy(state)
-                callback.load_state_dict(state)
-
-    def _call_strategy_hook(
-        self,
-        hook_name: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        pl_module = self.lightning_module
-        prev_fx_name = pl_module._current_fx_name
-        pl_module._current_fx_name = hook_name
-
-        fn = getattr(self.strategy, hook_name)
-        if not callable(fn):
-            return
-
-        with self.profiler.profile(f"[Strategy]{self.strategy.__class__.__name__}.{hook_name}"):
-            output = fn(*args, **kwargs)
-
-        # restore current_fx when nested context
-        pl_module._current_fx_name = prev_fx_name
-
-        return output
 
     def __setup_profiler(self) -> None:
         assert self.state.fn is not None
@@ -1615,31 +1396,6 @@ class Trainer:
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
-    Parsing properties
-    """
-
-    @classmethod
-    def default_attributes(cls) -> dict:
-        init_signature = inspect.signature(cls)
-        return {k: v.default for k, v in init_signature.parameters.items()}
-
-    @classmethod
-    def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> Any:
-        return from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return parse_argparser(cls, arg_parser)
-
-    @classmethod
-    def match_env_arguments(cls) -> Namespace:
-        return parse_env_variables(cls)
-
-    @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> Union[_ArgumentGroup, ArgumentParser]:
-        return add_argparse_args(cls, parent_parser, **kwargs)
-
-    """
     State properties
     """
 
@@ -1832,14 +1588,6 @@ class Trainer:
                 return [optimizer], [scheduler]
 
         """
-        accumulation_scheduler = self.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "Estimated stepping batches cannot be computed with different"
-                " `accumulate_grad_batches` at different epochs."
-            )
-
         # infinite training
         if self.max_epochs == -1:
             return float("inf") if self.max_steps == -1 else self.max_steps
@@ -1855,9 +1603,7 @@ class Trainer:
             return self.max_steps
 
         assert self.max_epochs is not None
-        self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
-        effective_batch_size = self.accumulate_grad_batches
-        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)
+        max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
