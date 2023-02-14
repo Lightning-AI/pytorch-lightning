@@ -284,6 +284,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed support for passing a scheduling dictionary to `Trainer(accumulate_grad_batches=...)` ([#16729](https://github.com/Lightning-AI/lightning/pull/16729))
 
+
+- Removed support for `DataParallel` (`strategy='dp'`) ([#16748](https://github.com/Lightning-AI/lightning/pull/16748))
+
+
 ### Fixed
 
 - Fixed an attribute error and improved input validation for invalid strategy types being passed to Trainer ([#16693](https://github.com/Lightning-AI/lightning/pull/16693))
