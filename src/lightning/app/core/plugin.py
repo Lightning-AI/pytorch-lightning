@@ -15,7 +15,7 @@ import os
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import requests
 import uvicorn
@@ -40,22 +40,25 @@ class LightningPlugin:
         self.cloudspace_id = None
         self.cluster_id = None
 
-    def run(self, name: str, entrypoint: str) -> None:
-        """Override with the logic to execute on the client side."""
+    def run(self, *args: str, **kwargs: str) -> None:
+        """Override with the logic to execute on the cloudspace."""
 
-    def run_job(self, name: str, app_entrypoint: str) -> None:
+    def run_job(self, name: str, app_entrypoint: str, env_vars: Optional[Dict[str, str]] = None) -> None:
         """Run a job in the cloudspace associated with this plugin.
 
         Args:
             name: The name of the job.
             app_entrypoint: The path of the file containing the app to run.
+            env_vars: Additional env vars to set when running the app.
         """
         from lightning.app.runners.cloud import CloudRuntime
 
         # Dispatch the job
         _set_flow_context()
 
-        entrypoint_file = Path("/content") / app_entrypoint
+        entrypoint_file = Path(app_entrypoint)
+
+        # If the entrypoint is not in `/content`, merge the directories before dispatch
 
         app = CloudRuntime.load_app_from_file(str(entrypoint_file.resolve().absolute()))
 
@@ -65,22 +68,19 @@ class LightningPlugin:
             app=app,
             entrypoint=entrypoint_file,
             start_server=True,
-            env_vars={},
+            env_vars=env_vars if env_vars is not None else {},
             secrets={},
             run_app_comment_commands=True,
         )
         # Used to indicate Lightning has been dispatched
         os.environ["LIGHTNING_DISPATCHED"] = "1"
 
-        try:
-            runtime.cloudspace_dispatch(
-                project_id=self.project_id,
-                cloudspace_id=self.cloudspace_id,
-                name=name,
-                cluster_id=self.cluster_id,
-            )
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        runtime.cloudspace_dispatch(
+            project_id=self.project_id,
+            cloudspace_id=self.cloudspace_id,
+            name=name,
+            cluster_id=self.cluster_id,
+        )
 
     def _setup(
         self,

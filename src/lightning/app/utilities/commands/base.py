@@ -31,7 +31,6 @@ from pydantic import BaseModel
 
 from lightning.app.api.http_methods import Post
 from lightning.app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
-from lightning.app.core.plugin import LightningPlugin
 from lightning.app.utilities import frontend
 from lightning.app.utilities.app_helpers import is_overridden, Logger
 from lightning.app.utilities.cloud import _get_project
@@ -220,19 +219,6 @@ def _prepare_commands(app) -> List:
     # 2: Cache the commands on the app.
     app.commands = commands
     return commands
-
-
-def _prepare_plugins(app) -> List:
-    if not is_overridden("configure_plugins", app.root):
-        return []
-
-    # 1: Upload the plugins to s3.
-    plugins = app.root.configure_plugins()
-    for plugin_mapping in plugins:
-        for plugin_name, plugin in plugin_mapping.items():
-            if isinstance(plugin, LightningPlugin):
-                formatted_name = f"{plugin_name}_{plugin.__class__.__name__}"
-                _upload(formatted_name, "plugins", plugin)
 
 
 def _process_api_request(app, request: _APIRequest):

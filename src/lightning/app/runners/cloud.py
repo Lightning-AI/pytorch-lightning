@@ -143,7 +143,7 @@ class CloudRuntime(Runtime):
             ignore_functions = self._resolve_open_ignore_functions()
             repo = self._resolve_repo(root, ignore_functions)
             project = self._resolve_project()
-            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
+            existing_cloudspaces = self._resolve_existing_cloudspaces(project.project_id, cloudspace_config.name)
             cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
             existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
                 cluster_id, project.project_id, existing_cloudspaces
@@ -213,7 +213,7 @@ class CloudRuntime(Runtime):
         project_id: str,
         cloudspace_id: str,
         name: str,
-        cluster_id: str = None,
+        cluster_id: str,
     ):
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
         such as the project and cluster IDs that are instead passed directly.
@@ -232,10 +232,13 @@ class CloudRuntime(Runtime):
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
-        ignore_functions = self._resolve_open_ignore_functions()
-        repo = self._resolve_repo(root, ignore_functions)
-        cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
-        cluster_id = self._resolve_cluster_id(cluster_id, project_id, [cloudspace])
+        repo = self._resolve_repo(root)
+        self._resolve_cloudspace(project_id, cloudspace_id)
+        existing_instances = self._resolve_existing_run_instances(project_id, name)
+        name = self._resolve_run_name(
+            name,
+            existing_instances,
+        )
         queue_server_type = self._resolve_queue_server_type()
 
         self.app._update_index_file()
@@ -294,7 +297,7 @@ class CloudRuntime(Runtime):
             root = self._resolve_root()
             repo = self._resolve_repo(root)
             project = self._resolve_project()
-            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
+            existing_cloudspaces = self._resolve_existing_cloudspaces(project.project_id, cloudspace_config.name)
             cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
             existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
                 cluster_id, project.project_id, existing_cloudspaces
@@ -478,11 +481,11 @@ class CloudRuntime(Runtime):
             id=cloudspace_id,
         )
 
-    def _resolve_existing_cloudspaces(self, project, cloudspace_name: str) -> List[V1CloudSpace]:
+    def _resolve_existing_cloudspaces(self, project_id: str, cloudspace_name: str) -> List[V1CloudSpace]:
         """Lists all the cloudspaces with a name matching the provided cloudspace name."""
         # TODO: Add pagination, otherwise this could break if users have a lot of cloudspaces.
         existing_cloudspaces = self.backend.client.cloud_space_service_list_cloud_spaces(
-            project_id=project.project_id
+            project_id=project_id
         ).cloudspaces
 
         # Search for cloudspaces with the given name (possibly with some random characters appended)
@@ -521,6 +524,14 @@ class CloudRuntime(Runtime):
                     break
         return existing_cloudspace, existing_run_instance
 
+    def _resolve_existing_run_instances(self, project_id: str, name: str) -> List[Externalv1LightningappInstance]:
+        """Get all existing instances in the given project with the given name."""
+        run_instances = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project_id,
+        ).lightningapps
+
+        return [run_instance for run_instance in run_instances if run_instance.display_name == name]
+
     def _resolve_cloudspace_name(
         self,
         cloudspace_name: str,
@@ -538,6 +549,23 @@ class CloudRuntime(Runtime):
 
             cloudspace_name = random_name
         return cloudspace_name
+
+    def _resolve_run_name(
+        self,
+        name: str,
+        existing_instances: List[Externalv1LightningappInstance],
+    ) -> str:
+        """If there are existing instances with the same name - choose a randomised name."""
+        if len(existing_instances) > 0:
+            letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+            name_exists = True
+            while name_exists:
+                random_name = name + "-" + "".join(random.sample(letters, 4))
+                name_exists = any([app.name == random_name for app in existing_instances])
+
+            name = random_name
+        return name
 
     def _resolve_queue_server_type(self) -> V1QueueServerType:
         """Resolve the cloud queue type from the environment."""
