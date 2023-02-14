@@ -119,13 +119,10 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
 
 
 def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
-    """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
     batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
-
     for hook in batch_transfer_hooks:
-
         if isinstance(trainer.accelerator, IPUAccelerator) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):

@@ -49,7 +49,7 @@ To use multiple GPUs on notebooks, use the *DDP_SPAWN*, *DDP_NOTEBOOK*, or *DP* 
 
 .. code-block:: python
 
-    Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook" | "ddp_spawn" | "dp")
+    Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook" | "ddp_spawn")
 
 If you want to use other models, please launch your training via the command-shell.
 

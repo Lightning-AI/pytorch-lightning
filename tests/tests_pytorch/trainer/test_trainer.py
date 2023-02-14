@@ -1395,8 +1395,6 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"strategy": "dp", "devices": 1},
-        {"strategy": "dp", "devices": 2},
         {"strategy": "ddp", "devices": 2},
     ],
 )
