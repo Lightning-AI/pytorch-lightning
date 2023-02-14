@@ -98,7 +98,6 @@ class _PredictionLoop(_Loop):
             return None
         self.reset()
         self.on_run_start()
-
         while True:
             try:
                 if isinstance(self._data_fetcher, _DataLoaderIterDataFetcher):
@@ -164,8 +163,7 @@ class _PredictionLoop(_Loop):
             self._data_fetcher = None
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """Runs the actual predict step together with all the necessary bookkeeping and the hooks tied to the
-        predict step.
+        """Runs the actual predict step together with all the necessary bookkeeping and the hooks tied to it.
 
         Args:
             batch: the current batch to run the prediction on
