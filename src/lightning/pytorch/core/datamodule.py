@@ -13,8 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from argparse import ArgumentParser, Namespace
-from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, IO, Mapping, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
@@ -24,13 +23,7 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
-from lightning.pytorch.utilities.argparse import (
-    add_argparse_args,
-    from_argparse_args,
-    get_init_arguments_and_types,
-    parse_argparser,
-)
-from lightning.pytorch.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class LightningDataModule(DataHooks, HyperparametersMixin):
@@ -71,49 +64,6 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         super().__init__()
         # Pointer to the trainer object
         self.trainer: Optional["pl.Trainer"] = None
-
-    @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> _ADD_ARGPARSE_RETURN:
-        """Extends existing argparse by default `LightningDataModule` attributes.
-
-        Example::
-
-            parser = ArgumentParser(add_help=False)
-            parser = LightningDataModule.add_argparse_args(parser)
-        """
-        return add_argparse_args(cls, parent_parser, **kwargs)
-
-    @classmethod
-    def from_argparse_args(
-        cls, args: Union[Namespace, ArgumentParser], **kwargs: Any
-    ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
-        """Create an instance from CLI arguments.
-
-        Args:
-            args: The parser or namespace to take arguments from. Only known arguments will be
-                parsed and passed to the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
-            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-                These must be valid DataModule arguments.
-
-        Example::
-
-            module = LightningDataModule.from_argparse_args(args)
-        """
-        return from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return parse_argparser(cls, arg_parser)
-
-    @classmethod
-    def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-        r"""Scans the DataModule signature and returns argument names, types and default values.
-
-        Returns:
-            List with tuples of 3 values:
-            (argument name, set with argument types, argument default value).
-        """
-        return get_init_arguments_and_types(cls)
 
     @classmethod
     def from_datasets(

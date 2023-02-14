@@ -116,7 +116,7 @@ class TestSpawnBoringModel(BoringModel):
 
     def on_train_end(self):
         def _get_warning_msg():
-            dl = self.trainer.train_dataloader.loaders
+            dl = self.trainer.train_dataloader.iterables
             if hasattr(dl, "persistent_workers"):
                 if self.num_workers == 0:
                     warn_str = "Consider setting num_workers>0 and persistent_workers=True"
@@ -295,7 +295,7 @@ def test_dataloader_reinit_for_subclass():
 
 class LoaderTestModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        assert len(self.trainer.train_dataloader.loaders) == 10
+        assert len(self.trainer.train_dataloader.iterables) == 10
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):

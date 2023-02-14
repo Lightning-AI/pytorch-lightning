@@ -115,13 +115,6 @@ Miscellaneous
    :button_link: lightning_cli_faq.html
    :height: 150
 
-.. displayitem::
-   :header: Legacy CLIs
-   :description: Documentation for the legacy argparse-based CLIs
-   :col_css: col-md-6
-   :button_link: ../common/hyperparameters.html
-   :height: 150
-
 .. raw:: html
 
         </div>
