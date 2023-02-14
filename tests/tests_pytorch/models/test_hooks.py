@@ -285,7 +285,6 @@ class HookedModel(BoringModel):
                     # note: unscaling happens here in the case of AMP
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
-                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(
                         name="clip_gradients",
                         args=(ANY,),
@@ -337,7 +336,6 @@ class HookedModel(BoringModel):
                     dict(name="closure"),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
-                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
@@ -441,7 +439,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
-        track_grad_norm=1,
         **kwargs,
     )
     trainer.fit(model)
@@ -543,7 +540,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
-        track_grad_norm=1,
     )
 
     # resume from checkpoint with HookedModel
@@ -624,7 +620,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
-        track_grad_norm=1,
     )
 
     trainer.fit(model, ckpt_path=best_model_path)

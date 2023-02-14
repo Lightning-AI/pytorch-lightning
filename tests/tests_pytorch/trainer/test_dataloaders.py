@@ -160,7 +160,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloaders=train_loader)
     trainer.fit(model, **fit_options)
     assert trainer.num_training_batches == 2
-    assert trainer.train_dataloader.loaders == train_loader
+    assert trainer.train_dataloader.iterables == train_loader
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -836,7 +836,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     [("min_size", 16), ("max_size_cycle", 64)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
-    """Integration test for multiple train loaders."""
+    """Integration test for multiple train iterables."""
 
     class CustomBoringModel(BoringModel):
         def train_dataloader(self):
@@ -1178,12 +1178,12 @@ def test_dataloaders_reset_and_attach(tmpdir):
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
-    assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
+    assert trainer.train_dataloader.iterables.dataset is dataloader_0.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
     trainer.fit_loop.max_steps += 1
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
-    assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
+    assert trainer.train_dataloader.iterables.dataset is dataloader_2.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
 
     # 1st validate
@@ -1316,7 +1316,7 @@ def test_request_dataloader(tmpdir):
             return DataLoaderWrapper(loader)
 
         def on_train_batch_start(self, batch, batch_idx: int) -> None:
-            assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
+            assert isinstance(self.trainer.train_dataloader.iterables, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
         def val_dataloader(self):

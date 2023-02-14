@@ -19,9 +19,6 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
-from lightning.pytorch.utilities.rank_zero import WarningCache
-
-warning_cache = WarningCache()
 
 
 class ColossalAIPrecisionPlugin(PrecisionPlugin):
@@ -75,12 +72,3 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
                 "Skipping backward by returning `None` from your `training_step` is not supported by `ColossalAI`."
             )
         optimizer.step()
-
-    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
-        if trainer.track_grad_norm == -1:
-            return
-        # the gradients are not available in the model due to gradient partitioning in zero stage >= 2
-        warning_cache.warn(
-            f"You set `Trainer(track_grad_norm={trainer.track_grad_norm!r})' but this is not supported for ColossalAI."
-            " The setting will be ignored."
-        )
