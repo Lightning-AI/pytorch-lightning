@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized
 
 from torch.utils.data.dataloader import DataLoader
 
@@ -195,9 +195,9 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
         self.iterator = iter(_DataFetcherWrapper(self))
         return self
 
-    def __next__(self) -> Tuple[int, Iterator]:
+    def __next__(self) -> Iterator:
         if not self.done:
-            return self.fetched, self.iterator
+            return self.iterator
         raise StopIteration
 
 
@@ -206,4 +206,11 @@ class _DataFetcherWrapper(Iterator):
         self.data_fetcher = data_fetcher
 
     def __next__(self) -> Any:
-        return super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()
+        out = super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()
+        inner_iterable = self.data_fetcher.dataloader
+        if hasattr(inner_iterable, "_mode") and inner_iterable._mode == "sequential":
+            # avoid breaking change with sequential mode and dataloader_iter. this is okay because
+            # dataloader_iter + sequential + multiple dataloaders is not supported so the `*_step(..., batch_idx)` value
+            # and the batch_index we are excluding here will match
+            return out[1]
+        return out

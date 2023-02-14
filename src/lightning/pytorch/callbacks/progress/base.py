@@ -100,7 +100,7 @@ class ProgressBarBase(Callback):
         else:
             loop = self.trainer.validate_loop
 
-        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
+        current_batch_idx = loop.batch_progress.current.processed
         return current_batch_idx
 
     @property
@@ -109,7 +109,7 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
+        return self.trainer.test_loop.batch_progress.current.processed
 
     @property
     def predict_batch_idx(self) -> int:

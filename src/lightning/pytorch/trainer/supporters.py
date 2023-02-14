@@ -82,7 +82,7 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
 
     def __next__(self) -> Tuple[int, Any]:
         n = len(self.iterators)
-        if n == 0:
+        if n == 0 or self._iterator_idx >= n:
             raise StopIteration
         try:
             out = next(self.iterators[self._iterator_idx])
@@ -91,10 +91,7 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
             # the return is enumerated by default
             return index, out
         except StopIteration:
-            self._iterator_idx += 1
-            self._idx = 0
-            if self._iterator_idx >= n:
-                raise
+            self._use_next_iterator()
             return self.__next__()
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
@@ -106,6 +103,10 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
     def reset(self) -> None:
         super().reset()
         self._iterator_idx = 0
+        self._idx = 0
+
+    def _use_next_iterator(self) -> None:
+        self._iterator_idx += 1
         self._idx = 0
 
 
@@ -259,6 +260,7 @@ class CombinedLoader(Iterable):
 
     def _update_index(self, dataloader: Iterable, index: int) -> None:
         # mutation needs to be done using this method to avoid stale references
+        # FIXME(carmocca): avoid this, inefficient
         self._loaders_flattened[index] = dataloader
         self._loaders = tree_unflatten(self._loaders_flattened, self._loaders_spec)
 

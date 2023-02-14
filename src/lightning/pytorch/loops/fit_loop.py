@@ -250,9 +250,13 @@ class _FitLoop(_Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        log.debug(f"{self.__class__.__name__}: advancing loop")
+        log.debug(f"{type(self).__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
-        dataloader = self.trainer.train_dataloader
+        combined_loader = self.trainer.train_dataloader
+        if combined_loader._mode not in ("max_size_cycle", "min_size"):
+            raise ValueError(
+                f'`{type(self).__name__}` only supports the `CombinedLoader(mode="max_size_cycle" | "min_size")` modes.'
+            )
 
         def batch_to_device(batch: Any) -> Any:
             batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
@@ -260,7 +264,7 @@ class _FitLoop(_Loop):
             return batch
 
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
+        self._data_fetcher.setup(combined_loader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(self._data_fetcher)
 

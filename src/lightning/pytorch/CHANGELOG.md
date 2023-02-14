@@ -42,6 +42,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a new method `Strategy.on_exception` to the strategy base interface ([#16646](https://github.com/Lightning-AI/lightning/pull/16646))
 
 
+- Added support for `predict_step(dataloader_iter, batch_index) ([#TODO](https://github.com/Lightning-AI/lightning/pull/TODO))
+
+
 ### Changed
 
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))

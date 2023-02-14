@@ -1338,21 +1338,27 @@ class Trainer:
         """
         source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
-        has_step = is_overridden("validation_step", pl_module)
-        enable_validation = self.limit_val_batches > 0
-        if source.is_defined() and has_step and enable_validation:
-            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-            # it should not reload again if it has already reloaded during sanity_check
-            if self.state.fn == TrainerFn.FITTING and (
-                (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch())
-                or not self.sanity_checking
-            ):
-                self._last_val_dl_reload_epoch = self.current_epoch
+        if not source.is_defined() or self.limit_val_batches == 0 or not is_overridden("validation_step", pl_module):
+            return
 
-            self.num_val_batches, iterables = self._data_connector._reset_eval_dataloader(
-                RunningStage.VALIDATING, model=pl_module
-            )
-            self.val_dataloaders = CombinedLoader(iterables, "sequential")
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        # it should not reload again if it has already reloaded during sanity_check
+        if self.state.fn == TrainerFn.FITTING and (
+            (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch()) or not self.sanity_checking
+        ):
+            self._last_val_dl_reload_epoch = self.current_epoch
+
+        self.num_val_batches, iterables = self._data_connector._reset_eval_dataloader(
+            RunningStage.VALIDATING, model=pl_module
+        )
+        combined_loader = CombinedLoader(iterables, "sequential")
+        for i, dl in enumerate(combined_loader._loaders_flattened):
+            # some users want validation shuffling based on the training progress
+            _set_sampler_epoch(dl, self.fit_loop.epoch_progress.current.processed)
+            # allow the strategy to inject logic
+            dl = self.strategy.process_dataloader(dl)
+            combined_loader._update_index(dl, i)
+        self.val_dataloaders = combined_loader
 
     def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
@@ -1362,13 +1368,20 @@ class Trainer:
         """
         source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
-        has_step = is_overridden("test_step", pl_module)
-        enable_testing = self.limit_test_batches > 0
-        if source.is_defined() and has_step and enable_testing:
-            self.num_test_batches, iterables = self._data_connector._reset_eval_dataloader(
-                RunningStage.TESTING, model=pl_module
-            )
-            self.test_dataloaders = CombinedLoader(iterables, "sequential")
+        if not source.is_defined() or self.limit_test_batches == 0 or not is_overridden("test_step", pl_module):
+            return
+
+        self.num_test_batches, iterables = self._data_connector._reset_eval_dataloader(
+            RunningStage.TESTING, model=pl_module
+        )
+        combined_loader = CombinedLoader(iterables, "sequential")
+        for i, dl in enumerate(combined_loader._loaders_flattened):
+            # some users want test shuffling based on the training progress
+            _set_sampler_epoch(dl, self.fit_loop.epoch_progress.current.processed)
+            # allow the strategy to inject logic
+            dl = self.strategy.process_dataloader(dl)
+            combined_loader._update_index(dl, i)
+        self.test_dataloaders = combined_loader
 
     def reset_predict_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the predict dataloader and determines the number of batches.
@@ -1377,8 +1390,7 @@ class Trainer:
             model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._data_connector._predict_dataloader_source
-        enable_prediction = self.limit_predict_batches > 0
-        if not source.is_defined() or not enable_prediction:
+        if not source.is_defined() or self.limit_predict_batches == 0:
             return
 
         pl_module = self.lightning_module or model
@@ -1387,7 +1399,7 @@ class Trainer:
         )
         combined_loader = CombinedLoader(iterables, "sequential")
         for i, dl in enumerate(combined_loader._loaders_flattened):
-            # some users want validation shuffling based on the training progress
+            # some users want prediction shuffling based on the training progress
             _set_sampler_epoch(dl, self.fit_loop.epoch_progress.current.processed)
             # allow the strategy to inject logic
             dl = self.strategy.process_dataloader(dl)

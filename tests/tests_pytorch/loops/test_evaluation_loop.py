@@ -66,13 +66,13 @@ def test_evaluation_loop_sampler_set_epoch_called(tmpdir):
     val_dataloader = _get_dataloader()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     # One for each epoch
-    assert train_dataloader.sampler.set_epoch.call_args_list == [call(0), call(1)]
+    assert train_dataloader.sampler.set_epoch.mock_calls == [call(0), call(1)]
     # One for each epoch + sanity check
-    assert val_dataloader.sampler.set_epoch.call_args_list == [call(0), call(0), call(1)]
+    assert val_dataloader.sampler.set_epoch.mock_calls == [call(0), call(0), call(1)]
 
     val_dataloader = _get_dataloader()
     trainer.validate(model, val_dataloader)
-    assert val_dataloader.sampler.set_epoch.call_args_list == [call(2)]
+    assert val_dataloader.sampler.set_epoch.mock_calls == [call(2)]
 
 
 def test_evaluation_loop_batch_sampler_set_epoch_called(tmpdir):

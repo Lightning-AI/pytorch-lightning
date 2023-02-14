@@ -5,13 +5,12 @@ import torch
 from lightning_utilities import WarningCache
 
 from lightning.fabric.utilities import move_data_to_device
-from lightning.pytorch.loops.fetchers import _DataFetcher
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPSpawnStrategy
-from lightning.pytorch.trainer.supporters import _Sequential
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
@@ -70,9 +69,11 @@ class _PredictionLoop(_Loop):
         """Returns the index of the current dataloader."""
         combined_loader = self.trainer.predict_dataloaders
         assert combined_loader is not None
-        if isinstance(combined_loader._iterator, _Sequential):
-            return combined_loader._iterator._iterator_idx
-        return 0
+        if combined_loader._mode != "sequential":
+            raise ValueError(f'`{type(self).__name__}` only supports the `CombinedLoader(mode="sequential")` mode.')
+        if combined_loader._iterator is None:
+            raise RuntimeError("The iterator has not been created yet.")
+        return combined_loader._iterator._iterator_idx
 
     @property
     def current_dataloader(self) -> Iterable:
@@ -99,10 +100,16 @@ class _PredictionLoop(_Loop):
 
         while True:
             try:
-                batch_idx, batch = next(self._data_fetcher)
+                if isinstance(self._data_fetcher, _DataLoaderIterDataFetcher):
+                    batch_idx = self._data_fetcher._dataloader._iterator._idx
+                    batch = next(self._data_fetcher)
+                else:
+                    batch_idx, batch = next(self._data_fetcher)
+                self.batch_progress.is_last_batch = self._data_fetcher.done
                 dataloader_idx = self.current_dataloader_idx
                 if batch_idx >= self.max_batches[dataloader_idx]:
-                    break
+                    self._data_fetcher.dataloader._iterator._use_next_iterator()
+                    continue
                 self._predict_step(batch, batch_idx, dataloader_idx)
                 self._restarting = False
             except StopIteration:
@@ -115,7 +122,6 @@ class _PredictionLoop(_Loop):
         combined_loader = self.trainer.predict_dataloaders
         assert combined_loader is not None
         iter(combined_loader)
-        assert isinstance(combined_loader._iterator, _Sequential)
 
         num_dataloaders = self.num_dataloaders
         self.epoch_batch_indices = [[] for _ in range(num_dataloaders)]
@@ -123,7 +129,12 @@ class _PredictionLoop(_Loop):
 
         self.batch_progress.reset_on_run()
 
+        # TODO(carmocca): add unsized support for predict dataloaders
         data_fetcher = _select_data_fetcher(self.trainer)
+        if isinstance(data_fetcher, _DataLoaderIterDataFetcher) and self.num_dataloaders > 1:
+            raise NotImplementedError(
+                "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
+            )
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -239,13 +250,11 @@ class _PredictionLoop(_Loop):
 
     def _on_before_fetch(self) -> None:
         self.trainer.profiler.start(
-            f"[{self.__class__.__name__}].predict_dataloader_idx_{self.current_dataloader_idx}_next"
+            f"[{type(self).__name__}].predict_dataloader_idx_{self.current_dataloader_idx}_next"
         )
 
     def _on_after_fetch(self) -> None:
-        self.trainer.profiler.stop(
-            f"[{self.__class__.__name__}].predict_dataloader_idx_{self.current_dataloader_idx}_next"
-        )
+        self.trainer.profiler.stop(f"[{type(self).__name__}].predict_dataloader_idx_{self.current_dataloader_idx}_next")
 
     def _on_predict_start(self) -> None:
         """Calls ``on_predict_start`` hooks."""

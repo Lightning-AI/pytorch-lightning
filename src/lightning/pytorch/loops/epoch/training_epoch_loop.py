@@ -158,7 +158,7 @@ class _TrainingEpochLoop(loops._Loop):
             self.automatic_optimization.optim_progress.reset_on_run()
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
-            self.val_loop.epoch_loop.batch_progress.total.reset()
+            self.val_loop.batch_progress.total.reset()
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         iter(data_fetcher)  # creates the iterator inside the fetcher
@@ -185,11 +185,12 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
+        if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+            batch_idx = data_fetcher.fetched
             batch = next(data_fetcher)
         else:
-            batch_idx, batch = next(data_fetcher)
+            batch_idx = self.batch_idx + 1
+            batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
