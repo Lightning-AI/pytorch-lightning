@@ -27,7 +27,6 @@ from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
 from lightning.pytorch.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
@@ -61,7 +60,6 @@ class RunIf:
         deepspeed: bool = False,
         rich: bool = False,
         omegaconf: bool = False,
-        bagua: bool = False,
         colossalai: bool = False,
         psutil: bool = False,
         sklearn: bool = False,
@@ -87,7 +85,6 @@ class RunIf:
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
             omegaconf: Require that omry/omegaconf is installed.
-            bagua: Require that BaguaSys/bagua is installed.
             psutil: Require that psutil is installed.
             sklearn: Require that scikit-learn is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
@@ -181,10 +178,6 @@ class RunIf:
         if omegaconf:
             conditions.append(not _OMEGACONF_AVAILABLE)
             reasons.append("omegaconf")
-
-        if bagua:
-            conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
-            reasons.append("Bagua")
 
         if colossalai:
             conditions.append(not _COLOSSALAI_AVAILABLE)

@@ -1087,6 +1087,7 @@ See Also:
     - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
+
 sync_batchnorm
 ^^^^^^^^^^^^^^
 
@@ -1103,28 +1104,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
-
-track_grad_norm
-^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/track_grad_norm.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/track_grad_norm.mp4"></video>
-
-|
-
-- no tracking (-1)
-- Otherwise tracks that norm (2 for 2-norm)
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(track_grad_norm=-1)
-
-    # track the 2-norm
-    trainer = Trainer(track_grad_norm=2)
 
 
 val_check_interval
