@@ -47,6 +47,7 @@ class FlowCommands(LightningFlow):
             self.stop()
 
     def trigger_method(self, name: str):
+        print(name)
         self.names.append(name)
 
     def sweep(self, config: SweepConfig):
