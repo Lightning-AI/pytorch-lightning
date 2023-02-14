@@ -166,7 +166,9 @@ def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
 ) -> Tuple[List[Optimizer], List[LRSchedulerConfig]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
-    optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
+    from lightning.pytorch.trainer import call
+
+    optim_conf = call._call_lightning_module_hook(model.trainer, "configure_optimizers", pl_module=model)
 
     if optim_conf is None:
         rank_zero_warn(
