@@ -240,7 +240,7 @@ def test_multi_gpu_checkpointing(tmpdir):
     assert saved_results == results
 
 
-@pytest.mark.xfail(raises=AssertionError)
+@pytest.mark.xfail(raises=AssertionError, match="You should run a completed iteration as your warmup iter")
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True, sklearn=True)
 def test_test_without_fit(tmpdir):
     model = ModelParallelClassificationModel()
@@ -249,7 +249,6 @@ def test_test_without_fit(tmpdir):
 
     # Colossal requires warmup, you can't run validation/test without having fit first
     # This is a temporary limitation
-    # Raises: `AssertionError: You should run a completed iteration as your warmup iter`
     trainer.test(model, datamodule=dm)
 
 
