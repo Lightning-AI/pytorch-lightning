@@ -52,7 +52,7 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
 
     project = [project for project in projects.memberships if project.name == splits[0]]
 
-    # This happens if the user changes cluster and the project doesn't exit.
+    # This happens if the user changes cluster and the project doesn't exist.
     if len(project) == 0:
         return _error_and_exit(
             f"There isn't any Lightning Project matching the name {splits[0]}." " HINT: Use `lightning cd`."
