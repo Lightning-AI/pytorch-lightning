@@ -138,16 +138,16 @@ def test_stages_correct(tmpdir):
             return (output - output) + torch.tensor(4)
 
     class TestCallback(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
+        def on_train_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["loss"].item() == 1
 
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_validation_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["x"].item() == 2
 
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_test_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["y"].item() == 3
 
-        def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_predict_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert torch.all(outputs == 4).item()
 
     model = StageModel()

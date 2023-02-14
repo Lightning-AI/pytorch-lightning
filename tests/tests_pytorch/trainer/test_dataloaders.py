@@ -214,22 +214,22 @@ class Counter(Callback):
         self.val_batches_seen = 0
         self.test_batches_seen = 0
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+    def on_train_batch_start(self, *_):
         self.train_batches_seen += 1
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, *_):
         self.train_epoch_count += 1
 
-    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_start(self, *_):
         self.val_batches_seen += 1
 
-    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_start(self, *_):
         self.test_batches_seen += 1
 
-    def on_validation_epoch_start(self, trainer, pl_module):
+    def on_validation_epoch_start(self, *_):
         self.val_epoch_count += 1
 
-    def on_test_epoch_start(self, trainer, pl_module):
+    def on_test_epoch_start(self, *_):
         self.test_epoch_count += 1
 
 
@@ -1323,7 +1323,7 @@ def test_request_dataloader(tmpdir):
             loader = super().val_dataloader()
             return DataLoaderWrapper(loader)
 
-        def on_validation_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_validation_batch_start(self, *_):
             assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
             self.on_val_batch_start_called = True
 

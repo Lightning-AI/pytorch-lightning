@@ -29,54 +29,54 @@ def _device_check_helper(batch_device, module_device):
 
 
 class BatchHookObserverCallback(Callback):
-    def on_train_batch_start(self, trainer, pl_module, batch, *args):
+    def on_train_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_validation_batch_start(self, trainer, pl_module, batch, *args):
+    def on_validation_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_test_batch_start(self, trainer, pl_module, batch, *args):
+    def on_test_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_predict_batch_start(self, trainer, pl_module, batch, *args):
+    def on_predict_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
 
 class BatchHookObserverModel(BoringModel):
-    def on_train_batch_start(self, batch, *args):
+    def on_train_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_train_batch_end(self, outputs, batch, *args):
+    def on_train_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_validation_batch_start(self, batch, *args):
+    def on_validation_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_validation_batch_end(self, outputs, batch, *args):
+    def on_validation_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_test_batch_start(self, batch, *args):
+    def on_test_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_test_batch_end(self, outputs, batch, *args):
+    def on_test_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_predict_batch_start(self, batch, *args):
+    def on_predict_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
-    def on_predict_batch_end(self, outputs, batch, *args):
+    def on_predict_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
 
