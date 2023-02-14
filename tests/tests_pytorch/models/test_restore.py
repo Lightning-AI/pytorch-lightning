@@ -502,6 +502,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
+
 def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     model = BoringModel()
