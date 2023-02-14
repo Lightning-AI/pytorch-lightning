@@ -1889,7 +1889,6 @@ def test_detect_anomaly_nan(tmpdir):
     ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
         ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        pytest.param({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param(
             {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)
