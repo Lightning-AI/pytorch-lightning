@@ -24,6 +24,7 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins import Precision as FabricPrecision
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.core.hooks import CheckpointHooks
+from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities import GradClipAlgorithmType
 
 
@@ -40,8 +41,9 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         return model, optimizers, lr_schedulers
 
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
-        module.trainer._call_callback_hooks("on_before_backward", tensor)
-        module.trainer._call_lightning_module_hook("on_before_backward", tensor)
+        trainer = module.trainer
+        call._call_callback_hooks(trainer, "on_before_backward", tensor)
+        call._call_lightning_module_hook(trainer, "on_before_backward", tensor)
         return tensor
 
     def backward(  # type: ignore[override]
@@ -67,15 +69,16 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
     def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph
         closure_loss = tensor.detach()
-        module.trainer._call_callback_hooks("on_after_backward")
-        module.trainer._call_lightning_module_hook("on_after_backward")
+        trainer = module.trainer
+        call._call_callback_hooks(trainer, "on_after_backward")
+        call._call_lightning_module_hook(trainer, "on_after_backward")
         return closure_loss
 
     def _after_closure(self, model: "pl.LightningModule", optimizer: Steppable) -> None:
         """Utility to share some code after the closure has been run."""
         trainer = model.trainer
-        trainer._call_callback_hooks("on_before_optimizer_step", optimizer)
-        trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer)
+        call._call_callback_hooks(trainer, "on_before_optimizer_step", optimizer)
+        call._call_lightning_module_hook(trainer, "on_before_optimizer_step", optimizer)
         self._clip_gradients(
             model,
             optimizer,
@@ -121,7 +124,8 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
             # the configuration validator disallows clipping on manual
             return
 
-        model.trainer._call_lightning_module_hook(
+        call._call_lightning_module_hook(
+            model.trainer,
             "configure_gradient_clipping",
             optimizer,
             gradient_clip_val=clip_val,
