@@ -15,7 +15,6 @@
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
-from lightning.pytorch.strategies import DataParallelStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -126,11 +125,6 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
     assert datahook_selector is not None
 
     for hook in batch_transfer_hooks:
-        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        if isinstance(trainer.strategy, DataParallelStrategy) and (
-            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
-        ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
 
         if isinstance(trainer.accelerator, IPUAccelerator) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
