@@ -441,13 +441,6 @@ class DeepSpeedStrategy(DDPStrategy):
                 f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
             )
 
-        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
-            )
-
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         model = _LightningModuleWrapperBase(forward_module=self.model)
 

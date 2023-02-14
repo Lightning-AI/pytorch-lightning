@@ -252,9 +252,6 @@ def test_device_iterations_ipu_strategy(tmpdir):
 def test_accumulated_batches(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            # ensure the accumulation_scheduler is overridden to accumulate every batch
-            # since ipu handle accumulation
-            assert trainer.accumulation_scheduler.scheduling == {0: 1}
             # assert poptorch option have been set correctly
             poptorch_model = trainer.strategy.poptorch_models[RunningStage.TRAINING]
             assert poptorch_model._options.Training.toDict()["gradient_accumulation"] == 2
@@ -317,16 +314,6 @@ def test_stages_correct(tmpdir):
     trainer.test(model)
     trainer.validate(model)
     trainer.predict(model, model.test_dataloader())
-
-
-@RunIf(ipu=True)
-def test_different_accumulate_grad_batches_fails(tmpdir):
-    model = IPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, accumulate_grad_batches={1: 2})
-    with pytest.raises(
-        MisconfigurationException, match="IPUs currently does not support different `accumulate_grad_batches`"
-    ):
-        trainer.fit(model)
 
 
 @RunIf(ipu=True)

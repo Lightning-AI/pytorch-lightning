@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from argparse import ArgumentParser
 from functools import partial
 from unittest import mock
 
@@ -255,28 +254,6 @@ def test_exception_when_no_tpu_found(xla_available):
 def test_accelerator_set_when_using_tpu(devices):
     """Test if the accelerator is set to `tpu` when devices is not None."""
     assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, TPUAccelerator)
-
-
-@pytest.mark.parametrize(
-    ["cli_args", "expected"],
-    [
-        pytest.param("--accelerator=tpu --devices=8", {"accelerator": "tpu", "devices": 8}, id="tpu-8"),
-        pytest.param("--accelerator=tpu --devices=1,", {"accelerator": "tpu", "devices": "1,"}, id="tpu-1,"),
-    ],
-)
-@RunIf(tpu=True, standalone=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_devices_with_argparse(cli_args, expected):
-    """Test passing devices for TPU accelerator in command line."""
-    cli_args = cli_args.split(" ") if cli_args else []
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
-        parser = ArgumentParser(add_help=False)
-        parser = Trainer.add_argparse_args(parent_parser=parser)
-        args = Trainer.parse_argparser(parser)
-
-    for k, v in expected.items():
-        assert getattr(args, k) == v
-        assert Trainer.from_argparse_args(args)
 
 
 @RunIf(tpu=True)
