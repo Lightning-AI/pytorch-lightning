@@ -22,6 +22,7 @@ from lightning.pytorch.core.optimizer import do_nothing_closure
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.optimization.closure import OutputResult
 from lightning.pytorch.loops.progress import Progress, ReadyCompletedTracker
+from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
@@ -102,13 +103,15 @@ class _ManualOptimization(_Loop):
         Args:
             kwargs: The kwargs passed down to the hooks.
         """
+        trainer = self.trainer
+
         # manually capture logged metrics
-        training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
+        training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         del kwargs  # release the batch from memory
         self.trainer.strategy.post_training_step()
 
-        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-        strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
+        model_output = call._call_lightning_module_hook(trainer, "training_step_end", training_step_output)
+        strategy_output = call._call_strategy_hook(trainer, "training_step_end", training_step_output)
         training_step_output = strategy_output if model_output is None else model_output
 
         result = self.output_result_cls.from_training_step_output(training_step_output)

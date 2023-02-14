@@ -57,6 +57,8 @@ always switch to :ref:`manual optimization <manual_optimization>`.
 Manual optimization is required if you wish to work with multiple optimizers.
 
 
+.. _gradient_accumulation:
+
 Gradient Accumulation
 =====================
 
