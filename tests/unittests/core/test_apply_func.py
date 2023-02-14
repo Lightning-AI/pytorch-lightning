@@ -5,7 +5,7 @@ from dataclasses import InitVar
 from typing import Any, ClassVar, List, Optional
 
 import pytest
-from unittests.core.mocks import torch
+from unittests.mocks import torch
 
 from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 

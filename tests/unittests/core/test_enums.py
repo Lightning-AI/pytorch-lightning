@@ -47,9 +47,9 @@ def test_create_from_string():
         T2 = "t:2"
 
     assert MyEnum.from_str("T1", source="key")
-    assert MyEnum.from_str("T1", source="value") is None
+    assert MyEnum.try_from_str("T1", source="value") is None
     assert MyEnum.from_str("T1", source="any")
 
-    assert MyEnum.from_str("T:2", source="key") is None
+    assert MyEnum.try_from_str("T:2", source="key") is None
     assert MyEnum.from_str("T:2", source="value")
     assert MyEnum.from_str("T:2", source="any")
