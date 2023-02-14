@@ -184,7 +184,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx):
+    def on_train_batch_end(self, *_):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
@@ -280,7 +280,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
             return loss.detach() if self.detach else loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:

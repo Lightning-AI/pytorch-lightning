@@ -136,7 +136,7 @@ class BasePredictionWriter(Callback):
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if not self.interval.on_batch:
             return

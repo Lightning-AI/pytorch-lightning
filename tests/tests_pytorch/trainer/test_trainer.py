@@ -1278,7 +1278,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
-    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
@@ -1427,7 +1427,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
             super().__init__(*args, **kwargs)
             self.output_dir = output_dir
 
-        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
             assert not batch_indices if is_iterable_dataset else batch_indices
 
     cb = CustomPredictionWriter(tmpdir)

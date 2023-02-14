@@ -1128,7 +1128,7 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_specific_gpu_device_id(tmpdir):
     class TestCallback(Callback):
-        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        def on_train_start(self, *_) -> None:
             assert model.device.index == 1
 
         def on_train_batch_start(
@@ -1136,11 +1136,11 @@ def test_specific_gpu_device_id(tmpdir):
             trainer: Trainer,
             pl_module: LightningModule,
             batch: Any,
-            batch_idx: int,
+            *_,
         ) -> None:
             assert batch.device.index == 1
 
-        def on_test_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        def on_test_start(self, *_) -> None:
             assert model.device.index == 1
 
         def on_test_batch_start(
@@ -1148,8 +1148,7 @@ def test_specific_gpu_device_id(tmpdir):
             trainer: Trainer,
             pl_module: LightningModule,
             batch: Any,
-            batch_idx: int,
-            dataloader_idx: int,
+            *_,
         ) -> None:
             assert batch.device.index == 1
 
