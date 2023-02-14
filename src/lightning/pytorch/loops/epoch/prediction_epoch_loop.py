@@ -134,8 +134,8 @@ class _PredictionEpochLoop(_Loop):
         self.current_batch_indices = batch_indices[batch_idx] if batch_indices else []
 
         trainer = self.trainer
-        call._call_callback_hooks(trainer, "on_predict_batch_start", batch, batch_idx, dataloader_idx)
-        call._call_lightning_module_hook(trainer, "on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        call._call_callback_hooks(trainer, "on_predict_batch_start", *step_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_start", *step_kwargs.values())
 
         self.batch_progress.increment_started()
 
@@ -146,8 +146,8 @@ class _PredictionEpochLoop(_Loop):
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
-        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *step_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *step_kwargs.values())
 
         self.batch_progress.increment_completed()
 
