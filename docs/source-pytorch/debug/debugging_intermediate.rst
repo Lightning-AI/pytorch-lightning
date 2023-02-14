@@ -47,7 +47,7 @@ Gradient clipping is one technique that can help keep gradients from exploding.
 
 You can keep an eye on the gradient norm by logging it in your LightningModule:
 
-.. testcode::
+.. code-block:: python
 
     from lightning.pytorch.utilities import grad_norm
 
