@@ -5,9 +5,8 @@ import torch
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
-from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy
-
 from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy
 
 
 class _MyFabricGradNorm(BoringFabric):
@@ -48,7 +47,7 @@ class _MyFabricGradVal(BoringFabric):
 @pytest.mark.parametrize("precision", [16, 32])
 @RunIf(standalone=True)
 def test_grad_clipping_norm(strategy, num_devices, precision):
-    accelerator = "cpu" if MPSAccelerator.is_available()  else "auto"
+    accelerator = "cpu" if MPSAccelerator.is_available() else "auto"
     fabric = _MyFabricGradNorm(accelerator=accelerator, strategy=strategy, devices=num_devices, precision=precision)
     fabric.run()
 
@@ -66,8 +65,8 @@ def test_grad_clipping_norm(strategy, num_devices, precision):
 @RunIf(standalone=True)
 def test_grad_clipping_val(strategy, num_devices, precision):
     accelerator = "cpu" if num_devices == 2 and torch.backends.mps.is_available() else "auto"
-    if accelerator == 'cpu':
-        precision = 'bf16'
+    if accelerator == "cpu":
+        precision = "bf16"
     fabric = _MyFabricGradVal(accelerator=accelerator, strategy=strategy, devices=num_devices, precision=precision)
     fabric.run()
 
