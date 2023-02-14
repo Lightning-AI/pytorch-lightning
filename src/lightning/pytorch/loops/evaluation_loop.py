@@ -25,6 +25,7 @@ from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFe
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import SIGTERMException
@@ -55,7 +56,7 @@ class _EvaluationLoop(_Loop):
         """Returns the number of prediction dataloaders."""
         combined_loader = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         assert combined_loader is not None
-        return len(combined_loader._loaders_flattened)
+        return len(combined_loader._flattened)
 
     @property
     def current_dataloader_idx(self) -> int:
@@ -73,7 +74,7 @@ class _EvaluationLoop(_Loop):
         """Returns the current dataloader."""
         combined_loader = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         assert combined_loader is not None
-        return combined_loader._loaders_flattened[self.current_dataloader_idx]
+        return combined_loader._flattened[self.current_dataloader_idx]
 
     @property
     def prefetch_batches(self) -> int:
@@ -123,7 +124,8 @@ class _EvaluationLoop(_Loop):
 
     def advance(self) -> None:
         """Performs evaluation on one single dataloader."""
-        combined_loader = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
+        trainer = self.trainer
+        combined_loader = trainer.test_dataloaders if trainer.testing else trainer.val_dataloaders
         assert combined_loader is not None
         iter(combined_loader)
 
@@ -133,10 +135,10 @@ class _EvaluationLoop(_Loop):
             self.batch_progress.reset_on_restart()
         # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
         # need to reset the current state when the loop has finished running
-        if self.trainer.state.fn != TrainerFn.FITTING:
+        if trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(self.trainer, prefetch_batches=self.prefetch_batches)
+        data_fetcher = _select_data_fetcher(trainer, prefetch_batches=self.prefetch_batches)
         if isinstance(data_fetcher, _DataLoaderIterDataFetcher) and self.num_dataloaders > 1:
             raise NotImplementedError(
                 "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
@@ -162,8 +164,8 @@ class _EvaluationLoop(_Loop):
                     data_fetcher.dataloader._iterator._use_next_iterator()
                     continue
 
-                batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
-                batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+                batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+                batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
                 # configure step_kwargs
                 kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
@@ -187,10 +189,10 @@ class _EvaluationLoop(_Loop):
                 self.batch_progress.increment_completed()
 
                 # log batch metrics
-                if not self.trainer.sanity_checking:
-                    self.trainer._logger_connector.update_eval_step_metrics(batch_idx)
+                if not trainer.sanity_checking:
+                    trainer._logger_connector.update_eval_step_metrics(batch_idx)
 
-                if not self.batch_progress.is_last_batch and self.trainer.received_sigterm:
+                if not self.batch_progress.is_last_batch and trainer.received_sigterm:
                     raise SIGTERMException
 
                 self._restarting = False
@@ -199,7 +201,7 @@ class _EvaluationLoop(_Loop):
 
         self._restarting = False
 
-        if not self.trainer.sanity_checking:
+        if not trainer.sanity_checking:
             # indicate the loop has run
             self._has_run = True
 
@@ -255,49 +257,58 @@ class _EvaluationLoop(_Loop):
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""
-        assert self._results is not None
-        self._results.to(device=self.trainer.lightning_module.device)
+        trainer = self.trainer
 
-        hook_name = "on_test_start" if self.trainer.testing else "on_validation_start"
-        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
-        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        assert self._results is not None
+        self._results.to(device=trainer.lightning_module.device)
+
+        hook_name = "on_test_start" if trainer.testing else "on_validation_start"
+        call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+        call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
+        call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
-        hook_name = "on_test_model_eval" if self.trainer.testing else "on_validation_model_eval"
-        self.trainer._call_lightning_module_hook(hook_name)
+        trainer = self.trainer
+        hook_name = "on_test_model_eval" if trainer.testing else "on_validation_model_eval"
+        call._call_lightning_module_hook(trainer, hook_name)
 
     def _on_evaluation_model_train(self) -> None:
         """Sets model to train mode."""
-        hook_name = "on_test_model_train" if self.trainer.testing else "on_validation_model_train"
-        self.trainer._call_lightning_module_hook(hook_name)
+        trainer = self.trainer
+        hook_name = "on_test_model_train" if trainer.testing else "on_validation_model_train"
+        call._call_lightning_module_hook(trainer, hook_name)
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""
-        hook_name = "on_test_end" if self.trainer.testing else "on_validation_end"
-        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
-        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        trainer = self.trainer
+        hook_name = "on_test_end" if trainer.testing else "on_validation_end"
+        call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+        call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
+        call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
 
         # reset the logger connector state
-        self.trainer._logger_connector.reset_results()
+        trainer._logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_{validation/test}_epoch_start`` hooks."""
-        self.trainer._logger_connector.on_epoch_start()
+        trainer = self.trainer
 
-        hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
-        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
-        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        trainer._logger_connector.on_epoch_start()
+
+        hook_name = "on_test_epoch_start" if trainer.testing else "on_validation_epoch_start"
+        call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+        call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
-        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-        self.trainer._call_callback_hooks(hook_name)
-        self.trainer._call_lightning_module_hook(hook_name)
+        trainer = self.trainer
 
-        self.trainer._logger_connector.on_epoch_end()
+        hook_name = "on_test_epoch_end" if trainer.testing else "on_validation_epoch_end"
+        call._call_callback_hooks(trainer, hook_name)
+        call._call_lightning_module_hook(trainer, hook_name)
+
+        trainer._logger_connector.on_epoch_end()
 
     def _on_before_fetch(self) -> None:
         stage = self.trainer.state.stage
@@ -332,16 +343,16 @@ class _EvaluationLoop(_Loop):
         Returns:
             the outputs of the step
         """
-        hook_name = "test_step" if self.trainer.testing else "validation_step"
-        output = self.trainer._call_strategy_hook(hook_name, *kwargs.values())
-
-        return output
+        trainer = self.trainer
+        hook_name = "test_step" if trainer.testing else "validation_step"
+        return call._call_strategy_hook(trainer, hook_name, *kwargs.values())
 
     def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook."""
-        hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
-        model_output = self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        strategy_output = self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        trainer = self.trainer
+        hook_name = "test_step_end" if trainer.testing else "validation_step_end"
+        model_output = call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
+        strategy_output = call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
         output = strategy_output if model_output is None else model_output
         return output
 
@@ -356,12 +367,13 @@ class _EvaluationLoop(_Loop):
         Raises:
             AssertionError: If the number of dataloaders is None (has not yet been set).
         """
-        self.trainer._logger_connector.on_batch_start(**kwargs)
+        trainer = self.trainer
+        trainer._logger_connector.on_batch_start(**kwargs)
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        hook_name = "on_test_batch_start" if self.trainer.testing else "on_validation_batch_start"
-        self.trainer._call_callback_hooks(hook_name, *kwargs.values())
-        self.trainer._call_lightning_module_hook(hook_name, *kwargs.values())
+        hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
+        call._call_callback_hooks(trainer, hook_name, *kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -373,11 +385,12 @@ class _EvaluationLoop(_Loop):
             dataloader_idx: Index of the dataloader producing the current batch
         """
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        hook_name = "on_test_batch_end" if self.trainer.testing else "on_validation_batch_end"
-        self.trainer._call_callback_hooks(hook_name, output, *kwargs.values())
-        self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
+        trainer = self.trainer
+        hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
+        call._call_callback_hooks(trainer, hook_name, output, *kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, output, *kwargs.values())
 
-        self.trainer._logger_connector.on_batch_end()
+        trainer._logger_connector.on_batch_end()
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Helper method to build the arguments for the current step.

@@ -42,6 +42,7 @@ from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.core.saving import ModelIO
 from lightning.pytorch.loggers import Logger
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -274,16 +275,17 @@ class LightningModule(
         return []  # type: ignore[return-value]
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
-        if self._trainer:
-            datahook_selector = self._trainer._data_connector._datahook_selector
+        trainer = self._trainer
+        if trainer:
+            datahook_selector = trainer._data_connector._datahook_selector
             assert datahook_selector is not None
             obj = datahook_selector.get_instance(hook_name)
             if isinstance(obj, self.__class__):
-                trainer_method = self._trainer._call_lightning_module_hook
+                trainer_method = call._call_lightning_module_hook
             else:
-                trainer_method = self._trainer._call_lightning_datamodule_hook
+                trainer_method = call._call_lightning_datamodule_hook
 
-            return trainer_method(hook_name, *args)
+            return trainer_method(trainer, hook_name, *args)
         else:
             hook = getattr(self, hook_name)
             return hook(*args)
@@ -588,22 +590,6 @@ class LightningModule(
             )
         value = value.squeeze()
         return value
-
-    def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
-        """Override this method to change the default behaviour of ``log_grad_norm``.
-
-        If clipping gradients, the gradients will not have been clipped yet.
-
-        Args:
-            grad_norm_dict: Dictionary containing current grad norm metrics
-
-        Example::
-
-            # DEFAULT
-            def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False

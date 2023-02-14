@@ -45,6 +45,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `predict_step(dataloader_iter, batch_index) ([#TODO](https://github.com/Lightning-AI/lightning/pull/TODO))
 
 
+- Added "sequential" mode support to `CombinedLoader` to consume multiple iterables in sequence ([#16743](https://github.com/Lightning-AI/lightning/pull/16743))
+
 ### Changed
 
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
@@ -84,6 +86,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Disabled strict loading in multiprocessing launcher ("ddp_spawn", etc.) when loading weights back into the main process ([#16365](https://github.com/Lightning-AI/lightning/pull/16365))
 
+
+- Renamed `CombinedLoader.loaders` to `CombinedLoader.iterables`([#16743](https://github.com/Lightning-AI/lightning/pull/16743))
 
 ### Deprecated
 
@@ -229,6 +233,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the unused `lightning.pytorch.utilities.finite_checks.print_nan_gradients` function ([#16682](https://github.com/Lightning-AI/lightning/pull/16682))
 - Removed the unused `lightning.pytorch.utilities.finite_checks.detect_nan_parameters` function ([#16682](https://github.com/Lightning-AI/lightning/pull/16682))
+- Removed the unused `lightning.pytorch.utilities.parsing.flatten_dict` function ([#16744](https://github.com/Lightning-AI/lightning/pull/16744))
+- Removed the unused `lightning.pytorch.utilities.metrics.metrics_to_scalars` function ([#16681](https://github.com/Lightning-AI/lightning/pull/16681))
+- Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 
 
 - Tuner removal
@@ -271,9 +278,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `PrecisionPlugin.dispatch` ([#16618](https://github.com/Lightning-AI/lightning/pull/16618))
 
 
-- Removed the unused `lightning.pytorch.utilities.metrics.metrics_to_scalars` function ([#16681](https://github.com/Lightning-AI/lightning/pull/16681))
-
-
 - Removed legacy argparse utilities ([#16708](https://github.com/Lightning-AI/lightning/pull/16708))
   * Removed `LightningDataModule` methods: `add_argparse_args()`, `from_argparse_args()`, `parse_argparser()`, `get_init_arguments_and_types()`
   * Removed class methods from Trainer: `default_attributes()`, `from_argparse_args()`, `parse_argparser()`, `match_env_arguments()`, `add_argparse_args()`
@@ -287,9 +291,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 
 
+- Removed the `Trainer(track_grad_norm=...)` argument ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
+
+
+- Removed the `LightningModule.log_grad_norm()` hook method ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
+
+
 ### Fixed
 
--
+- Fixed an attribute error and improved input validation for invalid strategy types being passed to Trainer ([#16693](https://github.com/Lightning-AI/lightning/pull/16693))
 
 
 - Fixed early stopping triggering extra validation runs after reaching `min_epochs` or `min_steps` ([#16719](https://github.com/Lightning-AI/lightning/pull/16719))
@@ -306,8 +316,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where PL would wrap DataLoaders with XLA's MpDeviceLoader more than once ([#16571](https://github.com/Lightning-AI/lightning/pull/16571))
 - Fixed the batch_sampler reference for DataLoaders wrapped with XLA's MpDeviceLoader ([#16571](https://github.com/Lightning-AI/lightning/pull/16571))
 - Fixed an import error when `torch.distributed` is not available ([#16658](https://github.com/Lightning-AI/lightning/pull/16658))
-
-- Fixed an attribute error and improved input validation for invalid strategy types being passed to Trainer ([#16693](https://github.com/Lightning-AI/lightning/pull/16693))
 
 
 ## [1.9.0] - 2023-01-17
