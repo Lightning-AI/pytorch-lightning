@@ -251,6 +251,7 @@ class StochasticWeightAveraging(Callback):
             # There is no need to perform either backward or optimizer.step as we are
             # performing only one pass over the train data-loader to compute activation statistics
             # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
+            assert isinstance(trainer.num_training_batches, int)
             trainer.num_training_batches += 1
             trainer.fit_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
