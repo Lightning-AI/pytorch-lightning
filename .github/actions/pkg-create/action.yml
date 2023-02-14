@@ -12,16 +12,12 @@ runs:
   steps:
 
   - name: Prepare dev. env
-    run: pip install "twine==4.0.2" setuptools wheel
-    shell: bash
-
-  - name: Source check
-    run: python setup.py check --metadata --strict
+    run: pip install "twine==4.0.2" setuptools wheel build
     shell: bash
 
   - name: Create package 📦
     # python setup.py clean
-    run: python setup.py sdist bdist_wheel
+    run: python -m build
     shell: bash
 
   - name: Check package 📦

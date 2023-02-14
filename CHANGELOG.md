@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/docs: allow passing env. variables ([#96](https://github.com/Lightning-AI/utilities/pull/96))
 
 
+- CI: build package ([#104](https://github.com/Lightning-AI/utilities/pull/104))
+
+
 ### Fixed
 
 - Fixed `StrEnum.from_str` with source as key (
