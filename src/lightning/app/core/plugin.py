@@ -15,6 +15,7 @@ import os
 import tarfile
 import tempfile
 from pathlib import Path
+from typing import Dict, List
 
 import requests
 import uvicorn
@@ -98,11 +99,10 @@ class _Run(BaseModel):
     project_id: str
     cloudspace_id: str
     cluster_id: str
-    name: str
-    entrypoint: str
+    plugin_arguments: Dict[str, str]
 
 
-def _run_plugin(run: _Run) -> None:
+def _run_plugin(run: _Run) -> List:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     with tempfile.TemporaryDirectory() as tmpdir:
         download_path = os.path.join(tmpdir, "source.tar.gz")
@@ -146,11 +146,14 @@ def _run_plugin(run: _Run) -> None:
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
             )
-            plugin.run(run.name, run.entrypoint)
+            plugin.run(**run.plugin_arguments)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(e)}."
             )
+
+        # TODO: Return actions from the plugin here
+        return []
 
 
 def _start_plugin_server(host: str, port: int) -> None:
