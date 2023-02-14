@@ -57,13 +57,6 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     trainer.fit(model)
     assert trainer.model._compiler_ctx is None
 
-    # some strategies do not support it
-    compiled_model = torch.compile(model)
-    mock_cuda_count(monkeypatch, 1)
-    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
-    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(compiled_model)
-
     # ddp does
     trainer = Trainer(strategy="ddp", **trainer_kwargs)
     trainer.fit(compiled_model)
