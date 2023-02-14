@@ -372,10 +372,6 @@ def test_multiple_optimizers_step(tmpdir):
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)
 
-        def log_grad_norm(self, grad_norm_dict):
-            self.check_grads_unscaled()
-            assert len(grad_norm_dict)
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -390,7 +386,6 @@ def test_multiple_optimizers_step(tmpdir):
         precision=16,
         accelerator="gpu",
         devices=1,
-        track_grad_norm=2,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:

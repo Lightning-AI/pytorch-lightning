@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added Storage Commands ([#16740](https://github.com/Lightning-AI/lightning/pull/16740))
   * `rm`: Delete files from your Cloud Platform Filesystem
 
+- Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
+
 
 ### Changed
 
