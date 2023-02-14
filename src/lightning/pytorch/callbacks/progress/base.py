@@ -82,15 +82,6 @@ class ProgressBarBase(Callback):
         return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
 
     @property
-    def train_batch_idx(self) -> int:
-        """The number of batches processed during training.
-
-        Use this to update your progress bar.
-        """
-        # FIXME(carmocca): keep this one?
-        return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
-
-    @property
     def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 
