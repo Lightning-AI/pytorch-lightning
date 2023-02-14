@@ -241,9 +241,6 @@ class _FitLoop(_Loop):
             assert isinstance(trainer.train_dataloader, CombinedLoader)
             _set_sampler_epoch(trainer.train_dataloader, self.epoch_progress.current.processed)
 
-        # changing gradient according accumulation_scheduler
-        trainer.accumulation_scheduler.on_train_epoch_start(trainer, model)
-
         self.epoch_progress.increment_ready()
 
         trainer._logger_connector.on_epoch_start()

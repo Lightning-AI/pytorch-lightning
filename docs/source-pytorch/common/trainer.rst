@@ -118,38 +118,14 @@ So you can run it like so:
 
 .. note::
 
-    Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
-
-.. code-block:: python
-
-    from argparse import ArgumentParser
+    Pro-tip: You don't need to define all flags manually.
+    You can let the :doc:`LightningCLI <../cli/lightning_cli>` create the Trainer and model with arguments supplied from the CLI.
 
 
-    def main(args):
-        model = LightningModule()
-        trainer = Trainer.from_argparse_args(args)
-        trainer.fit(model)
-
-
-    if __name__ == "__main__":
-        parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(parser)
-        args = parser.parse_args()
-
-        main(args)
-
-So you can run it like so:
-
-.. code-block:: bash
-
-    python main.py --accelerator 'gpu' --devices 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
-
-.. note::
-    If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
-    The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
-    running accelerator callback ``on_train_end`` to clean up memory. The trainer object will also set
-    an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
-    resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
+If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
+The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown. The trainer object will also set
+an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
+resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs by overriding :meth:`lightning.pytorch.Callback.on_exception`.
 
 ------------
 
@@ -271,8 +247,7 @@ accumulate_grad_batches
 
 |
 
-Accumulates grads every k batches or as set up in the dict.
-Trainer also calls ``optimizer.step()`` for the last indivisible step number.
+Accumulates gradients over k batches before stepping the optimizer.
 
 .. testcode::
 
@@ -284,8 +259,7 @@ Example::
     # accumulate every 4 batches (effective batch size is batch*4)
     trainer = Trainer(accumulate_grad_batches=4)
 
-    # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
-    trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation schedules.
 
 
 benchmark
