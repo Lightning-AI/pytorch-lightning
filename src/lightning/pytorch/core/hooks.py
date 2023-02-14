@@ -82,7 +82,7 @@ class ModelHooks:
             batch_idx: the index of the batch
         """
 
-    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the validation loop before anything happens for that batch.
 
         Args:
@@ -92,7 +92,7 @@ class ModelHooks:
         """
 
     def on_validation_batch_end(
-        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
+        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         """Called in the validation loop after the batch.
 
@@ -103,7 +103,7 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
 
-    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the test loop before anything happens for that batch.
 
         Args:
@@ -113,7 +113,7 @@ class ModelHooks:
         """
 
     def on_test_batch_end(
-        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
+        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         """Called in the test loop after the batch.
 
@@ -124,7 +124,7 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
 
-    def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the predict loop before anything happens for that batch.
 
         Args:
@@ -133,7 +133,7 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
 
-    def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the predict loop after the batch.
 
         Args:

@@ -402,7 +402,7 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             pass
 
     trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)

@@ -313,11 +313,9 @@ class _EvaluationLoop(_Loop):
 
         trainer._logger_connector.on_batch_start(**step_kwargs)
 
-        batch_start_end_kwargs = step_kwargs.copy()
-        batch_start_end_kwargs.setdefault("dataloader_idx", dataloader_idx)
         hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
-        call._call_callback_hooks(trainer, hook_name, *batch_start_end_kwargs.values())
-        call._call_lightning_module_hook(trainer, hook_name, *batch_start_end_kwargs.values())
+        call._call_callback_hooks(trainer, hook_name, *step_kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, *step_kwargs.values())
 
         self.batch_progress.increment_started()
 
@@ -332,8 +330,8 @@ class _EvaluationLoop(_Loop):
         self.batch_progress.increment_processed()
 
         hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
-        call._call_callback_hooks(trainer, hook_name, output, *batch_start_end_kwargs.values())
-        call._call_lightning_module_hook(trainer, hook_name, output, *batch_start_end_kwargs.values())
+        call._call_callback_hooks(trainer, hook_name, output, *step_kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, output, *step_kwargs.values())
 
         trainer._logger_connector.on_batch_end()
 
