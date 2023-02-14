@@ -22,7 +22,6 @@ from lightning.pytorch.utilities.enums import GradClipAlgorithmType  # noqa: F40
 from lightning.pytorch.utilities.grads import grad_norm  # noqa: F401
 from lightning.pytorch.utilities.imports import (  # noqa: F401
     _OMEGACONF_AVAILABLE,
-    _TORCH_QUANTIZE_AVAILABLE,
     _TORCHVISION_AVAILABLE,
 )
 from lightning.pytorch.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
