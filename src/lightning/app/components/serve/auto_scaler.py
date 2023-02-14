@@ -453,7 +453,9 @@ class _LoadBalancer(LightningWork):
         try:
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
-            logger.warn("Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`")
+            logger.warn(
+                "Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`"
+            )
             return
 
         if is_running_in_cloud():
