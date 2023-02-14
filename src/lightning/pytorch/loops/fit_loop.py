@@ -260,7 +260,7 @@ class _FitLoop(_Loop):
 
         assert self._data_fetcher is not None
         self._data_fetcher.setup(dataloader)
-        with self.trainer.profiler.profile("run_training_epoch"):
+        with trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
