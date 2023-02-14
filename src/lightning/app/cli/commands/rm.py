@@ -35,7 +35,7 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
 
     root = _pwd()
 
-    if rm_path in [".", ".."]:
+    if rm_path in (".", ".."):
         return _error_and_exit('rm "." and ".." may not be removed')
 
     if ".." in rm_path:
