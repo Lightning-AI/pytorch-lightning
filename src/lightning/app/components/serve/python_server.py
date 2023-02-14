@@ -293,7 +293,7 @@ class PythonServer(LightningWork, abc.ABC):
         try:
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
-            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            logger.warn("APIAccessFrontend not found. To enable the UI run: pip install lightning-api-access")
             return
 
         class_name = self.__class__.__name__
