@@ -18,7 +18,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize(
@@ -32,7 +32,7 @@ from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
 @RunIf(sklearn=True)
 def test_evaluate(tmpdir, trainer_kwargs):
     dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
+    model = ClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
     )
