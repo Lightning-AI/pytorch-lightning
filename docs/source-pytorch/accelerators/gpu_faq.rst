@@ -45,7 +45,7 @@ In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED your effective batch size will be 7 * 
 How do I use multiple GPUs on Jupyter or Colab notebooks?
 *********************************************************
 
-To use multiple GPUs on notebooks, use the *DDP_SPAWN*, *DDP_NOTEBOOK*, or *DP* mode.
+To use multiple GPUs on notebooks, use the *DDP_SPAWN* or *DDP_NOTEBOOK* mode.
 
 .. code-block:: python
 

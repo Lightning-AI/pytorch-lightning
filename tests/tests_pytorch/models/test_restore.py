@@ -21,7 +21,6 @@ from typing import Generic, Mapping, TypeVar
 import cloudpickle
 import pytest
 import torch
-import torch.nn.functional as F
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 
@@ -82,27 +81,6 @@ class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
 
 class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
     pass
-
-
-class CustomClassificationModelDP(ClassificationModel):
-    def _step(self, batch):
-        x, y = batch
-        logits = self(x)
-        return {"logits": logits, "y": y}
-
-    def training_step(self, batch, batch_idx):
-        out = self._step(batch)
-        loss = F.cross_entropy(out["logits"], out["y"])
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        return self._step(batch)
-
-    def test_step(self, batch, batch_idx):
-        return self._step(batch)
-
-    def validation_step_end(self, outputs):
-        self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
 
 
 def test_model_properties_fit_ckpt_path(tmpdir):
