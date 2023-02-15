@@ -117,13 +117,14 @@ jobs:
     - name: Env. variables
       run: |
         # Switch PyTorch URL
-        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{ matrix.release }}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        python -c "print('TORCH_PREINSTALL='' + str('--pre' if '${{ matrix.release }}' == 'pre' else ''))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
+        pip install -e .[extra,test] "pytest-timeout" -U --extra-index-url ${TORCH_URL} ${TORCH_PREINSTALL} -f ".wheels/" --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
