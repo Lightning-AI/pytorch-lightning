@@ -114,7 +114,6 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
@@ -213,7 +212,6 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIStrategy
     DDPSpawnStrategy
     DDPStrategy
     DataParallelStrategy

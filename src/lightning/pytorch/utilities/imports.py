@@ -32,6 +32,7 @@ _PSUTIL_AVAILABLE = package_available("psutil")
 _RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
+_LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 
 if _POPTORCH_AVAILABLE:
     import poptorch
