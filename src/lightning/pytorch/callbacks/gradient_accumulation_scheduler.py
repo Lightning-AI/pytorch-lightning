@@ -25,6 +25,7 @@ from typing import Any, Dict
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
@@ -121,17 +122,21 @@ class GradientAccumulationScheduler(Callback):
 
         # local import to avoid circular import
         from lightning.pytorch.accelerators import IPUAccelerator
-        from lightning.pytorch.strategies import ColossalAIStrategy, DeepSpeedStrategy
+        from lightning.pytorch.strategies import DeepSpeedStrategy
 
-        unsupported_strategies = (DeepSpeedStrategy, ColossalAIStrategy)
         unsupported_accelerators = (IPUAccelerator,)
+        unsupported_strategies = [DeepSpeedStrategy]
+        if _LIGHTNING_COLOSSALAI_AVAILABLE:
+            from lightning_colossalai import ColossalAIStrategy
+
+            unsupported_strategies.append(ColossalAIStrategy)
 
         if isinstance(trainer.accelerator, unsupported_accelerators):
             raise RuntimeError(
                 f"The `{type(trainer.accelerator).__name__}` does not support `accumulate_grad_batches` changing"
                 " between epochs."
             )
-        if isinstance(trainer.strategy, unsupported_strategies):
+        if isinstance(trainer.strategy, tuple(unsupported_strategies)):
             raise RuntimeError(
                 f"The `{type(trainer.strategy).__name__}` does not support `accumulate_grad_batches` changing"
                 " between epochs."

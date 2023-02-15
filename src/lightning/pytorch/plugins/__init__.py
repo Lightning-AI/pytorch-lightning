@@ -5,7 +5,6 @@ from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
-from lightning.pytorch.plugins.precision.colossalai import ColossalAIPrecisionPlugin
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
@@ -24,7 +23,6 @@ __all__ = [
     "TorchCheckpointIO",
     "XLACheckpointIO",
     "HPUCheckpointIO",
-    "ColossalAIPrecisionPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "IPUPrecisionPlugin",
