@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
 from lightning.fabric.plugins.environments import (
@@ -49,8 +50,6 @@ from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
 from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-
-from lightning_utilities.core.imports import package_available
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -859,7 +858,9 @@ def test_connector_defaults_match_trainer_defaults():
 
 @pytest.mark.skipif(not package_available("lightning_colossalai"))
 def test_colossalai_external_strategy(monkeypatch):
-    with mock.patch("lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False), pytest.raises(ModuleNotFoundError, match="The `lightning-colossalai` package is required"):
+    with mock.patch(
+        "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False
+    ), pytest.raises(ModuleNotFoundError, match="The `lightning-colossalai` package is required"):
         Trainer(strategy="colossalai")
 
     from lightning_colossalai import ColossalAIStrategy
