@@ -16,6 +16,7 @@ class Feature:
     segment_ids: torch.Tensor
 
     def __eq__(self, o: object) -> bool:
+        """Perform equal operation."""
         if not isinstance(o, Feature):
             return NotImplemented
         return torch.equal(self.input_ids, o.input_ids) and torch.equal(self.segment_ids, o.segment_ids)
@@ -28,10 +29,10 @@ class ModelExample:
     label: torch.Tensor
     some_constant: int = dataclasses.field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self):  # noqa: D105
         self.some_constant = 7
 
-    def __eq__(self, o: object) -> bool:
+    def __eq__(self, o: object) -> bool:  # noqa: D105
         if not isinstance(o, ModelExample):
             return NotImplemented
 
@@ -49,6 +50,7 @@ class WithClassVar:
     dummy: Any
 
     def __eq__(self, o: object) -> bool:
+        """Perform equal operation."""
         if not isinstance(o, WithClassVar):
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
@@ -62,11 +64,11 @@ class WithInitVar:
     dummy: Any
     override: InitVar[Optional[Any]] = None
 
-    def __post_init__(self, override: Optional[Any]):
+    def __post_init__(self, override: Optional[Any]):  # noqa: D105
         if override is not None:
             self.dummy = override
 
-    def __eq__(self, o: object) -> bool:
+    def __eq__(self, o: object) -> bool:  # noqa: D105
         if not isinstance(o, WithInitVar):
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
@@ -81,11 +83,11 @@ class WithClassAndInitVar:
     dummy: Any
     override: InitVar[Optional[Any]] = torch.tensor(1)
 
-    def __post_init__(self, override: Optional[Any]):
+    def __post_init__(self, override: Optional[Any]):  # noqa: D105
         if override is not None:
             self.dummy = override
 
-    def __eq__(self, o: object) -> bool:
+    def __eq__(self, o: object) -> bool:  # noqa: D105
         if not isinstance(o, WithClassAndInitVar):
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):

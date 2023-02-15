@@ -11,6 +11,7 @@ else:
             self.data = data
 
         def __add__(self, other):
+            """Perform and operation."""
             if isinstance(self.data, Iterable):
                 if isinstance(other, (int, float)):
                     return TensorMock([a + other for a in self.data])
@@ -19,6 +20,7 @@ else:
             return self.data + other
 
         def __mul__(self, other):
+            """Perform mul operation."""
             if isinstance(self.data, Iterable):
                 if isinstance(other, (int, float)):
                     return TensorMock([a * other for a in self.data])
@@ -27,12 +29,15 @@ else:
             return self.data * other
 
         def __iter__(self):
+            """Iterate."""
             return iter(self.data)
 
         def __repr__(self):
+            """Return object representation."""
             return repr(self.data)
 
         def __eq__(self, other):
+            """Perform equal operation."""
             return self.data == other
 
     class TorchMock:

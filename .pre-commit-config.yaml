@@ -52,6 +52,8 @@ repos:
     rev: v1.4.0
     hooks:
       - id: yesqa
+        additional_dependencies:
+          - "flake8-docstrings"
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.0.246

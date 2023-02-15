@@ -107,13 +107,7 @@ ignore_missing_imports = true
     "D102",  # Missing docstring in public method
     "D103",  # Missing docstring in public function
     "D104",  # Missing docstring in public package
-    "D105",  # todo # Missing docstring in magic method
-    "D107",  # todo # Missing docstring in `__init__`
-    "D205",  # todo # 1 blank line required between summary line and description
-    "D401",  # todo # First line of docstring should be in imperative mood: ...
-    "D403",  # todo # First word of the first line should be properly capitalized
-    "D415",  # todo # First line should end with a period, question mark, or exclamation point"
-    "D417",  # todo # Missing argument descriptions in the docstring: ...
+    "D107",  # Missing docstring in `__init__`
 ]
 
 [tool.ruff.pydocstyle]
