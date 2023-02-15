@@ -23,7 +23,7 @@ plugin and other optional plugins such as the :ref:`ClusterEnvironment <extensio
 We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
 
 
-----------
+----
 
 *****************************
 Selecting a Built-in Strategy
@@ -69,9 +69,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - Name
      - Class
      - Description
-   * - colossalai
-     - :class:`~pytorch_lightning.strategies.ColossalAIStrategy`
-     - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
    * - fsdp
      - :class:`~pytorch_lightning.strategies.FSDPStrategy`
      - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
@@ -104,6 +101,28 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
 
 ----
+
+
+**********************
+Third-party Strategies
+**********************
+
+There are powerful third-party strategies that integrate well with Lightning but aren't maintained as part of the ``lightning`` package.
+
+.. list-table:: List of third-party strategy implementations
+   :widths: 20 20 20
+   :header-rows: 1
+
+    * - Name
+      - Package
+      - Description
+    * - colossalai
+      - `Lightning-AI/lightning-colossalai <https://github.com/Lightning-AI/lightning-colossalai>`_
+      - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
+
+
+----
+
 
 ************************
 Create a Custom Strategy
