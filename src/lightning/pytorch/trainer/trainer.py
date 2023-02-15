@@ -398,13 +398,13 @@ class Trainer:
         self.should_stop = False
         self.state = TrainerState()
 
-        # FIXME(carlos): consider allowing single dataloader for simplicity
+        # FIXME(carmocca): consider allowing single dataloader for simplicity
         self.train_dataloader: Optional[CombinedLoader] = None
         self.test_dataloaders: Optional[CombinedLoader] = None
         self.val_dataloaders: Optional[CombinedLoader] = None
         self.predict_dataloaders: Optional[CombinedLoader] = None
 
-        # FIXME(carlos): these need to be updated, and moved to the loops
+        # FIXME(carmocca): these need to be updated, and moved to the loops
         self.num_training_batches = float("inf")
         self.num_sanity_val_batches: List[Union[int, float]] = []
         self.num_test_batches: List[Union[int, float]] = []
@@ -1003,7 +1003,7 @@ class Trainer:
         if not (source.is_defined() and has_step and enable_training):
             return
 
-        # FIXME(carlos): do not set yet
+        # FIXME(carmocca): do not set yet
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
 
         if self.overfit_batches > 0:
@@ -1336,7 +1336,7 @@ class Trainer:
     def prediction_writer_callbacks(self) -> List[BasePredictionWriter]:
         """A list of all instances of :class:`~lightning.pytorch.callbacks.prediction_writer.BasePredictionWriter`
         found in the Trainer.callbacks list."""
-        # FIXME(carlos): get rid of this property
+        # FIXME(carmocca): get rid of this property
         return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property

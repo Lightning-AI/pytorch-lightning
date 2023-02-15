@@ -113,7 +113,7 @@ def test_prediction_writer_partial_support_for_combined_loader():
 
     class PredictionModel(BoringModel):
         def predict_dataloader(self):
-            # FIXME(carlos): this should work
+            # FIXME(carmocca): this should work
             return CombinedLoader(
                 {
                     "a": DataLoader(RandomDataset(32, 8), batch_size=2),
