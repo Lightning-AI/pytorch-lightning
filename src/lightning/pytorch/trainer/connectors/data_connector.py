@@ -267,8 +267,6 @@ class DataConnector:
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
 
-        dataloader = self.trainer.strategy.process_dataloader(dataloader)
-
         return dataloader
 
     def _resolve_sampler(

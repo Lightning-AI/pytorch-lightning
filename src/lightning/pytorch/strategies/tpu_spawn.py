@@ -32,7 +32,6 @@ from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
@@ -102,24 +101,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                 " HINT: You can mock the length on your dataset to bypass this error."
             )
 
-    @staticmethod
-    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector: DataConnector = model.trainer._data_connector
-        sources = (
-            connector._train_dataloader_source,
-            connector._val_dataloader_source,
-            connector._test_dataloader_source,
-            connector._predict_dataloader_source,
-        )
-        for source in sources:
-            if not source.is_module():
-                assert source.instance is not None
-                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
-                TPUSpawnStrategy._validate_dataloader(source.instance)
-
     def connect(self, model: "pl.LightningModule") -> None:
-        TPUSpawnStrategy._validate_patched_dataloaders(model)
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
