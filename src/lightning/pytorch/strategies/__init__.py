@@ -33,4 +33,5 @@ StrategyRegistry = _StrategyRegistry()
 _call_register_strategies(StrategyRegistry, _STRATEGIES_BASE_MODULE)
 
 if _LIGHTNING_COLOSSALAI_AVAILABLE:
-    _call_register_strategies(StrategyRegistry, "lightning_colossalai.strategy")
+    from lightning_colossalai import ColossalAIStrategy
+    ColossalAIStrategy.register_strategies(StrategyRegistry)
