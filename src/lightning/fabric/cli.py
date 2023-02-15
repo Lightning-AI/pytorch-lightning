@@ -20,6 +20,7 @@ from typing import Any, List, Optional
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -28,7 +29,6 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
-_SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
 
 def _get_supported_strategies() -> List[str]:
@@ -106,11 +106,11 @@ if _CLICK_AVAILABLE:
     )
     @click.option(
         "--precision",
-        type=click.Choice(_SUPPORTED_PRECISION),
+        type=click.Choice(_PRECISION_INPUT_STR),
         default="32",
         help=(
-            "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
-            " (``'bf16'``)"
+            "Double precision (``64-true``), full precision (``32-true``), half precision (``16-mixed``) or "
+            "bfloat16 precision (``'bf16-mixed'``)"
         ),
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)

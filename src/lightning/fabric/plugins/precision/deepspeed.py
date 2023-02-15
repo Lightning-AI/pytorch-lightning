@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, cast, Literal, TYPE_CHECKING, Union
+from typing import Any, cast, Literal, TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -27,16 +27,14 @@ if TYPE_CHECKING:
     if _DEEPSPEED_AVAILABLE:  # type: ignore[has-type]
         import deepspeed
 
-_PRECISION_INPUT_INT = Literal[32, 16]
-_PRECISION_INPUT_STR = Literal["32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+_PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
 
 
 class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Full precision (32-true), half precision (16-mixed) or bfloat16 precision (bf16-mixed).
 
     Raises:
         ValueError:
@@ -44,16 +42,16 @@ class DeepSpeedPrecision(Precision):
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`precision={precision!r})` is not supported in DeepSpeed."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
+        self.precision = cast(_PRECISION_INPUT, precision)
 
     def convert_input(self, data: Tensor) -> Tensor:
-        precision_to_type = {"bf16": torch.bfloat16, "16": torch.float16, "32": torch.float32}
+        precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16, "32-true": torch.float32}
         dst_type = precision_to_type[self.precision]
         return _convert_fp_tensor(data, dst_type)
 

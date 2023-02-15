@@ -42,7 +42,13 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
-from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
+from lightning.fabric.plugins.precision.precision import (
+    _PRECISION_INPUT,
+    _PRECISION_INPUT_INT,
+    _PRECISION_INPUT_STR,
+    _PRECISION_INPUT_STR_LEGACY,
+    _PRECISION_INPUT_STR_LEGACY_CONVERSION,
+)
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -107,7 +113,7 @@ class _Connector:
         strategy = self._argument_from_env("strategy", strategy, default=None)
         devices = self._argument_from_env("devices", devices, default=None)
         num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
-        precision = self._argument_from_env("precision", precision, default=32)
+        precision = self._argument_from_env("precision", precision, default="32-true")
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
@@ -119,7 +125,7 @@ class _Connector:
         # For devices: Assign gpus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_input: _PRECISION_INPUT_STR = "32"
+        self._precision_input: _PRECISION_INPUT_STR = "32-true"
         self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -220,10 +226,22 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        supported_precision = (
+            get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_LEGACY)
+        )
         if precision not in supported_precision:
             raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}")
-        self._precision_input = cast(_PRECISION_INPUT_STR, str(precision))
+
+        precision = str(precision)  # convert int flags to str here to enable the legacy-conversion below
+
+        if precision in get_args(_PRECISION_INPUT_STR_LEGACY):
+            rank_zero_warn(
+                f"{precision} is supported for historical reasons but its usage is discouraged. "
+                "Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
+            )
+            precision = _PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]
+
+        self._precision_input = cast(_PRECISION_INPUT_STR, precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -453,34 +471,34 @@ class _Connector:
             return self._precision_instance
 
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_input == "32":
+            if self._precision_input == "32-true":
                 return TPUPrecision()
-            elif self._precision_input in ("16", "bf16"):
-                if self._precision_input == "16":
+            elif self._precision_input in ("16-mixed", "bf16-mixed"):
+                if self._precision_input == "16-mixed":
                     rank_zero_warn(
-                        "You passed `Fabric(accelerator='tpu', precision=16)` but AMP"
-                        " is not supported with TPUs. Using `precision='bf16'` instead."
+                        "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
+                        " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
                 return TPUBf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
-        if self._precision_input == "32":
+        if self._precision_input == "32-true":
             return Precision()
-        if self._precision_input == "64":
+        if self._precision_input == "64-true":
             return DoublePrecision()
 
-        if self._precision_input == "16" and self._accelerator_flag == "cpu":
+        if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Fabric(accelerator='cpu', precision=16)` but AMP is not supported on CPU."
-                " Using `precision='bf16'` instead."
+                "You passed `Fabric(accelerator='cpu', precision='16-mixed')` but AMP is not supported on CPU with "
+                "fp16. Using `precision='bf16-mixed'` instead."
             )
-            self._precision_input = "bf16"
+            self._precision_input = "bf16-mixed"
 
-        if self._precision_input in ("16", "bf16"):
+        if self._precision_input in ("16-mixed", "bf16-mixed"):
             rank_zero_info(
                 "Using 16-bit Automatic Mixed Precision (AMP)"
-                if self._precision_input == "16"
+                if self._precision_input == "16-mixed"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
@@ -494,7 +512,7 @@ class _Connector:
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_input == "64":
+            if self._precision_input == "64-true":
                 raise NotImplementedError(
                     "`Fabric(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
