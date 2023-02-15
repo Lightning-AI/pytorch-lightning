@@ -202,7 +202,6 @@ class _EvaluationEpochLoop(_Loop):
         trainer = self.trainer
         trainer._logger_connector.on_batch_start(**kwargs)
 
-        kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
         call._call_callback_hooks(trainer, hook_name, *kwargs.values())
         call._call_lightning_module_hook(trainer, hook_name, *kwargs.values())
@@ -218,7 +217,6 @@ class _EvaluationEpochLoop(_Loop):
         """
         trainer = self.trainer
 
-        kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
         call._call_callback_hooks(trainer, hook_name, output, *kwargs.values())
         call._call_lightning_module_hook(trainer, hook_name, output, *kwargs.values())

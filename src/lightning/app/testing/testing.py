@@ -266,7 +266,7 @@ def run_app_in_cloud(
     os.environ["LIGHTNING_APP_NAME"] = name
 
     # 3. Disconnect from the App if any.
-    Popen("lightning disconnect", shell=True).wait()
+    Popen("lightning logout", shell=True).wait()
 
     # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -322,6 +322,9 @@ def run_app_in_cloud(
             record_video_dir=os.path.join(_Config.video_location, TEST_APP_NAME),
             record_har_path=_Config.har_location,
         )
+
+        app_url = admin_page.url
+        admin_page.goto(app_url + "/logs")
 
         client = LightningClient()
         project_id = _get_project(client).project_id

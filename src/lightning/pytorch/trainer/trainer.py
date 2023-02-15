@@ -106,7 +106,6 @@ class Trainer:
         devices: Optional[Union[List[int], str, int]] = None,
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
-        track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: int = 1,
@@ -271,10 +270,6 @@ class Trainer:
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
-                Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
-                Default: ``-1``.
-
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
@@ -362,19 +357,10 @@ class Trainer:
                 f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
             )
 
-        # gradient norm tracking
-        if track_grad_norm != -1 and not (
-            (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
-        ):
-            raise MisconfigurationException(
-                f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
-            )
-
         self.gradient_clip_val: Optional[Union[int, float]] = gradient_clip_val
         self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
-        self.track_grad_norm: float = float(track_grad_norm)
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
