@@ -143,7 +143,9 @@ def _run_plugin(run: _Run) -> List:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(e)}."
             )
 
+        # Ensure that apps are dispatched from the temp directory
         cwd = os.getcwd()
+        os.chdir(source_path)
 
         # Setup and run the plugin
         try:
@@ -152,8 +154,6 @@ def _run_plugin(run: _Run) -> List:
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
             )
-            # Ensure that apps are dispatched from the temp directory
-            os.chdir(source_path)
             plugin.run(**run.plugin_arguments)
         except Exception as e:
             raise HTTPException(
