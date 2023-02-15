@@ -26,13 +26,7 @@ from lightning.pytorch.strategies.single_tpu import SingleTPUStrategy  # noqa: F
 from lightning.pytorch.strategies.strategy import Strategy  # noqa: F401
 from lightning.pytorch.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
 from lightning.pytorch.strategies.utils import _call_register_strategies
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 
 _STRATEGIES_BASE_MODULE = "lightning.pytorch.strategies"
 StrategyRegistry = _StrategyRegistry()
 _call_register_strategies(StrategyRegistry, _STRATEGIES_BASE_MODULE)
-
-if _LIGHTNING_COLOSSALAI_AVAILABLE:
-    from lightning_colossalai import ColossalAIStrategy
-
-    ColossalAIStrategy.register_strategies(StrategyRegistry)

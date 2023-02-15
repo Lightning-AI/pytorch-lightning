@@ -142,6 +142,7 @@ class AcceleratorConnector:
         self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
 
+        _register_external_accelerators_and_strategies()
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -682,3 +683,12 @@ def _set_torch_flags(
     if deterministic:
         # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+
+def _register_external_accelerators_and_strategies():
+    if _LIGHTNING_COLOSSALAI_AVAILABLE:
+        from lightning_colossalai import ColossalAIStrategy
+
+        # TODO: Prevent registering multiple times
+        if "colossalai" not in StrategyRegistry:
+            ColossalAIStrategy.register_strategies(StrategyRegistry)
