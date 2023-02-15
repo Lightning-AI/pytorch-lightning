@@ -38,7 +38,7 @@ from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning.pytorch.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, Timer
 from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -170,23 +170,9 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
-    with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
-        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
-
-
-def test_trainer_accumulate_grad_batches_with_grad_acc_callback(tmpdir):
-    with pytest.raises(
-        MisconfigurationException, match=".*set both `accumulate_grad_batches` and passed an instance.*"
-    ):
-        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=7, callbacks=[GradientAccumulationScheduler({0: 2})])
-
-
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        ({1: 2, 3: 4}, 1.0),
-        ({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
         (3, 1.0),
         (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
         (4, 1.0),
@@ -987,12 +973,6 @@ def test_disabled_validation(tmpdir):
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
 
 
-@pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
-def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
-    with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
-        Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
-
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 
@@ -1298,7 +1278,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
-    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
@@ -1447,7 +1427,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
             super().__init__(*args, **kwargs)
             self.output_dir = output_dir
 
-        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
             assert not batch_indices if is_iterable_dataset else batch_indices
 
     cb = CustomPredictionWriter(tmpdir)
@@ -2072,58 +2052,6 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
         trainer.fit(model)
 
     logger.finalize.assert_called_once_with("failed")
-
-
-@RunIf(min_torch="2.0.0")
-def test_trainer_compiled_model(tmp_path, monkeypatch):
-    trainer_kwargs = {
-        "default_root_dir": tmp_path,
-        "fast_dev_run": True,
-        "logger": False,
-        "enable_checkpointing": False,
-        "enable_model_summary": False,
-        "enable_progress_bar": False,
-    }
-
-    model = BoringModel()
-    compiled_model = torch.compile(model)
-    assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
-
-    # can train with compiled model
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(compiled_model)
-    assert trainer.model._compiler_ctx["compiler"] == "dynamo"
-
-    # the compiled model can be uncompiled
-    to_uncompiled_model = BoringModel.to_uncompiled(compiled_model)
-    assert model._compiler_ctx is None
-    assert compiled_model._compiler_ctx is None
-    assert to_uncompiled_model._compiler_ctx is None
-
-    # the compiled model needs to be passed
-    with pytest.raises(ValueError, match="required to be a compiled LightningModule"):
-        BoringModel.to_uncompiled(to_uncompiled_model)
-
-    # the uncompiled model can be fitted
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
-    assert trainer.model._compiler_ctx is None
-
-    # some strategies do not support it
-    compiled_model = torch.compile(model)
-    mock_cuda_count(monkeypatch, 1)
-    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
-    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(compiled_model)
-
-    # ddp does
-    trainer = Trainer(strategy="ddp", **trainer_kwargs)
-    trainer.fit(compiled_model)
-
-    # an exception is raised
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.raises(TypeError, match="must be a `Light"):
-        trainer.fit(object())
 
 
 @pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])

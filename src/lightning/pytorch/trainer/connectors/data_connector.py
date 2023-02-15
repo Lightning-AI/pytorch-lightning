@@ -27,8 +27,9 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.trainer.supporters import CombinedLoader, CycleIterator
+from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader, has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -40,7 +41,7 @@ warning_cache = WarningCache()
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: _LITERAL_SUPPORTED_MODES = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
         self._train_dataloader_source = _DataLoaderSource(None, "")
@@ -92,26 +93,28 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def prepare_data(self) -> None:
+        trainer = self.trainer
+
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        local_rank_zero = self.trainer.local_rank == 0
-        global_rank_zero = self.trainer.local_rank == 0 and self.trainer.node_rank == 0
+        local_rank_zero = trainer.local_rank == 0
+        global_rank_zero = trainer.local_rank == 0 and trainer.node_rank == 0
 
-        datamodule = self.trainer.datamodule
-        lightning_module = self.trainer.lightning_module
+        datamodule = trainer.datamodule
+        lightning_module = trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
         if datamodule is not None:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
-                self.trainer._call_lightning_datamodule_hook("prepare_data")
+                call._call_lightning_datamodule_hook(trainer, "prepare_data")
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None:
             lm_prepare_data_per_node = lightning_module.prepare_data_per_node
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
-                self.trainer._call_lightning_module_hook("prepare_data")
-                self.trainer._is_data_prepared = True
+                call._call_lightning_module_hook(trainer, "prepare_data")
+                trainer._is_data_prepared = True
 
     def attach_data(
         self,
@@ -239,27 +242,16 @@ class DataConnector:
         """This function handles the following functionalities:
 
         - Injecting a `DistributedDataSamplerWrapper` into the `DataLoader` if on a distributed environment
-        - Wrapping the datasets and samplers into fault-tolerant components
         - Wrapping the dataloader based on strategy-specific logic
         """
         if isinstance(dataloader, CombinedLoader):
-            # apply `_prepare_dataloader` on all the collection of loaders
-            dataloader.loaders = apply_to_collection(
-                dataloader.loaders, (DataLoader, CycleIterator), self._prepare_dataloader, shuffle, mode=mode
-            )
-            # the length need to recomputed across all dataloaders in case of special behavior.
-            dataloader._apply_cycle_iterator_length()
+            for i, dl in enumerate(dataloader._flattened):
+                dataloader._update_index(self._prepare_dataloader(dl, shuffle=shuffle, mode=mode), i)
             return dataloader
 
         # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, (DataLoader, CycleIterator)):
+        if not isinstance(dataloader, DataLoader):
             return dataloader
-
-        cycle_iterator: Optional[CycleIterator] = None
-
-        if isinstance(dataloader, CycleIterator):
-            cycle_iterator = dataloader
-            dataloader = dataloader.loader
 
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
@@ -276,10 +268,6 @@ class DataConnector:
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
 
         dataloader = self.trainer.strategy.process_dataloader(dataloader)
-
-        if cycle_iterator is not None:
-            cycle_iterator.loader = dataloader
-            return cycle_iterator
 
         return dataloader
 
@@ -359,7 +347,7 @@ class DataConnector:
 
         for loader in dataloaders:
             apply_to_collection(
-                loader.loaders if isinstance(loader, CombinedLoader) else loader,
+                loader.iterables if isinstance(loader, CombinedLoader) else loader,
                 DataLoader,
                 self._check_eval_shuffling,
                 mode=mode,
@@ -508,7 +496,7 @@ class _DataLoaderSource:
         If the source is a module, the method with the corresponding :attr:`name` gets called.
         """
         if isinstance(self.instance, pl.LightningModule):
-            return self.instance.trainer._call_lightning_module_hook(self.name, pl_module=self.instance)
+            return call._call_lightning_module_hook(self.instance.trainer, self.name, pl_module=self.instance)
 
         if isinstance(self.instance, pl.LightningDataModule):
             method = getattr(self.instance, self.name)

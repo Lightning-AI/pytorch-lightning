@@ -4,8 +4,9 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch.loops.dataloader.dataloader_loop import _DataLoaderLoop
 from lightning.pytorch.loops.epoch.prediction_epoch_loop import _PredictionEpochLoop
-from lightning.pytorch.loops.utilities import _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _set_sampler_epoch
 from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
@@ -17,10 +18,11 @@ class _PredictionLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, inference_mode: bool = True) -> None:
         super().__init__()
         self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
         self.epoch_loop = _PredictionEpochLoop()
+        self.inference_mode = inference_mode
 
         self._results = None  # for `trainer._results` access
         self._predictions: List[List[Any]] = []  # num_dataloaders x batches
@@ -77,6 +79,7 @@ class _PredictionLoop(_DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
+    @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
         if self.skip:
             return None
@@ -106,8 +109,9 @@ class _PredictionLoop(_DataLoaderLoop):
 
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
-        self.trainer._call_lightning_module_hook("on_predict_model_eval")
-        self.trainer.lightning_module.zero_grad()
+        trainer = self.trainer
+        call._call_lightning_module_hook(trainer, "on_predict_model_eval")
+        trainer.lightning_module.zero_grad()
         self._on_predict_start()
         self._on_predict_epoch_start()
 
@@ -137,14 +141,16 @@ class _PredictionLoop(_DataLoaderLoop):
 
     def _on_predict_start(self) -> None:
         """Calls ``on_predict_start`` hooks."""
-        self.trainer._call_callback_hooks("on_predict_start")
-        self.trainer._call_lightning_module_hook("on_predict_start")
-        self.trainer._call_strategy_hook("on_predict_start")
+        trainer = self.trainer
+        call._call_callback_hooks(trainer, "on_predict_start")
+        call._call_lightning_module_hook(trainer, "on_predict_start")
+        call._call_strategy_hook(trainer, "on_predict_start")
 
     def _on_predict_epoch_start(self) -> None:
         """Calls ``on_predict_epoch_start`` hooks."""
-        self.trainer._call_callback_hooks("on_predict_epoch_start")
-        self.trainer._call_lightning_module_hook("on_predict_epoch_start")
+        trainer = self.trainer
+        call._call_callback_hooks(trainer, "on_predict_epoch_start")
+        call._call_lightning_module_hook(trainer, "on_predict_epoch_start")
 
     def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` hook.
@@ -152,8 +158,9 @@ class _PredictionLoop(_DataLoaderLoop):
         Returns:
             the results for all dataloaders
         """
-        self.trainer._call_callback_hooks("on_predict_epoch_end")
-        self.trainer._call_lightning_module_hook("on_predict_epoch_end")
+        trainer = self.trainer
+        call._call_callback_hooks(trainer, "on_predict_epoch_end")
+        call._call_lightning_module_hook(trainer, "on_predict_epoch_end")
 
         if self.return_predictions:
             return self.predictions
@@ -164,7 +171,7 @@ class _PredictionLoop(_DataLoaderLoop):
             self._predictions = []
         self.epoch_batch_indices = []
 
-        # hook
-        self.trainer._call_callback_hooks("on_predict_end")
-        self.trainer._call_lightning_module_hook("on_predict_end")
-        self.trainer._call_strategy_hook("on_predict_end")
+        trainer = self.trainer
+        call._call_callback_hooks(trainer, "on_predict_end")
+        call._call_lightning_module_hook(trainer, "on_predict_end")
+        call._call_strategy_hook(trainer, "on_predict_end")

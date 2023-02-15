@@ -274,7 +274,12 @@ class TQDMProgressBar(ProgressBarBase):
             self.val_progress_bar = self.init_validation_tqdm()
 
     def on_validation_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if not self.has_dataloader_changed(dataloader_idx):
             return
@@ -298,7 +303,12 @@ class TQDMProgressBar(ProgressBarBase):
         self.test_progress_bar = self.init_test_tqdm()
 
     def on_test_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if not self.has_dataloader_changed(dataloader_idx):
             return
@@ -319,7 +329,12 @@ class TQDMProgressBar(ProgressBarBase):
         self.predict_progress_bar = self.init_predict_tqdm()
 
     def on_predict_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if not self.has_dataloader_changed(dataloader_idx):
             return
