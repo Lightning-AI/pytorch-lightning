@@ -27,7 +27,6 @@ from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
@@ -60,7 +59,6 @@ class RunIf:
         deepspeed: bool = False,
         rich: bool = False,
         omegaconf: bool = False,
-        colossalai: bool = False,
         psutil: bool = False,
         sklearn: bool = False,
         **kwargs,
@@ -178,10 +176,6 @@ class RunIf:
         if omegaconf:
             conditions.append(not _OMEGACONF_AVAILABLE)
             reasons.append("omegaconf")
-
-        if colossalai:
-            conditions.append(not _COLOSSALAI_AVAILABLE)
-            reasons.append("ColossalAI")
 
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)

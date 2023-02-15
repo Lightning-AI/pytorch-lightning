@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
 from lightning.fabric.plugins.environments import (
@@ -853,3 +854,16 @@ def test_connector_defaults_match_trainer_defaults():
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
         assert connector_default == trainer_defaults[name]
+
+
+@pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
+def test_colossalai_external_strategy(monkeypatch):
+    with mock.patch(
+        "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False
+    ), pytest.raises(ModuleNotFoundError):
+        Trainer(strategy="colossalai")
+
+    from lightning_colossalai import ColossalAIStrategy
+
+    trainer = Trainer(strategy="colossalai", precision=16)
+    assert isinstance(trainer.strategy, ColossalAIStrategy)
