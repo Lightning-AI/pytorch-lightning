@@ -529,7 +529,8 @@ class AcceleratorConnector:
                 return TPUBf16PrecisionPlugin()
 
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
-            from lightning_colossalai import ColossalAIStrategy, ColossalAIPrecisionPlugin
+            from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
+
             if isinstance(self.strategy, ColossalAIStrategy):
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 

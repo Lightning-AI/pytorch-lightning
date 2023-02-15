@@ -25,9 +25,9 @@ from typing import Any, Dict
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 
 
 class GradientAccumulationScheduler(Callback):
@@ -128,6 +128,7 @@ class GradientAccumulationScheduler(Callback):
         unsupported_strategies = [DeepSpeedStrategy]
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIStrategy
+
             unsupported_strategies.append(ColossalAIStrategy)
 
         if isinstance(trainer.accelerator, unsupported_accelerators):
