@@ -856,7 +856,7 @@ def test_connector_defaults_match_trainer_defaults():
         assert connector_default == trainer_defaults[name]
 
 
-@pytest.mark.skipif(not package_available("lightning_colossalai"))
+@pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
 def test_colossalai_external_strategy(monkeypatch):
     with mock.patch(
         "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False
@@ -865,5 +865,5 @@ def test_colossalai_external_strategy(monkeypatch):
 
     from lightning_colossalai import ColossalAIStrategy
 
-    trainer = Trainer(strategy="colossalai")
-    assert isinstance(trainer, ColossalAIStrategy)
+    trainer = Trainer(strategy="colossalai", precision=16)
+    assert isinstance(trainer.strategy, ColossalAIStrategy)
