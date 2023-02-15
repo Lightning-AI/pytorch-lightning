@@ -51,7 +51,7 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/mod
 
 |
 
-Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations, making DDP much faster than DP:
+:class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations for each step, making it the simplest distributed training strategy:
 
 1. Moving data to the device.
 2. Transfer and sync gradients.
