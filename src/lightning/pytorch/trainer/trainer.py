@@ -1004,10 +1004,12 @@ class Trainer:
             return
 
         # FIXME(carmocca): do not set yet
-        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
+        self.train_dataloader = self._data_connector._request_dataloader(  # type: ignore[assignment]
+            RunningStage.TRAINING
+        )
 
         if self.overfit_batches > 0:
-            self.train_dataloader = self._data_connector._resolve_overfit_batches(
+            self.train_dataloader = self._data_connector._resolve_overfit_batches(  # type: ignore[assignment]
                 self.train_dataloader, mode=RunningStage.TRAINING
             )
 

@@ -193,28 +193,28 @@ class CombinedLoader(Iterable):
         >>> combined_loader = CombinedLoader(iterables, 'max_size_cycle')
         >>> len(combined_loader)
         3
-        >>> for item in combined_loader:
-        ...     print(item)
+        >>> for batch in combined_loader:
+        ...     print(batch)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([10, 11, 12, 13, 14])}
         >>> combined_loader = CombinedLoader(iterables, 'min_size')
         >>> len(combined_loader)
         2
-        >>> for item in combined_loader:
-        ...     print(item)
+        >>> for batch in combined_loader:
+        ...     print(batch)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         >>> combined_loader = CombinedLoader(iterables, 'sequential')
         >>> len(combined_loader)
         5
-        >>> for item in combined_loader:
-        ...     print(*item)
-        tensor([0, 1, 2, 3]) 0 0
-        tensor([4, 5]) 1 0
-        tensor([0, 1, 2, 3, 4]) 0 1
-        tensor([5, 6, 7, 8, 9]) 1 1
-        tensor([10, 11, 12, 13, 14]) 2 1
+        >>> for batch, batch_idx, dataloader_idx in combined_loader:
+        ...     print(f"{batch} {batch_idx=} {dataloader_idx=}")
+        tensor([0, 1, 2, 3]) batch_idx=0 dataloader_idx=0
+        tensor([4, 5]) batch_idx=1 dataloader_idx=0
+        tensor([0, 1, 2, 3, 4]) batch_idx=0 dataloader_idx=1
+        tensor([5, 6, 7, 8, 9]) batch_idx=1 dataloader_idx=1
+        tensor([10, 11, 12, 13, 14]) batch_idx=2 dataloader_idx=1
     """
 
     def __init__(self, iterables: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
