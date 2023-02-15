@@ -1,4 +1,5 @@
 import io
+import sys
 import tarfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -68,6 +69,7 @@ plugin = TestPlugin()
 """
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @pytest.mark.parametrize(
     "body,message,tar_file_name,content",
     [
@@ -149,6 +151,7 @@ plugin = TestPlugin()
 """
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
 @mock.patch("lightning.app.core.plugin.requests")
 def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server):
