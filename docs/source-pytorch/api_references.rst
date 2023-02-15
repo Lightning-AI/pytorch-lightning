@@ -43,7 +43,6 @@ callbacks
     ModelSummary
     OnExceptionCheckpoint
     ProgressBarBase
-    QuantizationAwareTraining
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
