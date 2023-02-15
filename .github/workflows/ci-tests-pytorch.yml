@@ -61,7 +61,7 @@ jobs:
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
-          # pytorch 2.9 Tests (currently pre-release, change this once it's released)
+          # pytorch 2.0 Tests (currently pre-release, change this once it's released)
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
