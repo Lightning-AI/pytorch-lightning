@@ -21,7 +21,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.13
 ARG MAX_ALLOWED_NCCL=2.16.2
-ARG PRE_RELEASE
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -92,11 +91,11 @@ RUN \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
-      if [[ -z "$PRE_RELEASE" ]] ; then python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; else python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} --remove_torch_ver ; fi  \
+      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
+
     # Install base requirements \
-    if [[ -z "$PRE_RELEASE" ]] ; then export TORCH_WHEEL_OPTIONS="--find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" ; else export TORCH_WHEEL_OPTIONS="--extra-index-url https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM} --pre"; fi && \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS} && \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
 
 RUN \
@@ -112,7 +111,7 @@ RUN \
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS}
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
