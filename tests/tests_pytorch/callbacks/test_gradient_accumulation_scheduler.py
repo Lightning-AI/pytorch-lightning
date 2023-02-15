@@ -96,13 +96,16 @@ def test_invalid_values_for_grad_accum_scheduler(scheduling):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
 
 
-@pytest.mark.parametrize("strategy_class", [
-    pytest.param(
-        ColossalAIStrategy,
-        marks=pytest.mark.skipif(not _LIGHTNING_COLOSSALAI_AVAILABLE, reason="Requires ColossalAI strategy")
-    ),
-    DeepSpeedStrategy
-])
+@pytest.mark.parametrize(
+    "strategy_class",
+    [
+        pytest.param(
+            ColossalAIStrategy,
+            marks=pytest.mark.skipif(not _LIGHTNING_COLOSSALAI_AVAILABLE, reason="Requires ColossalAI strategy"),
+        ),
+        DeepSpeedStrategy,
+    ],
+)
 def test_unsupported_strategies(strategy_class):
     """Test that an error is raised for strategies that require the gradient accumulation factor to be fixed."""
     scheduler = GradientAccumulationScheduler({1: 2})
