@@ -37,9 +37,9 @@ class LightningPlugin:
     actions."""
 
     def __init__(self) -> None:
-        self.project_id = None
-        self.cloudspace_id = None
-        self.cluster_id = None
+        self.project_id = ""
+        self.cloudspace_id = ""
+        self.cluster_id = ""
 
     def run(self, *args: str, **kwargs: str) -> None:
         """Override with the logic to execute on the cloudspace."""
