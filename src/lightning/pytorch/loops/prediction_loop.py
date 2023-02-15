@@ -222,7 +222,9 @@ class _PredictionLoop(_Loop):
         any_on_epoch = any(cb.interval.on_epoch for cb in prediction_writer_callbacks)
         any_on_batch = any(cb.interval.on_batch for cb in prediction_writer_callbacks)
         if any_on_batch or any_on_epoch:
-            dataloader = self.current_dataloader
+            combined_loader = self.trainer.predict_dataloaders
+            assert combined_loader is not None
+            dataloader = combined_loader._flattened[dataloader_idx]
             batch_indices = self._get_batch_indices(dataloader)
             if not batch_indices:
                 # this is only available with `IndexBatchSamplerWrapper`, but it's only used on DataLoaders, if this is
