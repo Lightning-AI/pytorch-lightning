@@ -40,7 +40,6 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
-    ColossalAIPrecisionPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     HPUPrecisionPlugin,
@@ -54,7 +53,6 @@ from lightning.pytorch.plugins import (
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
-    ColossalAIStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -71,6 +69,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -529,8 +528,11 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
 
-        if isinstance(self.strategy, ColossalAIStrategy):
-            return ColossalAIPrecisionPlugin(self._precision_flag)
+        if _LIGHTNING_COLOSSALAI_AVAILABLE:
+            from lightning_colossalai import ColossalAIStrategy, ColossalAIPrecisionPlugin
+            if isinstance(self.strategy, ColossalAIStrategy):
+                return ColossalAIPrecisionPlugin(self._precision_flag)
+
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)
 
