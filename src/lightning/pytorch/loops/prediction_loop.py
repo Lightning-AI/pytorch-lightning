@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from lightning_utilities import WarningCache
@@ -67,24 +67,6 @@ class _PredictionLoop(_Loop):
         return len(combined_loader._flattened)
 
     @property
-    def current_dataloader_idx(self) -> int:
-        """Returns the index of the current dataloader."""
-        combined_loader = self.trainer.predict_dataloaders
-        assert combined_loader is not None
-        if combined_loader._mode != "sequential":
-            raise ValueError(f'`{type(self).__name__}` only supports the `CombinedLoader(mode="sequential")` mode.')
-        if combined_loader._iterator is None:
-            raise RuntimeError("The iterator has not been created yet.")
-        return combined_loader._iterator._iterator_idx
-
-    @property
-    def current_dataloader(self) -> Iterable:
-        """Returns the current dataloader."""
-        combined_loader = self.trainer.predict_dataloaders
-        assert combined_loader is not None
-        return combined_loader._flattened[self.current_dataloader_idx]
-
-    @property
     def max_batches(self) -> List[Union[int, float]]:
         """The max number of batches this loop will run for each dataloader."""
         return self.trainer.num_predict_batches
@@ -104,15 +86,15 @@ class _PredictionLoop(_Loop):
         while True:
             try:
                 if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-                    dataloader = data_fetcher.dataloader
-                    assert isinstance(dataloader._iterator, _Sequential)
-                    batch_idx = dataloader._iterator._idx
+                    iterator = data_fetcher.dataloader._iterator
+                    assert isinstance(iterator, _Sequential)
+                    batch_idx = iterator._idx
+                    dataloader_idx = iterator._iterator_idx
                     batch = next(data_fetcher)
                 else:
-                    # FIXME(carmocca): this needs to return the associated dataloader_idx. See rich pbar test
-                    batch_idx, batch = next(data_fetcher)
+                    batch, batch_idx, dataloader_idx = next(data_fetcher)
                 self.batch_progress.is_last_batch = data_fetcher.done
-                self._predict_step(batch, batch_idx, self.current_dataloader_idx)
+                self._predict_step(batch, batch_idx, dataloader_idx)
                 self._restarting = False
             except StopIteration:
                 break

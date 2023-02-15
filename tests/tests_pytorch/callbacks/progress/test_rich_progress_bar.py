@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ProgressBarBase, RichProgressBar
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from tests_pytorch.helpers.runif import RunIf
 
@@ -48,7 +48,7 @@ def test_rich_progress_bar_refresh_rate_enabled():
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize("dataset", [RandomIterableDataset(32, 64)])
+@pytest.mark.parametrize("dataset", [RandomDataset(32, 64), RandomIterableDataset(32, 64)])
 def test_rich_progress_bar(tmpdir, dataset):
     class TestModel(BoringModel):
         def train_dataloader(self):
@@ -74,6 +74,19 @@ def test_rich_progress_bar(tmpdir, dataset):
         callbacks=RichProgressBar(),
     )
     model = TestModel()
+
+    with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.fit(model)
+    # 2 for train progress bar and 1 for val progress bar
+    assert mocked.call_count == 3
+
+    with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.validate(model)
+    assert mocked.call_count == 1
+
+    with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.test(model)
+    assert mocked.call_count == 1
 
     with mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update") as mocked:
         trainer.predict(model)

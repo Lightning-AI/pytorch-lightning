@@ -74,7 +74,7 @@ class _MinSize(_ModeIterator[List]):
         return [next(it) for it in self.iterators]
 
 
-class _Sequential(_ModeIterator[Tuple[int, Any]]):
+class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
     def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         super().__init__(iterables)
         self._iterator_idx = 0  # what would be dataloader_idx
@@ -93,7 +93,7 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
             )
         self._limits = limits
 
-    def __next__(self) -> Tuple[int, Any]:
+    def __next__(self) -> Tuple[Any, int, int]:
         n = len(self.iterators)
         if n == 0 or self._iterator_idx >= n:
             raise StopIteration
@@ -109,8 +109,8 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
             out = next(self.iterators[self._iterator_idx])
             index = self._idx
             self._idx += 1
-            # the return is enumerated by default
-            return index, out
+            # batch, batch_idx, dataloader_idx
+            return out, index, self._iterator_idx
         except StopIteration:
             # try the next iterator
             self._use_next_iterator()
@@ -210,11 +210,11 @@ class CombinedLoader(Iterable):
         5
         >>> for item in combined_loader:
         ...     print(*item)
-        0 tensor([0, 1, 2, 3])
-        1 tensor([4, 5])
-        0 tensor([0, 1, 2, 3, 4])
-        1 tensor([5, 6, 7, 8, 9])
-        2 tensor([10, 11, 12, 13, 14])
+        tensor([0, 1, 2, 3]) 0 0
+        tensor([4, 5]) 1 0
+        tensor([0, 1, 2, 3, 4]) 0 1
+        tensor([5, 6, 7, 8, 9]) 1 1
+        tensor([10, 11, 12, 13, 14]) 2 1
     """
 
     def __init__(self, iterables: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:

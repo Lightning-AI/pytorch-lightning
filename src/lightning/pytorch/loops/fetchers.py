@@ -197,5 +197,5 @@ class _DataFetcherWrapper(Iterator):
             # avoid breaking change with sequential mode and dataloader_iter. this is okay because
             # dataloader_iter + sequential + multiple dataloaders is not supported so the `*_step(..., batch_idx)` value
             # and the batch_index we are excluding here will match
-            return out[1]
+            return out[0]
         return out
