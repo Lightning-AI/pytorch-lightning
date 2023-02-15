@@ -117,7 +117,7 @@ jobs:
     - name: Env. variables
       run: |
         # Switch PyTorch URL
-        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{ matrix.release }}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('nightly/cpu' if '${{ matrix.release }}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
         python -c "print('TORCH_PREINSTALL=' + str('--pre' if '${{ matrix.release }}' == 'pre' else ''))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
