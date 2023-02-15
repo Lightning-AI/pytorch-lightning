@@ -41,7 +41,6 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
-from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
@@ -1333,13 +1332,6 @@ class Trainer:
         """A list of all instances of :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` found in
         the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
-
-    @property
-    def prediction_writer_callbacks(self) -> List[BasePredictionWriter]:
-        """A list of all instances of :class:`~lightning.pytorch.callbacks.prediction_writer.BasePredictionWriter`
-        found in the Trainer.callbacks list."""
-        # FIXME(carmocca): get rid of this property
-        return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property
     def checkpoint_callback(self) -> Optional[Checkpoint]:
