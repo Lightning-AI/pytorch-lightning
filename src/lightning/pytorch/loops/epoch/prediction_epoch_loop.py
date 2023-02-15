@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterator, List, Tuple, Union
 import torch
 
 from lightning.fabric.utilities import move_data_to_device
+from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
@@ -36,7 +37,8 @@ class _PredictionEpochLoop(_Loop):
     @property
     def should_store_predictions(self) -> bool:
         """Whether the predictions should be stored for later usage (e.g. aggregation or returning)"""
-        any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
+        prediction_writers = [cb for cb in self.trainer.callbacks if isinstance(cb, BasePredictionWriter)]
+        any_pred = any(cb.interval.on_epoch for cb in prediction_writers)
         return self.return_predictions or any_pred
 
     def run(
