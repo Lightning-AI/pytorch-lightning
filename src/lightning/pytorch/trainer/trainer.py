@@ -960,8 +960,7 @@ class Trainer:
             ]
 
             # run eval step
-            with torch.no_grad():
-                val_loop.run()
+            val_loop.run()
 
             call._call_callback_hooks(self, "on_sanity_check_end")
 
