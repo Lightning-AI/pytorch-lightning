@@ -99,26 +99,11 @@ RUN \
     pip install -r requirements/pytorch/base.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS} && \
     rm assistant.py
 
-
-RUN \
-    # install Bagua
-    if [[ $PYTORCH_VERSION != "1.13" ]] && [[ $PYTORCH_VERSION != "2.0" ]]; then \
-        CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") ; \
-        CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") ; \
-        pip install "bagua-cuda$CUDA_VERSION_BAGUA" ; \
-        if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then \
-          python -c "import bagua_core; bagua_core.install_deps()"; \
-        fi ; \
-        python -c "import bagua; print(bagua.__version__)"; \
-    fi
-
 RUN \
     # install ColossalAI
     # TODO: 1.13 wheels are not released, remove skip once they are
     if [[ $PYTORCH_VERSION != "1.13" ]] && [[ $PYTORCH_VERSION != "2.0" ]]; then \
-        CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
-        CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
-        pip install "colossalai==0.1.12+torch${PYTORCH_VERSION}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
+        pip install "colossalai==0.2.3"; \
         python -c "import colossalai; print(colossalai.__version__)" ; \
     fi
 

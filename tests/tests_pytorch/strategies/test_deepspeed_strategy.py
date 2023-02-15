@@ -190,15 +190,11 @@ def test_warn_deepspeed_ignored(tmpdir):
         accelerator="gpu",
         devices=1,
         precision=16,
-        track_grad_norm=2,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    from lightning.pytorch.plugins.precision.deepspeed import warning_cache
-
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
-    assert any("track_grad_norm=2.0)' but this is not supported" in w for w in warning_cache)
 
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
@@ -1132,7 +1128,7 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_specific_gpu_device_id(tmpdir):
     class TestCallback(Callback):
-        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        def on_train_start(self, *_) -> None:
             assert model.device.index == 1
 
         def on_train_batch_start(
@@ -1140,11 +1136,11 @@ def test_specific_gpu_device_id(tmpdir):
             trainer: Trainer,
             pl_module: LightningModule,
             batch: Any,
-            batch_idx: int,
+            *_,
         ) -> None:
             assert batch.device.index == 1
 
-        def on_test_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        def on_test_start(self, *_) -> None:
             assert model.device.index == 1
 
         def on_test_batch_start(
@@ -1152,8 +1148,7 @@ def test_specific_gpu_device_id(tmpdir):
             trainer: Trainer,
             pl_module: LightningModule,
             batch: Any,
-            batch_idx: int,
-            dataloader_idx: int,
+            *_,
         ) -> None:
             assert batch.device.index == 1
 

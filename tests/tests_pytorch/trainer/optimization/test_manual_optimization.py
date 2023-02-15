@@ -184,7 +184,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx):
+    def on_train_batch_end(self, *_):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
@@ -280,7 +280,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
             return loss.detach() if self.detach else loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
@@ -372,10 +372,6 @@ def test_multiple_optimizers_step(tmpdir):
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)
 
-        def log_grad_norm(self, grad_norm_dict):
-            self.check_grads_unscaled()
-            assert len(grad_norm_dict)
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -390,7 +386,6 @@ def test_multiple_optimizers_step(tmpdir):
         precision=16,
         accelerator="gpu",
         devices=1,
-        track_grad_norm=2,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
