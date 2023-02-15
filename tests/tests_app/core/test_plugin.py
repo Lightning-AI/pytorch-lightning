@@ -1,3 +1,6 @@
+import io
+import tarfile
+from dataclasses import dataclass
 from pathlib import Path
 from unittest import mock
 
@@ -5,7 +8,7 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from lightning.app.core.plugin import _Run, _start_plugin_server, LightningPlugin
+from lightning.app.core.plugin import _Run, _start_plugin_server
 
 
 @pytest.fixture()
@@ -25,31 +28,142 @@ def mock_plugin_server(mock_uvicorn) -> TestClient:
     return test_client["client"]
 
 
-def test_run_errors(mock_plugin_server):
-    body = _Run(
-        plugin_entrypoint="test",
-        source_code_url="this_url_does_not_exist",
-        project_id="any",
-        cloudspace_id="any",
-        cluster_id="any",
-        plugin_arguments={},
-    )
+@dataclass
+class _MockResponse:
+    content: bytes
+
+
+def mock_requests_get(valid_url, return_value):
+    """Used to replace `requests.get` with a function that returns the given value for the given valid URL and
+    raises otherwise."""
+
+    def inner(url):
+        if url == valid_url:
+            return _MockResponse(return_value)
+        raise RuntimeError
+
+    return inner
+
+
+def as_tar_bytes(file_name, content):
+    """Utility to encode the given string as a gzipped tar and return the bytes."""
+    tar_fileobj = io.BytesIO()
+    with tarfile.open(fileobj=tar_fileobj, mode="w|gz") as tar:
+        content = content.encode("utf-8")
+        tf = tarfile.TarInfo(file_name)
+        tf.size = len(content)
+        tar.addfile(tf, io.BytesIO(content))
+    tar_fileobj.seek(0)
+    return tar_fileobj.read()
+
+
+_plugin_with_internal_error = """
+import lightning as L
+
+class TestPlugin(L.LightningPlugin):
+    def run(self):
+        raise RuntimeError("Internal Error")
+
+plugin = TestPlugin()
+"""
+
+
+@pytest.mark.parametrize(
+    "body,message,tar_file_name,content",
+    [
+        (
+            _Run(
+                plugin_entrypoint="test",
+                source_code_url="this_url_does_not_exist",
+                project_id="any",
+                cloudspace_id="any",
+                cluster_id="any",
+                plugin_arguments={},
+            ),
+            "Error downloading plugin source:",
+            None,
+            b"",
+        ),
+        (
+            _Run(
+                plugin_entrypoint="test",
+                source_code_url="http://test.tar.gz",
+                project_id="any",
+                cloudspace_id="any",
+                cluster_id="any",
+                plugin_arguments={},
+            ),
+            "Error extracting plugin source:",
+            None,
+            b"this is not a tar",
+        ),
+        (
+            _Run(
+                plugin_entrypoint="plugin.py",
+                source_code_url="http://test.tar.gz",
+                project_id="any",
+                cloudspace_id="any",
+                cluster_id="any",
+                plugin_arguments={},
+            ),
+            "Error loading plugin:",
+            "plugin.py",
+            "this is not a plugin",
+        ),
+        (
+            _Run(
+                plugin_entrypoint="plugin.py",
+                source_code_url="http://test.tar.gz",
+                project_id="any",
+                cloudspace_id="any",
+                cluster_id="any",
+                plugin_arguments={},
+            ),
+            "Error running plugin:",
+            "plugin.py",
+            _plugin_with_internal_error,
+        ),
+    ],
+)
+@mock.patch("lightning.app.core.plugin.requests")
+def test_run_errors(mock_requests, mock_plugin_server, body, message, tar_file_name, content):
+    if tar_file_name is not None:
+        content = as_tar_bytes(tar_file_name, content)
+
+    mock_requests.get.side_effect = mock_requests_get("http://test.tar.gz", content)
 
     response = mock_plugin_server.post("/v1/runs", json=body.dict(exclude_none=True))
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    assert "Error downloading plugin source:" in response.text
+    assert message in response.text
+
+
+_plugin_with_job_run = """
+import lightning as L
+
+class TestPlugin(L.LightningPlugin):
+    def run(self, name, entrypoint):
+        self.run_job(name, entrypoint)
+
+plugin = TestPlugin()
+"""
 
 
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
-def test_run_app(mock_cloud_runtime, mock_plugin_server):
-    """Tests that app dispatch call the correct `CloudRuntime` methods with the correct arguments."""
+@mock.patch("lightning.app.core.plugin.requests")
+def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server):
+    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct
+    arguments."""
+    content = as_tar_bytes("plugin.py", _plugin_with_job_run)
+    mock_requests.get.side_effect = mock_requests_get("http://test.tar.gz", content)
+
     body = _Run(
-        plugin_name="app",
+        plugin_entrypoint="plugin.py",
+        source_code_url="http://test.tar.gz",
         project_id="test_project_id",
         cloudspace_id="test_cloudspace_id",
-        name="test_name",
-        entrypoint="test_entrypoint",
+        cluster_id="test_cluster_id",
+        plugin_arguments={"name": "test_name", "entrypoint": "test_entrypoint"},
     )
 
     mock_app = mock.MagicMock()
@@ -59,13 +173,12 @@ def test_run_app(mock_cloud_runtime, mock_plugin_server):
 
     assert response.status_code == status.HTTP_200_OK
 
-    mock_cloud_runtime.load_app_from_file.assert_called_once_with(
-        str((Path("/content") / "test_entrypoint").absolute())
-    )
+    mock_cloud_runtime.load_app_from_file.assert_called_once()
+    assert "test_entrypoint" in mock_cloud_runtime.load_app_from_file.call_args[0][0]
 
     mock_cloud_runtime.assert_called_once_with(
         app=mock_app,
-        entrypoint=Path("/content/test_entrypoint"),
+        entrypoint=Path("test_entrypoint"),
         start_server=True,
         env_vars={},
         secrets={},
@@ -75,44 +188,6 @@ def test_run_app(mock_cloud_runtime, mock_plugin_server):
     mock_cloud_runtime().cloudspace_dispatch.assert_called_once_with(
         project_id=body.project_id,
         cloudspace_id=body.cloudspace_id,
-        name=body.name,
+        name="test_name",
         cluster_id=body.cluster_id,
     )
-
-
-@mock.patch("lightning.app.utilities.commands.base._download_command")
-@mock.patch("lightning.app.utilities.cli_helpers._LightningAppOpenAPIRetriever")
-def test_run_plugin(mock_retriever, mock_download_command, mock_plugin_server):
-    """Tests that running a plugin calls the correct `CloudRuntime` methods with the correct arguments."""
-    body = _Run(
-        plugin_name="test_plugin",
-        project_id="test_project_id",
-        cloudspace_id="test_cloudspace_id",
-        name="test_name",
-        entrypoint="test_entrypoint",
-        app_id="test_app_id",
-    )
-
-    mock_plugin = mock.MagicMock(spec=LightningPlugin)
-    mock_download_command.return_value = mock_plugin
-
-    mock_retriever.return_value.api_commands = {
-        body.plugin_name: {"cls_path": "test_cls_path", "cls_name": "test_cls_name"}
-    }
-
-    response = mock_plugin_server.post("/v1/runs", json=body.dict(exclude_none=True))
-
-    assert response.status_code == status.HTTP_200_OK
-
-    mock_retriever.assert_called_once_with(body.app_id)
-
-    mock_download_command.assert_called_once_with(
-        body.plugin_name,
-        "test_cls_path",
-        "test_cls_name",
-        body.app_id,
-        target_file=mock.ANY,
-    )
-
-    mock_plugin._setup.assert_called_once_with(app_id=body.app_id)
-    mock_plugin.run.assert_called_once_with(body.name, body.entrypoint)
