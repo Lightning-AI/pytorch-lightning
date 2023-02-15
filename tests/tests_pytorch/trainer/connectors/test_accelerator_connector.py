@@ -50,6 +50,8 @@ from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torc
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
+from lightning_utilities.core.imports import package_available
+
 
 def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -853,3 +855,14 @@ def test_connector_defaults_match_trainer_defaults():
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
         assert connector_default == trainer_defaults[name]
+
+
+@pytest.mark.skipif(not package_available("lightning_colossalai"))
+def test_colossalai_external_strategy(monkeypatch):
+    with mock.patch("lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False), pytest.raises(ModuleNotFoundError, match="The `lightning-colossalai` package is required"):
+        Trainer(strategy="colossalai")
+
+    from lightning_colossalai import ColossalAIStrategy
+
+    trainer = Trainer(strategy="colossalai")
+    assert isinstance(trainer, ColossalAIStrategy)
