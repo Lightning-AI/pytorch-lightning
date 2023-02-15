@@ -13,12 +13,11 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
@@ -161,7 +160,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
-    def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
+    def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
         TPUSpawnStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 

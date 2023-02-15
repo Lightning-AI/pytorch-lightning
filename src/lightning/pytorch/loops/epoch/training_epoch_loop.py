@@ -283,6 +283,7 @@ class _TrainingEpochLoop(loops._Loop):
         # reload dataloaders
         self.val_loop._reload_evaluation_dataloaders()
 
+        assert self.trainer.val_dataloaders is not None
         for i, dl in enumerate(self.trainer.val_dataloaders._flattened):
             _set_sampler_epoch(dl, self.trainer.fit_loop.epoch_progress.current.processed)
 

@@ -28,6 +28,7 @@ from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fet
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.trainer.supporters import _Sequential
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 
 if _RICH_AVAILABLE:
@@ -96,14 +97,18 @@ class _EvaluationLoop(_Loop):
             return []
         self.reset()
         self.on_run_start()
+        data_fetcher = self._data_fetcher
+        assert data_fetcher is not None
         while True:
             try:
-                if isinstance(self._data_fetcher, _DataLoaderIterDataFetcher):
-                    batch_idx = self._data_fetcher._dataloader._iterator._idx
-                    batch = next(self._data_fetcher)
+                if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+                    dataloader = data_fetcher.dataloader
+                    assert isinstance(dataloader._iterator, _Sequential)
+                    batch_idx = dataloader._iterator._idx
+                    batch = next(data_fetcher)
                 else:
-                    batch_idx, batch = next(self._data_fetcher)
-                self.batch_progress.is_last_batch = self._data_fetcher.done
+                    batch_idx, batch = next(data_fetcher)
+                self.batch_progress.is_last_batch = data_fetcher.done
                 self._evaluation_step(batch, batch_idx, self.current_dataloader_idx)
                 self._restarting = False
             except StopIteration:
@@ -136,6 +141,7 @@ class _EvaluationLoop(_Loop):
         assert combined_loader is not None
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
+        assert isinstance(combined_loader._iterator, _Sequential)
         # set the per-dataloader limits
         combined_loader._iterator.limits = self.max_batches
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, List, Literal, Optional, Sized, Tuple, Type, TypeVar
+from typing import Any, Callable, Iterator, List, Literal, Optional, Sized, Tuple, Type, TypeVar, Union
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict
@@ -75,18 +75,18 @@ class _MinSize(_ModeIterator[List]):
 
 
 class _Sequential(_ModeIterator[Tuple[int, Any]]):
-    def __init__(self, iterables: List[Iterable], limits: Optional[List[int]] = None) -> None:
+    def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         super().__init__(iterables)
         self._iterator_idx = 0  # what would be dataloader_idx
         self._idx = 0  # what would be batch_idx
         self.limits = limits
 
     @property
-    def limits(self) -> Optional[List[int]]:
+    def limits(self) -> Optional[List[Union[int, float]]]:
         return self._limits
 
     @limits.setter
-    def limits(self, limits: Optional[List[int]]) -> None:
+    def limits(self, limits: Optional[List[Union[int, float]]]) -> None:
         if limits is not None and len(limits) != len(self.iterables):
             raise ValueError(
                 f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
@@ -247,13 +247,17 @@ class CombinedLoader(Iterable):
         return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self._flattened, self._spec)
 
     def __next__(self) -> Any:
+        assert self._iterator is not None
         out = next(self._iterator)
         if isinstance(self._iterator, _Sequential):
             return out
         return tree_unflatten(out, self._spec)
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
-        self._iterator = self._create_iterator()
+        cls = _supported_modes[self._mode]["iterator"]
+        iterator = cls(self._flattened)
+        iter(iterator)
+        self._iterator = iterator
         return self
 
     def __len__(self) -> int:
@@ -268,15 +272,11 @@ class CombinedLoader(Iterable):
         return fn(lengths)
 
     def reset(self) -> None:
-        self._iterator.reset()
+        if self._iterator is not None:
+            self._iterator.reset()
+            self._iterator = None
         for iterable in self._flattened:
             _shutdown_workers_and_reset_iterator(iterable)
-
-    def _create_iterator(self) -> _ModeIterator:
-        cls = _supported_modes[self._mode]["iterator"]
-        iterator = cls(self._flattened)
-        iter(iterator)
-        return iterator
 
     def _update_index(self, dataloader: Iterable, index: int) -> None:
         # mutation needs to be done using this method to avoid stale references
