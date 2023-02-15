@@ -685,7 +685,8 @@ def _set_torch_flags(
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 
-def _register_external_accelerators_and_strategies():
+def _register_external_accelerators_and_strategies() -> None:
+    """Registers all known strategies in other packages."""
     if _LIGHTNING_COLOSSALAI_AVAILABLE:
         from lightning_colossalai import ColossalAIStrategy
 
