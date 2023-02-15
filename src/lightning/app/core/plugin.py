@@ -16,6 +16,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 import requests
 import uvicorn
@@ -111,7 +112,10 @@ def _run_plugin(run: _Run) -> List:
 
         # Download the tarball
         try:
-            response = requests.get(run.source_code_url)
+            # Sometimes the URL gets encoded, so we parse it here
+            source_code_url = urlparse(run.source_code_url).geturl()
+
+            response = requests.get(source_code_url)
 
             with open(download_path, "wb") as f:
                 f.write(response.content)
