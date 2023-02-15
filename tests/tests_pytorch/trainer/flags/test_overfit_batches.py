@@ -74,7 +74,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
     with pytest.warns(UserWarning, match="requested to overfit but enabled train dataloader shuffling"):
         trainer.fit(model)
 
-    assert isinstance(trainer.train_dataloader.loaders.sampler, SequentialSampler)
+    assert isinstance(trainer.train_dataloader.iterables.sampler, SequentialSampler)
     assert isinstance(trainer.val_dataloaders[0].sampler, SequentialSampler)
 
 
@@ -161,6 +161,6 @@ def test_distributed_sampler_with_overfit_batches():
     trainer.strategy._lightning_module = model
     trainer._data_connector.attach_dataloaders(model)
     trainer.reset_train_dataloader()
-    train_sampler = trainer.train_dataloader.loaders.sampler
+    train_sampler = trainer.train_dataloader.iterables.sampler
     assert isinstance(train_sampler, DistributedSampler)
     assert train_sampler.shuffle is False

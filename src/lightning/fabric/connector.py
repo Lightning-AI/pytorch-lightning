@@ -188,6 +188,7 @@ class _Connector:
         if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
+                " It must be either a string or an instance of `lightning.fabric.strategies.Strategy`."
                 " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
                 " Find a complete list of options in our documentation at https://lightning.ai"
             )
@@ -439,12 +440,12 @@ class _Connector:
 
     def _init_strategy(self) -> None:
         """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
+        # The validation of `_strategy_flag` already happened earlier on in the connector
+        assert isinstance(self._strategy_flag, (str, Strategy))
         if isinstance(self._strategy_flag, str):
             self.strategy = STRATEGY_REGISTRY.get(self._strategy_flag)
-        elif isinstance(self._strategy_flag, Strategy):
-            self.strategy = self._strategy_flag
         else:
-            raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
+            self.strategy = self._strategy_flag
 
     def _check_and_init_precision(self) -> Precision:
         self._validate_precision_choice()

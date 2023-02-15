@@ -213,7 +213,6 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    BaguaStrategy
     ColossalAIStrategy
     DDPSpawnStrategy
     DDPStrategy
@@ -250,7 +249,6 @@ utilities
     :toctree: api
     :nosignatures:
 
-    argparse
     data
     deepspeed
     distributed

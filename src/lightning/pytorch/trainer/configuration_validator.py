@@ -64,19 +64,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
-    # verify gradient accumulation setup
-    overridden_optimizer_step = is_overridden("optimizer_step", model)
-    overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
-    automatic_optimization = model.automatic_optimization
-    going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
-    has_overridden_optimization_functions = overridden_optimizer_step or overridden_optimizer_zero_grad
-    if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
-        rank_zero_warn(
-            "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
-            " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
-            " (rather, they are called on every optimization step)."
-        )
-
     # verify minimum validation requirements
     has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
     has_val_step = is_overridden("validation_step", model)

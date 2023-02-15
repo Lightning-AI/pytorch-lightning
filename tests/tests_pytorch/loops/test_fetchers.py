@@ -123,18 +123,6 @@ def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     assert fetcher.done
 
 
-def test_misconfiguration_error():
-    fetcher = _PrefetchDataFetcher()
-    loader = DataLoader(range(10))
-    fetcher.setup(loader)
-    with pytest.raises(
-        MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
-    ):
-        fetcher.loader_iters
-    iter(fetcher)
-    assert fetcher.loader_iters
-
-
 def get_cycles_per_ms() -> float:
     """Get 10 values and remove the 2 max and 2 min and return the avg.
 
@@ -387,7 +375,7 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             pass
 
     trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)

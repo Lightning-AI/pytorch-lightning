@@ -25,7 +25,8 @@ from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
 from lightning.pytorch.loops.fetchers import _DataFetcher
-from lightning.pytorch.loops.utilities import _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
 
@@ -41,10 +42,11 @@ class _EvaluationLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self, verbose: bool = True) -> None:
+    def __init__(self, verbose: bool = True, inference_mode: bool = True) -> None:
         super().__init__()
         self.epoch_loop = _EvaluationEpochLoop()
         self.verbose = verbose
+        self.inference_mode = inference_mode
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
@@ -88,6 +90,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         max_batches = self._get_max_batches()
         return sum(max_batches) == 0
 
+    @_no_grad_context
     def run(self) -> List[_OUT_DICT]:
         if self.skip:
             return []
@@ -135,13 +138,8 @@ class _EvaluationLoop(_DataLoaderLoop):
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader
 
-        def batch_to_device(batch: Any) -> Any:
-            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
-            return batch
-
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
+        self._data_fetcher.setup(dataloader)
         dl_max_batches = self._max_batches[dataloader_idx]
 
         kwargs = OrderedDict()
@@ -229,49 +227,58 @@ class _EvaluationLoop(_DataLoaderLoop):
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""
-        assert self._results is not None
-        self._results.to(device=self.trainer.lightning_module.device)
+        trainer = self.trainer
 
-        hook_name = "on_test_start" if self.trainer.testing else "on_validation_start"
-        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
-        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        assert self._results is not None
+        self._results.to(device=trainer.lightning_module.device)
+
+        hook_name = "on_test_start" if trainer.testing else "on_validation_start"
+        call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+        call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
+        call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
-        hook_name = "on_test_model_eval" if self.trainer.testing else "on_validation_model_eval"
-        self.trainer._call_lightning_module_hook(hook_name)
+        trainer = self.trainer
+        hook_name = "on_test_model_eval" if trainer.testing else "on_validation_model_eval"
+        call._call_lightning_module_hook(trainer, hook_name)
 
     def _on_evaluation_model_train(self) -> None:
         """Sets model to train mode."""
-        hook_name = "on_test_model_train" if self.trainer.testing else "on_validation_model_train"
-        self.trainer._call_lightning_module_hook(hook_name)
+        trainer = self.trainer
+        hook_name = "on_test_model_train" if trainer.testing else "on_validation_model_train"
+        call._call_lightning_module_hook(trainer, hook_name)
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""
-        hook_name = "on_test_end" if self.trainer.testing else "on_validation_end"
-        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
-        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        trainer = self.trainer
+        hook_name = "on_test_end" if trainer.testing else "on_validation_end"
+        call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+        call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
+        call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
 
         # reset the logger connector state
-        self.trainer._logger_connector.reset_results()
+        trainer._logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_{validation/test}_epoch_start`` hooks."""
-        self.trainer._logger_connector.on_epoch_start()
+        trainer = self.trainer
 
-        hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
-        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
-        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        trainer._logger_connector.on_epoch_start()
+
+        hook_name = "on_test_epoch_start" if trainer.testing else "on_validation_epoch_start"
+        call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+        call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
-        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-        self.trainer._call_callback_hooks(hook_name)
-        self.trainer._call_lightning_module_hook(hook_name)
+        trainer = self.trainer
 
-        self.trainer._logger_connector.on_epoch_end()
+        hook_name = "on_test_epoch_end" if trainer.testing else "on_validation_epoch_end"
+        call._call_callback_hooks(trainer, hook_name)
+        call._call_lightning_module_hook(trainer, hook_name)
+
+        trainer._logger_connector.on_epoch_end()
 
     @staticmethod
     def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:

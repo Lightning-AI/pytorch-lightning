@@ -252,9 +252,6 @@ def test_device_iterations_ipu_strategy(tmpdir):
 def test_accumulated_batches(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            # ensure the accumulation_scheduler is overridden to accumulate every batch
-            # since ipu handle accumulation
-            assert trainer.accumulation_scheduler.scheduling == {0: 1}
             # assert poptorch option have been set correctly
             poptorch_model = trainer.strategy.poptorch_models[RunningStage.TRAINING]
             assert poptorch_model._options.Training.toDict()["gradient_accumulation"] == 2
@@ -297,16 +294,16 @@ def test_stages_correct(tmpdir):
             return (output - output) + torch.tensor(4)
 
     class TestCallback(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
+        def on_train_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["loss"].item() == 1
 
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_validation_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs.item() == 2
 
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_test_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs.item() == 3
 
-        def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_predict_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert torch.all(outputs == 4).item()
 
     model = StageModel()
@@ -317,16 +314,6 @@ def test_stages_correct(tmpdir):
     trainer.test(model)
     trainer.validate(model)
     trainer.predict(model, model.test_dataloader())
-
-
-@RunIf(ipu=True)
-def test_different_accumulate_grad_batches_fails(tmpdir):
-    model = IPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, accumulate_grad_batches={1: 2})
-    with pytest.raises(
-        MisconfigurationException, match="IPUs currently does not support different `accumulate_grad_batches`"
-    ):
-        trainer.fit(model)
 
 
 @RunIf(ipu=True)
@@ -378,7 +365,7 @@ def test_manual_poptorch_dataloader(tmpdir):
 
     assert isinstance(trainer.strategy, IPUStrategy)
     assert trainer.strategy.training_opts is other_options
-    dataloader = trainer.train_dataloader.loaders
+    dataloader = trainer.train_dataloader.iterables
     assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
     # dataloader uses the options in the model, not the strategy
     assert dataloader.options is model_options
@@ -406,7 +393,7 @@ def test_manual_poptorch_opts(tmpdir):
     assert trainer.strategy.training_opts == training_opts
     assert trainer.strategy.inference_opts == inference_opts
 
-    dataloader = trainer.train_dataloader.loaders
+    dataloader = trainer.train_dataloader.iterables
     assert isinstance(dataloader, poptorch.DataLoader)
     assert dataloader.options == training_opts
     assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
@@ -440,7 +427,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
             val_dataloader = trainer.val_dataloaders[0]
             train_dataloader = trainer.train_dataloader
             assert isinstance(train_dataloader, CombinedLoader)
-            train_dataloader = train_dataloader.loaders
+            train_dataloader = train_dataloader.iterables
             assert isinstance(val_dataloader, poptorch.DataLoader)
             assert isinstance(train_dataloader, poptorch.DataLoader)
             assert train_dataloader.options.replication_factor == 2

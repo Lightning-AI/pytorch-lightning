@@ -99,26 +99,6 @@ def test_gradient_clip_algorithm_error(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
-def test_gradient_accumulation_raises(tmpdir):
-    model = ModelParallelBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        devices=1,
-        precision=16,
-        strategy="colossalai",
-        max_epochs=1,
-        accumulate_grad_batches={0: 1, 4: 2, 8: 3},
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="ColossalAI currently does not support different `accumulate_grad_batches` at different epochs.",
-    ):
-        trainer.fit(model)
-
-
-@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
 def test_colossalai_optimizer(tmpdir):
     model = BoringModel()
     trainer = Trainer(
@@ -153,15 +133,12 @@ def test_warn_colossalai_ignored(tmpdir):
         devices=1,
         precision=16,
         strategy="colossalai",
-        track_grad_norm=2,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    from lightning.pytorch.plugins.precision.colossalai import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since ColossalAI handles the backward"):
         trainer.fit(model)
-    assert any("track_grad_norm=2.0)' but this is not supported" in w for w in warning_cache)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
@@ -251,6 +228,7 @@ def test_multi_gpu_checkpointing(tmpdir):
         precision=16,
         strategy="colossalai",
         callbacks=[ck],
+        num_sanity_val_steps=0,  # TODO: remove once validation/test before fitting is supported again
     )
     trainer.fit(model, datamodule=dm)
 
@@ -258,11 +236,17 @@ def test_multi_gpu_checkpointing(tmpdir):
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results == results
 
-    # here, we test whether restore_checkpoint_after_setup is worked
+
+@pytest.mark.xfail(raises=AssertionError, match="You should run a completed iteration as your warmup iter")
+@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True, sklearn=True)
+def test_test_without_fit(tmpdir):
     model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, precision=16, strategy="colossalai")
-    saved_results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
-    assert saved_results == results
+
+    # Colossal requires warmup, you can't run validation/test without having fit first
+    # This is a temporary limitation
+    trainer.test(model, datamodule=dm)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True, sklearn=True)
@@ -278,6 +262,7 @@ def test_multi_gpu_model_colossalai_fit_test(tmpdir):
         precision=16,
         strategy=ColossalAIStrategy(initial_scale=32),
         max_epochs=1,
+        num_sanity_val_steps=0,  # TODO: remove once validation/test before fitting is supported again
     )
     trainer.fit(model, datamodule=dm)
 
