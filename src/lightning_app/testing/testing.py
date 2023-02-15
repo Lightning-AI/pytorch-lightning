@@ -285,7 +285,7 @@ def run_app_in_cloud(
     token = res.json()["token"]
 
     # 3. Disconnect from the App if any.
-    Popen("lightning disconnect", shell=True).wait()
+    Popen("lightning logout", shell=True).wait()
 
     # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -394,6 +394,9 @@ def run_app_in_cloud(
             print("'Create Project' dialog not visible, skipping.")
 
         admin_page.locator(f'[data-cy="{name}"]').click()
+
+        app_url = admin_page.url
+        admin_page.goto(app_url + "/logs")
 
         client = LightningClient()
         project_id = _get_project(client).project_id

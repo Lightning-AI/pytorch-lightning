@@ -37,7 +37,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
-_COLOSSALAI_GREATER_0_1_10 = RequirementCache("colossalai>0.1.10")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
     with _patch_cuda_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
@@ -95,7 +94,7 @@ class ColossalAIStrategy(DDPStrategy):
 
         chunk_search_n_grids: The number of intervals in the search range.
 
-        min_chunk_size: The minimum size for a chunk.
+        min_chunk_size: The minimum size for a chunk in bytes.
 
         initial_scale: The initial dynamic loss scale value.
 
@@ -131,7 +130,7 @@ class ColossalAIStrategy(DDPStrategy):
         gpu_margin_mem_ratio: float = 0.0,
         chunk_search_range: int = 64 * 1024**2,
         chunk_search_n_grids: int = 4096,
-        min_chunk_size: Optional[int] = None,
+        min_chunk_size: int = 32 * 1024**2,
         initial_scale: float = 2**16,
         min_scale: float = 1,
         growth_factor: float = 2,
@@ -244,10 +243,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def setup_precision_plugin(self) -> None:
         with _patch_cuda_is_available():
-            from colossalai.gemini import ChunkManager, GeminiManager
             from colossalai.nn.optimizer import CPUAdam, HybridAdam
-            from colossalai.nn.parallel import ZeroDDP
-            from colossalai.tensor import ProcessGroup
             from colossalai.zero import ZeroOptimizer
 
         super().setup_precision_plugin()
@@ -267,52 +263,28 @@ class ColossalAIStrategy(DDPStrategy):
         pl_module = self.model
 
         if not hasattr(pl_module, "_colossalai_zero"):
-            if not _COLOSSALAI_GREATER_0_1_10:
-                if self.use_chunk:
-                    chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
-                        self.model, **self.chunk_size_search_kwargs
-                    )
-                else:
-                    chunk_size = None
-                process_group = ProcessGroup()
-                chunk_manager = ChunkManager(
-                    chunk_size,
-                    process_group,
-                    self.enable_distributed_storage,
-                    GeminiManager.get_default_device(self.placement_policy),
-                )
-                gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
-                model = _LightningModuleWrapperBase(self.model)
-                self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
-            else:
-                with _patch_cuda_is_available():
-                    from colossalai.nn.parallel import GeminiDDP
-                    from colossalai.utils import get_current_device
-                if not self.use_chunk:
-                    raise ValueError("`ColossalAIStrategy` must use chunk in versions higher than 0.1.10")
-                chunk_search_range: int = self.chunk_size_search_kwargs.get(
-                    "search_range", 32 * 1024**2
-                )  # type: ignore[assignment]
-                search_range_mb: float = chunk_search_range / 1024**2
-                search_n_grids: int = self.chunk_size_search_kwargs.get("n_grids", 4096)  # type: ignore[assignment]
-                search_interval: int = math.ceil(chunk_search_range / search_n_grids)
-                min_chunk_size_mb: float = self.chunk_size_search_kwargs.get(
-                    "min_chunk_size", 32 * 1024**2
-                )  # type: ignore[assignment]
-                if min_chunk_size_mb is not None:
-                    min_chunk_size_mb /= 1024**2
+            with _patch_cuda_is_available():
+                from colossalai.nn.parallel import GeminiDDP
+                from colossalai.utils import get_current_device
+            if not self.use_chunk:
+                raise ValueError("`ColossalAIStrategy` must use chunk in versions higher than 0.1.10")
+            chunk_search_range: int = self.chunk_size_search_kwargs.get("search_range", 32 * 1024**2)
+            search_range_mb: float = chunk_search_range / 1024**2
+            search_n_grids: int = self.chunk_size_search_kwargs.get("n_grids", 4096)
+            search_interval: int = math.ceil(chunk_search_range / search_n_grids)
+            min_chunk_size_mb = int(self.chunk_size_search_kwargs["min_chunk_size"] // (1024**2))
 
-                model = _LightningModuleWrapperBase(self.model)
-                self.model = GeminiDDP(
-                    module=model,
-                    device=get_current_device(),
-                    placement_policy=self.placement_policy,
-                    pin_memory=True,
-                    force_outputs_fp32=self.force_outputs_fp32,
-                    search_range_mb=search_range_mb,
-                    hidden_dim=search_interval,
-                    min_chunk_size_mb=min_chunk_size_mb,
-                )
+            model = _LightningModuleWrapperBase(self.model)
+            self.model = GeminiDDP(
+                module=model,
+                device=get_current_device(),
+                placement_policy=self.placement_policy,
+                pin_memory=True,
+                force_outputs_fp32=self.force_outputs_fp32,
+                search_range_mb=search_range_mb,
+                hidden_dim=search_interval,
+                min_chunk_size_mb=min_chunk_size_mb,
+            )
 
             assert self.model is not None
             pl_module._colossalai_zero = [self.model]  # type: ignore[assignment]

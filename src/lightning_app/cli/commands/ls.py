@@ -18,8 +18,8 @@ from contextlib import nullcontext
 from typing import Generator, List, Optional
 
 import click
+import lightning_cloud
 import rich
-from fastapi import HTTPException
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from rich.console import Console
 from rich.live import Live
@@ -65,7 +65,7 @@ def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) ->
                 lines = f.readlines()
                 root = lines[0].replace("\n", "")
 
-        client = LightningClient()
+        client = LightningClient(retry=False)
         projects = client.projects_service_list_memberships()
 
         if root == "/":
@@ -256,7 +256,7 @@ def _collect_artifacts(
                     page_token=response.next_page_token,
                     tokens=tokens,
                 )
-        except HTTPException:
+        except lightning_cloud.openapi.rest.ApiException:
             # Note: This is triggered when the request is wrong.
             # This is currently happening due to looping through the user clusters.
             pass

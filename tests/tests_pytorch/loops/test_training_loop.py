@@ -228,4 +228,4 @@ def test_should_stop_early_stopping_conditions_met(
         assert trainer.fit_loop.done is fit_loop_done
 
     assert (message in caplog.text) is raise_debug_msg
-    assert trainer.fit_loop._should_stop_early is early_stop
+    assert trainer.fit_loop._can_stop_early is early_stop
