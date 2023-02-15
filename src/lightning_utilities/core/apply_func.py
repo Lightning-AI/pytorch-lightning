@@ -9,11 +9,13 @@ from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Unio
 
 
 def is_namedtuple(obj: object) -> bool:
+    """Check if object is type nametuple."""
     # https://github.com/pytorch/pytorch/blob/v1.8.1/torch/nn/parallel/scatter_gather.py#L4-L8
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
 
 def is_dataclass_instance(obj: object) -> bool:
+    """Check if object is dataclass."""
     # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 

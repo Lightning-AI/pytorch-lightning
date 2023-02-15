@@ -55,6 +55,7 @@ class StrEnum(str, Enum):
 
     @classmethod
     def try_from_str(cls, value: str, source: Literal["key", "value", "any"] = "key") -> Optional["StrEnum"]:
+        """Try to create emun and if it does not match any, return `None`."""
         try:
             return cls.from_str(value, source)
         except ValueError:
@@ -76,11 +77,13 @@ class StrEnum(str, Enum):
         return keys + vals
 
     def __eq__(self, other: object) -> bool:
+        """Compare two instances."""
         if isinstance(other, Enum):
             other = other.value
         return self.value.lower() == str(other).lower()
 
     def __hash__(self) -> int:
+        """Return unique hash."""
         # re-enable hashtable, so it can be used as a dict key or in a set
         # example: set(LightningEnum)
         return hash(self.value.lower())

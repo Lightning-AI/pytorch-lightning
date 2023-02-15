@@ -108,14 +108,17 @@ class RequirementCache:
                 self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
 
     def __bool__(self) -> bool:
+        """Format as bool."""
         self._check_requirement()
         return self.available
 
     def __str__(self) -> str:
+        """Format as string."""
         self._check_requirement()
         return self.message
 
     def __repr__(self) -> str:
+        """Format as string."""
         return self.__str__()
 
 
@@ -144,19 +147,22 @@ class ModuleAvailableCache:
             self.message = f"Module not found: {self.module!r}. HINT: Try running `pip install -U {self.module}`"
 
     def __bool__(self) -> bool:
+        """Format as bool."""
         self._check_requirement()
         return self.available
 
     def __str__(self) -> str:
+        """Format as string."""
         self._check_requirement()
         return self.message
 
     def __repr__(self) -> str:
+        """Format as string."""
         return self.__str__()
 
 
 def get_dependency_min_version_spec(package_name: str, dependency_name: str) -> str:
-    """Returns the minimum version specifier of a dependency of a package.
+    """Return the minimum version specifier of a dependency of a package.
 
     >>> get_dependency_min_version_spec("pytorch-lightning==1.8.0", "jsonargparse")
     '>=4.12.0'
@@ -187,12 +193,14 @@ class LazyModule(ModuleType):
         self._callback = callback
 
     def __getattr__(self, item: str) -> Any:
+        """Overwrite attribute access to attribute."""
         if self._module is None:
             self._import_module()
 
         return getattr(self._module, item)
 
     def __dir__(self) -> List[str]:
+        """Overwrite attribute access for dictionary."""
         if self._module is None:
             self._import_module()
 
@@ -212,7 +220,7 @@ class LazyModule(ModuleType):
 
 
 def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyModule:
-    """Returns a proxy module object that will lazily import the given module the first time it is used.
+    """Return a proxy module object that will lazily import the given module the first time it is used.
 
     Example usage:
 
@@ -233,7 +241,7 @@ def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyMo
 
 
 def requires(*module_path: str, raise_exception: bool = True) -> Callable:
-    """Wrapper for early import failure with some nice exception message.
+    """Wrap early import failure with some nice exception message.
 
     Example:
         >>> @requires("libpath", raise_exception=bool(int(os.getenv("LIGHTING_TESTING", "0"))))

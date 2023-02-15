@@ -8,6 +8,7 @@ from unittest.mock import Mock
 
 
 def is_overridden(method_name: str, instance: object, parent: Type[object]) -> bool:
+    """Check if a method of a given object was overwritten."""
     instance_attr = getattr(instance, method_name, None)
     if instance_attr is None:
         return False
