@@ -128,6 +128,7 @@ class AcceleratorConnector:
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
+        _register_external_accelerators_and_strategies()
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
 
@@ -142,7 +143,6 @@ class AcceleratorConnector:
         self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
 
-        _register_external_accelerators_and_strategies()
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
