@@ -540,11 +540,9 @@ class CloudRuntime(Runtime):
     ) -> str:
         """If there are existing cloudspaces but not on the cluster - choose a randomised name."""
         if len(existing_cloudspaces) > 0 and existing_cloudspace is None:
-            letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
             name_exists = True
             while name_exists:
-                random_name = cloudspace_name + "-" + "".join(random.sample(letters, 4))
+                random_name = cloudspace_name + "-" + "".join(random.sample(string.ascii_letters, 4))
                 name_exists = any([app.name == random_name for app in existing_cloudspaces])
 
             cloudspace_name = random_name
@@ -557,11 +555,9 @@ class CloudRuntime(Runtime):
     ) -> str:
         """If there are existing instances with the same name - choose a randomised name."""
         if len(existing_instances) > 0:
-            letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
             name_exists = True
             while name_exists:
-                random_name = name + "-" + "".join(random.sample(letters, 4))
+                random_name = name + "-" + "".join(random.sample(string.ascii_letters, 4))
                 name_exists = any([app.name == random_name for app in existing_instances])
 
             name = random_name
