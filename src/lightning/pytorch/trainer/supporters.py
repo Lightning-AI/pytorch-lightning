@@ -229,8 +229,7 @@ class CombinedLoader(Iterable):
         self.dataset = _CombinedDataset(datasets, mode)
 
         self._mode = mode
-        # create the iterator on __init__ to avoid nullity checks
-        self._iterator = self._create_iterator()
+        self._iterator: Optional[_ModeIterator] = None
 
     @property
     def iterables(self) -> Any:

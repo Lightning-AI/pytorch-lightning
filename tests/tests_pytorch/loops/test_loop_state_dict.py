@@ -65,15 +65,10 @@ def test_loops_state_dict_structure():
                 },
             },
             "epoch_loop.val_loop.state_dict": {},
-            "epoch_loop.val_loop.dataloader_progress": {
-                "total": {"ready": 0, "completed": 0},
-                "current": {"ready": 0, "completed": 0},
-            },
-            "epoch_loop.val_loop.epoch_loop.state_dict": {},
-            "epoch_loop.val_loop.epoch_loop.batch_progress": {
-                # number of batches across validation runs per epoch
+            "epoch_loop.val_loop.batch_progress": {
+                # number of batches across validation runs per epoch across dataloaders
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                # number of batches for this validation run
+                # number of batches for this validation run across dataloaders
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },
@@ -84,21 +79,17 @@ def test_loops_state_dict_structure():
         },
         "validate_loop": {
             "state_dict": {},
-            "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
-            "epoch_loop.state_dict": {},
-            "epoch_loop.batch_progress": {
-                # total batches run by `validate`
+            "batch_progress": {
+                # total batches run by `validate` across dataloaders
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                # number of batches run by this `validate` call
+                # number of batches run by this `validate` call across dataloaders
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },
         },
         "test_loop": {
             "state_dict": {},
-            "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
-            "epoch_loop.state_dict": {},
-            "epoch_loop.batch_progress": {
+            "batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
@@ -106,9 +97,7 @@ def test_loops_state_dict_structure():
         },
         "predict_loop": {
             "state_dict": {},
-            "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
-            "epoch_loop.state_dict": {},
-            "epoch_loop.batch_progress": {
+            "batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
             },

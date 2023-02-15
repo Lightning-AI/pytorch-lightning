@@ -99,6 +99,7 @@ class _PrefetchDataFetcher(_DataFetcher):
     def __iter__(self) -> "_PrefetchDataFetcher":
         super().__iter__()
         if self._has_len:
+            # ignore pre-fetching, it's not necessary
             return self
         # prefetch batches to know when the iterator will be exhausted in advance
         iterator = self.dataloader_iter

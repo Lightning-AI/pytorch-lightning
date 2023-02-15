@@ -23,7 +23,7 @@ from lightning.pytorch.loops.optimization import _AutomaticOptimization, _Manual
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
-from lightning.pytorch.loops.utilities import _is_max_limit_reached
+from lightning.pytorch.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
@@ -105,7 +105,7 @@ class _TrainingEpochLoop(loops._Loop):
     @property
     def _is_validation_done(self) -> bool:
         # when we are restarting we want to check whether the val loop has finished
-        return not self.restarting or self.val_loop.done
+        return not self.restarting or self.val_loop._has_run
 
     @property
     def done(self) -> bool:
@@ -282,6 +282,9 @@ class _TrainingEpochLoop(loops._Loop):
     def _run_validation(self) -> None:
         # reload dataloaders
         self.val_loop._reload_evaluation_dataloaders()
+
+        for i, dl in enumerate(self.trainer.val_dataloaders._flattened):
+            _set_sampler_epoch(dl, self.trainer.fit_loop.epoch_progress.current.processed)
 
         with torch.no_grad():
             self.val_loop.run()

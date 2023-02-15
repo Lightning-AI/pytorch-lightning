@@ -67,9 +67,7 @@ class RunningStage(LightningEnum):
 
     @property
     def dataloader_prefix(self) -> Optional[str]:
-        if self == self.SANITY_CHECKING:
-            return None
-        if self == self.VALIDATING:
+        if self in (self.SANITY_CHECKING, self.VALIDATING):
             return "val"
         return self.value
 

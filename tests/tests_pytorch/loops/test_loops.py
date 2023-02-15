@@ -231,13 +231,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     ckpt_path = str(tmpdir / "on_exception.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
-    total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
-    expected = {
-        "total": {"ready": total_dataloader + 1, "completed": total_dataloader},
-        "current": {"ready": stop_dataloader + 1, "completed": stop_dataloader},
-    }
-    assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
-
     trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
@@ -253,14 +246,14 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             "completed": total_val_batch,
         },
         "current": {
-            "ready": stop_batch + 1,
-            "started": stop_batch + 1,
-            "processed": stop_batch,
-            "completed": stop_batch,
+            "ready": total_val_batch + 1,
+            "started": total_val_batch + 1,
+            "processed": total_val_batch,
+            "completed": total_val_batch,
         },
         "is_last_batch": False,
     }
-    assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
+    assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.state_dict() == expected
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
@@ -392,9 +385,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             },
         },
         "epoch_loop.val_loop.state_dict": ANY,
-        "epoch_loop.val_loop.dataloader_progress": ANY,
-        "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
-        "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        "epoch_loop.val_loop.batch_progress": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -532,9 +523,7 @@ def test_loop_state_on_complete_run(tmpdir):
             },
         },
         "epoch_loop.val_loop.state_dict": ANY,
-        "epoch_loop.val_loop.dataloader_progress": ANY,
-        "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
-        "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        "epoch_loop.val_loop.batch_progress": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -680,19 +669,19 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     }
 
     val_per_epoch = int(1 // val_check_interval)
-    assert state_dict["epoch_loop.val_loop.dataloader_progress"] == {
-        "total": {"ready": n_val_dataloaders * val_per_epoch, "completed": n_val_dataloaders * val_per_epoch},
-        "current": {"ready": n_val_dataloaders, "completed": n_val_dataloaders},
-    }
-
-    assert state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"] == {
+    assert state_dict["epoch_loop.val_loop.batch_progress"] == {
         "total": {
             "ready": n_val_dataloaders * val_per_epoch * n_batches,
             "started": n_val_dataloaders * val_per_epoch * n_batches,
             "processed": n_val_dataloaders * val_per_epoch * n_batches,
             "completed": n_val_dataloaders * val_per_epoch * n_batches,
         },
-        "current": {"ready": n_batches, "completed": n_batches, "started": n_batches, "processed": n_batches},
+        "current": {
+            "ready": n_val_dataloaders * n_batches,
+            "started": n_val_dataloaders * n_batches,
+            "processed": n_val_dataloaders * n_batches,
+            "completed": n_val_dataloaders * n_batches,
+        },
         "is_last_batch": True,
     }
 
@@ -729,7 +718,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         "is_last_batch": val_check_interval == 1,
     }
 
-    val_batch_progress = "epoch_loop.val_loop.epoch_loop.batch_progress"
+    val_batch_progress = "epoch_loop.val_loop.batch_progress"
     # "nb_": non-breaking
     nb_total_val_batch = stop_dataloader * n_batches
     assert checkpoint[val_batch_progress] == {
@@ -740,10 +729,10 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
             "completed": nb_total_val_batch + stop_batch,
         },
         "current": {
-            "ready": stop_batch + 1,
-            "started": stop_batch + 1,
-            "processed": stop_batch,
-            "completed": stop_batch,
+            "ready": nb_total_val_batch + stop_batch + 1,
+            "started": nb_total_val_batch + stop_batch + 1,
+            "processed": nb_total_val_batch + stop_batch,
+            "completed": nb_total_val_batch + stop_batch,
         },
         "is_last_batch": False,
     }
@@ -766,10 +755,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     expected = state_dict.copy()
 
     assert state_dict_after_restart["epoch_loop.batch_progress"] == expected["epoch_loop.batch_progress"]
-
-    val_dl_progress = "epoch_loop.val_loop.dataloader_progress"
-    expected[val_dl_progress]["total"]["ready"] += 1
-    assert state_dict_after_restart[val_dl_progress] == expected[val_dl_progress]
 
     expected[val_batch_progress]["total"]["ready"] += 1
     expected[val_batch_progress]["total"]["started"] += 1
@@ -830,4 +815,5 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
 
     assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
     # on sanity checking end, the workers are being deleted too.
-    assert val_dataloader.count_shutdown_workers == 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
+    expected = 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
+    assert val_dataloader.count_shutdown_workers == expected

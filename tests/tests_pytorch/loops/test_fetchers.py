@@ -64,8 +64,9 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
 
     # we can only know the last batch with sized iterables or when we prefetch
     is_last_batch = [False, False, prefetch_batches > 0 or dataset_cls is SizedDataset]
-    fetched = list(range(prefetch_batches + 1, 4))
-    fetched += [3] * (3 - len(fetched))
+    fetched = (
+        [1, 2, 3] if dataset_cls is SizedDataset else [1, 2, 3, 3, 3, 3, 3][prefetch_batches : prefetch_batches + 3]
+    )
     batches = [[1, 1], [2, 2], [3, 3]] if use_combined_loader else [1, 2, 3]
     expected = list(zip(fetched, batches, is_last_batch))
     assert len(expected) == 3
@@ -489,13 +490,12 @@ def test_fetching_is_profiled():
     assert isinstance(profiler, SimpleProfiler)
 
     # validation
-    for i in range(2):  # 2 dataloaders
-        key = f"[_EvaluationLoop].val_dataloader_idx_{i}_next"
-        assert key in profiler.recorded_durations
-        durations = profiler.recorded_durations[key]
-        # +1 because we fetch one extra batch before breaking the loop when the fast_dev_run condition allows
-        assert len(durations) == fast_dev_run + 1
-        assert all(d > 0 for d in durations)
+    key = "[_EvaluationLoop].val_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    # +1 because we fetch one extra batch before breaking the loop when the fast_dev_run condition allows
+    assert len(durations) == 2 * fast_dev_run + 1
+    assert all(d > 0 for d in durations)
     # training
     key = "[_TrainingEpochLoop].train_dataloader_next"
     assert key in profiler.recorded_durations
@@ -503,13 +503,13 @@ def test_fetching_is_profiled():
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # test
-    key = "[_EvaluationLoop].val_dataloader_idx_0_next"
+    key = "[_EvaluationLoop].test_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run + 1
     assert all(d > 0 for d in durations)
     # predict
-    key = "[_PredictionLoop].predict_dataloader_idx_0_next"
+    key = "[_PredictionLoop].predict_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run + 1

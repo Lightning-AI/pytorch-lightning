@@ -63,6 +63,8 @@ class _EvaluationLoop(_Loop):
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
             raise ValueError(f'`{type(self).__name__}` only supports the `CombinedLoader(mode="sequential")` mode.')
+        if combined_loader._iterator is None:
+            raise RuntimeError("The iterator has not been created yet.")
         return combined_loader._iterator._iterator_idx
 
     @property
@@ -264,15 +266,15 @@ class _EvaluationLoop(_Loop):
         stage = self.trainer.state.stage
         assert stage is not None
         stage = stage.dataloader_prefix
-        self.trainer.profiler.start(
-            f"[{type(self).__name__}].{stage}_dataloader_idx_{self.current_dataloader_idx}_next"
-        )
+        self.trainer.profiler.start(f"[{type(self).__name__}].{stage}_next")
 
     def _on_after_fetch(self) -> None:
         stage = self.trainer.state.stage
         assert stage is not None
         stage = stage.dataloader_prefix
-        self.trainer.profiler.stop(f"[{type(self).__name__}].{stage}_dataloader_idx_{self.current_dataloader_idx}_next")
+        # the dataloader_idx cannot be easily included here because it might be different from the index used on
+        # profiler start, since the `__next__` call might use a different iterator
+        self.trainer.profiler.stop(f"[{type(self).__name__}].{stage}_next")
 
     def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual evaluation step together with all the necessary bookkeeping and the hooks tied to it.

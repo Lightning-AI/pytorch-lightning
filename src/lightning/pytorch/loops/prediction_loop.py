@@ -72,6 +72,8 @@ class _PredictionLoop(_Loop):
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
             raise ValueError(f'`{type(self).__name__}` only supports the `CombinedLoader(mode="sequential")` mode.')
+        if combined_loader._iterator is None:
+            raise RuntimeError("The iterator has not been created yet.")
         return combined_loader._iterator._iterator_idx
 
     @property
@@ -245,12 +247,12 @@ class _PredictionLoop(_Loop):
         return any_on_epoch
 
     def _on_before_fetch(self) -> None:
-        self.trainer.profiler.start(
-            f"[{type(self).__name__}].predict_dataloader_idx_{self.current_dataloader_idx}_next"
-        )
+        self.trainer.profiler.start(f"[{type(self).__name__}].predict_next")
 
     def _on_after_fetch(self) -> None:
-        self.trainer.profiler.stop(f"[{type(self).__name__}].predict_dataloader_idx_{self.current_dataloader_idx}_next")
+        # the dataloader_idx cannot be easily included here because it might be different from the index used on
+        # profiler start, since the `__next__` call might use a different iterator
+        self.trainer.profiler.stop(f"[{type(self).__name__}].predict_next")
 
     def _on_predict_start(self) -> None:
         """Calls ``on_predict_start`` hooks."""
