@@ -1,6 +1,5 @@
 import os
 import re
-import sys
 from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
@@ -41,7 +40,7 @@ def replace(req: str, torch_version: Optional[str] = None, remove_torch_ver: boo
 
     latest = find_latest(torch_version)
     for lib, version in latest.items():
-        if remove_torch_ver and lib == 'torch':
+        if remove_torch_ver and lib == "torch":
             replace = lib
         else:
             replace = f"{lib}=={version}" if version else ""
@@ -52,10 +51,11 @@ def replace(req: str, torch_version: Optional[str] = None, remove_torch_ver: boo
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('requirements_path', type=str)
-    parser.add_argument('torch_version', type=str, default=None)
-    parser.add_argument('--remove_torch_ver', action='store_true')
+    parser.add_argument("requirements_path", type=str)
+    parser.add_argument("torch_version", type=str, default=None)
+    parser.add_argument("--remove_torch_ver", action="store_true")
     args = parser.parse_args()
     print(f"requirements_path='{args.requirements_path}' with torch_version='{args.torch_version}'")
 
