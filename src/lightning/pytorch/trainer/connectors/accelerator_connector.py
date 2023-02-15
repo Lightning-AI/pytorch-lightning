@@ -207,10 +207,7 @@ class AcceleratorConnector:
             self._strategy_flag = strategy
 
         if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
-            raise ModuleNotFoundError(
-                "The `lightning-colossalai` package is required to run the ColossalAI strategy."
-                " HINT: Try running `pip install -U lightning-colossalai`"
-            )
+            raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
 
         if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(

@@ -860,7 +860,7 @@ def test_connector_defaults_match_trainer_defaults():
 def test_colossalai_external_strategy(monkeypatch):
     with mock.patch(
         "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False
-    ), pytest.raises(ModuleNotFoundError, match="The `lightning-colossalai` package is required"):
+    ), pytest.raises(ModuleNotFoundError):
         Trainer(strategy="colossalai")
 
     from lightning_colossalai import ColossalAIStrategy
