@@ -108,7 +108,7 @@ def test_tqdm_progress_bar_misconfiguration():
         Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 
-@pytest.mark.parametrize("num_dl", [2])
+@pytest.mark.parametrize("num_dl", [1, 2])
 def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     """Test that the progress finishes with the correct total steps processed."""
 

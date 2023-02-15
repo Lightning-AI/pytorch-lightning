@@ -433,9 +433,9 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
     )
 
     with patch.object(
-        trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
+        trainer.fit_loop.epoch_loop.val_loop,
         "_evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
+        wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
         assert trainer.num_training_batches == limit_train_batches

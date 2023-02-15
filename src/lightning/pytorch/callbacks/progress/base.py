@@ -77,11 +77,6 @@ class ProgressBarBase(Callback):
         return "Predicting"
 
     @property
-    def _val_processed(self) -> int:
-        # use total in case validation runs more than once per training epoch
-        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
-
-    @property
     def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 

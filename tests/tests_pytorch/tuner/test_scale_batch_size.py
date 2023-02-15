@@ -313,7 +313,7 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
         assert advance_mocked.call_count == max_trials
 
     assert trainer.train_dataloader.iterables.batch_size == new_batch_size
-    assert trainer.val_dataloaders[0].batch_size == init_batch_size
+    assert trainer.val_dataloaders.iterables[0].batch_size == init_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
@@ -333,8 +333,7 @@ def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
 
     assert trainer.global_step == 0
     assert trainer.current_epoch == 0
-    assert loop.dataloader_progress.current.completed == 0
-    assert loop.epoch_loop.batch_progress.current.completed == 0
+    assert loop.batch_progress.current.completed == 0
     assert expected_scaled_batch_size == after_batch_size
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
 
@@ -357,23 +356,22 @@ def test_batch_size_finder_callback(tmpdir, trainer_fn):
     loop = getattr(trainer, f"{trainer_fn}_loop")
 
     if trainer_fn == "fit":
-        expected_steps = trainer.train_dataloader.iterables.dataset.len // after_batch_size
+        expected_steps = len(trainer.train_dataloader.dataset) // after_batch_size
         assert trainer.global_step == expected_steps * max_epochs
         assert trainer.current_epoch == max_epochs
         assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
     else:
         if trainer_fn == "validate":
-            dl = trainer.val_dataloaders[0]
+            dl = trainer.val_dataloaders
         elif trainer_fn == "test":
-            dl = trainer.test_dataloaders[0]
+            dl = trainer.test_dataloaders
         elif trainer_fn == "predict":
-            dl = trainer.predict_dataloaders[0]
+            dl = trainer.predict_dataloaders
 
-        expected_steps = dl.dataset.len // after_batch_size
+        expected_steps = len(dl.dataset) // after_batch_size
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
-        assert loop.dataloader_progress.current.completed == 1
-        assert loop.epoch_loop.batch_progress.current.completed == expected_steps
+        assert loop.batch_progress.current.completed == expected_steps
 
     assert expected_scaled_batch_size == after_batch_size
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))

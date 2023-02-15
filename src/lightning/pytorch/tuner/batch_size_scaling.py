@@ -300,28 +300,25 @@ def _adjust_batch_size(
     if desc:
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
+    from lightning.pytorch.trainer.supporters import CombinedLoader
+
     if trainer.state.fn == "fit":
-        from lightning.pytorch.trainer.supporters import CombinedLoader
-
-        if trainer.train_dataloader is None:
+        dataloader = trainer.train_dataloader
+        if dataloader is None:
             trainer.reset_train_dataloader()
-
-        assert isinstance(trainer.train_dataloader, CombinedLoader)
-        if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
-            # at this moment, `train_dataloader` is already a CombinedLoader. len can return a size or infinity
-            new_size = min(new_size, len(trainer.train_dataloader.dataset))  # type: ignore[arg-type]
+        dataloader = trainer.train_dataloader
+        assert isinstance(dataloader, CombinedLoader)
+        if not _is_valid_batch_size(new_size, dataloader, trainer):
+            new_size = min(new_size, len(dataloader.dataset))  # type: ignore[arg-type]
     else:
         stage = trainer.state.stage
         assert stage is not None
         dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
         if dataloaders is None:
             _reset_dataloaders(trainer, model)
-
-        dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
-        assert dataloaders is not None
-        # TODO: should we consider all the eval dataloaders here?
-        if not _is_valid_batch_size(new_size, dataloaders[0], trainer):
-            new_size = min(new_size, len(dataloaders[0].dataset))
+        assert isinstance(dataloaders, CombinedLoader)
+        if not _is_valid_batch_size(new_size, dataloaders, trainer):
+            new_size = min(new_size, len(dataloaders.dataset))
 
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
