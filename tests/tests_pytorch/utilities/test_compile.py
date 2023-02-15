@@ -14,13 +14,13 @@
 
 import pytest
 import torch
+from lightning_utilities.core import module_available
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
-from lightning_utilities.core import module_available
 
 
 @RunIf(min_torch="2.0.0")
@@ -59,7 +59,7 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     assert trainer.model._compiler_ctx is None
 
     # some strategies do not support it
-    if module_available('deepspeed'):
+    if module_available("deepspeed"):
         compiled_model = torch.compile(model)
         mock_cuda_count(monkeypatch, 2)
         trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
