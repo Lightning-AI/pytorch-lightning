@@ -94,18 +94,18 @@ class NeptuneLogger(Logger):
             def training_step(self, batch, batch_idx):
                 # log metrics
                 acc = ...
-                self.log("train/loss", loss)
+                self.append("train/loss", loss)
 
             def any_lightning_module_function_or_hook(self):
                 # log images
                 img = ...
-                self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
+                self.logger.experiment["train/misclassified_images"].append(File.as_image(img))
 
                 # generic recipe
                 metadata = ...
-                self.logger.experiment["your/metadata/structure"].log(metadata)
+                self.logger.experiment["your/metadata/structure"].append(metadata)
 
-    Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)`` is specific to Neptune
+    Note that syntax: ``self.logger.experiment["your/metadata/structure"].append(metadata)`` is specific to Neptune
     and it extends logger capabilities. Specifically, it allows you to log various types of metadata
     like scores, files, images, interactive visuals, CSVs, etc.
     Refer to the `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
@@ -403,7 +403,7 @@ class NeptuneLogger(Logger):
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)
 
-        self.run[parameters_key] = params
+        self.run[parameters_key] = neptune.utils.stringify_unsupported(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
