@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple
 
 from torch.utils.data.dataloader import DataLoader
 
@@ -34,7 +34,7 @@ class _DataFetcher(Iterator):
         self._start_profiler = _profile_nothing
         self._stop_profiler = _profile_nothing
 
-    def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
+    def setup(self, dataloader: Iterable) -> None:
         self._dataloader = dataloader
 
     @property
@@ -76,38 +76,25 @@ class _DataFetcher(Iterator):
         self.dataloader_iter = None
 
 
-def _no_op_batch_to_device(batch: Any) -> Any:
-    return batch
-
-
 class _PrefetchDataFetcher(_DataFetcher):
     """This class is used to control batch fetching flow.
 
     Args:
         prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
             whether a batch is the last one (available with :attr:`self.done`) under any training setup.
-        store_on_device: Whether to store the pre-fetched batches on device.
     """
 
-    def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
+    def __init__(self, prefetch_batches: int = 1) -> None:
         super().__init__()
         if prefetch_batches < 0:
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
-        self.store_on_device = store_on_device
-        self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
         self.batches: List[Any] = []
         self._has_len = False
 
-    def setup(  # type: ignore[override]
-        self,
-        dataloader: Iterable,
-        batch_to_device: Optional[Callable[[Any], Any]] = None,
-    ) -> None:
+    def setup(self, dataloader: Iterable) -> None:
         super().setup(dataloader)
         self._has_len = has_len(dataloader)
-        if batch_to_device is not None:
-            self.batch_to_device = batch_to_device
 
     def __iter__(self) -> "_PrefetchDataFetcher":
         super().__iter__()
@@ -147,7 +134,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         else:
             # the iterator is empty
             raise StopIteration
-        return self.move_to_device(batch)
+        return batch
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         self._start_profiler()
@@ -162,11 +149,6 @@ class _PrefetchDataFetcher(_DataFetcher):
             assert isinstance(dataloader, Sized)  # `_has_len` is True
             self.done = self.fetched >= len(dataloader)
         self.batches.append(batch)
-
-    def move_to_device(self, batch: Any) -> Any:
-        if self.store_on_device:
-            batch = self.batch_to_device(batch)
-        return batch
 
     def reset(self) -> None:
         super().reset()

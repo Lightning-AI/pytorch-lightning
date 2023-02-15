@@ -213,7 +213,6 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    BaguaStrategy
     ColossalAIStrategy
     DDPSpawnStrategy
     DDPStrategy

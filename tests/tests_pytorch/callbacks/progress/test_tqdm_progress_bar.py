@@ -126,13 +126,13 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
         def predict_dataloader(self):
             return self._get_dataloaders()
 
-        def validation_step(self, batch, batch_idx, dataloader_idx=None):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
             return
 
-        def test_step(self, batch, batch_idx, dataloader_idx=None):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             return
 
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             return
 
     model = CustomModel()
@@ -243,16 +243,16 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
         val_batches_seen = 0
         test_batches_seen = 0
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
+        def on_train_batch_end(self, *args):
+            super().on_train_batch_end(*args)
             self.train_batches_seen += 1
 
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        def on_validation_batch_end(self, *args):
+            super().on_validation_batch_end(*args)
             self.val_batches_seen += 1
 
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        def on_test_batch_end(self, *args):
+            super().on_test_batch_end(*args)
             self.test_batches_seen += 1
 
     pbar = CurrentProgressBar(refresh_rate=refresh_rate)

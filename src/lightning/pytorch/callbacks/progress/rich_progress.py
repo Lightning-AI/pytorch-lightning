@@ -379,7 +379,12 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_validation_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
@@ -442,7 +447,12 @@ class RichProgressBar(ProgressBarBase):
         self.reset_dataloader_idx_tracker()
 
     def on_test_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
@@ -454,7 +464,12 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_predict_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
@@ -484,7 +499,7 @@ class RichProgressBar(ProgressBarBase):
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled:
             return
@@ -501,7 +516,7 @@ class RichProgressBar(ProgressBarBase):
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled:
             return
@@ -516,7 +531,7 @@ class RichProgressBar(ProgressBarBase):
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled:
             return

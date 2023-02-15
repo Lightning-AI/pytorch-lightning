@@ -51,7 +51,6 @@ from lightning.pytorch.plugins import (
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from lightning.pytorch.plugins.environments import BaguaEnvironment
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
@@ -421,7 +420,6 @@ class AcceleratorConnector:
             return self._cluster_environment_flag
         for env_type in (
             SLURMEnvironment,
-            BaguaEnvironment,
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,

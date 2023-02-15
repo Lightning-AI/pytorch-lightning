@@ -973,12 +973,6 @@ def test_disabled_validation(tmpdir):
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
 
 
-@pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
-def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
-    with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
-        Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
-
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 
@@ -1284,7 +1278,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
-    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
@@ -1431,7 +1425,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
             super().__init__(*args, **kwargs)
             self.output_dir = output_dir
 
-        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
             assert not batch_indices if is_iterable_dataset else batch_indices
 
     cb = CustomPredictionWriter(tmpdir)
