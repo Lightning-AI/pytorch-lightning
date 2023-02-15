@@ -25,19 +25,20 @@ def mock_plugin_server(mock_uvicorn) -> TestClient:
     return test_client["client"]
 
 
-def test_run_bad_request(mock_plugin_server):
+def test_run_errors(mock_plugin_server):
     body = _Run(
-        plugin_name="test",
+        plugin_entrypoint="test",
+        source_code_url="this_url_does_not_exist",
         project_id="any",
         cloudspace_id="any",
-        name="any",
-        entrypoint="any",
+        cluster_id="any",
+        plugin_arguments={},
     )
 
     response = mock_plugin_server.post("/v1/runs", json=body.dict(exclude_none=True))
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "App ID must be specified" in response.text
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "Error downloading plugin source:" in response.text
 
 
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")

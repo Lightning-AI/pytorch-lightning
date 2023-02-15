@@ -149,7 +149,7 @@ def _run_plugin(run: _Run) -> List:
                 cluster_id=run.cluster_id,
             )
             # Ensure that apps are dispatched from the temp directory
-            os.chdir(tmpdir)
+            os.chdir(source_path)
             plugin.run(**run.plugin_arguments)
         except Exception as e:
             raise HTTPException(
