@@ -15,6 +15,7 @@
 from collections import OrderedDict
 from typing import Any, Optional, Union
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
@@ -31,8 +32,8 @@ class _EvaluationEpochLoop(_Loop):
     state).
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.batch_progress = BatchProgress()
 
         self._dl_max_batches: Union[int, float] = 0

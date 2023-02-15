@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.optimization.closure import AbstractClosure, OutputResult
 from lightning.pytorch.loops.progress import OptimizationProgress
@@ -149,8 +150,8 @@ class _AutomaticOptimization(_Loop):
 
     output_result_cls = ClosureResult
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.optim_progress: OptimizationProgress = OptimizationProgress()
         self._skip_backward: bool = False
 

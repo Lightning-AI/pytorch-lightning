@@ -17,6 +17,7 @@ from typing import Sequence
 
 from torch.utils.data import DataLoader
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import DataLoaderProgress
 
@@ -24,8 +25,8 @@ from lightning.pytorch.loops.progress import DataLoaderProgress
 class _DataLoaderLoop(_Loop):
     """Base class to loop over all dataloaders."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.dataloader_progress = DataLoaderProgress()
 
     @property
