@@ -235,8 +235,7 @@ def test_sequential_mode_limits(limits, expected):
     iterable1 = ["a", "b", "c"]
     iterable2 = ["d", "e"]
     iterator = _Sequential([iterable1, iterable2], limits)
-    out = [x for x in iterator]
-    assert out == expected
+    assert list(iterator) == expected
 
 
 def test_sequential_mode_limits_raises():
