@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 from lightning_utilities import WarningCache
 
+import lightning.pytorch as pl
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -23,8 +24,8 @@ from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 class _PredictionLoop(_Loop):
     """Top-level loop where prediction starts."""
 
-    def __init__(self, inference_mode: bool = True) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer", inference_mode: bool = True) -> None:
+        super().__init__(trainer)
         self.inference_mode = inference_mode
         self.epoch_batch_indices: List[
             List[List[int]]
@@ -33,7 +34,7 @@ class _PredictionLoop(_Loop):
         self.batch_progress = Progress()  # across dataloaders
 
         self._warning_cache = WarningCache()
-        self._data_source = _DataLoaderSource(None, "")
+        self._data_source = _DataLoaderSource(None, "predict_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
         self._results = None  # for `trainer._results` access

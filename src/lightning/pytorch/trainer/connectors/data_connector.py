@@ -161,21 +161,16 @@ class DataConnector:
         trainer.test_loop._combined_loader = None
         trainer.predict_loop._combined_loader = None
 
-        trainer.fit_loop._data_source = _DataLoaderSource(
-            train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
+        trainer.fit_loop._data_source.instance = train_dataloaders if train_dataloaders is not None else model
+        trainer.fit_loop.epoch_loop.val_loop._data_source.instance = (
+            val_dataloaders if val_dataloaders is not None else model
         )
-        trainer.fit_loop.epoch_loop.val_loop._data_source = _DataLoaderSource(
-            val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
-        )
-        trainer.validate_loop._data_source = _DataLoaderSource(
-            val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
-        )
-        trainer.test_loop._data_source = _DataLoaderSource(
-            test_dataloaders if test_dataloaders is not None else model, "test_dataloader"
-        )
-        trainer.predict_loop._data_source = _DataLoaderSource(
-            predict_dataloaders if predict_dataloaders is not None else model, "predict_dataloader"
-        )
+        trainer.fit_loop.epoch_loop.val_loop._data_source.name = "val_dataloader"
+        trainer.validate_loop._data_source.instance = val_dataloaders if val_dataloaders is not None else model
+        trainer.validate_loop._data_source.name = "val_dataloader"
+        trainer.test_loop._data_source.instance = test_dataloaders if test_dataloaders is not None else model
+        trainer.test_loop._data_source.name = "test_dataloader"
+        trainer.predict_loop._data_source.instance = predict_dataloaders if predict_dataloaders is not None else model
 
     def attach_datamodule(
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
@@ -187,11 +182,14 @@ class DataConnector:
             return
 
         trainer = self.trainer
-        trainer.fit_loop._data_source = _DataLoaderSource(datamodule, "train_dataloader")
-        trainer.fit_loop.epoch_loop.val_loop._data_source = _DataLoaderSource(datamodule, "val_dataloader")
-        trainer.validate_loop._data_source = _DataLoaderSource(datamodule, "val_dataloader")
-        trainer.test_loop._data_source = _DataLoaderSource(datamodule, "test_dataloader")
-        trainer.predict_loop._data_source = _DataLoaderSource(datamodule, "predict_dataloader")
+        trainer.fit_loop._data_source.instance = datamodule
+        trainer.fit_loop.epoch_loop.val_loop._data_source.instance = datamodule
+        trainer.fit_loop.epoch_loop.val_loop._data_source.name = "val_dataloader"
+        trainer.validate_loop._data_source.instance = datamodule
+        trainer.validate_loop._data_source.name = "val_dataloader"
+        trainer.test_loop._data_source.instance = datamodule
+        trainer.test_loop._data_source.name = "test_dataloader"
+        trainer.predict_loop._data_source.instance = datamodule
 
         trainer.datamodule = datamodule
         datamodule.trainer = trainer

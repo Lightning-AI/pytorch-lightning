@@ -20,6 +20,7 @@ from typing import Any, Iterable, List, Optional, Tuple, Union
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
+import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
@@ -41,8 +42,8 @@ if _RICH_AVAILABLE:
 class _EvaluationLoop(_Loop):
     """Top-level loop where validation/testing starts."""
 
-    def __init__(self, verbose: bool = True, inference_mode: bool = True) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer", verbose: bool = True, inference_mode: bool = True) -> None:
+        super().__init__(trainer)
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = BatchProgress()  # across dataloaders
@@ -50,7 +51,6 @@ class _EvaluationLoop(_Loop):
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
         self._has_run: bool = False
-        # FIXME(carmocca): this would be simpler if we had a Trainer reference already
         self._data_source = _DataLoaderSource(None, "")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None

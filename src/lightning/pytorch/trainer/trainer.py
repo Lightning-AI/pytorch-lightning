@@ -308,15 +308,11 @@ class Trainer:
         self._signal_connector = SignalConnector(self)
 
         # init loops
-        self.fit_loop = _FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
-        self.fit_loop.epoch_loop = _TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop(inference_mode=inference_mode)
-        self.test_loop = _EvaluationLoop(inference_mode=inference_mode)
-        self.predict_loop = _PredictionLoop(inference_mode=inference_mode)
-        self.fit_loop.trainer = self
-        self.validate_loop.trainer = self
-        self.test_loop.trainer = self
-        self.predict_loop.trainer = self
+        self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
+        self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
+        self.validate_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.test_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
 

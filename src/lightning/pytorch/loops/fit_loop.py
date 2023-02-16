@@ -17,6 +17,7 @@ from typing import Iterable, Optional
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import DataLoader
 
+import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
@@ -66,10 +67,11 @@ class _FitLoop(_Loop):
 
     def __init__(
         self,
+        trainer: "pl.Trainer",
         min_epochs: Optional[int] = 0,
         max_epochs: Optional[int] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(trainer)
         if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
@@ -78,11 +80,11 @@ class _FitLoop(_Loop):
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
-        self.epoch_loop = _TrainingEpochLoop()
+        self.epoch_loop = _TrainingEpochLoop(trainer)
         self.epoch_progress = Progress()
 
         self._is_fresh_start_epoch: bool = True
-        self._data_source = _DataLoaderSource(None, "")
+        self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
 
