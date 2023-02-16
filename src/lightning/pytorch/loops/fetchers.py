@@ -81,7 +81,7 @@ class _PrefetchDataFetcher(_DataFetcher):
 
     Args:
         prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
-            whether a batch is the last one (available with :attr:`self.done`) under any training setup.
+            whether a batch is the last one (available with :attr:`self.done`) when the length is not available.
     """
 
     def __init__(self, prefetch_batches: int = 1) -> None:
@@ -98,6 +98,10 @@ class _PrefetchDataFetcher(_DataFetcher):
 
     def __iter__(self) -> "_PrefetchDataFetcher":
         super().__iter__()
+        if self._has_len:
+            # ignore pre-fetching, it's not necessary
+            return self
+        # prefetch batches to know when the iterator will be exhausted in advance
         iterator = self.dataloader_iter
         assert iterator is not None
         for _ in range(self.prefetch_batches):
@@ -143,7 +147,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         finally:
             self._stop_profiler()
         self.fetched += 1
-        if not self.prefetch_batches and self._has_len:
+        if self._has_len:
             # when we don't prefetch but the dataloader is sized, we use the length for `done`
             dataloader = self.dataloader
             assert isinstance(dataloader, Sized)  # `_has_len` is True
