@@ -105,6 +105,7 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
+          - {python_version: "3.9", pytorch_version: "2.0", cuda_version: "11.7.1", pre_release: "1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -119,6 +120,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
+            PRE_RELEASE=${{ matrix.pre_release }}
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
