@@ -261,52 +261,6 @@ override the :meth:`~pytorch_lightning.LightningModule.on_training_epoch_end` me
         ...
         self.training_step_outputs.clear()  # free memory
 
-Training with DataParallel
-==========================
-
-When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP).
-
-In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.training_step_end`
-method which will have outputs from all the devices and you can accumulate to get the effective results.
-
-.. code-block:: python
-
-     def training_step(self, batch, batch_idx):
-         x, y = batch
-         y_hat = self.model(x)
-         loss = F.cross_entropy(y_hat, y)
-         pred = ...
-         return {"loss": loss, "pred": pred}
-
-
-     def training_step_end(self, batch_parts):
-         # predictions from each GPU
-         predictions = batch_parts["pred"]
-         # losses from each GPU
-         losses = batch_parts["loss"]
-
-         gpu_0_prediction = predictions[0]
-         gpu_1_prediction = predictions[1]
-
-         # do something with both outputs
-         return (losses[0] + losses[1]) / 2
-
-
-Here is the Lightning training pseudo-code for DP:
-
-.. code-block:: python
-
-    for batch_idx, train_batch in enumerate(train_dataloader):
-        batches = split_batch(train_batch)
-        dp_outs = []
-        for sub_batch in batches:
-            # 1
-            dp_out = training_step(sub_batch, batch_idx)
-            dp_outs.append(dp_out)
-
-        # 2
-        training_step_end(dp_outs)
 
 ------------------
 
@@ -398,54 +352,6 @@ Note that this method is called before :meth:`~pytorch_lightning.LightningModule
         # do something with all preds
         ...
         self.validation_step_outputs.clear()  # free memory
-
-
-Validating with DataParallel
-============================
-
-When validating using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP).
-
-In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.validation_step_end`
-method which will have outputs from all the devices and you can accumulate to get the effective results.
-
-.. code-block:: python
-
-     def validation_step(self, batch, batch_idx):
-         x, y = batch
-         y_hat = self.model(x)
-         loss = F.cross_entropy(y_hat, y)
-         pred = ...
-         return {"loss": loss, "pred": pred}
-
-
-     def validation_step_end(self, batch_parts):
-         # predictions from each GPU
-         predictions = batch_parts["pred"]
-         # losses from each GPU
-         losses = batch_parts["loss"]
-
-         gpu_0_prediction = predictions[0]
-         gpu_1_prediction = predictions[1]
-
-         # do something with both outputs
-         return (losses[0] + losses[1]) / 2
-
-
-Here is the Lightning validation pseudo-code for DP:
-
-.. code-block:: python
-
-    for batch in dataloader:
-        batches = split_batch(batch)
-        dp_outs = []
-        for sub_batch in batches:
-            # 1
-            dp_out = validation_step(sub_batch)
-            dp_outs.append(dp_out)
-
-        # 2
-        validation_step_end(dp_outs)
 
 ----------------
 

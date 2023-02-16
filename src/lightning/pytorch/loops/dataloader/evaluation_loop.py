@@ -21,6 +21,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
+import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
@@ -42,9 +43,9 @@ class _EvaluationLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self, verbose: bool = True, inference_mode: bool = True) -> None:
-        super().__init__()
-        self.epoch_loop = _EvaluationEpochLoop()
+    def __init__(self, trainer: "pl.Trainer", verbose: bool = True, inference_mode: bool = True) -> None:
+        super().__init__(trainer)
+        self.epoch_loop = _EvaluationEpochLoop(trainer)
         self.verbose = verbose
         self.inference_mode = inference_mode
 
