@@ -36,7 +36,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def __init__(
         self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
-        self.precision = cast(Literal["16", "bf16"], str(precision))
+        self.precision = cast(Literal["16", "bf16"], str(precision))  # type: ignore
         if scaler is None and self.precision == "16":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks

@@ -53,7 +53,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))  # type: ignore
 
     def backward(  # type: ignore[override]
         self,
