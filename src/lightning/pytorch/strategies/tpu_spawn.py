@@ -13,13 +13,11 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
@@ -34,12 +32,10 @@ from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -98,34 +94,14 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return xm.xla_device()
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
-        def check_has_len(dataloader: DataLoader) -> None:
-            if not has_len(dataloader):
-                raise MisconfigurationException(
-                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
-                )
-
-        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
-
-    @staticmethod
-    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector: DataConnector = model.trainer._data_connector
-        sources = (
-            connector._train_dataloader_source,
-            connector._val_dataloader_source,
-            connector._test_dataloader_source,
-            connector._predict_dataloader_source,
-        )
-        for source in sources:
-            if not source.is_module():
-                assert source.instance is not None
-                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
-                TPUSpawnStrategy._validate_dataloader(source.instance)
+    def _validate_dataloader(dataloader: object) -> None:
+        if not has_len(dataloader):
+            raise TypeError(
+                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
+                " HINT: You can mock the length on your dataset to bypass this error."
+            )
 
     def connect(self, model: "pl.LightningModule") -> None:
-        TPUSpawnStrategy._validate_patched_dataloaders(model)
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
@@ -166,7 +142,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
-    def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
+    def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
         TPUSpawnStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
