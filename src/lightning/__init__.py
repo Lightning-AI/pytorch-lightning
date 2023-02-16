@@ -18,7 +18,6 @@ from lightning.__version__ import version as __version__  # noqa: E402, F401
 from lightning.app import storage  # noqa: E402
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
-from lightning.app.core.plugin import LightningPlugin  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
@@ -40,7 +39,6 @@ __all__ = [
     "LightningApp",
     "LightningFlow",
     "LightningWork",
-    "LightningPlugin",
     "BuildConfig",
     "CloudCompute",
     "Trainer",
