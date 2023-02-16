@@ -27,7 +27,6 @@ log = logging.getLogger(__name__)
 
 def _scale_batch_size(
     trainer: "pl.Trainer",
-    model: "pl.LightningModule",
     mode: str = "power",
     steps_per_trial: int = 3,
     init_val: int = 2,
@@ -39,7 +38,6 @@ def _scale_batch_size(
 
     Args:
         trainer: A Trainer instance.
-        model: Model to tune.
         mode: Search strategy to update the batch size:
 
             - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
@@ -80,9 +78,9 @@ def _scale_batch_size(
     new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
 
     if mode == "power":
-        new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
+        new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params)
     elif mode == "binsearch":
-        new_size = _run_binary_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
+        new_size = _run_binary_scaling(trainer, new_size, batch_arg_name, max_trials, params)
 
     garbage_collection_cuda()
 
@@ -147,14 +145,14 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     trainer.loggers = params["loggers"]
     trainer.callbacks = params["callbacks"]
 
+    loop = trainer._active_loop
+    assert loop is not None
     if trainer.state.fn == "fit":
-        loop = trainer.fit_loop
         loop.max_steps = params["max_steps"]
         trainer.limit_train_batches = params["limit_train_batches"]
         trainer.limit_val_batches = params["limit_val_batches"]
     else:
         stage = trainer.state.stage
-        loop = getattr(trainer, f"{stage}_loop")
         assert stage is not None
         setattr(trainer, f"limit_{stage.dataloader_prefix}_batches", params["limit_eval_batches"])
 
@@ -163,10 +161,13 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     if "loop_verbose" in params:
         loop.verbose = params["loop_verbose"]
 
+    # make sure the loop's state is reset
+    _reset_dataloaders(trainer)
+    loop.reset()
+
 
 def _run_power_scaling(
     trainer: "pl.Trainer",
-    pl_module: "pl.LightningModule",
     new_size: int,
     batch_arg_name: str,
     max_trials: int,
@@ -209,7 +210,6 @@ def _run_power_scaling(
 
 def _run_binary_scaling(
     trainer: "pl.Trainer",
-    pl_module: "pl.LightningModule",
     new_size: int,
     batch_arg_name: str,
     max_trials: int,

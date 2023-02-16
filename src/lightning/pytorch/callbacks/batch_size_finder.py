@@ -168,7 +168,6 @@ class BatchSizeFinder(Callback):
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         new_size = _scale_batch_size(
             trainer,
-            pl_module,
             self._mode,
             self._steps_per_trial,
             self._init_val,
