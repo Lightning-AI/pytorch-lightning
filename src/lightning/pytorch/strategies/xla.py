@@ -317,7 +317,7 @@ class XLAStrategy(DDPSpawnStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register("xla", cls, description="XLA strategy with `debug` as True", debug=True)
+        strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
         strategy_registry.register(
             cls.strategy_name,
             cls,
