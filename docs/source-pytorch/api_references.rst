@@ -43,7 +43,6 @@ callbacks
     ModelSummary
     OnExceptionCheckpoint
     ProgressBarBase
-    QuantizationAwareTraining
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
@@ -214,7 +213,6 @@ strategies
 
     DDPSpawnStrategy
     DDPStrategy
-    DataParallelStrategy
     DeepSpeedStrategy
     FSDPStrategy
     HPUParallelStrategy

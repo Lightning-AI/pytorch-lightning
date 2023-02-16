@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import torch
 
+import lightning.pytorch as pl
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.loop import _Loop
@@ -17,8 +18,8 @@ warning_cache = WarningCache()
 class _PredictionEpochLoop(_Loop):
     """Loop performing prediction on arbitrary sequentially used dataloaders."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.return_predictions = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []

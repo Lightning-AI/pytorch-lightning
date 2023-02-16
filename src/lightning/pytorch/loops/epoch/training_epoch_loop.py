@@ -15,6 +15,7 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
+import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
@@ -53,8 +54,8 @@ class _TrainingEpochLoop(loops._Loop):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:
+        super().__init__(trainer)
         if max_steps < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
@@ -65,10 +66,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.automatic_optimization = _AutomaticOptimization()
-        self.manual_optimization = _ManualOptimization()
+        self.automatic_optimization = _AutomaticOptimization(trainer)
+        self.manual_optimization = _ManualOptimization(trainer)
 
-        self.val_loop = loops._EvaluationLoop(verbose=False, inference_mode=False)
+        self.val_loop = loops._EvaluationLoop(trainer, verbose=False, inference_mode=False)
 
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
