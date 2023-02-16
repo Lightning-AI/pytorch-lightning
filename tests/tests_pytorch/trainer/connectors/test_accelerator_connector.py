@@ -321,7 +321,7 @@ def test_accelerator_gpu():
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
+@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPStrategy)])
 def test_accelerator_cpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="cpu", devices=devices)
     assert trainer.num_devices == devices
