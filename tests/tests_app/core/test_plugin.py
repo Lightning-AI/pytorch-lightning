@@ -59,9 +59,9 @@ def as_tar_bytes(file_name, content):
 
 
 _plugin_with_internal_error = """
-import lightning as L
+from lightning.app.core.plugin import LightningPlugin
 
-class TestPlugin(L.app.LightningPlugin):
+class TestPlugin(LightningPlugin):
     def run(self):
         raise RuntimeError("Internal Error")
 
@@ -141,9 +141,9 @@ def test_run_errors(mock_requests, mock_plugin_server, body, message, tar_file_n
 
 
 _plugin_with_job_run = """
-import lightning as L
+from lightning.app.core.plugin import LightningPlugin
 
-class TestPlugin(L.app.LightningPlugin):
+class TestPlugin(LightningPlugin):
     def run(self, name, entrypoint):
         self.run_job(name, entrypoint)
 
