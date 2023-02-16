@@ -41,8 +41,11 @@ class RootFlow(LightningFlow):
             assert len(succeeded_statuses) > 0
             succeeded_status = succeeded_statuses[-1]
 
-            stopped_status = self.work.statuses[-1]
-            assert stopped_status.stage == WorkStageStatus.STOPPED
+            stopped_statuses = [status for status in self.work.statuses if status.stage == WorkStageStatus.STOPPED]
+
+            # We want to check that the work started shutting down withing the required timeframe, so we take the first
+            # status that has `stage == STOPPED`.
+            stopped_status = stopped_statuses[0]
 
             # Note: Account for the controlplane, k8s, SIGTERM handler delays.
             assert (stopped_status.timestamp - succeeded_status.timestamp) < 20
