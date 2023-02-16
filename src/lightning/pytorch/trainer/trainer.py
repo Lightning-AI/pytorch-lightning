@@ -388,7 +388,7 @@ class Trainer:
         self.should_stop = False
         self.state = TrainerState()
 
-        # FIXME(carmocca): these need to be updated, and moved to the loops
+        # TODO(carmocca): move these to the loops
         self.num_training_batches = float("inf")
         self.num_sanity_val_batches: List[Union[int, float]] = []
         self.num_test_batches: List[Union[int, float]] = []

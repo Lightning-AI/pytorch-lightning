@@ -280,7 +280,7 @@ class CombinedLoader(Iterable):
 
     def _update_index(self, dataloader: Iterable, index: int) -> None:
         # mutation needs to be done using this method to avoid stale references
-        # FIXME(carmocca): avoid this, inefficient
+        # TODO(carmocca): avoid this, inefficient
         self._flattened[index] = dataloader
         self._iterables = tree_unflatten(self._flattened, self._spec)
 
