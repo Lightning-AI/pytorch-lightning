@@ -43,7 +43,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
     assert "LT_STRATEGY" not in os.environ
     assert os.environ["LT_DEVICES"] == "1"
     assert os.environ["LT_NUM_NODES"] == "1"
-    assert os.environ["LT_PRECISION"] == "32"
+    assert os.environ["LT_PRECISION"] == "32-true"
 
 
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
@@ -120,7 +120,7 @@ def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
 
-@pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
+@pytest.mark.parametrize("precision", ["64-true", "32-true", "16-mixed", "bf16-mixed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())

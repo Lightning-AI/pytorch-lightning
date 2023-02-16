@@ -108,7 +108,7 @@ if _CLICK_AVAILABLE:
     @click.option(
         "--precision",
         type=click.Choice(get_args(_PRECISION_INPUT_STR)),
-        default="32",
+        default="32-true",
         help=(
             "Double precision (``64-true``), full precision (``32-true``), half precision (``16-mixed``) or "
             "bfloat16 precision (``'bf16-mixed'``)"
