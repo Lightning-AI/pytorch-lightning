@@ -26,7 +26,6 @@ import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
-    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
