@@ -234,7 +234,7 @@ class CloudRuntime(Runtime):
         root = self._resolve_root()
         repo = self._resolve_repo(root)
         self._resolve_cloudspace(project_id, cloudspace_id)
-        existing_instances = self._resolve_existing_run_instances(project_id, name)
+        existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
 
@@ -521,7 +521,7 @@ class CloudRuntime(Runtime):
                     break
         return existing_cloudspace, existing_run_instance
 
-    def _resolve_existing_run_instances(self, project_id: str, name: str) -> List[Externalv1LightningappInstance]:
+    def _resolve_run_instances_by_name(self, project_id: str, name: str) -> List[Externalv1LightningappInstance]:
         """Get all existing instances in the given project with the given name."""
         run_instances = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
             project_id=project_id,
