@@ -57,7 +57,7 @@ Cutting-edge and Experimental Strategies
 ========================================
 
 Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
-If you want to be the first to try the latest and greatest experimental features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./colossalai>` integration.
+If you want to be the first to try the latest and greatest experimental features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
 
 
 ----
