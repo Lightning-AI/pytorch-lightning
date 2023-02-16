@@ -218,6 +218,27 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
     assert idx == expected - 1
 
 
+@pytest.mark.parametrize(
+    ("limits", "expected"),
+    [
+        (None, [("a", 0, 0), ("b", 1, 0), ("c", 2, 0), ("d", 0, 1), ("e", 1, 1)]),
+        ([1, 0], [("a", 0, 0)]),
+        ([0, float("inf")], [("d", 0, 1), ("e", 1, 1)]),
+        ([1, 1], [("a", 0, 0), ("d", 0, 1)]),
+    ],
+)
+def test_sequential_mode_limits(limits, expected):
+    iterable1 = ["a", "b", "c"]
+    iterable2 = ["d", "e"]
+    iterator = _Sequential([iterable1, iterable2], limits)
+    assert list(iterator) == expected
+
+
+def test_sequential_mode_limits_raises():
+    with pytest.raises(ValueError, match=r"number of limits \(0\) and number of iterables \(2\)"):
+        _Sequential([0, 1], [])
+
+
 @pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
 def test_combined_loader_sequence_with_map_and_iterable(lengths):
     class MyIterableDataset(IterableDataset):

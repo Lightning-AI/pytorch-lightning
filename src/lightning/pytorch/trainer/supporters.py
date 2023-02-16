@@ -83,6 +83,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
 
     @property
     def limits(self) -> Optional[List[Union[int, float]]]:
+        """Optional limits per iterator."""
         return self._limits
 
     @limits.setter
