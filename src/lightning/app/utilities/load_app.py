@@ -52,27 +52,34 @@ def _load_objects_from_file(
     raise_exception: bool = False,
     mock_imports: bool = False,
 ) -> List[Any]:
-    """TODO: docstring"""
+    """Load all of the top-level objects of the given type from a file.
+
+    Args:
+        filepath: The file to load from.
+        target_type: The type of object to load.
+        raise_exception: If ``True`` exceptions will be raised, otherwise exceptions will trigger system exit.
+        mock_imports: If ``True`` imports of missing packages will be replaced with a mock. This can allow the object to
+            be loaded without installing dependencies.
+    """
 
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
 
     # In order for imports to work in a non-package, Python normally adds the current working directory to the
     # system path, not however when running from an entry point like the `lightning` CLI command. So we do it manually:
-    sys.path.append(os.path.dirname(os.path.abspath(filepath)))
-
-    code = _create_code(filepath)
-    module = _create_fake_main_module(filepath)
-    try:
-        with _patch_sys_argv():
-            if mock_imports:
-                with _mock_missing_imports():
+    with _patch_sys_path(os.path.dirname(os.path.abspath(filepath))):
+        code = _create_code(filepath)
+        module = _create_fake_main_module(filepath)
+        try:
+            with _patch_sys_argv():
+                if mock_imports:
+                    with _mock_missing_imports():
+                        exec(code, module.__dict__)
+                else:
                     exec(code, module.__dict__)
-            else:
-                exec(code, module.__dict__)
-    except Exception as e:
-        if raise_exception:
-            raise e
-        _prettifiy_exception(filepath)
+        except Exception as e:
+            if raise_exception:
+                raise e
+            _prettifiy_exception(filepath)
 
     return [v for v in module.__dict__.values() if isinstance(v, target_type)]
 
@@ -175,6 +182,25 @@ def _create_fake_main_module(script_path):
 
 
 @contextmanager
+def _patch_sys_path(append):
+    """A context manager that appends the given value to the path once entered.
+
+    Args:
+        append: The value to append to the path.
+    """
+    if append in sys.path:
+        yield
+        return
+
+    sys.path.append(append)
+
+    try:
+        yield
+    finally:
+        sys.path.remove(append)
+
+
+@contextmanager
 def _patch_sys_argv():
     """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed
     everything else before executing the user app script.
@@ -211,9 +237,12 @@ def _patch_sys_argv():
 
     # 7: Patch the command
     sys.argv = new_argv
-    yield
-    # 8: Restore the command
-    sys.argv = original_argv
+
+    try:
+        yield
+    finally:
+        # 8: Restore the command
+        sys.argv = original_argv
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
