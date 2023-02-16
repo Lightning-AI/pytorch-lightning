@@ -19,7 +19,7 @@ import traceback
 import types
 from contextlib import contextmanager
 from copy import copy
-from typing import Any, Dict, List, Type, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
 
 from lightning.app.utilities.exceptions import MisconfigurationException
 
@@ -51,7 +51,7 @@ def _load_objects_from_file(
     target_type: Type,
     raise_exception: bool = False,
     mock_imports: bool = False,
-) -> List[Any]:
+) -> Tuple[List[Any], types.ModuleType]:
     """Load all of the top-level objects of the given type from a file.
 
     Args:
@@ -81,13 +81,14 @@ def _load_objects_from_file(
                     raise e
                 _prettifiy_exception(filepath)
 
-    return [v for v in module.__dict__.values() if isinstance(v, target_type)]
+    return [v for v in module.__dict__.values() if isinstance(v, target_type)], module
 
 
 def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
     from lightning.app.core.plugin import LightningPlugin
 
-    plugins = _load_objects_from_file(filepath, LightningPlugin, raise_exception=True, mock_imports=False)
+    # TODO: Plugin should be run in the context of the created main module here
+    plugins, _ = _load_objects_from_file(filepath, LightningPlugin, raise_exception=True, mock_imports=False)
 
     if len(plugins) > 1:
         raise RuntimeError(f"There should not be multiple plugins instantiated within the file. Found {plugins}")
@@ -106,7 +107,13 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
     """
     from lightning.app.core.app import LightningApp
 
-    apps = _load_objects_from_file(filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports)
+    apps, main_module = _load_objects_from_file(
+        filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports
+    )
+
+    # TODO: Remove this, downstream code shouldn't depend on side-effects here but it does
+    _patch_sys_path(os.path.dirname(os.path.abspath(filepath))).__enter__()
+    sys.modules["__main__"] = main_module
 
     if len(apps) > 1:
         raise MisconfigurationException(f"There should not be multiple apps instantiated within a file. Found {apps}")
