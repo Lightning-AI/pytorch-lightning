@@ -226,8 +226,6 @@ Below are the possible configurations we support.
 +-------+---------+-----+--------+-----------------------------------------------------------------------+
 |       | Y       | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
 +-------+---------+-----+--------+-----------------------------------------------------------------------+
-|       | Y       |     |        | `Trainer(accelerator="gpu", devices=k, strategy='dp')`                |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
 
 DDP can also be used with 1 GPU, but there's no reason to do so other than debugging distributed-related issues.
 
