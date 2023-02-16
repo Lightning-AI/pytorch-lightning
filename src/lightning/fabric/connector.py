@@ -235,10 +235,11 @@ class _Connector:
         precision = str(precision)  # convert int flags to str here to enable the legacy-conversion below
 
         if precision in get_args(_PRECISION_INPUT_STR_LEGACY):
-            rank_zero_warn(
-                f"{precision} is supported for historical reasons but its usage is discouraged. "
-                f"Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
-            )
+            if str(precision)[:2] not in ('32', '64'):
+                rank_zero_warn(
+                    f"{precision} is supported for historical reasons but its usage is discouraged. "
+                    f"Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
+                )
             precision = _PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]
 
         self._precision_input = cast(_PRECISION_INPUT_STR, precision)
