@@ -456,7 +456,6 @@ def test_validate_precision_type(precision):
     ],
 )
 # mock cuda as available to not be limited by dtype and accelerator compatibility - this is tested elsewhere
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_precision_conversion(patch1, patch2, precision, expected_precision, should_warn):
