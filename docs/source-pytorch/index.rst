@@ -200,7 +200,7 @@ Current Lightning Users
    clouds/cluster
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
-   advanced/model_parallel
+   advanced/model_parallel/model_parallel
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
@@ -240,7 +240,7 @@ Current Lightning Users
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
-   Model Parallel <advanced/model_parallel>
+   Model Parallel <advanced/model_parallel/model_parallel>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>

@@ -71,7 +71,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Description
    * - fsdp
      - :class:`~pytorch_lightning.strategies.FSDPStrategy`
-     - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
+     - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel/model_parallel:Fully Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
      - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
@@ -80,7 +80,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
-     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
+     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel/model_parallel:deepspeed>`
    * - hpu_parallel
      - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
      - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`

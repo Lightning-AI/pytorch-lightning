@@ -1084,7 +1084,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 See Also:
     - :ref:`Multi GPU Training <multi_gpu>`.
-    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
 
