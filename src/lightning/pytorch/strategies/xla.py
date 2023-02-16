@@ -103,24 +103,7 @@ class XLAStrategy(DDPSpawnStrategy):
                 " HINT: You can mock the length on your dataset to bypass this error."
             )
 
-    @staticmethod
-    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector: DataConnector = model.trainer._data_connector
-        sources = (
-            connector._train_dataloader_source,
-            connector._val_dataloader_source,
-            connector._test_dataloader_source,
-            connector._predict_dataloader_source,
-        )
-        for source in sources:
-            if not source.is_module():
-                assert source.instance is not None
-                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
-                XLAStrategy._validate_dataloader(source.instance)
-
     def connect(self, model: "pl.LightningModule") -> None:
-        XLAStrategy._validate_patched_dataloaders(model)
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
