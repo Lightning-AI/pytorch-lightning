@@ -53,12 +53,11 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
 
-Cutting-edge and experimental strategies
+Cutting-edge and Experimental Strategies
 ========================================
 
-TODO
-
-:doc:`Colossal-AI Strategy <./colossalai>`
+Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
+If you want to be the first to try the latest and greatest experimental features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./colossalai>` integration.
 
 
 ----
