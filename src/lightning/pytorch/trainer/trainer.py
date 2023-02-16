@@ -122,7 +122,7 @@ class Trainer:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: _PRECISION_INPUT = 32,
+        precision: _PRECISION_INPUT = '32-true',
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
         profiler: Optional[Union[Profiler, str]] = None,
@@ -226,9 +226,10 @@ class Trainer:
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
-            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+            precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
+                16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
                 Can be used on CPU, GPU, TPUs, HPUs or IPUs.
-                Default: ``32``.
+                Default: ``'32-true'``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.

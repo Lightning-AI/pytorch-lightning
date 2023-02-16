@@ -31,9 +31,8 @@ if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
 
 warning_cache = WarningCache()
 
-_PRECISION_INPUT_INT = Literal[32, 16]
-_PRECISION_INPUT_STR = Literal["32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+_PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
+
 
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
@@ -46,14 +45,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Literal["32", 32, "16", 16, "bf16"]) -> None:
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+    def __init__(self, precision: Literal["32-true", "16-mixed", "bf16-mixed"]) -> None:
+        supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
+        self.precision = cast(_PRECISION_INPUT, str(precision))
 
     def backward(  # type: ignore[override]
         self,
