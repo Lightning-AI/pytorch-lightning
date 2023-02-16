@@ -75,4 +75,3 @@ If you use `ddp`, your code doesn't need to be pickled:
 .. code-block:: python
 
     Trainer(accelerator="gpu", devices=4, strategy="ddp")
-
