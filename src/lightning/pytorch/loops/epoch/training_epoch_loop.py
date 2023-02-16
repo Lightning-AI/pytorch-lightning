@@ -186,11 +186,8 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
-            batch = next(data_fetcher)
-        else:
-            batch_idx, batch = next(data_fetcher)
+        batch_idx = data_fetcher.fetched if isinstance(data_fetcher, _DataLoaderIterDataFetcher) else self.batch_idx + 1
+        batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
