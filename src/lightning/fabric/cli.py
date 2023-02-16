@@ -16,9 +16,9 @@ import os
 import re
 from argparse import Namespace
 from typing import Any, List, Optional
-from typing_extensions import get_args
 
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR
