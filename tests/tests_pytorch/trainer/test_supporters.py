@@ -357,7 +357,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 @pytest.mark.parametrize("mode", ("min_size", "max_size_cycle", "sequential"))
 @pytest.mark.parametrize("use_combined_loader", [False, True])
-def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, use_combined_loader):
+def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, use_combined_loader, mps_count_0):
     """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
     samplers."""
     dim = 3
