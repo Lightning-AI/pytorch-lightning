@@ -122,11 +122,6 @@ class _FitLoop(_Loop):
         _Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
-    def prefetch_batches(self) -> int:
-        is_unsized = self.trainer.num_training_batches == float("inf")
-        return int(is_unsized)
-
-    @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
         return self.epoch_loop.automatic_optimization._skip_backward
@@ -219,7 +214,7 @@ class _FitLoop(_Loop):
         if self.epoch_loop._should_check_val_epoch():
             self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
-        self._data_fetcher = _select_data_fetcher(trainer, self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(trainer)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=trainer.lightning_module.device)

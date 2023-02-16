@@ -15,8 +15,6 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
-import torch
-
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -188,11 +186,8 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
-            batch = next(data_fetcher)
-        else:
-            batch_idx, batch = next(data_fetcher)
+        batch_idx = data_fetcher.fetched if isinstance(data_fetcher, _DataLoaderIterDataFetcher) else self.batch_idx + 1
+        batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
@@ -284,8 +279,7 @@ class _TrainingEpochLoop(loops._Loop):
         # reload dataloaders
         self.val_loop._reload_evaluation_dataloaders()
 
-        with torch.no_grad():
-            self.val_loop.run()
+        self.val_loop.run()
 
     def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""

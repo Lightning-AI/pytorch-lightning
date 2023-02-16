@@ -75,12 +75,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         return dataloaders
 
     @property
-    def prefetch_batches(self) -> int:
-        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
-        is_unsized = batches[self.current_dataloader_idx] == float("inf")
-        return int(is_unsized)
-
-    @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether."""
         return super().done or self.skip
@@ -126,7 +120,7 @@ class _EvaluationLoop(_DataLoaderLoop):
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        self._data_fetcher = _select_data_fetcher(self.trainer, prefetch_batches=self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(self.trainer)
 
         # hook
         self._on_evaluation_model_eval()
