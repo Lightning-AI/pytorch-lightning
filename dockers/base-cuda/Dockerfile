@@ -32,13 +32,15 @@ ENV \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU \
     # MAKEFLAGS="-j$(nproc)"
-    MAKEFLAGS="-j2" \
-    # set torch url to stable if no prerelease
-    TORCH_URL=${PRE_RELEASE:-"https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"}\
-    TORCH_WHEEL_OPTIONS=${PRE_RELEASE:-""}\
-    # set torchurl to nightly and torchoptions to --pre if prerelease
-    TORCH_URL=${PRE_RELEASE:+"https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM}"}\
-    TORCH_WHEEL_OPTIONS=${PRE_RELEASE:+"--pre"}
+    MAKEFLAGS="-j2"
+
+RUN if [[ -z $PRE_RELEASE ]]; then \
+    export TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" &&\
+    export TORCH_WHEEL_OPTIONS=""; \
+    else \
+        export TORCH_URL="https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM}" &&\
+        export TORCH_WHEEL_OPTIONS="--pre";\
+    fi
 
 
 RUN \
