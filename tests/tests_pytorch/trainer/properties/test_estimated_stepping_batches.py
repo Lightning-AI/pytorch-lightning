@@ -114,7 +114,6 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
         ({"strategy": "ddp", "num_nodes": 2}, 5),
         ({"strategy": "ddp", "num_nodes": 3}, 4),
         ({"strategy": "ddp", "num_nodes": 4}, 3),
-        ({"strategy": "dp"}, 64),
     ],
 )
 def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):

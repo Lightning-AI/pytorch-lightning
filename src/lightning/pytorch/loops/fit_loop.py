@@ -334,11 +334,11 @@ class _FitLoop(_Loop):
         trainer = self.trainer
 
         # reload the evaluation dataloaders too for proper display in the progress bar
-        if self.epoch_loop._should_check_val_epoch() and self.trainer.val_dataloaders is None:
+        if self.epoch_loop._should_check_val_epoch() and trainer.val_dataloaders is None:
             # TODO(carmocca): avoid having to set validating
-            self.trainer.validating = True
+            trainer.validating = True
             self.epoch_loop.val_loop.setup_data()
-            self.trainer.training = True
+            trainer.training = True
 
         self._data_fetcher = _select_data_fetcher(trainer)
 
