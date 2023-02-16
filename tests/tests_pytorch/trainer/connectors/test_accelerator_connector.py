@@ -596,14 +596,14 @@ def test_check_fsdp_strategy_and_fallback():
 
 
 def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
-        Trainer(accelerator="tpu", precision=64)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
+        Trainer(accelerator="tpu", precision='64-true')
 
     # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"
     ):
-        Trainer(accelerator="tpu", precision=16, strategy="ddp")
+        Trainer(accelerator="tpu", precision='16-mixed', strategy="ddp")
 
 
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
@@ -613,10 +613,10 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
     monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
-        Trainer(accelerator="ipu", precision="bf16")
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64'\)` is not supported"):
-        Trainer(accelerator="ipu", precision=64)
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16-mixed'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="bf16-mixed")
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64-true'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="64-true")
 
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
@@ -846,5 +846,5 @@ def test_colossalai_external_strategy(monkeypatch):
 
     from lightning_colossalai import ColossalAIStrategy
 
-    trainer = Trainer(strategy="colossalai", precision=16)
+    trainer = Trainer(strategy="colossalai", precision='16-mixed')
     assert isinstance(trainer.strategy, ColossalAIStrategy)

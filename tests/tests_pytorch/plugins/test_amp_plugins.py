@@ -54,10 +54,10 @@ class MyAMP(MixedPrecisionPlugin):
 def test_amp_ddp(cuda_count_2, strategy, devices, custom_plugin, plugin_cls):
     plugin = None
     if custom_plugin:
-        plugin = plugin_cls(16, "cpu")
+        plugin = plugin_cls('16-mixed', "cpu")
     trainer = Trainer(
         fast_dev_run=True,
-        precision=16,
+        precision='16-mixed',
         accelerator="gpu",
         devices=devices,
         strategy=strategy,
@@ -137,7 +137,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
-        precision=16,
+        precision='16-mixed',
         # use a tiny value to make sure it works
         gradient_clip_val=1e-3,
         gradient_clip_algorithm="value",
@@ -179,14 +179,14 @@ def test_amp_skip_optimizer(tmpdir):
                 torch.optim.SGD(self.layer2.parameters(), lr=0.1),
             ]
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision='16-mixed')
     model = CustomBoringModel()
     trainer.fit(model)
 
 
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-    plugin = MixedPrecisionPlugin("bf16", "cpu")
+    plugin = MixedPrecisionPlugin("bf16-mixed", "cpu")
     assert plugin.device == "cpu"
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()

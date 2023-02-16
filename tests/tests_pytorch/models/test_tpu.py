@@ -104,7 +104,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision='16-mixed',
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
@@ -124,7 +124,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision='16-mixed',
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
@@ -146,7 +146,7 @@ def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision='16-mixed',
         enable_progress_bar=False,
         max_epochs=1,
         accelerator="tpu",

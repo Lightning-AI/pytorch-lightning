@@ -61,7 +61,7 @@ def test_all_stages(tmpdir, hpus):
         fast_dev_run=True,
         accelerator="hpu",
         devices=hpus,
-        precision=16,
+        precision='16-mixed',
     )
     trainer.fit(model)
     trainer.validate(model)
