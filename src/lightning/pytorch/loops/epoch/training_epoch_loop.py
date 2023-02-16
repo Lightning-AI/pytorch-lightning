@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional, Union
 
 import torch
 
+import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
@@ -55,8 +56,8 @@ class _TrainingEpochLoop(loops._Loop):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:
+        super().__init__(trainer)
         if max_steps < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
@@ -67,10 +68,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.automatic_optimization = _AutomaticOptimization()
-        self.manual_optimization = _ManualOptimization()
+        self.automatic_optimization = _AutomaticOptimization(trainer)
+        self.manual_optimization = _ManualOptimization(trainer)
 
-        self.val_loop = loops._EvaluationLoop(verbose=False, inference_mode=False)
+        self.val_loop = loops._EvaluationLoop(trainer, verbose=False, inference_mode=False)
 
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
@@ -294,14 +295,6 @@ class _TrainingEpochLoop(loops._Loop):
         """Checks if we are in the last batch or if there are more batches to follow."""
         epoch_finished_on_ready = self.batch_progress.current.ready == self.trainer.num_training_batches
         return epoch_finished_on_ready or self.batch_progress.is_last_batch
-
-    def _num_completed_batches_reached(self) -> bool:
-        epoch_finished_on_completed = self.batch_progress.current.completed == self.trainer.num_training_batches
-        dataloader_consumed_successfully = self.batch_progress.is_last_batch and self._has_completed()
-        return epoch_finished_on_completed or dataloader_consumed_successfully
-
-    def _has_completed(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
 
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current

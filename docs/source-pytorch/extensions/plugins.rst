@@ -52,7 +52,6 @@ The full list of built-in precision plugins is listed below.
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin

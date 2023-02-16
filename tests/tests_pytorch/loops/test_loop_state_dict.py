@@ -20,13 +20,10 @@ from lightning.pytorch.trainer.trainer import Trainer
 def test_loops_state_dict():
     trainer = Trainer()
 
-    fit_loop = _FitLoop()
-
-    fit_loop.trainer = trainer
+    fit_loop = _FitLoop(trainer)
     state_dict = fit_loop.state_dict()
 
-    new_fit_loop = _FitLoop()
-    new_fit_loop.trainer = trainer
+    new_fit_loop = _FitLoop(trainer)
 
     new_fit_loop.load_state_dict(state_dict)
     assert fit_loop.state_dict() == new_fit_loop.state_dict()

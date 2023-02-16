@@ -41,7 +41,6 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
-from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
@@ -314,15 +313,11 @@ class Trainer:
         self._signal_connector = SignalConnector(self)
 
         # init loops
-        self.fit_loop = _FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
-        self.fit_loop.epoch_loop = _TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop(inference_mode=inference_mode)
-        self.test_loop = _EvaluationLoop(inference_mode=inference_mode)
-        self.predict_loop = _PredictionLoop(inference_mode=inference_mode)
-        self.fit_loop.trainer = self
-        self.validate_loop.trainer = self
-        self.test_loop.trainer = self
-        self.predict_loop.trainer = self
+        self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
+        self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
+        self.validate_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.test_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
 
@@ -1304,12 +1299,6 @@ class Trainer:
         """A list of all instances of :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` found in
         the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
-
-    @property
-    def prediction_writer_callbacks(self) -> List[BasePredictionWriter]:
-        """A list of all instances of :class:`~lightning.pytorch.callbacks.prediction_writer.BasePredictionWriter`
-        found in the Trainer.callbacks list."""
-        return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property
     def checkpoint_callback(self) -> Optional[Checkpoint]:
