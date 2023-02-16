@@ -235,10 +235,7 @@ class CloudRuntime(Runtime):
         repo = self._resolve_repo(root)
         self._resolve_cloudspace(project_id, cloudspace_id)
         existing_instances = self._resolve_existing_run_instances(project_id, name)
-        name = self._resolve_run_name(
-            name,
-            existing_instances,
-        )
+        name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
 
         self.app._update_index_file()
