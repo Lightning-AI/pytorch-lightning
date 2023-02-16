@@ -68,18 +68,18 @@ def _load_objects_from_file(
     # system path, not however when running from an entry point like the `lightning` CLI command. So we do it manually:
     with _patch_sys_path(os.path.dirname(os.path.abspath(filepath))):
         code = _create_code(filepath)
-        module = _create_fake_main_module(filepath)
-        try:
-            with _patch_sys_argv():
-                if mock_imports:
-                    with _mock_missing_imports():
+        with _create_fake_main_module(filepath) as module:
+            try:
+                with _patch_sys_argv():
+                    if mock_imports:
+                        with _mock_missing_imports():
+                            exec(code, module.__dict__)
+                    else:
                         exec(code, module.__dict__)
-                else:
-                    exec(code, module.__dict__)
-        except Exception as e:
-            if raise_exception:
-                raise e
-            _prettifiy_exception(filepath)
+            except Exception as e:
+                if raise_exception:
+                    raise e
+                _prettifiy_exception(filepath)
 
     return [v for v in module.__dict__.values() if isinstance(v, target_type)]
 
@@ -160,6 +160,7 @@ def _create_code(script_path: str):
     )
 
 
+@contextmanager
 def _create_fake_main_module(script_path):
     # Create fake module. This gives us a name global namespace to
     # execute the code in.
@@ -170,6 +171,7 @@ def _create_fake_main_module(script_path):
     # can know the module where the pickled objects stem from.
     # IMPORTANT: This means we can't use "if __name__ == '__main__'" in
     # our code, as it will point to the wrong module!!!
+    old_main_module = sys.modules["__main__"]
     sys.modules["__main__"] = module
 
     # Add special variables to the module's globals dict.
@@ -178,7 +180,11 @@ def _create_fake_main_module(script_path):
     # files contained in the directory of __main__.__file__, which we
     # assume is the main script directory.
     module.__dict__["__file__"] = os.path.abspath(script_path)
-    return module
+
+    try:
+        yield module
+    finally:
+        sys.modules["__main__"] = old_main_module
 
 
 @contextmanager

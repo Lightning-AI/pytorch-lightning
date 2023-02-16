@@ -59,8 +59,6 @@ class LightningPlugin:
 
         entrypoint_file = Path(app_entrypoint)
 
-        # If the entrypoint is not in `/content`, merge the directories before dispatch
-
         app = CloudRuntime.load_app_from_file(str(entrypoint_file.resolve().absolute()))
 
         app.stage = AppStage.BLOCKING
