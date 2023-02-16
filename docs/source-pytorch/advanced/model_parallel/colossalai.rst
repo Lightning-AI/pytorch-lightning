@@ -5,7 +5,7 @@ Colossal-AI
 ###########
 
 
-:class:`~pytorch_lightning.strategies.colossalai.ColossalAIStrategy` implements ZeRO-DP with chunk-based memory management.
+The Colossal-AI strategy implements ZeRO-DP with chunk-based memory management.
 With this chunk mechanism, really large models can be trained with a small number of GPUs.
 It supports larger trainable model size and batch size than usual heterogeneous training by reducing CUDA memory fragments and CPU memory consumption.
 Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
@@ -19,35 +19,31 @@ In later training, it will use the collected memory usage information to evict c
 Gemini allows you to fit much larger models with limited GPU memory.
 
 According to our benchmark results, we can train models with up to 24 billion parameters in 1 GPU.
-You can install colossalai by consulting `how to download colossalai <https://colossalai.org/download>`_.
-Then, run this benchmark in `Colossalai-PL/gpt <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_.
 
-Here is an example showing how to use ColossalAI:
+You can install the Colossal-AI integration by running
+
+.. code-block:: bash
+
+    pip install lightning-colossalai
+
+This will install both the `colossalai <https://colossalai.org/download>`_ package as well as the ``ColossalAIStrategy`` for the Lightning Trainer:
 
 .. code-block:: python
 
-    from colossalai.nn.optimizer import HybridAdam
+    trainer = Trainer(strategy="colossalai", precision=16, devices=...)
 
 
-    class MyBert(LightningModule):
-        ...
+You can tune several settings by instantiating the strategy objects and pass options in:
 
-        def configure_sharded_model(self) -> None:
-            # create your model here
-            self.model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
+.. code-block:: python
 
-        def configure_optimizers(self):
-            # use the specified optimizer
-            optimizer = HybridAdam(self.model.parameters(), self.lr)
+    from lightning_colossalai import ColossalAIStrategy
 
-        ...
+    strategy = ColossalAIStrategy(...)
+    trainer = Trainer(strategy=strategy, precision=16, devices=...)
 
 
-    model = MyBert()
-    trainer = Trainer(accelerator="gpu", devices=1, precision=16, strategy="colossalai")
-    trainer.fit(model)
-
-You can find more examples in the `Colossalai-PL <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning>`_ repository.
+See a full example of a benchmark with the a `GPT-2 model <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_ of up to 24 billion parameters
 
 .. note::
 
@@ -88,7 +84,7 @@ Here's an example of changing the placement policy to "cpu".
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import ColossalAIStrategy
+    from lightning_colossalai import ColossalAIStrategy
 
     model = MyModel()
     my_strategy = ColossalAIStrategy(placement_policy="cpu")
