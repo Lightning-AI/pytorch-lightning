@@ -13,12 +13,11 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, Iterable
+from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
