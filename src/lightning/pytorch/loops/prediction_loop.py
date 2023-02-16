@@ -93,11 +93,11 @@ class _PredictionLoop(_Loop):
         while True:
             try:
                 batch, batch_idx, dataloader_idx = next(data_fetcher)
-                self.batch_progress.is_last_batch = data_fetcher.done
-                self._predict_step(batch, batch_idx, dataloader_idx)
-                self._restarting = False
             except StopIteration:
                 break
+            self.batch_progress.is_last_batch = data_fetcher.done
+            self._predict_step(batch, batch_idx, dataloader_idx)
+            self._restarting = False
         self._restarting = False
         return self.on_run_end()
 

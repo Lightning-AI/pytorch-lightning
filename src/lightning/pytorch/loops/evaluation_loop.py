@@ -14,7 +14,7 @@
 import os
 import shutil
 import sys
-from collections import ChainMap, OrderedDict
+from collections import ChainMap, defaultdict, OrderedDict
 from typing import Any, Iterable, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -54,6 +54,7 @@ class _EvaluationLoop(_Loop):
         self._data_source = _DataLoaderSource(None, "")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
+        self._seen_batches_per_dataloader = defaultdict(int)
 
     @property
     def num_dataloaders(self) -> int:
@@ -87,17 +88,22 @@ class _EvaluationLoop(_Loop):
         self.on_run_start()
         data_fetcher = self._data_fetcher
         assert data_fetcher is not None
+        previous_dataloader_idx = 0
         while True:
             try:
                 batch, batch_idx, dataloader_idx = next(data_fetcher)
-                self.batch_progress.is_last_batch = data_fetcher.done
-                self._evaluation_step(batch, batch_idx, dataloader_idx)
-                self._restarting = False
             except StopIteration:
                 break
+            self.batch_progress.is_last_batch = data_fetcher.done
+            if previous_dataloader_idx != dataloader_idx:
+                # the dataloader has changed, notify the logger connector
+                self._store_dataloader_outputs()
+            previous_dataloader_idx = dataloader_idx
+            # run step hooks
+            self._evaluation_step(batch, batch_idx, dataloader_idx)
+            self._restarting = False
         self._restarting = False
-        # FIXME(carmocca)
-        self.on_advance_end()
+        self._store_dataloader_outputs()
         return self.on_run_end()
 
     def setup_data(self):
@@ -146,12 +152,16 @@ class _EvaluationLoop(_Loop):
             combined_loader._update_index(dl, i)
         self._combined_loader = combined_loader
 
+        # this depends on the data used, so reset it too
+        self._seen_batches_per_dataloader = defaultdict(int)
+
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         trainer = self.trainer
 
         self._has_run = False
         self._logged_outputs = []
+
         if not self.restarting:
             self.batch_progress.reset_on_run()
         else:
@@ -192,16 +202,6 @@ class _EvaluationLoop(_Loop):
         self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
-
-    def on_advance_end(self) -> None:
-        trainer = self.trainer
-        if not trainer.sanity_checking:
-            # indicate the loop has run
-            self._has_run = True
-
-        trainer._logger_connector.epoch_end_reached()
-
-        self._logged_outputs.append(trainer._logger_connector.update_eval_epoch_metrics())
 
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
@@ -296,6 +296,11 @@ class _EvaluationLoop(_Loop):
 
         trainer._logger_connector.on_epoch_end()
 
+    def _store_dataloader_outputs(self) -> None:
+        trainer = self.trainer
+        trainer._logger_connector.epoch_end_reached()
+        self._logged_outputs.append(trainer._logger_connector.update_eval_epoch_metrics())
+
     def _on_before_fetch(self) -> None:
         stage = self.trainer.state.stage
         assert stage is not None
@@ -353,9 +358,13 @@ class _EvaluationLoop(_Loop):
 
         self.batch_progress.increment_completed()
 
-        # log batch metrics
         if not trainer.sanity_checking:
-            trainer._logger_connector.update_eval_step_metrics(batch_idx)
+            # indicate the loop has run
+            self._has_run = True
+
+            # log batch metrics
+            trainer._logger_connector.update_eval_step_metrics(self._seen_batches_per_dataloader[dataloader_idx])
+            self._seen_batches_per_dataloader[dataloader_idx] += 1
 
         if not self.batch_progress.is_last_batch and trainer.received_sigterm:
             raise SIGTERMException

@@ -235,7 +235,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     assert results[0] == {"c": torch.tensor(2), "d/e/f": 2}
 
 
-@pytest.mark.parametrize("suffix", (True,))
+@pytest.mark.parametrize("suffix", (False, True))
 def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     class TestModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx=0):
@@ -975,28 +975,33 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     )
     model = CustomBoringModel()
 
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-
     def get_suffix(dl_idx):
         return f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
 
     eval_steps = range(limit_batches)
+    trainer.fit(model)
     fit_calls = [
         call(metrics={f"val_log_fit{get_suffix(dl_idx)}": float(step)}, step=step + (limit_batches * epoch))
         for epoch in range(max_epochs)
         for dl_idx in range(num_dataloaders)
         for step in eval_steps
     ]
+    assert mock_log_metrics.mock_calls == fit_calls
+
+    mock_log_metrics.reset_mock()
+    trainer.validate(model)
     validate_calls = [
         call(metrics={f"val_log_validate{get_suffix(dl_idx)}": float(val)}, step=val)
         for dl_idx in range(num_dataloaders)
         for val in eval_steps
     ]
+    assert mock_log_metrics.mock_calls == validate_calls
+
+    mock_log_metrics.reset_mock()
+    trainer.test(model)
     test_calls = [
         call(metrics={f"test_log{get_suffix(dl_idx)}": float(val)}, step=val)
         for dl_idx in range(num_dataloaders)
         for val in eval_steps
     ]
-    assert mock_log_metrics.mock_calls == fit_calls + validate_calls + test_calls
+    assert mock_log_metrics.mock_calls == test_calls
