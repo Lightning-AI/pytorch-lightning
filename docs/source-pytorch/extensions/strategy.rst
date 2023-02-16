@@ -77,7 +77,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
-     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
+     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. Useful for debugging. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
    * - ddp
      - :class:`~pytorch_lightning.strategies.DDPStrategy`
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
