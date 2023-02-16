@@ -32,7 +32,14 @@ ENV \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU \
     # MAKEFLAGS="-j$(nproc)"
-    MAKEFLAGS="-j2"
+    MAKEFLAGS="-j2" \
+    # set torch url to stable if no prerelease
+    TORCH_URL=${PRE_RELEASE:-"https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"}\
+    TORCH_WHEEL_OPTIONS=${PRE_RELEASE:-""}\
+    # set torchurl to nightly and torchoptions to --pre if prerelease
+    TORCH_URL=${PRE_RELEASE:+"https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM}"}\
+    TORCH_WHEEL_OPTIONS=${PRE_RELEASE:+"--pre"}
+
 
 RUN \
     # TODO: Remove the manual key installation once the base image is updated.
@@ -91,14 +98,12 @@ RUN \
     export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
-    if [[ 1 ]] ; then \
+    if [[ -z "$PRE_RELEASE" ]] ; then \
         for fpath in `ls requirements/**/*.txt`; do \
-          python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
+            python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
         done \
     fi && \
-    # Install base requirements \
-    if [[ -z "$PRE_RELEASE" ]] ; then export TORCH_WHEEL_OPTIONS="--find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" ; else export TORCH_WHEEL_OPTIONS="--extra-index-url https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM} --pre"; fi && \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS} && \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir --extra-index-url ${TORCH_URL} ${TORCH_WHEEL_OPTIONS} && \
     rm assistant.py
 
 RUN \
@@ -114,8 +119,9 @@ RUN \
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir ${TORCH_WHEEL_OPTIONS}
-
+    pip install -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}
+#    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}
+#
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
