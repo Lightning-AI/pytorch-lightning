@@ -183,7 +183,12 @@ def test_half_precision(tmpdir):
 
     model = IPUModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision='16-mixed', callbacks=TestCallback()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="ipu",
+        devices=1,
+        precision="16-mixed",
+        callbacks=TestCallback(),
     )
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "16-mixed"
@@ -203,7 +208,12 @@ def test_pure_half_precision(tmpdir):
     model = IPUModel()
     model = model.half()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision='16-mixed', callbacks=TestCallback()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="ipu",
+        devices=1,
+        precision="16-mixed",
+        callbacks=TestCallback(),
     )
 
     assert isinstance(trainer.strategy, IPUStrategy)
@@ -534,7 +544,7 @@ def test_multi_optimizers_fails(tmpdir):
 def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
 
-    plugin = IPUPrecisionPlugin(precision='16-mixed')
+    plugin = IPUPrecisionPlugin(precision="16-mixed")
     assert plugin.precision == "16-mixed"
 
 

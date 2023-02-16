@@ -20,6 +20,13 @@ from typing import cast, Dict, List, Literal, Optional, Union
 import torch
 from typing_extensions import get_args
 
+from lightning.fabric.connector import (
+    _PRECISION_INPUT,
+    _PRECISION_INPUT_INT,
+    _PRECISION_INPUT_STR,
+    _PRECISION_INPUT_STR_LEGACY,
+    _PRECISION_INPUT_STR_LEGACY_CONVERSION,
+)
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -71,7 +78,6 @@ from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
-from lightning.fabric.connector import _PRECISION_INPUT, _PRECISION_INPUT_STR_LEGACY, _PRECISION_INPUT_STR_LEGACY_CONVERSION, _PRECISION_INPUT_STR, _PRECISION_INPUT_INT
 
 log = logging.getLogger(__name__)
 
@@ -241,7 +247,9 @@ class AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_LEGACY)
+        supported_precision = (
+            get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_LEGACY)
+        )
         if precision not in supported_precision:
             raise MisconfigurationException(
                 f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}"
@@ -250,7 +258,7 @@ class AcceleratorConnector:
         precision = str(precision)  # convert int flags to str here to enable the legacy-conversion below
 
         if precision in get_args(_PRECISION_INPUT_STR_LEGACY):
-            if not str(precision)[:2] in ('32', '64'):
+            if str(precision)[:2] not in ("32", "64"):
                 rank_zero_warn(
                     f"{precision} is supported for historical reasons but its usage is discouraged. "
                     f"Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"

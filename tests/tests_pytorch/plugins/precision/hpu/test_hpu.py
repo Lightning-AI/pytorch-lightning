@@ -77,7 +77,7 @@ def test_pure_half_precision(tmpdir, hmp_params: dict):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision='16-mixed', **hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision="16-mixed", **hmp_params)],
         callbacks=TestCallback(),
     )
 

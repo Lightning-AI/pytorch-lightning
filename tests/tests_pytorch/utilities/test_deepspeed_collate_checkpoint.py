@@ -32,7 +32,7 @@ def test_deepspeed_collate_checkpoint(tmpdir):
         accelerator="gpu",
         devices=2,
         fast_dev_run=True,
-        precision='16-mixed',
+        precision="16-mixed",
         enable_progress_bar=False,
         enable_model_summary=False,
     )

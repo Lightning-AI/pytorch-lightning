@@ -34,7 +34,6 @@ warning_cache = WarningCache()
 _PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
 
 
-
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration.
 

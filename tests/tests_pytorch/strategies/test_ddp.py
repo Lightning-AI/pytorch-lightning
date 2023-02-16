@@ -96,7 +96,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.parametrize("precision", ('16-mixed', '32-true'))
+@pytest.mark.parametrize("precision", ("16-mixed", "32-true"))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
 

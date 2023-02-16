@@ -164,7 +164,7 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [('16-mixed', torch.float16), ("bf16-mixed", torch.bfloat16)])
+@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
     plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
@@ -191,7 +191,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="fsdp",
-        precision='16-mixed',
+        precision="16-mixed",
         max_epochs=1,
         sync_batchnorm=True,
     )
@@ -199,7 +199,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("precision", ('16-mixed', pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
+@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
@@ -230,7 +230,7 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        precision='16-mixed',
+        precision="16-mixed",
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,

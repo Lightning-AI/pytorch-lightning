@@ -122,7 +122,7 @@ class Trainer:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: _PRECISION_INPUT = '32-true',
+        precision: _PRECISION_INPUT = "32-true",
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
         profiler: Optional[Union[Profiler, str]] = None,

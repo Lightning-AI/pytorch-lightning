@@ -34,7 +34,10 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self,
+        precision: Literal["16-mixed", "bf16-mixed"],
+        device: str,
+        scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
         self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
         if scaler is None and self.precision == "16-mixed":

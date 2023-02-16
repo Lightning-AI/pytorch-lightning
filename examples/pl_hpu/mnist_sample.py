@@ -63,7 +63,7 @@ if __name__ == "__main__":
             "accelerator": "hpu",
             "devices": 1,
             "max_epochs": 1,
-            "plugins": lazy_instance(HPUPrecisionPlugin, precision='16-mixed'),
+            "plugins": lazy_instance(HPUPrecisionPlugin, precision="16-mixed"),
         },
         run=False,
         save_config_kwargs={"overwrite": True},

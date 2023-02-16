@@ -29,6 +29,7 @@ warning_cache = WarningCache()
 
 _PRECISION_INPUT = Literal["32-true", "16-mixed"]
 
+
 class IPUPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for IPU integration.
 

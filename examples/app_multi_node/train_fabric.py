@@ -15,7 +15,7 @@ class FabricPyTorchDistributed(L.LightningWork):
         )
 
         # 2. Create Fabric.
-        fabric = Fabric(strategy="ddp", precision='16-mixed')
+        fabric = Fabric(strategy="ddp", precision="16-mixed")
         model, optimizer = fabric.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()
 
