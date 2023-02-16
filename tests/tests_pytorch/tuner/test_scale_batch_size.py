@@ -338,7 +338,6 @@ def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
 
 
-# FIXME
 @pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
 def test_batch_size_finder_callback(tmpdir, trainer_fn):
     """Test batch size finder callback with different trainer methods."""

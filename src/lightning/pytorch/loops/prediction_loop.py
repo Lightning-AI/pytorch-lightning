@@ -93,12 +93,13 @@ class _PredictionLoop(_Loop):
         while True:
             try:
                 batch, batch_idx, dataloader_idx = next(data_fetcher)
+                self.batch_progress.is_last_batch = data_fetcher.done
+                self._predict_step(batch, batch_idx, dataloader_idx)
             except StopIteration:
+                # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
                 break
-            self.batch_progress.is_last_batch = data_fetcher.done
-            self._predict_step(batch, batch_idx, dataloader_idx)
-            self._restarting = False
-        self._restarting = False
+            finally:
+                self._restarting = False
         return self.on_run_end()
 
     def setup_data(self) -> None:
