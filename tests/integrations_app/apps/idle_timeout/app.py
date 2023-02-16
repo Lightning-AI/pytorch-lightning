@@ -57,6 +57,8 @@ class RootFlow(LightningFlow):
             self.dest_work.run(self.work.path)
             self.make_check = False
             print("Successfully stopped SourceFileWriterWork.")
+        elif self.work.status.stage == WorkStageStatus.STOPPED:
+            raise RuntimeError(f"The work has stopped for the wrong reason: {self.work.status.reason}.")
 
         if self.dest_work.status.stage == WorkStageStatus.SUCCEEDED:
             print("Stopping work")
