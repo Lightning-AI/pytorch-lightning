@@ -101,7 +101,7 @@ class _PredictionLoop(_Loop):
         self._restarting = False
         return self.on_run_end()
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         trainer = self.trainer
         source = self._data_source
         pl_module = trainer.lightning_module

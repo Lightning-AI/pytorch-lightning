@@ -138,6 +138,7 @@ class BatchSizeFinder(Callback):
         # TODO: Add support for multiple eval dataloader
         if stage != "fit":
             loop = trainer._active_loop
+            assert loop is not None
             loop.setup_data()
             combined_loader = loop._combined_loader
             assert combined_loader is not None

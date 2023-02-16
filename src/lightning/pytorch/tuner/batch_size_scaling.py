@@ -301,6 +301,7 @@ def _adjust_batch_size(
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     loop = trainer._active_loop
+    assert loop is not None
     loop.setup_data()
     combined_loader = loop._combined_loader
     assert combined_loader is not None
@@ -322,6 +323,7 @@ def _is_valid_batch_size(batch_size: int, dataloader: Iterable, trainer: "pl.Tra
 
 def _reset_dataloaders(trainer: "pl.Trainer") -> None:
     loop = trainer._active_loop
+    assert loop is not None
     loop._combined_loader = None  # force a reload
     loop.setup_data()
 

@@ -15,7 +15,7 @@ import os
 import shutil
 import sys
 from collections import ChainMap, defaultdict, OrderedDict
-from typing import Any, Iterable, List, Optional, Tuple, Union
+from typing import Any, DefaultDict, Iterable, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -54,7 +54,7 @@ class _EvaluationLoop(_Loop):
         self._data_source = _DataLoaderSource(None, "")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
-        self._seen_batches_per_dataloader = defaultdict(int)
+        self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
 
     @property
     def num_dataloaders(self) -> int:
@@ -106,7 +106,7 @@ class _EvaluationLoop(_Loop):
         self._store_dataloader_outputs()
         return self.on_run_end()
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         trainer = self.trainer
 
         if (
@@ -131,7 +131,9 @@ class _EvaluationLoop(_Loop):
         ):
             trainer._last_val_dl_reload_epoch = trainer.current_epoch
 
-        num_batches, iterables = trainer._data_connector._reset_eval_dataloader(trainer.state.stage, model=pl_module)
+        stage = trainer.state.stage
+        assert stage is not None
+        num_batches, iterables = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
         if trainer.testing:
             trainer.num_test_batches = num_batches
         elif trainer.sanity_checking:

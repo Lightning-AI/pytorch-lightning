@@ -131,16 +131,17 @@ class DataConnector:
         self.attach_datamodule(model, datamodule=datamodule)
 
         trainer = self.trainer
+        fn = trainer.state.fn
         # Validate that the required data sources are available
-        if trainer.state.fn == TrainerFn.FITTING:
-            _check_dataloader_none(train_dataloaders, trainer.fit_loop._data_source, self.trainer.state.fn)
+        if fn == TrainerFn.FITTING:
+            _check_dataloader_none(train_dataloaders, trainer.fit_loop._data_source, fn)
             # TODO(carmocca): fit's validation dataloaders should be checked too
-        elif trainer.state.fn == TrainerFn.VALIDATING:
-            _check_dataloader_none(val_dataloaders, trainer.validate_loop._data_source, self.trainer.state.fn)
-        elif trainer.state.fn == TrainerFn.TESTING:
-            _check_dataloader_none(test_dataloaders, trainer.test_loop._data_source, self.trainer.state.fn)
-        elif trainer.state.fn == TrainerFn.PREDICTING:
-            _check_dataloader_none(predict_dataloaders, trainer.predict_loop._data_source, self.trainer.state.fn)
+        elif fn == TrainerFn.VALIDATING:
+            _check_dataloader_none(val_dataloaders, trainer.validate_loop._data_source, fn)
+        elif fn == TrainerFn.TESTING:
+            _check_dataloader_none(test_dataloaders, trainer.test_loop._data_source, fn)
+        elif fn == TrainerFn.PREDICTING:
+            _check_dataloader_none(predict_dataloaders, trainer.predict_loop._data_source, fn)
 
         # Attach the trainer to the LightningModule
         model.trainer = proxy(trainer)
@@ -416,14 +417,16 @@ class DataConnector:
         Returns:
             The requested dataloader
         """
-        source = self.trainer._active_loop._data_source
+        loop = self.trainer._active_loop
+        if loop is None:
+            raise RuntimeError("No active loop running")
 
         with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning.
             # Also, it records all attribute setting and deletion using patched `__setattr__` and `__delattr__`
             # methods so that the re-instantiated object is as close to the original as possible.
-            dataloader = source.dataloader()
+            dataloader = loop._data_source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.trainer.strategy.barrier("get_dataloaders")

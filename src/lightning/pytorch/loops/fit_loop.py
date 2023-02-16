@@ -209,7 +209,7 @@ class _FitLoop(_Loop):
         self._restarting = False
         self.on_run_end()
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         trainer = self.trainer
 
         if self._combined_loader is not None and not trainer._data_connector._should_reload_train_dl:
@@ -357,6 +357,7 @@ class _FitLoop(_Loop):
         self.setup_data()
 
         # update the epoch value for all samplers
+        assert self._combined_loader is not None
         for i, dl in enumerate(self._combined_loader._flattened):
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
@@ -374,6 +375,7 @@ class _FitLoop(_Loop):
         log.debug(f"{type(self).__name__}: advancing loop")
 
         combined_loader = self._combined_loader
+        assert combined_loader is not None
         if combined_loader._mode not in ("max_size_cycle", "min_size"):
             raise ValueError(
                 f'`{type(self).__name__}` only supports the `CombinedLoader(mode="max_size_cycle" | "min_size")` modes.'
