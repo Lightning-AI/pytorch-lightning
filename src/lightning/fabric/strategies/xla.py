@@ -210,8 +210,6 @@ class XLAStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        # TODO(fabric): Deprecate the name "tpu_spawn" through the connector
-        strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
 
     def _set_world_ranks(self) -> None:

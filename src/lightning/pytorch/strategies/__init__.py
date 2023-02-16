@@ -23,7 +23,7 @@ from lightning.pytorch.strategies.single_device import SingleDeviceStrategy  # n
 from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy  # noqa: F401
 from lightning.pytorch.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
 from lightning.pytorch.strategies.strategy import Strategy  # noqa: F401
-from lightning.pytorch.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
+from lightning.pytorch.strategies.xla import XLAStrategy  # noqa: F401
 from lightning.pytorch.strategies.utils import _call_register_strategies
 
 _STRATEGIES_BASE_MODULE = "lightning.pytorch.strategies"
