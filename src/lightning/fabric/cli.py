@@ -21,10 +21,7 @@ from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
-from lightning.fabric.plugins.precision.precision import (
-    _PRECISION_INPUT_STR,
-    _PRECISION_INPUT_STR_LEGACY,
-)
+from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_LEGACY
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
