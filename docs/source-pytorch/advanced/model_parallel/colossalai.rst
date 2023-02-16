@@ -1,4 +1,4 @@
-.. _colossalai:
+:orphan:
 
 ###########
 Colossal-AI
