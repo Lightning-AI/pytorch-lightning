@@ -135,9 +135,8 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = _FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
-    fit_loop.trainer = trainer
+    fit_loop = _FitLoop(trainer, max_epochs=1)
 
     trainer.should_stop = False
     trainer.num_training_batches = 5

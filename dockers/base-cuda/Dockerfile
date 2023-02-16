@@ -100,9 +100,9 @@ RUN \
 
 RUN \
     # install ColossalAI
-    # TODO: 1.13 wheels are not released, remove skip once they are
+    # TODO: 1.13 and 2.0 wheels are not released, remove skip once they are
     if [[ $PYTORCH_VERSION != "1.13" ]] && [[ $PYTORCH_VERSION != "2.0" ]]; then \
-        pip install "colossalai==0.2.3"; \
+        pip install "colossalai==0.2.4"; \
         python -c "import colossalai; print(colossalai.__version__)" ; \
     fi
 

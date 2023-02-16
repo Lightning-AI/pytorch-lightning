@@ -40,7 +40,6 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
-    ColossalAIPrecisionPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     HPUPrecisionPlugin,
@@ -54,7 +53,6 @@ from lightning.pytorch.plugins import (
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
-    ColossalAIStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -71,6 +69,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -129,6 +128,7 @@ class AcceleratorConnector:
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
+        _register_external_accelerators_and_strategies()
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
 
@@ -206,6 +206,9 @@ class AcceleratorConnector:
         if strategy is not None:
             self._strategy_flag = strategy
 
+        if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
+            raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
+
         if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
@@ -227,9 +230,8 @@ class AcceleratorConnector:
 
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
-        is_dp_str = isinstance(strategy, str) and "dp" in strategy
         is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
-        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_deepspeed_str
         is_mps_accelerator = MPSAccelerator.is_available() and (
             accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
         )
@@ -482,9 +484,6 @@ class AcceleratorConnector:
             or MPIEnvironment.detect()
         ):
             strategy_flag = "ddp"
-        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
-            rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
-            strategy_flag = "ddp"
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
@@ -529,8 +528,12 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
 
-        if isinstance(self.strategy, ColossalAIStrategy):
-            return ColossalAIPrecisionPlugin(self._precision_flag)
+        if _LIGHTNING_COLOSSALAI_AVAILABLE:
+            from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
+
+            if isinstance(self.strategy, ColossalAIStrategy):
+                return ColossalAIPrecisionPlugin(self._precision_flag)
+
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)
 
@@ -673,3 +676,13 @@ def _set_torch_flags(
     if deterministic:
         # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+
+def _register_external_accelerators_and_strategies() -> None:
+    """Registers all known strategies in other packages."""
+    if _LIGHTNING_COLOSSALAI_AVAILABLE:
+        from lightning_colossalai import ColossalAIStrategy
+
+        # TODO: Prevent registering multiple times
+        if "colossalai" not in StrategyRegistry:
+            ColossalAIStrategy.register_strategies(StrategyRegistry)

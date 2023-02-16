@@ -15,6 +15,7 @@
 from collections import OrderedDict
 from typing import Any, Optional, Union
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
@@ -31,8 +32,8 @@ class _EvaluationEpochLoop(_Loop):
     state).
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.batch_progress = BatchProgress()
 
         self._dl_max_batches: Union[int, float] = 0
@@ -155,14 +156,6 @@ class _EvaluationEpochLoop(_Loop):
 
     def on_run_end(self) -> None:
         self._data_fetcher = None
-
-    def _num_completed_batches_reached(self) -> bool:
-        epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
-        dataloader_consumed_successfully = self.batch_progress.is_last_batch and self._has_completed()
-        return epoch_finished_on_completed or dataloader_consumed_successfully
-
-    def _has_completed(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
 
     def _evaluation_step(self, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).

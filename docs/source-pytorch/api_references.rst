@@ -43,7 +43,6 @@ callbacks
     ModelSummary
     OnExceptionCheckpoint
     ProgressBarBase
-    QuantizationAwareTraining
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
@@ -114,7 +113,6 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
@@ -213,10 +211,8 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIStrategy
     DDPSpawnStrategy
     DDPStrategy
-    DataParallelStrategy
     DeepSpeedStrategy
     FSDPStrategy
     HPUParallelStrategy

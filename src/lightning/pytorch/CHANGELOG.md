@@ -255,6 +255,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the `Trainer.data_parallel` property. Use `isinstance(trainer.strategy, ParallelStrategy)` instead ([#16703](https://github.com/Lightning-AI/lightning/pull/16703))
 
 
+- Removed the `Trainer.prediction_writer_callbacks` property ([#16759](https://github.com/Lightning-AI/lightning/pull/16759))
+
+
 - Removed support for multiple optimizers in automatic optimization mode ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
   * Removed `opt_idx` argument from `BaseFinetuning.finetune_function` callback method
   * Removed `opt_idx` argument from `Callback.on_before_optimizer_step` callback method
@@ -288,6 +291,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for passing a scheduling dictionary to `Trainer(accumulate_grad_batches=...)` ([#16729](https://github.com/Lightning-AI/lightning/pull/16729))
 
 
+- Removed support for `DataParallel` (`strategy='dp'`) and the `LightningParallelModule`-Wrapper, ([#16748](https://github.com/Lightning-AI/lightning/pull/16748))
+
+
 - Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 
 
@@ -295,6 +301,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed the `LightningModule.log_grad_norm()` hook method ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
+
+
+- Removed the `QuantizationAwareTraining` callback ([#16750](https://github.com/Lightning-AI/lightning/pull/16750))
 
 
 ### Fixed

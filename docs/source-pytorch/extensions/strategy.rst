@@ -81,9 +81,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - ddp
      - :class:`~pytorch_lightning.strategies.DDPStrategy`
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
-   * - dp
-     - :class:`~pytorch_lightning.strategies.DataParallelStrategy`
-     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data. :ref:`Learn more. <accelerators/gpu_intermediate:Data Parallel>`
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
