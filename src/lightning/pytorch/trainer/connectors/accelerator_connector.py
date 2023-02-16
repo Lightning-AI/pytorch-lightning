@@ -230,9 +230,8 @@ class AcceleratorConnector:
 
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
-        is_dp_str = isinstance(strategy, str) and "dp" in strategy
         is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
-        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_deepspeed_str
         is_mps_accelerator = MPSAccelerator.is_available() and (
             accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
         )
@@ -470,9 +469,6 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
-            rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
-            strategy_flag = "ddp"
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):

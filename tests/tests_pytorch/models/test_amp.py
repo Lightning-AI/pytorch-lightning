@@ -82,7 +82,7 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
+@pytest.mark.parametrize("strategy", [None, "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize(
     "devices", (pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2)))
