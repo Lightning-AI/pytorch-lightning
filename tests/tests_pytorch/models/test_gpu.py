@@ -54,7 +54,6 @@ def test_multi_gpu_none_backend(tmpdir):
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("devices", [1, [0], [1]])
 def test_single_gpu_model(tmpdir, devices):
-    """Make sure single GPU works (DP mode)."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
