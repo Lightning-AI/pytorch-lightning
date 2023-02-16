@@ -2,6 +2,7 @@ from typing import Any, List, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.dataloader.dataloader_loop import _DataLoaderLoop
 from lightning.pytorch.loops.epoch.prediction_epoch_loop import _PredictionEpochLoop
 from lightning.pytorch.loops.utilities import _no_grad_context, _set_sampler_epoch
@@ -18,10 +19,10 @@ class _PredictionLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self, inference_mode: bool = True) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer", inference_mode: bool = True) -> None:
+        super().__init__(trainer)
         self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
-        self.epoch_loop = _PredictionEpochLoop()
+        self.epoch_loop = _PredictionEpochLoop(trainer)
         self.inference_mode = inference_mode
 
         self._results = None  # for `trainer._results` access
