@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import pytest
 import torch
@@ -21,75 +21,16 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.strategies import SingleDeviceStrategy, TPUSpawnStrategy
+from lightning.pytorch.strategies import TPUSpawnStrategy
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
 
-class BoringModelNoDataloaders(BoringModel):
-    def train_dataloader(self):
-        raise NotImplementedError
-
-    def val_dataloader(self):
-        raise NotImplementedError
-
-    def test_dataloader(self):
-        raise NotImplementedError
-
-    def predict_dataloader(self):
-        raise NotImplementedError
-
-
-_loader = DataLoader(RandomDataset(32, 64))
-_loader_no_len = CustomNotImplementedErrorDataloader(_loader)
-
-
-@pytest.mark.parametrize(
-    ("keyword", "value"),
-    (
-        ("train_dataloaders", _loader_no_len),
-        ("val_dataloaders", _loader_no_len),
-        ("test_dataloaders", _loader_no_len),
-        ("predict_dataloaders", _loader_no_len),
-        ("val_dataloaders", [_loader, _loader_no_len]),
-    ),
-)
-def test_error_iterable_dataloaders_passed_to_fit(keyword, value, monkeypatch):
-    trainer = Trainer()
-    model = BoringModelNoDataloaders()
-    strategy = SingleDeviceStrategy(accelerator=Mock())
-    strategy.connect(model)
-    trainer._accelerator_connector.strategy = strategy
-    process_dataloader_mock = Mock()
-    monkeypatch.setattr(strategy, "process_dataloader", process_dataloader_mock)
-
-    if "train" in keyword:
-        trainer.state.fn = "fit"
-        trainer.training = True
-        fn = trainer.fit_loop.setup_data
-    elif "val" in keyword:
-        trainer.state.fn = "validate"
-        trainer.validating = True
-        fn = trainer.validate_loop.setup_data
-    elif "test" in keyword:
-        trainer.state.fn = "test"
-        trainer.testing = True
-        fn = trainer.test_loop.setup_data
-    else:
-        trainer.predicting = True
-        fn = trainer.predict_loop.setup_data
-
-    trainer._data_connector.attach_dataloaders(model, **{keyword: value})
-    fn()
-
-    expected = len(value) if isinstance(value, list) else 1
-    assert process_dataloader_mock.call_count == expected
-
-
 def test_error_process_iterable_dataloader(xla_available):
     strategy = TPUSpawnStrategy(MagicMock())
+    loader_no_len = CustomNotImplementedErrorDataloader(DataLoader(RandomDataset(32, 64)))
     with pytest.raises(TypeError, match="TPUs do not currently support"):
-        strategy.process_dataloader(_loader_no_len)
+        strategy.process_dataloader(loader_no_len)
 
 
 class BoringModelTPU(BoringModel):
