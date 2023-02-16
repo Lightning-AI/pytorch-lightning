@@ -14,6 +14,7 @@
 from unittest import mock
 from unittest.mock import call, Mock
 
+import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
@@ -178,3 +179,21 @@ def test_memory_consumption_validation(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(BoringLargeBatchModel())
+
+
+def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_val_batches=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
+
+    class MyModel(BoringModel):
+        def validation_step(self, dataloader_iter, batch_idx, dataloader_idx=0):
+            ...
+
+    model = MyModel()
+    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
+        trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
