@@ -666,7 +666,7 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_unsupported_tpu_choice(_, tpu_available):
-    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64-true\)` is not implemented"):
+    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
         _Connector(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
@@ -894,7 +894,7 @@ def test_arguments_from_environment_collision():
             _Connector(num_nodes=2)
 
     with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}):
-        with pytest.raises(ValueError, match="`Fabric\\(precision=64-true, ...\\)` but .* `--precision=16-mixed`"):
+        with pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"):
             _Connector(precision="64-true")
 
 

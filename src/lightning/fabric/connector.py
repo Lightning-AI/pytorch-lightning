@@ -104,7 +104,7 @@ class _Connector:
         strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: _PRECISION_INPUT = 32,
+        precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
 
@@ -237,7 +237,7 @@ class _Connector:
         if precision in get_args(_PRECISION_INPUT_STR_LEGACY):
             rank_zero_warn(
                 f"{precision} is supported for historical reasons but its usage is discouraged. "
-                "Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
+                f"Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
             )
             precision = _PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]
 
@@ -490,8 +490,8 @@ class _Connector:
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Fabric(accelerator='cpu', precision='16-mixed')` but AMP is not supported on CPU with "
-                "fp16. Using `precision='bf16-mixed'` instead."
+                "You passed `Fabric(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
+                "CPU. Using `precision='bf16-mixed'` instead."
             )
             self._precision_input = "bf16-mixed"
 
@@ -514,7 +514,7 @@ class _Connector:
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_input == "64-true":
                 raise NotImplementedError(
-                    "`Fabric(accelerator='tpu', precision=64)` is not implemented."
+                    "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )

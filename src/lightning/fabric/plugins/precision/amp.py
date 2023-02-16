@@ -92,4 +92,4 @@ class MixedPrecision(Precision):
     def _autocast_context_manager(self) -> torch.autocast:
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16-mixed" else torch.half)
