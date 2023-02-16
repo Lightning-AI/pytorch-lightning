@@ -33,7 +33,6 @@ from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
