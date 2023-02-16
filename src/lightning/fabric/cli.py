@@ -16,6 +16,7 @@ import os
 import re
 from argparse import Namespace
 from typing import Any, List, Optional
+from typing_extensions import get_args
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -106,7 +107,7 @@ if _CLICK_AVAILABLE:
     )
     @click.option(
         "--precision",
-        type=click.Choice(_PRECISION_INPUT_STR),
+        type=click.Choice(get_args(_PRECISION_INPUT_STR)),
         default="32",
         help=(
             "Double precision (``64-true``), full precision (``32-true``), half precision (``16-mixed``) or "
