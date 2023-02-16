@@ -15,8 +15,6 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
-import torch
-
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -284,8 +282,7 @@ class _TrainingEpochLoop(loops._Loop):
         # reload dataloaders
         self.val_loop._reload_evaluation_dataloaders()
 
-        with torch.no_grad():
-            self.val_loop.run()
+        self.val_loop.run()
 
     def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""
