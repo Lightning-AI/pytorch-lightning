@@ -5,14 +5,17 @@ import torch
 from lightning_utilities import WarningCache
 
 from lightning.fabric.utilities import move_data_to_device
+from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.supporters import _Sequential
+from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.supporters import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
@@ -30,6 +33,8 @@ class _PredictionLoop(_Loop):
         self.batch_progress = Progress()  # across dataloaders
 
         self._warning_cache = WarningCache()
+        self._data_source = _DataLoaderSource(None, "")
+        self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
         self._results = None  # for `trainer._results` access
         self._predictions: List[List[Any]] = []  # dataloaders x batches
@@ -62,7 +67,7 @@ class _PredictionLoop(_Loop):
     @property
     def num_dataloaders(self) -> int:
         """Returns the number of prediction dataloaders."""
-        combined_loader = self.trainer.predict_dataloaders
+        combined_loader = self._combined_loader
         assert combined_loader is not None
         return len(combined_loader._flattened)
 
@@ -77,6 +82,7 @@ class _PredictionLoop(_Loop):
 
     @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
+        self.setup_data()
         if self.skip:
             return None
         self.reset()
@@ -85,14 +91,7 @@ class _PredictionLoop(_Loop):
         assert data_fetcher is not None
         while True:
             try:
-                if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-                    iterator = data_fetcher.dataloader._iterator
-                    assert isinstance(iterator, _Sequential)
-                    batch_idx = iterator._idx
-                    dataloader_idx = iterator._iterator_idx
-                    batch = next(data_fetcher)
-                else:
-                    batch, batch_idx, dataloader_idx = next(data_fetcher)
+                batch, batch_idx, dataloader_idx = next(data_fetcher)
                 self.batch_progress.is_last_batch = data_fetcher.done
                 self._predict_step(batch, batch_idx, dataloader_idx)
                 self._restarting = False
@@ -100,6 +99,26 @@ class _PredictionLoop(_Loop):
                 break
         self._restarting = False
         return self.on_run_end()
+
+    def setup_data(self):
+        trainer = self.trainer
+        source = self._data_source
+        pl_module = trainer.lightning_module
+        # a dfault `predict_step` exists in the LightningModule, so no need to check if it's overridden
+        if not source.is_defined() or trainer.limit_predict_batches == 0:
+            return
+
+        trainer.num_predict_batches, iterables = trainer._data_connector._reset_eval_dataloader(
+            RunningStage.PREDICTING, model=pl_module
+        )
+        combined_loader = CombinedLoader(iterables, "sequential")
+        for i, dl in enumerate(combined_loader._flattened):
+            # some users want prediction shuffling based on the training progress
+            _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
+            # allow the strategy to inject logic
+            dl = trainer.strategy.process_dataloader(dl)
+            combined_loader._update_index(dl, i)
+        self._combined_loader = combined_loader
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
@@ -111,7 +130,7 @@ class _PredictionLoop(_Loop):
             raise NotImplementedError(
                 "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
             )
-        combined_loader = self.trainer.predict_dataloaders
+        combined_loader = self._combined_loader
         assert combined_loader is not None
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
@@ -218,11 +237,11 @@ class _PredictionLoop(_Loop):
         return seen_batch_indices
 
     def _store_data_for_prediction_writer(self, batch_idx: int, dataloader_idx: int) -> bool:
-        prediction_writer_callbacks = self.trainer.prediction_writer_callbacks
-        any_on_epoch = any(cb.interval.on_epoch for cb in prediction_writer_callbacks)
-        any_on_batch = any(cb.interval.on_batch for cb in prediction_writer_callbacks)
+        prediction_writers = [cb for cb in self.trainer.callbacks if isinstance(cb, BasePredictionWriter)]
+        any_on_epoch = any(cb.interval.on_epoch for cb in prediction_writers)
+        any_on_batch = any(cb.interval.on_batch for cb in prediction_writers)
         if any_on_batch or any_on_epoch:
-            combined_loader = self.trainer.predict_dataloaders
+            combined_loader = self._combined_loader
             assert combined_loader is not None
             dataloader = combined_loader._flattened[dataloader_idx]
             batch_indices = self._get_batch_indices(dataloader)

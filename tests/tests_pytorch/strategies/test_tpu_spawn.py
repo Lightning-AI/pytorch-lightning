@@ -58,21 +58,29 @@ def test_error_iterable_dataloaders_passed_to_fit(keyword, value, monkeypatch):
     trainer = Trainer()
     model = BoringModelNoDataloaders()
     strategy = SingleDeviceStrategy(accelerator=Mock())
+    strategy.connect(model)
     trainer._accelerator_connector.strategy = strategy
     process_dataloader_mock = Mock()
     monkeypatch.setattr(strategy, "process_dataloader", process_dataloader_mock)
 
     if "train" in keyword:
-        fn = trainer.reset_train_dataloader
+        trainer.state.fn = "fit"
+        trainer.training = True
+        fn = trainer.fit_loop.setup_data
     elif "val" in keyword:
-        fn = trainer.reset_val_dataloader
+        trainer.state.fn = "validate"
+        trainer.validating = True
+        fn = trainer.validate_loop.setup_data
     elif "test" in keyword:
-        fn = trainer.reset_test_dataloader
+        trainer.state.fn = "test"
+        trainer.testing = True
+        fn = trainer.test_loop.setup_data
     else:
-        fn = trainer.reset_predict_dataloader
+        trainer.predicting = True
+        fn = trainer.predict_loop.setup_data
 
     trainer._data_connector.attach_dataloaders(model, **{keyword: value})
-    fn(model)
+    fn()
 
     expected = len(value) if isinstance(value, list) else 1
     assert process_dataloader_mock.call_count == expected

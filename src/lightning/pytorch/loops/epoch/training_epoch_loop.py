@@ -15,15 +15,13 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
-import torch
-
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
-from lightning.pytorch.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
@@ -246,7 +244,7 @@ class _TrainingEpochLoop(loops._Loop):
         should_check_val = self._should_check_val_fx()
         if should_check_val:
             self.trainer.validating = True
-            self._run_validation()
+            self.val_loop.run()
             self.trainer.training = True
 
         # update plateau LR scheduler after metrics are logged
@@ -274,17 +272,6 @@ class _TrainingEpochLoop(loops._Loop):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
-
-    def _run_validation(self) -> None:
-        # reload dataloaders
-        self.val_loop._reload_evaluation_dataloaders()
-
-        assert self.trainer.val_dataloaders is not None
-        for i, dl in enumerate(self.trainer.val_dataloaders._flattened):
-            _set_sampler_epoch(dl, self.trainer.fit_loop.epoch_progress.current.processed)
-
-        with torch.no_grad():
-            self.val_loop.run()
 
     def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""

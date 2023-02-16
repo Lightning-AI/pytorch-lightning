@@ -27,7 +27,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import IPUPrecisionPlugin
 from lightning.pytorch.strategies.ipu import IPUStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -365,7 +364,7 @@ def test_manual_poptorch_dataloader(tmpdir):
 
     assert isinstance(trainer.strategy, IPUStrategy)
     assert trainer.strategy.training_opts is other_options
-    dataloader = trainer.train_dataloader.iterables
+    dataloader = trainer.train_dataloader
     assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
     # dataloader uses the options in the model, not the strategy
     assert dataloader.options is model_options
@@ -393,7 +392,7 @@ def test_manual_poptorch_opts(tmpdir):
     assert trainer.strategy.training_opts == training_opts
     assert trainer.strategy.inference_opts == inference_opts
 
-    dataloader = trainer.train_dataloader.iterables
+    dataloader = trainer.train_dataloader
     assert isinstance(dataloader, poptorch.DataLoader)
     assert dataloader.options == training_opts
     assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
@@ -426,8 +425,6 @@ def test_manual_poptorch_opts_custom(tmpdir):
 
             val_dataloader = trainer.val_dataloaders[0]
             train_dataloader = trainer.train_dataloader
-            assert isinstance(train_dataloader, CombinedLoader)
-            train_dataloader = train_dataloader.iterables
             assert isinstance(val_dataloader, poptorch.DataLoader)
             assert isinstance(train_dataloader, poptorch.DataLoader)
             assert train_dataloader.options.replication_factor == 2

@@ -24,12 +24,14 @@ from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer import call
+from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.trainer.supporters import _Sequential
+from lightning.pytorch.trainer.supporters import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import SIGTERMException
+from lightning.pytorch.utilities.model_helpers import is_overridden
 
 if _RICH_AVAILABLE:
     from rich import get_console
@@ -48,12 +50,15 @@ class _EvaluationLoop(_Loop):
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
         self._has_run: bool = False
+        # FIXME(carmocca): this would be simpler if we had a Trainer reference already
+        self._data_source = _DataLoaderSource(None, "")
+        self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
         """Returns the number of prediction dataloaders."""
-        combined_loader = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
+        combined_loader = self._combined_loader
         assert combined_loader is not None
         return len(combined_loader._flattened)
 
@@ -75,6 +80,7 @@ class _EvaluationLoop(_Loop):
 
     @_no_grad_context
     def run(self) -> List[_OUT_DICT]:
+        self.setup_data()
         if self.skip:
             return []
         self.reset()
@@ -83,22 +89,62 @@ class _EvaluationLoop(_Loop):
         assert data_fetcher is not None
         while True:
             try:
-                if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-                    iterator = data_fetcher.dataloader._iterator
-                    assert isinstance(iterator, _Sequential)
-                    batch_idx = iterator._idx
-                    dataloader_idx = iterator._iterator_idx
-                    batch = next(data_fetcher)
-                else:
-                    batch, batch_idx, dataloader_idx = next(data_fetcher)
+                batch, batch_idx, dataloader_idx = next(data_fetcher)
                 self.batch_progress.is_last_batch = data_fetcher.done
                 self._evaluation_step(batch, batch_idx, dataloader_idx)
                 self._restarting = False
             except StopIteration:
                 break
         self._restarting = False
+        # FIXME(carmocca)
         self.on_advance_end()
         return self.on_run_end()
+
+    def setup_data(self):
+        trainer = self.trainer
+
+        if (
+            self._combined_loader is not None
+            and trainer.state.fn == "fit"
+            and not trainer._data_connector._should_reload_val_dl
+        ):
+            return
+
+        source = self._data_source
+        pl_module = trainer.lightning_module
+        limit_batches = trainer.limit_test_batches if trainer.testing else trainer.limit_val_batches
+        hook_name = "test_step" if trainer.testing else "validation_step"
+        if not source.is_defined() or limit_batches == 0 or not is_overridden(hook_name, pl_module):
+            return
+
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        # it should not reload again if it has already reloaded during sanity_check
+        if trainer.state.fn == "fit" and (
+            (trainer.sanity_checking and trainer.fit_loop.epoch_loop._should_check_val_epoch())
+            or not trainer.sanity_checking
+        ):
+            trainer._last_val_dl_reload_epoch = trainer.current_epoch
+
+        num_batches, iterables = trainer._data_connector._reset_eval_dataloader(trainer.state.stage, model=pl_module)
+        if trainer.testing:
+            trainer.num_test_batches = num_batches
+        elif trainer.sanity_checking:
+            trainer.num_val_batches = num_batches
+            trainer.num_sanity_val_batches = [
+                min(trainer.num_sanity_val_steps, val_batches) for val_batches in num_batches
+            ]
+        else:
+            trainer.num_val_batches = num_batches
+
+        combined_loader = CombinedLoader(iterables, "sequential")
+        for i, dl in enumerate(combined_loader._flattened):
+            if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
+                # some users want validation shuffling based on the training progress
+                _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
+            # allow the strategy to inject logic
+            dl = trainer.strategy.process_dataloader(dl)
+            combined_loader._update_index(dl, i)
+        self._combined_loader = combined_loader
 
     def reset(self) -> None:
         """Resets the internal state of the loop."""
@@ -120,8 +166,14 @@ class _EvaluationLoop(_Loop):
             raise NotImplementedError(
                 "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
             )
-        combined_loader = trainer.test_dataloaders if trainer.testing else trainer.val_dataloaders
+        combined_loader = self._combined_loader
         assert combined_loader is not None
+
+        if trainer.state.fn == "fit":
+            for i, dl in enumerate(combined_loader._flattened):
+                # some users want validation shuffling based on the training progress
+                _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
+
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -188,13 +240,6 @@ class _EvaluationLoop(_Loop):
             self._data_fetcher.teardown()
             self._data_fetcher = None
         self._results.cpu()
-
-    def _reload_evaluation_dataloaders(self) -> None:
-        """Reloads dataloaders if necessary."""
-        if self.trainer.testing:
-            self.trainer.reset_test_dataloader()
-        elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
-            self.trainer.reset_val_dataloader()
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""

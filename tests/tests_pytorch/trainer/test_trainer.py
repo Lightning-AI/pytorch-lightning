@@ -1295,8 +1295,8 @@ class CustomPredictionWriter(BasePredictionWriter):
     def on_predict_epoch_end(self, trainer, pl_module):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
-                assert isinstance(trainer.predict_dataloaders.batch_sampler[idx].sampler, UnrepeatedDistributedSampler)
-                assert isinstance(trainer.predict_dataloaders.batch_sampler[idx], IndexBatchSamplerWrapper)
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
         super().on_predict_epoch_end(trainer, pl_module)
 
 
@@ -1982,18 +1982,36 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
 )
 def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_stage):
     dl_prefix = running_stage.dataloader_prefix
-    trainer_kwargs = {f"limit_{dl_prefix}_batches": 0}
+    argument = f"limit_{dl_prefix}_batches"
+    trainer_kwargs = {argument: 0}
     trainer = Trainer(**trainer_kwargs)
     model = BoringModel()
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
-    reset_dataloader = getattr(trainer, f"reset_{dl_prefix}_dataloader")
-    reset_dataloader(model)
-    dl = (
-        trainer.train_dataloader
-        if running_stage == RunningStage.TRAINING
-        else getattr(trainer, f"{dl_prefix}_dataloaders")
-    )
-    assert dl is None
+
+    trainer.state.stage = running_stage
+    if running_stage == "train":
+        trainer.state.fn = "fit"
+        fn = trainer.fit_loop.setup_data
+    elif running_stage == "validate":
+        trainer.state.fn = "validate"
+        fn = trainer.validate_loop.setup_data
+    elif running_stage == "test":
+        trainer.state.fn = "test"
+        fn = trainer.test_loop.setup_data
+    else:
+        fn = trainer.predict_loop.setup_data
+
+    # with no limit, the attribute is None
+    fn()
+    dataloader_attribute = f"{dl_prefix}_dataloader{'' if running_stage == 'train' else 's'}"
+    assert getattr(trainer, dataloader_attribute) is None
+
+    # validate it would've worked if a limit was set
+    setattr(trainer, argument, 1)
+    fn()
+    expected = DataLoader if running_stage == "train" else list
+    assert isinstance(getattr(trainer, dataloader_attribute), expected)
 
 
 @pytest.mark.parametrize(

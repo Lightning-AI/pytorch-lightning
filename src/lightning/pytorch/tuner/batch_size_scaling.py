@@ -190,7 +190,7 @@ def _run_power_scaling(
                 break
 
             # Force the train dataloader to reset as the batch size has changed
-            _reset_dataloaders(trainer, pl_module)
+            _reset_dataloaders(trainer)
             any_success = True
         except RuntimeError as exception:
             if is_oom_error(exception):
@@ -198,7 +198,7 @@ def _run_power_scaling(
                 garbage_collection_cuda()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 # Force the train dataloader to reset as the batch size has changed
-                _reset_dataloaders(trainer, pl_module)
+                _reset_dataloaders(trainer)
                 if any_success:
                     break
             else:
@@ -249,7 +249,7 @@ def _run_binary_scaling(
                 break
 
             # Force the train dataloader to reset as the batch size has changed
-            _reset_dataloaders(trainer, pl_module)
+            _reset_dataloaders(trainer)
 
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
@@ -262,7 +262,7 @@ def _run_binary_scaling(
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
 
                 # Force the train dataloader to reset as the batch size has changed
-                _reset_dataloaders(trainer, pl_module)
+                _reset_dataloaders(trainer)
 
                 if high - low <= 1:
                     break
@@ -300,25 +300,12 @@ def _adjust_batch_size(
     if desc:
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-    from lightning.pytorch.trainer.supporters import CombinedLoader
-
-    if trainer.state.fn == "fit":
-        dataloader = trainer.train_dataloader
-        if dataloader is None:
-            trainer.reset_train_dataloader()
-        dataloader = trainer.train_dataloader
-        assert isinstance(dataloader, CombinedLoader)
-        if not _is_valid_batch_size(new_size, dataloader, trainer):
-            new_size = min(new_size, len(dataloader.dataset))  # type: ignore[arg-type]
-    else:
-        stage = trainer.state.stage
-        assert stage is not None
-        dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
-        if dataloaders is None:
-            _reset_dataloaders(trainer, model)
-        assert isinstance(dataloaders, CombinedLoader)
-        if not _is_valid_batch_size(new_size, dataloaders, trainer):
-            new_size = min(new_size, len(dataloaders.dataset))
+    loop = trainer._active_loop
+    loop.setup_data()
+    combined_loader = loop._combined_loader
+    assert combined_loader is not None
+    if not _is_valid_batch_size(new_size, combined_loader, trainer):
+        new_size = min(new_size, len(combined_loader.dataset))  # type: ignore[arg-type]
 
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
@@ -333,14 +320,10 @@ def _is_valid_batch_size(batch_size: int, dataloader: Iterable, trainer: "pl.Tra
     return not has_len or batch_size <= len(dataloader)  # type: ignore[arg-type]
 
 
-def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-    if trainer.state.fn == "fit":
-        trainer.reset_train_dataloader(pl_module)
-    else:
-        stage = trainer.state.stage
-        assert stage is not None
-        reset_fn = getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")
-        reset_fn(pl_module)
+def _reset_dataloaders(trainer: "pl.Trainer") -> None:
+    loop = trainer._active_loop
+    loop._combined_loader = None  # force a reload
+    loop.setup_data()
 
 
 def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:

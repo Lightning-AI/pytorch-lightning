@@ -44,11 +44,6 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: _LITERAL_SUPPORTED_MODES = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self._train_dataloader_source = _DataLoaderSource(None, "")
-        self._val_dataloader_source = _DataLoaderSource(None, "")
-        self._test_dataloader_source = _DataLoaderSource(None, "")
-        self._predict_dataloader_source = _DataLoaderSource(None, "")
-
         self._datahook_selector: Optional[_DataHookSelector] = None
 
     @property
@@ -61,7 +56,7 @@ class DataConnector:
     def _should_reload_val_dl(self) -> bool:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
+        return bool(n_epochs and self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
 
     def on_trainer_init(
         self,
@@ -135,18 +130,20 @@ class DataConnector:
         )
         self.attach_datamodule(model, datamodule=datamodule)
 
+        trainer = self.trainer
         # Validate that the required data sources are available
-        if self.trainer.state.fn == TrainerFn.FITTING:
-            _check_dataloader_none(train_dataloaders, self._train_dataloader_source, self.trainer.state.fn)
-        elif self.trainer.state.fn == TrainerFn.VALIDATING:
-            _check_dataloader_none(val_dataloaders, self._val_dataloader_source, self.trainer.state.fn)
-        elif self.trainer.state.fn == TrainerFn.TESTING:
-            _check_dataloader_none(test_dataloaders, self._test_dataloader_source, self.trainer.state.fn)
-        elif self.trainer.state.fn == TrainerFn.PREDICTING:
-            _check_dataloader_none(predict_dataloaders, self._predict_dataloader_source, self.trainer.state.fn)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _check_dataloader_none(train_dataloaders, trainer.fit_loop._data_source, self.trainer.state.fn)
+            # TODO(carmocca): fit's validation dataloaders should be checked too
+        elif trainer.state.fn == TrainerFn.VALIDATING:
+            _check_dataloader_none(val_dataloaders, trainer.validate_loop._data_source, self.trainer.state.fn)
+        elif trainer.state.fn == TrainerFn.TESTING:
+            _check_dataloader_none(test_dataloaders, trainer.test_loop._data_source, self.trainer.state.fn)
+        elif trainer.state.fn == TrainerFn.PREDICTING:
+            _check_dataloader_none(predict_dataloaders, trainer.predict_loop._data_source, self.trainer.state.fn)
 
         # Attach the trainer to the LightningModule
-        model.trainer = proxy(self.trainer)
+        model.trainer = proxy(trainer)
 
     def attach_dataloaders(
         self,
@@ -156,21 +153,27 @@ class DataConnector:
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
     ) -> None:
-        self.trainer.train_dataloader = None
-        self.trainer.val_dataloaders = None
-        self.trainer.test_dataloaders = None
-        self.trainer.predict_dataloaders = None
+        trainer = self.trainer
 
-        self._train_dataloader_source = _DataLoaderSource(
+        trainer.fit_loop._combined_loader = None
+        trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
+        trainer.validate_loop._combined_loader = None
+        trainer.test_loop._combined_loader = None
+        trainer.predict_loop._combined_loader = None
+
+        trainer.fit_loop._data_source = _DataLoaderSource(
             train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
         )
-        self._val_dataloader_source = _DataLoaderSource(
+        trainer.fit_loop.epoch_loop.val_loop._data_source = _DataLoaderSource(
             val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
         )
-        self._test_dataloader_source = _DataLoaderSource(
+        trainer.validate_loop._data_source = _DataLoaderSource(
+            val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
+        )
+        trainer.test_loop._data_source = _DataLoaderSource(
             test_dataloaders if test_dataloaders is not None else model, "test_dataloader"
         )
-        self._predict_dataloader_source = _DataLoaderSource(
+        trainer.predict_loop._data_source = _DataLoaderSource(
             predict_dataloaders if predict_dataloaders is not None else model, "predict_dataloader"
         )
 
@@ -183,13 +186,15 @@ class DataConnector:
         if datamodule is None:
             return
 
-        self._train_dataloader_source = _DataLoaderSource(datamodule, "train_dataloader")
-        self._val_dataloader_source = _DataLoaderSource(datamodule, "val_dataloader")
-        self._test_dataloader_source = _DataLoaderSource(datamodule, "test_dataloader")
-        self._predict_dataloader_source = _DataLoaderSource(datamodule, "predict_dataloader")
+        trainer = self.trainer
+        trainer.fit_loop._data_source = _DataLoaderSource(datamodule, "train_dataloader")
+        trainer.fit_loop.epoch_loop.val_loop._data_source = _DataLoaderSource(datamodule, "val_dataloader")
+        trainer.validate_loop._data_source = _DataLoaderSource(datamodule, "val_dataloader")
+        trainer.test_loop._data_source = _DataLoaderSource(datamodule, "test_dataloader")
+        trainer.predict_loop._data_source = _DataLoaderSource(datamodule, "predict_dataloader")
 
-        self.trainer.datamodule = datamodule
-        datamodule.trainer = self.trainer
+        trainer.datamodule = datamodule
+        datamodule.trainer = trainer
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -329,14 +334,13 @@ class DataConnector:
         Returns:
             Tuple (num_batches, dataloaders)
         """
-        assert mode.evaluating or mode == RunningStage.PREDICTING
-
         # always get the loaders first so we can count how many there are
-        dataloaders = self._request_dataloader(mode)
+        dataloaders = self._request_dataloader()
 
         if self.trainer.overfit_batches > 0:
             dataloaders = self._resolve_overfit_batches(dataloaders, mode)
 
+        # TODO(carmocca): list conversion shouldn't be forced
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]  # type: ignore[assignment]
 
@@ -408,13 +412,13 @@ class DataConnector:
 
         return loader_num_batches, dataloaders
 
-    def _request_dataloader(self, stage: RunningStage) -> TRAIN_DATALOADERS:
+    def _request_dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
 
         Returns:
             The requested dataloader
         """
-        source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
+        source = self.trainer._active_loop._data_source
 
         with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
@@ -475,8 +479,8 @@ class _DataLoaderSource:
 
     The source can be
 
-    1. from a ``*_datalaoder()`` method on the :class:`~lightning.pytorch.core.module.LightningModule`,
-    2. from a ``*_datalaoder()`` method on the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`,
+    1. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.module.LightningModule`,
+    2. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`,
     3. a direct instance of a :class:`~torch.utils.data.DataLoader` or supported collections thereof.
 
     Arguments:

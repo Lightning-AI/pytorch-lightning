@@ -96,6 +96,7 @@ def test_combined_loader_modes():
     # min_size with dict
     min_len = min(lengths)
     combined_loader = CombinedLoader(iterables, "min_size")
+    assert combined_loader._iterator is None
     assert len(combined_loader) == min_len
     for idx, item in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _MinSize)
@@ -107,6 +108,7 @@ def test_combined_loader_modes():
     # max_size_cycle with dict
     max_len = max(lengths)
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
+    assert combined_loader._iterator is None
     assert len(combined_loader) == max_len
     for idx, item in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
@@ -118,6 +120,7 @@ def test_combined_loader_modes():
     # sequential with dict
     sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
+    assert combined_loader._iterator is None
     assert len(combined_loader) == sum_len
     for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -152,6 +155,7 @@ def test_combined_loader_modes():
 
     # sequential with list
     combined_loader = CombinedLoader(iterables, "sequential")
+    assert combined_loader._iterator is None
     assert len(combined_loader) == sum_len
     for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -370,6 +374,7 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, us
         replace_sampler_ddp=replace_sampler_ddp,
         multiple_trainloader_mode=mode,
     )
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(
         model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
     )
@@ -380,8 +385,9 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, us
         if replace_sampler_ddp
         else expected_length_before_ddp
     )
-    trainer.reset_train_dataloader(model=model)
+    trainer.state.stage = "train"
+    trainer.fit_loop.setup_data()
     assert trainer.train_dataloader is not None
-    assert isinstance(trainer.train_dataloader, CombinedLoader)
-    assert trainer.train_dataloader._mode == mode
+    assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)
+    assert trainer.fit_loop._combined_loader._mode == mode
     assert trainer.num_training_batches == expected_length_after_ddp

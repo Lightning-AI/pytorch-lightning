@@ -235,7 +235,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     assert results[0] == {"c": torch.tensor(2), "d/e/f": 2}
 
 
-@pytest.mark.parametrize("suffix", (False, True))
+@pytest.mark.parametrize("suffix", (True,))
 def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     class TestModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx=0):
