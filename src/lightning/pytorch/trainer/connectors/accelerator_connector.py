@@ -15,11 +15,11 @@
 import logging
 import os
 from collections import Counter
-from typing import cast, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import torch
-from typing_extensions import get_args
 
+from lightning.fabric.connector import _convert_precision_to_unified_args, _PRECISION_INPUT, _PRECISION_INPUT_STR
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -75,9 +75,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 log = logging.getLogger(__name__)
 
 _LITERAL_WARN = Literal["warn"]
-_PRECISION_INPUT_INT = Literal[64, 32, 16]
-_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class AcceleratorConnector:
@@ -88,7 +85,7 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        precision: _PRECISION_INPUT = 32,
+        precision: _PRECISION_INPUT = "32-true",
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
@@ -136,7 +133,7 @@ class AcceleratorConnector:
         # Set each valid flag to `self._x_flag` after validation
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: _PRECISION_INPUT_STR = "32"
+        self._precision_flag: _PRECISION_INPUT_STR = "32-true"
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -243,12 +240,7 @@ class AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
-        if precision not in supported_precision:
-            raise MisconfigurationException(
-                f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}"
-            )
-        self._precision_flag = cast(_PRECISION_INPUT_STR, str(precision))
+        self._precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -518,13 +510,13 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, HPUAccelerator):
             return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == "32":
+            if self._precision_flag == "32-true":
                 return TPUPrecisionPlugin()
-            elif self._precision_flag in ("16", "bf16"):
-                if self._precision_flag == "16":
+            elif self._precision_flag in ("16-mixed", "bf16-mixed"):
+                if self._precision_flag == "16-mixed":
                     rank_zero_warn(
-                        "You passed `Trainer(accelerator='tpu', precision=16)` but AMP"
-                        " is not supported with TPUs. Using `precision='bf16'` instead."
+                        "You passed `Trainer(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
+                        " is not supported on TPUs. Using `precision='bf16-mixed'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
 
@@ -537,21 +529,21 @@ class AcceleratorConnector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)
 
-        if self._precision_flag == "32":
+        if self._precision_flag == "32-true":
             return PrecisionPlugin()
-        if self._precision_flag == "64":
+        if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
 
-        if self._precision_flag == "16" and self._accelerator_flag == "cpu":
+        if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Trainer(accelerator='cpu', precision=16)` but AMP is not supported on CPU."
-                " Using `precision='bf16'` instead."
+                "You passed `Trainer(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
+                "CPU. Using `precision='bf16-mixed'` instead."
             )
-            self._precision_flag = "bf16"
+            self._precision_flag = "bf16-mixed"
 
-        if self._precision_flag in ("16", "bf16"):
+        if self._precision_flag in ("16-mixed", "bf16-mixed"):
             rank_zero_info(
-                f"Using {'16bit' if self._precision_flag == 16 else 'bfloat16'} Automatic Mixed Precision (AMP)"
+                f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
@@ -564,9 +556,9 @@ class AcceleratorConnector:
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == "64":
+            if self._precision_flag == "64-true":
                 raise MisconfigurationException(
-                    "`Trainer(accelerator='tpu', precision=64)` is not implemented."
+                    "`Trainer(accelerator='tpu', precision='64-true')` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
@@ -578,7 +570,7 @@ class AcceleratorConnector:
                     f" found: {self._precision_plugin_flag}."
                 )
         if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in ("16", "bf16", "32"):
+            if self._precision_flag not in ("16-mixed", "bf16-mixed", "32-true"):
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
