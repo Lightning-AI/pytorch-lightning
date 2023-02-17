@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from typing_extensions import get_args
@@ -568,7 +568,7 @@ class _Connector:
 
 def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISION_INPUT_STR:
     supported_precision = (
-            get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_ALIAS)
+        get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_ALIAS)
     )
     if precision not in supported_precision:
         raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}")
@@ -582,4 +582,3 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
                 f"Please set your precision to {_PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]} instead!"
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
-
