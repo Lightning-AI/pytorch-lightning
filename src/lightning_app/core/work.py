@@ -639,7 +639,10 @@ class LightningWork:
         return WorkStatus(**status, count=len(timeout_statuses))
 
     def on_exit(self):
-        """Override this hook to add your logic when the work is exiting."""
+        """Override this hook to add your logic when the work is exiting.
+
+        Note: This hook is not guaranteed to be called when running in the cloud.
+        """
         pass
 
     def stop(self):
