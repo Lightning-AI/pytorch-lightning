@@ -14,6 +14,8 @@
 import os
 import sys
 from typing import Union
+from textwrap import dedent
+from pathlib import Path
 
 import click
 from lightning_cloud.openapi import (
@@ -28,6 +30,7 @@ from lightning.app.cli.commands.cp import (
     _get_progress_bar,
     _get_project_id_and_resource,
     _sanitize_path,
+    _is_remote,
 )
 from lightning.app.cli.commands.ls import _get_prefix
 from lightning.app.cli.commands.pwd import _pwd
@@ -37,7 +40,7 @@ from lightning.app.utilities.network import LightningClient
 
 
 @click.argument("src_path", required=True)
-@click.argument("dst_path", required=False)
+@click.argument("dst_path", required=False, default=".")
 def zip(src_path: str, dst_path: str = ".") -> None:
     """Download content from the Lightning Filesystem as a zip file."""
 
@@ -47,15 +50,36 @@ def zip(src_path: str, dst_path: str = ".") -> None:
 
     pwd = _pwd()
 
-    src_path, src_is_remote = _sanitize_path(src_path, pwd)
+    if not _is_remote(src_path):
+        src_path = "r:" + src_path
+
+    src_path, _ = _sanitize_path(src_path, pwd)
     dst_path, dst_is_remote = _sanitize_path(dst_path, pwd)
 
-    if dst_path == ".":
-        dst_path = os.path.join(".", os.path.basename(src_path) + ".zip")
-
-    if not (src_is_remote and not dst_is_remote):
+    if dst_is_remote:
         return _error_and_exit(
-            "Zipping artifacts only supports downloading. Please, open a Github issue for other use cases."
+            dedent(
+                """
+                The destination path must be a local path (i.e. not prefixed with [red]r:[/red] or [red]remote:[/red]).
+
+                The zip command only supports downloading from the Lightning Filesystem.
+                For other use cases, please open a Github issue.
+                """
+            )
+        )
+
+    if os.path.isdir(dst_path):
+        dst_path = os.path.join(dst_path, os.path.basename(src_path) + ".zip")
+
+    if len(src_path.split("/")) < 3:
+        return _error_and_exit(
+            dedent(
+                f"""
+                The source path must be at least two levels deep (e.g. r:/my-project/my-lit-resource).
+
+                The path provided was: r:{src_path}
+                """
+            )
         )
 
     return _zip_files(src_path, dst_path)
@@ -80,6 +104,8 @@ def _zip_files(remote_src: str, local_dst: str) -> None:
 
     _download_file(local_dst, url, progress, task_id)
     progress.stop()
+
+    click.echo(f"Downloaded to {local_dst}")
 
 
 def _storage_host(cluster: Union[V1GetClusterResponse, Externalv1Cluster]) -> str:

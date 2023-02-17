@@ -23,13 +23,23 @@ from lightning.app.cli.commands.cd import cd
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
-def test_zip_local_to_remote(monkeypatch):
+def test_zip_arg_order(monkeypatch):
     assert "/" == cd("/", verify=False)
 
     error_and_exit = MagicMock()
     monkeypatch.setattr(zip, "_error_and_exit", error_and_exit)
     zip.zip(".", "r:.")
     error_and_exit.assert_called_once()
+    assert "The destination path must be a local path" in error_and_exit.call_args_list[0].args[0]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+def test_zip_src_path_too_short(monkeypatch):
+    error_and_exit = MagicMock()
+    monkeypatch.setattr(zip, "_error_and_exit", error_and_exit)
+    zip.zip("r:/my-project")
+    error_and_exit.assert_called_once()
+    assert "The source path must be at least two levels deep" in error_and_exit.call_args_list[0].args[0]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
@@ -68,7 +78,7 @@ def test_zip_remote_to_local_cloudspace_artifact(monkeypatch):
     download_file = MagicMock()
     monkeypatch.setattr(zip, "_download_file", download_file)
 
-    cloudspace_artifact = "r:/my-project/my-cloudspace/my-artifact"
+    cloudspace_artifact = "/my-project/my-cloudspace/my-artifact"
     zip.zip(cloudspace_artifact, ".")
 
     download_file.assert_called_once()
@@ -117,7 +127,7 @@ def test_zip_remote_to_local_app_artifact(monkeypatch):
     download_file = MagicMock()
     monkeypatch.setattr(zip, "_download_file", download_file)
 
-    app_artifact = "r:/my-project/my-app/my-artifact"
+    app_artifact = "/my-project/my-app/my-artifact"
     zip.zip(app_artifact, ".")
 
     download_file.assert_called_once()

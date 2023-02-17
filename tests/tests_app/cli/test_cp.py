@@ -136,3 +136,15 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
     shutil.rmtree(".folder_4")
     shutil.rmtree("test_cp_cloud_to_local")
     os.remove(_CD_FILE)
+
+
+def test_sanitize_path():
+    path, is_remote = cp._sanitize_path("r:default-project", "/")
+    assert path == "/default-project"
+    assert is_remote
+
+    path, _ = cp._sanitize_path("r:foo", "/default-project")
+    assert path == "/default-project/foo"
+
+    path, _ = cp._sanitize_path("foo", "/default-project")
+    assert path == "foo"

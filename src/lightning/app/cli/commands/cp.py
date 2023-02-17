@@ -228,7 +228,7 @@ def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
         if path == ".":
             path = pwd
         else:
-            path = os.path.join(pwd, path[1:])
+            path = os.path.join(pwd, path)
     return path, is_remote
 
 
