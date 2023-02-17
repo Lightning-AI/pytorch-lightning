@@ -42,16 +42,26 @@ in the training set to turn off shuffle for you.
 ********************************
 Look-out for exploding gradients
 ********************************
-One major problem that plagues models is exploding gradients. Gradient norm is one technique that can help keep gradients from exploding.
+One major problem that plagues models is exploding gradients.
+Gradient clipping is one technique that can help keep gradients from exploding.
 
-.. testcode::
+You can keep an eye on the gradient norm by logging it in your LightningModule:
 
-    # the 2-norm
-    trainer = Trainer(track_grad_norm=2)
+.. code-block:: python
 
-This will plot the 2-norm to your experiment manager. If you notice the norm is going up, there's a good chance your gradients are/will explode.
+    from lightning.pytorch.utilities import grad_norm
 
-One technique to stop exploding gradients is to clip the gradient
+    def on_before_optimizer_step(self, optimizer):
+        # Compute the 2-norm for each layer
+        # If using mixed precision, the gradients are already unscaled here
+        norms = grad_norm(self.layer, norm_type=2)
+        self.log_dict(norms)
+
+
+This will plot the 2-norm of each layer to your experiment manager.
+If you notice the norm is going up, there's a good chance your gradients will explode.
+
+One technique to stop exploding gradients is to clip the gradient when the norm is above a certain threashold:
 
 .. testcode::
 

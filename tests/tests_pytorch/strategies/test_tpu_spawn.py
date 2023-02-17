@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.strategies import TPUSpawnStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -45,39 +44,10 @@ _loader = DataLoader(RandomDataset(32, 64))
 _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 
-@pytest.mark.parametrize(
-    "train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders",
-    [
-        (_loader_no_len, None, None, None),
-        (None, _loader_no_len, None, None),
-        (None, None, _loader_no_len, None),
-        (None, None, None, _loader_no_len),
-        (None, [_loader, _loader_no_len], None, None),
-    ],
-)
-def test_error_iterable_dataloaders_passed_to_fit(
-    xla_available, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
-):
-    """Test that the TPUSpawnStrategy identifies dataloaders with iterable datasets and fails early."""
-    trainer = Trainer()
-    model = BoringModelNoDataloaders()
-    model.trainer = trainer
-
-    trainer._data_connector.attach_dataloaders(
-        model,
-        train_dataloaders=train_dataloaders,
-        val_dataloaders=val_dataloaders,
-        test_dataloaders=test_dataloaders,
-        predict_dataloaders=predict_dataloaders,
-    )
-
-    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
-        TPUSpawnStrategy(MagicMock()).connect(model)
-
-
 def test_error_process_iterable_dataloader(xla_available):
-    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
-        TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
+    strategy = TPUSpawnStrategy(MagicMock())
+    with pytest.raises(TypeError, match="TPUs do not currently support"):
+        strategy.process_dataloader(_loader_no_len)
 
 
 class BoringModelTPU(BoringModel):

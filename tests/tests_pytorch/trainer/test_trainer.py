@@ -38,7 +38,7 @@ from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning.pytorch.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, Timer
 from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -50,7 +50,7 @@ from lightning.pytorch.demos.boring_classes import (
 )
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from lightning.pytorch.strategies import DataParallelStrategy, DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
+from lightning.pytorch.strategies import DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
@@ -170,23 +170,9 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
-    with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
-        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
-
-
-def test_trainer_accumulate_grad_batches_with_grad_acc_callback(tmpdir):
-    with pytest.raises(
-        MisconfigurationException, match=".*set both `accumulate_grad_batches` and passed an instance.*"
-    ):
-        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=7, callbacks=[GradientAccumulationScheduler({0: 2})])
-
-
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        ({1: 2, 3: 4}, 1.0),
-        ({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
         (3, 1.0),
         (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
         (4, 1.0),
@@ -987,12 +973,6 @@ def test_disabled_validation(tmpdir):
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
 
 
-@pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
-def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
-    with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
-        Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
-
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 
@@ -1298,7 +1278,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
-    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
@@ -1409,8 +1389,6 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"strategy": "dp", "devices": 1},
-        {"strategy": "dp", "devices": 2},
         {"strategy": "ddp", "devices": 2},
     ],
 )
@@ -1447,7 +1425,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
             super().__init__(*args, **kwargs)
             self.output_dir = output_dir
 
-        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
             assert not batch_indices if is_iterable_dataset else batch_indices
 
     cb = CustomPredictionWriter(tmpdir)
@@ -1903,7 +1881,6 @@ def test_detect_anomaly_nan(tmpdir):
     ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
         ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        pytest.param({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param(
             {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)
@@ -1915,7 +1892,6 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": "dp", "accelerator": "cuda", "devices": 1}, DataParallelStrategy, "dp", CUDAAccelerator, 1),
         ({"strategy": "ddp", "accelerator": "cuda", "devices": 1}, DDPStrategy, "ddp", CUDAAccelerator, 1),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 1},
@@ -1925,7 +1901,6 @@ def test_detect_anomaly_nan(tmpdir):
             1,
         ),
         ({"strategy": None, "accelerator": "cuda", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", CUDAAccelerator, 2),
-        ({"strategy": "dp", "accelerator": "cuda", "devices": 2}, DataParallelStrategy, "dp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (
@@ -1958,13 +1933,6 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         pytest.param({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
-        (
-            {"strategy": DataParallelStrategy(), "accelerator": "cuda", "devices": 2},
-            DataParallelStrategy,
-            "dp",
-            CUDAAccelerator,
-            2,
-        ),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPSpawnStrategy,

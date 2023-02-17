@@ -24,19 +24,11 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
 from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
-from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
-    try:
-        import bagua  # noqa
-    except ModuleNotFoundError:
-        assert not _BAGUA_AVAILABLE
-    else:
-        assert _BAGUA_AVAILABLE
-
     try:
         import omegaconf  # noqa
     except ModuleNotFoundError:

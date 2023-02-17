@@ -15,9 +15,11 @@
 from collections import OrderedDict
 from typing import Any, Optional, Union
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -30,8 +32,8 @@ class _EvaluationEpochLoop(_Loop):
     state).
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.batch_progress = BatchProgress()
 
         self._dl_max_batches: Union[int, float] = 0
@@ -112,12 +114,17 @@ class _EvaluationEpochLoop(_Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            batch_idx = self.batch_progress.current.ready
-            batch = next(data_fetcher)
-        else:
-            batch_idx, batch = next(data_fetcher)
+        batch_idx = (
+            data_fetcher.fetched
+            if isinstance(data_fetcher, _DataLoaderIterDataFetcher)
+            else self.batch_progress.current.ready
+        )
+        batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
+
+        dataloader_idx = kwargs.get("dataloader_idx", 0)
+        batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+        batch = call._call_strategy_hook(self.trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         # configure step_kwargs
         kwargs = self._build_kwargs(kwargs, batch, batch_idx)
@@ -142,7 +149,6 @@ class _EvaluationEpochLoop(_Loop):
 
         # log batch metrics
         if not self.trainer.sanity_checking:
-            dataloader_idx = kwargs.get("dataloader_idx", 0)
             self.trainer._logger_connector.update_eval_step_metrics(self._dl_batch_idx[dataloader_idx])
             self._dl_batch_idx[dataloader_idx] += 1
 
@@ -151,14 +157,6 @@ class _EvaluationEpochLoop(_Loop):
 
     def on_run_end(self) -> None:
         self._data_fetcher = None
-
-    def _num_completed_batches_reached(self) -> bool:
-        epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
-        dataloader_consumed_successfully = self.batch_progress.is_last_batch and self._has_completed()
-        return epoch_finished_on_completed or dataloader_consumed_successfully
-
-    def _has_completed(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
 
     def _evaluation_step(self, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).
@@ -171,16 +169,16 @@ class _EvaluationEpochLoop(_Loop):
         Returns:
             the outputs of the step
         """
-        hook_name = "test_step" if self.trainer.testing else "validation_step"
-        output = self.trainer._call_strategy_hook(hook_name, *kwargs.values())
-
-        return output
+        trainer = self.trainer
+        hook_name = "test_step" if trainer.testing else "validation_step"
+        return call._call_strategy_hook(trainer, hook_name, *kwargs.values())
 
     def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook."""
-        hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
-        model_output = self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        strategy_output = self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        trainer = self.trainer
+        hook_name = "test_step_end" if trainer.testing else "validation_step_end"
+        model_output = call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
+        strategy_output = call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
         output = strategy_output if model_output is None else model_output
         return output
 
@@ -195,12 +193,12 @@ class _EvaluationEpochLoop(_Loop):
         Raises:
             AssertionError: If the number of dataloaders is None (has not yet been set).
         """
-        self.trainer._logger_connector.on_batch_start(**kwargs)
+        trainer = self.trainer
+        trainer._logger_connector.on_batch_start(**kwargs)
 
-        kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        hook_name = "on_test_batch_start" if self.trainer.testing else "on_validation_batch_start"
-        self.trainer._call_callback_hooks(hook_name, *kwargs.values())
-        self.trainer._call_lightning_module_hook(hook_name, *kwargs.values())
+        hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
+        call._call_callback_hooks(trainer, hook_name, *kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -211,12 +209,13 @@ class _EvaluationEpochLoop(_Loop):
             batch_idx: The index of the current batch
             dataloader_idx: Index of the dataloader producing the current batch
         """
-        kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        hook_name = "on_test_batch_end" if self.trainer.testing else "on_validation_batch_end"
-        self.trainer._call_callback_hooks(hook_name, output, *kwargs.values())
-        self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
+        trainer = self.trainer
 
-        self.trainer._logger_connector.on_batch_end()
+        hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
+        call._call_callback_hooks(trainer, hook_name, output, *kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, output, *kwargs.values())
+
+        trainer._logger_connector.on_batch_end()
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
