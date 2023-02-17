@@ -582,3 +582,5 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
                 f"Please set your precision to {_PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]} instead!"
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
+    return cast(_PRECISION_INPUT_STR, precision)
+
