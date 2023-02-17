@@ -106,7 +106,7 @@ class _Run(BaseModel):
     plugin_arguments: Dict[str, str]
 
 
-def _run_plugin(run: _Run) -> List[Dict[str, Any]]:
+def _run_plugin(run: _Run) -> Dict[str, Any]:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     with tempfile.TemporaryDirectory() as tmpdir:
         download_path = os.path.join(tmpdir, "source.tar.gz")
@@ -158,7 +158,7 @@ def _run_plugin(run: _Run) -> List[Dict[str, Any]]:
                 cluster_id=run.cluster_id,
             )
             actions = plugin.run(**run.plugin_arguments) or []
-            return [action.to_spec().to_dict() for action in actions]
+            return {"actions": [action.to_spec().to_dict() for action in actions]}
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(e)}."
