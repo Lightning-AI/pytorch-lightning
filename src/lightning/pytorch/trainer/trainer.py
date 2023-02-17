@@ -957,8 +957,7 @@ class Trainer:
             ]
 
             # run eval step
-            with torch.no_grad():
-                val_loop.run()
+            val_loop.run()
 
             call._call_callback_hooks(self, "on_sanity_check_end")
 
@@ -1228,7 +1227,7 @@ class Trainer:
 
     @property
     def precision(self) -> _PRECISION_INPUT_STR:
-        return self.strategy.precision_plugin.precision
+        return self.strategy.precision_plugin.precision  # type: ignore
 
     @property
     def scaler(self) -> Optional[Any]:

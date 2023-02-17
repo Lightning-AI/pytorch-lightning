@@ -21,7 +21,7 @@ from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
-from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR
+from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -107,11 +107,11 @@ if _CLICK_AVAILABLE:
     )
     @click.option(
         "--precision",
-        type=click.Choice(get_args(_PRECISION_INPUT_STR)),
+        type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
         default="32-true",
         help=(
-            "Double precision (``64-true``), full precision (``32-true``), half precision (``16-mixed``) or "
-            "bfloat16 precision (``'bf16-mixed'``)"
+            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``64``), "
+            "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
         ),
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)

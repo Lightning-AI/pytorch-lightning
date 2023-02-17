@@ -26,6 +26,12 @@ This is how you select the precision in Fabric:
     # This is the default
     fabric = Fabric(precision="32-true")
 
+    # Also FP32
+    fabric = Fabric(precision=32)
+
+    # FP32 as well
+    fabric = Fabric(precision="32")
+
     # FP16 mixed precision
     fabric = Fabric(precision="16-mixed)
 
@@ -34,6 +40,12 @@ This is how you select the precision in Fabric:
 
     # Double precision
     fabric = Fabric(precision="64-true")
+
+    # Or
+    fabric = Fabric(precision="64")
+
+    # Or
+    fabric = Fabric(precision=64)
 
 
 The same values can also be set through the :doc:`command line interface <launch>`:

@@ -77,49 +77,6 @@ class ProgressBarBase(Callback):
         return "Predicting"
 
     @property
-    def _val_processed(self) -> int:
-        # use total in case validation runs more than once per training epoch
-        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
-
-    @property
-    def train_batch_idx(self) -> int:
-        """The number of batches processed during training.
-
-        Use this to update your progress bar.
-        """
-        return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
-
-    @property
-    def val_batch_idx(self) -> int:
-        """The number of batches processed during validation.
-
-        Use this to update your progress bar.
-        """
-        if self.trainer.state.fn == "fit":
-            loop = self.trainer.fit_loop.epoch_loop.val_loop
-        else:
-            loop = self.trainer.validate_loop
-
-        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
-        return current_batch_idx
-
-    @property
-    def test_batch_idx(self) -> int:
-        """The number of batches processed during testing.
-
-        Use this to update your progress bar.
-        """
-        return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
-
-    @property
-    def predict_batch_idx(self) -> int:
-        """The number of batches processed during prediction.
-
-        Use this to update your progress bar.
-        """
-        return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
-
-    @property
     def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 

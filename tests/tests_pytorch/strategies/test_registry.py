@@ -21,7 +21,7 @@ from lightning.pytorch.strategies import (
     DeepSpeedStrategy,
     FSDPStrategy,
     StrategyRegistry,
-    TPUSpawnStrategy,
+    XLAStrategy,
 )
 from tests_pytorch.helpers.runif import RunIf
 
@@ -54,15 +54,15 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
 
 @RunIf(skip_windows=True)
-def test_tpu_spawn_debug_strategy_registry(xla_available):
-    strategy = "tpu_spawn_debug"
+def test_xla_debug_strategy_registry(xla_available):
+    strategy = "xla_debug"
 
     assert strategy in StrategyRegistry
     assert StrategyRegistry[strategy]["init_params"] == {"debug": True}
-    assert StrategyRegistry[strategy]["strategy"] == TPUSpawnStrategy
+    assert StrategyRegistry[strategy]["strategy"] == XLAStrategy
 
     trainer = Trainer(strategy=strategy)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @RunIf(min_torch="1.12")

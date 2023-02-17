@@ -601,7 +601,7 @@ def test_unsupported_tpu_choice(tpu_available):
     ):
         Trainer(accelerator="tpu", precision="64-true")
 
-    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
+    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
         UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"
     ):
@@ -839,6 +839,7 @@ def test_connector_defaults_match_trainer_defaults():
         assert connector_default == trainer_defaults[name]
 
 
+@RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
 @pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
 def test_colossalai_external_strategy(monkeypatch):
     with mock.patch(

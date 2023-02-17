@@ -122,6 +122,9 @@ This can result in improved performance, achieving significant speedups on moder
     # Default used by the Fabric
     fabric = Fabric(precision="32-true", devices=1)
 
+    # the same as:
+    fabric = Fabric(precision="32", devices=1)
+
     # 16-bit (mixed) precision
     fabric = Fabric(precision="16-mixed", devices=1)
 

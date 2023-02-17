@@ -72,7 +72,7 @@ from lightning.pytorch.strategies import (
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
-    TPUSpawnStrategy,
+    XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -459,7 +459,7 @@ class AcceleratorConnector:
                 return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
-                return TPUSpawnStrategy.strategy_name
+                return XLAStrategy.strategy_name
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
@@ -634,10 +634,10 @@ class AcceleratorConnector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, TPUSpawnStrategy)
+            self.strategy, (SingleTPUStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
+                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 
@@ -661,7 +661,7 @@ class AcceleratorConnector:
             FSDPStrategy,
             DDPSpawnStrategy,
             DeepSpeedStrategy,
-            TPUSpawnStrategy,
+            XLAStrategy,
             HPUParallelStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
