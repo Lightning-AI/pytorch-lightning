@@ -22,10 +22,8 @@ from typing_extensions import get_args
 
 from lightning.fabric.connector import (
     _PRECISION_INPUT,
-    _PRECISION_INPUT_INT,
     _PRECISION_INPUT_STR,
-    _PRECISION_INPUT_STR_LEGACY,
-    _PRECISION_INPUT_STR_LEGACY_CONVERSION,
+    _convert_precision_to_unified_args
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
@@ -247,25 +245,7 @@ class AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        supported_precision = (
-            get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_LEGACY)
-        )
-        if precision not in supported_precision:
-            raise MisconfigurationException(
-                f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}"
-            )
-
-        precision = str(precision)  # convert int flags to str here to enable the legacy-conversion below
-
-        if precision in get_args(_PRECISION_INPUT_STR_LEGACY):
-            if str(precision)[:2] not in ("32", "64"):
-                rank_zero_warn(
-                    f"{precision} is supported for historical reasons but its usage is discouraged. "
-                    f"Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
-                )
-            precision = _PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]
-
-        self._precision_flag = cast(_PRECISION_INPUT_STR, precision)
+        self._precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
