@@ -18,8 +18,8 @@ import sys
 from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
 from textwrap import dedent
+from typing import Any, Optional, Tuple, Union
 
 import click
 import requests
