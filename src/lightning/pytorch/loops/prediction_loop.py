@@ -27,9 +27,8 @@ class _PredictionLoop(_Loop):
     def __init__(self, trainer: "pl.Trainer", inference_mode: bool = True) -> None:
         super().__init__(trainer)
         self.inference_mode = inference_mode
-        self.epoch_batch_indices: List[
-            List[List[int]]
-        ] = []  # dataloaders x batches x samples. used by PredictionWriter
+        # dataloaders x batches x samples. used by PredictionWriter
+        self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
         self.batch_progress = Progress()  # across dataloaders
 

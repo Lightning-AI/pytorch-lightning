@@ -279,10 +279,10 @@ class _FitLoop(_Loop):
             trainer.val_check_batch = trainer.val_check_interval
             if trainer.val_check_batch > trainer.num_training_batches and trainer.check_val_every_n_epoch is not None:
                 raise ValueError(
-                    f"`val_check_interval` ({trainer.val_check_interval}) must be less than or equal "
-                    f"to the number of the training batches ({trainer.num_training_batches}). "
-                    "If you want to disable validation set `limit_val_batches` to 0.0 instead."
-                    "If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
+                    f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
+                    f" to the number of the training batches ({trainer.num_training_batches})."
+                    " If you want to disable validation set `limit_val_batches` to 0.0 instead."
+                    " If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
                 )
         else:
             if not has_len_all_ranks(self._combined_loader, trainer.strategy, module):
