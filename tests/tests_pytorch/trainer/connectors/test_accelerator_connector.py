@@ -599,7 +599,7 @@ def test_unsupported_tpu_choice(tpu_available):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
-    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
+    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
         UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
     ):

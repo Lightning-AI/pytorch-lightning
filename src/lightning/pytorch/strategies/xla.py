@@ -43,11 +43,11 @@ else:
     MpDeviceLoader = None
 
 
-class TPUSpawnStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
-    strategy_name = "tpu_spawn"
+    strategy_name = "xla"
 
     def __init__(
         self,
@@ -143,7 +143,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
-        TPUSpawnStrategy._validate_dataloader(dataloader)
+        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -192,7 +192,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
             raise ValueError(
-                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
                 f" {reduce_op}"
             )
 
@@ -281,10 +281,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
-        )
-
+        strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
         strategy_registry.register(
             cls.strategy_name,
             cls,

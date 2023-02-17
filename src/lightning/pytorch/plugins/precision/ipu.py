@@ -47,7 +47,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))  # type: ignore
 
     def backward(  # type: ignore[override]
         self,

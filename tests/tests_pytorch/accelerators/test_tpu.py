@@ -27,7 +27,7 @@ from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from lightning.pytorch.strategies import DDPStrategy, TPUSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
@@ -94,7 +94,7 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert isinstance(trainer.strategy, XLAStrategy)
     assert trainer.num_devices == 8
 
 
@@ -176,15 +176,15 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_tpu_str_tpu_spawn_debug(tpu_available):
-    trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+def test_strategy_choice_tpu_str_xla_debug(tpu_available):
+    trainer = Trainer(strategy="xla_debug", accelerator="tpu", devices=8)
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @RunIf(tpu=True)
 def test_strategy_choice_tpu_strategy():
-    trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @RunIf(tpu=True)
@@ -236,7 +236,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises(tpu_available):
-    strategy = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
+    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
 
@@ -247,14 +247,14 @@ def test_tpu_invalid_raises(tpu_available):
 
 def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
     accelerator = TPUAccelerator()
-    strategy = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
+    strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
         Trainer(strategy=strategy, devices=8)
 
     accelerator = TPUAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy"
+        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy"
     ):
         Trainer(strategy=strategy, devices=8)
 
@@ -266,11 +266,11 @@ def test_xla_checkpoint_plugin_being_default(tpu_available):
 
 
 @RunIf(tpu=True)
-@patch("lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
+@patch("lightning.pytorch.strategies.xla.XLAStrategy.root_device")
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
-    strategy = TPUSpawnStrategy()
+    strategy = XLAStrategy()
     isinstance_return = True
 
     import torch_xla.distributed.parallel_loader as parallel_loader
