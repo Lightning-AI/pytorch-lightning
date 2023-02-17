@@ -15,16 +15,11 @@
 import logging
 import os
 from collections import Counter
-from typing import cast, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import torch
-from typing_extensions import get_args
 
-from lightning.fabric.connector import (
-    _PRECISION_INPUT,
-    _PRECISION_INPUT_STR,
-    _convert_precision_to_unified_args
-)
+from lightning.fabric.connector import _convert_precision_to_unified_args, _PRECISION_INPUT, _PRECISION_INPUT_STR
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
