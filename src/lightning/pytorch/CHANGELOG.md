@@ -257,6 +257,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `Trainer.model` setter ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
 
 
+- Removed the argument `Trainer(multiple_trainloader_mode=...)`. You can use `CombinedLoader(..., mode=...)` directly now ([#16800](https://github.com/Lightning-AI/lightning/pull/16800))
+
+
 - Removed the unused `lightning.pytorch.utilities.finite_checks.print_nan_gradients` function ([#16682](https://github.com/Lightning-AI/lightning/pull/16682))
 - Removed the unused `lightning.pytorch.utilities.finite_checks.detect_nan_parameters` function ([#16682](https://github.com/Lightning-AI/lightning/pull/16682))
 - Removed the unused `lightning.pytorch.utilities.parsing.flatten_dict` function ([#16744](https://github.com/Lightning-AI/lightning/pull/16744))
