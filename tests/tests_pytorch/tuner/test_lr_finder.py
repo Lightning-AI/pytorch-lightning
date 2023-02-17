@@ -335,9 +335,8 @@ def test_lr_finder_ends_before_num_training(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-        def training_step_end(self, outputs):
+        def on_train_batch_end(self, *_):
             assert self.global_step < num_training
-            return outputs
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)

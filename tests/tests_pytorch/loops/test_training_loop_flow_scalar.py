@@ -91,7 +91,6 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
 
     # make sure correct steps were called
     assert model.training_step_called
-    assert model.training_step_end_called
 
 
 def test__training_step__epoch_end__flow_scalar(tmpdir):
@@ -123,62 +122,6 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
     # make sure correct steps were called
     assert model.training_step_called
-    assert not model.training_step_end_called
-
-    # assert epoch end metrics were added
-    assert len(trainer.callback_metrics) == 0
-    assert len(trainer.progress_bar_metrics) == 0
-
-    trainer.state.stage = RunningStage.TRAINING
-    # make sure training outputs what is expected
-    kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
-
-    assert isinstance(train_step_out["loss"], Tensor)
-    assert train_step_out["loss"].item() == 171
-
-    # make sure the optimizer closure returns the correct things
-    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0])
-    opt_closure_result = opt_closure()
-    assert opt_closure_result.item() == 171
-
-
-def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
-    """Checks train_step + training_step_end (all with scalar return from train_step)."""
-
-    class TestModel(DeterministicModel):
-        def training_step(self, batch, batch_idx):
-            acc = self.step(batch, batch_idx)
-            acc = acc + batch_idx
-
-            self.training_step_called = True
-            return acc
-
-        def training_step_end(self, tr_step_output):
-            assert isinstance(tr_step_output, Tensor)
-            assert self.count_num_graphs({"loss": tr_step_output}) == 1
-            self.training_step_end_called = True
-            return tr_step_output
-
-        def backward(self, loss):
-            return LightningModule.backward(self, loss)
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-        log_every_n_steps=1,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-
-    # make sure correct steps were called
-    assert model.training_step_called
-    assert model.training_step_end_called
 
     # assert epoch end metrics were added
     assert len(trainer.callback_metrics) == 0

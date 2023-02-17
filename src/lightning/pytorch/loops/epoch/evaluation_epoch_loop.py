@@ -136,9 +136,8 @@ class _EvaluationEpochLoop(_Loop):
 
         self.batch_progress.increment_started()
 
-        # lightning module methods
+        # step hook
         output = self._evaluation_step(**kwargs)
-        output = self._evaluation_step_end(output)
 
         self.batch_progress.increment_processed()
 
@@ -172,15 +171,6 @@ class _EvaluationEpochLoop(_Loop):
         trainer = self.trainer
         hook_name = "test_step" if trainer.testing else "validation_step"
         return call._call_strategy_hook(trainer, hook_name, *kwargs.values())
-
-    def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """Calls the `{validation/test}_step_end` hook."""
-        trainer = self.trainer
-        hook_name = "test_step_end" if trainer.testing else "validation_step_end"
-        model_output = call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
-        strategy_output = call._call_strategy_hook(trainer, hook_name, *args, **kwargs)
-        output = strategy_output if model_output is None else model_output
-        return output
 
     def _on_evaluation_batch_start(self, **kwargs: Any) -> None:
         """Calls the ``on_{validation/test}_batch_start`` hook.

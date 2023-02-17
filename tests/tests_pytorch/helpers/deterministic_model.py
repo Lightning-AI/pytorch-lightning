@@ -23,10 +23,7 @@ class DeterministicModel(LightningModule):
         super().__init__()
 
         self.training_step_called = False
-        self.training_step_end_called = False
-
         self.validation_step_called = False
-        self.validation_step_end_called = False
 
         self.assert_backward = True
 

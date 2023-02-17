@@ -134,15 +134,6 @@ class _FxValidator:
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
         ),
         "predict_step": None,
-        "training_step_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
-        ),
-        "validation_step_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
-        ),
-        "test_step_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
-        ),
         "configure_optimizers": None,
         "train_dataloader": None,
         "val_dataloader": None,

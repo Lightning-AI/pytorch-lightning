@@ -225,18 +225,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
     def _pod_progress_bar_force_stdout(self) -> None:
         # Why is it required? The way `pytorch_xla.distributed` streams logs
         # from different vms to the main worker doesn't work well with tqdm

@@ -272,7 +272,6 @@ class HookedModel(BoringModel):
                     dict(name="on_train_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_before_zero_grad", args=(trainer, model, ANY)),
                     dict(name="on_before_zero_grad", args=(ANY,)),
                     dict(name="optimizer_zero_grad", args=(current_epoch, i, ANY)),
@@ -337,7 +336,6 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
                     dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                 ]
@@ -368,7 +366,6 @@ class HookedModel(BoringModel):
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name=f"{fn}_step", args=(ANY, i)),
-                    dict(name=f"{fn}_step_end", args=(outputs,)),
                     dict(name=f"Callback.on_{fn}_batch_end", args=(trainer, model, outputs, ANY, i)),
                     dict(name=f"on_{fn}_batch_end", args=(outputs, ANY, i)),
                 ]
@@ -388,7 +385,6 @@ class HookedModel(BoringModel):
                     dict(name="on_predict_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="predict_step", args=(ANY, i)),
-                    # TODO: `predict_step_end`
                     dict(name="Callback.on_predict_batch_end", args=(trainer, model, ANY, ANY, i)),
                     dict(name="on_predict_batch_end", args=(ANY, ANY, i)),
                 ]
