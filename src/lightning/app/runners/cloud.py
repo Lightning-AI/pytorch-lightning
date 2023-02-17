@@ -365,9 +365,7 @@ class CloudRuntime(Runtime):
             # TODO: Remove testing dependency, but this would open a tab for each test...
             if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
                 click.launch(
-                    self._get_app_url(
-                        project, run_instance, "logs" if run.is_headless else "web-ui", needs_credits
-                    )
+                    self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui", needs_credits)
                 )
         except ApiException as e:
             logger.error(e.body)
@@ -989,7 +987,9 @@ class CloudRuntime(Runtime):
         requirements_path = getattr(getattr(run_body.image_spec, "dependency_file_info", ""), "path", "")
         logger.info(f"requirements_path: {requirements_path}")
 
-    def _get_cloudspace_url(self, project: V1Membership, cloudspace_name: str, tab: str, need_credits: bool = False) -> str:
+    def _get_cloudspace_url(
+        self, project: V1Membership, cloudspace_name: str, tab: str, need_credits: bool = False
+    ) -> str:
         user = self.backend.client.auth_service_get_user()
         action = "?action=add_credits" if need_credits else ""
         paths = [
