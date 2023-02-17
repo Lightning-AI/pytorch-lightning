@@ -32,7 +32,15 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
             mod.register_strategies(registry)
 
 
-def _fp_to_half(tensor: Tensor, precision: Literal["64-true", "32-true", "16-mixed", "bf16-mixed", ]) -> Tensor:
+def _fp_to_half(
+    tensor: Tensor,
+    precision: Literal[
+        "64-true",
+        "32-true",
+        "16-mixed",
+        "bf16-mixed",
+    ],
+) -> Tensor:
     if str(precision) == "16-mixed":
         return _convert_fp_tensor(tensor, torch.half)
     if precision == "bf16-mixed":
