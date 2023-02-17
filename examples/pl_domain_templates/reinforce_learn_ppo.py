@@ -428,36 +428,10 @@ class PPOLightning(LightningModule):
         """Get train loader."""
         return self._dataloader()
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = parent_parser.add_argument_group("PPOLightning")
-        parser.add_argument("--env", type=str, default="CartPole-v0")
-        parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-        parser.add_argument("--lam", type=float, default=0.95, help="advantage discount factor")
-        parser.add_argument("--lr_actor", type=float, default=3e-4, help="learning rate of actor network")
-        parser.add_argument("--lr_critic", type=float, default=1e-3, help="learning rate of critic network")
-        parser.add_argument("--max_episode_len", type=int, default=1000, help="capacity of the replay buffer")
-        parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
-        parser.add_argument(
-            "--steps_per_epoch",
-            type=int,
-            default=2048,
-            help="how many action-state pairs to rollout for trajectory collection per epoch",
-        )
-        parser.add_argument(
-            "--nb_optim_iters", type=int, default=4, help="how many steps of gradient descent to perform on each batch"
-        )
-        parser.add_argument(
-            "--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective"
-        )
-
-        return parent_parser
-
 
 def main(args) -> None:
     model = PPOLightning(**vars(args))
-
-    trainer = Trainer.from_argparse_args(args)
+    trainer = Trainer(accelerator="cpu", devices=1, val_check_interval=100)
     trainer.fit(model)
 
 
@@ -465,10 +439,26 @@ if __name__ == "__main__":
     cli_lightning_logo()
     seed_everything(0)
 
-    parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser = Trainer.add_argparse_args(parent_parser)
-
-    parser = PPOLightning.add_model_specific_args(parent_parser)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--env", type=str, default="CartPole-v0")
+    parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
+    parser.add_argument("--lam", type=float, default=0.95, help="advantage discount factor")
+    parser.add_argument("--lr_actor", type=float, default=3e-4, help="learning rate of actor network")
+    parser.add_argument("--lr_critic", type=float, default=1e-3, help="learning rate of critic network")
+    parser.add_argument("--max_episode_len", type=int, default=1000, help="capacity of the replay buffer")
+    parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
+    parser.add_argument(
+        "--steps_per_epoch",
+        type=int,
+        default=2048,
+        help="how many action-state pairs to rollout for trajectory collection per epoch",
+    )
+    parser.add_argument(
+        "--nb_optim_iters", type=int, default=4, help="how many steps of gradient descent to perform on each batch"
+    )
+    parser.add_argument(
+        "--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective"
+    )
     args = parser.parse_args()
 
     main(args)

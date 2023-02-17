@@ -17,7 +17,6 @@ from lightning.pytorch.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
     _update_dataloader,
     extract_batch_size,
-    get_len,
     has_len_all_ranks,
     warning_cache,
 )
@@ -90,15 +89,6 @@ def test_extract_batch_size():
 
     data = CustomBatch()
     _check_error_raised(data)
-
-
-def test_get_len():
-    assert get_len(DataLoader(RandomDataset(1, 1))) == 1
-
-    value = get_len(DataLoader(RandomIterableDataset(1, 1)))
-
-    assert isinstance(value, float)
-    assert value == float("inf")
 
 
 def test_has_len_all_rank():

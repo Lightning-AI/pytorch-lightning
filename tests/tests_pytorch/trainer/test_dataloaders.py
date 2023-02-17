@@ -34,6 +34,7 @@ from lightning.pytorch.demos.boring_classes import (
 )
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
@@ -159,7 +160,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloaders=train_loader)
     trainer.fit(model, **fit_options)
     assert trainer.num_training_batches == 2
-    assert trainer.train_dataloader.loaders == train_loader
+    assert trainer.train_dataloader.iterables == train_loader
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -213,22 +214,22 @@ class Counter(Callback):
         self.val_batches_seen = 0
         self.test_batches_seen = 0
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+    def on_train_batch_start(self, *_):
         self.train_batches_seen += 1
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, *_):
         self.train_epoch_count += 1
 
-    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_start(self, *_):
         self.val_batches_seen += 1
 
-    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_start(self, *_):
         self.test_batches_seen += 1
 
-    def on_validation_epoch_start(self, trainer, pl_module):
+    def on_validation_epoch_start(self, *_):
         self.val_epoch_count += 1
 
-    def on_test_epoch_start(self, trainer, pl_module):
+    def on_test_epoch_start(self, *_):
         self.test_epoch_count += 1
 
 
@@ -835,7 +836,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     [("min_size", 16), ("max_size_cycle", 64)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
-    """Integration test for multiple train loaders."""
+    """Integration test for multiple train iterables."""
 
     class CustomBoringModel(BoringModel):
         def train_dataloader(self):
@@ -1177,12 +1178,12 @@ def test_dataloaders_reset_and_attach(tmpdir):
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
-    assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
+    assert trainer.train_dataloader.iterables.dataset is dataloader_0.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
     trainer.fit_loop.max_steps += 1
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
-    assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
+    assert trainer.train_dataloader.iterables.dataset is dataloader_2.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
 
     # 1st validate
@@ -1315,14 +1316,14 @@ def test_request_dataloader(tmpdir):
             return DataLoaderWrapper(loader)
 
         def on_train_batch_start(self, batch, batch_idx: int) -> None:
-            assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
+            assert isinstance(self.trainer.train_dataloader.iterables, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
         def val_dataloader(self):
             loader = super().val_dataloader()
             return DataLoaderWrapper(loader)
 
-        def on_validation_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_validation_batch_start(self, *_):
             assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
             self.on_val_batch_start_called = True
 
@@ -1340,8 +1341,8 @@ def test_request_dataloader(tmpdir):
 def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            for idx in range(num_loaders):
-                assert isinstance(self.trainer.train_dataloader.loaders[idx].loader.sampler, SequentialSampler)
+            assert isinstance(self.trainer.train_dataloader, CombinedLoader)
+            assert all(isinstance(s, SequentialSampler) for s in self.trainer.train_dataloader.sampler)
             return super().training_step(batch[0], batch_idx)
 
         def _create_dataloader(self):

@@ -64,8 +64,9 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
 
     # we can only know the last batch with sized iterables or when we prefetch
     is_last_batch = [False, False, prefetch_batches > 0 or dataset_cls is SizedDataset]
-    fetched = list(range(prefetch_batches + 1, 4))
-    fetched += [3] * (3 - len(fetched))
+    fetched = (
+        [1, 2, 3] if dataset_cls is SizedDataset else [1, 2, 3, 3, 3, 3, 3][prefetch_batches : prefetch_batches + 3]
+    )
     batches = [[1, 1], [2, 2], [3, 3]] if use_combined_loader else [1, 2, 3]
     expected = list(zip(fetched, batches, is_last_batch))
     assert len(expected) == 3
@@ -121,18 +122,6 @@ def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     assert not fetcher.done
     assert not list(fetcher)
     assert fetcher.done
-
-
-def test_misconfiguration_error():
-    fetcher = _PrefetchDataFetcher()
-    loader = DataLoader(range(10))
-    fetcher.setup(loader)
-    with pytest.raises(
-        MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
-    ):
-        fetcher.loader_iters
-    iter(fetcher)
-    assert fetcher.loader_iters
 
 
 def get_cycles_per_ms() -> float:
@@ -387,7 +376,7 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             pass
 
     trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
