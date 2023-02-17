@@ -85,7 +85,8 @@ def test_zip_remote_to_local_cloudspace_artifact(monkeypatch):
     assert download_file.call_args_list[0].args[0] == "./my-artifact.zip"
     assert (
         download_file.call_args_list[0].args[1]
-        == "https://storage.my-domain/v1/projects/my-project-id/artifacts/download?prefix=/cloudspaces/my-cloudspace-id/my-artifact&token=my-token"
+        == "https://storage.my-domain/v1/projects/my-project-id/artifacts/download"
+        + "?prefix=/cloudspaces/my-cloudspace-id/my-artifact&token=my-token"
     )
 
 
@@ -134,5 +135,6 @@ def test_zip_remote_to_local_app_artifact(monkeypatch):
     assert download_file.call_args_list[0].args[0] == "./my-artifact.zip"
     assert (
         download_file.call_args_list[0].args[1]
-        == "https://storage.my-domain/v1/projects/my-project-id/artifacts/download?prefix=/lightningapps/my-app-id/my-artifact&token=my-token"
+        == "https://storage.my-domain/v1/projects/my-project-id/artifacts/download"
+        + "?prefix=/lightningapps/my-app-id/my-artifact&token=my-token"
     )
