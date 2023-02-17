@@ -362,7 +362,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
 
         assert len(combined_loader) == length // 2 if replace_sampler_ddp else length
         if replace_sampler_ddp:
-            print(list(combined_loader))
             last_batch = list(combined_loader)[-1]
             if a_length == 6:
                 assert last_batch == {"a": torch.tensor([0]), "b": torch.tensor([6])}
