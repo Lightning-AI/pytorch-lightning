@@ -39,6 +39,7 @@ from lightning.app.cli.commands.logs import logs
 from lightning.app.cli.commands.ls import ls
 from lightning.app.cli.commands.pwd import pwd
 from lightning.app.cli.commands.rm import rm
+from lightning.app.cli.commands.zip import zip
 from lightning.app.cli.connect.app import (
     _list_app_commands,
     _retrieve_connection_to_an_app,
@@ -156,6 +157,7 @@ _main.command(hidden=True)(cd)
 _main.command(hidden=True)(cp)
 _main.command(hidden=True)(pwd)
 _main.command(hidden=True)(rm)
+_main.command(hidden=True)(zip)
 show.command()(logs)
 
 

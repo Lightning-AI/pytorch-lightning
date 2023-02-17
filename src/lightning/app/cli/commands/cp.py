@@ -18,7 +18,7 @@ import sys
 from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Any
 
 import click
 import requests
@@ -276,10 +276,11 @@ def _get_project_id_from_name(project_name: str) -> str:
     return [project.project_id for project in projects.memberships if project.name == project_name][0]
 
 
-def _get_progress_bar():
+def _get_progress_bar(**kwargs: Any) -> Progress:
     return Progress(
         TextColumn("[bold blue]{task.description}", justify="left"),
         BarColumn(bar_width=None),
         "[self.progress.percentage]{task.percentage:>3.1f}%",
         DownloadColumn(),
+        **kwargs,
     )
