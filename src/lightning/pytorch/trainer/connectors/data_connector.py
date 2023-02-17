@@ -416,7 +416,7 @@ class DataConnector:
 
     @staticmethod
     def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
-        all_have_sequential_sampler = all(isinstance(sampler, SequentialSampler) for sampler in combined_loader.sampler)
+        all_have_sequential_sampler = all(isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened)
         if all_have_sequential_sampler:
             return
         rank_zero_warn(

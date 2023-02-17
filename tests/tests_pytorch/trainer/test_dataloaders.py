@@ -175,19 +175,27 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
 
     # multiple val dataloaders passed to fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
-    trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=eval_dataloaders)
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert len(trainer.val_dataloaders) == n
+    trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=eval_dataloaders)
+    if n > 1:
+        assert len(trainer.val_dataloaders) == n
+    else:
+        assert isinstance(trainer.val_dataloaders, DataLoader)
 
     if ckpt_path == "specific":
         ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer.test(dataloaders=eval_dataloaders, ckpt_path=ckpt_path)
-    assert len(trainer.test_dataloaders) == n
+    if n > 1:
+        assert len(trainer.test_dataloaders) == n
+    else:
+        assert isinstance(trainer.test_dataloaders, DataLoader)
 
     trainer.validate(dataloaders=eval_dataloaders, ckpt_path=ckpt_path)
-    assert len(trainer.val_dataloaders) == n
+    if n > 1:
+        assert len(trainer.val_dataloaders) == n
+    else:
+        assert isinstance(trainer.val_dataloaders, DataLoader)
 
 
 class DummyModel(BoringModel):
@@ -500,14 +508,11 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=eval_dataloader)
-    assert len(trainer.val_dataloaders) == 1
-    assert trainer.val_dataloaders[0] == eval_dataloader
+    assert trainer.val_dataloaders == eval_dataloader
 
     ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
     trainer.test(dataloaders=eval_dataloader, ckpt_path=ckpt_path)
-    assert len(trainer.test_dataloaders) == 1
-    assert trainer.test_dataloaders[0] == eval_dataloader
-    assert len(trainer.test_dataloaders) == 1
+    assert trainer.test_dataloaders == eval_dataloader
 
 
 def test_warning_on_zero_len_dataloader():
@@ -1189,36 +1194,36 @@ def test_dataloaders_reset_and_attach(tmpdir):
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
     assert trainer.train_dataloader.dataset is dataloader_0.dataset
-    assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
+    assert trainer.val_dataloaders.dataset is dataloader_1.dataset
     # 2nd fit
     trainer.fit_loop.max_steps += 1
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
     assert trainer.train_dataloader.dataset is dataloader_2.dataset
-    assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
+    assert trainer.val_dataloaders.dataset is dataloader_3.dataset
 
     # 1st validate
     trainer.validate(model, dataloaders=dataloader_0)
-    assert trainer.val_dataloaders[0].dataset is dataloader_0.dataset
+    assert trainer.val_dataloaders.dataset is dataloader_0.dataset
     # 2nd validate
     trainer.validate(model, dataloaders=dataloader_1)
-    assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
+    assert trainer.val_dataloaders.dataset is dataloader_1.dataset
 
     # 1st test
     trainer.test(model, dataloaders=dataloader_0)
-    assert trainer.test_dataloaders[0].dataset is dataloader_0.dataset
+    assert trainer.test_dataloaders.dataset is dataloader_0.dataset
     # 2nd test
     trainer.test(model, dataloaders=dataloader_1)
-    assert trainer.test_dataloaders[0].dataset is dataloader_1.dataset
+    assert trainer.test_dataloaders.dataset is dataloader_1.dataset
 
     # 1st predict
     trainer.predict(model, dataloaders=dataloader_0)
-    assert trainer.predict_dataloaders[0].dataset is dataloader_0.dataset
+    assert trainer.predict_dataloaders.dataset is dataloader_0.dataset
     # 2nd predict
     trainer.predict(model, dataloaders=dataloader_1)
-    assert trainer.predict_dataloaders[0].dataset is dataloader_1.dataset
+    assert trainer.predict_dataloaders.dataset is dataloader_1.dataset
 
 
-@pytest.mark.parametrize("mode", ["min_size"])
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle"])
 def test_correct_dataloader_idx_in_hooks(tmpdir, mode):
     """Check the correct dataloader_idx inside hooks."""
 
@@ -1275,18 +1280,26 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, mode):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().predict(batch, batch_idx, dataloader_idx)
 
-    def train_dataloader():
-        return {"a": DataLoader(RandomDataset(32, 64)), "b": DataLoader(RandomDataset(32, 64))}
+        def train_dataloader(self):
+            return CombinedLoader(
+                {"a": DataLoader(RandomDataset(32, 64)), "b": DataLoader(RandomDataset(32, 64))}, mode=mode
+            )
 
-    def eval_dataloader():
-        return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def test_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def predict_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 
-    trainer.fit(model, CombinedLoader(train_dataloader(), mode=mode), CombinedLoader(eval_dataloader(), mode=mode))
-    trainer.test(model, CombinedLoader(eval_dataloader(), mode=mode))
-    preds = trainer.predict(model, CombinedLoader(eval_dataloader(), mode=mode))
+    trainer.fit(model)
+    trainer.test(model)
+    preds = trainer.predict(model)
 
     assert len(preds) == 2
     assert all(len(x) == 5 for x in preds)
@@ -1326,7 +1339,7 @@ def test_request_dataloader(tmpdir):
             return DataLoaderWrapper(loader)
 
         def on_validation_batch_start(self, *_):
-            assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
+            assert isinstance(self.trainer.val_dataloaders, DataLoaderWrapper)
             self.on_val_batch_start_called = True
 
     trainer = Trainer(
