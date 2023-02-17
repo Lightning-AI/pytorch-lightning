@@ -26,7 +26,6 @@ from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
