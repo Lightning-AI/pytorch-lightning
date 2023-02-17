@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from lightning_cloud.openapi import (
-    Body4,
     CloudspaceIdRunsBody,
     Externalv1Cluster,
     Externalv1LightningappInstance,
