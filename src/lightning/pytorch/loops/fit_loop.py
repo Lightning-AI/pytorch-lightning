@@ -83,7 +83,6 @@ class _FitLoop(_Loop):
         self.epoch_loop = _TrainingEpochLoop(trainer)
         self.epoch_progress = Progress()
 
-        self._is_fresh_start_epoch: bool = True
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
@@ -342,7 +341,6 @@ class _FitLoop(_Loop):
 
         self._data_fetcher = _select_data_fetcher(trainer)
 
-        self._is_fresh_start_epoch = True
         self._results.to(device=trainer.lightning_module.device)
 
         call._call_callback_hooks(trainer, "on_train_start")
