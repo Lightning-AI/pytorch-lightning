@@ -33,17 +33,21 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
     with caplog.at_level(logging.INFO):
         with mock.patch("lightning_app.LightningApp._run", _lightning_app_run_and_logging):
             runner = CliRunner()
-            result = runner.invoke(
-                run_app,
-                [
-                    os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
-                    "--blocking",
-                    "False",
-                    "--open-ui",
-                    str(open_ui),
-                ],
-                catch_exceptions=False,
-            )
+            pytest_env = os.environ.pop("PYTEST_CURRENT_TEST")
+            try:
+                result = runner.invoke(
+                    run_app,
+                    [
+                        os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+                        "--blocking",
+                        "False",
+                        "--open-ui",
+                        str(open_ui),
+                    ],
+                    catch_exceptions=False,
+                )
+            finally:
+                os.environ["PYTEST_CURRENT_TEST"] = pytest_env
             # capture logs.
             if open_ui:
 

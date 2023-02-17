@@ -1618,7 +1618,7 @@ class TestCloudspaceDispatch:
 
         cluster = Externalv1Cluster(id="test", spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL))
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[V1ProjectClusterBinding(cluster_id="test")],
+            clusters=[V1ProjectClusterBinding(cluster_id="cluster_id")],
         )
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([cluster])
         mock_client.cluster_service_get_cluster.return_value = cluster
@@ -1631,7 +1631,7 @@ class TestCloudspaceDispatch:
 
         cloud_runtime = cloud.CloudRuntime(app=mock.MagicMock(), entrypoint=Path("."))
 
-        cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name")
+        cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
             project_id="project_id",

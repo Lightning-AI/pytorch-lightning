@@ -117,7 +117,14 @@ class MultiProcessRuntime(Runtime):
                 # wait for server to be ready
                 has_started_queue.get()
 
-            if open_ui and not _is_headless(self.app) and constants.LIGHTNING_CLOUDSPACE_HOST is None:
+            if all(
+                [
+                    open_ui,
+                    "PYTEST_CURRENT_TEST" not in os.environ,
+                    not _is_headless(self.app),
+                    constants.LIGHTNING_CLOUDSPACE_HOST is None,
+                ]
+            ):
                 click.launch(self._get_app_url())
 
             # Connect the runtime to the application.
