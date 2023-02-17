@@ -51,7 +51,7 @@ logger = Logger(__name__)
 @click.argument("dst_path", required=True)
 @click.option("-r", required=False, hidden=True)
 @click.option("--recursive", required=False, hidden=True)
-@click.option("--zip", required=False)
+@click.option("--zip", required=False, is_flag=True, default=False)
 def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False, zip: bool = False) -> None:
     """Copy files between your local filesystem and the Lightning Cloud filesystem."""
 
@@ -175,7 +175,6 @@ def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, ta
 
 
 def _zip_files(live: Live, remote_src: str, local_dst: str) -> None:
-    live.stop()
 
     if len(remote_src.split("/")) < 3:
         return _error_and_exit(
@@ -204,6 +203,7 @@ def _zip_files(live: Live, remote_src: str, local_dst: str) -> None:
     url = _storage_host(cluster) + endpoint
 
     progress = _get_progress_bar(transient=True)
+    live.stop()
     progress.start()
     task_id = progress.add_task("download zip", total=None)
 
