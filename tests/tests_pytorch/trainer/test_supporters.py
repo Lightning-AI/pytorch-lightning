@@ -122,13 +122,14 @@ def test_combined_loader_modes():
     combined_loader = CombinedLoader(iterables, "sequential")
     assert combined_loader._iterator is None
     assert len(combined_loader) == sum_len
-    for total_idx, (idx, item) in enumerate(combined_loader):
+    for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
-        assert isinstance(idx, int)
+        assert isinstance(batch_idx, int)
         assert isinstance(item, Tensor)
     assert idx == lengths[-1] - 1
     assert total_idx == sum_len - 1
     assert total_idx == len(combined_loader) - 1
+    assert dataloader_idx == len(iterables) - 1
 
     iterables = list(iterables.values())
 
@@ -156,13 +157,14 @@ def test_combined_loader_modes():
     combined_loader = CombinedLoader(iterables, "sequential")
     assert combined_loader._iterator is None
     assert len(combined_loader) == sum_len
-    for total_idx, (idx, item) in enumerate(combined_loader):
+    for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
-        assert isinstance(idx, int)
+        assert isinstance(batch_idx, int)
         assert isinstance(item, Tensor)
     assert idx == lengths[-1] - 1
     assert total_idx == sum_len - 1
     assert total_idx == len(combined_loader) - 1
+    assert dataloader_idx == len(iterables) - 1
 
 
 def test_combined_loader_raises():
@@ -205,7 +207,6 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
     has_break = False
     for idx, item in enumerate(combined_loader):
         assert isinstance(item, Sequence)
-        assert len(item) == 2 if use_multiple_dataloaders else 1
         if not use_multiple_dataloaders and idx == 4:
             has_break = True
             break
@@ -219,6 +220,27 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
         elif mode == "sequential":
             expected = 15
     assert idx == expected - 1
+
+
+@pytest.mark.parametrize(
+    ("limits", "expected"),
+    [
+        (None, [("a", 0, 0), ("b", 1, 0), ("c", 2, 0), ("d", 0, 1), ("e", 1, 1)]),
+        ([1, 0], [("a", 0, 0)]),
+        ([0, float("inf")], [("d", 0, 1), ("e", 1, 1)]),
+        ([1, 1], [("a", 0, 0), ("d", 0, 1)]),
+    ],
+)
+def test_sequential_mode_limits(limits, expected):
+    iterable1 = ["a", "b", "c"]
+    iterable2 = ["d", "e"]
+    iterator = _Sequential([iterable1, iterable2], limits)
+    assert list(iterator) == expected
+
+
+def test_sequential_mode_limits_raises():
+    with pytest.raises(ValueError, match=r"number of limits \(0\) and number of iterables \(2\)"):
+        _Sequential([0, 1], [])
 
 
 @pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
