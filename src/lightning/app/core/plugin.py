@@ -15,14 +15,13 @@ import os
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from lightning_cloud.openapi.models import V1CloudSpaceAppAction
 from pydantic import BaseModel
 
 from lightning.app.actions.action import Action
@@ -107,7 +106,7 @@ class _Run(BaseModel):
     plugin_arguments: Dict[str, str]
 
 
-def _run_plugin(run: _Run) -> List[V1CloudSpaceAppAction]:
+def _run_plugin(run: _Run) -> List[Dict[str, Any]]:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     with tempfile.TemporaryDirectory() as tmpdir:
         download_path = os.path.join(tmpdir, "source.tar.gz")
@@ -159,7 +158,7 @@ def _run_plugin(run: _Run) -> List[V1CloudSpaceAppAction]:
                 cluster_id=run.cluster_id,
             )
             actions = plugin.run(**run.plugin_arguments) or []
-            return [action.to_spec() for action in actions]
+            return [action.to_spec().to_dict() for action in actions]
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(e)}."
