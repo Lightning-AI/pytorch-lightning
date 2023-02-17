@@ -413,7 +413,7 @@ def test_device_type_when_strategy_instance_gpu_passed(strategy_class, cuda_coun
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
 
-    with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
+    with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
 

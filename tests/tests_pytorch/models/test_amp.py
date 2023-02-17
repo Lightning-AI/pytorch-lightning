@@ -53,7 +53,7 @@ class AMPTestModel(BoringModel):
     ("strategy", "precision", "devices"),
     (
         ("single_device", "16-mixed", 1),
-        ("single_device", "bf16-mixed'", 1),
+        ("single_device", "bf16-mixed", 1),
         ("ddp_spawn", "16-mixed", 2),
         ("ddp_spawn", "bf16-mixed", 2),
     ),
