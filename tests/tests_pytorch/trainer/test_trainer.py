@@ -1090,27 +1090,19 @@ def test_invalid_gradient_clip_algo(tmpdir):
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """Test that the number of sanity check batches is clipped to `limit_val_batches`."""
-
-    class CustomModel(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            return super().validation_step(batch, batch_idx)
-
-        def val_dataloader(self):
-            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
-
-    model = CustomModel()
     num_sanity_val_steps = 4
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=num_sanity_val_steps,
         limit_val_batches=limit_val_batches,
         max_steps=1,
     )
-    trainer.fit(model)
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
 
-    class CustomModelMixedVal(CustomModel):
+    class CustomModelMixedVal(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            return super().validation_step(batch, batch_idx)
+
         def val_dataloader(self):
             return [DataLoader(RandomDataset(32, 64), batch_size=8), DataLoader(RandomDataset(32, 64))]
 
