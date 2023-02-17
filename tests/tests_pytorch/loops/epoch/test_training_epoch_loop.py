@@ -39,10 +39,12 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     trainer = Trainer(**trainer_kwargs)
 
     with patch.object(
-        trainer.fit_loop.epoch_loop.val_loop, "advance", wraps=trainer.fit_loop.epoch_loop.val_loop.advance
-    ) as advance_mocked:
+        trainer.fit_loop.epoch_loop.val_loop,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
+    ) as step_mock:
         trainer.fit(model, ckpt_path=ckpt_path)
-        assert advance_mocked.call_count == 1
+    assert step_mock.call_count == 1
 
 
 @pytest.mark.parametrize(

@@ -622,10 +622,10 @@ class DeepSpeedStrategy(DDPStrategy):
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
         batch_size = 1
-        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
-        if train_dl_source.is_defined():
+        data_source = self.lightning_module.trainer.fit_loop._data_source
+        if data_source.is_defined():
             try:
-                train_dataloader = train_dl_source.dataloader()
+                train_dataloader = data_source.dataloader()
                 if hasattr(train_dataloader, "batch_sampler"):
                     batch_size = train_dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
