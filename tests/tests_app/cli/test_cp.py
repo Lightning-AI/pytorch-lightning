@@ -6,8 +6,17 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 from lightning_cloud.openapi import (
+    Externalv1Cluster,
     Externalv1LightningappInstance,
+    V1CloudSpace,
+    V1ClusterDriver,
+    V1ClusterSpec,
+    V1GetClusterResponse,
+    V1KubernetesClusterDriver,
     V1LightningappInstanceArtifact,
+    V1LightningappInstanceSpec,
+    V1ListCloudSpacesResponse,
+    V1ListClustersResponse,
     V1ListLightningappInstanceArtifactsResponse,
     V1ListLightningappInstancesResponse,
     V1ListMembershipsResponse,
@@ -24,7 +33,7 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
 
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
-    cp.cp(tmpdir, "r:.")
+    cp.cp(str(tmpdir), "r:.")
     assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     client = MagicMock()
@@ -70,7 +79,7 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
 
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
-    cp.cp(tmpdir, "r:.")
+    cp.cp(str(tmpdir), "r:.")
     assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     client = MagicMock()
@@ -148,3 +157,119 @@ def test_sanitize_path():
 
     path, _ = cp._sanitize_path("foo", "/default-project")
     assert path == "foo"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+def test_cp_zip_arg_order(monkeypatch):
+    assert "/" == cd("/", verify=False)
+
+    error_and_exit = MagicMock()
+    monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
+    cp.cp("./my-resource", "r:./my-resource", zip=True)
+    error_and_exit.assert_called_once()
+    assert "Zipping uploads isn't supported yet" in error_and_exit.call_args_list[0].args[0]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+def test_cp_zip_src_path_too_short(monkeypatch):
+    error_and_exit = MagicMock()
+    monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
+    cp.cp("r:/my-project", ".", zip=True)
+    error_and_exit.assert_called_once()
+    assert "The source path must be at least two levels deep" in error_and_exit.call_args_list[0].args[0]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+def test_cp_zip_remote_to_local_cloudspace_artifact(monkeypatch):
+    assert "/" == cd("/", verify=False)
+
+    token_getter = MagicMock()
+    token_getter._get_api_token.return_value = "my-token"
+    monkeypatch.setattr(cp, "_AuthTokenGetter", MagicMock(return_value=token_getter))
+
+    client = MagicMock()
+    client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+        default_cluster="my-cluster",
+        clusters=[
+            Externalv1Cluster(
+                id="my-cluster",
+                spec=V1ClusterSpec(
+                    driver=V1ClusterDriver(
+                        kubernetes=V1KubernetesClusterDriver(
+                            root_domain_name="my-domain",
+                        ),
+                    ),
+                ),
+            )
+        ],
+    )
+    client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="my-project", project_id="my-project-id")]
+    )
+    client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
+        cloudspaces=[V1CloudSpace(name="my-cloudspace", id="my-cloudspace-id")],
+    )
+    monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
+
+    download_file = MagicMock()
+    monkeypatch.setattr(cp, "_download_file", download_file)
+
+    cloudspace_artifact = "r:/my-project/my-cloudspace/my-artifact"
+    cp.cp(cloudspace_artifact, ".", zip=True)
+
+    download_file.assert_called_once()
+    assert download_file.call_args_list[0].args[0] == "./my-artifact.zip"
+    assert (
+        download_file.call_args_list[0].args[1]
+        == "https://storage.my-domain/v1/projects/my-project-id/artifacts/download"
+        + "?prefix=/cloudspaces/my-cloudspace-id/my-artifact&token=my-token"
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+def test_cp_zip_remote_to_local_app_artifact(monkeypatch):
+    assert "/" == cd("/", verify=False)
+
+    token_getter = MagicMock()
+    token_getter._get_api_token.return_value = "my-token"
+    monkeypatch.setattr(cp, "_AuthTokenGetter", MagicMock(return_value=token_getter))
+
+    client = MagicMock()
+    client.cluster_service_get_cluster.return_value = V1GetClusterResponse(
+        spec=V1ClusterSpec(
+            driver=V1ClusterDriver(
+                kubernetes=V1KubernetesClusterDriver(
+                    root_domain_name="my-domain",
+                ),
+            ),
+        ),
+    )
+    client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="my-project", project_id="my-project-id")]
+    )
+    client.lightningapp_instance_service_list_lightningapp_instances.return_value = V1ListLightningappInstancesResponse(
+        lightningapps=[
+            Externalv1LightningappInstance(
+                name="my-app",
+                id="my-app-id",
+                spec=V1LightningappInstanceSpec(
+                    cluster_id="my-cluster",
+                ),
+            )
+        ],
+    )
+    monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
+
+    download_file = MagicMock()
+    monkeypatch.setattr(cp, "_download_file", download_file)
+
+    app_artifact = "r:/my-project/my-app/my-artifact"
+    cp.cp(app_artifact, ".", zip=True)
+
+    download_file.assert_called_once()
+    assert download_file.call_args_list[0].args[0] == "./my-artifact.zip"
+    assert (
+        download_file.call_args_list[0].args[1]
+        == "https://storage.my-domain/v1/projects/my-project-id/artifacts/download"
+        + "?prefix=/lightningapps/my-app-id/my-artifact&token=my-token"
+    )

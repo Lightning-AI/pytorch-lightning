@@ -157,7 +157,6 @@ _main.command(hidden=True)(cd)
 _main.command(hidden=True)(cp)
 _main.command(hidden=True)(pwd)
 _main.command(hidden=True)(rm)
-_main.command(hidden=True)(zip)
 show.command()(logs)
 
 
