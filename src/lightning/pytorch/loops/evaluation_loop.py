@@ -165,9 +165,11 @@ class _EvaluationLoop(_Loop):
             self.batch_progress.reset_on_run()
         else:
             self.batch_progress.reset_on_restart()
+        fn = trainer.state.fn
+        assert fn is not None
         # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
         # need to reset the current state when the loop has finished running
-        if trainer.state.fn != TrainerFn.FITTING:
+        if fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
         data_fetcher = _select_data_fetcher(trainer)
@@ -178,11 +180,9 @@ class _EvaluationLoop(_Loop):
         combined_loader = self._combined_loader
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
-            fn = trainer.state.fn
-            assert fn is not None
             raise ValueError(f'`trainer.{fn.value}()` only supports the `CombinedLoader(mode="sequential")` mode.')
 
-        if trainer.state.fn == "fit":
+        if fn == TrainerFn.FITTING:
             for i, dl in enumerate(combined_loader.flattened):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
