@@ -80,8 +80,9 @@ class CloudCompute:
             For example 1100 will become 1024. If set to zero (the default) will get the default 64MiB inside docker.
 
         mounts: External data sources which should be mounted into a work as a filesystem at runtime.
+
         colocation_group_id: Identifier for groups of works to be colocated in the same datacenter.
-            Can be a a string of max. 64 characters.
+            Can be a string of max. 64 characters.
 
         interruptible: Whether to run on a interruptible machine e.g the machine can be stopped
             at any time by the providers. This is also known as spot or preemptible machines.
