@@ -15,6 +15,7 @@
 from collections import OrderedDict
 from typing import Any, Optional, Union
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
@@ -31,8 +32,8 @@ class _EvaluationEpochLoop(_Loop):
     state).
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.batch_progress = BatchProgress()
 
         self._dl_max_batches: Union[int, float] = 0
@@ -113,11 +114,12 @@ class _EvaluationEpochLoop(_Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            batch_idx = self.batch_progress.current.ready
-            batch = next(data_fetcher)
-        else:
-            batch_idx, batch = next(data_fetcher)
+        batch_idx = (
+            data_fetcher.fetched
+            if isinstance(data_fetcher, _DataLoaderIterDataFetcher)
+            else self.batch_progress.current.ready
+        )
+        batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         dataloader_idx = kwargs.get("dataloader_idx", 0)

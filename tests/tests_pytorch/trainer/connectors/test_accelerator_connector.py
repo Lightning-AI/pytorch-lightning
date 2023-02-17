@@ -38,7 +38,6 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.plugins import DoublePrecisionPlugin, LayerSync, PrecisionPlugin, TorchSyncBatchNorm
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.strategies import (
-    DataParallelStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -247,16 +246,6 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
-        # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
-        Trainer(strategy="dp")
-
-
-def test_interactive_compatible_dp_strategy_gpu(mps_count_0, cuda_count_2, monkeypatch):
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
-    trainer = Trainer(strategy="dp", accelerator="gpu")
-    assert trainer.strategy.launcher is None
-
 
 @RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
@@ -352,12 +341,6 @@ def test_set_devices_if_none_cpu():
     assert trainer.num_devices == 3
 
 
-def test_unsupported_strategy_types_on_cpu_and_fallback():
-    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator="cpu", strategy="dp", devices=2)
-    assert isinstance(trainer.strategy, DDPStrategy)
-
-
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     (
@@ -367,7 +350,6 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_find_unused_parameters_true", DDPStrategy),
-        ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
@@ -407,7 +389,6 @@ def test_strategy_choice_cpu_instance(strategy_class):
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -618,7 +599,7 @@ def test_unsupported_tpu_choice(tpu_available):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
-    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
+    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
         UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
     ):
@@ -856,6 +837,7 @@ def test_connector_defaults_match_trainer_defaults():
         assert connector_default == trainer_defaults[name]
 
 
+@RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
 @pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
 def test_colossalai_external_strategy(monkeypatch):
     with mock.patch(

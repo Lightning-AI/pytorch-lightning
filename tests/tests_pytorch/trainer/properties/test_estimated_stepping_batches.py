@@ -111,7 +111,6 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
         ({"strategy": "ddp", "num_nodes": 2}, 5),
         ({"strategy": "ddp", "num_nodes": 3}, 4),
         ({"strategy": "ddp", "num_nodes": 4}, 3),
-        ({"strategy": "dp"}, 64),
     ],
 )
 def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
@@ -143,7 +142,7 @@ def test_num_stepping_batches_with_tpu_single():
 
 @RunIf(tpu=True)
 @mock.patch(
-    "lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device",
+    "lightning.pytorch.strategies.xla.XLAStrategy.root_device",
     new_callable=PropertyMock,
     return_value=torch.device("xla:0"),
 )

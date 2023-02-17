@@ -38,18 +38,6 @@ In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED your effective batch size will be 7 * 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
 
-In DP, which does not support multi-node, the effective batch size will be just 7, regardless of how many devices are being used.
-The reason is that the full batch gets split evenly between all devices.
-
-.. code-block:: python
-
-    # effective batch size = 7, each GPU sees a batch size of 1 except the last GPU
-    Trainer(accelerator="gpu", devices=8, strategy="dp")
-
-    # effective batch size = 7, first GPU sees a batch size of 4, the other sees batch size 3
-    Trainer(accelerator="gpu", devices=2, num_nodes=10, strategy="dp")
-
-
 ----
 
 
@@ -57,11 +45,11 @@ The reason is that the full batch gets split evenly between all devices.
 How do I use multiple GPUs on Jupyter or Colab notebooks?
 *********************************************************
 
-To use multiple GPUs on notebooks, use the *DDP_SPAWN*, *DDP_NOTEBOOK*, or *DP* mode.
+To use multiple GPUs on notebooks, use the *DDP_SPAWN* or *DDP_NOTEBOOK* mode.
 
 .. code-block:: python
 
-    Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook" | "ddp_spawn" | "dp")
+    Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook" | "ddp_spawn")
 
 If you want to use other models, please launch your training via the command-shell.
 

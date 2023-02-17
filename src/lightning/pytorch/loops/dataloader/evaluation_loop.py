@@ -21,6 +21,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
+import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.dataloader import _DataLoaderLoop
 from lightning.pytorch.loops.epoch import _EvaluationEpochLoop
@@ -42,9 +43,9 @@ class _EvaluationLoop(_DataLoaderLoop):
     its ``advance()`` method.
     """
 
-    def __init__(self, verbose: bool = True, inference_mode: bool = True) -> None:
-        super().__init__()
-        self.epoch_loop = _EvaluationEpochLoop()
+    def __init__(self, trainer: "pl.Trainer", verbose: bool = True, inference_mode: bool = True) -> None:
+        super().__init__(trainer)
+        self.epoch_loop = _EvaluationEpochLoop(trainer)
         self.verbose = verbose
         self.inference_mode = inference_mode
 
@@ -72,12 +73,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         if dataloaders is None:
             return []
         return dataloaders
-
-    @property
-    def prefetch_batches(self) -> int:
-        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
-        is_unsized = batches[self.current_dataloader_idx] == float("inf")
-        return int(is_unsized)
 
     @property
     def done(self) -> bool:
@@ -125,7 +120,7 @@ class _EvaluationLoop(_DataLoaderLoop):
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        self._data_fetcher = _select_data_fetcher(self.trainer, prefetch_batches=self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(self.trainer)
 
         # hook
         self._on_evaluation_model_eval()

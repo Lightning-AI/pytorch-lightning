@@ -28,7 +28,7 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
 
 
@@ -48,7 +48,6 @@ class RunIf:
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
-        quantization: bool = False,
         bf16_cuda: bool = False,
         tpu: bool = False,
         ipu: bool = False,
@@ -70,7 +69,6 @@ class RunIf:
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
-            quantization: Require that `torch.quantization` is available.
             bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
@@ -110,11 +108,6 @@ class RunIf:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
             conditions.append(Version(py_version) < Version(min_python))
             reasons.append(f"python>={min_python}")
-
-        if quantization:
-            _miss_default = "fbgemm" not in torch.backends.quantized.supported_engines
-            conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
-            reasons.append("PyTorch quantization")
 
         if bf16_cuda:
             try:

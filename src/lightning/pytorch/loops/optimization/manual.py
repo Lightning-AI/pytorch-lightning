@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 
 from torch import Tensor
 
+import lightning.pytorch as pl
 from lightning.pytorch.core.optimizer import do_nothing_closure
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.optimization.closure import OutputResult
@@ -76,8 +77,8 @@ class _ManualOptimization(_Loop):
 
     output_result_cls = ManualResult
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         # since manual optimization does not track lr scheduler or optimizer frequencies, we use a simpler progress than
         # `OptimizationProgress`
         self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)

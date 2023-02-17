@@ -15,7 +15,7 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
@@ -31,7 +31,7 @@ from lightning.pytorch.loops.progress import BaseProgress
 def test_restarting_loops_recursive():
     class MyLoop(_Loop):
         def __init__(self, loop=None):
-            super().__init__()
+            super().__init__(Mock())
             self.child = loop
 
     loop = MyLoop(MyLoop(MyLoop()))
@@ -51,8 +51,8 @@ class CustomException(Exception):
 
 def test_loop_restore():
     class Simple(_Loop):
-        def __init__(self, dataset: Iterator):
-            super().__init__()
+        def __init__(self, trainer, dataset: Iterator):
+            super().__init__(trainer)
             self.iteration_count = 0
             self.dataset = dataset
 
@@ -94,16 +94,14 @@ def test_loop_restore():
     trainer = Trainer()
 
     data = range(10)
-    loop = Simple(data)
-    loop.trainer = trainer
+    loop = Simple(trainer, data)
     try:
         loop.run()
         state_dict = {}
     except CustomException:
         state_dict = loop.state_dict()
 
-    loop = Simple(data)
-    loop.trainer = trainer
+    loop = Simple(trainer, data)
     loop.load_state_dict(state_dict)
     loop.restarting = True
     loop.run()
@@ -118,8 +116,8 @@ def test_loop_hierarchy():
         increment: int = 0
 
     class Simple(_Loop):
-        def __init__(self, a):
-            super().__init__()
+        def __init__(self, trainer, a):
+            super().__init__(trainer)
             self.a = a
             self.progress = SimpleProgress()
 
@@ -145,13 +143,10 @@ def test_loop_hierarchy():
         def on_load_checkpoint(self, state_dict: Dict) -> None:
             self.a = state_dict["a"]
 
-    loop_parent = Simple(1)
-    loop_child = Simple(2)
+    trainer = Trainer()
+    loop_parent = Simple(trainer, 1)
+    loop_child = Simple(trainer, 2)
     loop_parent.loop_child = loop_child
-
-    # check the trainer reference is propagated
-    loop_parent.trainer = Trainer()
-    assert loop_child.trainer is loop_parent.trainer
 
     state_dict = loop_parent.state_dict()
     assert state_dict == {
@@ -183,8 +178,8 @@ def test_loop_hierarchy():
     assert loop_parent_copy.on_save_checkpoint() == state_dict["state_dict"]
     assert loop_parent_copy.loop_child.on_save_checkpoint() == state_dict["loop_child.state_dict"]
 
-    loop_parent = Simple(1)
-    loop_child = Simple(2)
+    loop_parent = Simple(trainer, 1)
+    loop_child = Simple(trainer, 2)
     loop_parent.loop_child = loop_child
     loop_parent.load_state_dict(state_dict)
     assert loop_parent.progress.increment == 1

@@ -385,7 +385,7 @@ class _Connector:
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
-                return "tpu_spawn"
+                return "xla"
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore

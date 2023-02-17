@@ -14,6 +14,7 @@
 import logging
 from typing import Optional
 
+import lightning.pytorch as pl
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.epoch import _TrainingEpochLoop
 from lightning.pytorch.loops.fetchers import _DataFetcher
@@ -57,10 +58,11 @@ class _FitLoop(_Loop):
 
     def __init__(
         self,
+        trainer: "pl.Trainer",
         min_epochs: Optional[int] = 0,
         max_epochs: Optional[int] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(trainer)
         if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
@@ -69,7 +71,7 @@ class _FitLoop(_Loop):
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
-        self.epoch_loop = _TrainingEpochLoop()
+        self.epoch_loop = _TrainingEpochLoop(trainer)
         self.epoch_progress = Progress()
 
         self._is_fresh_start_epoch: bool = True
@@ -118,11 +120,6 @@ class _FitLoop(_Loop):
         epoch_unfinished = any(v != self.epoch_progress.current.processed for v in values)
         restarting = restarting and epoch_unfinished or self._iteration_based_training()
         _Loop.restarting.fset(self, restarting)  # call the parent setter
-
-    @property
-    def prefetch_batches(self) -> int:
-        is_unsized = self.trainer.num_training_batches == float("inf")
-        return int(is_unsized)
 
     @property
     def _skip_backward(self) -> bool:
@@ -217,7 +214,7 @@ class _FitLoop(_Loop):
         if self.epoch_loop._should_check_val_epoch():
             self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
-        self._data_fetcher = _select_data_fetcher(trainer, self.prefetch_batches)
+        self._data_fetcher = _select_data_fetcher(trainer)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=trainer.lightning_module.device)
