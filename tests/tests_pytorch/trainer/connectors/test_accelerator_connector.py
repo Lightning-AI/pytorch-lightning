@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
 from lightning.fabric.plugins.environments import (
