@@ -18,6 +18,7 @@ from lightning_cloud.openapi import ApiClient, AuthServiceApi, V1LoginRequest
 
 from lightning.app.utilities.login import Auth
 
+
 # This class joins common things for reading logs,
 # initialization and getting API token
 class _AuthTokenGetter:

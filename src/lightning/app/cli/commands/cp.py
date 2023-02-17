@@ -18,7 +18,7 @@ import sys
 from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
-from typing import Optional, Tuple, Union, Any
+from typing import Any, Optional, Tuple, Union
 
 import click
 import requests

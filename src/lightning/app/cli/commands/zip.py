@@ -13,9 +13,8 @@
 # limitations under the License.
 import os
 import sys
-from typing import Union
 from textwrap import dedent
-from pathlib import Path
+from typing import Union
 
 import click
 from lightning_cloud.openapi import (
@@ -29,8 +28,8 @@ from lightning.app.cli.commands.cp import (
     _download_file,
     _get_progress_bar,
     _get_project_id_and_resource,
-    _sanitize_path,
     _is_remote,
+    _sanitize_path,
 )
 from lightning.app.cli.commands.ls import _get_prefix
 from lightning.app.cli.commands.pwd import _pwd
