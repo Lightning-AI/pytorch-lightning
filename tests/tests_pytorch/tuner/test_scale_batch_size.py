@@ -73,10 +73,10 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
         assert model.batch_size == new_batch_size
         if dm_bs == -1:
             # datamodule batch size takes precedence
-            assert trainer.train_dataloader.loaders.batch_size == new_batch_size
+            assert trainer.train_dataloader.iterables.batch_size == new_batch_size
     if dm_bs not in (-1, None):
         assert datamodule.batch_size == new_batch_size
-        assert trainer.train_dataloader.loaders.batch_size == new_batch_size
+        assert trainer.train_dataloader.iterables.batch_size == new_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
@@ -312,7 +312,7 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
         new_batch_size = tuner.scale_batch_size(model, **scale_batch_size_kwargs)
         assert advance_mocked.call_count == max_trials
 
-    assert trainer.train_dataloader.loaders.batch_size == new_batch_size
+    assert trainer.train_dataloader.iterables.batch_size == new_batch_size
     assert trainer.val_dataloaders[0].batch_size == init_batch_size
 
 
@@ -357,7 +357,7 @@ def test_batch_size_finder_callback(tmpdir, trainer_fn):
     loop = getattr(trainer, f"{trainer_fn}_loop")
 
     if trainer_fn == "fit":
-        expected_steps = trainer.train_dataloader.loaders.dataset.len // after_batch_size
+        expected_steps = trainer.train_dataloader.iterables.dataset.len // after_batch_size
         assert trainer.global_step == expected_steps * max_epochs
         assert trainer.current_epoch == max_epochs
         assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
@@ -466,4 +466,4 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
     new_batch_size = tuner.scale_batch_size(model, **scale_batch_size_kwargs)
     assert new_batch_size == model.batch_size
     assert new_batch_size == expected_batch_size
-    assert trainer.train_dataloader.loaders.batch_size == expected_batch_size
+    assert trainer.train_dataloader.iterables.batch_size == expected_batch_size

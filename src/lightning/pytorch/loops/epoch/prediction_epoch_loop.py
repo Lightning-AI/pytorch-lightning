@@ -3,10 +3,13 @@ from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import torch
 
+import lightning.pytorch as pl
 from lightning.fabric.utilities import move_data_to_device
+from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
+from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
@@ -15,8 +18,8 @@ warning_cache = WarningCache()
 class _PredictionEpochLoop(_Loop):
     """Loop performing prediction on arbitrary sequentially used dataloaders."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         self.return_predictions = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
@@ -35,7 +38,8 @@ class _PredictionEpochLoop(_Loop):
     @property
     def should_store_predictions(self) -> bool:
         """Whether the predictions should be stored for later usage (e.g. aggregation or returning)"""
-        any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
+        prediction_writers = [cb for cb in self.trainer.callbacks if isinstance(cb, BasePredictionWriter)]
+        any_pred = any(cb.interval.on_epoch for cb in prediction_writers)
         return self.return_predictions or any_pred
 
     def run(
@@ -91,8 +95,10 @@ class _PredictionEpochLoop(_Loop):
             dataloader_iter: the iterator over the current dataloader
             dataloader_idx: the index of the current dataloader
         """
+        trainer = self.trainer
+
         action_name = f"[{self.__class__.__name__}].predict_dataloader_idx_{dataloader_idx}_next"
-        with self.trainer.profiler.profile(action_name):
+        with trainer.profiler.profile(action_name):
             batch_idx, batch = next(dataloader_iter)
         self._seen_batch_indices = self._get_batch_indices(dataloader_idx) if self.should_store_predictions else []
         # we need to truncate the list of batch indices due to prefetching in the dataloader and Lightning
@@ -101,8 +107,8 @@ class _PredictionEpochLoop(_Loop):
         if batch is None:
             raise StopIteration
 
-        batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
-        batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+        batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+        batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
@@ -130,20 +136,21 @@ class _PredictionEpochLoop(_Loop):
         batch_indices = self._get_batch_indices(dataloader_idx)
         self.current_batch_indices = batch_indices[batch_idx] if batch_indices else []
 
-        self.trainer._call_callback_hooks("on_predict_batch_start", batch, batch_idx, dataloader_idx)
-        self.trainer._call_lightning_module_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        trainer = self.trainer
+        call._call_callback_hooks(trainer, "on_predict_batch_start", *step_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_start", *step_kwargs.values())
 
         self.batch_progress.increment_started()
 
-        predictions = self.trainer._call_strategy_hook("predict_step", *step_kwargs.values())
+        predictions = call._call_strategy_hook(trainer, "predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        self.trainer._call_callback_hooks("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
-        self.trainer._call_lightning_module_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *step_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *step_kwargs.values())
 
         self.batch_progress.increment_completed()
 

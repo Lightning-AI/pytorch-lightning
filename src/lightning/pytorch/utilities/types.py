@@ -16,7 +16,6 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
-from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Sequence, Type, Union
@@ -43,7 +42,6 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
-_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
 
 @runtime_checkable

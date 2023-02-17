@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
-from lightning.pytorch.plugins.precision.colossalai import ColossalAIPrecisionPlugin
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
@@ -23,7 +22,6 @@ from lightning.pytorch.plugins.precision.tpu import TPUPrecisionPlugin
 from lightning.pytorch.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 
 __all__ = [
-    "ColossalAIPrecisionPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "FSDPMixedPrecisionPlugin",
