@@ -137,8 +137,8 @@ class ModelHooks:
         """Called in the predict loop after the batch.
 
         Args:
-            outputs: The outputs of test_step(x)
-            batch: The batched data as it is returned by the test DataLoader.
+            outputs: The outputs of predict_step(x)
+            batch: The batched data as it is returned by the prediction DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
