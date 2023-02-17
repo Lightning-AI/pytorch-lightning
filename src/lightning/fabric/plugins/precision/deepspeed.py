@@ -48,7 +48,7 @@ class DeepSpeedPrecision(Precision):
                 f"`precision={precision!r})` is not supported in DeepSpeed."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT, precision)
+        self.precision = precision
 
     def convert_input(self, data: Tensor) -> Tensor:
         precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16, "32-true": torch.float32}
