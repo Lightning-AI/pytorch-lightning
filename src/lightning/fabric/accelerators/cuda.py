@@ -15,7 +15,7 @@ import os
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Dict, Generator, List, Optional, Set, Union, cast
+from typing import cast, Dict, Generator, List, Optional, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_info
@@ -182,6 +182,7 @@ def is_cuda_available() -> bool:
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 
+
 def _parse_visible_devices() -> Union[List[int], List[str]]:
     """Parse CUDA_VISIBLE_DEVICES environment variable."""
     var = os.getenv("CUDA_VISIBLE_DEVICES")
@@ -193,7 +194,7 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
         if not s:
             return -1
         for idx, c in enumerate(s):
-            if not (c.isdigit() or (idx == 0 and c in '+-')):
+            if not (c.isdigit() or (idx == 0 and c in "+-")):
                 break
             if idx + 1 == len(s):
                 idx += 1
@@ -232,9 +233,9 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _raw_device_count_nvml() -> int:
-    """Return number of devices as reported by NVML
-    or negative value if NVML discovery/initialization failed."""
-    from ctypes import CDLL, c_int, byref
+    """Return number of devices as reported by NVML or negative value if NVML discovery/initialization failed."""
+    from ctypes import byref, c_int, CDLL
+
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
     if rc != 0:
@@ -251,9 +252,9 @@ def _raw_device_count_nvml() -> int:
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _raw_device_uuid_nvml() -> Optional[List[str]]:
-    """Return list of device UUID as reported by NVML
-    or None if NVM discovery/initialization failed."""
-    from ctypes import CDLL, c_int, c_void_p, create_string_buffer, byref
+    """Return list of device UUID as reported by NVML or None if NVM discovery/initialization failed."""
+    from ctypes import byref, c_int, c_void_p, CDLL, create_string_buffer
+
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
     if rc != 0:
@@ -277,15 +278,16 @@ def _raw_device_uuid_nvml() -> Optional[List[str]]:
         if rc != 0:
             warnings.warn("Can't get device UUID")
             return None
-        uuids.append(buf.raw.decode("ascii").strip('\0'))
+        uuids.append(buf.raw.decode("ascii").strip("\0"))
     del nvml_h
     return uuids
 
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _transform_uuid_to_ordinals(candidates: List[str], uuids: List[str]) -> List[int]:
-    """Given the set of partial uuids and list of known uuids builds
-    a set of ordinals excluding ambiguous partials IDs"""
+    """Given the set of partial uuids and list of known uuids builds a set of ordinals excluding ambiguous partials
+    IDs."""
+
     def uuid_to_orinal(candidate: str, uuids: List[str]) -> int:
         best_match = -1
         for idx, uuid in enumerate(uuids):
@@ -313,7 +315,9 @@ def _transform_uuid_to_ordinals(candidates: List[str], uuids: List[str]) -> List
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _device_count_nvml() -> int:
     """Return number of devices as reported by NVML taking CUDA_VISIBLE_DEVICES into account.
-    Negative value is returned if NVML discovery or initialization has failed."""
+
+    Negative value is returned if NVML discovery or initialization has failed.
+    """
     visible_devices = _parse_visible_devices()
     if not visible_devices:
         return 0
