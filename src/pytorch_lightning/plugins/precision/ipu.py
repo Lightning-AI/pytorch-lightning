@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, List, Tuple
 
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
@@ -45,6 +46,14 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             )
         super().__init__()
         self.precision = precision
+
+    def connect(
+        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
+        if self.precision == PrecisionType.HALF:
+            model = model.half()
+        """Connects this plugin to the accelerator and the training process."""
+        return model, optimizers, lr_schedulers
 
     def backward(  # type: ignore[override]
         self,
