@@ -108,8 +108,9 @@ def _zip_files(remote_src: str, local_dst: str) -> None:
 
 
 def _storage_host(cluster: Union[V1GetClusterResponse, Externalv1Cluster]) -> str:
-    if os.environ.get("LIGHTNING_STORAGE_HOST"):
-        return os.environ.get("LIGHTNING_STORAGE_HOST")
+    dev_host = os.environ.get("LIGHTNING_STORAGE_HOST")
+    if dev_host:
+        return dev_host
     return f"https://storage.{cluster.spec.driver.kubernetes.root_domain_name}"
 
 

@@ -25,7 +25,7 @@ import requests
 import urllib3
 from lightning_cloud.openapi import Externalv1LightningappInstance, ProjectIdStorageBody, V1CloudSpace
 from rich.live import Live
-from rich.progress import BarColumn, DownloadColumn, Progress, Task, TextColumn
+from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TextColumn
 from rich.spinner import Spinner
 from rich.text import Text
 
@@ -149,7 +149,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
         _error_and_exit("We detected errors in uploading your files.")
 
 
-def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: Task) -> Optional[Exception]:
+def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: TaskID) -> Optional[Exception]:
     source_file = Path(source_file)
     file_uploader = FileUploader(
         presigned_url,
@@ -204,7 +204,7 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
         _error_and_exit("There was an error downloading your files.")
 
 
-def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> None:
+def _download_file(path: str, url: str, progress: Progress, task_id: TaskID) -> None:
     # Disable warning about making an insecure request
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
