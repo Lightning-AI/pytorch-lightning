@@ -178,9 +178,9 @@ class _EvaluationLoop(_Loop):
         combined_loader = self._combined_loader
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
-            raise ValueError(
-                f'`trainer.{trainer.state.fn.value}()` only supports the `CombinedLoader(mode="sequential")` mode.'
-            )
+            fn = trainer.state.fn
+            assert fn is not None
+            raise ValueError(f'`trainer.{fn.value}()` only supports the `CombinedLoader(mode="sequential")` mode.')
 
         if trainer.state.fn == "fit":
             for i, dl in enumerate(combined_loader.flattened):
