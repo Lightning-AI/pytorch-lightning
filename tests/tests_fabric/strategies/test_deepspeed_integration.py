@@ -151,7 +151,7 @@ def test_deepspeed_configure_optimizers():
         strategy=DeepSpeedStrategy(),
         accelerator="cuda",
         devices=1,
-        precision=16,
+        precision="16-mixed",
     )
     fabric.run()
 
@@ -175,7 +175,7 @@ def test_deepspeed_custom_precision_params():
     )
     fabric = RunFabric(
         strategy=strategy,
-        precision=16,
+        precision="16-mixed",
         accelerator="cuda",
         devices=1,
     )
@@ -212,7 +212,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
     )
     fabric = RunFabric(
         strategy=strategy,
-        precision=16,
+        precision="16-mixed",
         accelerator="cuda",
         devices=1,
     )
@@ -247,7 +247,7 @@ def test_deepspeed_multigpu_stage_3():
         strategy=DeepSpeedStrategy(stage=3),
         accelerator="cuda",
         devices=2,
-        precision=16,
+        precision="16-mixed",
     )
     fabric.run()
 
@@ -318,9 +318,9 @@ def test_deepspeed_with_bfloat16_precision():
             assert model.layer.weight.dtype == torch.bfloat16
             return super().step(model, batch)
 
-    fabric = RunFabric(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16")
+    fabric = RunFabric(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16-mixed")
     assert isinstance(fabric._strategy.precision, DeepSpeedPrecision)
-    assert fabric._strategy.precision.precision == "bf16"
+    assert fabric._strategy.precision.precision == "bf16-mixed"
     assert fabric._strategy.config["zero_optimization"]["stage"] == 3
     fabric.run()
 
@@ -361,7 +361,7 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
     """Test that DeepSpeed stage 1, 2, and 3 model checkpoints can be saved and loaded successfully."""
     from deepspeed import DeepSpeedEngine
 
-    fabric = Fabric(accelerator="cuda", devices=2, strategy=DeepSpeedStrategy(stage=stage), precision="bf16")
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=DeepSpeedStrategy(stage=stage), precision="bf16-mixed")
     fabric.launch()
 
     checkpoint_path = fabric.broadcast(tmp_path / "deepspeed-checkpoint")

@@ -145,7 +145,7 @@ def test_num_stepping_batches_with_tpu_single():
 
 @RunIf(tpu=True)
 @mock.patch(
-    "lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device",
+    "lightning.pytorch.strategies.xla.XLAStrategy.root_device",
     new_callable=PropertyMock,
     return_value=torch.device("xla:0"),
 )

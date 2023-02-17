@@ -1034,7 +1034,7 @@ class Trainer:
 
     @property
     def precision(self) -> _PRECISION_INPUT_STR:
-        return self.strategy.precision_plugin.precision
+        return self.strategy.precision_plugin.precision  # type: ignore
 
     @property
     def scaler(self) -> Optional[Any]:

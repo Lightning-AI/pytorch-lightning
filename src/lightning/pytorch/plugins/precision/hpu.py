@@ -54,7 +54,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
                 f"`Trainer(accelerator='hpu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))  # type: ignore
         if self.precision in ("16", "bf16"):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
