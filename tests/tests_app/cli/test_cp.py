@@ -147,6 +147,7 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
     os.remove(_CD_FILE)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_sanitize_path():
     path, is_remote = cp._sanitize_path("r:default-project", "/")
     assert path == "/default-project"
