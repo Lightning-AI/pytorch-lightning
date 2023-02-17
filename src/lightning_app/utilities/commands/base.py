@@ -31,7 +31,6 @@ from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
 from lightning_app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
-from lightning_app.core.plugin import Plugin
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import is_overridden, Logger
 from lightning_app.utilities.cloud import _get_project
@@ -109,7 +108,7 @@ def _download_command(
     app_id: Optional[str] = None,
     debug_mode: bool = False,
     target_file: Optional[str] = None,
-) -> Union[ClientCommand, Plugin]:
+) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
     command_name = command_name.replace(" ", "_")
@@ -143,10 +142,8 @@ def _download_command(
     command_type = getattr(mod, cls_name)
     if issubclass(command_type, ClientCommand):
         command = command_type(method=None)
-    elif issubclass(command_type, Plugin):
-        command = command_type()
     else:
-        raise ValueError(f"Expected class {cls_name} for command {command_name} to be a `ClientCommand` or `Plugin`.")
+        raise ValueError(f"Expected class {cls_name} for command {command_name} to be a `ClientCommand`.")
     if tmpdir and os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
     return command
@@ -222,18 +219,6 @@ def _prepare_commands(app) -> List:
     # 2: Cache the commands on the app.
     app.commands = commands
     return commands
-
-
-def _prepare_plugins(app) -> List:
-    if not is_overridden("configure_plugins", app.root):
-        return []
-
-    # 1: Upload the plugins to s3.
-    plugins = app.root.configure_plugins()
-    for plugin_mapping in plugins:
-        for plugin_name, plugin in plugin_mapping.items():
-            if isinstance(plugin, Plugin):
-                _upload(plugin_name, "plugins", plugin)
 
 
 def _process_api_request(app, request: _APIRequest):

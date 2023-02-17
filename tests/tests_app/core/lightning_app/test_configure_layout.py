@@ -86,10 +86,11 @@ class StaticWebFrontendFlow(LightningFlow):
         return frontend
 
 
-@pytest.mark.parametrize("flow", (StaticWebFrontendFlow(), StreamlitFrontendFlow()))
+@pytest.mark.parametrize("flow", (StaticWebFrontendFlow, StreamlitFrontendFlow))
 @mock.patch("lightning_app.runners.multiprocess.find_free_network_port")
 def test_layout_leaf_node(find_ports_mock, flow):
     find_ports_mock.side_effect = lambda: 100
+    flow = flow()
     app = LightningApp(flow)
     assert flow._layout == {}
     # we copy the dict here because after we dispatch the dict will get update with new instances
