@@ -72,7 +72,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
 class DoublePrecisionPlugin(PrecisionPlugin):
     """Plugin for training with double (``torch.float64``) precision."""
 
-    precision: Literal["64"] = "64"
+    precision: Literal["64"] = "64"  # type: ignore
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]

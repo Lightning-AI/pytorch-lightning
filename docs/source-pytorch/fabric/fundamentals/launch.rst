@@ -68,9 +68,13 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
       --main-port, --main_port INTEGER
                                       The main port to connect to the main
                                       machine.
-      --precision [64|32|16|bf16]     Double precision (``64``), full precision
-                                      (``32``), half precision (``16``) or
-                                      bfloat16 precision (``'bf16'``)
+      --precision [16-mixed|bf16-mixed|32-true|64-true|64|32|16|bf16]
+                                      Double precision (``64-true`` or ``64``),
+                                      full precision (``32-true`` or ``64``), half
+                                      precision (``16-mixed`` or ``16``) or
+                                      bfloat16 precision (``bf16-mixed`` or
+                                      ``bf16``)
+
       --help                          Show this message and exit.
 
 
