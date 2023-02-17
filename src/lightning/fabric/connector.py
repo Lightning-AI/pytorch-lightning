@@ -46,8 +46,8 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT,
     _PRECISION_INPUT_INT,
     _PRECISION_INPUT_STR,
-    _PRECISION_INPUT_STR_LEGACY,
-    _PRECISION_INPUT_STR_LEGACY_CONVERSION,
+    _PRECISION_INPUT_STR_ALIAS,
+    _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
@@ -226,23 +226,7 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        supported_precision = (
-            get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_LEGACY)
-        )
-        if precision not in supported_precision:
-            raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}")
-
-        precision = str(precision)  # convert int flags to str here to enable the legacy-conversion below
-
-        if precision in get_args(_PRECISION_INPUT_STR_LEGACY):
-            if precision[:2] not in ("32", "64"):
-                rank_zero_warn(
-                    f"{precision} is supported for historical reasons but its usage is discouraged. "
-                    f"Please set your precision to {_PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]} instead!"
-                )
-            precision = _PRECISION_INPUT_STR_LEGACY_CONVERSION[precision]
-
-        self._precision_input = cast(_PRECISION_INPUT_STR, precision)
+        self._precision_input = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -580,3 +564,22 @@ class _Connector:
         if env_value is None:
             return current
         return env_value
+
+
+def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISION_INPUT_STR:
+    supported_precision = (
+            get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_ALIAS)
+    )
+    if precision not in supported_precision:
+        raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}")
+
+    precision = str(precision)  # convert int flags to str here to enable the legacy-conversion below
+
+    if precision in get_args(_PRECISION_INPUT_STR_ALIAS):
+        if str(precision)[:2] not in ("32", "64"):
+            rank_zero_warn(
+                f"{precision} is supported for historical reasons but its usage is discouraged. "
+                f"Please set your precision to {_PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]} instead!"
+            )
+        precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
+
