@@ -344,7 +344,7 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
             return dataloader.__pl_saved_kwargs["shuffle"]
         if "shuffle" in dataloader.__pl_saved_arg_names:
             return dataloader.__pl_saved_args[dataloader.__pl_saved_arg_names.index("shuffle")]
-    if isinstance(dataloader.dataset, IterableDataset):
+    if hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset):
         # shuffling is useless with iterable datasets
         return False
     if not hasattr(dataloader, "sampler"):

@@ -34,6 +34,7 @@ from lightning.pytorch.demos.boring_classes import (
 )
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
@@ -830,10 +831,10 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["multiple_trainloader_mode", "num_training_batches"],
-    [("min_size", 16), ("max_size_cycle", 64)],
+    ["mode", "num_training_batches"],
+    [("min_size", 16), ("max_size_cycle", 64), ("sequential", 64 + 16 * 4)],
 )
-def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
+def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
     """Integration test for multiple train iterables."""
 
     class CustomBoringModel(BoringModel):
@@ -846,7 +847,7 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
             ]
             # Dict[str, List[DataLoader]]
             loaders = {"a_b": loaders_a_b, "c_d_e": loaders_c_d_e}
-            return loaders
+            return CombinedLoader(loaders, mode)
 
         def training_step(self, batch, batch_idx):
             assert len(batch) == 2
@@ -855,9 +856,15 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
             return super().training_step(batch["a_b"][0], batch_idx)
 
     model = CustomBoringModel()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, multiple_trainloader_mode=multiple_trainloader_mode)
-    trainer.fit(model)
-    # verify the num_training_batches according to the multiple_trainloader_mode
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+
+    if mode == "sequential":
+        with pytest.raises(ValueError, match="FitLoop` only supports"):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
+
+    # verify the num_training_batches according to the mode
     assert num_training_batches == trainer.num_training_batches
 
 
@@ -1211,8 +1218,8 @@ def test_dataloaders_reset_and_attach(tmpdir):
     assert trainer.predict_dataloaders[0].dataset is dataloader_1.dataset
 
 
-@pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
-def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
+@pytest.mark.parametrize("mode", ["min_size"])
+def test_correct_dataloader_idx_in_hooks(tmpdir, mode):
     """Check the correct dataloader_idx inside hooks."""
 
     class CustomBoringModel(BoringModel):
@@ -1268,26 +1275,19 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().predict(batch, batch_idx, dataloader_idx)
 
-        def train_dataloader(self):
-            return {"a": DataLoader(RandomDataset(32, 64)), "b": DataLoader(RandomDataset(32, 64))}
+    def train_dataloader():
+        return {"a": DataLoader(RandomDataset(32, 64)), "b": DataLoader(RandomDataset(32, 64))}
 
-        def val_dataloader(self):
-            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
-
-        def test_dataloader(self):
-            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
-
-        def predict_dataloader(self):
-            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+    def eval_dataloader():
+        return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5, multiple_trainloader_mode=multiple_trainloader_mode)
+    trainer.fit(model, CombinedLoader(train_dataloader(), mode=mode), CombinedLoader(eval_dataloader(), mode=mode))
+    trainer.test(model, CombinedLoader(eval_dataloader(), mode=mode))
+    preds = trainer.predict(model, CombinedLoader(eval_dataloader(), mode=mode))
 
-    trainer.fit(model)
-    trainer.test(model)
-
-    preds = trainer.predict(model)
     assert len(preds) == 2
     assert all(len(x) == 5 for x in preds)
 

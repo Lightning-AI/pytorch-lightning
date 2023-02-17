@@ -61,7 +61,7 @@ class _EvaluationLoop(_Loop):
         """Returns the number of prediction dataloaders."""
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        return len(combined_loader._flattened)
+        return len(combined_loader.flattened)
 
     @property
     def max_batches(self) -> List[Union[int, float]]:
@@ -134,7 +134,7 @@ class _EvaluationLoop(_Loop):
 
         stage = trainer.state.stage
         assert stage is not None
-        num_batches, iterables = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
+        num_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
         if trainer.testing:
             trainer.num_test_batches = num_batches
         elif trainer.sanity_checking:
@@ -145,14 +145,10 @@ class _EvaluationLoop(_Loop):
         else:
             trainer.num_val_batches = num_batches
 
-        combined_loader = CombinedLoader(iterables, "sequential")
-        for i, dl in enumerate(combined_loader._flattened):
-            if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
+        if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
+            for dl in combined_loader.flattened:
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
-            # allow the strategy to inject logic
-            dl = trainer.strategy.process_dataloader(dl)
-            combined_loader._update_index(dl, i)
         self._combined_loader = combined_loader
 
         # this depends on the data used, so reset it too
@@ -183,7 +179,7 @@ class _EvaluationLoop(_Loop):
         assert combined_loader is not None
 
         if trainer.state.fn == "fit":
-            for i, dl in enumerate(combined_loader._flattened):
+            for i, dl in enumerate(combined_loader.flattened):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
