@@ -698,12 +698,6 @@ class LightningModule(
 
         .. code-block:: python
 
-            # pseudocode of order
-            for val_batch in val_data:
-                out = validation_step(val_batch)
-
-        .. code-block:: python
-
             # if you have one val dataloader:
             def validation_step(self, batch, batch_idx):
                 ...
