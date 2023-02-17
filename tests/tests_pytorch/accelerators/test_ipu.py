@@ -228,7 +228,9 @@ def test_pure_half_precision(tmpdir):
     not_changed_dtypes = [torch.uint8, torch.int8, torch.int32, torch.int64]
     data = [torch.zeros((1), dtype=dtype) for dtype in not_changed_dtypes]
     new_data = trainer.strategy.batch_to_device(data)
-    assert all(val.dtype is dtype for val, dtype in zip(new_data, not_changed_dtypes)), ''.join([f'{dtype}: {val.dtype}' for dtype, val in zip(not_changed_dtypes, new_data)])
+    assert all(val.dtype is dtype for val, dtype in zip(new_data, not_changed_dtypes)), "".join(
+        [f"{dtype}: {val.dtype}" for dtype, val in zip(not_changed_dtypes, new_data)]
+    )
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
