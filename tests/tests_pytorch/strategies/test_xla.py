@@ -21,8 +21,7 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.strategies import TPUSpawnStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.strategies import XLAStrategy
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -45,39 +44,10 @@ _loader = DataLoader(RandomDataset(32, 64))
 _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 
-@pytest.mark.parametrize(
-    "train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders",
-    [
-        (_loader_no_len, None, None, None),
-        (None, _loader_no_len, None, None),
-        (None, None, _loader_no_len, None),
-        (None, None, None, _loader_no_len),
-        (None, [_loader, _loader_no_len], None, None),
-    ],
-)
-def test_error_iterable_dataloaders_passed_to_fit(
-    xla_available, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
-):
-    """Test that the TPUSpawnStrategy identifies dataloaders with iterable datasets and fails early."""
-    trainer = Trainer()
-    model = BoringModelNoDataloaders()
-    model.trainer = trainer
-
-    trainer._data_connector.attach_dataloaders(
-        model,
-        train_dataloaders=train_dataloaders,
-        val_dataloaders=val_dataloaders,
-        test_dataloaders=test_dataloaders,
-        predict_dataloaders=predict_dataloaders,
-    )
-
-    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
-        TPUSpawnStrategy(MagicMock()).connect(model)
-
-
 def test_error_process_iterable_dataloader(xla_available):
-    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
-        TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
+    strategy = XLAStrategy(MagicMock())
+    with pytest.raises(TypeError, match="TPUs do not currently support"):
+        strategy.process_dataloader(_loader_no_len)
 
 
 class BoringModelTPU(BoringModel):
@@ -90,9 +60,9 @@ class BoringModelTPU(BoringModel):
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_one_core():
-    """Tests if device/debug flag is set correctly when training and after teardown for TPUSpawnStrategy."""
+    """Tests if device/debug flag is set correctly when training and after teardown for XLAStrategy."""
     model = BoringModelTPU()
-    trainer = Trainer(accelerator="tpu", devices=1, fast_dev_run=True, strategy=TPUSpawnStrategy(debug=True))
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    trainer = Trainer(accelerator="tpu", devices=1, fast_dev_run=True, strategy=XLAStrategy(debug=True))
+    assert isinstance(trainer.strategy, XLAStrategy)
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
