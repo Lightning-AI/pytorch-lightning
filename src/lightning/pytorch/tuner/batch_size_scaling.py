@@ -129,7 +129,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     if isinstance(loop, pl.loops._FitLoop):
         trainer.limit_train_batches = 1.0
         trainer.limit_val_batches = steps_per_trial
-        trainer.fit_loop.max_steps = steps_per_trial
+        trainer.fit_loop.epoch_loop.max_steps = steps_per_trial
     elif isinstance(loop, pl.loops._EvaluationLoop):
         stage = trainer.state.stage
         assert stage is not None
