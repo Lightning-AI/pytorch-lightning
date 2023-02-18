@@ -102,26 +102,10 @@ class _FitLoop(_Loop):
         """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
-    @min_steps.setter
-    def min_steps(self, value: Optional[int]) -> None:
-        """Sets the minimum number of steps (forwards to epoch_loop)"""
-        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
-        self.epoch_loop.min_steps = value
-
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run."""
         return self.epoch_loop.max_steps
-
-    @max_steps.setter
-    def max_steps(self, value: int) -> None:
-        """Sets the maximum number of steps (forwards to epoch_loop)"""
-        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
-        if value < -1:
-            raise MisconfigurationException(
-                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
-            )
-        self.epoch_loop.max_steps = value
 
     @_Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:

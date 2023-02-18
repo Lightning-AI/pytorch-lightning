@@ -145,7 +145,7 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     loop = trainer._active_loop
     assert loop is not None
     if isinstance(loop, pl.loops._FitLoop):
-        loop.max_steps = params["max_steps"]
+        loop.epoch_loop.max_steps = params["max_steps"]
         trainer.limit_train_batches = params["limit_train_batches"]
         trainer.limit_val_batches = params["limit_val_batches"]
     elif isinstance(loop, pl.loops._EvaluationLoop):
