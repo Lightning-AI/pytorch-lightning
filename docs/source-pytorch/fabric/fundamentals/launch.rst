@@ -74,7 +74,6 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
                                       precision (``16-mixed`` or ``16``) or
                                       bfloat16 precision (``bf16-mixed`` or
                                       ``bf16``)
-
       --help                          Show this message and exit.
 
 
