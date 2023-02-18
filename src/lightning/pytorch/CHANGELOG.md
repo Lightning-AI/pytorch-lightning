@@ -326,6 +326,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `ProgressBarBase.{train_batch_idx,val_batch_idx,test_batch_idx,predict_batch_idx}` properties ([#16760](https://github.com/Lightning-AI/lightning/pull/16760))
 
 
+- Removed the `fit_loop.{min,max}_steps` setters ([#16803](https://github.com/Lightning-AI/lightning/pull/16803))
+
 
 - Removed the `Trainer(track_grad_norm=...)` argument ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
 
