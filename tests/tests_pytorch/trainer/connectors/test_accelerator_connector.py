@@ -20,6 +20,8 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
@@ -28,7 +30,7 @@ from lightning.fabric.plugins.environments import (
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment,
+    TorchElasticEnvironment, XLAEnvironment,
 )
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -42,7 +44,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    SingleDeviceStrategy,
+    SingleDeviceStrategy, XLAStrategy, SingleTPUStrategy,
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
@@ -55,6 +57,23 @@ def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
+
+
+@RunIf(tpu=True, standalone=True)
+@pytest.mark.parametrize(
+    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_accelerator_choice_tpu(accelerator, devices):
+    connector = AcceleratorConnector(accelerator=accelerator, devices=devices)
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    if devices is None or (isinstance(devices, int) and devices > 1):
+        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
+        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
+        assert isinstance(connector.strategy, XLAStrategy)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
+    else:
+        assert isinstance(connector.strategy, SingleTPUStrategy)
 
 
 def test_accelerator_invalid_choice():
