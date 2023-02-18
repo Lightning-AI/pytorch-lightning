@@ -1,10 +1,9 @@
 import os
-import shutil
 import sys
 from unittest.mock import MagicMock
+from pathlib import PosixPath
 
 import pytest
-import requests
 from lightning_cloud.openapi import (
     Externalv1Cluster,
     Externalv1LightningappInstance,
@@ -100,50 +99,48 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
         ]
     )
 
+    artifacts = [
+        V1LightningappInstanceArtifact(
+            filename=".file_1.txt",
+            url="http://foo.bar/file_1.txt",
+            size_bytes=123,
+        ),
+        V1LightningappInstanceArtifact(
+            filename=".folder_1/file_2.txt",
+            url="http://foo.bar/folder_1/file_2.txt",
+            size_bytes=123,
+        ),
+        V1LightningappInstanceArtifact(
+            filename=".folder_2/folder_3/file_3.txt",
+            url="http://foo.bar/folder_2/folder_3/file_3.txt",
+            size_bytes=123,
+        ),
+        V1LightningappInstanceArtifact(
+            filename=".folder_4/file_4.txt",
+            url="http://foo.bar/folder_4/file_4.txt",
+            size_bytes=123,
+        ),
+    ]
+
     client.lightningapp_instance_service_list_project_artifacts.return_value = (
-        V1ListLightningappInstanceArtifactsResponse(
-            artifacts=[
-                V1LightningappInstanceArtifact(
-                    filename=".file_1.txt",
-                    size_bytes=123,
-                ),
-                V1LightningappInstanceArtifact(
-                    filename=".folder_1/file_2.txt",
-                    size_bytes=123,
-                ),
-                V1LightningappInstanceArtifact(
-                    filename=".folder_2/folder_3/file_3.txt",
-                    size_bytes=123,
-                ),
-                V1LightningappInstanceArtifact(
-                    filename=".folder_4/file_4.txt",
-                    size_bytes=123,
-                ),
-            ]
-        )
+        V1ListLightningappInstanceArtifactsResponse(artifacts=artifacts)
     )
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
     assert "/project-0/app-name-0" == cd("/project-0/app-name-0", verify=False)
 
-    get_fn = requests.get
-
-    def patch_get(*args, **kwargs):
-        return get_fn("https://pl-flash-data.s3.amazonaws.com/daef0454-97a4-4a22-a704-fb9f80b7ea83.txt")
-
-    monkeypatch.setattr(requests, "get", patch_get)
+    download_file = MagicMock()
+    monkeypatch.setattr(cp, "_download_file", download_file)
 
     cp.cp("r:.", str(tmpdir))
-    cp.cp("r:.", ".")
-    cp.cp("r:.", "test_cp_cloud_to_local")
+
+    assert len(download_file.call_args_list) == 4
+    for i, call in enumerate(download_file.call_args_list):
+        assert call.args[0] == PosixPath(tmpdir / artifacts[i].filename)
+        assert call.args[1] == artifacts[i].url
 
     # cleanup
-    os.remove(".file_1.txt")
-    shutil.rmtree(".folder_1")
-    shutil.rmtree(".folder_2")
-    shutil.rmtree(".folder_4")
-    shutil.rmtree("test_cp_cloud_to_local")
     os.remove(_CD_FILE)
 
 
