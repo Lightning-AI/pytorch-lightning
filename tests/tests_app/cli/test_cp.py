@@ -19,7 +19,10 @@ from lightning_cloud.openapi import (
     V1ListLightningappInstanceArtifactsResponse,
     V1ListLightningappInstancesResponse,
     V1ListMembershipsResponse,
+    V1ListProjectClusterBindingsResponse,
     V1Membership,
+    V1ProjectClusterBinding,
+    V1UploadProjectArtifactResponse,
 )
 
 from lightning.app.cli.commands import cp
@@ -49,11 +52,15 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
         ]
     )
 
-    clusters = MagicMock()
-    clusters.clusters = [MagicMock()]
-    client.projects_service_list_project_cluster_bindings.return_value = clusters
+    client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+        clusters=[V1ProjectClusterBinding(cluster_id="my-cluster", cluster_name="my-cluster")]
+    )
 
-    client.lightningapp_instance_service_upload_project_artifact.return_value = MagicMock()
+    result = MagicMock()
+    result.get.return_value = V1UploadProjectArtifactResponse(
+        upload_url="http://foo.bar",
+    )
+    client.lightningapp_instance_service_upload_project_artifact.return_value = result
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
