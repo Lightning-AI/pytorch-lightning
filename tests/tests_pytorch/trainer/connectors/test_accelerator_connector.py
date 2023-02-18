@@ -267,7 +267,8 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_interactive_compatible_strategy_tpu(_, tpu_available, monkeypatch):
     monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
