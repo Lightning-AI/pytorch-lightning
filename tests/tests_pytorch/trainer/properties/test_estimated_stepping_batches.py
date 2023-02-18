@@ -143,20 +143,18 @@ def test_num_stepping_batches_with_tpu_single():
     assert trainer.estimated_stepping_batches == len(model.train_dataloader())
 
 
+class MultiprocessModel(BoringModel):
+    def on_train_start(self):
+        assert self.trainer.world_size == 8
+        assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // 8
+
+
 @RunIf(tpu=True)
-@mock.patch(
-    "lightning.pytorch.strategies.xla.XLAStrategy.root_device",
-    new_callable=PropertyMock,
-    return_value=torch.device("xla:0"),
-)
-def test_num_stepping_batches_with_tpu_multi(_):
+def test_num_stepping_batches_with_tpu_multi():
     """Test stepping batches with the TPU strategy across multiple devices."""
     trainer = Trainer(accelerator="tpu", devices=8, max_epochs=1)
-    model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
-    assert trainer.world_size == 8
-    assert trainer.estimated_stepping_batches == len(model.train_dataloader()) // 8
+    model = MultiprocessModel()
+    trainer.fit(model)
 
 
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
