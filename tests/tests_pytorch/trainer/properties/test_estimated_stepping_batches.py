@@ -155,6 +155,7 @@ def test_num_stepping_batches_with_tpu_multi(_):
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
+    assert trainer.world_size == 8
     assert trainer.estimated_stepping_batches == len(model.train_dataloader()) // 8
 
 
