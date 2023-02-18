@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, List, Literal, Optional, Sized, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict
@@ -147,33 +147,6 @@ _supported_modes = {
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
 
 
-class _CombinedDataset(Sized):
-    """Combine multiple datasets."""
-
-    def __init__(self, datasets: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size"):
-        """
-        Args:
-            datasets: Collections of Iterables.
-            mode: Mode to use when computing the length.
-        """
-        if mode not in _supported_modes:
-            raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
-        self._mode = mode
-        self._datasets = datasets
-
-    @property
-    def datasets(self) -> Any:
-        return self._datasets
-
-    def __len__(self) -> int:
-        """Compute the length of `CombinedDataset` according to the `mode`."""
-        lengths = [length for ds in _tree_flatten(self._datasets)[0] if (length := sized_len(ds)) is not None]
-        if not lengths:
-            raise NotImplementedError("All datasets are iterable-style datasets.")
-        fn = _supported_modes[self._mode]["fn"]
-        return fn(lengths)
-
-
 class CombinedLoader(Iterable):
     """Combines different iterables under custom sampling modes.
 
@@ -223,12 +196,6 @@ class CombinedLoader(Iterable):
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
         self._iterables = iterables
         self._flattened, self._spec = _tree_flatten(iterables)
-
-        # TODO(carmocca): doing this might not be necessary
-        datasets = _map_and_unflatten(lambda x: getattr(x, "dataset", None), self._flattened, self._spec)
-        # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
-        self.dataset = _CombinedDataset(datasets, mode)
-
         self._mode = mode
         self._iterator: Optional[_ModeIterator] = None
 
@@ -284,6 +251,15 @@ class CombinedLoader(Iterable):
         # TODO(carmocca): avoid this, inefficient
         self._flattened[index] = dataloader
         self._iterables = tree_unflatten(self._flattened, self._spec)
+
+    def _dataset_length(self) -> int:
+        """Compute the total length of the datasets according to the `mode`."""
+        datasets = [getattr(dl, "dataset", None) for dl in self._flattened]
+        lengths = [length for ds in datasets if (length := sized_len(ds)) is not None]
+        if not lengths:
+            raise NotImplementedError("All datasets are iterable-style datasets.")
+        fn = _supported_modes[self._mode]["fn"]
+        return fn(lengths)
 
 
 def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
