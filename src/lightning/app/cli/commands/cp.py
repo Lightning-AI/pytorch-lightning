@@ -196,6 +196,7 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
         results = executor.map(_download_file_fn, download_paths, download_urls)
 
+
     progress.stop()
 
     # Raise the first exception found
