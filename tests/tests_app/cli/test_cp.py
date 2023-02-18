@@ -31,12 +31,8 @@ from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_local_to_remote(tmpdir, monkeypatch):
-    assert "/" == cd("/", verify=False)
-
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
-    cp.cp(str(tmpdir), "r:.")
-    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -64,8 +60,11 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
-    assert "/project-0/app-name-0" == cd("/project-0/app-name-0", verify=False)
+    assert "/" == cd("/", verify=False)
+    cp.cp(str(tmpdir), "r:.")
+    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
+    assert "/project-0/app-name-0" == cd("/project-0/app-name-0", verify=False)
     with open(f"{tmpdir}/a.txt", "w") as f:
         f.write("hello world !")
 
@@ -73,7 +72,6 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
     monkeypatch.setattr(cp, "FileUploader", file_uploader)
 
     cp.cp(str(tmpdir), "r:.")
-
     assert file_uploader._mock_call_args[1]["name"] == f"{tmpdir}/a.txt"
 
     os.remove(_CD_FILE)
@@ -81,12 +79,8 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_cloud_to_local(tmpdir, monkeypatch):
-    assert "/" == cd("/", verify=False)
-
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
-    cp.cp(str(tmpdir), "r:.")
-    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -135,6 +129,10 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
+    assert "/" == cd("/", verify=False)
+    cp.cp(str(tmpdir), "r:.")
+    assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
+
     assert "/project-0/app-name-0" == cd("/project-0/app-name-0", verify=False)
 
     download_file = MagicMock()
@@ -170,6 +168,7 @@ def test_cp_zip_arg_order(monkeypatch):
 
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
+    monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=MagicMock()))
     cp.cp("./my-resource", "r:./my-resource", zip=True)
     error_and_exit.assert_called_once()
     assert "Zipping uploads isn't supported yet" in error_and_exit.call_args_list[0].args[0]
@@ -179,6 +178,7 @@ def test_cp_zip_arg_order(monkeypatch):
 def test_cp_zip_src_path_too_short(monkeypatch):
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
+    monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=MagicMock()))
     cp.cp("r:/my-project", ".", zip=True)
     error_and_exit.assert_called_once()
     assert "The source path must be at least two levels deep" in error_and_exit.call_args_list[0].args[0]
