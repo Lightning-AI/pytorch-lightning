@@ -67,7 +67,7 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
 
     cp.cp(str(tmpdir), "r:.")
 
-    assert file_uploader._mock_call_args[1]["name"] == "" f"{tmpdir}/a.txt"
+    assert file_uploader._mock_call_args[1]["name"] == f"{tmpdir}/a.txt"
 
     os.remove(_CD_FILE)
 
