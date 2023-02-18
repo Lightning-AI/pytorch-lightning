@@ -1,7 +1,7 @@
 import os
 import sys
-from unittest.mock import MagicMock
 from pathlib import PosixPath
+from unittest.mock import MagicMock
 
 import pytest
 from lightning_cloud.openapi import (
