@@ -36,7 +36,8 @@ from lightning.fabric.plugins.environments import (
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment, XLAEnvironment,
+    TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
 from lightning.fabric.strategies import (

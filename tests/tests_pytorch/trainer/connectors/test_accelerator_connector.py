@@ -20,8 +20,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
-
-from lightning.pytorch.accelerators import TPUAccelerator
 from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
@@ -30,9 +28,11 @@ from lightning.fabric.plugins.environments import (
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment, XLAEnvironment,
+    TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -44,7 +44,9 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    SingleDeviceStrategy, XLAStrategy, SingleTPUStrategy,
+    SingleDeviceStrategy,
+    SingleTPUStrategy,
+    XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
