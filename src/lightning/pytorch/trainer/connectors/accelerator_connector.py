@@ -53,7 +53,6 @@ from lightning.pytorch.plugins import (
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
@@ -67,7 +66,7 @@ from lightning.pytorch.strategies import (
     StrategyRegistry,
     XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -634,7 +633,6 @@ class AcceleratorConnector:
         distributed_strategy = (
             DDPStrategy,
             FSDPStrategy,
-            DDPSpawnStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
             HPUParallelStrategy,

@@ -29,7 +29,7 @@ from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
@@ -43,7 +43,7 @@ else:
     MpDeviceLoader = None
 
 
-class XLAStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 

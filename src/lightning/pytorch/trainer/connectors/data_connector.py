@@ -26,7 +26,7 @@ from lightning.fabric.utilities.data import _auto_add_worker_init_fn, _replace_d
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES, CombinedLoader
@@ -199,7 +199,7 @@ class DataConnector:
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
+        using_spawn = isinstance(self.trainer.strategy, DDPStrategy) and self.trainer.strategy._start_method == "spawn"
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
