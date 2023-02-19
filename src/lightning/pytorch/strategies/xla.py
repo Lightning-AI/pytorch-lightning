@@ -71,6 +71,7 @@ class XLAStrategy(DDPStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
+        self._local_rank = 0
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -92,6 +93,10 @@ class XLAStrategy(DDPStrategy):
         import torch_xla.core.xla_model as xm
 
         return xm.xla_device()
+
+    @property
+    def local_rank(self) -> int:
+        return self._local_rank
 
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
