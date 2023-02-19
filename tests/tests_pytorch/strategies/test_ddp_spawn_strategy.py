@@ -20,7 +20,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
@@ -45,11 +45,11 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
-    """Tests if device is set correctly when training for DDPSpawnStrategy."""
+    """Tests if device is set correctly when training for DDPStrategy."""
     trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
     # assert strategy attributes for device setting
 
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
 
     model = BoringModelDDPCPU()
@@ -67,14 +67,14 @@ class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
         return super().get_from_queue(trainer, queue)
 
 
-class TestDDPSpawnStrategy(DDPSpawnStrategy):
+class TestDDPSpawnStrategy(DDPStrategy):
     def _configure_launcher(self):
         self._launcher = CustomMultiProcessingLauncher(self)
 
 
 @RunIf(skip_windows=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
-    """Tests add_to_queue/get_from_queue with DDPSpawnStrategy."""
+    """Tests add_to_queue/get_from_queue with DDPStrategy."""
 
     ddp_spawn_strategy = TestDDPSpawnStrategy()
     trainer = Trainer(
@@ -125,11 +125,11 @@ def test_ddp_spawn_configure_ddp(tmpdir):
 
 
 @mock.patch("torch.distributed.init_process_group")
-def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
+def test_ddp_spawn_strategy_set_timeout(mock_init_process_group, mps_count_0):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
-    ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
+    ddp_spawn_strategy = DDPStrategy(start_method="spawn", timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_spawn_strategy,

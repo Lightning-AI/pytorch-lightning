@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from torch import nn
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.swa_utils import SWALR
@@ -27,7 +28,7 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from lightning.pytorch.strategies import DDPSpawnStrategy, Strategy
+from lightning.pytorch.strategies import DDPStrategy, Strategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -129,7 +130,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         assert trainer.accumulate_grad_batches == 2
         assert trainer.num_training_batches == 5
 
-        if not isinstance(trainer.strategy, DDPSpawnStrategy):
+        if not (isinstance(trainer.strategy, DDPStrategy) and isinstance(trainer.strategy.launche, _MultiProcessingLauncher)):
             # check backward call count. the batchnorm update epoch should not backward
             assert trainer.strategy.backward.call_count == (
                 (trainer.max_epochs - self.first_epoch) * trainer.limit_train_batches

@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed

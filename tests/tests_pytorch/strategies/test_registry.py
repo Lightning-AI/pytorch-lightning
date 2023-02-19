@@ -16,7 +16,6 @@ import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import (
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
@@ -81,44 +80,44 @@ def test_fsdp_strategy_registry(cuda_count_1):
         (
             "ddp_find_unused_parameters_false",
             DDPStrategy,
-            {"find_unused_parameters": False},
+            {"find_unused_parameters": False, "start_method": "popen"},
         ),
         (
             "ddp_find_unused_parameters_true",
             DDPStrategy,
-            {"find_unused_parameters": True},
+            {"find_unused_parameters": True, "start_method": "popen"},
         ),
         (
             "ddp_spawn_find_unused_parameters_false",
-            DDPSpawnStrategy,
+            DDPStrategy,
             {"find_unused_parameters": False, "start_method": "spawn"},
         ),
         (
             "ddp_spawn_find_unused_parameters_true",
-            DDPSpawnStrategy,
+            DDPStrategy,
             {"find_unused_parameters": True, "start_method": "spawn"},
         ),
         pytest.param(
             "ddp_fork_find_unused_parameters_false",
-            DDPSpawnStrategy,
+            DDPStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_fork_find_unused_parameters_true",
-            DDPSpawnStrategy,
+            DDPStrategy,
             {"find_unused_parameters": True, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_false",
-            DDPSpawnStrategy,
+            DDPStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_true",
-            DDPSpawnStrategy,
+            DDPStrategy,
             {"find_unused_parameters": True, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
