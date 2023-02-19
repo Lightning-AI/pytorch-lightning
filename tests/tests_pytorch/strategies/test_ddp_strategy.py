@@ -14,9 +14,11 @@
 import os
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.nn.parallel import DistributedDataParallel
 
@@ -225,7 +227,13 @@ def test_configure_launcher_create_processes_externally():
     ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment())
     assert ddp_strategy.launcher is None
     ddp_strategy._configure_launcher()
-    assert ddp_strategy.launcher is None
+    assert isinstance(ddp_strategy.launcher, _SubprocessScriptLauncher)
+
+    ddp_strategy.launcher._call_children_scripts = Mock()
+    launch_fn = Mock()
+    ddp_strategy.launcher.launch(launch_fn)
+    ddp_strategy.launcher._call_children_scripts.assert_not_called()
+    launch_fn.assert_called_once()
 
 
 @mock.patch("torch.distributed.init_process_group")
