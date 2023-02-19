@@ -100,6 +100,9 @@ jobs:
         path: .wheels
         key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
+    - run: |
+        mkdir -p .wheels
+        ls -lh .wheels/
 
     - name: Env. variables
       run: |
@@ -110,10 +113,11 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" --upgrade -f ${TORCH_URL} -f ".wheels/"
+        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push'
+      continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
         torch-url: ${{ env.TORCH_URL }}

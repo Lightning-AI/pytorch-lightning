@@ -34,7 +34,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -42,6 +42,7 @@ from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.core.saving import ModelIO
 from lightning.pytorch.loggers import Logger
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -90,10 +91,6 @@ class LightningModule(
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-
-        # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
-        # torch/nn/modules/module.py#L227)
-        torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
@@ -278,16 +275,17 @@ class LightningModule(
         return []  # type: ignore[return-value]
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
-        if self._trainer:
-            datahook_selector = self._trainer._data_connector._datahook_selector
+        trainer = self._trainer
+        if trainer:
+            datahook_selector = trainer._data_connector._datahook_selector
             assert datahook_selector is not None
             obj = datahook_selector.get_instance(hook_name)
             if isinstance(obj, self.__class__):
-                trainer_method = self._trainer._call_lightning_module_hook
+                trainer_method = call._call_lightning_module_hook
             else:
-                trainer_method = self._trainer._call_lightning_datamodule_hook
+                trainer_method = call._call_lightning_datamodule_hook
 
-            return trainer_method(hook_name, *args)
+            return trainer_method(trainer, hook_name, *args)
         else:
             hook = getattr(self, hook_name)
             return hook(*args)
@@ -592,22 +590,6 @@ class LightningModule(
             )
         value = value.squeeze()
         return value
-
-    def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
-        """Override this method to change the default behaviour of ``log_grad_norm``.
-
-        If clipping gradients, the gradients will not have been clipped yet.
-
-        Args:
-            grad_norm_dict: Dictionary containing current grad norm metrics
-
-        Example::
-
-            # DEFAULT
-            def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
@@ -1639,86 +1621,6 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
-
-    @classmethod
-    def from_compiled(cls, model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
-        """Returns an instance LightningModule from the output of ``torch.compile``.
-
-        The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
-        passed in as an argument, but doesn't inherit from it. This means that the output of ``torch.compile`` behaves
-        like a LightningModule but it doesn't inherit from it (i.e. `isinstance` will fail).
-
-        Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
-        """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            raise ModuleNotFoundError(f"`{cls.__name__}.from_compiled` requires torch>=2.0")
-
-        from torch._dynamo import OptimizedModule
-
-        if not isinstance(model, OptimizedModule):
-            raise ValueError(
-                f"`model` is required to be a `OptimizedModule`. Found a `{type(model).__name__}` instead."
-            )
-
-        orig_module = model._orig_mod
-
-        if not isinstance(orig_module, cls):
-            raise ValueError(
-                f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
-            )
-
-        orig_module._compiler_ctx = {
-            "compiler": "dynamo",
-            "dynamo_ctx": model.dynamo_ctx,
-            "original_forward": orig_module.forward,
-            "original_training_step": orig_module.training_step,
-            "original_validation_step": orig_module.validation_step,
-            "original_test_step": orig_module.test_step,
-            "original_predict_step": orig_module.predict_step,
-        }
-
-        orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
-        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
-        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
-        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
-        return orig_module
-
-    @classmethod
-    def to_uncompiled(cls, model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
-        """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
-
-        This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
-        returned by ``LightningModule.from_compiled``.
-
-        Note: this method will in-place modify the ``LightningModule`` that is passed in.
-        """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            raise ModuleNotFoundError(f"`{cls.__name__}.to_uncompiled` requires torch>=2.0")
-
-        from torch._dynamo import OptimizedModule
-
-        if isinstance(model, OptimizedModule):
-            model = model._orig_mod
-
-        elif isinstance(model, cls):
-            if model._compiler_ctx is None:
-                raise ValueError(
-                    "`model` is required to be a compiled LightningModule. "
-                    "Found a non-compiled LightningModule instead."
-                )
-
-        else:
-            raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
-
-        model.forward = model._compiler_ctx["original_forward"]
-        model.training_step = model._compiler_ctx["original_training_step"]
-        model.validation_step = model._compiler_ctx["original_validation_step"]
-        model.test_step = model._compiler_ctx["original_test_step"]
-        model.predict_step = model._compiler_ctx["original_predict_step"]
-        model._compiler_ctx = None
-
-        return model
 
 
 @contextmanager

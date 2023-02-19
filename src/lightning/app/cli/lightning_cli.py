@@ -38,6 +38,7 @@ from lightning.app.cli.commands.cp import cp
 from lightning.app.cli.commands.logs import logs
 from lightning.app.cli.commands.ls import ls
 from lightning.app.cli.commands.pwd import pwd
+from lightning.app.cli.commands.rm import rm
 from lightning.app.cli.connect.app import (
     _list_app_commands,
     _retrieve_connection_to_an_app,
@@ -45,6 +46,7 @@ from lightning.app.cli.connect.app import (
     disconnect_app,
 )
 from lightning.app.cli.connect.data import connect_data
+from lightning.app.cli.connect.maverick import connect_maverick, disconnect_maverick
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -136,11 +138,14 @@ def disconnect() -> None:
 
 connect.command("app")(connect_app)
 disconnect.command("app")(disconnect_app)
-connect.command("data")(connect_data)
-_main.command()(ls)
-_main.command()(cd)
-_main.command()(cp)
-_main.command()(pwd)
+connect.command("maverick", hidden=True)(connect_maverick)
+disconnect.command("maverick", hidden=True)(disconnect_maverick)
+connect.command("data", hidden=True)(connect_data)
+_main.command(hidden=True)(ls)
+_main.command(hidden=True)(cd)
+_main.command(hidden=True)(cp)
+_main.command(hidden=True)(pwd)
+_main.command(hidden=True)(rm)
 show.command()(logs)
 
 

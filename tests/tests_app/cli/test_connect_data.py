@@ -2,13 +2,14 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from lightning_cloud.openapi import ProjectIdDataConnectionsBody, V1ListMembershipsResponse, V1Membership
 
 from lightning.app.cli.connect import data
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+@pytest.mark.skipif(sys.platform == "win32", reason="lightning connect data isn't supported on windows")
 def test_connect_data_no_project(monkeypatch):
+
+    from lightning_cloud.openapi import V1ListMembershipsResponse, V1Membership
 
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(memberships=[])
@@ -26,8 +27,10 @@ def test_connect_data_no_project(monkeypatch):
     _get_project.assert_called()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
+@pytest.mark.skipif(sys.platform == "win32", reason="lightning connect data isn't supported on windows")
 def test_connect_data(monkeypatch):
+
+    from lightning_cloud.openapi import Create, V1AwsDataConnection, V1ListMembershipsResponse, V1Membership
 
     client = MagicMock()
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -51,10 +54,8 @@ def test_connect_data(monkeypatch):
 
     client.data_connection_service_create_data_connection.assert_called_with(
         project_id="project-id-0",
-        body=ProjectIdDataConnectionsBody(
-            destination="",
-            region="us-east-1",
+        body=Create(
             name="imagenet",
-            source="s3://imagenet",
+            aws=V1AwsDataConnection(destination="", region="us-east-1", source="s3://imagenet", secret_arn_name=""),
         ),
     )

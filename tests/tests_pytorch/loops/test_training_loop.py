@@ -38,9 +38,8 @@ def test_outputs_format(tmpdir):
             assert "foo" in output
             assert output["foo"] == 123
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, outputs, *_):
             HookedModel._check_output(outputs)
-            super().on_train_batch_end(outputs, batch, batch_idx)
 
     model = HookedModel()
 
@@ -136,9 +135,8 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = _FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
-    fit_loop.trainer = trainer
+    fit_loop = _FitLoop(trainer, max_epochs=1)
 
     trainer.should_stop = False
     trainer.num_training_batches = 5
@@ -223,4 +221,4 @@ def test_should_stop_early_stopping_conditions_met(
         assert trainer.fit_loop.done is fit_loop_done
 
     assert (message in caplog.text) is raise_debug_msg
-    assert trainer.fit_loop._should_stop_early is early_stop
+    assert trainer.fit_loop._can_stop_early is early_stop

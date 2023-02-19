@@ -11,20 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import cast, Literal, Optional, Union
+from typing import cast, Literal, Optional
 
 from typing_extensions import get_args
 
+from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
 
 if _HPU_AVAILABLE:
     from habana_frameworks.torch.hpex import hmp
 
-_PRECISION_INPUT_INT = Literal[32, 16]
-_PRECISION_INPUT_STR = Literal["32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+_PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
 
 
 class HPUPrecisionPlugin(PrecisionPlugin):
@@ -48,14 +46,14 @@ class HPUPrecisionPlugin(PrecisionPlugin):
     ) -> None:
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("HPU precision plugin requires HPU devices.")
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(accelerator='hpu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
-        if self.precision in ("16", "bf16"):
+        self.precision = cast(_PRECISION_INPUT, str(precision))
+        if self.precision in ("16-mixed", "bf16-mixed"):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
             )

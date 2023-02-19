@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
 from lightning.fabric.plugins.environments import (
@@ -37,7 +38,6 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.plugins import DoublePrecisionPlugin, LayerSync, PrecisionPlugin, TorchSyncBatchNorm
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.strategies import (
-    DataParallelStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -60,6 +60,12 @@ def test_accelerator_choice_cpu(tmpdir):
 def test_accelerator_invalid_choice():
     with pytest.raises(ValueError, match="You selected an invalid accelerator name: `accelerator='invalid'`"):
         Trainer(accelerator="invalid")
+
+
+@pytest.mark.parametrize("invalid_strategy", ["cocofruit", object()])
+def test_invalid_strategy_choice(invalid_strategy):
+    with pytest.raises(ValueError, match="You selected an invalid strategy name:"):
+        AcceleratorConnector(strategy=invalid_strategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
@@ -240,16 +246,6 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
-        # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
-        Trainer(strategy="dp")
-
-
-def test_interactive_compatible_dp_strategy_gpu(mps_count_0, cuda_count_2, monkeypatch):
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
-    trainer = Trainer(strategy="dp", accelerator="gpu")
-    assert trainer.strategy.launcher is None
-
 
 @RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
@@ -345,19 +341,6 @@ def test_set_devices_if_none_cpu():
     assert trainer.num_devices == 3
 
 
-def test_unsupported_strategy_types_on_cpu_and_fallback():
-    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator="cpu", strategy="dp", devices=2)
-    assert isinstance(trainer.strategy, DDPStrategy)
-
-
-def test_exception_invalid_strategy():
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_cpu'\)` is not a valid"):
-        Trainer(strategy="ddp_cpu")
-    with pytest.raises(MisconfigurationException, match=r"strategy='tpu_spawn'\)` is not a valid"):
-        Trainer(strategy="tpu_spawn")
-
-
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     (
@@ -367,7 +350,6 @@ def test_exception_invalid_strategy():
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_find_unused_parameters_true", DDPStrategy),
-        ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
@@ -407,11 +389,10 @@ def test_strategy_choice_cpu_instance(strategy_class):
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2):
+def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2, mps_count_0):
     trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
@@ -432,7 +413,7 @@ def test_device_type_when_strategy_instance_gpu_passed(strategy_class, cuda_coun
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
 
-    with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
+    with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
 
@@ -615,14 +596,16 @@ def test_check_fsdp_strategy_and_fallback():
 
 
 def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
-        Trainer(accelerator="tpu", precision=64)
-
-    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
+    with pytest.raises(
+        MisconfigurationException, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"
     ):
-        Trainer(accelerator="tpu", precision=16, strategy="ddp")
+        Trainer(accelerator="tpu", precision="64-true")
+
+    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or XLAStrategy
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
+        UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"
+    ):
+        Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
 
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
@@ -632,15 +615,15 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
     monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
-        Trainer(accelerator="ipu", precision="bf16")
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64'\)` is not supported"):
-        Trainer(accelerator="ipu", precision=64)
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16-mixed'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="bf16-mixed")
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64-true'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="64-true")
 
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
 @mock.patch("lightning.pytorch.accelerators.ipu._IPU_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.utilities.imports._HPU_AVAILABLE", return_value=False)
+@mock.patch("lightning.pytorch.accelerators.hpu._HPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(cuda_count_0, *_):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
@@ -854,3 +837,18 @@ def test_connector_defaults_match_trainer_defaults():
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
         assert connector_default == trainer_defaults[name]
+
+
+@RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
+@pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
+@pytest.mark.skip
+def test_colossalai_external_strategy(monkeypatch):
+    with mock.patch(
+        "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False
+    ), pytest.raises(ModuleNotFoundError):
+        Trainer(strategy="colossalai")
+
+    from lightning_colossalai import ColossalAIStrategy
+
+    trainer = Trainer(strategy="colossalai", precision="16-mixed")
+    assert isinstance(trainer.strategy, ColossalAIStrategy)

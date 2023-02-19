@@ -23,7 +23,7 @@ plugin and other optional plugins such as the :ref:`ClusterEnvironment <extensio
 We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
 
 
-----------
+----
 
 *****************************
 Selecting a Built-in Strategy
@@ -69,12 +69,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - Name
      - Class
      - Description
-   * - bagua
-     - :class:`~pytorch_lightning.strategies.BaguaStrategy`
-     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu_intermediate:Bagua>`
-   * - colossalai
-     - :class:`~pytorch_lightning.strategies.ColossalAIStrategy`
-     - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
    * - fsdp
      - :class:`~pytorch_lightning.strategies.FSDPStrategy`
      - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
@@ -84,9 +78,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - ddp
      - :class:`~pytorch_lightning.strategies.DDPStrategy`
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
-   * - dp
-     - :class:`~pytorch_lightning.strategies.DataParallelStrategy`
-     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data. :ref:`Learn more. <accelerators/gpu_intermediate:Data Parallel>`
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
@@ -99,14 +90,36 @@ The below table lists all relevant strategies available in Lightning with their 
    * - ipu_strategy
      - :class:`~pytorch_lightning.strategies.IPUStrategy`
      - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
-   * - tpu_spawn
-     - :class:`~pytorch_lightning.strategies.TPUSpawnStrategy`
+   * - xla
+     - :class:`~pytorch_lightning.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`
    * - single_tpu
      - :class:`~pytorch_lightning.strategies.SingleTPUStrategy`
      - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
 
 ----
+
+
+**********************
+Third-party Strategies
+**********************
+
+There are powerful third-party strategies that integrate well with Lightning but aren't maintained as part of the ``lightning`` package.
+
+.. list-table:: List of third-party strategy implementations
+   :widths: 20 20 20
+   :header-rows: 1
+
+   * - Name
+     - Package
+     - Description
+   * - colossalai
+     - `Lightning-AI/lightning-colossalai <https://github.com/Lightning-AI/lightning-colossalai>`_
+     - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
+
+
+----
+
 
 ************************
 Create a Custom Strategy

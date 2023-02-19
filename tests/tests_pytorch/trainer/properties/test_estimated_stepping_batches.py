@@ -22,10 +22,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.strategies.ipu import IPUStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -40,15 +38,6 @@ def test_num_stepping_batches_basic():
     assert trainer.estimated_stepping_batches == 64 * max_epochs
 
 
-def test_num_stepping_batches_with_diff_multiple_grad_accum_factor():
-    """Test that an error is raised if `Trainer` is configured with different gradient accumulation factors at
-    different epochs."""
-    grad_scheduler = GradientAccumulationScheduler(scheduling={7: 2})
-    trainer = Trainer(callbacks=[grad_scheduler])
-    with pytest.raises(MisconfigurationException, match="cannot be computed with different"):
-        assert trainer.estimated_stepping_batches
-
-
 def test_num_stepping_batches_raises_info_with_no_dataloaders_loaded(caplog):
     """Test that an info message is generated when dataloaders are loaded explicitly if they are not already
     configured."""
@@ -57,11 +46,14 @@ def test_num_stepping_batches_raises_info_with_no_dataloaders_loaded(caplog):
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
 
-    message = "to estimate number of stepping batches"
-    trainer.reset_train_dataloader()
+    # artificially setup the data
+    trainer.training = True
+    trainer.fit_loop.setup_data()
+
     with caplog.at_level(logging.INFO):
         assert trainer.estimated_stepping_batches == 64
 
+    message = "to estimate number of stepping batches"
     assert message not in caplog.text
 
     trainer = Trainer(max_epochs=1)
@@ -122,7 +114,6 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
         ({"strategy": "ddp", "num_nodes": 2}, 5),
         ({"strategy": "ddp", "num_nodes": 3}, 4),
         ({"strategy": "ddp", "num_nodes": 4}, 3),
-        ({"strategy": "dp"}, 64),
     ],
 )
 def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
@@ -154,7 +145,7 @@ def test_num_stepping_batches_with_tpu_single():
 
 @RunIf(tpu=True)
 @mock.patch(
-    "lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device",
+    "lightning.pytorch.strategies.xla.XLAStrategy.root_device",
     new_callable=PropertyMock,
     return_value=torch.device("xla:0"),
 )

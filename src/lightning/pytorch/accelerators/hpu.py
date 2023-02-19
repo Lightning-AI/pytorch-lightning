@@ -15,12 +15,20 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.imports import package_available
 
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+
+_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
+if _HABANA_FRAMEWORK_AVAILABLE:
+    from habana_frameworks.torch.utils.library_loader import is_habana_available
+
+    _HPU_AVAILABLE = is_habana_available()
+else:
+    _HPU_AVAILABLE = False
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.hpu as torch_hpu

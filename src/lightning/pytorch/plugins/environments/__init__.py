@@ -21,4 +21,3 @@ from lightning.fabric.plugins.environments import (  # noqa: F401
     TorchElasticEnvironment,
     XLAEnvironment,
 )
-from lightning.pytorch.plugins.environments.bagua_environment import BaguaEnvironment  # noqa: F401

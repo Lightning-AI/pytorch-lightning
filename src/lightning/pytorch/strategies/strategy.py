@@ -14,13 +14,12 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
@@ -405,7 +404,7 @@ class Strategy(ABC):
     def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         return output
 
-    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
+    def process_dataloader(self, dataloader: Iterable) -> Iterable:
         """Wraps the dataloader if necessary.
 
         Args:
@@ -481,7 +480,7 @@ class Strategy(ABC):
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
         if self.lightning_module is not None:
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            log.debug(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
         assert self.accelerator is not None

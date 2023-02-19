@@ -1,8 +1,8 @@
 from command import CustomCommand, CustomConfig
 
 from lightning import LightningFlow
-from lightning_app.api import Get, Post
-from lightning_app.core.app import LightningApp
+from lightning.app.api import Get, Post
+from lightning.app.core.app import LightningApp
 
 
 async def handler():

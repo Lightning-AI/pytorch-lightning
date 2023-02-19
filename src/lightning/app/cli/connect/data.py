@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ast
 import sys
 
 import click
+import lightning_cloud
 import rich
-from lightning_cloud.openapi import ProjectIdDataConnectionsBody
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
@@ -30,18 +31,32 @@ logger = Logger(__name__)
 
 
 @click.argument("name", required=True)
-@click.argument("region", required=True)
-@click.argument("source", required=True)
-@click.argument("destination", required=False)
-@click.argument("project_name", required=False)
+@click.option("--region", help="The AWS region of your bucket. Example: `us-west-1`.", required=True)
+@click.option(
+    "--source", help="The URL path to your AWS S3 folder. Example: `s3://pl-flash-data/images/`.", required=True
+)
+@click.option(
+    "--secret_arn_name",
+    help="The name of role stored as a secret on Lightning AI to access your data. "
+    "Learn more with https://gist.github.com/tchaton/12ad4b788012e83c0eb35e6223ae09fc. "
+    "Example: `my_role`.",
+    required=False,
+)
+@click.option(
+    "--destination", help="Where your data should appear in the cloud. Currently not supported.", required=False
+)
+@click.option("--project_name", help="The project name on which to create the data connection.", required=False)
 def connect_data(
     name: str,
     region: str,
     source: str,
+    secret_arn_name: str = "",
     destination: str = "",
     project_name: str = "",
 ) -> None:
     """Create a new data connection."""
+
+    from lightning_cloud.openapi import Create, V1AwsDataConnection
 
     if sys.platform == "win32":
         _error_and_exit("Data connection isn't supported on windows. Open an issue on Github.")
@@ -50,7 +65,7 @@ def connect_data(
 
         live.stop()
 
-        client = LightningClient()
+        client = LightningClient(retry=False)
         projects = client.projects_service_list_memberships()
 
         project_id = None
@@ -70,12 +85,15 @@ def connect_data(
             )
 
         try:
-            _ = client.data_connection_service_create_data_connection(
-                body=ProjectIdDataConnectionsBody(
+            client.data_connection_service_create_data_connection(
+                body=Create(
                     name=name,
-                    region=region,
-                    source=source,
-                    destination=destination,
+                    aws=V1AwsDataConnection(
+                        region=region,
+                        source=source,
+                        destination=destination,
+                        secret_arn_name=secret_arn_name,
+                    ),
                 ),
                 project_id=project_id,
             )
@@ -85,8 +103,8 @@ def connect_data(
             #     project_id=project_id,
             #     id=response.id,
             # )
-            # print(response)
-        except Exception:
-            _error_and_exit("The data connection creation failed.")
+        except lightning_cloud.openapi.rest.ApiException as e:
+            message = ast.literal_eval(e.body.decode("utf-8"))["message"]
+            _error_and_exit(f"The data connection creation failed. Message: {message}")
 
     rich.print(f"[green]Succeeded[/green]: You have created a new data connection {name}.")

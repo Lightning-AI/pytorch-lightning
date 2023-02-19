@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -39,10 +39,12 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     trainer = Trainer(**trainer_kwargs)
 
     with patch.object(
-        trainer.fit_loop.epoch_loop.val_loop, "advance", wraps=trainer.fit_loop.epoch_loop.val_loop.advance
-    ) as advance_mocked:
+        trainer.fit_loop.epoch_loop.val_loop,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
+    ) as step_mock:
         trainer.fit(model, ckpt_path=ckpt_path)
-        assert advance_mocked.call_count == 1
+    assert step_mock.call_count == 1
 
 
 @pytest.mark.parametrize(
@@ -75,4 +77,29 @@ def test_should_stop_early_stopping_conditions_not_met(
         assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
 
     assert (message in caplog.text) is raise_info_msg
-    assert trainer.fit_loop._should_stop_early is early_stop
+    assert trainer.fit_loop._can_stop_early is early_stop
+
+
+@pytest.mark.parametrize("min_epochs,min_steps,val_count", [(3, None, 3), (None, 3, 2)])
+def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, tmp_path):
+    """Regression test for issue #15708.
+
+    Test that the request for `should_stop=True` only triggers validation when Trainer is allowed to stop
+    (min_epochs/steps is satisfied).
+    """
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        num_sanity_val_steps=0,
+        limit_val_batches=2,
+        limit_train_batches=2,
+        max_epochs=3,
+        min_epochs=min_epochs,
+        min_steps=min_steps,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.should_stop = True  # Request to stop before min_epochs/min_steps are reached
+    trainer.fit_loop.epoch_loop.val_loop.run = Mock()
+    trainer.fit(model)
+    assert trainer.fit_loop.epoch_loop.val_loop.run.call_count == val_count
