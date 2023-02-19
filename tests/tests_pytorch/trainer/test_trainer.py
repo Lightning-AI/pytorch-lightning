@@ -27,7 +27,6 @@ import cloudpickle
 import pytest
 import torch
 import torch.nn as nn
-from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -52,6 +51,7 @@ from lightning.pytorch.demos.boring_classes import (
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
@@ -1876,9 +1876,7 @@ def test_detect_anomaly_nan(tmpdir):
     [
         ({"strategy": None}, SingleDeviceStrategy, CPUAccelerator, 1),
         pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
-        pytest.param(
-            {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)
-        ),
+        pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         (
             {"strategy": None, "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
