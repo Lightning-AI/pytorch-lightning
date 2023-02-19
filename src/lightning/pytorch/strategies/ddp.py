@@ -362,25 +362,8 @@ class DDPStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_find_unused_parameters_false",
-            cls,
-            description="DDP Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
-            "ddp_find_unused_parameters_true",
-            cls,
-            description="DDP Strategy with `find_unused_parameters` as True",
-            find_unused_parameters=True,
-        )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-
         entries = (
+            ("ddp", "popen"),
             ("ddp_spawn", "spawn"),
             ("ddp_fork", "fork"),
             ("ddp_notebook", "fork"),
@@ -394,6 +377,8 @@ class DDPStrategy(ParallelStrategy):
             )
 
         entries = (
+            ("ddp_find_unused_parameters_false", False, "popen"),
+            ("ddp_find_unused_parameters_true", True, "popen"),
             ("ddp_spawn_find_unused_parameters_false", False, "spawn"),
             ("ddp_spawn_find_unused_parameters_true", True, "spawn"),
             ("ddp_fork_find_unused_parameters_false", False, "fork"),
