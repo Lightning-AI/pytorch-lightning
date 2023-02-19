@@ -130,9 +130,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         assert trainer.accumulate_grad_batches == 2
         assert trainer.num_training_batches == 5
 
-        if not (
-            isinstance(trainer.strategy, DDPStrategy) and isinstance(trainer.strategy.launche, _MultiProcessingLauncher)
-        ):
+        if not isinstance(trainer.strategy.launcher, _MultiProcessingLauncher):
             # check backward call count. the batchnorm update epoch should not backward
             assert trainer.strategy.backward.call_count == (
                 (trainer.max_epochs - self.first_epoch) * trainer.limit_train_batches
