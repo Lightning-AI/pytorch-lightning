@@ -37,12 +37,7 @@ from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.plugins import DoublePrecisionPlugin, LayerSync, PrecisionPlugin, TorchSyncBatchNorm
 from lightning.pytorch.plugins.io import TorchCheckpointIO
-from lightning.pytorch.strategies import (
-    DDPStrategy,
-    DeepSpeedStrategy,
-    FSDPStrategy,
-    SingleDeviceStrategy,
-)
+from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
 from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
