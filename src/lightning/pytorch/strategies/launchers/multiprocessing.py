@@ -207,7 +207,7 @@ class _MultiProcessingLauncher(_Launcher):
             if _is_deferred(self._strategy.lightning_module):
                 raise NotImplementedError(
                     f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                    f" initialization."
+                    f" initialization when `start_method='spawn'`."
                 )
 
     def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
