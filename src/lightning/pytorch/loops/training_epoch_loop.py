@@ -41,13 +41,13 @@ class _TrainingEpochLoop(loops._Loop):
     them in one of these hooks, and running validation at the requested interval.
 
     The validation is carried out by yet another loop,
-    :class:`~lightning.pytorch.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
+    :class:`~lightning.pytorch.loops._EvaluationLoop`.
 
     In the ``run()`` method, the training epoch loop could in theory simply call the
     ``LightningModule.training_step`` already and perform the optimization.
     However, Lightning has built-in support for automatic optimization with multiple optimizers.
     For this reason there are actually two more loops nested under
-    :class:`~lightning.pytorch.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
+    :class:`~lightning.pytorch.loops._TrainingEpochLoop`.
 
     Args:
         min_steps: The minimum number of steps (batches) to process

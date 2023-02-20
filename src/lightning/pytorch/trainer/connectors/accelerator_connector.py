@@ -450,12 +450,9 @@ class AcceleratorConnector:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
-        if len(self._parallel_devices) > 1:
-            if _IS_INTERACTIVE:
-                return "ddp_fork"
-            return "ddp_spawn"
-
-        return DDPStrategy.strategy_name
+        if len(self._parallel_devices) > 1 and _IS_INTERACTIVE:
+            return "ddp_fork"
+        return "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
         """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
@@ -464,18 +461,6 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag in (
-            "ddp_spawn",
-            "ddp_spawn_find_unused_parameters_false",
-            "ddp_spawn_find_unused_parameters_true",
-        ) and (
-            TorchElasticEnvironment.detect()
-            or KubeflowEnvironment.detect()
-            or SLURMEnvironment.detect()
-            or LSFEnvironment.detect()
-            or MPIEnvironment.detect()
-        ):
-            strategy_flag = "ddp"
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):

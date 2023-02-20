@@ -437,7 +437,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
             assert strategy.training_opts.replication_factor == 2
             assert strategy.inference_opts.replication_factor == 1
 
-            val_dataloader = trainer.val_dataloaders[0]
+            val_dataloader = trainer.val_dataloaders
             train_dataloader = trainer.train_dataloader
             assert isinstance(val_dataloader, poptorch.DataLoader)
             assert isinstance(train_dataloader, poptorch.DataLoader)

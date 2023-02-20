@@ -155,7 +155,6 @@ def test_manual_optimization_tpus(tmpdir):
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
-    model.training_step_end = None
 
     trainer = Trainer(
         max_epochs=1,
@@ -238,7 +237,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
 
-def test_tpu_invalid_raises(tpu_available):
+def test_tpu_invalid_raises(tpu_available, mps_count_0):
     strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
@@ -248,7 +247,7 @@ def test_tpu_invalid_raises(tpu_available):
         Trainer(strategy=strategy, devices=8)
 
 
-def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
+def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
     accelerator = TPUAccelerator()
     strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):

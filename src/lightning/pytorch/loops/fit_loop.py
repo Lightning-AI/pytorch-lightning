@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Iterable, Optional
-
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch.utils.data import DataLoader
+from typing import Optional
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn
 from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.epoch import _TrainingEpochLoop
 from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import Progress
+from lightning.pytorch.loops.training_epoch_loop import _TrainingEpochLoop
 from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
@@ -102,26 +99,10 @@ class _FitLoop(_Loop):
         """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
-    @min_steps.setter
-    def min_steps(self, value: Optional[int]) -> None:
-        """Sets the minimum number of steps (forwards to epoch_loop)"""
-        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
-        self.epoch_loop.min_steps = value
-
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run."""
         return self.epoch_loop.max_steps
-
-    @max_steps.setter
-    def max_steps(self, value: int) -> None:
-        """Sets the maximum number of steps (forwards to epoch_loop)"""
-        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
-        if value < -1:
-            raise MisconfigurationException(
-                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
-            )
-        self.epoch_loop.max_steps = value
 
     @_Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
@@ -208,7 +189,7 @@ class _FitLoop(_Loop):
         self._restarting = False
         self.on_run_end()
 
-    def setup_data(self) -> None:
+    def setup_data(self, shuffle: bool = True) -> None:
         trainer = self.trainer
 
         if self._combined_loader is not None and not trainer._data_connector._should_reload_train_dl:
@@ -222,35 +203,28 @@ class _FitLoop(_Loop):
         log.debug(f"{self.__class__.__name__}: resetting train dataloader")
 
         train_dataloader = trainer._data_connector._request_dataloader()
+        if not isinstance(train_dataloader, CombinedLoader):
+            combined_loader = CombinedLoader(train_dataloader, "max_size_cycle")
+        else:
+            combined_loader = train_dataloader
 
         if trainer.overfit_batches > 0:
-            train_dataloader = trainer._data_connector._resolve_overfit_batches(
-                train_dataloader, mode=RunningStage.TRAINING
-            )
+            trainer._data_connector._resolve_overfit_batches(combined_loader, mode=RunningStage.TRAINING)
 
-        # automatically add samplers
-        train_dataloader = apply_to_collection(
-            train_dataloader,
-            (DataLoader, CombinedLoader),
-            trainer._data_connector._prepare_dataloader,
-            mode=RunningStage.TRAINING,
-        )
-        train_dataloader = (
-            train_dataloader.iterables if isinstance(train_dataloader, CombinedLoader) else train_dataloader
-        )
+        dataloaders = []
+        for i, dl in enumerate(combined_loader.flattened):
+            # automatically add samplers
+            dl = trainer._data_connector._prepare_dataloader(dl, shuffle=shuffle, mode=RunningStage.TRAINING)
+            # let the strategy inject its logic
+            dl = trainer.strategy.process_dataloader(dl)
+            # check the workers
+            trainer._data_connector._worker_check(dl, "train_dataloader")
+            # add worker_init_fn for correct seeding in worker processes
+            _auto_add_worker_init_fn(dl, trainer.global_rank)
+            dataloaders.append(dl)
 
-        apply_to_collection(train_dataloader, Iterable, trainer.strategy.process_dataloader)
-
-        # check the workers recursively
-        apply_to_collection(train_dataloader, DataLoader, trainer._data_connector._worker_check, "train_dataloader")
-
-        # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(train_dataloader, DataLoader, _auto_add_worker_init_fn, rank=trainer.global_rank)
-
-        if not isinstance(train_dataloader, CombinedLoader):
-            self._combined_loader = CombinedLoader(train_dataloader, trainer._data_connector.multiple_trainloader_mode)
-        else:
-            self._combined_loader = train_dataloader
+        combined_loader.flattened = dataloaders
+        self._combined_loader = combined_loader
 
         module = pl_module or trainer.datamodule
         orig_train_batches = trainer.num_training_batches = (
@@ -356,7 +330,7 @@ class _FitLoop(_Loop):
 
         # update the epoch value for all samplers
         assert self._combined_loader is not None
-        for i, dl in enumerate(self._combined_loader._flattened):
+        for i, dl in enumerate(self._combined_loader.flattened):
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
         self.epoch_progress.increment_ready()
