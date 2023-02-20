@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-import os
 from typing import Sequence
-from unittest import mock
 
 import pytest
 import torch
@@ -223,6 +221,15 @@ def test_sequential_mode_limits_raises():
         _Sequential([0, 1], [])
 
 
+def test_combined_loader_flattened_setter():
+    combined_loader = CombinedLoader([0, [1, [2]]])
+    with pytest.raises(ValueError, match=r"Mismatch in flattened length \(1\) and existing length \(3\)"):
+        combined_loader.flattened = [2]
+    combined_loader.flattened = [3, 2, 1]
+    # TODO(carmocca): this should be [3, [2, [1]]]
+    assert combined_loader.iterables == [3, [2, 1]]
+
+
 @pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
 def test_combined_loader_sequence_with_map_and_iterable(lengths):
     class MyIterableDataset(IterableDataset):
@@ -254,9 +261,8 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
     assert seen == max(x, y)
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, replace_sampler_ddp):
+def test_combined_data_loader_validation_test(replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
@@ -276,7 +282,7 @@ def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, replace
             self.name = name
 
     dataset = CustomDataset(range(10))
-    dataloader = CombinedLoader(
+    combined_loader = CombinedLoader(
         {
             "a": DataLoader(CustomDataset(range(10))),
             "b": DataLoader(dataset, sampler=CustomSampler(dataset, "custom_sampler")),
@@ -284,18 +290,22 @@ def test_combined_data_loader_validation_test(mps_count_0, cuda_count_2, replace
             "d": [DataLoader(CustomDataset(range(10))), DataLoader(CustomDataset(range(10)))],
         }
     )
+    model = BoringModel()
+    trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="cpu", devices=2)
+    trainer.strategy.connect(model)
+    trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
+    trainer.state.fn = "fit"
+    trainer.state.stage = "train"
+    trainer.fit_loop.setup_data()
 
-    trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
-    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
-
-    samplers_flattened = tree_flatten(dataloader.sampler)[0]
+    samplers_flattened = tree_flatten(combined_loader.sampler)[0]
     assert len(samplers_flattened) == 6
     if replace_sampler_ddp:
         assert all(isinstance(s, DistributedSampler) for s in samplers_flattened)
     else:
         assert all(isinstance(s, (SequentialSampler, CustomSampler)) for s in samplers_flattened)
 
-    datasets_flattened = [dl.dataset for dl in dataloader._flattened]
+    datasets_flattened = [dl.dataset for dl in dataloader.flattened]
     assert len(datasets_flattened) == 6
     assert all(isinstance(ds, CustomDataset) for ds in datasets_flattened)
 
@@ -306,15 +316,21 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
     trainer = Trainer(strategy="ddp", accelerator=accelerator, devices=2, replace_sampler_ddp=replace_sampler_ddp)
+    model = BoringModel()
 
-    dataloader = CombinedLoader(
+    combined_loader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
     )
-    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
-    assert len(dataloader) == 4 if replace_sampler_ddp else 8
+    trainer.strategy.connect(model)
+    trainer.state.fn = "fit"
+    trainer.state.stage = "train"
+    trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
+    trainer.fit_loop.setup_data()
+
+    assert len(combined_loader) == 4 if replace_sampler_ddp else 8
 
     for a_length in [6, 8, 10]:
-        dataloader = CombinedLoader(
+        combined_loader = CombinedLoader(
             {
                 "a": DataLoader(range(a_length), batch_size=1),
                 "b": DataLoader(range(8), batch_size=1),
@@ -323,11 +339,14 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
         )
 
         length = max(a_length, 8)
-        assert len(dataloader) == length
-        dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
-        assert len(dataloader) == length // 2 if replace_sampler_ddp else length
+        assert len(combined_loader) == length
+
+        trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
+        trainer.fit_loop.setup_data(shuffle=False)
+
+        assert len(combined_loader) == length // 2 if replace_sampler_ddp else length
         if replace_sampler_ddp:
-            last_batch = list(dataloader)[-1]
+            last_batch = list(combined_loader)[-1]
             if a_length == 6:
                 assert last_batch == {"a": torch.tensor([0]), "b": torch.tensor([6])}
             elif a_length == 8:
@@ -340,7 +359,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
             while True:
                 yield 1
 
-    dataloader = CombinedLoader(
+    combined_loader = CombinedLoader(
         {
             "a": DataLoader(InfiniteDataset(), batch_size=1),
             "b": DataLoader(range(8), batch_size=1),
@@ -348,18 +367,20 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
         mode="max_size_cycle",
     )
     with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
-        len(dataloader)
-    assert len(dataloader.iterables["b"]) == 8
-    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
-    assert len(dataloader.iterables["b"]) == 4 if replace_sampler_ddp else 8
+        len(combined_loader)
+    assert len(combined_loader.iterables["b"]) == 8
+
+    trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
+    trainer.fit_loop.setup_data()
+
+    assert len(combined_loader.iterables["b"]) == 4 if replace_sampler_ddp else 8
     with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
-        len(dataloader)
+        len(combined_loader)
 
 
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 @pytest.mark.parametrize("mode", ("min_size", "max_size_cycle", "sequential"))
-@pytest.mark.parametrize("use_combined_loader", [False, True])
-def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, use_combined_loader):
+def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, mps_count_0):
     """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
     samplers."""
     dim = 3
@@ -369,7 +390,7 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, us
         "a": DataLoader(RandomDataset(dim, n1), batch_size=1),
         "b": DataLoader(RandomDataset(dim, n2), batch_size=1),
     }
-    if use_combined_loader:
+    if mode != "max_size_cycle":
         dataloader = CombinedLoader(dataloader, mode=mode)
     model = BoringModel()
     trainer = Trainer(
@@ -377,12 +398,9 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, us
         accelerator="auto",
         devices="auto",
         replace_sampler_ddp=replace_sampler_ddp,
-        multiple_trainloader_mode=mode,
     )
     trainer.strategy.connect(model)
-    trainer._data_connector.attach_data(
-        model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
-    )
+    trainer._data_connector.attach_data(model=model, train_dataloaders=dataloader)
     fn = _supported_modes[mode]["fn"]
     expected_length_before_ddp = fn([n1, n2])
     expected_length_after_ddp = (

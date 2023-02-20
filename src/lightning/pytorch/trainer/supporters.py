@@ -207,12 +207,27 @@ class CombinedLoader(Iterable):
     @property
     def sampler(self) -> Any:
         """Return a collections of samplers extracted from iterables."""
-        return _map_and_unflatten(lambda x: getattr(x, "sampler", None), self._flattened, self._spec)
+        return _map_and_unflatten(lambda x: getattr(x, "sampler", None), self.flattened, self._spec)
 
     @property
     def batch_sampler(self) -> Any:
         """Return a collections of batch samplers extracted from iterables."""
-        return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self._flattened, self._spec)
+        return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self.flattened, self._spec)
+
+    @property
+    def flattened(self) -> List[Any]:
+        """Return the flat list of iterables."""
+        return self._flattened
+
+    @flattened.setter
+    def flattened(self, flattened: List[Any]) -> None:
+        if len(flattened) != len(self._flattened):
+            raise ValueError(
+                f"Mismatch in flattened length ({len(flattened)}) and existing length ({len(self._flattened)})"
+            )
+        # update the iterable collection
+        self._iterables = tree_unflatten(flattened, self._spec)
+        self._flattened = flattened
 
     def __next__(self) -> Any:
         assert self._iterator is not None
@@ -223,7 +238,7 @@ class CombinedLoader(Iterable):
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
         cls = _supported_modes[self._mode]["iterator"]
-        iterator = cls(self._flattened)
+        iterator = cls(self.flattened)
         iter(iterator)
         self._iterator = iterator
         return self
@@ -231,7 +246,7 @@ class CombinedLoader(Iterable):
     def __len__(self) -> int:
         """Compute the number of batches."""
         lengths = []
-        for dl in self._flattened:
+        for dl in self.flattened:
             length = sized_len(dl)
             if length is None:
                 raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
@@ -243,18 +258,12 @@ class CombinedLoader(Iterable):
         if self._iterator is not None:
             self._iterator.reset()
             self._iterator = None
-        for iterable in self._flattened:
+        for iterable in self.flattened:
             _shutdown_workers_and_reset_iterator(iterable)
-
-    def _update_index(self, dataloader: Iterable, index: int) -> None:
-        # mutation needs to be done using this method to avoid stale references
-        # TODO(carmocca): avoid this, inefficient
-        self._flattened[index] = dataloader
-        self._iterables = tree_unflatten(self._flattened, self._spec)
 
     def _dataset_length(self) -> int:
         """Compute the total length of the datasets according to the `mode`."""
-        datasets = [getattr(dl, "dataset", None) for dl in self._flattened]
+        datasets = [getattr(dl, "dataset", None) for dl in self.flattened]
         lengths = [length for ds in datasets if (length := sized_len(ds)) is not None]
         if not lengths:
             raise NotImplementedError("All datasets are iterable-style datasets.")

@@ -152,11 +152,11 @@ def test_fit_loop_done_log_messages(caplog):
     epoch_loop = Mock()
     epoch_loop.global_step = 10
     fit_loop.epoch_loop = epoch_loop
-    fit_loop.max_steps = 10
+    epoch_loop.max_steps = 10
     assert fit_loop.done
     assert "max_steps=10` reached" in caplog.text
     caplog.clear()
-    fit_loop.max_steps = 20
+    epoch_loop.max_steps = 20
 
     fit_loop.epoch_progress.current.processed = 3
     fit_loop.max_epochs = 3

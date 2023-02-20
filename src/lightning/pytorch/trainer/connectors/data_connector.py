@@ -17,7 +17,6 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
-from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -29,7 +28,7 @@ from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES, CombinedLoader
+from lightning.pytorch.trainer.supporters import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader, has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -41,9 +40,8 @@ warning_cache = WarningCache()
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: _LITERAL_SUPPORTED_MODES = "max_size_cycle"):
+    def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
-        self.multiple_trainloader_mode = multiple_trainloader_mode
         self._datahook_selector: Optional[_DataHookSelector] = None
 
     @property
@@ -239,20 +237,12 @@ class DataConnector:
             and not isinstance(self.trainer.accelerator, IPUAccelerator)
         )
 
-    # TODO: shuffle here is kept for BC. Remove it once data_loading.py is removed (#11248)
-    def _prepare_dataloader(
-        self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
-    ) -> Any:
+    def _prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: RunningStage) -> Any:
         """This function handles the following functionalities:
 
         - Injecting a `DistributedDataSamplerWrapper` into the `DataLoader` if on a distributed environment
         - Wrapping the dataloader based on strategy-specific logic
         """
-        if isinstance(dataloader, CombinedLoader):
-            for i, dl in enumerate(dataloader._flattened):
-                dataloader._update_index(self._prepare_dataloader(dl, shuffle=shuffle, mode=mode), i)
-            return dataloader
-
         # don't do anything if it's not a dataloader
         if not isinstance(dataloader, DataLoader):
             return dataloader
@@ -263,11 +253,6 @@ class DataConnector:
             # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
             or isinstance(self.trainer.accelerator, IPUAccelerator)
         ):
-            if shuffle is None:
-                # for training, set to True always
-                # for evaluation, decide based on existing sampler
-                shuffle = True if mode == RunningStage.TRAINING else _is_dataloader_shuffled(dataloader)
-
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
 
@@ -323,7 +308,7 @@ class DataConnector:
 
     def _reset_eval_dataloader(
         self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
-    ) -> Tuple[List[Union[float, int]], List[DataLoader]]:
+    ) -> Tuple[List[Union[float, int]], CombinedLoader]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -333,83 +318,80 @@ class DataConnector:
         Returns:
             Tuple (num_batches, dataloaders)
         """
-        # always get the loaders first so we can count how many there are
         dataloaders = self._request_dataloader()
+        if not isinstance(dataloaders, CombinedLoader):
+            combined_loader = CombinedLoader(dataloaders, "sequential")
+        else:
+            combined_loader = dataloaders
 
-        if self.trainer.overfit_batches > 0:
-            dataloaders = self._resolve_overfit_batches(dataloaders, mode)
+        trainer = self.trainer
 
-        # TODO(carmocca): list conversion shouldn't be forced
-        if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]  # type: ignore[assignment]
-
-        if any(dl is None for dl in dataloaders):
-            rank_zero_warn("One of given dataloaders is None and it will be skipped.")
-
-        for loader in dataloaders:
-            apply_to_collection(
-                loader.iterables if isinstance(loader, CombinedLoader) else loader,
-                DataLoader,
-                self._check_eval_shuffling,
-                mode=mode,
-            )
-
-        # add samplers
-        dataloaders = [self._prepare_dataloader(dl, mode=mode) for dl in dataloaders if dl is not None]
-
-        # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(
-            dataloaders, dtype=DataLoader, function=_auto_add_worker_init_fn, rank=self.trainer.global_rank
-        )
+        if trainer.overfit_batches > 0:
+            self._resolve_overfit_batches(combined_loader, mode)
 
         loader_num_batches: List[Union[int, float]] = []
+        module = model or trainer.lightning_module or self.datamodule
 
-        # determine number of batches
-        module = model or self.trainer.lightning_module or self.datamodule
-        if len(dataloaders) != 0:
-            for i, dataloader in enumerate(dataloaders):
-                orig_num_batches = num_batches = (
-                    len(dataloader) if has_len_all_ranks(dataloader, self.trainer.strategy, module) else float("inf")
+        dataloaders = []
+        for i, dl in enumerate(combined_loader.flattened):
+            is_shuffled = _is_dataloader_shuffled(dl)
+            # limit this warning only for samplers assigned automatically when shuffle is set
+            if is_shuffled:
+                rank_zero_warn(
+                    f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"
+                    " it is strongly recommended that you turn shuffling off for val/test/predict dataloaders.",
+                    category=PossibleUserWarning,
+                )
+            # automatically add samplers
+            dl = self._prepare_dataloader(dl, shuffle=is_shuffled, mode=mode)
+            # let the strategy inject its logic
+            dl = trainer.strategy.process_dataloader(dl)
+            # check the workers
+            self._worker_check(dl, f"{mode.dataloader_prefix}_dataloader {i}")
+            # add worker_init_fn for correct seeding in worker processes
+            _auto_add_worker_init_fn(dl, trainer.global_rank)
+
+            dataloaders.append(dl)
+
+            # determine number of batches
+            orig_num_batches = num_batches = (
+                len(dl) if has_len_all_ranks(dl, trainer.strategy, module) else float("inf")
+            )
+            if orig_num_batches == 0:
+                loader_num_batches.append(int(orig_num_batches))
+                continue
+
+            # percent or num_steps
+            limit_eval_batches = getattr(trainer, f"limit_{mode.dataloader_prefix}_batches")
+            # limit num batches either as a percent or num steps
+            if isinstance(limit_eval_batches, int):
+                num_batches = min(orig_num_batches, limit_eval_batches)
+            elif isinstance(limit_eval_batches, float) and orig_num_batches != float("inf"):
+                num_batches = int(orig_num_batches * limit_eval_batches)
+            elif limit_eval_batches != 1.0:
+                raise MisconfigurationException(
+                    f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
+                    f" `1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
                 )
 
-                if orig_num_batches == 0:
-                    assert isinstance(orig_num_batches, int)
-                    loader_num_batches.append(orig_num_batches)
-                    continue
+            if (
+                num_batches == 0
+                and limit_eval_batches > 0.0
+                and isinstance(limit_eval_batches, float)
+                and orig_num_batches != float("inf")
+            ):
+                min_percentage = 1.0 / orig_num_batches
+                raise MisconfigurationException(
+                    f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
+                    f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
+                    f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"
+                    f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
+                )
 
-                self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
+            loader_num_batches.append(num_batches)
+        combined_loader.flattened = dataloaders
 
-                # percent or num_steps
-                limit_eval_batches = getattr(self.trainer, f"limit_{mode.dataloader_prefix}_batches")
-
-                # limit num batches either as a percent or num steps
-                if isinstance(limit_eval_batches, int):
-                    num_batches = min(orig_num_batches, limit_eval_batches)
-                elif isinstance(limit_eval_batches, float) and orig_num_batches != float("inf"):
-                    num_batches = int(orig_num_batches * limit_eval_batches)
-                elif limit_eval_batches != 1.0:
-                    raise MisconfigurationException(
-                        f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
-                        f" `1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
-                    )
-
-                if (
-                    num_batches == 0
-                    and limit_eval_batches > 0.0
-                    and isinstance(limit_eval_batches, float)
-                    and orig_num_batches != float("inf")
-                ):
-                    min_percentage = 1.0 / orig_num_batches
-                    raise MisconfigurationException(
-                        f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
-                        f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
-                        f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"
-                        f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
-                    )
-
-                loader_num_batches.append(num_batches)
-
-        return loader_num_batches, dataloaders
+        return loader_num_batches, combined_loader
 
     def _request_dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
@@ -433,45 +415,19 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(
-        dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS], mode: RunningStage
-    ) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
-        all_have_sequential_sampler = True
-
-        def resolve_has_no_sequential_sampler(dataloader: DataLoader) -> None:
-            nonlocal all_have_sequential_sampler
-            all_have_sequential_sampler = all_have_sequential_sampler & isinstance(
-                dataloader.sampler, SequentialSampler
-            )
-
-        apply_to_collection(dataloaders, DataLoader, resolve_has_no_sequential_sampler)
-
-        if not all_have_sequential_sampler:
-            rank_zero_warn(
-                f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
-                f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
-            )
-
-            def replace_sampler(dataloader: DataLoader) -> DataLoader:
-                return _update_dataloader(
-                    dataloader,
-                    sampler=SequentialSampler(dataloader.dataset),  # type: ignore[arg-type]
-                    mode=mode,
-                )
-
-            dataloaders = apply_to_collection(dataloaders, DataLoader, replace_sampler)
-
-        return dataloaders
-
-    @staticmethod
-    def _check_eval_shuffling(dataloader: DataLoader, mode: RunningStage) -> None:
-        # limit this warning only for samplers assigned automatically when shuffle is set
-        if _is_dataloader_shuffled(dataloader):
-            rank_zero_warn(
-                f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"
-                " it is strongly recommended that you turn shuffling off for val/test/predict dataloaders.",
-                category=PossibleUserWarning,
-            )
+    def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
+        all_have_sequential_sampler = all(isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened)
+        if all_have_sequential_sampler:
+            return
+        rank_zero_warn(
+            f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
+            f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
+        )
+        updated = [
+            _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode)  # type: ignore[arg-type]
+            for dl in combined_loader.flattened
+        ]
+        combined_loader.flattened = updated
 
 
 @dataclass
@@ -485,7 +441,7 @@ class _DataLoaderSource:
     3. a direct instance of a :class:`~torch.utils.data.DataLoader` or supported collections thereof.
 
     Arguments:
-        instance: A LightningModule, LightningDataModule, or (a collection of) dataloader(s).
+        instance: A LightningModule, LightningDataModule, or (a collection of) iterable(s).
         name: A name for this dataloader source. If the instance is a module, the name corresponds to the hook
             that returns the desired dataloader(s).
     """

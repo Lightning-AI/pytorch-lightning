@@ -318,7 +318,7 @@ def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, 
     assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
 
     assert trainer.train_dataloader.batch_size == new_batch_size
-    assert trainer.val_dataloaders[0].batch_size == init_batch_size
+    assert trainer.val_dataloaders.batch_size == init_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
@@ -367,11 +367,11 @@ def test_batch_size_finder_callback(tmpdir, trainer_fn):
         assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
     else:
         if trainer_fn == "validate":
-            dl = trainer.val_dataloaders[0]
+            dl = trainer.val_dataloaders
         elif trainer_fn == "test":
-            dl = trainer.test_dataloaders[0]
+            dl = trainer.test_dataloaders
         elif trainer_fn == "predict":
-            dl = trainer.predict_dataloaders[0]
+            dl = trainer.predict_dataloaders
 
         expected_steps = dl.dataset.len // after_batch_size
         assert trainer.global_step == 0

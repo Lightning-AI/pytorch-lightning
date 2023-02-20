@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 
 from lightning.pytorch import Trainer
@@ -54,7 +56,8 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
 
 @RunIf(skip_windows=True)
-def test_xla_debug_strategy_registry(xla_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_xla_debug_strategy_registry(_, tpu_available, xla_available):
     strategy = "xla_debug"
 
     assert strategy in StrategyRegistry
