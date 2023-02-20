@@ -171,10 +171,6 @@ def test_combined_loader_raises():
     with pytest.raises(ValueError, match="Unsupported mode 'testtt'"):
         CombinedLoader([range(10)], "testtt")
 
-    combined_loader = CombinedLoader(None, "max_size_cycle")
-    with pytest.raises(NotImplementedError, match="NoneType` does not define `__len__"):
-        len(combined_loader)
-
 
 class TestIterableDataset(IterableDataset):
     def __init__(self, size: int = 10):
@@ -399,6 +395,7 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, us
         replace_sampler_ddp=replace_sampler_ddp,
         multiple_trainloader_mode=mode,
     )
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(
         model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
     )
@@ -409,8 +406,9 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, us
         if replace_sampler_ddp
         else expected_length_before_ddp
     )
-    trainer.reset_train_dataloader(model=model)
+    trainer.state.stage = "train"
+    trainer.fit_loop.setup_data()
     assert trainer.train_dataloader is not None
-    assert isinstance(trainer.train_dataloader, CombinedLoader)
-    assert trainer.train_dataloader._mode == mode
+    assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)
+    assert trainer.fit_loop._combined_loader._mode == mode
     assert trainer.num_training_batches == expected_length_after_ddp

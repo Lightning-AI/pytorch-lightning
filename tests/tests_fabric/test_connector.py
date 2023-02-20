@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.test.warning import no_warning_call
 from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
@@ -438,6 +439,38 @@ def test_validate_precision_type(precision):
         _Connector(precision=precision)
 
 
+@pytest.mark.parametrize(
+    "precision,expected_precision,should_warn",
+    [
+        (16, "16-mixed", True),
+        ("16", "16-mixed", True),
+        ("16-mixed", "16-mixed", False),
+        ("bf16", "bf16-mixed", True),
+        ("bf16-mixed", "bf16-mixed", False),
+        (32, "32-true", False),
+        ("32", "32-true", False),
+        ("32-true", "32-true", False),
+        (64, "64-true", False),
+        ("64", "64-true", False),
+        ("64-true", "64-true", False),
+    ],
+)
+# mock cuda as available to not be limited by dtype and accelerator compatibility - this is tested elsewhere
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_precision_conversion(patch1, patch2, precision, expected_precision, should_warn):
+    warn_context = pytest.warns if should_warn else no_warning_call
+    with warn_context(
+        UserWarning,
+        match=(
+            f"{precision} is supported for historical reasons but its usage is discouraged. "
+            f"Please set your precision to {expected_precision} instead!"
+        ),
+    ):
+        connector = _Connector(precision=precision, accelerator="cuda")
+    assert connector._precision_input == expected_precision
+
+
 def test_multi_device_default_strategy():
     """The default strategy when multiple devices are selected is "ddp" with the subprocess launcher."""
     connector = _Connector(strategy=None, accelerator="cpu", devices=2)
@@ -612,14 +645,14 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_unsupported_tpu_choice(_, tpu_available):
-    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
-        _Connector(accelerator="tpu", precision=64)
+    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
+        _Connector(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision='16-mixed'\)` but AMP with fp16 is not supported"
     ):
-        _Connector(accelerator="tpu", precision=16, strategy="ddp")
+        _Connector(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
     # wrong precision plugin type
     strategy = XLAStrategy(accelerator=TPUAccelerator(), precision=Precision())
@@ -740,8 +773,11 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
 
 
 def test_precision_selection_16_on_cpu_warns():
-    with pytest.warns(UserWarning, match=r"precision=16\)` but AMP is not supported on CPU. Using `precision='bf16"):
-        _Connector(precision=16)
+    with pytest.warns(
+        UserWarning,
+        match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
+    ):
+        _Connector(precision="16-mixed")
 
 
 class MyAMP(MixedPrecision):
@@ -757,9 +793,9 @@ class MyAMP(MixedPrecision):
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
     if is_custom_plugin:
-        plugin = plugin_cls(16, "cpu")
+        plugin = plugin_cls("16-mixed", "cpu")
     connector = _Connector(
-        precision=16,
+        precision="16-mixed",
         devices=devices,
         strategy=strategy,
         plugins=plugin,
@@ -774,7 +810,7 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
+@pytest.mark.parametrize("precision", ["64-true", "32-true", "16-mixed", "bf16-mixed"])
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
@@ -836,9 +872,9 @@ def test_arguments_from_environment_collision():
         with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
             _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16"}):
-        with pytest.raises(ValueError, match="`Fabric\\(precision=64, ...\\)` but .* `--precision=16`"):
-            _Connector(precision=64)
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}):
+        with pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"):
+            _Connector(precision="64-true")
 
 
 @RunIf(min_torch="1.12")
