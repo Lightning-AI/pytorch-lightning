@@ -145,9 +145,7 @@ def test_train_loop_only(tmpdir):
     model = ClassificationModel()
 
     model.validation_step = None
-    model.validation_step_end = None
     model.test_step = None
-    model.test_step_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
@@ -165,7 +163,6 @@ def test_train_val_loop_only(tmpdir):
     model = ClassificationModel()
 
     model.validation_step = None
-    model.validation_step_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
@@ -257,9 +254,7 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model = BoringModel()
 
     model.validation_step = None
-    model.validation_step_end = None
     model.test_step = None
-    model.test_step_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
     trainer.fit(model, dm)

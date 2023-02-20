@@ -395,15 +395,6 @@ class Strategy(ABC):
             assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
     def process_dataloader(self, dataloader: Iterable) -> Iterable:
         """Wraps the dataloader if necessary.
 
