@@ -24,7 +24,8 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from lightning.app.actions.action import Action
+from lightning.app.core import constants
+from lightning.app.plugin.actions import Action
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.component import _set_flow_context
 from lightning.app.utilities.enum import AppStage
@@ -55,7 +56,7 @@ class LightningPlugin:
             env_vars: Additional env vars to set when running the app.
 
         Returns:
-            The URL of the created job.
+            The relative URL of the created job.
         """
         from lightning.app.runners.cloud import CloudRuntime
 
@@ -79,12 +80,14 @@ class LightningPlugin:
         # Used to indicate Lightning has been dispatched
         os.environ["LIGHTNING_DISPATCHED"] = "1"
 
-        return runtime.cloudspace_dispatch(
+        url = runtime.cloudspace_dispatch(
             project_id=self.project_id,
             cloudspace_id=self.cloudspace_id,
             name=name,
             cluster_id=self.cluster_id,
         )
+        # Return a relative URL so it can be used with the NavigateTo action.
+        return url.replace(constants.get_lightning_cloud_url(), "")
 
     def _setup(
         self,
@@ -119,6 +122,9 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             source_code_url = urlparse(run.source_code_url).geturl()
 
             response = requests.get(source_code_url)
+
+            # TODO: Backoff retry a few times in case the URL is flaky
+            response.raise_for_status()
 
             with open(download_path, "wb") as f:
                 f.write(response.content)
