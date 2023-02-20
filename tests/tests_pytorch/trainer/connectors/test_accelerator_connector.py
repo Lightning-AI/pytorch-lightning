@@ -29,8 +29,10 @@ from lightning.fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -43,6 +45,8 @@ from lightning.pytorch.strategies import (
     DeepSpeedStrategy,
     FSDPStrategy,
     SingleDeviceStrategy,
+    SingleTPUStrategy,
+    XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
@@ -55,6 +59,24 @@ def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
+
+
+@RunIf(tpu=True, standalone=True)
+@pytest.mark.parametrize(
+    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_accelerator_choice_tpu(accelerator, devices):
+    connector = AcceleratorConnector(accelerator=accelerator, devices=devices)
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    if devices is None or (isinstance(devices, int) and devices > 1):
+        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
+        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
+        assert isinstance(connector.strategy, XLAStrategy)
+        assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
+    else:
+        assert isinstance(connector.strategy, SingleTPUStrategy)
 
 
 def test_accelerator_invalid_choice():
@@ -248,7 +270,8 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_interactive_compatible_strategy_tpu(_, tpu_available, monkeypatch):
     monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible

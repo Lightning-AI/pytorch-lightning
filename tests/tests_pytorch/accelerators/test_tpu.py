@@ -89,7 +89,8 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
-def test_accelerator_tpu(accelerator, devices, tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_accelerator_tpu(_, accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
@@ -177,7 +178,8 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_tpu_str_xla_debug(tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
     trainer = Trainer(strategy="xla_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, XLAStrategy)
 
@@ -261,7 +263,8 @@ def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_xla_checkpoint_plugin_being_default(tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_xla_checkpoint_plugin_being_default(_, tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
