@@ -323,7 +323,7 @@ that uses dependency injection for an optimizer and a learning scheduler is:
 
         def configure_optimizers(self):
             optimizer = self.optimizer(self.parameters())
-            scheduler = self.scheduler(self.parameters())
+            scheduler = self.scheduler(optimizer)
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
 

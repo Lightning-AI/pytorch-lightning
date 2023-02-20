@@ -34,7 +34,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -42,6 +42,7 @@ from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.core.saving import ModelIO
 from lightning.pytorch.loggers import Logger
+from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -90,10 +91,6 @@ class LightningModule(
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-
-        # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
-        # torch/nn/modules/module.py#L227)
-        torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
@@ -278,16 +275,17 @@ class LightningModule(
         return []  # type: ignore[return-value]
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
-        if self._trainer:
-            datahook_selector = self._trainer._data_connector._datahook_selector
+        trainer = self._trainer
+        if trainer:
+            datahook_selector = trainer._data_connector._datahook_selector
             assert datahook_selector is not None
             obj = datahook_selector.get_instance(hook_name)
             if isinstance(obj, self.__class__):
-                trainer_method = self._trainer._call_lightning_module_hook
+                trainer_method = call._call_lightning_module_hook
             else:
-                trainer_method = self._trainer._call_lightning_datamodule_hook
+                trainer_method = call._call_lightning_datamodule_hook
 
-            return trainer_method(hook_name, *args)
+            return trainer_method(trainer, hook_name, *args)
         else:
             hook = getattr(self, hook_name)
             return hook(*args)
@@ -593,22 +591,6 @@ class LightningModule(
         value = value.squeeze()
         return value
 
-    def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
-        """Override this method to change the default behaviour of ``log_grad_norm``.
-
-        If clipping gradients, the gradients will not have been clipped yet.
-
-        Args:
-            grad_norm_dict: Dictionary containing current grad norm metrics
-
-        Example::
-
-            # DEFAULT
-            def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
@@ -699,67 +681,6 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
-
-        Note:
-            If you later switch to ddp or some other mode, this will still be called
-            so that you don't have to change your code
-
-        .. code-block:: python
-
-            # pseudocode
-            sub_batches = split_batches_for_dp(batch)
-            step_output = [training_step(sub_batch) for sub_batch in sub_batches]
-            training_step_end(step_output)
-
-        Args:
-            step_output: What you return in `training_step` for each batch part.
-
-        Return:
-            Anything
-
-        When using the DP strategy, only a portion of the batch is inside the training_step:
-
-        .. code-block:: python
-
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self(x)
-
-                # softmax uses only a portion of the batch in the denominator
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                return loss
-
-        If you wish to do something with all the parts of the batch, then use this method to do it:
-
-        .. code-block:: python
-
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self.encoder(x)
-                return {"pred": out}
-
-
-            def training_step_end(self, training_step_output):
-                gpu_0_pred = training_step_output[0]["pred"]
-                gpu_1_pred = training_step_output[1]["pred"]
-                gpu_n_pred = training_step_output[n]["pred"]
-
-                # this softmax now uses the full batch
-                loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
-                return loss
-
-        See Also:
-            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
-        """
-
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the validation set.
@@ -774,15 +695,6 @@ class LightningModule(
         Return:
             - Any object or value
             - ``None`` - Validation will skip to the next batch
-
-        .. code-block:: python
-
-            # pseudocode of order
-            for val_batch in val_data:
-                out = validation_step(val_batch)
-                if defined("validation_step_end"):
-                    out = validation_step_end(out)
-
 
         .. code-block:: python
 
@@ -835,59 +747,6 @@ class LightningModule(
             When the :meth:`validation_step` is called, the model has been put in eval mode
             and PyTorch gradients have been disabled. At the end of validation,
             the model goes back to training mode and gradients are enabled.
-        """
-
-    def validation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
-
-        Note:
-            If you later switch to ddp or some other mode, this will still be called
-            so that you don't have to change your code.
-
-        .. code-block:: python
-
-            # pseudocode
-            sub_batches = split_batches_for_dp(batch)
-            step_output = [validation_step(sub_batch) for sub_batch in sub_batches]
-            validation_step_end(step_output)
-
-        Args:
-            step_output: What you return in :meth:`validation_step` for each batch part.
-
-        Return:
-            None or anything
-
-        .. code-block:: python
-
-            # WITHOUT validation_step_end
-            # if used in DP, this batch is 1/num_gpus large
-            def validation_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self.encoder(x)
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                self.log("val_loss", loss)
-
-
-            # --------------
-            # with validation_step_end to do softmax over the full batch
-            def validation_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self(x)
-                return out
-
-
-            def validation_step_end(self, val_step_outputs):
-                for out in val_step_outputs:
-                    ...
-
-        See Also:
-            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -959,60 +818,6 @@ class LightningModule(
             When the :meth:`test_step` is called, the model has been put in eval mode and
             PyTorch gradients have been disabled. At the end of the test epoch, the model goes back
             to training mode and gradients are enabled.
-        """
-
-    def test_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
-        this is still optional and only needed for things like softmax or NCE loss.
-
-        Note:
-            If you later switch to ddp or some other mode, this will still be called
-            so that you don't have to change your code.
-
-        .. code-block:: python
-
-            # pseudocode
-            sub_batches = split_batches_for_dp(batch)
-            step_output = [test_step(sub_batch) for sub_batch in sub_batches]
-            test_step_end(step_output)
-
-        Args:
-            step_output: What you return in :meth:`test_step` for each batch part.
-
-        Return:
-            None or anything
-
-        .. code-block:: python
-
-            # WITHOUT test_step_end
-            # if used in DP, this batch is 1/num_gpus large
-            def test_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self(x)
-                loss = self.softmax(out)
-                self.log("test_loss", loss)
-
-
-            # --------------
-            # with test_step_end to do softmax over the full batch
-            def test_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self.encoder(x)
-                return out
-
-
-            def test_step_end(self, output_results):
-                # this out is now the full size of the batch
-                all_test_step_outs = output_results.out
-                loss = nce_loss(all_test_step_outs)
-                self.log("test_loss", loss)
-
-        See Also:
-            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
@@ -1639,86 +1444,6 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
-
-    @classmethod
-    def from_compiled(cls, model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
-        """Returns an instance LightningModule from the output of ``torch.compile``.
-
-        The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
-        passed in as an argument, but doesn't inherit from it. This means that the output of ``torch.compile`` behaves
-        like a LightningModule but it doesn't inherit from it (i.e. `isinstance` will fail).
-
-        Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
-        """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            raise ModuleNotFoundError(f"`{cls.__name__}.from_compiled` requires torch>=2.0")
-
-        from torch._dynamo import OptimizedModule
-
-        if not isinstance(model, OptimizedModule):
-            raise ValueError(
-                f"`model` is required to be a `OptimizedModule`. Found a `{type(model).__name__}` instead."
-            )
-
-        orig_module = model._orig_mod
-
-        if not isinstance(orig_module, cls):
-            raise ValueError(
-                f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
-            )
-
-        orig_module._compiler_ctx = {
-            "compiler": "dynamo",
-            "dynamo_ctx": model.dynamo_ctx,
-            "original_forward": orig_module.forward,
-            "original_training_step": orig_module.training_step,
-            "original_validation_step": orig_module.validation_step,
-            "original_test_step": orig_module.test_step,
-            "original_predict_step": orig_module.predict_step,
-        }
-
-        orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
-        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
-        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
-        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
-        return orig_module
-
-    @classmethod
-    def to_uncompiled(cls, model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
-        """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
-
-        This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
-        returned by ``LightningModule.from_compiled``.
-
-        Note: this method will in-place modify the ``LightningModule`` that is passed in.
-        """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            raise ModuleNotFoundError(f"`{cls.__name__}.to_uncompiled` requires torch>=2.0")
-
-        from torch._dynamo import OptimizedModule
-
-        if isinstance(model, OptimizedModule):
-            model = model._orig_mod
-
-        elif isinstance(model, cls):
-            if model._compiler_ctx is None:
-                raise ValueError(
-                    "`model` is required to be a compiled LightningModule. "
-                    "Found a non-compiled LightningModule instead."
-                )
-
-        else:
-            raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
-
-        model.forward = model._compiler_ctx["original_forward"]
-        model.training_step = model._compiler_ctx["original_training_step"]
-        model.validation_step = model._compiler_ctx["original_validation_step"]
-        model.test_step = model._compiler_ctx["original_test_step"]
-        model.predict_step = model._compiler_ctx["original_predict_step"]
-        model._compiler_ctx = None
-
-        return model
 
 
 @contextmanager
