@@ -94,7 +94,7 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
         max_epochs=1,
         accelerator="gpu",
         devices=devices,
-        strategy=strategy,
+        strategy=("ddp_spawn" if strategy is None and devices > 1 else strategy),
         precision=precision,
     )
 
