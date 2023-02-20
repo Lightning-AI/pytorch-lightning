@@ -56,7 +56,7 @@ if _CLICK_AVAILABLE:
     @click.option(
         "--accelerator",
         type=click.Choice(_SUPPORTED_ACCELERATORS),
-        default="cpu",
+        default=None,
         help="The hardware accelerator to run on.",
     )
     @click.option(
@@ -133,7 +133,8 @@ def _set_env_variables(args: Namespace) -> None:
     The Fabric connector will parse the arguments set here.
     """
     os.environ["LT_CLI_USED"] = "1"
-    os.environ["LT_ACCELERATOR"] = str(args.accelerator)
+    if args.accelerator is not None:
+        os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
     os.environ["LT_DEVICES"] = str(args.devices)
