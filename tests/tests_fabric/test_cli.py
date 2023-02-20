@@ -36,11 +36,11 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
         _run_model.main([fake_script])
     assert e.value.code == 0
     assert os.environ["LT_CLI_USED"] == "1"
-    assert os.environ["LT_ACCELERATOR"] == "cpu"
+    assert "LT_ACCELERATOR" not in os.environ
     assert "LT_STRATEGY" not in os.environ
     assert os.environ["LT_DEVICES"] == "1"
     assert os.environ["LT_NUM_NODES"] == "1"
-    assert os.environ["LT_PRECISION"] == "32"
+    assert "LT_PRECISION" not in os.environ
 
 
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])

@@ -45,7 +45,7 @@ if _CLICK_AVAILABLE:
     @click.option(
         "--accelerator",
         type=click.Choice(_SUPPORTED_ACCELERATORS),
-        default="cpu",
+        default=None,
         help="The hardware accelerator to run on.",
     )
     @click.option(
@@ -97,7 +97,7 @@ if _CLICK_AVAILABLE:
     @click.option(
         "--precision",
         type=click.Choice(_SUPPORTED_PRECISION),
-        default="32",
+        default=None,
         help=(
             "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
             " (``'bf16'``)"
@@ -122,12 +122,14 @@ def _set_env_variables(args: Namespace) -> None:
     The Fabric connector will parse the arguments set here.
     """
     os.environ["LT_CLI_USED"] = "1"
-    os.environ["LT_ACCELERATOR"] = str(args.accelerator)
+    if args.accelerator is not None:
+        os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
     os.environ["LT_DEVICES"] = str(args.devices)
     os.environ["LT_NUM_NODES"] = str(args.num_nodes)
-    os.environ["LT_PRECISION"] = str(args.precision)
+    if args.precision is not None:
+        os.environ["LT_PRECISION"] = str(args.precision)
 
 
 def _get_num_processes(accelerator: str, devices: str) -> int:

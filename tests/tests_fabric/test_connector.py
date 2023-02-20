@@ -799,11 +799,14 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", ["64", "32", "16", pytest.param("bf16", marks=RunIf(min_torch="1.10"))])
+@pytest.mark.parametrize("precision", [None, "64", "32", "16", pytest.param("bf16", marks=RunIf(min_torch="1.10"))])
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
-    with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
+    env_vars = {}
+    if precision is not None:
+        env_vars["LT_PRECISION"] = precision
+    with mock.patch.dict(os.environ, env_vars):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
     assert isinstance(connector.precision, Precision)
 
@@ -811,6 +814,7 @@ def test_precision_from_environment(_, precision):
 @pytest.mark.parametrize(
     "accelerator, strategy, expected_accelerator, expected_strategy",
     [
+        (None, None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", "ddp", CPUAccelerator, DDPStrategy),
         pytest.param("mps", None, MPSAccelerator, SingleDeviceStrategy, marks=RunIf(mps=True)),
@@ -822,7 +826,9 @@ def test_precision_from_environment(_, precision):
 )
 def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
     """Test that the accelerator and strategy input can be set through the environment variables."""
-    env_vars = {"LT_ACCELERATOR": accelerator}
+    env_vars = {}
+    if accelerator is not None:
+        env_vars["LT_ACCELERATOR"] = accelerator
     if strategy is not None:
         env_vars["LT_STRATEGY"] = strategy
 
