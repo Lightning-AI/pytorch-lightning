@@ -27,7 +27,7 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.supporters import (
+from lightning.pytorch.utilities.combined_loader import (
     _CombinedDataset,
     _MaxSizeCycle,
     _MinSize,
