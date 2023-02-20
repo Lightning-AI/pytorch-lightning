@@ -254,6 +254,7 @@ class StochasticWeightAveraging(Callback):
             trainer.fit_loop.max_batches += 1
             trainer.fit_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
+            assert isinstance(trainer.fit_loop.max_batches, int), "Iterable-style datasets are not supported"
             trainer.accumulate_grad_batches = trainer.fit_loop.max_batches
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", *args: Any) -> None:
