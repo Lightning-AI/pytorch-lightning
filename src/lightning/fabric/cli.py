@@ -108,7 +108,7 @@ if _CLICK_AVAILABLE:
     @click.option(
         "--precision",
         type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
-        default="32-true",
+        default=None,
         help=(
             "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``64``), "
             "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
@@ -139,7 +139,8 @@ def _set_env_variables(args: Namespace) -> None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
     os.environ["LT_DEVICES"] = str(args.devices)
     os.environ["LT_NUM_NODES"] = str(args.num_nodes)
-    os.environ["LT_PRECISION"] = str(args.precision)
+    if args.precision is not None:
+        os.environ["LT_PRECISION"] = str(args.precision)
 
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
