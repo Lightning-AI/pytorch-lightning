@@ -29,11 +29,6 @@ from lightning.app.cli.commands import cp
 from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 
-@pytest.fixture(autouse=True)
-def mock_rich_live(monkeypatch):
-    monkeypatch.setattr("rich.live.Live", MagicMock())
-
-
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_local_to_remote(tmpdir, monkeypatch):
     error_and_exit = MagicMock()

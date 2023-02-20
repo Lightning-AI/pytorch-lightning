@@ -202,8 +202,8 @@ def _zip_files(live: Live, remote_src: str, local_dst: str) -> None:
     cluster = _cluster_from_lit_resource(lit_resource)
     url = _storage_host(cluster) + endpoint
 
-    progress = _get_progress_bar(transient=True)
     live.stop()
+    progress = _get_progress_bar(transient=True)
     progress.start()
     task_id = progress.add_task("download zip", total=None)
 
