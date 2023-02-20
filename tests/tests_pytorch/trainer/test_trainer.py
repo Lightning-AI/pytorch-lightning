@@ -1893,7 +1893,7 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": None, "accelerator": "cuda", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", CUDAAccelerator, 2),
+        ({"strategy": None, "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (
@@ -1990,8 +1990,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
     # validate it would've worked if a limit was set
     setattr(trainer, argument, 1)
     fn()
-    expected = DataLoader if running_stage == "train" else list
-    assert isinstance(getattr(trainer, dataloader_attribute), expected)
+    assert isinstance(getattr(trainer, dataloader_attribute), DataLoader)
 
 
 @pytest.mark.parametrize(

@@ -29,7 +29,7 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
     + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
-    - device = "cuda" if torch.cuda.is_available() else "cpu
+    - device = "cuda" if torch.cuda.is_available() else "cpu"
       model = PyTorchModel(...)
       optimizer = torch.optim.SGD(model.parameters())
     + model, optimizer = fabric.setup(model, optimizer)
