@@ -397,9 +397,9 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision=16), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(dict(accelerator="gpu", devices=1, precision="16-mixed"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
+            dict(accelerator="gpu", devices=1, precision="16-mixed", strategy="deepspeed"),
             marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
@@ -449,7 +449,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         "loops": ANY,
     }
     using_deepspeed = kwargs.get("strategy") == "deepspeed"
-    if kwargs.get("precision") == 16 and not using_deepspeed:
+    if kwargs.get("precision") == "16-mixed" and not using_deepspeed:
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [

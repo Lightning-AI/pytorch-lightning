@@ -29,8 +29,10 @@ from lightning.fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -43,6 +45,8 @@ from lightning.pytorch.strategies import (
     DeepSpeedStrategy,
     FSDPStrategy,
     SingleDeviceStrategy,
+    SingleTPUStrategy,
+    XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
@@ -55,6 +59,24 @@ def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
+
+
+@RunIf(tpu=True, standalone=True)
+@pytest.mark.parametrize(
+    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_accelerator_choice_tpu(accelerator, devices):
+    connector = AcceleratorConnector(accelerator=accelerator, devices=devices)
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    if devices is None or (isinstance(devices, int) and devices > 1):
+        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
+        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
+        assert isinstance(connector.strategy, XLAStrategy)
+        assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
+    else:
+        assert isinstance(connector.strategy, SingleTPUStrategy)
 
 
 def test_accelerator_invalid_choice():
@@ -248,7 +270,8 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_interactive_compatible_strategy_tpu(_, tpu_available, monkeypatch):
     monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
@@ -413,7 +436,7 @@ def test_device_type_when_strategy_instance_gpu_passed(strategy_class, cuda_coun
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
 
-    with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
+    with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
 
@@ -596,14 +619,16 @@ def test_check_fsdp_strategy_and_fallback():
 
 
 def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
-        Trainer(accelerator="tpu", precision=64)
+    with pytest.raises(
+        MisconfigurationException, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"
+    ):
+        Trainer(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"
     ):
-        Trainer(accelerator="tpu", precision=16, strategy="ddp")
+        Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
 
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
@@ -613,10 +638,10 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
     monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
-        Trainer(accelerator="ipu", precision="bf16")
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64'\)` is not supported"):
-        Trainer(accelerator="ipu", precision=64)
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16-mixed'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="bf16-mixed")
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64-true'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="64-true")
 
 
 @mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
@@ -847,5 +872,5 @@ def test_colossalai_external_strategy(monkeypatch):
 
     from lightning_colossalai import ColossalAIStrategy
 
-    trainer = Trainer(strategy="colossalai", precision=16)
+    trainer = Trainer(strategy="colossalai", precision="16-mixed")
     assert isinstance(trainer.strategy, ColossalAIStrategy)
