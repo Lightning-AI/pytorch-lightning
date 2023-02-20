@@ -78,11 +78,14 @@ class LightningModuleVisitor(LightningVisitor):
         "print",
         "save_hyperparameters",
         "test_step",
+        "test_step_end",
         "to_onnx",
         "to_torchscript",
         "training_step",
+        "training_step_end",
         "unfreeze",
         "validation_step",
+        "validation_step_end",
     }
 
     hooks: Set[str] = {
