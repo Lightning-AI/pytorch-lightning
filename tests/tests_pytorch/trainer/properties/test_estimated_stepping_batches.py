@@ -46,11 +46,14 @@ def test_num_stepping_batches_raises_info_with_no_dataloaders_loaded(caplog):
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
 
-    message = "to estimate number of stepping batches"
-    trainer.reset_train_dataloader()
+    # artificially setup the data
+    trainer.training = True
+    trainer.fit_loop.setup_data()
+
     with caplog.at_level(logging.INFO):
         assert trainer.estimated_stepping_batches == 64
 
+    message = "to estimate number of stepping batches"
     assert message not in caplog.text
 
     trainer = Trainer(max_epochs=1)
@@ -142,7 +145,7 @@ def test_num_stepping_batches_with_tpu_single():
 
 @RunIf(tpu=True)
 @mock.patch(
-    "lightning.pytorch.strategies.tpu_spawn.TPUSpawnStrategy.root_device",
+    "lightning.pytorch.strategies.xla.XLAStrategy.root_device",
     new_callable=PropertyMock,
     return_value=torch.device("xla:0"),
 )
