@@ -1,5 +1,4 @@
 from contextlib import nullcontext
-from functools import partial
 from unittest.mock import Mock
 
 import pytest
@@ -16,15 +15,12 @@ class _MyFabricGradNorm(BoringFabric):
     def after_backward(self, model: _FabricModule, optimizer: _FabricOptimizer):
         self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
 
-        with model._original_module.summon_full_params(model._original_module) if isinstance(self.strategy, FSDPStrategy) else nullcontext():
+        with model._original_module.summon_full_params(model._original_module) if isinstance(
+            self.strategy, FSDPStrategy
+        ) else nullcontext():
             parameters = model.parameters()
             grad_norm = torch.linalg.vector_norm(
-                torch.stack(
-                    [
-                        torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32)
-                        for p in parameters
-                    ]
-                ),
+                torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
                 2,
             )
         torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
