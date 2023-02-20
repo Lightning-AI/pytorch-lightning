@@ -1196,7 +1196,7 @@ def test_dataloaders_reset_and_attach(tmpdir):
     assert trainer.train_dataloader.dataset is dataloader_0.dataset
     assert trainer.val_dataloaders.dataset is dataloader_1.dataset
     # 2nd fit
-    trainer.fit_loop.max_steps += 1
+    trainer.fit_loop.epoch_loop.max_steps += 1
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
     assert trainer.train_dataloader.dataset is dataloader_2.dataset
     assert trainer.val_dataloaders.dataset is dataloader_3.dataset
