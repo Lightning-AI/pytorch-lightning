@@ -270,7 +270,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def clip_gradients_norm(
+    def clip_gradients_norm(  # type: ignore[override]
         self,
         module: "FullyShardedDataParallel",
         optimizer: Optimizer,
@@ -285,7 +285,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.precision.unscale_gradients_(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    def clip_gradients_value(
+    def clip_gradients_value(  # type: ignore[override] 
         self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         """Clip gradients by value."""
