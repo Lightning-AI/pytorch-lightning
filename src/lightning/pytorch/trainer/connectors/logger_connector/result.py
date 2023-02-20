@@ -48,7 +48,7 @@ warning_cache = WarningCache()
 @dataclass
 class _Sync:
     fn: Optional[Callable] = None
-    _should: Optional[bool] = None
+    _should: bool = False
     rank_zero_only: bool = False
     _op: Optional[str] = None
     _group: Optional[Any] = None
@@ -57,7 +57,7 @@ class _Sync:
         self._generate_sync_fn()
 
     @property
-    def should(self) -> Optional[bool]:
+    def should(self) -> bool:
         return self._should
 
     @should.setter
@@ -348,7 +348,7 @@ class _ResultCollection(dict):
         on_epoch: bool = True,
         reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
-        sync_dist: Optional[bool] = None,
+        sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
@@ -357,16 +357,15 @@ class _ResultCollection(dict):
         rank_zero_only: bool = False,
     ) -> None:
         """See :meth:`~lightning.pytorch.core.module.LightningModule.log`"""
-        # if value is a Metric and sync_dist != None, then
-        if isinstance(value, Metric) and sync_dist is not None:
-            # Case 1: Either on_step or on_epoch is True
+        # For torchmetric.Metric, if sync_dist is True,
+        # set `sync_on_compute` and `dist_sync_on_step` properties
+        # based on the on_step and on_epoch arguments.
+        if isinstance(value, Metric) and sync_dist:
             if on_step or on_epoch:
-                # set sync_on_compute based on sync_dist
                 value.sync_on_compute = sync_dist
-                # set dist_sync_on_step based on on_step
                 value.dist_sync_on_step = on_step
 
-            # Case 2: If all 3 (on_step, on_epoch and sync_dist) are True
+            # All 3 (on_step, on_epoch and sync_dist) should not be set to True
             if on_step and on_epoch and sync_dist:
                 raise MisconfigurationException(
                     "Setting self.log(.., on_step=True, on_epoch=True, sync_dist=True)"
