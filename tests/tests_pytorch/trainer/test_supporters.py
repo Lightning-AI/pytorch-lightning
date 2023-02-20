@@ -305,7 +305,7 @@ def test_combined_data_loader_validation_test(replace_sampler_ddp):
     else:
         assert all(isinstance(s, (SequentialSampler, CustomSampler)) for s in samplers_flattened)
 
-    datasets_flattened = [dl.dataset for dl in dataloader.flattened]
+    datasets_flattened = [dl.dataset for dl in combined_loader.flattened]
     assert len(datasets_flattened) == 6
     assert all(isinstance(ds, CustomDataset) for ds in datasets_flattened)
 
