@@ -55,8 +55,6 @@ def test__validation_step__log(tmpdir):
             return out
 
     model = TestModel()
-    model.validation_step_end = None
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,

@@ -82,7 +82,7 @@ class _PredictionLoop(_Loop):
         """Returns the number of prediction dataloaders."""
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        return len(combined_loader._flattened)
+        return len(combined_loader.flattened)
 
     @property
     def max_batches(self) -> List[Union[int, float]]:
@@ -122,16 +122,12 @@ class _PredictionLoop(_Loop):
         if not source.is_defined() or trainer.limit_predict_batches == 0:
             return
 
-        trainer.num_predict_batches, iterables = trainer._data_connector._reset_eval_dataloader(
+        trainer.num_predict_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(
             RunningStage.PREDICTING, model=pl_module
         )
-        combined_loader = CombinedLoader(iterables, "sequential")
-        for i, dl in enumerate(combined_loader._flattened):
+        for dl in combined_loader.flattened:
             # some users want prediction shuffling based on the training progress
             _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
-            # allow the strategy to inject logic
-            dl = trainer.strategy.process_dataloader(dl)
-            combined_loader._update_index(dl, i)
         self._combined_loader = combined_loader
 
     def reset(self) -> None:
@@ -256,7 +252,7 @@ class _PredictionLoop(_Loop):
         if any_on_batch or any_on_epoch:
             combined_loader = self._combined_loader
             assert combined_loader is not None
-            dataloader = combined_loader._flattened[dataloader_idx]
+            dataloader = combined_loader.flattened[dataloader_idx]
             batch_indices = self._get_batch_indices(dataloader)
             if not batch_indices:
                 # this is only available with `IndexBatchSamplerWrapper`, but it's only used on DataLoaders, if this is

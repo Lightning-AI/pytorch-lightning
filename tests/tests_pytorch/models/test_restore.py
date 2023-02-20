@@ -499,15 +499,9 @@ def test_model_saving_loading(tmpdir):
     )
     trainer.fit(model)
 
-    # traning complete
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
     # make a prediction
     dataloaders = model.test_dataloader()
-    if not isinstance(dataloaders, list):
-        dataloaders = [dataloaders]
-
-    batch = next(iter(dataloaders[0]))
+    batch = next(iter(dataloaders))
 
     # generate preds before saving model
     model.eval()

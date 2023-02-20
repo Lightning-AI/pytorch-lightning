@@ -115,8 +115,6 @@ Return Multiple DataLoaders
 
 You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.module.LightningModule`, and Lightning will take care of batch combination.
 
-For more details, refer to :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
-
 .. testcode::
 
     class LitModel(LightningModule):

@@ -117,7 +117,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp():
+def test_ddp_configure_ddp(cuda_count_2, mps_count_0):
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
@@ -237,7 +237,7 @@ def test_configure_launcher_create_processes_externally():
 
 
 @mock.patch("torch.distributed.init_process_group")
-def test_ddp_strategy_set_timeout(mock_init_process_group):
+def test_ddp_strategy_set_timeout(mock_init_process_group, cuda_count_2, mps_count_0):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()

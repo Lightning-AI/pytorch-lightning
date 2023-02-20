@@ -87,11 +87,11 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
     preds = trainer.predict(model, [itertools.count(), itertools.count()])
     assert preds == [[(0, 0, 0), (1, 1, 0), (2, 2, 0)], [(0, 0, 1), (1, 1, 1), (2, 2, 1)]]
 
-    # TODO(carmocca): this shouldn't raise
-    with pytest.raises(ValueError, match="Mismatch in number of limits"):
-        trainer.predict(model, {"a": [0, 1], "b": [2, 3]})
-    with pytest.raises(ValueError, match="Mismatch in number of limits"):
-        trainer.predict(model, [0, 1, 2])
+    preds = trainer.predict(model, {"a": [0, 1], "b": [2, 3]})
+    assert preds == [[(0, 0, 0), (1, 1, 0)], [(2, 0, 1), (3, 1, 1)]]
+
+    preds = trainer.predict(model, [[0, 1], [2, 3]])
+    assert preds == [[(0, 0, 0), (1, 1, 0)], [(2, 0, 1), (3, 1, 1)]]
 
     class MyModel(BoringModel):
         def predict_step(self, dataloader_iter, batch_idx, dataloader_idx=0):
