@@ -175,7 +175,6 @@ def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, ta
 
 
 def _zip_files(live: Live, remote_src: str, local_dst: str) -> None:
-
     if len(remote_src.split("/")) < 3:
         return _error_and_exit(
             dedent(
