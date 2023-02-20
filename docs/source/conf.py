@@ -396,5 +396,13 @@ doctest_global_setup = """
 import importlib
 import os
 import lightning as L
+
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
+
+# skip false positive linkcheck errors from anchors
+linkcheck_anchors = False
+
+# ignore all links in any CHANGELOG file
+linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
