@@ -19,6 +19,7 @@ class _MyFabricGradNorm(BoringFabric):
     def after_backward(self, model: _FabricModule, optimizer: _FabricOptimizer):
         self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
 
+        # need all parameters from fsdp to properly compute norm
         if isinstance(model._original_module, FullyShardedDataParallel):
             parameters = model._original_module.summon_full_params(model._original_module)
         else:
