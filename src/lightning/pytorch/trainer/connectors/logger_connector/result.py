@@ -366,12 +366,13 @@ class _ResultCollection(dict):
                 # set dist_sync_on_step based on on_step
                 value.dist_sync_on_step = on_step
 
-            # Case 2: Both on_step, on_epoch and sync_dist are True
+            # Case 2: If all 3 (on_step, on_epoch and sync_dist) are True
             if on_step and on_epoch and sync_dist:
                 raise MisconfigurationException(
                     "Setting self.log(.., on_step=True, on_epoch=True, sync_dist=True)"
                     " is ambiguous as it is unclear when to sync the metric state."
-                    " Please set either on_step=True or on_epoch=True."
+                    " Please set either on_step=True or on_epoch=True or set the"
+                    " `sync_on_compute`/`dist_sync_on_step` properties of the metric directly."
                 )
 
         # no metrics should be logged with graphs

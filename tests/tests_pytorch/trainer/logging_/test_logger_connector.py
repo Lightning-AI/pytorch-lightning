@@ -643,7 +643,7 @@ def test_result_collection_no_batch_size_extraction():
 
 
 def test_sync_dist_with_torchmetrics():
-    acc = Accuracy()
+    acc = Accuracy(task="multiclass", num_classes=4)
     target = torch.tensor([0, 1, 2, 3])
     preds = torch.tensor([0, 2, 1, 3])
     acc.update(preds, target)
@@ -653,9 +653,10 @@ def test_sync_dist_with_torchmetrics():
     with pytest.raises(
         MisconfigurationException,
         match=(
-            r"Setting self.log(.., on_step=True, on_epoch=True, sync_dist=True)"
-            r" is ambiguous as it is unclear when to sync the metric state."
-            r" Please set either on_step=True or on_epoch=True."
+            r"Setting self\.log\(\.*, on_step=True, on_epoch=True, sync_dist=True\)"
+            r" is ambiguous as it is unclear when to sync the metric state\."
+            r" Please set either on_step=True or on_epoch=True or set the"
+            r" `sync_on_compute`/`dist_sync_on_step` properties of the metric directly\."
         ),
     ):
         results.log("foo", "bar", acc, on_epoch=True, on_step=True, sync_dist=True)
