@@ -349,7 +349,11 @@ class Trainer:
         )
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init()
+
+        setup._log_device_info(self)
+
+        self.should_stop = False
+        self.state = TrainerState()
 
         # configure profiler
         setup._init_profiler(self, profiler)
@@ -377,22 +381,6 @@ class Trainer:
             val_check_interval,
             num_sanity_val_steps,
         )
-
-    def _setup_on_init(self) -> None:
-        setup._log_device_info(self)
-
-        self.should_stop = False
-        self.state = TrainerState()
-
-        # TODO(carmocca): move these to the loops
-        self.num_training_batches = float("inf")
-        self.num_sanity_val_batches: List[Union[int, float]] = []
-        self.num_test_batches: List[Union[int, float]] = []
-        self.num_val_batches: List[Union[int, float]] = []
-        self.num_predict_batches: List[Union[int, float]] = []
-
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
 
     def fit(
         self,
@@ -1304,6 +1292,30 @@ class Trainer:
     def predict_dataloaders(self) -> EVAL_DATALOADERS:
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
+
+    @property
+    def num_training_batches(self) -> Union[int, float]:
+        return self.fit_loop.max_batches
+
+    @property
+    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+        max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
+        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+
+    @property
+    def num_val_batches(self) -> List[Union[int, float]]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validate_loop.max_batches
+        # if no trainer.fn is set, assume fit's validation
+        return self.fit_loop.epoch_loop.val_loop.max_batches
+
+    @property
+    def num_test_batches(self) -> List[Union[int, float]]:
+        return self.test_loop.max_batches
+
+    @property
+    def num_predict_batches(self) -> List[Union[int, float]]:
+        return self.predict_loop.max_batches
 
     @property
     def _evaluation_loop(self) -> _EvaluationLoop:
