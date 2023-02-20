@@ -25,7 +25,13 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.supporters import _MaxSizeCycle, _MinSize, _Sequential, _supported_modes, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import (
+    _MaxSizeCycle,
+    _MinSize,
+    _Sequential,
+    _supported_modes,
+    CombinedLoader,
+)
 from tests_pytorch.helpers.runif import RunIf
 
 
