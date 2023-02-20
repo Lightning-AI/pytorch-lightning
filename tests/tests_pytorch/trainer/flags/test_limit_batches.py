@@ -80,7 +80,7 @@ def test_eval_limit_batches(stage, mode, limit_batches):
 
     expected_batches = int(limit_batches * len(eval_loader)) if isinstance(limit_batches, float) else limit_batches
     assert loader_num_batches[0] == expected_batches
-    assert len(dataloaders[0]) == len(eval_loader)
+    assert len(dataloaders) == len(eval_loader)
 
 
 @pytest.mark.parametrize(

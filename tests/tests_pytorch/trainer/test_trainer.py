@@ -1990,8 +1990,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
     # validate it would've worked if a limit was set
     setattr(trainer, argument, 1)
     fn()
-    expected = DataLoader if running_stage == "train" else list
-    assert isinstance(getattr(trainer, dataloader_attribute), expected)
+    assert isinstance(getattr(trainer, dataloader_attribute), DataLoader)
 
 
 @pytest.mark.parametrize(

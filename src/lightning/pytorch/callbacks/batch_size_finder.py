@@ -142,7 +142,7 @@ class BatchSizeFinder(Callback):
             loop.setup_data()
             combined_loader = loop._combined_loader
             assert combined_loader is not None
-            if len(combined_loader._flattened) > 1:
+            if len(combined_loader.flattened) > 1:
                 stage = trainer.state.stage
                 assert stage is not None
                 raise MisconfigurationException(
