@@ -24,9 +24,12 @@ docs: clean
 
 clean:
 	# clean all temp runs
-	rm -rf $(shell find . -name "mlruns")
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
+	rm -rf .ruff_cache
+	rm -rf build
+	rm -rf dist
+	rm -rf src/*.egg-info
 	rm -rf ./docs/build
 	rm -rf ./docs/source/**/generated
 	rm -rf ./docs/source/api
