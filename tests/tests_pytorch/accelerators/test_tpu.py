@@ -155,7 +155,6 @@ def test_manual_optimization_tpus(tmpdir):
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
-    model.training_step_end = None
 
     trainer = Trainer(
         max_epochs=1,

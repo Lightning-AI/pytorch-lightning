@@ -346,11 +346,6 @@ class _EvaluationLoop(_Loop):
         hook_name = "test_step" if trainer.testing else "validation_step"
         output = call._call_strategy_hook(trainer, hook_name, *step_kwargs.values())
 
-        hook_name = "test_step_end" if trainer.testing else "validation_step_end"
-        model_output = call._call_lightning_module_hook(trainer, hook_name, output)
-        strategy_output = call._call_strategy_hook(trainer, hook_name, output)
-        output = strategy_output if model_output is None else model_output
-
         self.batch_progress.increment_processed()
 
         hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"

@@ -147,19 +147,13 @@ In practice, the code looks like this:
 
         def training_step(...):
 
-        def training_step_end(...):
-
         def on_train_epoch_end(...):
 
         def validation_step(...):
 
-        def validation_step_end(...):
-
         def on_validation_epoch_end(...):
 
         def test_step(...):
-
-        def test_step_end(...):
 
         def on_test_epoch_end(...):
 

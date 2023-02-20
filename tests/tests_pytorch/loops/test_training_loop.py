@@ -175,23 +175,6 @@ def test_fit_loop_done_log_messages(caplog):
     assert not fit_loop.done
 
 
-def test_warning_valid_train_step_end(tmpdir):
-    class ValidTrainStepEndModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self(batch)
-            return {"output": output}
-
-        def training_step_end(self, outputs):
-            loss = self.loss(outputs["output"])
-            return loss
-
-    # No error is raised
-    model = ValidTrainStepEndModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-
-    trainer.fit(model)
-
-
 @pytest.mark.parametrize(
     "min_epochs, min_steps, current_epoch, early_stop, fit_loop_done, raise_debug_msg",
     [
