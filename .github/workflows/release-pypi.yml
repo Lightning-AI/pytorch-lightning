@@ -16,7 +16,7 @@ jobs:
 
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
     - name: Checkout 🛎️
@@ -41,7 +41,7 @@ jobs:
     needs: build-package
     if: github.event_name == 'release'
     timeout-minutes: 5
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout 🛎️
       uses: actions/checkout@v3
@@ -65,7 +65,8 @@ jobs:
 
   delay-publish:
     needs: build-package
-    runs-on: ubuntu-20.04
+    if: startsWith(github.event.ref, 'refs/tags')
+    runs-on: ubuntu-latest
     steps:
     - name: Delay ⏰ releasing
       uses: juliangruber/sleep-action@v1
@@ -75,8 +76,7 @@ jobs:
 
   publish-package:
     needs: delay-publish
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
     - name: Checkout 🛎️
