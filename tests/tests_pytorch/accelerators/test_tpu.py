@@ -89,7 +89,8 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
-def test_accelerator_tpu(accelerator, devices, tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_accelerator_tpu(_, accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
@@ -154,7 +155,6 @@ def test_manual_optimization_tpus(tmpdir):
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
-    model.training_step_end = None
 
     trainer = Trainer(
         max_epochs=1,
@@ -177,7 +177,8 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_tpu_str_xla_debug(tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
     trainer = Trainer(strategy="xla_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, XLAStrategy)
 
@@ -236,7 +237,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
 
-def test_tpu_invalid_raises(tpu_available):
+def test_tpu_invalid_raises(tpu_available, mps_count_0):
     strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
@@ -246,7 +247,7 @@ def test_tpu_invalid_raises(tpu_available):
         Trainer(strategy=strategy, devices=8)
 
 
-def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
+def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
     accelerator = TPUAccelerator()
     strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
@@ -261,7 +262,8 @@ def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_xla_checkpoint_plugin_being_default(tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_xla_checkpoint_plugin_being_default(_, tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 

@@ -30,7 +30,7 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.trainer.supporters import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 
@@ -61,7 +61,7 @@ class _EvaluationLoop(_Loop):
         """Returns the number of prediction dataloaders."""
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        return len(combined_loader._flattened)
+        return len(combined_loader.flattened)
 
     @property
     def max_batches(self) -> List[Union[int, float]]:
@@ -134,7 +134,7 @@ class _EvaluationLoop(_Loop):
 
         stage = trainer.state.stage
         assert stage is not None
-        num_batches, iterables = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
+        num_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
         if trainer.testing:
             trainer.num_test_batches = num_batches
         elif trainer.sanity_checking:
@@ -145,14 +145,10 @@ class _EvaluationLoop(_Loop):
         else:
             trainer.num_val_batches = num_batches
 
-        combined_loader = CombinedLoader(iterables, "sequential")
-        for i, dl in enumerate(combined_loader._flattened):
-            if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
+        if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
+            for dl in combined_loader.flattened:
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
-            # allow the strategy to inject logic
-            dl = trainer.strategy.process_dataloader(dl)
-            combined_loader._update_index(dl, i)
         self._combined_loader = combined_loader
 
         # this depends on the data used, so reset it too
@@ -169,9 +165,11 @@ class _EvaluationLoop(_Loop):
             self.batch_progress.reset_on_run()
         else:
             self.batch_progress.reset_on_restart()
+        fn = trainer.state.fn
+        assert fn is not None
         # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
         # need to reset the current state when the loop has finished running
-        if trainer.state.fn != TrainerFn.FITTING:
+        if fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
         data_fetcher = _select_data_fetcher(trainer)
@@ -181,9 +179,11 @@ class _EvaluationLoop(_Loop):
             )
         combined_loader = self._combined_loader
         assert combined_loader is not None
+        if combined_loader._mode != "sequential":
+            raise ValueError(f'`trainer.{fn.value}()` only supports the `CombinedLoader(mode="sequential")` mode.')
 
-        if trainer.state.fn == "fit":
-            for i, dl in enumerate(combined_loader._flattened):
+        if fn == TrainerFn.FITTING:
+            for i, dl in enumerate(combined_loader.flattened):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
@@ -345,11 +345,6 @@ class _EvaluationLoop(_Loop):
 
         hook_name = "test_step" if trainer.testing else "validation_step"
         output = call._call_strategy_hook(trainer, hook_name, *step_kwargs.values())
-
-        hook_name = "test_step_end" if trainer.testing else "validation_step_end"
-        model_output = call._call_lightning_module_hook(trainer, hook_name, output)
-        strategy_output = call._call_strategy_hook(trainer, hook_name, output)
-        output = strategy_output if model_output is None else model_output
 
         self.batch_progress.increment_processed()
 

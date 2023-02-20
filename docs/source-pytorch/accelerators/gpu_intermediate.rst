@@ -26,7 +26,7 @@ Lightning supports multiple ways of doing distributed training.
     - Notebook/Fork (``strategy='ddp_notebook'``)
 
 .. note::
-    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
+    If you request multiple GPUs or nodes without setting a strategy, DDP will be automatically used.
 
 For a deeper understanding of what Lightning is doing, feel free to read this
 `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
@@ -196,13 +196,9 @@ Comparison of DDP variants and tradeoffs
      - No
      - Yes
      - No
-   * - Is the guard ``if __name__=="__main__"`` required?
-     - Yes
-     - Yes
-     - No
    * - Limitations in the main process
      - None
-     - None
+     - The state of objects is not up-to-date after returning to the main process (`Trainer.fit()` etc). Only the model parameters get transferred over.
      - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
    * - Process creation time
      - Slow
