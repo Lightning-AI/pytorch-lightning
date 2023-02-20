@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,12 +19,13 @@ import traceback
 import types
 from contextlib import contextmanager
 from copy import copy
-from typing import Dict, List, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
 
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
     from lightning.app import LightningApp, LightningFlow, LightningWork
+    from lightning.app.core.plugin import LightningPlugin
 
 from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
 
@@ -45,6 +46,58 @@ def _prettifiy_exception(filepath: str):
     sys.exit(1)
 
 
+def _load_objects_from_file(
+    filepath: str,
+    target_type: Type,
+    raise_exception: bool = False,
+    mock_imports: bool = False,
+) -> Tuple[List[Any], types.ModuleType]:
+    """Load all of the top-level objects of the given type from a file.
+
+    Args:
+        filepath: The file to load from.
+        target_type: The type of object to load.
+        raise_exception: If ``True`` exceptions will be raised, otherwise exceptions will trigger system exit.
+        mock_imports: If ``True`` imports of missing packages will be replaced with a mock. This can allow the object to
+            be loaded without installing dependencies.
+    """
+
+    # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
+
+    # In order for imports to work in a non-package, Python normally adds the current working directory to the
+    # system path, not however when running from an entry point like the `lightning` CLI command. So we do it manually:
+    with _patch_sys_path(os.path.dirname(os.path.abspath(filepath))):
+        code = _create_code(filepath)
+        with _create_fake_main_module(filepath) as module:
+            try:
+                with _patch_sys_argv():
+                    if mock_imports:
+                        with _mock_missing_imports():
+                            exec(code, module.__dict__)
+                    else:
+                        exec(code, module.__dict__)
+            except Exception as e:
+                if raise_exception:
+                    raise e
+                _prettifiy_exception(filepath)
+
+    return [v for v in module.__dict__.values() if isinstance(v, target_type)], module
+
+
+def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
+    from lightning.app.core.plugin import LightningPlugin
+
+    # TODO: Plugin should be run in the context of the created main module here
+    plugins, _ = _load_objects_from_file(filepath, LightningPlugin, raise_exception=True, mock_imports=False)
+
+    if len(plugins) > 1:
+        raise RuntimeError(f"There should not be multiple plugins instantiated within the file. Found {plugins}")
+    if len(plugins) == 1:
+        return plugins[0]
+
+    raise RuntimeError(f"The provided file {filepath} does not contain a Plugin.")
+
+
 def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
     """Load a LightningApp from a file.
 
@@ -52,30 +105,16 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
         filepath:  The path to the file containing the LightningApp.
         raise_exception: If True, raise an exception if the app cannot be loaded.
     """
-
-    # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
-
     from lightning.app.core.app import LightningApp
 
-    # In order for imports to work in a non-package, Python normally adds the current working directory to the
-    # system path, not however when running from an entry point like the `lightning` CLI command. So we do it manually:
-    sys.path.append(os.path.dirname(os.path.abspath(filepath)))
+    apps, main_module = _load_objects_from_file(
+        filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports
+    )
 
-    code = _create_code(filepath)
-    module = _create_fake_main_module(filepath)
-    try:
-        with _patch_sys_argv():
-            if mock_imports:
-                with _mock_missing_imports():
-                    exec(code, module.__dict__)
-            else:
-                exec(code, module.__dict__)
-    except Exception as e:
-        if raise_exception:
-            raise e
-        _prettifiy_exception(filepath)
+    # TODO: Remove this, downstream code shouldn't depend on side-effects here but it does
+    _patch_sys_path(os.path.dirname(os.path.abspath(filepath))).__enter__()
+    sys.modules["__main__"] = main_module
 
-    apps = [v for v in module.__dict__.values() if isinstance(v, LightningApp)]
     if len(apps) > 1:
         raise MisconfigurationException(f"There should not be multiple apps instantiated within a file. Found {apps}")
     if len(apps) == 1:
@@ -128,6 +167,7 @@ def _create_code(script_path: str):
     )
 
 
+@contextmanager
 def _create_fake_main_module(script_path):
     # Create fake module. This gives us a name global namespace to
     # execute the code in.
@@ -138,6 +178,7 @@ def _create_fake_main_module(script_path):
     # can know the module where the pickled objects stem from.
     # IMPORTANT: This means we can't use "if __name__ == '__main__'" in
     # our code, as it will point to the wrong module!!!
+    old_main_module = sys.modules["__main__"]
     sys.modules["__main__"] = module
 
     # Add special variables to the module's globals dict.
@@ -146,7 +187,30 @@ def _create_fake_main_module(script_path):
     # files contained in the directory of __main__.__file__, which we
     # assume is the main script directory.
     module.__dict__["__file__"] = os.path.abspath(script_path)
-    return module
+
+    try:
+        yield module
+    finally:
+        sys.modules["__main__"] = old_main_module
+
+
+@contextmanager
+def _patch_sys_path(append):
+    """A context manager that appends the given value to the path once entered.
+
+    Args:
+        append: The value to append to the path.
+    """
+    if append in sys.path:
+        yield
+        return
+
+    sys.path.append(append)
+
+    try:
+        yield
+    finally:
+        sys.path.remove(append)
 
 
 @contextmanager
@@ -186,9 +250,12 @@ def _patch_sys_argv():
 
     # 7: Patch the command
     sys.argv = new_argv
-    yield
-    # 8: Restore the command
-    sys.argv = original_argv
+
+    try:
+        yield
+    finally:
+        # 8: Restore the command
+        sys.argv = original_argv
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:

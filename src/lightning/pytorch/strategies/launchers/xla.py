@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
+    def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")

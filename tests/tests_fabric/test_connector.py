@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.test.warning import no_warning_call
 from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
@@ -36,6 +37,7 @@ from lightning.fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
 from lightning.fabric.strategies import (
@@ -69,6 +71,8 @@ def test_accelerator_choice_tpu(accelerator, devices):
         # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
         # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
         assert isinstance(connector.strategy, XLAStrategy)
+        assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
     else:
         assert isinstance(connector.strategy, SingleTPUStrategy)
 
@@ -386,9 +390,10 @@ def test_invalid_accelerator_choice():
         _Connector(accelerator="cocofruit")
 
 
-def test_invalid_strategy_choice():
-    with pytest.raises(ValueError, match="You selected an invalid strategy name: `strategy='cocofruit'`"):
-        _Connector(strategy="cocofruit")
+@pytest.mark.parametrize("invalid_strategy", ["cocofruit", object()])
+def test_invalid_strategy_choice(invalid_strategy):
+    with pytest.raises(ValueError, match="You selected an invalid strategy name:"):
+        _Connector(strategy=invalid_strategy)
 
 
 @pytest.mark.parametrize(
@@ -435,6 +440,38 @@ def test_device_type_when_strategy_instance_gpu_passed():
 def test_validate_precision_type(precision):
     with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         _Connector(precision=precision)
+
+
+@pytest.mark.parametrize(
+    "precision,expected_precision,should_warn",
+    [
+        (16, "16-mixed", True),
+        ("16", "16-mixed", True),
+        ("16-mixed", "16-mixed", False),
+        ("bf16", "bf16-mixed", True),
+        ("bf16-mixed", "bf16-mixed", False),
+        (32, "32-true", False),
+        ("32", "32-true", False),
+        ("32-true", "32-true", False),
+        (64, "64-true", False),
+        ("64", "64-true", False),
+        ("64-true", "64-true", False),
+    ],
+)
+# mock cuda as available to not be limited by dtype and accelerator compatibility - this is tested elsewhere
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_precision_conversion(patch1, patch2, precision, expected_precision, should_warn):
+    warn_context = pytest.warns if should_warn else no_warning_call
+    with warn_context(
+        UserWarning,
+        match=(
+            f"{precision} is supported for historical reasons but its usage is discouraged. "
+            f"Please set your precision to {expected_precision} instead!"
+        ),
+    ):
+        connector = _Connector(precision=precision, accelerator="cuda")
+    assert connector._precision_input == expected_precision
 
 
 def test_multi_device_default_strategy():
@@ -500,9 +537,9 @@ def test_strategy_choice_ddp_spawn(*_):
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
-    if not isinstance(strategy, str):
+    if strategy and not isinstance(strategy, str):
         strategy = strategy()
 
     with mock.patch.dict(
@@ -537,29 +574,9 @@ def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
 )
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_strategy_choice_ddp_te(*_):
-    connector = _Connector(strategy="ddp", accelerator="gpu", devices=2)
+def test_strategy_choice_ddp_torchelastic(*_):
+    connector = _Connector(accelerator="gpu", devices=2)
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
-    assert connector.strategy.cluster_environment.local_rank() == 1
-    assert connector.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-def test_strategy_choice_ddp_cpu_te():
-    connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
-    assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
     assert connector.strategy.cluster_environment.local_rank() == 1
@@ -577,10 +594,10 @@ def test_strategy_choice_ddp_cpu_te():
         "RANK": "1",
     },
 )
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_kubeflow(*_):
-    connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
+    connector = _Connector(accelerator="gpu", devices=2)
     assert isinstance(connector.accelerator, CUDAAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -599,7 +616,7 @@ def test_strategy_choice_ddp_kubeflow(*_):
     },
 )
 def test_strategy_choice_ddp_cpu_kubeflow():
-    connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
+    connector = _Connector(accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -619,7 +636,7 @@ def test_strategy_choice_ddp_cpu_kubeflow():
         "SLURM_LOCALID": "0",
     },
 )
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(strategy):
     connector = _Connector(strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
@@ -631,14 +648,14 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_unsupported_tpu_choice(_, tpu_available):
-    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
-        _Connector(accelerator="tpu", precision=64)
+    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
+        _Connector(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision='16-mixed'\)` but AMP with fp16 is not supported"
     ):
-        _Connector(accelerator="tpu", precision=16, strategy="ddp")
+        _Connector(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
     # wrong precision plugin type
     strategy = XLAStrategy(accelerator=TPUAccelerator(), precision=Precision())
@@ -759,8 +776,11 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
 
 
 def test_precision_selection_16_on_cpu_warns():
-    with pytest.warns(UserWarning, match=r"precision=16\)` but AMP is not supported on CPU. Using `precision='bf16"):
-        _Connector(precision=16)
+    with pytest.warns(
+        UserWarning,
+        match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
+    ):
+        _Connector(precision="16-mixed")
 
 
 class MyAMP(MixedPrecision):
@@ -776,9 +796,9 @@ class MyAMP(MixedPrecision):
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
     if is_custom_plugin:
-        plugin = plugin_cls(16, "cpu")
+        plugin = plugin_cls("16-mixed", "cpu")
     connector = _Connector(
-        precision=16,
+        precision="16-mixed",
         devices=devices,
         strategy=strategy,
         plugins=plugin,
@@ -793,11 +813,14 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
+@pytest.mark.parametrize("precision", [None, "64-true", "32-true", "16-mixed", "bf16-mixed"])
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
-    with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
+    env_vars = {}
+    if precision is not None:
+        env_vars["LT_PRECISION"] = precision
+    with mock.patch.dict(os.environ, env_vars):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
     assert isinstance(connector.precision, Precision)
 
@@ -805,6 +828,7 @@ def test_precision_from_environment(_, precision):
 @pytest.mark.parametrize(
     "accelerator, strategy, expected_accelerator, expected_strategy",
     [
+        (None, None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", "ddp", CPUAccelerator, DDPStrategy),
         pytest.param("mps", None, MPSAccelerator, SingleDeviceStrategy, marks=RunIf(mps=True)),
@@ -816,7 +840,9 @@ def test_precision_from_environment(_, precision):
 )
 def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
     """Test that the accelerator and strategy input can be set through the environment variables."""
-    env_vars = {"LT_ACCELERATOR": accelerator}
+    env_vars = {}
+    if accelerator is not None:
+        env_vars["LT_ACCELERATOR"] = accelerator
     if strategy is not None:
         env_vars["LT_STRATEGY"] = strategy
 
@@ -855,9 +881,9 @@ def test_arguments_from_environment_collision():
         with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
             _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16"}):
-        with pytest.raises(ValueError, match="`Fabric\\(precision=64, ...\\)` but .* `--precision=16`"):
-            _Connector(precision=64)
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}):
+        with pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"):
+            _Connector(precision="64-true")
 
 
 @RunIf(min_torch="1.12")

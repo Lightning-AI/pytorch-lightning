@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,20 +42,6 @@ class DeviceAssertCallback(Callback):
         # index = None also means first device
         assert (model.device.index is None and rank == 0) or model.device.index == rank
         assert model.device == model.module.module.device
-
-
-@RunIf(min_cuda_gpus=2)
-def test_submodules_multi_gpu_dp(tmpdir):
-    model = TopModule()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="dp",
-        accelerator="gpu",
-        devices=2,
-        callbacks=[DeviceAssertCallback()],
-        max_steps=1,
-    )
-    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=2)

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import cli_lightning_logo, LightningModule, Trainer
-from pytorch_lightning.loggers import WandbLogger
+from lightning.pytorch import cli_lightning_logo, LightningModule, Trainer
+from lightning.pytorch.loggers import WandbLogger
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
@@ -383,19 +383,6 @@ class SegModel(LightningModule):
     def val_dataloader(self):
         return DataLoader(self.validset, batch_size=self.batch_size, shuffle=False)
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = parent_parser.add_argument_group("SegModel")
-        parser.add_argument("--data_path", type=str, help="path where dataset is stored")
-        parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
-        parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
-        parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
-        parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-        parser.add_argument(
-            "--bilinear", action="store_true", default=False, help="whether to use bilinear interpolation or transposed"
-        )
-        return parent_parser
-
 
 def main(hparams: Namespace):
     # ------------------------
@@ -416,7 +403,7 @@ def main(hparams: Namespace):
     # ------------------------
     # 3 INIT TRAINER
     # ------------------------
-    trainer = Trainer.from_argparse_args(hparams)
+    trainer = Trainer()
 
     # ------------------------
     # 5 START TRAINING
@@ -426,8 +413,16 @@ def main(hparams: Namespace):
 
 if __name__ == "__main__":
     cli_lightning_logo()
-    parser = ArgumentParser(add_help=False)
-    parser = SegModel.add_model_specific_args(parser)
+
+    parser = ArgumentParser()
+    parser.add_argument("--data_path", type=str, help="path where dataset is stored")
+    parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
+    parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
+    parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
+    parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
+    parser.add_argument(
+        "--bilinear", action="store_true", default=False, help="whether to use bilinear interpolation or transposed"
+    )
     hparams = parser.parse_args()
 
     main(hparams)

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -230,7 +230,7 @@ def _fetch_app_by_name(client, project_id, name):
     lit_apps = [
         app
         for app in client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id).lightningapps
-        if app.name == name
+        if app.name == name or getattr(app, "display_name", None) == name
     ]
     if not len(lit_apps) == 1:
         raise ValueError(f"Expected to find just one app, found {len(lit_apps)}")
@@ -282,7 +282,7 @@ def run_app_in_cloud(
     token = res.json()["token"]
 
     # 3. Disconnect from the App if any.
-    Popen("lightning disconnect", shell=True).wait()
+    Popen("lightning logout", shell=True).wait()
 
     # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -391,6 +391,9 @@ def run_app_in_cloud(
             print("'Create Project' dialog not visible, skipping.")
 
         admin_page.locator(f'[data-cy="{name}"]').click()
+
+        app_url = admin_page.url
+        admin_page.goto(app_url + "/logs")
 
         client = LightningClient()
         project_id = _get_project(client).project_id

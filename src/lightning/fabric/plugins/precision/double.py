@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 class DoublePrecision(Precision):
     """Plugin for training with double (``torch.float64``) precision."""
 
-    precision: Literal["64"] = "64"
+    precision: Literal["64-true"] = "64-true"
 
     def convert_module(self, module: Module) -> Module:
         return module.double()

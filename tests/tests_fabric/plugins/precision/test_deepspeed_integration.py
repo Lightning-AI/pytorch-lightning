@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("precision", ["bf16", 16, 32])
+@pytest.mark.parametrize("precision", ["bf16-mixed", "16-mixed", "32-true"])
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_deepspeed_precision_choice(_, precision):
     """Test to ensure precision plugin is correctly chosen.

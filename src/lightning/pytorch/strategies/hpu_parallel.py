@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,14 +22,13 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.utilities.distributed import group as _group
+from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.overrides.torch_distributed import broadcast_object_list
 from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
@@ -99,24 +98,6 @@ class HPUParallelStrategy(DDPStrategy):
     def determine_ddp_device_ids(self) -> None:
         return None
 
-    def _pre_configure_ddp(self) -> None:
-        # if unset, default `find_unused_parameters` `True`
-        # Many models require setting this parameter to True, as there are corner cases
-        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
-        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-
-        self._static_graph = False
-        static_graph = self._ddp_kwargs.get("static_graph")
-        if static_graph:
-            # when _set_static_graph() is called find_unused_parameters does not have any significance.
-            # Resetting the value of find_unused_parameters to False which is the default value to DDP
-            self._ddp_kwargs["find_unused_parameters"] = False
-            self._static_graph = True
-        if static_graph is not None:
-            # DDP does not accept static_graph as a parameter, hence removing it from the list
-            del self._ddp_kwargs["static_graph"]
-
     def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]
         if self.global_rank != src:
@@ -140,16 +121,6 @@ class HPUParallelStrategy(DDPStrategy):
         # Break lazy accumulation of graph after optimizer
         htcore.mark_step()
         return optimizer_output
-
-    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

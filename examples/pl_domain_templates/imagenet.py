@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,11 +44,11 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.strategies import ParallelStrategy
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch import LightningModule
+from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.strategies import ParallelStrategy
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 
 class ImageNetLightningModel(LightningModule):

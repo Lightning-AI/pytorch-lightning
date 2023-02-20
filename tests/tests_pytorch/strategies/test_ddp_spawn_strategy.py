@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,14 +46,11 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
     """Tests if device is set correctly when training for DDPSpawnStrategy."""
-    trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
+    trainer = Trainer(devices=2, strategy="ddp_spawn", accelerator="cpu", fast_dev_run=True)
     # assert strategy attributes for device setting
-
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
-
     model = BoringModelDDPCPU()
-
     trainer.fit(model)
 
 
@@ -125,7 +122,7 @@ def test_ddp_spawn_configure_ddp(tmpdir):
 
 
 @mock.patch("torch.distributed.init_process_group")
-def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
+def test_ddp_spawn_strategy_set_timeout(mock_init_process_group, cuda_count_2, mps_count_0):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
@@ -155,16 +152,25 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
         pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
         pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
         ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_spawn_find_unused_parameters_true", {"find_unused_parameters": True}),
         pytest.param(
             "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_true", {"find_unused_parameters": True}, marks=RunIf(skip_windows=True)
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             {"find_unused_parameters": False},
             marks=RunIf(skip_windows=True),
         ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_true",
+            {"find_unused_parameters": True},
+            marks=RunIf(skip_windows=True),
+        ),
     ],
 )
-def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_0):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ from lightning.pytorch.core.saving import load_hparams_from_yaml, save_hparams_t
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -897,12 +896,10 @@ def test_no_datamodule_for_hparams(tmpdir):
 
 
 def test_colliding_hparams(tmpdir):
-
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
-
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=CSVLogger(tmpdir))
-    with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
+    with pytest.raises(RuntimeError, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
 
 

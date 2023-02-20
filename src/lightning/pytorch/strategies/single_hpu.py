@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.utilities.types import _DEVICE
+from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
-from lightning.pytorch.utilities import _HPU_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
@@ -97,16 +96,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         # Break lazy accumulation of graph after optimizer
         htcore.mark_step()
         return optimizer_output
-
-    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
 from unittest import mock
 from unittest.mock import call, Mock
 
+import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.utilities.model_helpers import is_overridden
 from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("lightning.pytorch.loops.dataloader.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
+@mock.patch("lightning.pytorch.loops.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end`
     hooks."""
@@ -67,13 +67,13 @@ def test_evaluation_loop_sampler_set_epoch_called(tmpdir):
     val_dataloader = _get_dataloader()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     # One for each epoch
-    assert train_dataloader.sampler.set_epoch.call_args_list == [call(0), call(1)]
+    assert train_dataloader.sampler.set_epoch.mock_calls == [call(0), call(1)]
     # One for each epoch + sanity check
-    assert val_dataloader.sampler.set_epoch.call_args_list == [call(0), call(0), call(1)]
+    assert val_dataloader.sampler.set_epoch.mock_calls == [call(0), call(0), call(1)]
 
     val_dataloader = _get_dataloader()
     trainer.validate(model, val_dataloader)
-    assert val_dataloader.sampler.set_epoch.call_args_list == [call(2)]
+    assert val_dataloader.sampler.set_epoch.mock_calls == [call(2)]
 
 
 def test_evaluation_loop_batch_sampler_set_epoch_called(tmpdir):
@@ -181,30 +181,19 @@ def test_memory_consumption_validation(tmpdir):
     trainer.fit(BoringLargeBatchModel())
 
 
-def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir):
-    did_assert = False
+def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_val_batches=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
-    class TestModel(BoringModel):
-        def on_test_batch_end(self, outputs, *_):
-            # check `test_step` returns something
-            assert outputs is not None
+    class MyModel(BoringModel):
+        def validation_step(self, dataloader_iter, batch_idx, dataloader_idx=0):
+            ...
 
-    model = TestModel()
-    model.test_epoch_end = None
-    assert not is_overridden("test_epoch_end", model)
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
-    loop = trainer.test_loop.epoch_loop
-    original_advance = loop.advance
-
-    def assert_on_advance_end(*args, **kwargs):
-        original_advance(*args, **kwargs)
-        # should be empty
-        assert not loop._outputs
-        # sanity check
-        nonlocal did_assert
-        did_assert = True
-
-    loop.advance = assert_on_advance_end
-    trainer.test(model)
-    assert did_assert
+    model = MyModel()
+    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
+        trainer.validate(model, {"a": [0, 1], "b": [2, 3]})

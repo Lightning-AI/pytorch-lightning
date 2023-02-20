@@ -24,6 +24,8 @@ from lightning.pytorch.accelerators import (
     MPSAccelerator,
     TPUAccelerator,
 )
+from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
+from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,
@@ -33,7 +35,6 @@ from lightning.pytorch.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from lightning.pytorch.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -71,7 +72,7 @@ def _init_debugging_flags(
 
         trainer.limit_test_batches = num_batches
         trainer.limit_predict_batches = num_batches
-        trainer.fit_loop.max_steps = num_batches
+        trainer.fit_loop.epoch_loop.max_steps = num_batches
         trainer.num_sanity_val_steps = 0
         trainer.fit_loop.max_epochs = 1
         trainer.val_check_interval = 1.0
