@@ -7,12 +7,22 @@ from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy
+from lightning.fabric.wrappers import _FabricModule, _FabricOptimizer
+
+try:
+    from torch.distributed.fsdp import FullyShardedDataParallel
+except ImportError:
+    FullyShardedDataParallel = None
 
 
 class _MyFabricGradNorm(BoringFabric):
-    def after_backward(self, model, optimizer):
+    def after_backward(self, model: _FabricModule, optimizer: _FabricOptimizer):
         self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
-        parameters = model.parameters()
+
+        if isinstance(model._original_module, FullyShardedDataParallel):
+            parameters = model._original_module.summon_full_params(model._original_module)
+        else:
+            parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
 
