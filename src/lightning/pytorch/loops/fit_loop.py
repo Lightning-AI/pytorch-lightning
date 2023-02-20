@@ -176,7 +176,9 @@ class _FitLoop(_Loop):
     @property
     def skip(self) -> bool:
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
-        return self.done or self.max_batches == 0
+        # if `limit_train_batches == 0` then `setup_data` won't set the `self.max_batches` attribute (checked in `done`)
+        # so we cannot use it solely
+        return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
         self.setup_data()
