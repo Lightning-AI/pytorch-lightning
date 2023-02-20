@@ -26,7 +26,6 @@ import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
-    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
     XLAEnvironment,
@@ -222,43 +221,6 @@ def test_custom_accelerator(cuda_count_0):
     assert trainer._accelerator_connector.strategy is strategy
 
 
-@pytest.mark.parametrize(
-    "env_vars,expected_environment",
-    [
-        (
-            {
-                "SLURM_NTASKS": "2",
-                "SLURM_NTASKS_PER_NODE": "1",
-                "SLURM_JOB_NAME": "SOME_NAME",
-                "SLURM_NODEID": "0",
-                "LOCAL_RANK": "0",
-                "SLURM_PROCID": "0",
-                "SLURM_LOCALID": "0",
-            },
-            SLURMEnvironment,
-        ),
-        (
-            {
-                "LSB_JOBID": "1",
-                "LSB_DJOB_RANKFILE": "SOME_RANK_FILE",
-                "JSM_NAMESPACE_LOCAL_RANK": "1",
-                "JSM_NAMESPACE_SIZE": "20",
-                "JSM_NAMESPACE_RANK": "1",
-            },
-            LSFEnvironment,
-        ),
-    ],
-)
-@mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
-@mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
-def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
-    with mock.patch.dict(os.environ, env_vars, clear=True):
-        trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, expected_environment)
-
-
 @RunIf(mps=False)
 def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
@@ -333,7 +295,7 @@ def test_accelerator_gpu():
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
+@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPStrategy)])
 def test_accelerator_cpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="cpu", devices=devices)
     assert trainer.num_devices == devices
@@ -343,7 +305,7 @@ def test_accelerator_cpu_with_devices(devices, strategy_class):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
+    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPStrategy)]
 )
 def test_accelerator_gpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="gpu", devices=devices)
@@ -478,9 +440,9 @@ def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_coun
 
 
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_env):
-    if not isinstance(strategy, str):
+    if strategy and not isinstance(strategy, str):
         strategy = strategy()
 
     with mock.patch.dict(
@@ -515,30 +477,9 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_te(_, __, mps_count_0, cuda_count_2):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
+def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
+    trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_cpu_te(cuda_count_0):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
@@ -558,8 +499,8 @@ def test_strategy_choice_ddp_cpu_te(cuda_count_0):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_1):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
+def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_2):
+    trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, KubeflowEnvironment)
@@ -579,7 +520,7 @@ def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_1):
 )
 @mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
+    trainer = Trainer(fast_dev_run=True, accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, KubeflowEnvironment)
@@ -600,7 +541,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     },
 )
 @mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)

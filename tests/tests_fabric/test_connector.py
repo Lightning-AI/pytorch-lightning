@@ -537,9 +537,9 @@ def test_strategy_choice_ddp_spawn(*_):
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
-    if not isinstance(strategy, str):
+    if strategy and not isinstance(strategy, str):
         strategy = strategy()
 
     with mock.patch.dict(
@@ -574,29 +574,9 @@ def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
 )
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_strategy_choice_ddp_te(*_):
-    connector = _Connector(strategy="ddp", accelerator="gpu", devices=2)
+def test_strategy_choice_ddp_torchelastic(*_):
+    connector = _Connector(accelerator="gpu", devices=2)
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
-    assert connector.strategy.cluster_environment.local_rank() == 1
-    assert connector.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-def test_strategy_choice_ddp_cpu_te():
-    connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
-    assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
     assert connector.strategy.cluster_environment.local_rank() == 1
@@ -614,10 +594,10 @@ def test_strategy_choice_ddp_cpu_te():
         "RANK": "1",
     },
 )
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_kubeflow(*_):
-    connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
+    connector = _Connector(accelerator="gpu", devices=2)
     assert isinstance(connector.accelerator, CUDAAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -636,7 +616,7 @@ def test_strategy_choice_ddp_kubeflow(*_):
     },
 )
 def test_strategy_choice_ddp_cpu_kubeflow():
-    connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
+    connector = _Connector(accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -656,7 +636,7 @@ def test_strategy_choice_ddp_cpu_kubeflow():
         "SLURM_LOCALID": "0",
     },
 )
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(strategy):
     connector = _Connector(strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
