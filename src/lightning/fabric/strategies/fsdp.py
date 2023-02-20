@@ -39,7 +39,6 @@ from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import Steppable
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (

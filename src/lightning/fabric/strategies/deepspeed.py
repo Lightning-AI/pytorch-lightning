@@ -34,7 +34,7 @@ from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import _PATH, Steppable
+from lightning.fabric.utilities.types import _PATH
 
 # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
