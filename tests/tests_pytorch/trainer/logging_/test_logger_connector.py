@@ -643,7 +643,7 @@ def test_result_collection_no_batch_size_extraction():
 
 
 def test_sync_dist_with_torchmetrics():
-    acc = Accuracy(task="multiclass", num_classes=4)
+    acc = Accuracy(task="multiclass", num_classes=4, top_k=1)
     target = torch.tensor([0, 1, 2, 3])
     preds = torch.tensor([0, 2, 1, 3])
     acc.update(preds, target)
