@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+from lightning_utilities.core import module_available
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -58,11 +59,12 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     assert trainer.model._compiler_ctx is None
 
     # some strategies do not support it
-    compiled_model = torch.compile(model)
-    mock_cuda_count(monkeypatch, 1)
-    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
-    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(compiled_model)
+    if module_available("deepspeed"):
+        compiled_model = torch.compile(model)
+        mock_cuda_count(monkeypatch, 2)
+        trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
+        with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
+            trainer.fit(compiled_model)
 
     # ddp does
     trainer = Trainer(strategy="ddp", **trainer_kwargs)

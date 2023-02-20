@@ -22,23 +22,23 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     """Tests that only training_step can be used."""
 
     class CB(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, *_):
             assert "loss" in outputs
 
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_validation_batch_end(self, trainer, pl_module, outputs, *_):
             assert "x" in outputs
 
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_test_batch_end(self, trainer, pl_module, outputs, *_):
             assert "x" in outputs
 
     class TestModel(BoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx: int) -> None:
+        def on_train_batch_end(self, outputs, *_):
             assert "loss" in outputs
 
-        def on_validation_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_validation_batch_end(self, outputs, *_):
             assert "x" in outputs
 
-        def on_test_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_test_batch_end(self, outputs, *_):
             assert "x" in outputs
 
     model = TestModel()

@@ -66,7 +66,7 @@ def find_free_network_port() -> int:
 def _find_free_network_port_cloudspace():
     """Finds a free port in the exposed range when running in a cloudspace."""
     for port in range(
-        constants.APP_SERVER_PORT,
+        constants.APP_SERVER_PORT + 1,  # constants.APP_SERVER_PORT is reserved for the app server
         constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
     ):
         if port in _reserved_ports:

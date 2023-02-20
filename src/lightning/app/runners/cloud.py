@@ -143,7 +143,7 @@ class CloudRuntime(Runtime):
             ignore_functions = self._resolve_open_ignore_functions()
             repo = self._resolve_repo(root, ignore_functions)
             project = self._resolve_project()
-            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
+            existing_cloudspaces = self._resolve_existing_cloudspaces(project.project_id, cloudspace_config.name)
             cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
             existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
                 cluster_id, project.project_id, existing_cloudspaces
@@ -183,26 +183,8 @@ class CloudRuntime(Runtime):
             if getattr(run, "cluster_id", None):
                 print(f"Running on {run.cluster_id}")
 
-            # TODO: We shouldn't need to create an instance here
-            if existing_run_instance is not None:
-                run_instance = self._api_transfer_run_instance(
-                    project.project_id,
-                    run.id,
-                    existing_run_instance.id,
-                    V1LightningappInstanceState.STOPPED,
-                )
-            else:
-                run_instance = self._api_create_run_instance(
-                    cluster_id,
-                    project.project_id,
-                    cloudspace_name,
-                    cloudspace_id,
-                    run.id,
-                    V1LightningappInstanceState.STOPPED,
-                )
-
             if "PYTEST_CURRENT_TEST" not in os.environ:
-                click.launch(self._get_app_url(project, cloudspace_name, run_instance, "code", needs_credits))
+                click.launch(self._get_cloudspace_url(project, cloudspace_name, "code", needs_credits))
 
         except ApiException as e:
             logger.error(e.body)
@@ -213,7 +195,7 @@ class CloudRuntime(Runtime):
         project_id: str,
         cloudspace_id: str,
         name: str,
-        cluster_id: str = None,
+        cluster_id: str,
     ):
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
         such as the project and cluster IDs that are instead passed directly.
@@ -232,10 +214,10 @@ class CloudRuntime(Runtime):
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
-        ignore_functions = self._resolve_open_ignore_functions()
-        repo = self._resolve_repo(root, ignore_functions)
-        cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
-        cluster_id = self._resolve_cluster_id(cluster_id, project_id, [cloudspace])
+        repo = self._resolve_repo(root)
+        self._resolve_cloudspace(project_id, cloudspace_id)
+        existing_instances = self._resolve_run_instances_by_name(project_id, name)
+        name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
 
         self.app._update_index_file()
@@ -294,7 +276,7 @@ class CloudRuntime(Runtime):
             root = self._resolve_root()
             repo = self._resolve_repo(root)
             project = self._resolve_project()
-            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
+            existing_cloudspaces = self._resolve_existing_cloudspaces(project.project_id, cloudspace_config.name)
             cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
             existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
                 cluster_id, project.project_id, existing_cloudspaces
@@ -383,9 +365,7 @@ class CloudRuntime(Runtime):
             # TODO: Remove testing dependency, but this would open a tab for each test...
             if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
                 click.launch(
-                    self._get_app_url(
-                        project, cloudspace_name, run_instance, "logs" if run.is_headless else "web-ui", needs_credits
-                    )
+                    self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui", needs_credits)
                 )
         except ApiException as e:
             logger.error(e.body)
@@ -478,11 +458,11 @@ class CloudRuntime(Runtime):
             id=cloudspace_id,
         )
 
-    def _resolve_existing_cloudspaces(self, project, cloudspace_name: str) -> List[V1CloudSpace]:
+    def _resolve_existing_cloudspaces(self, project_id: str, cloudspace_name: str) -> List[V1CloudSpace]:
         """Lists all the cloudspaces with a name matching the provided cloudspace name."""
         # TODO: Add pagination, otherwise this could break if users have a lot of cloudspaces.
         existing_cloudspaces = self.backend.client.cloud_space_service_list_cloud_spaces(
-            project_id=project.project_id
+            project_id=project_id
         ).cloudspaces
 
         # Search for cloudspaces with the given name (possibly with some random characters appended)
@@ -521,6 +501,14 @@ class CloudRuntime(Runtime):
                     break
         return existing_cloudspace, existing_run_instance
 
+    def _resolve_run_instances_by_name(self, project_id: str, name: str) -> List[Externalv1LightningappInstance]:
+        """Get all existing instances in the given project with the given name."""
+        run_instances = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project_id,
+        ).lightningapps
+
+        return [run_instance for run_instance in run_instances if run_instance.display_name == name]
+
     def _resolve_cloudspace_name(
         self,
         cloudspace_name: str,
@@ -529,15 +517,28 @@ class CloudRuntime(Runtime):
     ) -> str:
         """If there are existing cloudspaces but not on the cluster - choose a randomised name."""
         if len(existing_cloudspaces) > 0 and existing_cloudspace is None:
-            letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
             name_exists = True
             while name_exists:
-                random_name = cloudspace_name + "-" + "".join(random.sample(letters, 4))
+                random_name = cloudspace_name + "-" + "".join(random.sample(string.ascii_letters, 4))
                 name_exists = any([app.name == random_name for app in existing_cloudspaces])
 
             cloudspace_name = random_name
         return cloudspace_name
+
+    def _resolve_run_name(
+        self,
+        name: str,
+        existing_instances: List[Externalv1LightningappInstance],
+    ) -> str:
+        """If there are existing instances with the same name - choose a randomised name."""
+        if len(existing_instances) > 0:
+            name_exists = True
+            while name_exists:
+                random_name = name + "-" + "".join(random.sample(string.ascii_letters, 4))
+                name_exists = any([app.name == random_name for app in existing_instances])
+
+            name = random_name
+        return name
 
     def _resolve_queue_server_type(self) -> V1QueueServerType:
         """Resolve the cloud queue type from the environment."""
@@ -986,10 +987,24 @@ class CloudRuntime(Runtime):
         requirements_path = getattr(getattr(run_body.image_spec, "dependency_file_info", ""), "path", "")
         logger.info(f"requirements_path: {requirements_path}")
 
+    def _get_cloudspace_url(
+        self, project: V1Membership, cloudspace_name: str, tab: str, need_credits: bool = False
+    ) -> str:
+        user = self.backend.client.auth_service_get_user()
+        action = "?action=add_credits" if need_credits else ""
+        paths = [
+            user.username,
+            project.name,
+            "apps",
+            cloudspace_name,
+            tab,
+        ]
+        path = "/".join([quote(path, safe="") for path in paths])
+        return f"{get_lightning_cloud_url()}/{path}{action}"
+
     def _get_app_url(
         self,
         project: V1Membership,
-        cloudspace_name: str,
         run_instance: Externalv1LightningappInstance,
         tab: str,
         need_credits: bool = False,
@@ -1000,8 +1015,8 @@ class CloudRuntime(Runtime):
             paths = [
                 user.username,
                 project.name,
-                "apps",
-                cloudspace_name,
+                "jobs",
+                run_instance.name,
                 tab,
             ]
         else:
@@ -1011,5 +1026,5 @@ class CloudRuntime(Runtime):
                 run_instance.id,
                 tab,
             ]
-        path = quote("/".join([path.replace(" ", "_").replace("/", "~") for path in paths]))
+        path = "/".join([quote(path, safe="") for path in paths])
         return f"{get_lightning_cloud_url()}/{path}{action}"
