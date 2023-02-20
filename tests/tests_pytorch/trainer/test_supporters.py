@@ -25,14 +25,7 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.supporters import (
-    _CombinedDataset,
-    _MaxSizeCycle,
-    _MinSize,
-    _Sequential,
-    _supported_modes,
-    CombinedLoader,
-)
+from lightning.pytorch.trainer.supporters import _MaxSizeCycle, _MinSize, _Sequential, _supported_modes, CombinedLoader
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -46,18 +39,9 @@ from tests_pytorch.helpers.runif import RunIf
     ],
 )
 def test_combined_dataset(dataset_1, dataset_2):
-    """Verify the length of the CombinedDataset."""
-    datasets = [dataset_1, dataset_2]
-    combined_dataset = _CombinedDataset(datasets, "max_size_cycle")
-    assert len(combined_dataset) == 20
-
-    combined_dataset = _CombinedDataset(datasets, "min_size")
-    assert len(combined_dataset) == 10
-
-
-def test_combined_dataset_length_mode_error():
-    with pytest.raises(ValueError, match="Unsupported mode 'test'"):
-        _CombinedDataset([], mode="test")
+    datasets = [DataLoader(dataset_1), DataLoader(dataset_2)]
+    combined_loader = CombinedLoader(datasets, "max_size_cycle")
+    assert combined_loader._dataset_length() == 20
 
 
 def test_combined_dataset_no_length():
@@ -75,12 +59,12 @@ def test_combined_dataset_no_length():
         def __len__(self):
             pass
 
-    cd = _CombinedDataset([Foo(), Bar(), Baz()])
-    assert len(cd) == 5
+    cl = CombinedLoader([DataLoader(Foo()), DataLoader(Bar()), DataLoader(Baz())])
+    assert cl._dataset_length() == 5
 
-    cd = _CombinedDataset(Bar)
+    cl = CombinedLoader(DataLoader(Bar()))
     with pytest.raises(NotImplementedError, match="All datasets are iterable-style"):
-        len(cd)
+        cl._dataset_length()
 
 
 def test_combined_loader_modes():
@@ -321,7 +305,7 @@ def test_combined_data_loader_validation_test(replace_sampler_ddp):
     else:
         assert all(isinstance(s, (SequentialSampler, CustomSampler)) for s in samplers_flattened)
 
-    datasets_flattened = tree_flatten(combined_loader.dataset.datasets)[0]
+    datasets_flattened = [dl.dataset for dl in combined_loader.flattened]
     assert len(datasets_flattened) == 6
     assert all(isinstance(ds, CustomDataset) for ds in datasets_flattened)
 
