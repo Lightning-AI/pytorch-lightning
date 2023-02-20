@@ -44,10 +44,12 @@ class _MyFabricGradVal(BoringFabric):
         pytest.param("fsdp", 2, marks=RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")),
     ],
 )
-@pytest.mark.parametrize("precision", [16, 32])
+@pytest.mark.parametrize("precision", ['32-true', pytest.param('16-mixed', marks=RunIf(min_cuda_gpus=1))])
 @RunIf(standalone=True)
 def test_grad_clipping_norm(strategy, num_devices, precision):
     accelerator = "cpu" if MPSAccelerator.is_available() else "auto"
+    if accelerator == "cpu" and precision == '16-mixed':
+        precision = "bf16-mixed"
     fabric = _MyFabricGradNorm(accelerator=accelerator, strategy=strategy, devices=num_devices, precision=precision)
     fabric.run()
 
@@ -61,12 +63,12 @@ def test_grad_clipping_norm(strategy, num_devices, precision):
         pytest.param("fsdp", 2, marks=RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")),
     ],
 )
-@pytest.mark.parametrize("precision", [16, 32])
+@pytest.mark.parametrize("precision", ['32-true', pytest.param('16-mixed', marks=RunIf(min_cuda_gpus=1))])
 @RunIf(standalone=True)
 def test_grad_clipping_val(strategy, num_devices, precision):
     accelerator = "cpu" if num_devices == 2 and torch.backends.mps.is_available() else "auto"
-    if accelerator == "cpu":
-        precision = "bf16"
+    if accelerator == "cpu" and precision == '16-mixed':
+        precision = "bf16-mixed"
     fabric = _MyFabricGradVal(accelerator=accelerator, strategy=strategy, devices=num_devices, precision=precision)
     fabric.run()
 
