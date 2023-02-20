@@ -97,7 +97,7 @@ class Precision:
         for group in optimizer.param_groups:
             yield from group["params"]
 
-    def unscale_gradients_(self, optimizer):
+    def unscale_gradients_(self, optimizer: Optimizer):
         return
 
     def state_dict(self) -> Dict[str, Any]:

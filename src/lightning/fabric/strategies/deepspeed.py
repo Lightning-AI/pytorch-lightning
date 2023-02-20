@@ -489,7 +489,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def clip_gradients_norm(
         self,
         module: "deepspeed.DeepSpeedEngine",
-        optimizer: Steppable,
+        optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
@@ -500,7 +500,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     def clip_gradients_value(
-        self, module: "deepspeed.DeepSpeedEngine", optimizer: Steppable, clip_val: Union[float, int]
+        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "

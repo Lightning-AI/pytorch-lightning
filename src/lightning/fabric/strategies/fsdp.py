@@ -274,7 +274,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def clip_gradients_norm(
         self,
         module: "FullyShardedDataParallel",
-        optimizer: Steppable,
+        optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
@@ -287,7 +287,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     def clip_gradients_value(
-        self, module: "FullyShardedDataParallel", optimizer: Steppable, clip_val: Union[float, int]
+        self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         """Clip gradients by value."""
 

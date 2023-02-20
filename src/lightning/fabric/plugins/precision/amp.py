@@ -17,7 +17,7 @@ from typing import Any, cast, Dict, Generator, Literal, Optional
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
@@ -94,7 +94,7 @@ class MixedPrecision(Precision):
         # https://github.com/pytorch/pytorch/issues/67233
         return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16-mixed" else torch.half)
 
-    def unscale_gradients_(self, optimizer):
+    def unscale_gradients_(self, optimizer: Optimizer):
         scaler = getattr(self.precision, "scaler", None)
         if scaler is not None:
             if _optimizer_handles_unscaling(optimizer):

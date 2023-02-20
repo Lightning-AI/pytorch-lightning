@@ -308,7 +308,7 @@ class Strategy(ABC):
     def clip_gradients_norm(
         self,
         module: torch.nn.Module,
-        optimizer: Steppable,
+        optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
@@ -320,7 +320,7 @@ class Strategy(ABC):
             parameters, max_norm=max_norm, norm_type=norm_type, error_if_nonfinite=error_if_nonfinite
         )
 
-    def clip_gradients_value(self, module: torch.nn.Module, optimizer: Steppable, clip_val: Union[float, int]) -> None:
+    def clip_gradients_value(self, module: torch.nn.Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
         self.precision.unscale_gradients_(optimizer)
         parameters = self.precision.main_params(optimizer)
