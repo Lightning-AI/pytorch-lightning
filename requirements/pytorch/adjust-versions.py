@@ -40,11 +40,10 @@ def replace(req: str, torch_version: Optional[str] = None, remove_torch_ver: boo
 
     latest = find_latest(torch_version)
     for lib, version in latest.items():
-        if remove_torch_ver and lib == "torch":
-            replace = lib
-        else:
-            replace = f"{lib}=={version}" if version else ""
-        req = re.sub(rf"\b{lib}(?!\w).*", replace, req)
+        replace_ = lib
+        if not remove_torch_ver or lib != "torch":
+            replace_ = f"{lib}=={version}" if version else ""
+        req = re.sub(rf"\b{lib}(?!\w).*", replace_, req)
 
     return req
 

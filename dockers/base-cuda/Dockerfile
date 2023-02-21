@@ -93,6 +93,8 @@ RUN \
     for fpath in `ls requirements/**/*.txt`; do \
         python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
     done && \
+
+    # Install base requirements \
     pip install -r requirements/pytorch/base.txt --no-cache-dir --extra-index-url ${TORCH_URL} ${TORCH_WHEEL_OPTIONS} && \
     rm assistant.py
 
