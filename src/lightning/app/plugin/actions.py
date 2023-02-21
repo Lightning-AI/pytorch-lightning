@@ -15,6 +15,12 @@ class Action:
 
 @dataclass
 class NavigateTo(Action):
+    """The ``NavigateTo`` action can be used to navigate to a relative URL within the Lightning frontend.
+
+    Args:
+        url: The relative URL to navigate to. E.g. ``/<username>/<project>``.
+    """
+
     url: str
 
     def to_spec(self) -> V1CloudSpaceAppAction:
@@ -36,6 +42,13 @@ class ToastSeverity(Enum):
 
 @dataclass
 class Toast(Action):
+    """The ``Toast`` action can be used to display a toast message to the user.
+
+    Args:
+        severity: The severity level of the toast. One of: "error", "info", "success", "warning".
+        message: The message body.
+    """
+
     severity: Union[ToastSeverity, str]
     message: str
 
