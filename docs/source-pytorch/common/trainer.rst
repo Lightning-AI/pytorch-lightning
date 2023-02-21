@@ -1017,7 +1017,7 @@ The pseudocode applies also to the ``val_dataloader``.
 use_distributed_sampler
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-See :paramref:`lightning.pytorch.Trainer.use_distributed_sampler`.
+See :paramref:`pytorch_lightning.trainer.Trainer.params.use_distributed_sampler`.
 
 .. testcode::
 
