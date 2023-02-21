@@ -16,6 +16,7 @@ from lightning.fabric.accelerators.cuda import CUDAAccelerator, find_usable_cuda
 from lightning.fabric.accelerators.mps import MPSAccelerator  # noqa: F401
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
 from lightning.fabric.accelerators.tpu import TPUAccelerator  # noqa: F401
+from lightning.fabric.accelerators.xpu import XPUAccelerator  # noqa: F401
 
 _ACCELERATORS_BASE_MODULE = "lightning.fabric.accelerators"
 ACCELERATOR_REGISTRY = _AcceleratorRegistry()

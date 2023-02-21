@@ -38,6 +38,7 @@ from lightning.pytorch.accelerators.hpu import HPUAccelerator
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.accelerators.xpu import XPUAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
@@ -358,6 +359,8 @@ class AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if XPUAccelerator.is_available():
+            return "xpu"
         return "cpu"
 
     @staticmethod
@@ -366,6 +369,9 @@ class AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if XPUAccelerator.is_available():
+            return "xpu"
+
         raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -429,8 +435,8 @@ class AcceleratorConnector:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            if isinstance(self._accelerator_flag, (XPUAccelerator, CUDAAccelerator, MPSAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("xpu", "cuda", "gpu", "mps")
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:
@@ -506,10 +512,11 @@ class AcceleratorConnector:
         if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
 
-        if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
+        if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu" or self._accelerator_flag == "xpu":
+            msg_keyword = "supported" if self._accelerator_flag == "cpu" else "recommended"
             rank_zero_warn(
-                "You passed `Trainer(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
-                "CPU. Using `precision='bf16-mixed'` instead."
+                f"You passed `Trainer(accelerator='{self._accelerator_flag}', precision='16-mixed')` but AMP with fp16 "
+                f"is not {msg_keyword} on {self._accelerator_flag.upper()}. Using `precision='bf16-mixed'` instead."
             )
             self._precision_flag = "bf16-mixed"
 
@@ -517,7 +524,12 @@ class AcceleratorConnector:
             rank_zero_info(
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
-            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
+            if self._accelerator_flag == "cpu":
+                device = "cpu"
+            elif self._accelerator_flag == "xpu":
+                device = "xpu"
+            else:
+                device = "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPMixedPrecisionPlugin(self._precision_flag, device)

@@ -23,6 +23,7 @@ from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.xpu import XPUAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
@@ -318,6 +319,8 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if XPUAccelerator.is_available():
+            return "xpu"
         return "cpu"
 
     @staticmethod
@@ -326,6 +329,9 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if XPUAccelerator.is_available():
+            return "xpu"
+
         raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:

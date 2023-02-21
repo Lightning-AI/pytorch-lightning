@@ -19,6 +19,7 @@ from lightning.pytorch.accelerators.hpu import HPUAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.ipu import IPUAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.mps import MPSAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.tpu import TPUAccelerator  # noqa: F401
+from lightning.pytorch.accelerators.xpu import XPUAccelerator  # noqa: F401
 
 ACCELERATORS_BASE_MODULE = "lightning.pytorch.accelerators"
 AcceleratorRegistry = _AcceleratorRegistry()
