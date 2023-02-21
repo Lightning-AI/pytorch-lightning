@@ -15,7 +15,6 @@
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
-from lightning.pytorch.strategies import DataParallelStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -65,7 +64,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         )
 
     # verify minimum validation requirements
-    has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
+    has_val_loader = trainer.fit_loop.epoch_loop.val_loop._data_source.is_defined()
     has_val_step = is_overridden("validation_step", model)
     if has_val_loader and not has_val_step:
         rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
@@ -120,18 +119,10 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
 
 
 def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
-    """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
     batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
-
     for hook in batch_transfer_hooks:
-        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        if isinstance(trainer.strategy, DataParallelStrategy) and (
-            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
-        ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
-
         if isinstance(trainer.accelerator, IPUAccelerator) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):

@@ -47,7 +47,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
+    def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")

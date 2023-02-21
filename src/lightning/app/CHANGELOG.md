@@ -9,10 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added Storage Commands ([#16740](https://github.com/Lightning-AI/lightning/pull/16740))
-  * `rm`: Delete files from your Cloud Platform Filesystem
-
-- Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
+-
 
 
 ### Changed
@@ -34,6 +31,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 -
+
+
+## [1.9.2] - 2023-02-15
+
+- Added Storage Commands ([#16740](https://github.com/Lightning-AI/lightning/pull/16740))
+  * `rm`: Delete files from your Cloud Platform Filesystem
+- Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
 
 
 ## [1.9.1] - 2023-02-10

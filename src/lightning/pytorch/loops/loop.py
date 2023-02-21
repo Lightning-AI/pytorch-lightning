@@ -20,23 +20,9 @@ from lightning.pytorch.loops.progress import BaseProgress
 class _Loop:
     """Basic Loops interface."""
 
-    def __init__(self) -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self._restarting = False
-        self._trainer: Optional["pl.Trainer"] = None
-
-    @property
-    def trainer(self) -> "pl.Trainer":
-        if self._trainer is None:
-            raise RuntimeError("The loop is not attached to a Trainer.")
-        return self._trainer
-
-    @trainer.setter
-    def trainer(self, trainer: "pl.Trainer") -> None:
-        """Connects this loop's trainer and its children."""
-        self._trainer = trainer
-        for v in self.__dict__.values():
-            if isinstance(v, _Loop):
-                v.trainer = trainer
+        self.trainer = trainer
 
     @property
     def restarting(self) -> bool:

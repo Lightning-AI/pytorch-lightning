@@ -72,7 +72,8 @@ class ManualOptModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "kwargs", [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": 16}, marks=RunIf(min_cuda_gpus=1))]
+    "kwargs",
+    [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": "16-mixed"}, marks=RunIf(min_cuda_gpus=1))],
 )
 def test_multiple_optimizers_manual_call_counts(tmpdir, kwargs):
     model = ManualOptModel()
@@ -87,7 +88,7 @@ def test_multiple_optimizers_manual_call_counts(tmpdir, kwargs):
         **kwargs,
     )
 
-    if kwargs.get("precision") == 16:
+    if kwargs.get("precision") == "16-mixed":
         # mock the scaler instead of the optimizer step because it can be skipped with NaNs
         scaler_step_patch = mock.patch.object(
             trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
@@ -99,7 +100,7 @@ def test_multiple_optimizers_manual_call_counts(tmpdir, kwargs):
     assert bwd_mock.call_count == limit_train_batches * 3
     assert trainer.global_step == limit_train_batches * 2
 
-    if kwargs.get("precision") == 16:
+    if kwargs.get("precision") == "16-mixed":
         scaler_step_patch.stop()
         assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
 
@@ -141,7 +142,7 @@ def test_multiple_optimizers_manual_amp(tmpdir, accelerator):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        precision=16,
+        precision="16-mixed",
         accelerator=accelerator,
         devices=1,
     )
@@ -216,15 +217,13 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     `training_step`"""
 
     model = ManualOptimizationExtendedModel()
-    model.training_step_end = None
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=10,
         limit_test_batches=0,
         limit_val_batches=0,
-        precision=16,
+        precision="16-mixed",
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
@@ -301,15 +300,13 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             assert self.called["on_train_batch_end"] == 20
 
     model = ExtendedModel()
-    model.training_step_end = None
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=20,
         limit_test_batches=0,
         limit_val_batches=0,
-        precision=16,
+        precision="16-mixed",
         accelerator="gpu",
         devices=1,
     )
@@ -383,7 +380,7 @@ def test_multiple_optimizers_step(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        precision=16,
+        precision="16-mixed",
         accelerator="gpu",
         devices=1,
     )
@@ -834,8 +831,6 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
 def test_lr_scheduler_step_not_called(tmpdir):
     """Test `lr_scheduler.step()` is not called in manual optimization."""
     model = ManualOptimBoringModel()
-    model.training_step_end = None
-
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, fast_dev_run=2)
 
     with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
@@ -848,7 +843,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("precision", [16, 32])
+@pytest.mark.parametrize("precision", ["16-mixed", "32-true"])
 def test_multiple_optimizers_logging(precision, tmpdir):
     """Tests that metrics are properly being logged."""
 

@@ -39,7 +39,7 @@ jobs:
         python-version: ["3.8"]
         requires: ["oldest", "latest"]
         include:
-          # "lightning" installs the monolithic package
+          # "app" installs the standalone package
           - {os: "macOS-11", pkg-name: "app", python-version: "3.9", requires: "latest"}
           - {os: "ubuntu-20.04", pkg-name: "app", python-version: "3.9", requires: "latest"}
           - {os: "windows-2022", pkg-name: "app", python-version: "3.8", requires: "latest"}
@@ -68,7 +68,9 @@ jobs:
         path: .wheels
         key: pip_wheels  # to not being cleand with crone
         enableCrossOsArchive: true
-    - run: ls -lh .wheels/
+    - run: |
+        mkdir -p .wheels
+        ls -lh .wheels/
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV

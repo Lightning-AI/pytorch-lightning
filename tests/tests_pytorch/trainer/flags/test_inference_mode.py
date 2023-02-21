@@ -50,6 +50,8 @@ def test_eval_inference_mode(tmp_path, trainer_fn):
 
 
 def test_no_grad_context():
+    trainer = Mock()
+
     class Foo:
         @_no_grad_context
         def run(self):
@@ -64,13 +66,13 @@ def test_no_grad_context():
         def run(self):
             ...
 
-    f = Foo()
+    f = Foo(trainer)
     with pytest.raises(TypeError, match="Foo.inference_mode` needs to be defined"):
         f.run()
 
     class Foo(_Loop):
         def __init__(self):
-            super().__init__()
+            super().__init__(trainer)
             self.inference_mode = False
 
         @_no_grad_context
@@ -78,7 +80,6 @@ def test_no_grad_context():
             ...
 
     f = Foo()
-    f.trainer = Mock()
     with mock.patch("torch.no_grad") as no_grad_mock:
         f.run()
     no_grad_mock.assert_called_once_with()
