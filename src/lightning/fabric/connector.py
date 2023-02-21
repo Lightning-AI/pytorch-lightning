@@ -415,14 +415,6 @@ class _Connector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag == "ddp_spawn" and (
-            TorchElasticEnvironment.detect()
-            or KubeflowEnvironment.detect()
-            or SLURMEnvironment.detect()
-            or LSFEnvironment.detect()
-            or MPIEnvironment.detect()
-        ):
-            strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
@@ -517,7 +509,9 @@ class _Connector:
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
-            self.strategy.cluster_environment = self.cluster_environment
+            if self.strategy.cluster_environment is None:
+                self.strategy.cluster_environment = self.cluster_environment
+            self.cluster_environment = self.strategy.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
             if self.strategy.parallel_devices:
                 self._parallel_devices = self.strategy.parallel_devices

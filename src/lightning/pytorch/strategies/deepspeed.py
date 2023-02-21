@@ -127,8 +127,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision=16` or
-                `precision="bf16"`.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision="16-mixed"` or
+                `precision="bf16-mixed"`.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
@@ -505,9 +505,9 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision_plugin.precision == "16":
+            if self.precision_plugin.precision == "16-mixed":
                 dtype = torch.float16
-            elif self.precision_plugin.precision == "bf16":
+            elif self.precision_plugin.precision == "bf16-mixed":
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -622,10 +622,10 @@ class DeepSpeedStrategy(DDPStrategy):
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
         batch_size = 1
-        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
-        if train_dl_source.is_defined():
+        data_source = self.lightning_module.trainer.fit_loop._data_source
+        if data_source.is_defined():
             try:
-                train_dataloader = train_dl_source.dataloader()
+                train_dataloader = data_source.dataloader()
                 if hasattr(train_dataloader, "batch_sampler"):
                     batch_size = train_dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
@@ -641,7 +641,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == "16":
+        if self.precision_plugin.precision == "16-mixed":
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -653,7 +653,7 @@ class DeepSpeedStrategy(DDPStrategy):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16":
+        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16-mixed":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
