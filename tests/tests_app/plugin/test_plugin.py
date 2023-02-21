@@ -13,7 +13,7 @@ from lightning.app.plugin.plugin import _Run, _start_plugin_server
 
 
 @pytest.fixture()
-@mock.patch("lightning.app.core.plugin.uvicorn")
+@mock.patch("lightning.app.plugin.plugin.uvicorn")
 def mock_plugin_server(mock_uvicorn) -> TestClient:
     """This fixture returns a `TestClient` for the plugin server."""
 
@@ -59,7 +59,7 @@ def as_tar_bytes(file_name, content):
 
 
 _plugin_with_internal_error = """
-from lightning.app.core.plugin import LightningPlugin
+from lightning.app.plugin.plugin import LightningPlugin
 
 class TestPlugin(LightningPlugin):
     def run(self):
@@ -127,7 +127,7 @@ plugin = TestPlugin()
         ),
     ],
 )
-@mock.patch("lightning.app.core.plugin.requests")
+@mock.patch("lightning.app.plugin.plugin.requests")
 def test_run_errors(mock_requests, mock_plugin_server, body, message, tar_file_name, content):
     if tar_file_name is not None:
         content = as_tar_bytes(tar_file_name, content)
@@ -141,7 +141,7 @@ def test_run_errors(mock_requests, mock_plugin_server, body, message, tar_file_n
 
 
 _plugin_with_job_run = """
-from lightning.app.core.plugin import LightningPlugin
+from lightning.app.plugin.plugin import LightningPlugin
 
 class TestPlugin(LightningPlugin):
     def run(self, name, entrypoint):
@@ -153,7 +153,7 @@ plugin = TestPlugin()
 
 @pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
-@mock.patch("lightning.app.core.plugin.requests")
+@mock.patch("lightning.app.plugin.plugin.requests")
 def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server):
     """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct
     arguments."""
