@@ -27,7 +27,7 @@ if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
     from lightning.app.__about__ import *  # noqa: F401, F403
 if "__version__" not in locals():
     if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
-        pass
+        from lightning.app.__version__ import version as __version__
     elif package_available("lightning"):
         from lightning import __version__  # noqa: F401
 
