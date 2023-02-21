@@ -27,9 +27,7 @@ from lightning.pytorch.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
 
-_PRECISION_INPUT_INT = Literal[32, 16]
-_PRECISION_INPUT_STR = Literal["32", "16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+_PRECISION_INPUT = Literal["32-true", "16-mixed"]
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
@@ -37,17 +35,17 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     Raises:
         ValueError:
-            If the precision is neither 16 nor 32.
+            If the precision is neither 16-mixed nor 32-true.
     """
 
-    def __init__(self, precision: Literal["32", 32, "16", 16]) -> None:
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+    def __init__(self, precision: Literal["32-true", "16-mixed"]) -> None:
+        supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))  # type: ignore
+        self.precision = cast(_PRECISION_INPUT, str(precision))
 
     def backward(  # type: ignore[override]
         self,

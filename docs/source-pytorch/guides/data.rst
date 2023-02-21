@@ -49,8 +49,8 @@ There are a few ways to pass multiple Datasets to Lightning:
 2. In the training loop, you can pass multiple DataLoaders as a dict or list/tuple, and Lightning will
    automatically combine the batches from different DataLoaders.
 3. In the validation, test, or prediction, you have the option to return multiple DataLoaders as list/tuple, which Lightning will call sequentially
-   or combine the DataLoaders using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
-   automatically combine the batches from different DataLoaders.
+   or combine the DataLoaders using :class:`~pytorch_lightning.utilities.CombinedLoader`, which is what Lightning uses
+   under the hood.
 
 
 Using LightningDataModule
@@ -115,8 +115,6 @@ Return Multiple DataLoaders
 
 You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.module.LightningModule`, and Lightning will take care of batch combination.
 
-For more details, refer to :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
-
 .. testcode::
 
     class LitModel(LightningModule):
@@ -176,11 +174,11 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
 
-Alternatively, you can also pass in a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` containing multiple DataLoaders.
+Alternatively, you can also pass in a :class:`~pytorch_lightning.utilities.CombinedLoader` containing multiple DataLoaders.
 
 .. testcode::
 
-    from pytorch_lightning.trainer.supporters import CombinedLoader
+    from pytorch_lightning.utilities import CombinedLoader
 
 
     def train_dataloader(self):
@@ -224,18 +222,18 @@ Refer to the following for more details for the default sequential option:
         ...
 
 
-Evaluation DataLoaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collections of DataLoaders such as list, tuple, or dictionary. The DataLoaders can be accessed using in the same way as the provided structure:
+Evaluation DataLoaders are iterated over sequentially. The above is equivalent to:
 
 .. testcode::
 
-    from pytorch_lightning.trainer.supporters import CombinedLoader
+    from pytorch_lightning.utilities import CombinedLoader
 
 
     def val_dataloader(self):
         loader_a = DataLoader()
         loader_b = DataLoader()
         loaders = {"a": loader_a, "b": loader_b}
-        combined_loaders = CombinedLoader(loaders, mode="max_size_cycle")
+        combined_loaders = CombinedLoader(loaders, mode="sequential")
         return combined_loaders
 
 
@@ -281,12 +279,12 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
             # extract metadata, etc. from the dataset:
             ...
 
-If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which allows you to fetch batches from a collection of DataLoaders
+If you are using a :class:`~pytorch_lightning.utilities.CombinedLoader` object which allows you to fetch batches from a collection of DataLoaders
 simultaneously which supports collections of DataLoader such as list, tuple, or dictionary. The DataLoaders can be accessed using the same collection structure:
 
 .. code-block:: python
 
-    from pytorch_lightning.trainer.supporters import CombinedLoader
+    from pytorch_lightning.utilities import CombinedLoader
 
     test_dl1 = ...
     test_dl2 = ...
@@ -294,14 +292,14 @@ simultaneously which supports collections of DataLoader such as list, tuple, or 
     # If you provided a list of DataLoaders:
 
     combined_loader = CombinedLoader([test_dl1, test_dl2])
-    list_of_loaders = combined_loader.loaders
+    list_of_loaders = combined_loader.iterables
     test_dl1 = list_of_loaders.loaders[0]
 
 
     # If you provided dictionary of DataLoaders:
 
     combined_loader = CombinedLoader({"dl1": test_dl1, "dl2": test_dl2})
-    dictionary_of_loaders = combined_loader.loaders
+    dictionary_of_loaders = combined_loader.iterables
     test_dl1 = dictionary_of_loaders["dl1"]
 
 --------------

@@ -926,10 +926,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, accelerator="gpu", devices=1)  # works only on CUDA
+    trainer = Trainer(precision="16-mixed", accelerator="gpu", devices=1)  # works only on CUDA
 
     # bfloat16 precision
-    trainer = Trainer(precision="bf16")
+    trainer = Trainer(precision="bf16-mixed")
 
     # 64-bit precision
     trainer = Trainer(precision=64)
@@ -1055,32 +1055,23 @@ By setting to False, you have to add your own distributed sampler:
 strategy
 ^^^^^^^^
 
-Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom strategies.
+Supports passing different training strategies with aliases (ddp, fsdp, etc) as well as configured strategies.
 
 .. code-block:: python
 
-    # Training with the DistributedDataParallel strategy on 4 GPUs
+    # Data-parallel training with the DDP strategy on 4 GPUs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
-    # Training with the DDP Spawn strategy using 4 cpu processes
-    trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
+    # Model-parallel training with the FSDP strategy on 4 GPUs
+    trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=4)
 
-.. note:: Additionally, you can pass your custom strategy to the ``strategy`` argument.
+Additionally, you can pass a strategy object.
 
 .. code-block:: python
 
     from pytorch_lightning.strategies import DDPStrategy
 
-
-    class CustomDDPStrategy(DDPStrategy):
-        def configure_ddp(self):
-            self._model = MyCustomDistributedDataParallel(
-                self.model,
-                device_ids=...,
-            )
-
-
-    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=DDPStrategy(static_graph=True), accelerator="gpu", devices=2)
 
 See Also:
     - :ref:`Multi GPU Training <multi_gpu>`.

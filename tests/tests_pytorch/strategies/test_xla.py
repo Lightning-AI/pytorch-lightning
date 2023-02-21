@@ -26,28 +26,11 @@ from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloade
 from tests_pytorch.helpers.runif import RunIf
 
 
-class BoringModelNoDataloaders(BoringModel):
-    def train_dataloader(self):
-        raise NotImplementedError
-
-    def val_dataloader(self):
-        raise NotImplementedError
-
-    def test_dataloader(self):
-        raise NotImplementedError
-
-    def predict_dataloader(self):
-        raise NotImplementedError
-
-
-_loader = DataLoader(RandomDataset(32, 64))
-_loader_no_len = CustomNotImplementedErrorDataloader(_loader)
-
-
 def test_error_process_iterable_dataloader(xla_available):
     strategy = XLAStrategy(MagicMock())
+    loader_no_len = CustomNotImplementedErrorDataloader(DataLoader(RandomDataset(32, 64)))
     with pytest.raises(TypeError, match="TPUs do not currently support"):
-        strategy.process_dataloader(_loader_no_len)
+        strategy.process_dataloader(loader_no_len)
 
 
 class BoringModelTPU(BoringModel):

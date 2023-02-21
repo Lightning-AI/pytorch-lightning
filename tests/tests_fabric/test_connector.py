@@ -37,6 +37,7 @@ from lightning.fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
 from lightning.fabric.strategies import (
@@ -70,6 +71,8 @@ def test_accelerator_choice_tpu(accelerator, devices):
         # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
         # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
         assert isinstance(connector.strategy, XLAStrategy)
+        assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
     else:
         assert isinstance(connector.strategy, SingleTPUStrategy)
 
@@ -534,9 +537,9 @@ def test_strategy_choice_ddp_spawn(*_):
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
-    if not isinstance(strategy, str):
+    if strategy and not isinstance(strategy, str):
         strategy = strategy()
 
     with mock.patch.dict(
@@ -571,29 +574,9 @@ def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
 )
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_strategy_choice_ddp_te(*_):
-    connector = _Connector(strategy="ddp", accelerator="gpu", devices=2)
+def test_strategy_choice_ddp_torchelastic(*_):
+    connector = _Connector(accelerator="gpu", devices=2)
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
-    assert connector.strategy.cluster_environment.local_rank() == 1
-    assert connector.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-def test_strategy_choice_ddp_cpu_te():
-    connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
-    assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
     assert connector.strategy.cluster_environment.local_rank() == 1
@@ -611,10 +594,10 @@ def test_strategy_choice_ddp_cpu_te():
         "RANK": "1",
     },
 )
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_kubeflow(*_):
-    connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
+    connector = _Connector(accelerator="gpu", devices=2)
     assert isinstance(connector.accelerator, CUDAAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -633,7 +616,7 @@ def test_strategy_choice_ddp_kubeflow(*_):
     },
 )
 def test_strategy_choice_ddp_cpu_kubeflow():
-    connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
+    connector = _Connector(accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -653,7 +636,7 @@ def test_strategy_choice_ddp_cpu_kubeflow():
         "SLURM_LOCALID": "0",
     },
 )
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
+@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(strategy):
     connector = _Connector(strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
@@ -830,11 +813,14 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", ["64-true", "32-true", "16-mixed", "bf16-mixed"])
+@pytest.mark.parametrize("precision", [None, "64-true", "32-true", "16-mixed", "bf16-mixed"])
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
-    with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
+    env_vars = {}
+    if precision is not None:
+        env_vars["LT_PRECISION"] = precision
+    with mock.patch.dict(os.environ, env_vars):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
     assert isinstance(connector.precision, Precision)
 
@@ -842,6 +828,7 @@ def test_precision_from_environment(_, precision):
 @pytest.mark.parametrize(
     "accelerator, strategy, expected_accelerator, expected_strategy",
     [
+        (None, None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", "ddp", CPUAccelerator, DDPStrategy),
         pytest.param("mps", None, MPSAccelerator, SingleDeviceStrategy, marks=RunIf(mps=True)),
@@ -853,7 +840,9 @@ def test_precision_from_environment(_, precision):
 )
 def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
     """Test that the accelerator and strategy input can be set through the environment variables."""
-    env_vars = {"LT_ACCELERATOR": accelerator}
+    env_vars = {}
+    if accelerator is not None:
+        env_vars["LT_ACCELERATOR"] = accelerator
     if strategy is not None:
         env_vars["LT_STRATEGY"] = strategy
 
