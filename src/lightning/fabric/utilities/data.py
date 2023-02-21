@@ -248,7 +248,9 @@ def _dataloader_init_kwargs_resolve_sampler(
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
 
-def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
+def _auto_add_worker_init_fn(dataloader: object, rank: int) -> None:
+    if not hasattr(dataloader, "worker_init_fn"):
+        return
     if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 

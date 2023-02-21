@@ -110,7 +110,7 @@ class PLAppProgressTracker(Callback):
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         current = self._test_batch_idx(trainer)
@@ -141,7 +141,7 @@ class PLAppProgressTracker(Callback):
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         current = self._predict_batch_idx(trainer)

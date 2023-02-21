@@ -57,22 +57,22 @@ class TestFSDPModel(BoringModel):
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
-    def on_train_batch_end(self, outputs, batch, batch_idx) -> None:
+    def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_test_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_validation_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_predict_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
-        precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
+        precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
         assert self.layer.mixed_precision.param_dtype == precision
         assert self.layer.mixed_precision.reduce_dtype == precision
         assert self.layer.mixed_precision.buffer_dtype == precision
@@ -92,23 +92,23 @@ class TestFSDPModelAutoWrapped(BoringModel):
     def configure_optimizers(self):
         return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
-    def on_train_batch_end(self, outputs, batch, batch_idx) -> None:
+    def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_test_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_validation_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_predict_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, torch.nn.Sequential)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
 
-        precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
+        precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
         for layer_num in [0, 2]:
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
@@ -195,7 +195,7 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
+@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
     plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
@@ -222,7 +222,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="fsdp",
-        precision=16,
+        precision="16-mixed",
         max_epochs=1,
         sync_batchnorm=True,
     )
@@ -230,7 +230,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
+@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
@@ -280,7 +280,7 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        precision=16,
+        precision="16-mixed",
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,

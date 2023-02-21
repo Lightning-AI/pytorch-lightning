@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ast
 import socket
 import time
 from functools import wraps
@@ -22,7 +21,6 @@ from urllib.parse import urljoin
 import lightning_cloud
 import requests
 import urllib3
-from fastapi import HTTPException
 from lightning_cloud.rest_client import create_swagger_client, GridRestClient
 from requests import Session
 from requests.adapters import HTTPAdapter
@@ -68,7 +66,7 @@ def find_free_network_port() -> int:
 def _find_free_network_port_cloudspace():
     """Finds a free port in the exposed range when running in a cloudspace."""
     for port in range(
-        constants.APP_SERVER_PORT,
+        constants.APP_SERVER_PORT + 1,  # constants.APP_SERVER_PORT is reserved for the app server
         constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
     ):
         if port in _reserved_ports:
@@ -139,8 +137,6 @@ def _retry_wrapper(self, func: Callable) -> Callable:
             try:
                 return func(self, *args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as e:
-                if e.status == 500:
-                    raise HTTPException(status_code=500, detail=ast.literal_eval(e.body.decode("utf-8"))["message"])
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
                 if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
                     consecutive_errors += 1

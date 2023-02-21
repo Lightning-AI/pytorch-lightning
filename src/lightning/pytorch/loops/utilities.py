@@ -136,7 +136,7 @@ def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
             sampler.set_epoch(epoch)
 
 
-def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _DataFetcher:
+def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
     lightning_module = trainer.lightning_module
     if trainer.testing:
         step_fx_name = "test_step"
@@ -144,6 +144,8 @@ def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _D
         step_fx_name = "training_step"
     elif trainer.validating or trainer.sanity_checking:
         step_fx_name = "validation_step"
+    elif trainer.predicting:
+        step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
     step_fx = getattr(lightning_module, step_fx_name)
@@ -153,7 +155,7 @@ def _select_data_fetcher(trainer: "pl.Trainer", prefetch_batches: int = 0) -> _D
             "this signature is experimental and the behavior is subject to change."
         )
         return _DataLoaderIterDataFetcher()
-    return _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
+    return _PrefetchDataFetcher()
 
 
 def _no_grad_context(loop_run: Callable) -> Callable:
