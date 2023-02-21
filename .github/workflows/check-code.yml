@@ -12,6 +12,11 @@ on:
         default: '3.9'
         required: false
         type: string
+      extra-typing:
+        description: 'Package extra to be installed for type checks + include mypy'
+        default: 'test'
+        required: false
+        type: string
 
 defaults:
   run:
@@ -35,7 +40,7 @@ jobs:
     - name: Install dependencies
       run: |
         # don't use --upgrade to respect the version installed via setup.py
-        pip install -e '.[test]' mypy types-setuptools \
+        pip install -e '.[${{ inputs.extra-typing }}]' mypy \
           --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 

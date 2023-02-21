@@ -15,6 +15,7 @@ jobs:
     uses: ./.github/workflows/check-code.yml
     with:
       actions-ref: ${{ github.sha }}  # use local version
+      extra-typing: 'typing'
 
   check-schema:
     uses: ./.github/workflows/check-schema.yml
