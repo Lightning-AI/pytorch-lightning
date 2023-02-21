@@ -16,7 +16,7 @@ from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.trainer.supporters import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
