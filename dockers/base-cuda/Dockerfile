@@ -104,7 +104,7 @@ RUN \
 RUN \
     # install rest of strategies
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}
+    pip install -r requirements/pytorch/devel.txt --no-cache-dir --extra-index-url ${TORCH_URL}
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
