@@ -69,7 +69,9 @@ def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, replace_sample
     class MyModel(BoringModel):
         def predict_dataloader(self):
             dataset = RandomDataset(32, 64)
-            sampler = DistributedSampler(dataset)
+            sampler = None
+            if not replace_sampler_ddp:
+                sampler = DistributedSampler(dataset)
             return DataLoader(dataset, sampler=sampler)
 
     model = MyModel()
