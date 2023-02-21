@@ -33,4 +33,4 @@ def test_set_sampler_epoch():
     dataloader = Mock()
     _set_sampler_epoch(dataloader, 55)
     dataloader.sampler.set_epoch.assert_called_once_with(55)
-    dataloader.batch_sampler.set_epoch.assert_called_once_with(55)
+    dataloader.batch_sampler.sampler.set_epoch.assert_called_once_with(55)
