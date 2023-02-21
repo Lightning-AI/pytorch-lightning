@@ -112,12 +112,13 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
     )
 
     # TODO: Remove this, downstream code shouldn't depend on side-effects here but it does
-    _patch_sys_path(os.path.dirname(os.path.abspath(filepath))).__enter__()
+    sys.path.append(os.path.dirname(os.path.abspath(filepath)))
     sys.modules["__main__"] = main_module
 
     if len(apps) > 1:
         raise MisconfigurationException(f"There should not be multiple apps instantiated within a file. Found {apps}")
     if len(apps) == 1:
+        print("HIT2")
         return apps[0]
 
     raise MisconfigurationException(
