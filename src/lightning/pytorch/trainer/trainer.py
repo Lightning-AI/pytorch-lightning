@@ -123,7 +123,7 @@ class Trainer:
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         inference_mode: bool = True,
@@ -251,10 +251,13 @@ class Trainer:
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
-                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
-                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
-                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+            use_distributed_sampler: Whether to wrap the DataLoader's sampler with
+                :class:`torch.utils.data.DistributedSampler`. If not specified this is toggled automatically for
+                strategies that require it. By default, it will add ``shuffle=True`` for the train sampler and
+                ``shuffle=False`` for validation/test/predict samplers. If you want to disable this logic, you can pass
+                ``False`` and add your own distributed sampler in the dataloader hooks. If ``True`` and a distributed
+                sampler was already added, Lightning will not replace the existing one. For iterable-style datasets,
+                we don't do this automatically.
 
             strategy: Supports different training strategies with aliases
                 as well custom strategies.
@@ -293,7 +296,7 @@ class Trainer:
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
-            replace_sampler_ddp=replace_sampler_ddp,
+            use_distributed_sampler=use_distributed_sampler,
             deterministic=deterministic,
             precision=precision,
             plugins=plugins,
