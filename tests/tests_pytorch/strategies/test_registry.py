@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning import Trainer
@@ -56,7 +58,8 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
 
 @RunIf(skip_windows=True)
-def test_tpu_spawn_debug_strategy_registry(xla_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_tpu_spawn_debug_strategy_registry(_, xla_available):
     strategy = "tpu_spawn_debug"
 
     assert strategy in StrategyRegistry

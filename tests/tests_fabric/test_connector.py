@@ -36,6 +36,7 @@ from lightning_fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from lightning_fabric.plugins.io import TorchCheckpointIO
 from lightning_fabric.strategies import (
@@ -69,6 +70,8 @@ def test_accelerator_choice_tpu(accelerator, devices):
         # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
         # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
         assert isinstance(connector.strategy, XLAStrategy)
+        assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
     else:
         assert isinstance(connector.strategy, SingleTPUStrategy)
 
