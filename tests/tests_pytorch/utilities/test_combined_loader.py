@@ -232,6 +232,7 @@ def test_combined_loader_flattened_setter():
     combined_loader = CombinedLoader(iterables)
     with pytest.raises(ValueError, match=r"Mismatch in flattened length \(1\) and existing length \(3\)"):
         combined_loader.flattened = [2]
+    assert combined_loader.flattened == [[0], [1], [2]]
     combined_loader.flattened = [[3], [2], [1]]
     assert combined_loader.iterables == [[3], [[2], [[1]]]]
 
