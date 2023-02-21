@@ -1,0 +1,20 @@
+name: Validate legacy ckpts
+
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    paths:
+      - ".github/workflows/ci-checkpoints.yml"
+      - ".github/workflows/_legacy-checkpoints.yml.yml"
+
+jobs:
+
+  try-legacy-checkpoints:
+    uses: ./.github/workflows/_legacy-checkpoints.yml
+    with:
+      push_to_s3: false
+      create_pr: false
+    secrets: inherit

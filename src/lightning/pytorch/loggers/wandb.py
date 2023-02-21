@@ -28,8 +28,8 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _fla
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.logger import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:

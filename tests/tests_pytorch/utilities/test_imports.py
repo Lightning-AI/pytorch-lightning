@@ -24,19 +24,11 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
 from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
-from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
-    try:
-        import bagua  # noqa
-    except ModuleNotFoundError:
-        assert not _BAGUA_AVAILABLE
-    else:
-        assert _BAGUA_AVAILABLE
-
     try:
         import omegaconf  # noqa
     except ModuleNotFoundError:
@@ -134,7 +126,14 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+
+        # pretend torch.distributed not available
+        for name in list(torch.distributed.__dict__.keys()):
+            if not name.startswith("__"):
+                delattr(torch.distributed, name)
+
+        torch.distributed.is_available = lambda: False
+
         import lightning.pytorch
         """
     )

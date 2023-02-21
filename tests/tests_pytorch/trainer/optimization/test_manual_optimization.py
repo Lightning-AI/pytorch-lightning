@@ -72,34 +72,23 @@ class ManualOptModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "kwargs", [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": 16}, marks=RunIf(min_cuda_gpus=1))]
+    "kwargs",
+    [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": "16-mixed"}, marks=RunIf(min_cuda_gpus=1))],
 )
-def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
-    class TestModel(ManualOptModel):
-        def training_step(self, batch, batch_idx):
-            # avoid returning a value
-            super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs):
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert not outputs
-
-    model = TestModel()
-    model.val_dataloader = None
-
+def test_multiple_optimizers_manual_call_counts(tmpdir, kwargs):
+    model = ManualOptModel()
     limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        limit_val_batches=0,
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
         **kwargs,
     )
 
-    if kwargs.get("precision") == 16:
+    if kwargs.get("precision") == "16-mixed":
         # mock the scaler instead of the optimizer step because it can be skipped with NaNs
         scaler_step_patch = mock.patch.object(
             trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
@@ -109,39 +98,11 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
+    assert trainer.global_step == limit_train_batches * 2
 
-    if kwargs.get("precision") == 16:
+    if kwargs.get("precision") == "16-mixed":
         scaler_step_patch.stop()
         assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
-
-
-def test_multiple_optimizers_manual_return(tmpdir):
-    class TestModel(ManualOptModel):
-        def training_step(self, batch, batch_idx):
-            super().training_step(batch, batch_idx)
-            return {"something": "else"}
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert outputs == [{"something": "else"}, {"something": "else"}]
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        enable_model_summary=False,
-    )
-
-    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
-        trainer.fit(model)
-    assert bwd_mock.call_count == limit_train_batches * 3
-    assert trainer.global_step == limit_train_batches * 2
 
 
 def test_multiple_optimizers_manual_log(tmpdir):
@@ -150,17 +111,12 @@ def test_multiple_optimizers_manual_log(tmpdir):
             loss_2 = super().training_step(batch, batch_idx)
             self.log("a", loss_2, on_epoch=True)
 
-        def training_epoch_end(self, outputs) -> None:
-            assert not outputs
-
     model = TestModel()
-    model.val_dataloader = None
-
     limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        limit_val_batches=0,
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
@@ -186,7 +142,7 @@ def test_multiple_optimizers_manual_amp(tmpdir, accelerator):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        precision=16,
+        precision="16-mixed",
         accelerator=accelerator,
         devices=1,
     )
@@ -229,7 +185,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx):
+    def on_train_batch_end(self, *_):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
@@ -261,16 +217,13 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     `training_step`"""
 
     model = ManualOptimizationExtendedModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=10,
         limit_test_batches=0,
         limit_val_batches=0,
-        precision=16,
+        precision="16-mixed",
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
@@ -326,7 +279,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
             return loss.detach() if self.detach else loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
@@ -347,16 +300,13 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             assert self.called["on_train_batch_end"] == 20
 
     model = ExtendedModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=20,
         limit_test_batches=0,
         limit_val_batches=0,
-        precision=16,
+        precision="16-mixed",
         accelerator="gpu",
         devices=1,
     )
@@ -396,10 +346,6 @@ def test_multiple_optimizers_step(tmpdir):
 
             return {"loss1": loss_1.detach(), "loss2": loss_2.detach()}
 
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
         # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
         def on_after_backward(self) -> None:
             # check grads are scaled
@@ -423,10 +369,6 @@ def test_multiple_optimizers_step(tmpdir):
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)
 
-        def log_grad_norm(self, grad_norm_dict):
-            self.check_grads_unscaled()
-            assert len(grad_norm_dict)
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -438,10 +380,9 @@ def test_multiple_optimizers_step(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        precision=16,
+        precision="16-mixed",
         accelerator="gpu",
         devices=1,
-        track_grad_norm=2,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
@@ -498,7 +439,6 @@ def test_step_with_optimizer_closure(tmpdir):
             assert not torch.equal(weight_before, weight_after)
 
     model = TestModel()
-    model.training_epoch_end = None
 
     limit_train_batches = 2
     trainer = Trainer(
@@ -540,8 +480,6 @@ def test_step_with_optimizer_closure_2(tmpdir):
             assert not torch.equal(weight_before, weight_after)
 
     model = TestModel()
-    model.training_epoch_end = None
-
     limit_train_batches = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -615,7 +553,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
     model = TestModel()
     model.val_dataloader = None
-    model.training_epoch_end = None
 
     limit_train_batches = 8
     trainer = Trainer(
@@ -727,8 +664,6 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
     model = model_cls()
     model_copy = deepcopy(model)
     model.val_dataloader = None
-    model.training_epoch_end = None
-
     limit_train_batches = 8
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -845,7 +780,6 @@ def test_lr_schedulers(tmpdir):
             return [optimizer_1, optimizer_2], [self.scheduler_1, self.scheduler_2]
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
@@ -862,14 +796,9 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
             self.scheduler_as_dict = scheduler_as_dict
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx):
-            return {"train_loss": torch.tensor([0.0])}
-
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             scheduler = self.lr_schedulers()
-
-            loss = torch.stack([x["train_loss"] for x in outputs]).mean()
-            scheduler.step(loss)
+            scheduler.step(torch.tensor(0.0))
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
@@ -902,9 +831,6 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
 def test_lr_scheduler_step_not_called(tmpdir):
     """Test `lr_scheduler.step()` is not called in manual optimization."""
     model = ManualOptimBoringModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
-
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, fast_dev_run=2)
 
     with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
@@ -917,7 +843,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("precision", [16, 32])
+@pytest.mark.parametrize("precision", ["16-mixed", "32-true"])
 def test_multiple_optimizers_logging(precision, tmpdir):
     """Tests that metrics are properly being logged."""
 
@@ -956,7 +882,6 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             return optimizer, optimizer_2
 
     model = TestModel()
-    model.training_epoch_end = None
     model.val_dataloader = None
 
     trainer = Trainer(

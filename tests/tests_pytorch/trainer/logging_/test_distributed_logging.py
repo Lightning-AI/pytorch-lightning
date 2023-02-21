@@ -84,7 +84,6 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
-    model.training_epoch_end = None
     trainer = Trainer(
         strategy="ddp_spawn",
         accelerator="gpu",

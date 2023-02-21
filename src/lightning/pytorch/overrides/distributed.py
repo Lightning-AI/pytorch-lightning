@@ -135,3 +135,7 @@ class IndexBatchSamplerWrapper:
     @property
     def sampler(self) -> Union[Sampler, Iterable]:
         return self._sampler.sampler
+
+    def set_epoch(self, epoch: int) -> None:
+        if hasattr(self._sampler, "set_epoch"):
+            self._sampler.set_epoch(epoch)

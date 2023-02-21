@@ -27,7 +27,6 @@ def test_no_depre_without_epoch_end(tmpdir):
     """Tests that only training_step can be used."""
 
     model = TestModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,

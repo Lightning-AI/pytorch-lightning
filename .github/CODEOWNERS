@@ -22,10 +22,10 @@
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
 /docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
-/docs/source-app/                           @williamfalcon @RobertLaurella @tchaton @awaelchli
-/docs/source-app/conf.py                    @borda @awaelchli @carmocca
-/docs/source-app/index.rst                  @williamfalcon @lantiga
-/docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
+/docs/source/                               @williamfalcon @RobertLaurella @tchaton @awaelchli
+/docs/source/conf.py                        @borda @awaelchli @carmocca
+/docs/source/index.rst                      @williamfalcon @lantiga
+/docs/source/expertise_levels               @williamfalcon @RobertLaurella
 
 # PyTorch Lightning
 /src/lightning/pytorch                      @williamfalcon @awaelchli @carmocca @justusschock
@@ -40,9 +40,9 @@
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Lightning Fabric
-/src/lightning/fabric                         @awaelchli @carmocca @justusschock
-/src/lightning_fabric                         @awaelchli @carmocca @justusschock
-/tests/tests_fabric                           @awaelchli @carmocca @justusschock
+/src/lightning/fabric                       @awaelchli @carmocca @justusschock
+/src/lightning_fabric                       @awaelchli @carmocca @justusschock
+/tests/tests_fabric                         @awaelchli @carmocca @justusschock
 
 # Lightning App
 /src/lightning/app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris

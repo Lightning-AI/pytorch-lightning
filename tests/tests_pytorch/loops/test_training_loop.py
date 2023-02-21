@@ -38,14 +38,8 @@ def test_outputs_format(tmpdir):
             assert "foo" in output
             assert output["foo"] == 123
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, outputs, *_):
             HookedModel._check_output(outputs)
-            super().on_train_batch_end(outputs, batch, batch_idx)
-
-        def training_epoch_end(self, outputs):
-            assert len(outputs) == 2
-            [HookedModel._check_output(output) for output in outputs]
-            super().training_epoch_end(outputs)
 
     model = HookedModel()
 
@@ -141,9 +135,8 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = _FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
-    fit_loop.trainer = trainer
+    fit_loop = _FitLoop(trainer, max_epochs=1)
 
     trainer.should_stop = False
     trainer.num_training_batches = 5
@@ -159,11 +152,11 @@ def test_fit_loop_done_log_messages(caplog):
     epoch_loop = Mock()
     epoch_loop.global_step = 10
     fit_loop.epoch_loop = epoch_loop
-    fit_loop.max_steps = 10
+    epoch_loop.max_steps = 10
     assert fit_loop.done
     assert "max_steps=10` reached" in caplog.text
     caplog.clear()
-    fit_loop.max_steps = 20
+    epoch_loop.max_steps = 20
 
     fit_loop.epoch_progress.current.processed = 3
     fit_loop.max_epochs = 3
@@ -180,23 +173,6 @@ def test_fit_loop_done_log_messages(caplog):
 
     fit_loop.epoch_loop.min_steps = 100
     assert not fit_loop.done
-
-
-def test_warning_valid_train_step_end(tmpdir):
-    class ValidTrainStepEndModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self(batch)
-            return {"output": output}
-
-        def training_step_end(self, outputs):
-            loss = self.loss(outputs["output"])
-            return loss
-
-    # No error is raised
-    model = ValidTrainStepEndModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-
-    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -228,4 +204,4 @@ def test_should_stop_early_stopping_conditions_met(
         assert trainer.fit_loop.done is fit_loop_done
 
     assert (message in caplog.text) is raise_debug_msg
-    assert trainer.fit_loop._should_stop_early is early_stop
+    assert trainer.fit_loop._can_stop_early is early_stop

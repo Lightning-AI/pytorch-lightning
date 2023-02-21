@@ -33,6 +33,7 @@ if "__version__" not in locals():
 
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
+from lightning.app.core.plugin import LightningPlugin  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
@@ -46,4 +47,4 @@ __package_name__ = "lightning.app".split(".")[0]
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
 
-__all__ = ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute", "pdb"]
+__all__ = ["LightningApp", "LightningFlow", "LightningWork", "LightningPlugin", "BuildConfig", "CloudCompute", "pdb"]
