@@ -2048,7 +2048,7 @@ def test_get_app_url(monkeypatch, project, run_instance, user, tab, lightning_cl
     runtime = CloudRuntime()
 
     with mock.patch(
-        "lightning.app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
+        "lightning_app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
     ):
         assert runtime._get_app_url(project, run_instance, tab) == expected_url
 
