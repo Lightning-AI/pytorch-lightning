@@ -374,9 +374,6 @@ class DataConnector:
                     f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
                 )
 
-            if mode == RunningStage.SANITY_CHECKING:
-                num_batches = min(trainer.num_sanity_val_steps, num_batches)
-
             loader_num_batches.append(num_batches)
         combined_loader.flattened = dataloaders
 

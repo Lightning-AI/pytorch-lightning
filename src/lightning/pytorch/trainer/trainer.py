@@ -927,9 +927,6 @@ class Trainer:
             # because sanity check only runs when we are not restarting
             _reset_progress(val_loop)
 
-            # reset the loaded data
-            val_loop._combined_loader = None
-
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 

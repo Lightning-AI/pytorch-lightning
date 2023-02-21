@@ -47,7 +47,7 @@ class _EvaluationLoop(_Loop):
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = BatchProgress()  # across dataloaders
-        self.max_batches: List[Union[int, float]] = []
+        self._max_batches: List[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
@@ -64,6 +64,14 @@ class _EvaluationLoop(_Loop):
         combined_loader = self._combined_loader
         assert combined_loader is not None
         return len(combined_loader.flattened)
+
+    @property
+    def max_batches(self) -> List[Union[int, float]]:
+        """The max number of batches this loop will run for each dataloader."""
+        max_batches = self._max_batches
+        if self.trainer.sanity_checking:
+            return [min(self.trainer.num_sanity_val_steps, batches) for batches in max_batches]
+        return max_batches
 
     @property
     def skip(self) -> bool:
@@ -127,7 +135,7 @@ class _EvaluationLoop(_Loop):
 
         stage = trainer.state.stage
         assert stage is not None
-        self.max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
+        self._max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
 
         if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
             for dl in combined_loader.flattened:
