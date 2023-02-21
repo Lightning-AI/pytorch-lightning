@@ -118,7 +118,6 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
     if len(apps) > 1:
         raise MisconfigurationException(f"There should not be multiple apps instantiated within a file. Found {apps}")
     if len(apps) == 1:
-        print("HIT2")
         return apps[0]
 
     raise MisconfigurationException(
