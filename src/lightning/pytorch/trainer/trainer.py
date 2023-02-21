@@ -1307,7 +1307,8 @@ class Trainer:
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validate_loop.max_batches
         # if no trainer.fn is set, assume fit's validation
-        return self.fit_loop.epoch_loop.val_loop.max_batches
+        # use the protected access, because it shouldn't return the sanity_val batches
+        return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
     def num_test_batches(self) -> List[Union[int, float]]:
