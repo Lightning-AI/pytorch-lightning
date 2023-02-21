@@ -18,7 +18,7 @@ from types import MethodType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
 
@@ -30,7 +30,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.17.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = ModuleAvailableCache("jsonargparse[signatures]>=4.17.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser

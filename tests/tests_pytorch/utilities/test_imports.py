@@ -20,7 +20,7 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning_utilities.core.imports import compare_version, ModuleAvailableCache
 from torch.distributed import is_available
 
 from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
@@ -92,13 +92,13 @@ def clean_import():
     [
         ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
         (
-            "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
+            "lightning_utilities.core.imports.ModuleAvailableCache.__bool__",
+            _shortcut_patch(ModuleAvailableCache.__bool__, ("neptune-client",), ("requirement",)),
             "lightning.pytorch.loggers.neptune",
         ),
         (
-            "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
+            "lightning_utilities.core.imports.ModuleAvailableCache.__bool__",
+            _shortcut_patch(ModuleAvailableCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
             "lightning.pytorch.cli",
         ),
         (

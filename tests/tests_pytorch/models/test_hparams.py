@@ -24,7 +24,7 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
@@ -691,7 +691,7 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
-@pytest.mark.skipif(RequirementCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
+@pytest.mark.skipif(ModuleAvailableCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
     """This test relies on configuration saved under tests/models/conf/config.yaml."""
     from hydra import compose, initialize

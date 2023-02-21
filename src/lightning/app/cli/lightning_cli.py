@@ -24,7 +24,7 @@ import inquirer
 import rich
 from lightning_cloud.openapi import V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
@@ -416,7 +416,7 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1.9.0"):
+if ModuleAvailableCache("lightning-fabric>=1.9.0") or ModuleAvailableCache("lightning>=1.9.0"):
     # note it is automatically replaced to `from lightning.fabric.cli` when building monolithic/mirror package
     from lightning.fabric.cli import _run_model
 

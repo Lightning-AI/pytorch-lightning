@@ -16,12 +16,12 @@ import subprocess
 import sys
 from typing import Any, Callable, Optional, Sequence, Tuple
 
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 
-_HYDRA_AVAILABLE = RequirementCache("hydra-core")
+_HYDRA_AVAILABLE = ModuleAvailableCache("hydra-core")
 
 
 class _SubprocessScriptLauncher(_Launcher):

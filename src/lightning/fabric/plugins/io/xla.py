@@ -15,7 +15,7 @@ import os
 from typing import Any, Dict, Optional
 
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
@@ -51,7 +51,7 @@ class XLACheckpointIO(TorchCheckpointIO):
             )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        if RequirementCache("omegaconf"):
+        if ModuleAvailableCache("omegaconf"):
             # workaround for https://github.com/pytorch/xla/issues/2773
             from omegaconf import DictConfig, ListConfig, OmegaConf
 

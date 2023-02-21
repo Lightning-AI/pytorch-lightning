@@ -20,7 +20,7 @@ from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
@@ -37,7 +37,7 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-_MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
+_MATPLOTLIB_AVAILABLE = ModuleAvailableCache("matplotlib")
 if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes

@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from torch import Tensor
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
@@ -40,9 +40,9 @@ except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None
 
-_WANDB_AVAILABLE = RequirementCache("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = ModuleAvailableCache("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = ModuleAvailableCache("wandb>=0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = ModuleAvailableCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):

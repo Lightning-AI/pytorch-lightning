@@ -17,7 +17,7 @@ import re
 from argparse import Namespace
 from typing import Any, List, Optional
 
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
@@ -27,7 +27,7 @@ from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
 _log = logging.getLogger(__name__)
 
-_CLICK_AVAILABLE = RequirementCache("click")
+_CLICK_AVAILABLE = ModuleAvailableCache("click")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 

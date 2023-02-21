@@ -24,7 +24,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Generator, List, Optional, Set, Union
 
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -34,7 +34,7 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
+_NEPTUNE_AVAILABLE = ModuleAvailableCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     from neptune import new as neptune
     from neptune.new.run import Run

@@ -18,7 +18,7 @@ from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 import numpy as np
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from torch import Tensor
 from torch.nn import Module
 
@@ -31,8 +31,8 @@ from lightning.fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 
-_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
-_TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX")
+_TENSORBOARD_AVAILABLE = ModuleAvailableCache("tensorboard")
+_TENSORBOARDX_AVAILABLE = ModuleAvailableCache("tensorboardX")
 if TYPE_CHECKING:
     # assumes at least one will be installed when type checking
     if _TENSORBOARD_AVAILABLE:

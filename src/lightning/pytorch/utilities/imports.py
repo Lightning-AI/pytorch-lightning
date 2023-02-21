@@ -16,22 +16,22 @@ import operator
 import sys
 
 import torch
-from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
+from lightning_utilities.core.imports import compare_version, module_available, ModuleAvailableCache
 
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 # duplicated from fabric because HPU is patching it below
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
-_TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
+_TORCHMETRICS_GREATER_EQUAL_0_9_1 = ModuleAvailableCache("torchmetrics>=0.9.1")
 
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = module_available("omegaconf")
 _POPTORCH_AVAILABLE = module_available("poptorch")
 _PSUTIL_AVAILABLE = module_available("psutil")
 _RICH_AVAILABLE = module_available("rich") and compare_version("rich", operator.ge, "10.2.2")
-_TORCHVISION_AVAILABLE = RequirementCache("torchvision")
-_LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
+_TORCHVISION_AVAILABLE = ModuleAvailableCache("torchvision")
+_LIGHTNING_COLOSSALAI_AVAILABLE = ModuleAvailableCache("lightning-colossalai")
 
 if _POPTORCH_AVAILABLE:
     import poptorch

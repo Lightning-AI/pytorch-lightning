@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -37,7 +37,7 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
 # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
+_DEEPSPEED_AVAILABLE = ModuleAvailableCache("deepspeed") and ModuleAvailableCache("packaging>=20.0")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 

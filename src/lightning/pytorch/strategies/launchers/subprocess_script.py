@@ -16,7 +16,7 @@ import os
 import subprocess
 from typing import Any, Callable, List, Optional
 
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
@@ -25,7 +25,7 @@ from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 
 log = logging.getLogger(__name__)
-_HYDRA_AVAILABLE = RequirementCache("hydra-core")
+_HYDRA_AVAILABLE = ModuleAvailableCache("hydra-core")
 
 
 class _SubprocessScriptLauncher(_Launcher):

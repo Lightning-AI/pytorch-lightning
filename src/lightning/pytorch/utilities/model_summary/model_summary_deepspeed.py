@@ -17,7 +17,7 @@ from collections import OrderedDict
 from typing import Dict, List, Tuple
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 from torch.nn import Parameter
 
 from lightning.pytorch.utilities.model_summary.model_summary import (
@@ -44,7 +44,7 @@ class DeepSpeedLayerSummary(LayerSummary):
         """Returns the number of parameters in this module."""
 
         def partitioned_size(p: Parameter) -> int:
-            return p.partitioned_size() if RequirementCache("deepspeed<0.6.6") else p.partition_numel()
+            return p.partitioned_size() if ModuleAvailableCache("deepspeed<0.6.6") else p.partition_numel()
 
         return sum(partitioned_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 

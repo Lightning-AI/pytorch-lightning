@@ -18,14 +18,14 @@ from functools import lru_cache
 from typing import Optional
 
 import numpy as np
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 
 log = logging.getLogger(__name__)
 
-_MPI4PY_AVAILABLE = RequirementCache("mpi4py")
+_MPI4PY_AVAILABLE = ModuleAvailableCache("mpi4py")
 
 
 class MPIEnvironment(ClusterEnvironment):

@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional
 
 import requests
 import torch
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import ModuleAvailableCache
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
@@ -49,10 +49,10 @@ class ServableModuleValidator(Callback):
         exit_on_failure: bool = True,
     ):
         super().__init__()
-        fastapi_installed = RequirementCache("fastapi")
+        fastapi_installed = ModuleAvailableCache("fastapi")
         if not fastapi_installed:
             raise ModuleNotFoundError(fastapi_installed.message)
-        uvicorn_installed = RequirementCache("uvicorn")
+        uvicorn_installed = ModuleAvailableCache("uvicorn")
         if not uvicorn_installed:
             raise ModuleNotFoundError(uvicorn_installed.message)
 
