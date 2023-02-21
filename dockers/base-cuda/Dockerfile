@@ -21,7 +21,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.13
 ARG MAX_ALLOWED_NCCL=2.16.2
-ARG PRE_RELEASE
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -33,15 +32,6 @@ ENV \
     MKL_THREADING_LAYER=GNU \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
-
-RUN if [[ -z $PRE_RELEASE ]]; then \
-    export TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html" &&\
-    export TORCH_WHEEL_OPTIONS=""; \
-    else \
-        export TORCH_URL="https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION_MM}" &&\
-        export TORCH_WHEEL_OPTIONS="--pre";\
-    fi
-
 
 RUN \
     # TODO: Remove the manual key installation once the base image is updated.
@@ -100,26 +90,15 @@ RUN \
     export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
-    if [[ -z "$PRE_RELEASE" ]] ; then \
-        for fpath in `ls requirements/**/*.txt`; do \
-            python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
-        done \
-    fi && \
+    for fpath in `ls requirements/**/*.txt`; do \
+        python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
+    done && \
     pip install -r requirements/pytorch/base.txt --no-cache-dir --extra-index-url ${TORCH_URL} ${TORCH_WHEEL_OPTIONS} && \
     rm assistant.py
 
-RUN \
-    # install ColossalAI
-    # TODO: 1.13 and 2.0 wheels are not released, remove skip once they are
-    if [[ $PYTORCH_VERSION != "1.13" ]] && [[ $PYTORCH_VERSION != "2.0" ]]; then \
-        pip install "colossalai==0.2.4"; \
-        python -c "import colossalai; print(colossalai.__version__)" ; \
-    fi
 
 RUN \
     # install rest of strategies
-    # remove colossalai from requirements since they are installed separately
-    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
     pip install -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}
 #    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}

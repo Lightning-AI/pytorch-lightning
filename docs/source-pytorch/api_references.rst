@@ -222,7 +222,7 @@ strategies
     SingleHPUStrategy
     SingleTPUStrategy
     Strategy
-    TPUSpawnStrategy
+    XLAStrategy
 
 tuner
 -----

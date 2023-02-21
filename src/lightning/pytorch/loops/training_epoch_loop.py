@@ -15,8 +15,6 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
-import torch
-
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -43,13 +41,13 @@ class _TrainingEpochLoop(loops._Loop):
     them in one of these hooks, and running validation at the requested interval.
 
     The validation is carried out by yet another loop,
-    :class:`~lightning.pytorch.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
+    :class:`~lightning.pytorch.loops._EvaluationLoop`.
 
     In the ``run()`` method, the training epoch loop could in theory simply call the
     ``LightningModule.training_step`` already and perform the optimization.
     However, Lightning has built-in support for automatic optimization with multiple optimizers.
     For this reason there are actually two more loops nested under
-    :class:`~lightning.pytorch.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
+    :class:`~lightning.pytorch.loops._TrainingEpochLoop`.
 
     Args:
         min_steps: The minimum number of steps (batches) to process
@@ -106,7 +104,7 @@ class _TrainingEpochLoop(loops._Loop):
     @property
     def _is_validation_done(self) -> bool:
         # when we are restarting we want to check whether the val loop has finished
-        return not self.restarting or self.val_loop.done
+        return not self.restarting or self.val_loop._has_run
 
     @property
     def done(self) -> bool:
@@ -160,13 +158,12 @@ class _TrainingEpochLoop(loops._Loop):
             self.automatic_optimization.optim_progress.reset_on_run()
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
-            self.val_loop.epoch_loop.batch_progress.total.reset()
+            self.val_loop.batch_progress.total.reset()
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
-        _ = iter(data_fetcher)  # creates the iterator inside the fetcher
+        iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
-
         data_fetcher._start_profiler = self._on_before_fetch
         data_fetcher._stop_profiler = self._on_after_fetch
 
@@ -188,11 +185,8 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        if not isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
-            batch = next(data_fetcher)
-        else:
-            batch_idx, batch = next(data_fetcher)
+        batch_idx = data_fetcher.fetched if isinstance(data_fetcher, _DataLoaderIterDataFetcher) else self.batch_idx + 1
+        batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
@@ -251,7 +245,7 @@ class _TrainingEpochLoop(loops._Loop):
         should_check_val = self._should_check_val_fx()
         if should_check_val:
             self.trainer.validating = True
-            self._run_validation()
+            self.val_loop.run()
             self.trainer.training = True
 
         # update plateau LR scheduler after metrics are logged
@@ -279,13 +273,6 @@ class _TrainingEpochLoop(loops._Loop):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
-
-    def _run_validation(self) -> None:
-        # reload dataloaders
-        self.val_loop._reload_evaluation_dataloaders()
-
-        with torch.no_grad():
-            self.val_loop.run()
 
     def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""

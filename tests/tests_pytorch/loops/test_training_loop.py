@@ -152,11 +152,11 @@ def test_fit_loop_done_log_messages(caplog):
     epoch_loop = Mock()
     epoch_loop.global_step = 10
     fit_loop.epoch_loop = epoch_loop
-    fit_loop.max_steps = 10
+    epoch_loop.max_steps = 10
     assert fit_loop.done
     assert "max_steps=10` reached" in caplog.text
     caplog.clear()
-    fit_loop.max_steps = 20
+    epoch_loop.max_steps = 20
 
     fit_loop.epoch_progress.current.processed = 3
     fit_loop.max_epochs = 3
@@ -173,23 +173,6 @@ def test_fit_loop_done_log_messages(caplog):
 
     fit_loop.epoch_loop.min_steps = 100
     assert not fit_loop.done
-
-
-def test_warning_valid_train_step_end(tmpdir):
-    class ValidTrainStepEndModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self(batch)
-            return {"output": output}
-
-        def training_step_end(self, outputs):
-            loss = self.loss(outputs["output"])
-            return loss
-
-    # No error is raised
-    model = ValidTrainStepEndModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-
-    trainer.fit(model)
 
 
 @pytest.mark.parametrize(

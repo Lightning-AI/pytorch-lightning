@@ -140,7 +140,7 @@ class BasePredictionWriter(Callback):
     ) -> None:
         if not self.interval.on_batch:
             return
-        batch_indices = trainer.predict_loop.epoch_loop.current_batch_indices
+        batch_indices = trainer.predict_loop.current_batch_indices
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
     def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

@@ -22,7 +22,7 @@ from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.profilers import SimpleProfiler
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
@@ -64,8 +64,9 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
 
     # we can only know the last batch with sized iterables or when we prefetch
     is_last_batch = [False, False, prefetch_batches > 0 or dataset_cls is SizedDataset]
-    fetched = list(range(prefetch_batches + 1, 4))
-    fetched += [3] * (3 - len(fetched))
+    fetched = (
+        [1, 2, 3] if dataset_cls is SizedDataset else [1, 2, 3, 3, 3, 3, 3][prefetch_batches : prefetch_batches + 3]
+    )
     batches = [[1, 1], [2, 2], [3, 3]] if use_combined_loader else [1, 2, 3]
     expected = list(zip(fetched, batches, is_last_batch))
     assert len(expected) == 3
@@ -155,50 +156,6 @@ def get_cycles_per_ms() -> float:
 
 BATCH_SIZE = 32
 DATASET_LEN = 64
-EMB_SZ = 100
-EMB_DIM = 64
-
-
-class RandomIndicesDataset(Dataset):
-    def __getitem__(self, index):
-        return torch.randint(EMB_DIM, [BATCH_SIZE])
-
-    def __len__(self):
-        return 16
-
-
-class RecommenderModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.layer = None
-        self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
-        self.CYCLES_PER_MS = int(get_cycles_per_ms())
-
-    def forward(self, indices: Tensor):
-        result = self.local_embedding(indices)
-        return result
-
-    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        # emulate heavy routine
-        torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return batch
-
-    def training_step_end(self, training_step_output):
-        # emulate heavy routine
-        torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return training_step_output
-
-    def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=0.1)
-
-    def train_dataloader(self):
-        return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-    def val_dataloader(self):
-        return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-    def test_dataloader(self):
-        return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
@@ -242,8 +199,8 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test"))
-def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter, batch_idx):
             assert isinstance(data_fetcher, _DataLoaderIterDataFetcher)
@@ -253,19 +210,46 @@ def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
             return batch
 
         def validation_step(self, dataloader_iter, batch_idx):
-            batch = self.fetch(self.trainer.validate_loop._data_fetcher, dataloader_iter, batch_idx)
+            data_fetcher = self.trainer.validate_loop._data_fetcher
+            batch = self.fetch(data_fetcher, dataloader_iter, batch_idx)
             return super().validation_step(batch, batch_idx)
 
         def test_step(self, dataloader_iter, batch_idx):
-            batch = self.fetch(self.trainer.test_loop._data_fetcher, dataloader_iter, batch_idx)
+            data_fetcher = self.trainer.test_loop._data_fetcher
+            batch = self.fetch(data_fetcher, dataloader_iter, batch_idx)
+            return super().test_step(batch, batch_idx)
+
+        def predict_step(self, dataloader_iter, batch_idx):
+            data_fetcher = self.trainer.predict_loop._data_fetcher
+            batch = self.fetch(data_fetcher, dataloader_iter, batch_idx)
             return super().test_step(batch, batch_idx)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    if fn == "validate":
-        trainer.validate(model)
-    elif fn == "test":
-        trainer.test(model)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
+    trainer_fn = getattr(trainer, fn)
+    trainer_fn(model)
+
+
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_fetching_dataloader_iter_running_stages_multiple_dataloaders(fn, tmp_path):
+    class MyModel(BoringModel):
+        def validation_step(self, dataloader_iter, batch_idx, dataloader_idx):
+            ...
+
+        def test_step(self, dataloader_iter, batch_idx, dataloader_idx):
+            ...
+
+        def predict_step(self, dataloader_iter, batch_idx, dataloader_idx):
+            ...
+
+    def dataloaders():
+        return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = MyModel()
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
+    trainer_fn = getattr(trainer, fn)
+    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
+        trainer_fn(model, dataloaders())
 
 
 class DummyWaitable:
@@ -462,12 +446,12 @@ def test_fetching_is_profiled():
     assert isinstance(profiler, SimpleProfiler)
 
     # validation
-    for i in range(2):
-        key = f"[_EvaluationEpochLoop].val_dataloader_idx_{i}_next"
-        assert key in profiler.recorded_durations
-        durations = profiler.recorded_durations[key]
-        assert len(durations) == fast_dev_run
-        assert all(d > 0 for d in durations)
+    key = "[_EvaluationLoop].val_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    # +1 because we fetch one extra batch before breaking the loop when the fast_dev_run condition allows
+    assert len(durations) == 2 * fast_dev_run + 1
+    assert all(d > 0 for d in durations)
     # training
     key = "[_TrainingEpochLoop].train_dataloader_next"
     assert key in profiler.recorded_durations
@@ -475,16 +459,16 @@ def test_fetching_is_profiled():
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # test
-    key = "[_EvaluationEpochLoop].val_dataloader_idx_0_next"
+    key = "[_EvaluationLoop].test_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
-    assert len(durations) == fast_dev_run
+    assert len(durations) == fast_dev_run + 1
     assert all(d > 0 for d in durations)
     # predict
-    key = "[_PredictionEpochLoop].predict_dataloader_idx_0_next"
+    key = "[_PredictionLoop].predict_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
-    assert len(durations) == fast_dev_run
+    assert len(durations) == fast_dev_run + 1
     assert all(d > 0 for d in durations)
 
     # now test profiling when the dataloader_iter is polled manually

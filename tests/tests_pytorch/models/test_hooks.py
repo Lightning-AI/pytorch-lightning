@@ -272,7 +272,6 @@ class HookedModel(BoringModel):
                     dict(name="on_train_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_before_zero_grad", args=(trainer, model, ANY)),
                     dict(name="on_before_zero_grad", args=(ANY,)),
                     dict(name="optimizer_zero_grad", args=(current_epoch, i, ANY)),
@@ -337,7 +336,6 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
                     dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                 ]
@@ -368,7 +366,6 @@ class HookedModel(BoringModel):
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name=f"{fn}_step", args=(ANY, i)),
-                    dict(name=f"{fn}_step_end", args=(outputs,)),
                     dict(name=f"Callback.on_{fn}_batch_end", args=(trainer, model, outputs, ANY, i)),
                     dict(name=f"on_{fn}_batch_end", args=(outputs, ANY, i)),
                 ]
@@ -388,7 +385,6 @@ class HookedModel(BoringModel):
                     dict(name="on_predict_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="predict_step", args=(ANY, i)),
-                    # TODO: `predict_step_end`
                     dict(name="Callback.on_predict_batch_end", args=(trainer, model, ANY, ANY, i)),
                     dict(name="on_predict_batch_end", args=(ANY, ANY, i)),
                 ]
@@ -401,9 +397,9 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision=16), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(dict(accelerator="gpu", devices=1, precision="16-mixed"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
+            dict(accelerator="gpu", devices=1, precision="16-mixed", strategy="deepspeed"),
             marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
@@ -453,7 +449,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         "loops": ANY,
     }
     using_deepspeed = kwargs.get("strategy") == "deepspeed"
-    if kwargs.get("precision") == 16 and not using_deepspeed:
+    if kwargs.get("precision") == "16-mixed" and not using_deepspeed:
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [

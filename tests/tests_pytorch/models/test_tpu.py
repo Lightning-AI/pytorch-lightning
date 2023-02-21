@@ -24,7 +24,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.strategies import TPUSpawnStrategy
+from lightning.pytorch.strategies import XLAStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -104,7 +104,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
@@ -124,7 +124,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
@@ -146,7 +146,7 @@ def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         max_epochs=1,
         accelerator="tpu",
@@ -285,7 +285,7 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
     accelerator = TPUAccelerator()
-    strategy = TPUSpawnStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
+    strategy = XLAStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)
@@ -325,7 +325,7 @@ def test_tpu_debug_mode(tmpdir):
         devices=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        strategy=TPUSpawnStrategy(debug=True),
+        strategy=XLAStrategy(debug=True),
     )
 
     model = DebugModel()
@@ -359,6 +359,6 @@ def test_tpu_host_world_size(tmpdir):
 
 @RunIf(tpu=True)
 def test_device_type_when_tpu_strategy_passed(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    assert isinstance(trainer.strategy, XLAStrategy)
     assert isinstance(trainer.accelerator, TPUAccelerator)

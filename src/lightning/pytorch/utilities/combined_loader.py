@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, List, Literal, Optional, Sized, Tuple, Type, TypeVar
+from typing import Any, Callable, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict
@@ -74,27 +74,47 @@ class _MinSize(_ModeIterator[List]):
         return [next(it) for it in self.iterators]
 
 
-class _Sequential(_ModeIterator[Tuple[int, Any]]):
-    def __init__(self, iterables: List[Iterable]) -> None:
+class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
+    def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         super().__init__(iterables)
         self._iterator_idx = 0  # what would be dataloader_idx
         self._idx = 0  # what would be batch_idx
+        self.limits = limits
 
-    def __next__(self) -> Tuple[int, Any]:
+    @property
+    def limits(self) -> Optional[List[Union[int, float]]]:
+        """Optional limits per iterator."""
+        return self._limits
+
+    @limits.setter
+    def limits(self, limits: Optional[List[Union[int, float]]]) -> None:
+        if limits is not None and len(limits) != len(self.iterables):
+            raise ValueError(
+                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
+            )
+        self._limits = limits
+
+    def __next__(self) -> Tuple[Any, int, int]:
         n = len(self.iterators)
-        if n == 0:
+        if n == 0 or self._iterator_idx >= n:
             raise StopIteration
+
+        # if limits are set, go to the correct iterator
+        if self.limits is not None:
+            while self.limits[self._iterator_idx] <= self._idx:
+                self._use_next_iterator()
+                if self._iterator_idx >= n:
+                    raise StopIteration
+
         try:
             out = next(self.iterators[self._iterator_idx])
             index = self._idx
             self._idx += 1
-            # the return is enumerated by default
-            return index, out
+            # batch, batch_idx, dataloader_idx
+            return out, index, self._iterator_idx
         except StopIteration:
-            self._iterator_idx += 1
-            self._idx = 0
-            if self._iterator_idx >= n:
-                raise
+            # try the next iterator
+            self._use_next_iterator()
             return self.__next__()
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
@@ -106,6 +126,10 @@ class _Sequential(_ModeIterator[Tuple[int, Any]]):
     def reset(self) -> None:
         super().reset()
         self._iterator_idx = 0
+        self._idx = 0
+
+    def _use_next_iterator(self) -> None:
+        self._iterator_idx += 1
         self._idx = 0
 
 
@@ -121,33 +145,6 @@ _supported_modes = {
 }
 
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
-
-
-class _CombinedDataset(Sized):
-    """Combine multiple datasets."""
-
-    def __init__(self, datasets: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size"):
-        """
-        Args:
-            datasets: Collections of Iterables.
-            mode: Mode to use when computing the length.
-        """
-        if mode not in _supported_modes:
-            raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
-        self._mode = mode
-        self._datasets = datasets
-
-    @property
-    def datasets(self) -> Any:
-        return self._datasets
-
-    def __len__(self) -> int:
-        """Compute the length of `CombinedDataset` according to the `mode`."""
-        lengths = [length for ds in _tree_flatten(self._datasets)[0] if (length := sized_len(ds)) is not None]
-        if not lengths:
-            raise NotImplementedError("All datasets are iterable-style datasets.")
-        fn = _supported_modes[self._mode]["fn"]
-        return fn(lengths)
 
 
 class CombinedLoader(Iterable):
@@ -170,28 +167,28 @@ class CombinedLoader(Iterable):
         >>> combined_loader = CombinedLoader(iterables, 'max_size_cycle')
         >>> len(combined_loader)
         3
-        >>> for item in combined_loader:
-        ...     print(item)
+        >>> for batch in combined_loader:
+        ...     print(batch)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([10, 11, 12, 13, 14])}
         >>> combined_loader = CombinedLoader(iterables, 'min_size')
         >>> len(combined_loader)
         2
-        >>> for item in combined_loader:
-        ...     print(item)
+        >>> for batch in combined_loader:
+        ...     print(batch)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         >>> combined_loader = CombinedLoader(iterables, 'sequential')
         >>> len(combined_loader)
         5
-        >>> for item in combined_loader:
-        ...     print(*item)
-        0 tensor([0, 1, 2, 3])
-        1 tensor([4, 5])
-        0 tensor([0, 1, 2, 3, 4])
-        1 tensor([5, 6, 7, 8, 9])
-        2 tensor([10, 11, 12, 13, 14])
+        >>> for batch, batch_idx, dataloader_idx in combined_loader:
+        ...     print(f"{batch} {batch_idx=} {dataloader_idx=}")
+        tensor([0, 1, 2, 3]) batch_idx=0 dataloader_idx=0
+        tensor([4, 5]) batch_idx=1 dataloader_idx=0
+        tensor([0, 1, 2, 3, 4]) batch_idx=0 dataloader_idx=1
+        tensor([5, 6, 7, 8, 9]) batch_idx=1 dataloader_idx=1
+        tensor([10, 11, 12, 13, 14]) batch_idx=2 dataloader_idx=1
     """
 
     def __init__(self, iterables: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
@@ -199,12 +196,6 @@ class CombinedLoader(Iterable):
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_supported_modes)}.")
         self._iterables = iterables
         self._flattened, self._spec = _tree_flatten(iterables)
-
-        # TODO(carmocca): doing this might not be necessary
-        datasets = _map_and_unflatten(lambda x: getattr(x, "dataset", None), self._flattened, self._spec)
-        # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
-        self.dataset = _CombinedDataset(datasets, mode)
-
         self._mode = mode
         self._iterator: Optional[_ModeIterator] = None
 
@@ -216,12 +207,27 @@ class CombinedLoader(Iterable):
     @property
     def sampler(self) -> Any:
         """Return a collections of samplers extracted from iterables."""
-        return _map_and_unflatten(lambda x: getattr(x, "sampler", None), self._flattened, self._spec)
+        return _map_and_unflatten(lambda x: getattr(x, "sampler", None), self.flattened, self._spec)
 
     @property
     def batch_sampler(self) -> Any:
         """Return a collections of batch samplers extracted from iterables."""
-        return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self._flattened, self._spec)
+        return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self.flattened, self._spec)
+
+    @property
+    def flattened(self) -> List[Any]:
+        """Return the flat list of iterables."""
+        return self._flattened
+
+    @flattened.setter
+    def flattened(self, flattened: List[Any]) -> None:
+        if len(flattened) != len(self._flattened):
+            raise ValueError(
+                f"Mismatch in flattened length ({len(flattened)}) and existing length ({len(self._flattened)})"
+            )
+        # update the iterable collection
+        self._iterables = tree_unflatten(flattened, self._spec)
+        self._flattened = flattened
 
     def __next__(self) -> Any:
         assert self._iterator is not None
@@ -232,7 +238,7 @@ class CombinedLoader(Iterable):
 
     def __iter__(self) -> Self:  # type: ignore[valid-type]
         cls = _supported_modes[self._mode]["iterator"]
-        iterator = cls(self._flattened)
+        iterator = cls(self.flattened)
         iter(iterator)
         self._iterator = iterator
         return self
@@ -240,7 +246,7 @@ class CombinedLoader(Iterable):
     def __len__(self) -> int:
         """Compute the number of batches."""
         lengths = []
-        for dl in self._flattened:
+        for dl in self.flattened:
             length = sized_len(dl)
             if length is None:
                 raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
@@ -252,13 +258,17 @@ class CombinedLoader(Iterable):
         if self._iterator is not None:
             self._iterator.reset()
             self._iterator = None
-        for iterable in self._flattened:
+        for iterable in self.flattened:
             _shutdown_workers_and_reset_iterator(iterable)
 
-    def _update_index(self, dataloader: Iterable, index: int) -> None:
-        # mutation needs to be done using this method to avoid stale references
-        self._flattened[index] = dataloader
-        self._iterables = tree_unflatten(self._flattened, self._spec)
+    def _dataset_length(self) -> int:
+        """Compute the total length of the datasets according to the `mode`."""
+        datasets = [getattr(dl, "dataset", None) for dl in self.flattened]
+        lengths = [length for ds in datasets if (length := sized_len(ds)) is not None]
+        if not lengths:
+            raise NotImplementedError("All datasets are iterable-style datasets.")
+        fn = _supported_modes[self._mode]["fn"]
+        return fn(lengths)
 
 
 def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
