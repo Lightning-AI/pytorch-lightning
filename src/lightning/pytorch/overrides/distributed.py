@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Union
+from typing import Any, cast, Dict, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 from torch import Tensor
@@ -116,7 +116,9 @@ class _IndexBatchSamplerWrapper(BatchSampler):
         self.seen_batch_indices: List[List[int]] = []
 
         self.__dict__ = {
-            k: v for k, v in batch_sampler.__dict__.items() if k not in ("__next__", "__iter__", "__len__")
+            k: v
+            for k, v in batch_sampler.__dict__.items()
+            if k not in ("__next__", "__iter__", "__len__", "__getstate__")
         }
         self._batch_sampler = batch_sampler
         self._iterator: Optional[Iterator[List[int]]] = None
@@ -134,3 +136,8 @@ class _IndexBatchSamplerWrapper(BatchSampler):
 
     def __len__(self) -> int:
         return len(self._batch_sampler)
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_iterator"] = None  # cannot pickle 'generator' object
+        return state
