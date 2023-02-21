@@ -79,7 +79,9 @@ RUN \
 COPY ./requirements/pytorch/ ./requirements/pytorch/
 COPY ./.actions/assistant.py assistant.py
 
-ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
+ENV \
+    PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages \
+    TORCH_URL=https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
@@ -103,8 +105,7 @@ RUN \
     # install rest of strategies
     cat requirements/pytorch/strategies.txt && \
     pip install -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}
-#    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --extra-index-url ${TORCH_URL}
-#
+
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
