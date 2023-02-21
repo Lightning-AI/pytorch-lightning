@@ -323,9 +323,6 @@ def run_app_in_cloud(
             record_har_path=_Config.har_location,
         )
 
-        app_url = admin_page.url
-        admin_page.goto(app_url + "/logs")
-
         client = LightningClient()
         project_id = _get_project(client).project_id
 
