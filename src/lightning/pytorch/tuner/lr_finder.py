@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -320,7 +320,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     # No logging
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     # Max step set to number of iterations starting at current number of iterations
-    trainer.fit_loop.max_steps = num_training + trainer.global_step
+    trainer.fit_loop.epoch_loop.max_steps = num_training + trainer.global_step
     trainer.limit_val_batches = num_training
 
 
@@ -329,10 +329,10 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
     trainer.loggers = params["loggers"]
-    trainer.fit_loop.max_steps = params["max_steps"]
+    loop = trainer.fit_loop
+    loop.epoch_loop.max_steps = params["max_steps"]
     trainer.limit_val_batches = params["limit_val_batches"]
 
-    loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
     trainer.should_stop = False

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECK
 
 import torch
 from torch import Tensor
-from torch.distributed import default_pg_timeout
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
+from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
@@ -76,8 +76,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         backward_prefetch: This is an experimental feature that is subject to change in the near future. It allows
             users to enable two different backward prefetching algorithms to help backward communication and
             computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-        mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`` or BF16
-            if ``precision=bf16`` unless a config is passed in. This is only available in PyTorch 1.12 and later.
+        mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision="16-mixed"`` or
+            BF16 if ``precision="bf16-mixed"`` unless a config is passed in.
+            This is only available in PyTorch 1.12 and later.
         activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in

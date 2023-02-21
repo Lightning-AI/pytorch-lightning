@@ -43,7 +43,6 @@ callbacks
     ModelSummary
     OnExceptionCheckpoint
     ProgressBarBase
-    QuantizationAwareTraining
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
@@ -114,7 +113,6 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
@@ -139,6 +137,7 @@ environments
     KubeflowEnvironment
     LightningEnvironment
     LSFEnvironment
+    MPIEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
     XLAEnvironment
@@ -212,11 +211,8 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    BaguaStrategy
-    ColossalAIStrategy
     DDPSpawnStrategy
     DDPStrategy
-    DataParallelStrategy
     DeepSpeedStrategy
     FSDPStrategy
     HPUParallelStrategy
@@ -226,7 +222,7 @@ strategies
     SingleHPUStrategy
     SingleTPUStrategy
     Strategy
-    TPUSpawnStrategy
+    XLAStrategy
 
 tuner
 -----
@@ -249,11 +245,9 @@ utilities
     :toctree: api
     :nosignatures:
 
-    argparse
     data
     deepspeed
     distributed
-    finite_checks
     memory
     model_summary
     parsing

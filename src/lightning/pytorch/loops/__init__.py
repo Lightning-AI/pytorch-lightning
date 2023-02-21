@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.pytorch.loops.loop import _Loop  # noqa: F401 isort: skip (avoids circular imports)
-from lightning.pytorch.loops.dataloader import _DataLoaderLoop, _EvaluationLoop, _PredictionLoop  # noqa: F401
-from lightning.pytorch.loops.epoch import _EvaluationEpochLoop, _PredictionEpochLoop, _TrainingEpochLoop  # noqa: F401
+from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop  # noqa: F401
 from lightning.pytorch.loops.fit_loop import _FitLoop  # noqa: F401
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization  # noqa: F401
+from lightning.pytorch.loops.prediction_loop import _PredictionLoop  # noqa: F401
+from lightning.pytorch.loops.training_epoch_loop import _TrainingEpochLoop  # noqa: F401

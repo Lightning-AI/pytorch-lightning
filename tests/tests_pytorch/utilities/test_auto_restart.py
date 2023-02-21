@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
     def validation_step(self, batch, batch_idx):
         should_signal = (
-            self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.is_last_batch
+            self.trainer.fit_loop.epoch_loop.val_loop.batch_progress.is_last_batch
             if self.on_last_batch
             else batch_idx == 2
         )
@@ -55,11 +55,11 @@ class TestAutoRestartModelUnderSignal(BoringModel):
             self._signal()
         return super().validation_step(batch, batch_idx)
 
-    def training_epoch_end(self, outputs) -> None:
+    def on_train_epoch_end(self):
         if not self.failure_on_step and self.failure_on_training:
             self._signal()
 
-    def validation_epoch_end(self, outputs) -> None:
+    def on_validation_epoch_end(self):
         if not self.failure_on_step and not self.failure_on_training:
             self._signal()
 
@@ -117,17 +117,17 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
             if failure_on_training:
                 # Breaking on first validation batch.
                 # This is done to capture the random state of the validation dataloader.
-                status = "_EvaluationEpochLoop:advance"
+                status = "_EvaluationLoop:_evaluation_step"
             else:
                 # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
                 status = "_FitLoop:on_advance_end" if val_check_interval == 1.0 else "_TrainingEpochLoop:on_advance_end"
         else:
-            status = "_TrainingEpochLoop:on_advance_end" if failure_on_training else "_EvaluationEpochLoop:advance"
+            status = "_TrainingEpochLoop:on_advance_end" if failure_on_training else "_EvaluationLoop:_evaluation_step"
     else:
         if val_check_interval == 1.0:
             status = "_FitLoop:on_advance_end"
         else:
-            # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
+            # `on_train_epoch_end` happens after `on_validation_epoch_end` since Lightning v1.4
             status = "_FitLoop:on_advance_end" if failure_on_training else "_TrainingEpochLoop:on_advance_end"
 
     _fit_model(tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status)

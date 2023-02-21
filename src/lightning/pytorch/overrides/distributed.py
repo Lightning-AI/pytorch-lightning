@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,3 +135,7 @@ class IndexBatchSamplerWrapper:
     @property
     def sampler(self) -> Union[Sampler, Iterable]:
         return self._sampler.sampler
+
+    def set_epoch(self, epoch: int) -> None:
+        if hasattr(self._sampler, "set_epoch"):
+            self._sampler.set_epoch(epoch)

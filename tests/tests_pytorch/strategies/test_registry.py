@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 
 from lightning.pytorch import Trainer
@@ -21,7 +23,7 @@ from lightning.pytorch.strategies import (
     DeepSpeedStrategy,
     FSDPStrategy,
     StrategyRegistry,
-    TPUSpawnStrategy,
+    XLAStrategy,
 )
 from tests_pytorch.helpers.runif import RunIf
 
@@ -48,21 +50,22 @@ def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params)
 @pytest.mark.parametrize("strategy", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
 def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, precision="16-mixed")
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
 @RunIf(skip_windows=True)
-def test_tpu_spawn_debug_strategy_registry(xla_available):
-    strategy = "tpu_spawn_debug"
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_xla_debug_strategy_registry(_, tpu_available, xla_available):
+    strategy = "xla_debug"
 
     assert strategy in StrategyRegistry
     assert StrategyRegistry[strategy]["init_params"] == {"debug": True}
-    assert StrategyRegistry[strategy]["strategy"] == TPUSpawnStrategy
+    assert StrategyRegistry[strategy]["strategy"] == XLAStrategy
 
     trainer = Trainer(strategy=strategy)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @RunIf(min_torch="1.12")
@@ -84,9 +87,19 @@ def test_fsdp_strategy_registry(cuda_count_1):
             {"find_unused_parameters": False},
         ),
         (
+            "ddp_find_unused_parameters_true",
+            DDPStrategy,
+            {"find_unused_parameters": True},
+        ),
+        (
             "ddp_spawn_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "spawn"},
+        ),
+        (
+            "ddp_spawn_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "spawn"},
         ),
         pytest.param(
             "ddp_fork_find_unused_parameters_false",
@@ -95,14 +108,28 @@ def test_fsdp_strategy_registry(cuda_count_1):
             marks=RunIf(skip_windows=True),
         ),
         pytest.param(
+            "ddp_fork_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_true",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": True, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
     ],
 )
-def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy, expected_init_params):
+def test_ddp_find_unused_parameters_strategy_registry(
+    tmpdir, strategy_name, strategy, expected_init_params, mps_count_0
+):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
     assert isinstance(trainer.strategy, strategy)
     assert strategy_name in StrategyRegistry

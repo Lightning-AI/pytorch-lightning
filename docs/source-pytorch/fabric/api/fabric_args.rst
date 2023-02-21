@@ -112,23 +112,27 @@ Learn more about :ref:`distributed multi-node training on clusters <Fabric Clust
 precision
 =========
 
-Fabric supports double precision (64), full precision (32), or half-precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+Fabric supports double precision (64 bit), full precision (32 bit), or half-precision (16 bit) floating point operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
 Half precision, or mixed precision, combines 32 and 16-bit floating points to reduce the memory footprint during model training.
+Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while settings that only work in the specified precision have a ``"-true"`` suffix.
 This can result in improved performance, achieving significant speedups on modern GPUs.
 
 .. code-block:: python
 
     # Default used by the Fabric
-    fabric = Fabric(precision=32, devices=1)
+    fabric = Fabric(precision="32-true", devices=1)
+
+    # the same as:
+    fabric = Fabric(precision="32", devices=1)
 
     # 16-bit (mixed) precision
-    fabric = Fabric(precision=16, devices=1)
+    fabric = Fabric(precision="16-mixed", devices=1)
 
     # 16-bit bfloat precision
-    fabric = Fabric(precision="bf16", devices=1)
+    fabric = Fabric(precision="bf16-mixed", devices=1)
 
     # 64-bit (double) precision
-    fabric = Fabric(precision=64, devices=1)
+    fabric = Fabric(precision="64-true", devices=1)
 
 See also: :doc:`../fundamentals/precision`
 

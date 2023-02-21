@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ def test_deferred_init_with_lightning_module():
     (
         {"accelerator": "auto", "devices": 1},
         pytest.param(
-            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": 16},
+            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": "16-mixed"},
             marks=RunIf(min_cuda_gpus=2, deepspeed=True),
         ),
     ),

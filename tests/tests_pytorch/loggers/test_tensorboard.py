@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -258,7 +258,6 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
             return super().training_step(*args)
 
     model = TestModel()
-    model.training_epoch_end = None
     logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
     trainer = Trainer(
         default_root_dir=tmpdir,

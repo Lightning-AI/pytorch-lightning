@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,11 +64,6 @@ def test_multiple_optimizers_manual(tmpdir):
             self.manual_backward(loss_2)
             opt_b.step()
             opt_b.zero_grad()
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert len(outputs) == 0
 
     model = TestModel()
     model.val_dataloader = None

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.distributed import register_ddp_comm_hook
+from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
@@ -81,7 +82,7 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
+        log.debug(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
@@ -168,11 +169,11 @@ class DDPStrategy(ParallelStrategy):
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
-        log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
-        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
@@ -190,15 +191,8 @@ class DDPStrategy(ParallelStrategy):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def pre_configure_ddp(self) -> None:
-        # if unset, default `find_unused_parameters` `True`
-        # Many models require setting this parameter to True, as there are corner cases
-        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
-        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-
     def _register_ddp_hooks(self) -> None:
-        log.detail(f"{self.__class__.__name__}: registering ddp hooks")
+        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
         if self.root_device.type == "cuda" and self._is_single_process_single_device:
             assert isinstance(self.model, DistributedDataParallel)
             register_ddp_comm_hook(
@@ -209,7 +203,7 @@ class DDPStrategy(ParallelStrategy):
             )
 
     def _enable_model_averaging(self) -> None:
-        log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
+        log.debug(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
@@ -262,8 +256,7 @@ class DDPStrategy(ParallelStrategy):
         return optimizer_output
 
     def configure_ddp(self) -> None:
-        log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-        self.pre_configure_ddp()
+        log.debug(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
         self._register_ddp_hooks()
@@ -297,7 +290,7 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
-        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
+        log.debug(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         assert self.model is not None
         self.model.to(self.root_device)
 
@@ -361,13 +354,31 @@ class DDPStrategy(ParallelStrategy):
             find_unused_parameters=False,
         )
         strategy_registry.register(
+            "ddp_find_unused_parameters_true",
+            cls,
+            description="DDP Strategy with `find_unused_parameters` as True",
+            find_unused_parameters=True,
+        )
+        strategy_registry.register(
             cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__}",
         )
 
+    def on_exception(self, exception: BaseException) -> None:
+        _augment_message(
+            exception,
+            pattern=".*Expected to have finished reduction in the prior iteration.*",
+            new_message=(
+                "It looks like your LightningModule has parameters that were not used in producing the loss returned"
+                " by training_step. If this is intentional, you must enable the detection of unused parameters in DDP,"
+                " either by setting the string value `strategy='ddp_find_unused_parameters_true'`"
+                " or by setting the flag in the strategy with `strategy=DDPStrategy(find_unused_parameters=True)`."
+            ),
+        )
+
     def teardown(self) -> None:
-        log.detail(f"{self.__class__.__name__}: tearing down strategy")
+        log.debug(f"{self.__class__.__name__}: tearing down strategy")
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):

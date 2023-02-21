@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -30,7 +30,6 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
-from lightning.fabric.utilities.apply_func import apply_to_collection
 from lightning.fabric.utilities.data import has_len
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -114,9 +113,14 @@ class XLAStrategy(ParallelStrategy):
         XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
+        if isinstance(dataloader, MpDeviceLoader):
+            # dataloader is already wrapped by MpDeviceLoader
+            return dataloader
+
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
+        dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
@@ -205,8 +209,6 @@ class XLAStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        # TODO(fabric): Deprecate the name "tpu_spawn" through the connector
-        strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
 
     def _set_world_ranks(self) -> None:
@@ -217,12 +219,9 @@ class XLAStrategy(ParallelStrategy):
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @staticmethod
-    def _validate_dataloader(dataloaders: DataLoader) -> None:
-        def check_has_len(dataloader: DataLoader) -> None:
-            if not has_len(dataloader):
-                raise TypeError(
-                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
-                )
-
-        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
+    def _validate_dataloader(dataloader: object) -> None:
+        if not has_len(dataloader):
+            raise TypeError(
+                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
+                " HINT: You can mock the length on your dataset to bypass this error."
+            )

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -453,7 +453,9 @@ class _LoadBalancer(LightningWork):
         try:
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
-            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            logger.warn(
+                "Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`"
+            )
             return
 
         if is_running_in_cloud():

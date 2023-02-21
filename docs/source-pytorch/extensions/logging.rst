@@ -152,19 +152,19 @@ The :meth:`~pytorch_lightning.core.module.LightningModule.log` method has a few 
    * - Hook
      - on_step
      - on_epoch
-   * - on_train_start, on_train_epoch_start, on_train_epoch_end, training_epoch_end
+   * - on_train_start, on_train_epoch_start, on_train_epoch_end
      - False
      - True
    * - on_before_backward, on_after_backward, on_before_optimizer_step, on_before_zero_grad
      - True
      - False
-   * - on_train_batch_start, on_train_batch_end, training_step, training_step_end
+   * - on_train_batch_start, on_train_batch_end, training_step
      - True
      - False
-   * - on_validation_start, on_validation_epoch_start, on_validation_epoch_end, validation_epoch_end
+   * - on_validation_start, on_validation_epoch_start, on_validation_epoch_end
      - False
      - True
-   * - on_validation_batch_start, on_validation_batch_end, validation_step, validation_step_end
+   * - on_validation_batch_start, on_validation_batch_end, validation_step
      - False
      - True
 

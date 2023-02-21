@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Generator, Iterable, Optional, Tuple
+from typing import Any, Callable, Generator, Iterable, Optional, Tuple
 
 import torch
+import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.loops import _Loop
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.loops.progress import BaseProgress
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import Strategy
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -130,3 +134,47 @@ def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
         sampler = getattr(dataloader, sampler_name, None)
         if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
             sampler.set_epoch(epoch)
+
+
+def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
+    lightning_module = trainer.lightning_module
+    if trainer.testing:
+        step_fx_name = "test_step"
+    elif trainer.training:
+        step_fx_name = "training_step"
+    elif trainer.validating or trainer.sanity_checking:
+        step_fx_name = "validation_step"
+    elif trainer.predicting:
+        step_fx_name = "predict_step"
+    else:
+        raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return _DataLoaderIterDataFetcher()
+    return _PrefetchDataFetcher()
+
+
+def _no_grad_context(loop_run: Callable) -> Callable:
+    def _decorator(self: _Loop, *args: Any, **kwargs: Any) -> Any:
+        if not isinstance(self, _Loop):
+            raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
+        if not hasattr(self, "inference_mode"):
+            raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
+        context_manager = (
+            torch.inference_mode
+            if (
+                self.inference_mode
+                # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
+                and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
+                and not isinstance(self.trainer.accelerator, TPUAccelerator)
+            )
+            else torch.no_grad
+        )
+        with context_manager():
+            return loop_run(self, *args, **kwargs)
+
+    return _decorator

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,8 +99,8 @@ class FSDPStrategy(ParallelStrategy):
             algorithms to help backward communication and computation overlapping.
             The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
         mixed_precision:
-            Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16``
-            or BF16 if ``precision=bf16`` unless a config is passed in.
+            Mixed Precision config. By default, Lightning will enable FP16 if ``precision="16-mixed"``
+            or BF16 if ``precision="bf16-mixed"`` unless a config is passed in.
             This is only available in PyTorch 1.12 and later.
         activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
             checkpointing. This is typically your transformer block (including attention + feed-forward).
@@ -184,7 +184,7 @@ class FSDPStrategy(ParallelStrategy):
         return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     def setup_environment(self) -> None:
-        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
         # determine which process we are and world size
@@ -223,7 +223,7 @@ class FSDPStrategy(ParallelStrategy):
         ):
             del self.kwargs["auto_wrap_policy"]
 
-        log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+        log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
 
         wrapped_module = FullyShardedDataParallel(
             module=model,
@@ -290,7 +290,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
+        log.debug(f"{self.__class__.__name__}: entered model_sharded_context.")
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             process_group=self.process_group,

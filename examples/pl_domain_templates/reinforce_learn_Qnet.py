@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 
-from pytorch_lightning import cli_lightning_logo, LightningModule, seed_everything, Trainer
+from lightning.pytorch import cli_lightning_logo, LightningModule, seed_everything, Trainer
 
 
 class DQN(nn.Module):
@@ -365,33 +365,10 @@ class DQNLightning(LightningModule):
         """Retrieve device currently being used by minibatch."""
         return batch[0].device.index if self.on_gpu else "cpu"
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = parent_parser.add_argument_group("DQNLightning")
-        parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
-        parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
-        parser.add_argument("--env", type=str, default="CartPole-v1", help="gym environment tag")
-        parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-        parser.add_argument("--sync_rate", type=int, default=10, help="how many frames do we update the target network")
-        parser.add_argument("--replay_size", type=int, default=1000, help="capacity of the replay buffer")
-        parser.add_argument(
-            "--warm_start_steps",
-            type=int,
-            default=1000,
-            help="how many samples do we use to fill our buffer at the start of training",
-        )
-        parser.add_argument("--eps_last_frame", type=int, default=1000, help="what frame should epsilon stop decaying")
-        parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
-        parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
-        parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-        return parent_parser
-
 
 def main(args) -> None:
     model = DQNLightning(**vars(args))
-
-    trainer = Trainer(accelerator="gpu", devices=1, strategy="dp", val_check_interval=100)
-
+    trainer = Trainer(accelerator="gpu", devices=1, val_check_interval=100)
     trainer.fit(model)
 
 
@@ -399,8 +376,23 @@ if __name__ == "__main__":
     cli_lightning_logo()
     seed_everything(0)
 
-    parser = argparse.ArgumentParser(add_help=False)
-    parser = DQNLightning.add_model_specific_args(parser)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
+    parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
+    parser.add_argument("--env", type=str, default="CartPole-v1", help="gym environment tag")
+    parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
+    parser.add_argument("--sync_rate", type=int, default=10, help="how many frames do we update the target network")
+    parser.add_argument("--replay_size", type=int, default=1000, help="capacity of the replay buffer")
+    parser.add_argument(
+        "--warm_start_steps",
+        type=int,
+        default=1000,
+        help="how many samples do we use to fill our buffer at the start of training",
+    )
+    parser.add_argument("--eps_last_frame", type=int, default=1000, help="what frame should epsilon stop decaying")
+    parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
+    parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
+    parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
     args = parser.parse_args()
 
     main(args)
