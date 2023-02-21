@@ -174,7 +174,7 @@ def mps_count_4(monkeypatch):
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", True)
@@ -263,7 +263,6 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     options = dict(
         standalone="PL_RUN_STANDALONE_TESTS",
         min_cuda_gpus="PL_RUN_CUDA_TESTS",
-        slow="PL_RUN_SLOW_TESTS",
         ipu="PL_RUN_IPU_TESTS",
         tpu="PL_RUN_TPU_TESTS",
     )

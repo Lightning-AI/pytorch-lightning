@@ -34,15 +34,18 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self,
+        precision: Literal["16-mixed", "bf16-mixed"],
+        device: str,
+        scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
-        self.precision = cast(Literal["16", "bf16"], str(precision))
-        if scaler is None and self.precision == "16":
+        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
-        if scaler is not None and self.precision == "bf16":
-            raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
+        if scaler is not None and self.precision == "bf16-mixed":
+            raise MisconfigurationException(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
         self.scaler = scaler
 
@@ -97,7 +100,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def autocast_context_manager(self) -> torch.autocast:
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16-mixed" else torch.half)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:

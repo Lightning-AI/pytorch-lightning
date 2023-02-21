@@ -11,7 +11,7 @@ class YourComponent(L.LightningWork):
     def run(self):
         print(lmdb.version())
         print("lmdb successfully installed")
-        print("accessing a module in a Work or Flow body works!")
+        print("Accessing a module in a Work or Flow body works!")
 
 
 class RootFlow(L.LightningFlow):
@@ -23,7 +23,7 @@ class RootFlow(L.LightningFlow):
         self.work.run()
 
 
-print(f"accessing an object in main code body works!: version={lmdb.version()}")
+print(f"Accessing an object in main code body works!: version = {lmdb.version()}")
 
 
 # run on a cloud machine

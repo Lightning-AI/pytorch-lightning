@@ -38,7 +38,7 @@ def test_amp_fused_optimizer_parity(tmpdir):
             default_root_dir=tmpdir,
             accelerator="cuda",
             devices=1,
-            precision=16,
+            precision="16-mixed",
             max_steps=5,
             logger=False,
             enable_checkpointing=False,

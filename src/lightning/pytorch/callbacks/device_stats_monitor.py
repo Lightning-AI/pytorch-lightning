@@ -114,7 +114,12 @@ class DeviceStatsMonitor(Callback):
         self._get_and_log_device_stats(trainer, "on_train_batch_end")
 
     def on_validation_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_validation_batch_start")
 
@@ -125,12 +130,17 @@ class DeviceStatsMonitor(Callback):
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_validation_batch_end")
 
     def on_test_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_test_batch_start")
 
@@ -141,7 +151,7 @@ class DeviceStatsMonitor(Callback):
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_test_batch_end")
 
