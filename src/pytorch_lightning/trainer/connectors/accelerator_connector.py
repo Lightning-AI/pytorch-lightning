@@ -276,7 +276,7 @@ class AcceleratorConnector:
         if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
-                " It must be either a string or an instance of `lightning.pytorch.strategies.Strategy`."
+                " It must be either a string or an instance of `pytorch_lightning.strategies.Strategy`."
                 " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
                 " Find a complete list of options in our documentation at https://lightning.ai"
             )
@@ -821,7 +821,9 @@ class AcceleratorConnector:
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
-            self.strategy.cluster_environment = self.cluster_environment
+            if self.strategy.cluster_environment is None:
+                self.strategy.cluster_environment = self.cluster_environment
+            self.cluster_environment = self.strategy.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
             if self.strategy.parallel_devices:
                 self._parallel_devices = self.strategy.parallel_devices

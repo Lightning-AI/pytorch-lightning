@@ -28,12 +28,14 @@ from lightning_fabric.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
@@ -45,6 +47,8 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
+    SingleTPUStrategy,
+    TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
@@ -57,6 +61,24 @@ def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
+
+
+@RunIf(tpu=True, standalone=True)
+@pytest.mark.parametrize(
+    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_accelerator_choice_tpu(accelerator, devices):
+    connector = AcceleratorConnector(accelerator=accelerator, devices=devices)
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    if devices is None or (isinstance(devices, int) and devices > 1):
+        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses TPUSpawnStrategy
+        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
+        assert isinstance(connector.strategy, TPUSpawnStrategy)
+        assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+        assert isinstance(connector.cluster_environment, XLAEnvironment)
+    else:
+        assert isinstance(connector.strategy, SingleTPUStrategy)
 
 
 def test_accelerator_invalid_choice():
@@ -265,7 +287,8 @@ def test_interactive_compatible_dp_strategy_gpu(mps_count_0, cuda_count_2, monke
 
 
 @RunIf(skip_windows=True)
-def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_interactive_compatible_strategy_tpu(_, tpu_available, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible

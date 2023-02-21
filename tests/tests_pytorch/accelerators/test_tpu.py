@@ -81,7 +81,8 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_accelerator_cpu_with_tpu_cores_flag(_, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator="cpu", devices=8)
@@ -94,7 +95,8 @@ def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
-def test_accelerator_tpu(accelerator, devices, tpu_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_accelerator_tpu(_, accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
@@ -104,7 +106,8 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_accelerator_tpu_with_tpu_cores_priority(_, tpu_available):
     """Test for checking `tpu_cores` flag takes priority over `devices`."""
     tpu_cores = 8
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
@@ -115,7 +118,8 @@ def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_set_devices_if_none_tpu(tpu_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_set_devices_if_none_tpu(_, tpu_available):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
@@ -202,7 +206,8 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_tpu_str_tpu_spawn_debug(tpu_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_strategy_choice_tpu_str_tpu_spawn_debug(_, tpu_available):
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
@@ -286,7 +291,8 @@ def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_xla_checkpoint_plugin_being_default(tpu_available):
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.set_world_ranks")
+def test_xla_checkpoint_plugin_being_default(_, tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 

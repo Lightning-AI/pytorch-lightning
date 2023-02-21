@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.9.3] - 2023-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+-
+
+
+### Removed
+
+### Fixed
+
+- Fixed an issue causing a wrong environment plugin to be selected when `accelerator=tpu` and `devices > 1` ([#16806](https://github.com/Lightning-AI/lightning/pull/16806))
+
+
 ## [1.9.2] - 2023-02-15
 
 - Fixed an attribute error and improved input validation for invalid strategy types being passed to Fabric ([#16693](https://github.com/Lightning-AI/lightning/pull/16693))
