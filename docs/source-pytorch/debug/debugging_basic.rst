@@ -47,7 +47,7 @@ Run all your model code once quickly
 ************************************
 If you've ever trained a model for days only to crash during validation or testing then this trainer argument is about to become your best friend.
 
-The :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run` argument in the trainer runs 5 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
+The :paramref:`~pytorch_lightning.Trainer.params.fast_dev_run` argument in the trainer runs 5 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
 
 .. code:: python
 
@@ -91,9 +91,7 @@ Run a Sanity Check
 ******************
 Lightning runs **2** steps of validation in the beginning of training.
 This avoids crashing in the validation loop sometime deep into a lengthy training loop.
-
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.num_sanity_val_steps`
-argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
+See: :paramref:`~pytorch_lightning.Trainer.params.num_sanity_val_steps`
 
 .. testcode::
 

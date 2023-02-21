@@ -88,11 +88,11 @@ and change where it is called:
             self._run_early_stopping_check(trainer)
 
 .. note::
-   The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback runs
+   The :class:`~pytorch_lightning.callbacks.EarlyStopping` callback runs
    at the end of every validation epoch by default. However, the frequency of validation
-   can be modified by setting various parameters in the :class:`~pytorch_lightning.trainer.trainer.Trainer`,
-   for example :paramref:`~pytorch_lightning.trainer.trainer.Trainer.check_val_every_n_epoch`
-   and :paramref:`~pytorch_lightning.trainer.trainer.Trainer.val_check_interval`.
+   can be modified by setting various parameters in the :class:`~pytorch_lightning.Trainer`,
+   for example :paramref:`~pytorch_lightning.Trainer.params.check_val_every_n_epoch`
+   and :paramref:`~pytorch_lightning.Trainer.params.val_check_interval`.
    It must be noted that the ``patience`` parameter counts the number of
    validation checks with no improvement, and not the number of training epochs.
    Therefore, with parameters ``check_val_every_n_epoch=10`` and ``patience=3``, the trainer

@@ -158,7 +158,7 @@ For example, here we will apply a stronger gradient clipping after a certain num
 Total Stepping Batches
 ======================
 
-You can use built-in trainer property :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches` to compute
+You can use built-in trainer property :attr:`~pytorch_lightning.Trainer.estimated_stepping_batches` to compute
 total number of stepping batches for the complete training. The property is computed considering gradient accumulation factor and
 distributed setting into consideration so you don't have to derive it manually. One good example where this can be helpful is while using
 :class:`~torch.optim.lr_scheduler.OneCycleLR` scheduler, which requires pre-computed ``total_steps`` during initialization.

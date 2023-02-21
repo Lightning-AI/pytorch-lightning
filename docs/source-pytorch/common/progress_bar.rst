@@ -22,7 +22,7 @@ The :class:`~pytorch_lightning.callbacks.TQDMProgressBar` uses the `tqdm <https:
 It prints to ``stdout`` and shows up to four different bars:
 
 - **sanity check progress:** the progress during the sanity check run
-- **train progress:** shows the training progress. It will pause if validation starts and will resume when it ends, and also accounts for multiple validation runs during training when :paramref:`~pytorch_lightning.trainer.trainer.Trainer.val_check_interval` is used.
+- **train progress:** shows the training progress. It will pause if validation starts and will resume when it ends, and also accounts for multiple validation runs during training when :paramref:`~pytorch_lightning.Trainer.params.val_check_interval` is used.
 - **validation progress:** only visible during validation; shows total progress over all validation datasets.
 - **test progress:** only active when testing; shows total progress over all test datasets.
 
@@ -115,7 +115,7 @@ You can customize the components used within :class:`~pytorch_lightning.callback
     progress_bar = CustomRichProgressBar()
 
 If you wish for a new progress bar to be displayed at the end of every epoch, you should enable
-:paramref:`RichProgressBar.leave <pytorch_lightning.callbacks.RichProgressBar.leave>` by passing ``True``
+:paramref:`pytorch_lightning.callbacks.RichProgressBar.params.leave` by passing ``True``
 
 .. code-block:: python
 
