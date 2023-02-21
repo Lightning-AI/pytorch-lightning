@@ -53,6 +53,25 @@ class _DeviceDtypeModuleMixin(Module):
         self.__update_properties(device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
+    def xpu(self, device: Optional[Union[torch.device, int]] = None) -> Self:  # type: ignore[valid-type]
+        """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
+        different objects. So it should be called before constructing optimizer if the module will live on GPU
+        while being optimized.
+
+        Arguments:
+            device: If specified, all parameters will be copied to that device. If `None`, the current XPU device
+                index will be used.
+
+        Returns:
+            Module: self
+        """
+        if device is None:
+            device = torch.device("xpu", torch.xpu.current_device())
+        elif isinstance(device, int):
+            device = torch.device("xpu", index=device)
+        self.__update_properties(device=device)
+        return super().xpu(device=device)
+
     def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:  # type: ignore[valid-type]
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU

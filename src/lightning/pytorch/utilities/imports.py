@@ -22,7 +22,7 @@ _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 # duplicated from fabric because HPU is patching it below
-_TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
+_TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")

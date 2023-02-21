@@ -15,6 +15,13 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import ReduceOp
 
+try:
+    import oneccl_bindings_for_pytorch as torch_ccl
+
+    rank_zero_info(f"Using Intel® oneCCL Bindings for PyTorch* {torch_ccl.__version__}")
+except ImportError:
+    pass
+
 if torch.distributed.is_available():
     from torch.distributed import group
 else:
@@ -223,7 +230,7 @@ def _init_dist_connection(
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
-        torch_distributed_backend: Backend to use (includes `nccl` and `gloo`)
+        torch_distributed_backend: Backend to use (includes `nccl`, `ccl` and `gloo`)
         global_rank: Rank of the current process
         world_size: Number of processes in the group
         kwargs: Kwargs for ``init_process_group``
@@ -254,7 +261,12 @@ def _init_dist_connection(
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
-    return "nccl" if device.type == "cuda" else "gloo"
+    if device.type == "cuda":
+        return "nccl"
+    elif device.type == "xpu":
+        return "ccl"
+    else:
+        return "gloo"
 
 
 # TODO(fabric): The error messages refer to 'replace_sampler_ddp' in PL but Fabric has it named 'replace_sampler'

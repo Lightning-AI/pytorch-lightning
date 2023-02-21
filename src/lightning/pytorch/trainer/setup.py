@@ -23,6 +23,7 @@ from lightning.pytorch.accelerators import (
     IPUAccelerator,
     MPSAccelerator,
     TPUAccelerator,
+    XPUAccelerator,
 )
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.loggers.logger import DummyLogger
@@ -155,11 +156,14 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     elif MPSAccelerator.is_available():
         gpu_available = True
         gpu_type = " (mps)"
+    elif XPUAccelerator.is_available():
+        gpu_available = True
+        gpu_type = " (xpu)"
     else:
         gpu_available = False
         gpu_type = ""
 
-    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator))
+    gpu_used = isinstance(trainer.accelerator, (XPUAccelerator, CUDAAccelerator, MPSAccelerator))
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
@@ -176,6 +180,13 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         rank_zero_warn(
             "GPU available but not used. Set `accelerator` and `devices` using"
             f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
+            category=PossibleUserWarning,
+        )
+
+    if XPUAccelerator.is_available() and not isinstance(trainer.accelerator, XPUAccelerator):
+        rank_zero_warn(
+            "GPU available but not used. Set `accelerator` and `devices` using"
+            f" `Trainer(accelerator='gpu', devices={XPUAccelerator.auto_device_count()})`.",
             category=PossibleUserWarning,
         )
 

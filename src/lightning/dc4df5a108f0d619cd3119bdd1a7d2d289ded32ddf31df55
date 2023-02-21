@@ -1,0 +1,21 @@
+include *.cff  # citation info
+include .actions/assistant.py
+include requirements/base.txt
+include src/lightning/app/CHANGELOG.md
+include src/lightning/app/README.md
+include src/lightning/app/components/serve/catimage.png
+include src/lightning/app/version.info
+include src/lightning/fabric/CHANGELOG.md
+include src/lightning/fabric/README.md
+include src/lightning/fabric/version.info
+include src/lightning/pytorch/CHANGELOG.md
+include src/lightning/pytorch/README.md
+include src/lightning/pytorch/py.typed  # marker file for PEP 561
+include src/lightning/pytorch/version.info
+include src/lightning/version.info
+include src/version.info
+recursive-include requirements/app *.txt
+recursive-include requirements/fabric *.txt
+recursive-include requirements/pytorch *.txt
+recursive-include src/lightning/app/cli/*-template *
+recursive-include src/lightning/app/ui *
