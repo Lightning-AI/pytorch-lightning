@@ -10,4 +10,4 @@ torchmetrics>=0.7.0, <0.10.1  # needed for using fixed compare_version
 packaging>=17.1, <=23.0
 typing-extensions>=4.0.0, <=4.4.0
 lightning-utilities>=0.6.0.post0, <0.7.0
-onnxruntime<1.14.0
+onnx<1.14.0
