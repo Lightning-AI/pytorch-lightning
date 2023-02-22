@@ -13,13 +13,16 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 import torch.distributed
 from lightning_utilities.test.warning import no_warning_call
+from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
@@ -907,3 +910,75 @@ def test_connector_defaults_match_fabric_defaults():
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
         assert connector_default == fabric_defaults[name]
+
+
+def test_connector_auto_selection(monkeypatch):
+    no_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
+    single_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+    multi_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=4)
+    no_mps = mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+    single_mps = mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
+
+    # CPU
+    with no_cuda, no_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, False)
+        connector = _Connector()
+    assert isinstance(connector.accelerator, CPUAccelerator)
+    assert isinstance(connector.strategy, SingleDeviceStrategy)
+    assert connector._devices_flag == 1
+
+    # single CUDA
+    with single_cuda, no_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, False)
+        connector = _Connector()
+    assert isinstance(connector.accelerator, CUDAAccelerator)
+    assert isinstance(connector.strategy, SingleDeviceStrategy)
+    assert connector._devices_flag == [0]
+
+    # multi CUDA
+    with multi_cuda, no_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, False)
+        connector = _Connector()
+    assert isinstance(connector.accelerator, CUDAAccelerator)
+    assert isinstance(connector.strategy, DDPStrategy)
+    assert connector._devices_flag == list(range(4))
+
+    # MPS (there's no distributed)
+    with no_cuda, single_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, False)
+        connector = _Connector()
+    assert isinstance(connector.accelerator, MPSAccelerator)
+    assert isinstance(connector.strategy, SingleDeviceStrategy)
+    assert connector._devices_flag == [0]
+
+    # single TPU
+    with no_cuda, no_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, True)
+        # TPUAccelerator.auto_device_count always returns 8, but in case this changes in the future...
+        monkeypatch.setattr(lightning.fabric.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
+        monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+        monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+        monkeypatch.setattr(torch, "device", Mock())
+        connector = _Connector()
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, SingleTPUStrategy)
+    assert connector._devices_flag == 1
+
+    monkeypatch.undo()  # for some reason `.context()` is not working properly
+    assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
+
+    # Multi TPU
+    with no_cuda, no_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, True)
+        connector = _Connector()
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, XLAStrategy)
+    assert connector._devices_flag == 8
+
+    # TPU and CUDA: prefers TPU
+    with multi_cuda, no_mps, monkeypatch.context():
+        mock_tpu_available(monkeypatch, True)
+        connector = _Connector()
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, XLAStrategy)
+    assert connector._devices_flag == 8
