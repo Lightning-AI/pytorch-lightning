@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
