@@ -190,12 +190,14 @@ def _verify_dataloader_idx_requirement(
         # this validation only works if "dataloader_idx" is used, no other names such as "dl_idx"
         param_present = is_param_in_hook_signature(fx, "dataloader_idx")
         if not is_expected:
-            if param_present and inspect.signature(fx).parameters["dataloader_idx"].default is inspect.Parameter.empty:
-                raise RuntimeError(
-                    f"You provided only a single `{stage.dataloader_prefix}_dataloader`, but have included "
-                    f"`dataloader_idx` in `{type(pl_module).__name__}.{hook}()`. Either remove the"
-                    " argument or give it a default value i.e. `dataloader_idx=0`."
-                )
+            if param_present:
+                params = inspect.signature(fx).parameters
+                if "dataloader_idx" in params and params["dataloader_idx"].default is inspect.Parameter.empty:
+                    raise RuntimeError(
+                        f"You provided only a single `{stage.dataloader_prefix}_dataloader`, but have included "
+                        f"`dataloader_idx` in `{type(pl_module).__name__}.{hook}()`. Either remove the"
+                        " argument or give it a default value i.e. `dataloader_idx=0`."
+                    )
         else:
             if not param_present:
                 raise RuntimeError(
