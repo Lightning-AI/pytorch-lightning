@@ -24,6 +24,7 @@ def test_collect_failures_example_cloud() -> None:
     ]
     with run_app_in_cloud(os.path.join(_PATH_APPS, "collect_failures")) as (
         _,
+        _,
         fetch_logs,
         _,
     ):

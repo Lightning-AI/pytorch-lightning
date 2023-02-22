@@ -230,8 +230,8 @@ from lightning.app.testing import run_app_in_cloud
 def test_file_server_in_cloud():
     # You need to provide the directory containing the app file.
     app_dir = "docs/source/examples/file_server"
-    with run_app_in_cloud(app_dir) as (view_page, get_logs_fn, name):
-        """# 1. `view_page` is a playwright Page Objects.
+    with run_app_in_cloud(app_dir) as (admin_page, view_page, get_logs_fn, name):
+        """# 1. `admin_page` and `view_page` are playwright Page Objects.
 
         # Check out https://playwright.dev/python/ doc to learn more.
         # You can click the UI and trigger actions.

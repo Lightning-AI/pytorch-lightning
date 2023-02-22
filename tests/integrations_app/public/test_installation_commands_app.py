@@ -14,7 +14,7 @@ def test_installation_commands_app_example_cloud() -> None:
         app_name="app.py",
         extra_args=["--setup"],
         debug=True,
-    ) as (_, fetch_logs, _):
+    ) as (_, _, fetch_logs, _):
         has_logs = False
         while not has_logs:
             for log in fetch_logs(["work"]):

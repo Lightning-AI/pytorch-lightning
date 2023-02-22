@@ -14,6 +14,7 @@
 
 import asyncio
 import datetime
+import json
 import os
 import shutil
 import subprocess
@@ -36,6 +37,7 @@ from rich.color import ANSI_COLOR_NAMES
 
 from lightning.app import LightningApp, LightningFlow
 from lightning.app.cli.lightning_cli import run_app
+from lightning.app.core import constants
 from lightning.app.runners.multiprocess import MultiProcessRuntime
 from lightning.app.testing.config import _Config
 from lightning.app.utilities.app_logs import _app_logs_reader
@@ -265,6 +267,19 @@ def run_app_in_cloud(
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
+    url = _Config.url
+    if url.endswith("/"):
+        url = url[:-1]
+    payload = {"apiKey": _Config.api_key, "username": _Config.username}
+    url_login = url + "/v1/auth/login"
+    res = requests.post(url_login, data=json.dumps(payload))
+    if "token" not in res.json():
+        raise RuntimeError(
+            f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
+        )
+
+    token = res.json()["token"]
+
     # 3. Disconnect from the App if any.
     Popen("lightning logout", shell=True).wait()
 
@@ -295,6 +310,14 @@ def run_app_in_cloud(
             ]
             process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
             process.wait()
+
+        # Fallback URL to prevent failures in case we don't get the admin URL
+        admin_url = _Config.url
+        with open(stdout_path) as fo:
+            for line in fo.readlines():
+                if line.startswith("APP_LOGS_URL: "):
+                    admin_url = line.replace("APP_LOGS_URL: ", "")
+                    break
 
         if is_editable_mode:
             # Added to ensure the current code is properly uploaded.
@@ -333,6 +356,26 @@ def run_app_in_cloud(
         if debug:
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
+
+        admin_page = context.new_page()
+        admin_page.goto(admin_url)
+        admin_page.evaluate(
+            """data => {
+            window.localStorage.setItem('gridUserId', data[0]);
+            window.localStorage.setItem('gridUserKey', data[1]);
+            window.localStorage.setItem('gridUserToken', data[2]);
+        }
+        """,
+            [_Config.id, _Config.key, token],
+        )
+        if constants.LIGHTNING_CLOUD_PROJECT_ID:
+            admin_page.evaluate(
+                """data => {
+                window.localStorage.setItem('gridDefaultProjectIdOverride', JSON.stringify(data[0]));
+            }
+            """,
+                [constants.LIGHTNING_CLOUD_PROJECT_ID],
+            )
 
         view_page = context.new_page()
         i = 1
@@ -392,7 +435,7 @@ def run_app_in_cloud(
                 yield log_event.message
 
         try:
-            yield view_page, fetch_logs, name
+            yield admin_page, view_page, fetch_logs, name
         except KeyboardInterrupt:
             pass
         finally:
