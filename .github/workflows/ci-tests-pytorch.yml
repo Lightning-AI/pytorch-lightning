@@ -100,14 +100,6 @@ jobs:
         done
         cat requirements/pytorch/base.txt
 
-    # - name: Adjust PyTorch versions in requirements files
-    #   if: ${{matrix.release == 'pre'}}
-    #   run: |
-    #     for fpath in `ls requirements/**/*.txt`; do \
-    #       python ./requirements/pytorch/adjust-versions.py $fpath ${{ matrix.pytorch-version }} --remove_torch_ver; \
-    #     done
-    #     cat requirements/pytorch/base.txt
-
     - name: pip wheels cache
       uses: actions/cache@v3
       with:

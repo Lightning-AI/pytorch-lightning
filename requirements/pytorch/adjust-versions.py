@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
@@ -28,39 +29,34 @@ def find_latest(ver: str) -> Dict[str, str]:
     raise ValueError(f"Missing {ver} in {VERSIONS}")
 
 
-def replace(req: str, torch_version: Optional[str] = None, remove_torch_ver: bool = False) -> str:
+def replace(req: str, torch_version: Optional[str] = None) -> str:
     if not torch_version:
         import torch
 
         torch_version = torch.__version__
-    assert remove_torch_ver or torch_version, f"invalid torch: {torch_version}"
+    assert torch_version, f"invalid torch: {torch_version}"
 
     # remove comments and strip whitespace
     req = re.sub(rf"\s*#.*{os.linesep}", os.linesep, req).strip()
 
     latest = find_latest(torch_version)
     for lib, version in latest.items():
-        replace_ = lib
-        if not remove_torch_ver or lib != "torch":
-            replace_ = f"{lib}=={version}" if version else ""
-        req = re.sub(rf"\b{lib}(?!\w).*", replace_, req)
+        replace = f"{lib}=={version}" if version else ""
+        req = re.sub(rf"\b{lib}(?!\w).*", replace, req)
 
     return req
 
 
 if __name__ == "__main__":
-    import argparse
+    if len(sys.argv) == 3:
+        requirements_path, torch_version = sys.argv[1:]
+    else:
+        requirements_path, torch_version = sys.argv[1], None
+    print(f"requirements_path='{requirements_path}' with torch_version='{torch_version}'")
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("requirements_path", type=str)
-    parser.add_argument("torch_version", type=str, default=None)
-    parser.add_argument("--remove_torch_ver", action="store_true")
-    args = parser.parse_args()
-    print(f"requirements_path='{args.requirements_path}' with torch_version='{args.torch_version}'")
-
-    with open(args.requirements_path) as fp:
+    with open(requirements_path) as fp:
         requirements = fp.read()
-    requirements = replace(requirements, args.torch_version, args.remove_torch_ver)
+    requirements = replace(requirements, torch_version)
     print(requirements)  # on purpose - to debug
-    with open(args.requirements_path, "w") as fp:
+    with open(requirements_path, "w") as fp:
         fp.write(requirements)

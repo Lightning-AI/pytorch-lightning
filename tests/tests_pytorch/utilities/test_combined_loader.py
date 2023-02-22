@@ -228,12 +228,13 @@ def test_sequential_mode_limits_raises():
 
 
 def test_combined_loader_flattened_setter():
-    combined_loader = CombinedLoader([0, [1, [2]]])
+    iterables = [[0], [[1], [[2]]]]
+    combined_loader = CombinedLoader(iterables)
     with pytest.raises(ValueError, match=r"Mismatch in flattened length \(1\) and existing length \(3\)"):
         combined_loader.flattened = [2]
-    combined_loader.flattened = [3, 2, 1]
-    # TODO(carmocca): this should be [3, [2, [1]]]
-    assert combined_loader.iterables == [3, [2, 1]]
+    assert combined_loader.flattened == [[0], [1], [2]]
+    combined_loader.flattened = [[3], [2], [1]]
+    assert combined_loader.iterables == [[3], [[2], [[1]]]]
 
 
 @pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
