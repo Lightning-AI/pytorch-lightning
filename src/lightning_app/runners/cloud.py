@@ -367,6 +367,10 @@ class CloudRuntime(Runtime):
                 click.launch(
                     self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui", needs_credits)
                 )
+
+            if bool(int(os.getenv("LIGHTING_TESTING", "0"))):
+                print(f"APP_LOGS_URL: {self._get_app_url(project, run_instance, 'logs')}")
+
         except ApiException as e:
             logger.error(e.body)
             sys.exit(1)
