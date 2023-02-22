@@ -15,12 +15,12 @@ import logging
 from typing import Optional, Union
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.data import _auto_add_worker_init_fn
+from lightning.fabric.utilities.data import _auto_add_worker_init_fn, _set_sampler_epoch
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.training_epoch_loop import _TrainingEpochLoop
-from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
