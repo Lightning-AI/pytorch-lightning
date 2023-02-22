@@ -84,13 +84,12 @@ class _XLALauncher(_Launcher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
-        if process_idx == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-        _rank_teardown(process_idx)
+        _rank_teardown(self._strategy.local_rank)
 
 
 def _rank_teardown(rank: int) -> None:
