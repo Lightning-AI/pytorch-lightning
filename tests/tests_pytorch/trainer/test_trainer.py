@@ -1114,9 +1114,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
-        assert mocked.call_count == sum(
-            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
-        )
+    assert mocked.call_count == sum(trainer.num_sanity_val_batches)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.3])

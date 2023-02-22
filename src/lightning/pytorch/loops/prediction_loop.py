@@ -31,6 +31,7 @@ class _PredictionLoop(_Loop):
         self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
         self.batch_progress = Progress()  # across dataloaders
+        self.max_batches: List[Union[int, float]] = []
 
         self._warning_cache = WarningCache()
         self._data_source = _DataLoaderSource(None, "predict_dataloader")
@@ -72,11 +73,6 @@ class _PredictionLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> List[Union[int, float]]:
-        """The max number of batches this loop will run for each dataloader."""
-        return self.trainer.num_predict_batches
-
-    @property
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
@@ -109,7 +105,7 @@ class _PredictionLoop(_Loop):
         if not source.is_defined() or trainer.limit_predict_batches == 0:
             return
 
-        trainer.num_predict_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(
+        self.max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(
             RunningStage.PREDICTING, model=pl_module
         )
         for dl in combined_loader.flattened:

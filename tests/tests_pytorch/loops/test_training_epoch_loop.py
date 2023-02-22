@@ -66,7 +66,7 @@ def test_should_stop_early_stopping_conditions_not_met(
     """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
     met."""
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
-    trainer.num_training_batches = 10
+    trainer.fit_loop.max_batches = 10
     trainer.should_stop = True
     trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.optimizer.step.total.completed = global_step
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
