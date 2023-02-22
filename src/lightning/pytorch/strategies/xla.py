@@ -93,6 +93,10 @@ class XLAStrategy(DDPSpawnStrategy):
 
         return xm.xla_device()
 
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
+    
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
         if not has_len(dataloader):
@@ -209,6 +213,11 @@ class XLAStrategy(DDPSpawnStrategy):
         self._launched = True
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
