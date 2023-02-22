@@ -93,18 +93,18 @@ RUN \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
-        python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
+      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
     done && \
 
     # Install base requirements \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links ${TORCH_URL} ${TORCH_WHEEL_OPTIONS} && \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links ${TORCH_URL} && \
     rm assistant.py
 
 
 RUN \
     # install rest of strategies
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt --no-cache-dir --find-links ${TORCH_URL}
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links ${TORCH_URL}
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
