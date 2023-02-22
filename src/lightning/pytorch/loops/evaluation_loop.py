@@ -395,6 +395,8 @@ class _EvaluationLoop(_Loop):
         step_hook = "test_step" if trainer.testing else "validation_step"
         batch_start_hook = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
         batch_end_hook = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
+        assert self._combined_loader is not None
+        assert trainer.state.stage is not None
         _verify_dataloader_idx_requirement(
             (step_hook, batch_start_hook, batch_end_hook),
             self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,

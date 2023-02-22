@@ -307,6 +307,8 @@ class _PredictionLoop(_Loop):
 
     def _verify_dataloader_idx_requirement(self) -> None:
         trainer = self.trainer
+        assert self._combined_loader is not None
+        assert trainer.state.stage is not None
         _verify_dataloader_idx_requirement(
             ("predict_step", "on_predict_batch_start", "on_predict_batch_end"),
             self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
