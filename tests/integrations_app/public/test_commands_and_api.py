@@ -12,7 +12,7 @@ from lightning_app.testing.testing import run_app_in_cloud
 @pytest.mark.cloud
 def test_commands_and_api_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_commands_and_api")) as (
-        admin_page,
+        _,
         view_page,
         fetch_logs,
         app_name,
