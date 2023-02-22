@@ -54,6 +54,7 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 def test_accelerator_choice_cpu():
@@ -946,7 +947,8 @@ def test_connector_auto_selection(monkeypatch):
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, False)
-        monkeypatch.setattr(torch, "device", Mock())
+        if not _TORCH_GREATER_EQUAL_1_12:
+            monkeypatch.setattr(torch, "device", Mock())
         connector = _Connector()
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
