@@ -1301,11 +1301,11 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
             >>> import os, tempfile
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model = SimpleModel()
-            ...     input_sample = torch.randn((1, 64))
-            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
-            ...     os.path.isfile(tmpfile.name)
+            >>> def export_onnx(model, data_sample):  #  wrap to function because of doctest
+            ...     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+            ...         model.to_onnx(tmpfile.name, data_sample, export_params=True)
+            ...         return os.path.isfile(tmpfile.name)
+            >>> export_onnx(SimpleModel(), torch.randn((1, 64)))
             ...
             True
         """
