@@ -49,7 +49,7 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from lightning.pytorch.strategies import DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -1286,7 +1286,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
-                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, _IndexBatchSamplerWrapper)
         super().on_predict_epoch_end(trainer, pl_module)
 
 

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from unittest import mock
-from unittest.mock import call
 
 import pytest
+from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 
 
 def test_prediction_loop_stores_predictions(tmp_path):
@@ -51,21 +51,39 @@ def test_prediction_loop_stores_predictions(tmp_path):
     assert trainer.predict_loop.predictions == []
 
 
-def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path):
+@pytest.mark.parametrize("replace_sampler_ddp", (False, True))
+def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, replace_sampler_ddp):
     """Tests that set_epoch is called on the dataloader's batch sampler (if any) during prediction."""
-    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
         limit_predict_batches=1,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
+        strategy="ddp",
+        devices=1,
+        accelerator="cpu",
+        replace_sampler_ddp=replace_sampler_ddp,
     )
-    trainer.fit_loop.epoch_progress.current.processed = 2
 
-    with mock.patch("lightning.pytorch.overrides.distributed.IndexBatchSamplerWrapper.set_epoch") as set_epoch_mock:
-        trainer.predict(model)
-    assert set_epoch_mock.mock_calls == [call(2)]
+    class MyModel(BoringModel):
+        def predict_dataloader(self):
+            dataset = RandomDataset(32, 64)
+            sampler = None
+            if not replace_sampler_ddp:
+                sampler = DistributedSampler(dataset)
+            return DataLoader(dataset, sampler=sampler)
+
+    model = MyModel()
+    trainer.fit_loop.epoch_progress.current.processed = 2
+    trainer.predict(model)
+
+    # torch will set this .sampler attribute for backwards compatibility, but in reality, the batch sampler is used
+    assert isinstance(trainer.predict_dataloaders.sampler, SequentialSampler)
+    batch_sampler = trainer.predict_dataloaders.batch_sampler
+    assert isinstance(batch_sampler, _IndexBatchSamplerWrapper)
+    assert isinstance(batch_sampler.sampler, DistributedSampler)
+    assert batch_sampler.sampler.epoch == 2
 
 
 def test_prediction_loop_with_iterable_dataset(tmp_path):
