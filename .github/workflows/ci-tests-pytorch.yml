@@ -129,7 +129,7 @@ jobs:
     - name: Install package & dependencies
       run: |
         pip install -e .[extra,test] "pytest-timeout" -U \
-          --extra-index-url ${TORCH_URL} ${TORCH_PREINSTALL} \
+          --find-links ${TORCH_URL} ${TORCH_PREINSTALL} \
           -f ".wheels/" --prefer-binary
         pip list
     - name: Dump handy wheels
