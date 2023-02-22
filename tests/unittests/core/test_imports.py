@@ -52,6 +52,17 @@ def test_requirement_cache():
     assert not RequirementCache(f"pytest<{pytest.__version__}")
     assert "pip install -U '-'" in str(RequirementCache("-"))
 
+    # invalid requirement is skipped by valid module
+    assert RequirementCache(f"pytest<{pytest.__version__}", "pytest")
+
+    cache = RequirementCache("this_module_is_not_installed")
+    assert not cache
+    assert "pip install -U 'this_module_is_not_installed" in str(cache)
+
+    cache = RequirementCache("this_module_is_not_installed", "this_also_is_not")
+    assert not cache
+    assert "pip install -U 'this_module_is_not_installed" in str(cache)
+
 
 def test_module_available_cache():
     assert ModuleAvailableCache("pytest")

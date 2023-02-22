@@ -84,7 +84,11 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
 
 
 class RequirementCache:
-    """Boolean-like class for check of requirement with extras and version specifiers.
+    """Boolean-like class to check for requirement and module availability.
+
+    Args:
+        requirement: The requirement to check, version specifiers are allowed.
+        module: The optional module to try to import if the requirement check fails.
 
     >>> RequirementCache("torch>=0.1")
     Requirement 'torch>=0.1' met
@@ -92,20 +96,36 @@ class RequirementCache:
     True
     >>> bool(RequirementCache("torch>100.0"))
     False
+    >>> RequirementCache("torch")
+    Requirement 'torch' met
+    >>> bool(RequirementCache("torch"))
+    True
+    >>> bool(RequirementCache("unknown_package"))
+    False
     """
 
-    def __init__(self, requirement: str) -> None:
+    def __init__(self, requirement: str, module: Optional[str] = None) -> None:
         self.requirement = requirement
+        self.module = module
 
     def _check_requirement(self) -> None:
-        if not hasattr(self, "available"):
-            try:
-                pkg_resources.require(self.requirement)
-                self.available = True
-                self.message = f"Requirement {self.requirement!r} met"
-            except Exception as ex:
-                self.available = False
-                self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
+        if hasattr(self, "available"):
+            return
+        try:
+            # first try the pkg_resources requirement
+            pkg_resources.require(self.requirement)
+            self.available = True
+            self.message = f"Requirement {self.requirement!r} met"
+        except Exception as ex:
+            self.available = False
+            self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
+            requirement_contains_version_specifier = any(c in self.requirement for c in "=<>")
+            if not requirement_contains_version_specifier or self.module is not None:
+                module = self.requirement if self.module is None else self.module
+                # sometimes `pkg_resources.require()` fails but the module is importable
+                self.available = module_available(module)
+                if self.available:
+                    self.message = f"Module {module!r} available"
 
     def __bool__(self) -> bool:
         """Format as bool."""
