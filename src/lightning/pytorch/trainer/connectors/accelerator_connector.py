@@ -88,7 +88,7 @@ class AcceleratorConnector:
         precision: _PRECISION_INPUT = "32-true",
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
@@ -120,7 +120,7 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
         """
-        self.replace_sampler_ddp = replace_sampler_ddp
+        self.use_distributed_sampler = use_distributed_sampler
         _set_torch_flags(deterministic=deterministic, benchmark=benchmark)
 
         # 1. Parsing flags

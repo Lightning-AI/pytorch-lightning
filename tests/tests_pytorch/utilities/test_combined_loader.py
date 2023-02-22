@@ -268,8 +268,8 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
     assert seen == max(x, y)
 
 
-@pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_validation_test(replace_sampler_ddp):
+@pytest.mark.parametrize("use_distributed_sampler", (False, True))
+def test_combined_data_loader_validation_test(use_distributed_sampler):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
@@ -298,7 +298,7 @@ def test_combined_data_loader_validation_test(replace_sampler_ddp):
         }
     )
     model = BoringModel()
-    trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="cpu", devices=2)
+    trainer = Trainer(use_distributed_sampler=use_distributed_sampler, strategy="ddp", accelerator="cpu", devices=2)
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.state.fn = "fit"
@@ -307,7 +307,7 @@ def test_combined_data_loader_validation_test(replace_sampler_ddp):
 
     samplers_flattened = tree_flatten(combined_loader.sampler)[0]
     assert len(samplers_flattened) == 6
-    if replace_sampler_ddp:
+    if use_distributed_sampler:
         assert all(isinstance(s, DistributedSampler) for s in samplers_flattened)
     else:
         assert all(isinstance(s, (SequentialSampler, CustomSampler)) for s in samplers_flattened)
@@ -318,11 +318,13 @@ def test_combined_data_loader_validation_test(replace_sampler_ddp):
 
 
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
-@pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_sampler_ddp):
+@pytest.mark.parametrize("use_distributed_sampler", (False, True))
+def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distributed_sampler):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
-    trainer = Trainer(strategy="ddp", accelerator=accelerator, devices=2, replace_sampler_ddp=replace_sampler_ddp)
+    trainer = Trainer(
+        strategy="ddp", accelerator=accelerator, devices=2, use_distributed_sampler=use_distributed_sampler
+    )
     model = BoringModel()
 
     combined_loader = CombinedLoader(
@@ -334,7 +336,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
-    assert len(combined_loader) == 4 if replace_sampler_ddp else 8
+    assert len(combined_loader) == 4 if use_distributed_sampler else 8
 
     for a_length in [6, 8, 10]:
         combined_loader = CombinedLoader(
@@ -351,8 +353,8 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
         trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
         trainer.fit_loop.setup_data(shuffle=False)
 
-        assert len(combined_loader) == length // 2 if replace_sampler_ddp else length
-        if replace_sampler_ddp:
+        assert len(combined_loader) == length // 2 if use_distributed_sampler else length
+        if use_distributed_sampler:
             last_batch = list(combined_loader)[-1]
             if a_length == 6:
                 assert last_batch == {"a": torch.tensor([0]), "b": torch.tensor([6])}
@@ -380,14 +382,14 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_s
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
-    assert len(combined_loader.iterables["b"]) == 4 if replace_sampler_ddp else 8
+    assert len(combined_loader.iterables["b"]) == 4 if use_distributed_sampler else 8
     with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
         len(combined_loader)
 
 
-@pytest.mark.parametrize("replace_sampler_ddp", [False, True])
+@pytest.mark.parametrize("use_distributed_sampler", (False, True))
 @pytest.mark.parametrize("mode", ("min_size", "max_size_cycle", "sequential"))
-def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, mps_count_0):
+def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode, mps_count_0):
     """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
     samplers."""
     dim = 3
@@ -404,7 +406,7 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, mp
         strategy="ddp",
         accelerator="auto",
         devices="auto",
-        replace_sampler_ddp=replace_sampler_ddp,
+        use_distributed_sampler=use_distributed_sampler,
     )
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model=model, train_dataloaders=dataloader)
@@ -412,7 +414,7 @@ def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp, mode, mp
     expected_length_before_ddp = fn([n1, n2])
     expected_length_after_ddp = (
         math.ceil(expected_length_before_ddp / trainer.num_devices)
-        if replace_sampler_ddp
+        if use_distributed_sampler
         else expected_length_before_ddp
     )
     trainer.state.stage = "train"
