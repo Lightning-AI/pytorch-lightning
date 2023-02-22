@@ -248,7 +248,7 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
 
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: _Connector maps dp to ddp if accelerator != gpu
-        _Connector(strategy="dp")
+        _Connector(strategy="dp", accelerator="cpu")
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -476,7 +476,7 @@ def test_precision_conversion(patch1, patch2, precision, expected_precision, sho
 
 def test_multi_device_default_strategy():
     """The default strategy when multiple devices are selected is "ddp" with the subprocess launcher."""
-    connector = _Connector(strategy=None, accelerator="cpu", devices=2)
+    connector = _Connector(strategy="auto", accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert connector.strategy._start_method == "popen"
@@ -537,7 +537,7 @@ def test_strategy_choice_ddp_spawn(*_):
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy])
+@pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
     if strategy and not isinstance(strategy, str):
         strategy = strategy()
@@ -636,7 +636,7 @@ def test_strategy_choice_ddp_cpu_kubeflow():
         "SLURM_LOCALID": "0",
     },
 )
-@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy()])
+@pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(strategy):
     connector = _Connector(strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)

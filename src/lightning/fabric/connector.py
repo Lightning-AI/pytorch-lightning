@@ -254,9 +254,9 @@ class _Connector:
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
         # TODO: improve the error messages below
-        if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
+        if isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
-                if self._accelerator_flag:
+                if self._accelerator_flag and self._accelerator_flag != "auto":
                     raise ValueError("accelerator set through both strategy class and accelerator flag, choose one")
                 else:
                     self._accelerator_flag = self._strategy_flag._accelerator
