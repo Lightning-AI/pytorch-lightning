@@ -43,18 +43,22 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     assert eval_epoch_end_mock.call_count == 4
 
 
-def test_evaluation_loop_sampler_set_epoch_called(tmpdir):
+@pytest.mark.parametrize("use_batch_sampler", (False, True))
+def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
     """Tests that set_epoch is called on the dataloader's sampler (if any) during training and validation."""
 
     def _get_dataloader():
         dataset = RandomDataset(32, 64)
         sampler = RandomSampler(dataset)
         sampler.set_epoch = Mock()
+        if use_batch_sampler:
+            batch_sampler = BatchSampler(sampler, 2, True)
+            return DataLoader(dataset, batch_sampler=batch_sampler)
         return DataLoader(dataset, sampler=sampler)
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
@@ -66,48 +70,19 @@ def test_evaluation_loop_sampler_set_epoch_called(tmpdir):
     train_dataloader = _get_dataloader()
     val_dataloader = _get_dataloader()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+    train_sampler = train_dataloader.batch_sampler.sampler if use_batch_sampler else train_dataloader.sampler
+    val_sampler = val_dataloader.batch_sampler.sampler if use_batch_sampler else val_dataloader.sampler
+
     # One for each epoch
-    assert train_dataloader.sampler.set_epoch.mock_calls == [call(0), call(1)]
+    assert train_sampler.set_epoch.mock_calls == [call(0), call(1)]
     # One for each epoch + sanity check
-    assert val_dataloader.sampler.set_epoch.mock_calls == [call(0), call(0), call(1)]
+    assert val_sampler.set_epoch.mock_calls == [call(0), call(0), call(1)]
 
     val_dataloader = _get_dataloader()
     trainer.validate(model, val_dataloader)
-    assert val_dataloader.sampler.set_epoch.mock_calls == [call(2)]
+    val_sampler = val_dataloader.batch_sampler.sampler if use_batch_sampler else val_dataloader.sampler
 
-
-def test_evaluation_loop_batch_sampler_set_epoch_called(tmpdir):
-    """Tests that set_epoch is called on the dataloader's batch sampler (if any) during training and validation."""
-
-    def _get_dataloader():
-        dataset = RandomDataset(32, 64)
-        sampler = RandomSampler(dataset)
-        batch_sampler = BatchSampler(sampler, 2, True)
-        batch_sampler.set_epoch = Mock()
-        return DataLoader(dataset, batch_sampler=batch_sampler)
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=2,
-        enable_model_summary=False,
-        enable_checkpointing=False,
-        logger=False,
-    )
-
-    train_dataloader = _get_dataloader()
-    val_dataloader = _get_dataloader()
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
-    # One for each epoch
-    assert train_dataloader.batch_sampler.set_epoch.call_args_list == [call(0), call(1)]
-    # One for each epoch + sanity check
-    assert val_dataloader.batch_sampler.set_epoch.call_args_list == [call(0), call(0), call(1)]
-
-    val_dataloader = _get_dataloader()
-    trainer.validate(model, val_dataloader)
-    assert val_dataloader.batch_sampler.set_epoch.call_args_list == [call(2)]
+    assert val_sampler.set_epoch.mock_calls == [call(2)]
 
 
 @mock.patch(
