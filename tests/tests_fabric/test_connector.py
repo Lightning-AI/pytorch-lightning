@@ -65,15 +65,13 @@ def test_accelerator_choice_cpu():
 
 @RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
-    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+    ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_choice_tpu(accelerator, devices):
     connector = _Connector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
-    if devices is None or (isinstance(devices, int) and devices > 1):
-        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
-        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
+    if devices == "auto" or (isinstance(devices, int) and devices > 1):
         assert isinstance(connector.strategy, XLAStrategy)
         assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
         assert isinstance(connector.cluster_environment, XLAEnvironment)
