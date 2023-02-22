@@ -1300,12 +1300,16 @@ class LightningModule(
             ...     def forward(self, x):
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-            >>> import os, tempfile
-            >>> model = SimpleModel()
-            >>> data_sample = torch.randn((1, 64))
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model.to_onnx(tmpfile.name, data_sample, export_params=True, verbose=False)
-            ...     os.path.isfile(tmpfile.name)
+            >>> import doctest, os, tempfile
+            >>> doctest.ELLIPSIS_MARKER = '-etc-'
+            >>> def dummy_onnx_export(model, data_sample):  # dummy
+            ...     print("spam to get parity with default PT 2.0 diagnostic message :/")
+            ...     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+            ...         model.to_onnx(tmpfile.name, data_sample, export_params=True, verbose=False)
+            ...         return os.path.isfile(tmpfile.name)
+            >>> fex = dummy_onnx_export(SimpleModel(), torch.randn((1, 64)))  # doctest: +ELLIPSIS
+            -etc-
+            >>> fex
             True
         """
         mode = self.training
