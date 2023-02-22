@@ -281,7 +281,7 @@ class Fabric:
         Args:
             *dataloaders: A single dataloader or a sequence of dataloaders.
             use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
-                dataloader(s) for distributed training. If you have a custom sampler defined, set this to this argument
+                dataloader(s) for distributed training. If you have a custom sampler defined, set this argument
                 to ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
@@ -308,7 +308,7 @@ class Fabric:
         Args:
             dataloader: The dataloader to accelerate.
             use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
-                dataloader for distributed training. If you have a custom sampler defined, set this to this argument to
+                dataloader for distributed training. If you have a custom sampler defined, set this argument to
                 ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
