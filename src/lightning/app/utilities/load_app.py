@@ -25,7 +25,7 @@ from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
     from lightning.app import LightningApp, LightningFlow, LightningWork
-    from lightning.app.core.plugin import LightningPlugin
+    from lightning.app.plugin.plugin import LightningPlugin
 
 from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
 
@@ -85,7 +85,7 @@ def _load_objects_from_file(
 
 
 def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
-    from lightning.app.core.plugin import LightningPlugin
+    from lightning.app.plugin.plugin import LightningPlugin
 
     # TODO: Plugin should be run in the context of the created main module here
     plugins, _ = _load_objects_from_file(filepath, LightningPlugin, raise_exception=True, mock_imports=False)
