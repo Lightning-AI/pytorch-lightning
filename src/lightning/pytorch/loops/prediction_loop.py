@@ -10,7 +10,12 @@ from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import (
+    _no_grad_context,
+    _select_data_fetcher,
+    _set_sampler_epoch,
+    _verify_dataloader_idx_requirement,
+)
 from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer import call
@@ -145,6 +150,8 @@ class _PredictionLoop(_Loop):
 
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
+        self._verify_dataloader_idx_requirement()
+
         trainer = self.trainer
         call._call_lightning_module_hook(trainer, "on_predict_model_eval")
         trainer.lightning_module.zero_grad()
@@ -297,3 +304,12 @@ class _PredictionLoop(_Loop):
         call._call_callback_hooks(trainer, "on_predict_end")
         call._call_lightning_module_hook(trainer, "on_predict_end")
         call._call_strategy_hook(trainer, "on_predict_end")
+
+    def _verify_dataloader_idx_requirement(self) -> None:
+        trainer = self.trainer
+        _verify_dataloader_idx_requirement(
+            ("predict_step", "on_predict_batch_start", "on_predict_batch_end"),
+            self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
+            trainer.state.stage,
+            trainer.lightning_module,
+        )
