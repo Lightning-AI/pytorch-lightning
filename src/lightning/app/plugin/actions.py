@@ -18,7 +18,7 @@ from typing import Union
 from lightning_cloud.openapi.models import V1CloudSpaceAppAction, V1CloudSpaceAppActionType
 
 
-class Action:
+class _Action:
     """Actions are returned by `LightningPlugin` objects to perform actions in the UI."""
 
     def to_spec(self) -> V1CloudSpaceAppAction:
@@ -27,7 +27,7 @@ class Action:
 
 
 @dataclass
-class NavigateTo(Action):
+class NavigateTo(_Action):
     """The ``NavigateTo`` action can be used to navigate to a relative URL within the Lightning frontend.
 
     Args:
@@ -54,7 +54,7 @@ class ToastSeverity(Enum):
 
 
 @dataclass
-class Toast(Action):
+class Toast(_Action):
     """The ``Toast`` action can be used to display a toast message to the user.
 
     Args:

@@ -25,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from lightning.app.core import constants
-from lightning.app.plugin.actions import Action
+from lightning.app.plugin.actions import _Action
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.component import _set_flow_context
 from lightning.app.utilities.enum import AppStage
@@ -43,7 +43,7 @@ class LightningPlugin:
         self.cloudspace_id = ""
         self.cluster_id = ""
 
-    def run(self, *args: str, **kwargs: str) -> Optional[List[Action]]:
+    def run(self, *args: str, **kwargs: str) -> Optional[List[_Action]]:
         """Override with the logic to execute on the cloudspace."""
         raise NotImplementedError
 
