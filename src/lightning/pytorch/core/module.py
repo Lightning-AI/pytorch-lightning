@@ -1306,6 +1306,7 @@ class LightningModule(
             ...     input_sample = torch.randn((1, 64))
             ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
             ...     os.path.isfile(tmpfile.name)
+            ...
             True
         """
         mode = self.training
