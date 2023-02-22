@@ -1301,7 +1301,7 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
             >>> import doctest, os, tempfile
-            >>> doctest.ELLIPSIS_MARKER = '-etc-'
+            >>> doctest.ELLIPSIS_MARKER = '-etc-'  # temp adjustment
             >>> def dummy_onnx_export(model, data_sample):  # dummy
             ...     print("spam to get parity with default PT 2.0 diagnostic message :/")
             ...     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
@@ -1309,6 +1309,7 @@ class LightningModule(
             ...         return os.path.isfile(tmpfile.name)
             >>> fex = dummy_onnx_export(SimpleModel(), torch.randn((1, 64)))  # doctest: +ELLIPSIS
             -etc-
+            >>> doctest.ELLIPSIS_MARKER = '...'  # set it back
             >>> fex
             True
         """
