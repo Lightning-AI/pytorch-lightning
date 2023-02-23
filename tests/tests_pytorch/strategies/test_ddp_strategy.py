@@ -115,7 +115,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp(cuda_count_2, mps_count_0):
+def test_ddp_configure_ddp():
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
