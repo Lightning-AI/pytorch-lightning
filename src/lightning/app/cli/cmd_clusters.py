@@ -17,7 +17,7 @@ import re
 import time
 from datetime import datetime
 from textwrap import dedent
-from typing import Any, List, Union, Optional
+from typing import Any, List, Optional, Union
 
 import click
 import lightning_cloud

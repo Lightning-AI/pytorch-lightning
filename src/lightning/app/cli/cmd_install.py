@@ -545,7 +545,12 @@ def _install_with_env(repo_url: str, folder_name: str, cwd: Optional[str] = None
 
 
 def _install_app_from_source(
-    source_url: str, git_url: str, folder_name: str, cwd: Optional[str] = None, overwrite: bool = False, git_sha: Optional[str] = None
+    source_url: str,
+    git_url: str,
+    folder_name: str,
+    cwd: Optional[str] = None,
+    overwrite: bool = False,
+    git_sha: Optional[str] = None,
 ) -> None:
     """Installing lighting app from the `git_url`
 
