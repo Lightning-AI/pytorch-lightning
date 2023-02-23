@@ -828,7 +828,7 @@ def test_colossalai_external_strategy(monkeypatch):
 
 def test_connector_auto_selection(monkeypatch):
     import lightning.fabric  # avoid breakage with standalone package
-    
+
     def _mock_tpu_available(value):
         mock_tpu_available(monkeypatch, value)
         monkeypatch.setitem(sys.modules, "torch_xla", Mock())
