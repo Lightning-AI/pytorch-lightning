@@ -52,6 +52,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+
+- The `Trainer` now chooses `accelerator="auto", strategy="auto", devices="auto"` as defaults ([#16847](https://github.com/Lightning-AI/lightning/pull/16847))
+
+
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
  * `strategy="fsdp_native"` is now `strategy="fsdp"`
  * `strategy="fsdp_native_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
