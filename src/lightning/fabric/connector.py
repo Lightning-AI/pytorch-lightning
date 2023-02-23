@@ -256,7 +256,7 @@ class _Connector:
         # TODO: improve the error messages below
         if isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
-                if self._accelerator_flag and self._accelerator_flag != "auto":
+                if self._accelerator_flag != "auto":
                     raise ValueError("accelerator set through both strategy class and accelerator flag, choose one")
                 else:
                     self._accelerator_flag = self._strategy_flag._accelerator
@@ -312,13 +312,12 @@ class _Connector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if self._accelerator_flag == "auto":
-            if TPUAccelerator.is_available():
-                return "tpu"
-            if MPSAccelerator.is_available():
-                return "mps"
-            if CUDAAccelerator.is_available():
-                return "cuda"
+        if TPUAccelerator.is_available():
+            return "tpu"
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
         return "cpu"
 
     @staticmethod
@@ -327,7 +326,6 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
-
         raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
