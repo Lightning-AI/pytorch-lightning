@@ -342,7 +342,7 @@ class IPUStrategy(ParallelStrategy):
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
-    def root_device(self) -> torch.device:
+    def root_device(self) -> torch.device:  # type: ignore[empty-body]
         pass
 
     def model_to_device(self) -> None:

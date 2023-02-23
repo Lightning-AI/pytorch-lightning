@@ -38,7 +38,7 @@ try:
     from wandb.wandb_run import Run
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
-    wandb, Run, RunDisabled = None, None, None
+    wandb = Run = RunDisabled = None  # type: ignore[assignment,misc]
 
 _WANDB_AVAILABLE = RequirementCache("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
@@ -438,8 +438,8 @@ class WandbLogger(Logger):
     def log_table(
         self,
         key: str,
-        columns: List[str] = None,
-        data: List[List[Any]] = None,
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[Any]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
@@ -455,8 +455,8 @@ class WandbLogger(Logger):
     def log_text(
         self,
         key: str,
-        columns: List[str] = None,
-        data: List[List[str]] = None,
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[str]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
