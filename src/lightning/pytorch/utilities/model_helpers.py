@@ -33,11 +33,11 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
         if parent is None:
             raise ValueError("Expected a parent")
 
-    from lightning_utilities.core.overrides import is_overridden
+    from lightning_utilities.core.overrides import is_overridden as _is_overridden
 
     assert instance is not None, f"`instance` need to be set, but got {instance}"
     assert parent is not None, f"`parent` need to be set, but got {parent}"
-    return is_overridden(method_name, instance, parent)  # type: ignore[misc]
+    return _is_overridden(method_name, instance, parent)
 
 
 def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
