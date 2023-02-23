@@ -42,8 +42,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
         pip install -e . -r requirements/typing.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list

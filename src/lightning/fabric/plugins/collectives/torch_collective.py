@@ -28,22 +28,26 @@ class TorchCollective(Collective):
     @property
     def rank(self) -> int:
         # local rank
-        return dist.get_rank(self.group)
+        return dist.get_rank(self.group)  # type: ignore[arg-type]
 
     @property
     def world_size(self) -> int:
-        return dist.get_world_size(self.group)
+        return dist.get_world_size(self.group)  # type: ignore[arg-type]
 
     def broadcast(self, tensor: Tensor, src: int) -> Tensor:
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def all_reduce(self, tensor: Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
+    def all_reduce(
+        self, tensor: Tensor, op: Union[str, ReduceOp, RedOpType] = "sum"  # type: ignore[valid-type]
+    ) -> Tensor:  # type: ignore[valid-type]
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
-    def reduce(self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
+    def reduce(
+        self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum"  # type: ignore[valid-type]
+    ) -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
@@ -56,12 +60,12 @@ class TorchCollective(Collective):
         dist.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
 
-    def scatter(self, tensor: Tensor, scatter_list: List[Tensor], src: int = 0) -> Tensor:
+    def scatter(self, tensor: Tensor, scatter_list: List[Tensor], src: int = 0) -> Tensor:  # type: ignore[valid-type]
         dist.scatter(tensor, scatter_list, src, group=self.group)
         return tensor
 
     def reduce_scatter(
-        self, output: Tensor, input_list: List[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
+        self, output: Tensor, input_list: List[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"  # type: ignore[valid-type]
     ) -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
@@ -72,10 +76,10 @@ class TorchCollective(Collective):
         return output_tensor_list
 
     def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
-        dist.send(tensor, dst, tag=tag, group=self.group)
+        dist.send(tensor, dst, tag=tag, group=self.group)  # type: ignore[arg-type]
 
     def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
-        dist.recv(tensor, src, tag=tag, group=self.group)
+        dist.recv(tensor, src, tag=tag, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     def all_gather_object(self, object_list: List[Any], obj: Any) -> List[Any]:
@@ -168,10 +172,12 @@ class TorchCollective(Collective):
     def destroy_group(cls, group: CollectibleGroup) -> None:
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
-        dist.destroy_process_group(group)
+        dist.destroy_process_group(group)  # type: ignore[arg-type]
 
     @classmethod
-    def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
+    def _convert_to_native_op(
+        cls, op: Union[str, ReduceOp, RedOpType]  # type: ignore[valid-type]
+    ) -> Union[ReduceOp, RedOpType]:  # type: ignore[valid-type]
         # in 1.13, `ReduceOp` has become an empty shell for `RedOpType`, the latter being the actually returned class.
         # for example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
         # `ReduceOp` is still the desired class, but it's created via a special `_make_nccl_premul_sum` function

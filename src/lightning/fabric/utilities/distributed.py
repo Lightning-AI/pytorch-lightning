@@ -130,7 +130,7 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
         if reduce_op.lower() in ("avg", "mean"):
-            op = ReduceOp.SUM
+            op = ReduceOp.SUM  # type: ignore[assignment]
             divide_by_world_size = True
         else:
             op = getattr(ReduceOp, reduce_op.upper())
