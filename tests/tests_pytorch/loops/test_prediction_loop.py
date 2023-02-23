@@ -51,8 +51,8 @@ def test_prediction_loop_stores_predictions(tmp_path):
     assert trainer.predict_loop.predictions == []
 
 
-@pytest.mark.parametrize("replace_sampler_ddp", (False, True))
-def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, replace_sampler_ddp):
+@pytest.mark.parametrize("use_distributed_sampler", (False, True))
+def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distributed_sampler):
     """Tests that set_epoch is called on the dataloader's batch sampler (if any) during prediction."""
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -63,14 +63,14 @@ def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, replace_sample
         strategy="ddp",
         devices=1,
         accelerator="cpu",
-        replace_sampler_ddp=replace_sampler_ddp,
+        use_distributed_sampler=use_distributed_sampler,
     )
 
     class MyModel(BoringModel):
         def predict_dataloader(self):
             dataset = RandomDataset(32, 64)
             sampler = None
-            if not replace_sampler_ddp:
+            if not use_distributed_sampler:
                 sampler = DistributedSampler(dataset)
             return DataLoader(dataset, sampler=sampler)
 

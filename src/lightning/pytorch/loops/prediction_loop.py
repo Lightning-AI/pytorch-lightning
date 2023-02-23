@@ -6,6 +6,7 @@ from lightning_utilities import WarningCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities import move_data_to_device
+from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
@@ -13,7 +14,6 @@ from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.utilities import (
     _no_grad_context,
     _select_data_fetcher,
-    _set_sampler_epoch,
     _verify_dataloader_idx_requirement,
 )
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper

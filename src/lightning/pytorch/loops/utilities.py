@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, Optional, Tuple
+from typing import Any, Callable, Generator, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -123,28 +123,6 @@ def _reset_progress(loop: _Loop) -> None:
             v.reset()
         elif isinstance(v, _Loop):
             _reset_progress(v)
-
-
-def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
-    """Calls the ``set_epoch`` method on either the sampler of the given dataloader.
-
-    Every PyTorch dataloader has either a sampler or a batch sampler. If the sampler is wrapped by a
-    :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
-    of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
-    """
-    objects = set()
-    # check dataloader.sampler
-    if (sampler := getattr(dataloader, "sampler", None)) is not None:
-        objects.add(sampler)
-    # check dataloader.batch_sampler.sampler
-    if (batch_sampler := getattr(dataloader, "batch_sampler", None)) is not None and (
-        sampler := getattr(batch_sampler, "sampler", None)
-    ) is not None:
-        objects.add(sampler)
-    for obj in objects:
-        set_epoch = getattr(obj, "set_epoch", None)
-        if callable(set_epoch):
-            set_epoch(epoch)
 
 
 def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
