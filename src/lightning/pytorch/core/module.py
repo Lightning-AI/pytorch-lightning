@@ -392,7 +392,7 @@ class LightningModule(
         if trainer.barebones:
             rank_zero_warn(
                 "You are trying to `self.log()` but `Trainer(barebones=True)` is configured."
-                " Logging can impact performance so it is disabled under this setting."
+                " Logging can impact raw speed so it is disabled under this setting."
             )
             return
         results = trainer._results
