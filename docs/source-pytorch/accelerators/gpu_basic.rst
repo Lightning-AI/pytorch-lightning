@@ -33,11 +33,13 @@ as Lightning will do it for you.
 Train on multiple GPUs
 ----------------------
 
-To use multiple GPUs, set the number of devices in the Trainer or the index of the GPUs.
+The Trainer will run on all available GPUs by default.
 
 .. code::
 
-    trainer = Trainer(accelerator="gpu", devices=4)
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
 
 Choosing GPU devices
 ^^^^^^^^^^^^^^^^^^^^

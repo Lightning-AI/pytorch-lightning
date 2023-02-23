@@ -32,26 +32,6 @@ some subset of those 2048 cores.
 
 ----
 
-Run on 1 TPU core
------------------
-Enable the following Trainer arguments to run on 1 TPU.
-
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=1)
-
-----
-
-Run on multiple TPU cores
--------------------------
-For multiple TPU cores, change the value of the devices flag.
-
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-
-----
-
 Run on a specific TPU core
 --------------------------
 
