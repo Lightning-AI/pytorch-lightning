@@ -40,11 +40,6 @@ jobs:
         pkg-name: ["lightning"]
         python-version: ["3.9"]
         requires: ["oldest", "latest"]
-        include:
-          # "app" installs the standalone package
-          - { os: "macOS-11", pkg-name: "app", python-version: "3.9", requires: "latest" }
-          - { os: "ubuntu-20.04", pkg-name: "app", python-version: "3.9", requires: "latest" }
-          - { os: "windows-2022", pkg-name: "app", python-version: "3.9", requires: "latest" }
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
     env:

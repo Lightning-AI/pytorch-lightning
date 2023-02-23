@@ -255,6 +255,7 @@ subprojects:
       - "src/lightning/app/**"
       - "src/lightning_app/*"
       - "tests/tests_app/**"
+      - "tests/tests_cli/**"
       - "requirements/app/**"
       - "setup.py"
       - "!requirements/*/docs.txt"
@@ -291,13 +292,10 @@ subprojects:
     checks:
       - "app-examples (macOS-11, lightning, 3.9, latest)"
       - "app-examples (macOS-11, lightning, 3.9, oldest)"
-      - "app-examples (macOS-11, app, 3.9, latest)"
       - "app-examples (ubuntu-20.04, lightning, 3.9, latest)"
       - "app-examples (ubuntu-20.04, lightning, 3.9, oldest)"
-      - "app-examples (ubuntu-20.04, app, 3.9, latest)"
       - "app-examples (windows-2022, lightning, 3.9, latest)"
       - "app-examples (windows-2022, lightning, 3.9, oldest)"
-      - "app-examples (windows-2022, app, 3.9, latest)"
 
   #- id: "lightning: Flagships"
   #  paths:

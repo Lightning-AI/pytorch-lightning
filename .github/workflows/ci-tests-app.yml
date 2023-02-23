@@ -13,6 +13,7 @@ on:
       - "src/lightning/app/**"
       - "src/lightning_app/*"
       - "tests/tests_app/**"
+      - "tests/tests_cli/**"
       - "requirements/app/**"
       - "setup.py"
       - "!requirements/*/docs.txt"
@@ -134,7 +135,7 @@ jobs:
         run: |
           set -e
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest -m "not cloud" -vvvv tests_app \
+            -m pytest -m "not cloud" -vvvv tests_app tests_cli \
               --ignore="tests_app/components/python/test_python.py" \
               --timeout=120 --durations=50 ${PYTEST_XDIST_ARGS}
           pytest -m "not cloud" -v \

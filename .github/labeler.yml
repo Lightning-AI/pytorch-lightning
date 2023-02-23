@@ -2,6 +2,7 @@ app:
   - "src/lightning/app/**"
   - "src/lightning_app/*"
   - "tests/tests_app/**"
+  - "tests/tests_cli/**"
   - "tests/integrations_app/**"
   - "tests/integrations_app_examples/**"
   - "examples/app/**"

@@ -55,6 +55,7 @@
 /src/lightning/app                          @tchaton @lantiga @awaelchli @ethanwharris
 /src/lightning_app                          @tchaton @lantiga @awaelchli @ethanwharris
 /tests/tests_app                            @tchaton @lantiga @awaelchli @ethanwharris
+/tests/tests_cli                            @tchaton @lantiga @awaelchli @ethanwharris
 /tests/integrations_app                     @tchaton @lantiga @awaelchli @ethanwharris
 /examples/app_*                             @tchaton @lantiga @awaelchli @ethanwharris
 
