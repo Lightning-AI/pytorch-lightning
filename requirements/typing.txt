@@ -3,3 +3,18 @@ mypy==0.982
 -r pytorch/extra.txt
 -r app/cloud.txt
 -r app/ui.txt
+
+types-Markdown
+types-PyYAML
+types-bleach
+types-cachetools
+types-croniter
+types-protobuf
+types-python-dateutil
+types-redis
+types-requests
+types-setuptools
+types-six
+types-toml
+types-tzlocal
+types-ujson
