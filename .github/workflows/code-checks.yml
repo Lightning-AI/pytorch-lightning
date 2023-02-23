@@ -34,7 +34,7 @@ jobs:
       with:
         python-version: '3.10.6'
 
-    - name: Mypy pip
+    - name: Mypy cache
       uses: actions/cache@v3
       with:
         path: .mypy_cache
@@ -45,7 +45,7 @@ jobs:
         pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
-        pip install -r requirements/typing.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -e . -r requirements/typing.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
     - name: Check typing

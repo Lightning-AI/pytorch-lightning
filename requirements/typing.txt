@@ -1,8 +1,5 @@
 mypy==0.982
 
--r fabric/base.txt
--r pytorch/base.txt
 -r pytorch/extra.txt
--r app/base.txt
 -r app/cloud.txt
 -r app/ui.txt
