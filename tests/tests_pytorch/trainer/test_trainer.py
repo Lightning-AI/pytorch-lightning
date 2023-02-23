@@ -1873,13 +1873,13 @@ def test_detect_anomaly_nan(tmpdir):
 @pytest.mark.parametrize(
     ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
-        ({}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
+        ({"strategy": "auto"}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
         pytest.param({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param(
             {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)
         ),
         (
-            {"accelerator": "cuda", "devices": 1},
+            {"strategy": "auto", "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
             "single_device",
             CUDAAccelerator,
@@ -1893,7 +1893,7 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             1,
         ),
-        ({"accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
+        ({"strategy": "auto", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (
