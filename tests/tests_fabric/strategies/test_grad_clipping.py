@@ -51,7 +51,14 @@ class _MyFabricGradVal(BoringFabric):
         pytest.param("ddp", 2),
         pytest.param("dp", 2),
         # TODO: Add testing for fsdp grad clipping by norm
-        pytest.param("fsdp", 2, marks=[RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13"), pytest.mark.xfail(reason='Testing with FSDP is not yet correct')]),
+        pytest.param(
+            "fsdp",
+            2,
+            marks=[
+                RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13"),
+                pytest.mark.xfail(reason="Testing with FSDP is not yet correct"),
+            ],
+        ),
     ],
 )
 @pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
