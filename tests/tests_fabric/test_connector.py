@@ -22,8 +22,6 @@ import pytest
 import torch
 import torch.distributed
 from lightning_utilities.test.warning import no_warning_call
-from tests_fabric.conftest import mock_tpu_available
-from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
 from lightning.fabric import Fabric
@@ -55,6 +53,8 @@ from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_fabric.conftest import mock_tpu_available
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu():

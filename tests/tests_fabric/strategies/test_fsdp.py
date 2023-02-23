@@ -18,12 +18,12 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-from tests_fabric.helpers.runif import RunIf
 from torch.optim import Adam
 
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_fabric.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision

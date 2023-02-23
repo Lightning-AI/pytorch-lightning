@@ -15,10 +15,10 @@
 import pytest
 import torch
 import torch.nn as nn
-from tests_fabric.helpers.models import BoringFabric
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric import Fabric, seed_everything
+from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 
 class MixedPrecisionModule(nn.Module):

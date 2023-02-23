@@ -4,11 +4,11 @@ import os
 from unittest.mock import ANY, MagicMock
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning.app.components.serve import serve
 from lightning.app.utilities.imports import _is_numpy_available, _is_torch_available
 from lightning.app.utilities.network import _configure_session, find_free_network_port
+from tests_app import _PROJECT_ROOT
 
 if _is_numpy_available():
     import numpy as np
