@@ -34,10 +34,10 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune")
 if _NEPTUNE_AVAILABLE:
-    from neptune import new as neptune
-    from neptune.new.run import Run
+    import neptune
+    from neptune import Run
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
@@ -55,13 +55,13 @@ class NeptuneLogger(Logger):
 
     .. code-block:: bash
 
-        pip install neptune-client
+        pip install neptune
 
     or conda:
 
     .. code-block:: bash
 
-        conda install -c conda-forge neptune-client
+        conda install -c conda-forge neptune
 
     **Quickstart**
 
@@ -86,7 +86,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: python
 
-        from neptune.new.types import File
+        from neptune.types import File
         from lightning.pytorch import LightningModule
 
 
@@ -108,7 +108,7 @@ class NeptuneLogger(Logger):
     Note that syntax: ``self.logger.experiment["your/metadata/structure"].append(metadata)`` is specific to Neptune
     and it extends logger capabilities. Specifically, it allows you to log various types of metadata
     like scores, files, images, interactive visuals, CSVs, etc.
-    Refer to the `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+    Refer to the `Neptune docs <https://docs.neptune.ai/logging/methods>`_
     for more detailed explanations.
     You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneLogger
     as these are also supported.
@@ -133,7 +133,7 @@ class NeptuneLogger(Logger):
 
         # generic recipe
         metadata = ...
-        neptune_logger.experiment["your/metadata/structure"].log(metadata)
+        neptune_logger.experiment["your/metadata/structure"].append(metadata)
 
     **Log model checkpoints**
 
@@ -164,7 +164,7 @@ class NeptuneLogger(Logger):
         )
         trainer = Trainer(max_epochs=3, logger=neptune_logger)
 
-    Check `run documentation <https://docs.neptune.ai/essentials/api-reference/run>`_
+    Check `run documentation <https://docs.neptune.ai/api/run/>`_
     for more info about additional run parameters.
 
     **Details about Neptune run structure**
@@ -178,11 +178,11 @@ class NeptuneLogger(Logger):
 
     See Also:
         - Read about
-          `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/what-can-you-log-and-display>`_.
+          `what object you can log to Neptune <https://docs.neptune.ai/logging/what_you_can_log/>`_.
         - Check `example run <https://app.neptune.ai/o/common/org/pytorch-lightning-integration/e/PTL-1/all>`_
           with multiple types of metadata logged.
         - For more detailed info check
-          `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
+          `user guide <https://docs.neptune.ai/integrations/lightning/>`_.
 
     Args:
         api_key: Optional.
@@ -334,17 +334,17 @@ class NeptuneLogger(Logger):
                 def training_step(self, batch, batch_idx):
                     # log metrics
                     acc = ...
-                    self.logger.experiment["train/acc"].log(acc)
+                    self.logger.experiment["train/acc"].append(acc)
 
                     # log images
                     img = ...
-                    self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
+                    self.logger.experiment["train/misclassified_images"].append(File.as_image(img))
 
-        Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+        Note that syntax: ``self.logger.experiment["your/metadata/structure"].append(metadata)``
         is specific to Neptune and it extends logger capabilities.
         Specifically, it allows you to log various types of metadata like scores, files,
         images, interactive visuals, CSVs, etc. Refer to the
-        `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+        `Neptune docs <https://docs.neptune.ai/logging/methods>`_
         for more detailed explanations.
         You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
         with NeptuneLogger as these are also supported.
