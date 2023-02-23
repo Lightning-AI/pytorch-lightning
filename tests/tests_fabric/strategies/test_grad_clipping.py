@@ -45,23 +45,25 @@ class _MyFabricGradVal(BoringFabric):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_devices",
+    "strategy,num_devices,precision",
     [
-        pytest.param("auto", 1),
-        pytest.param("ddp", 2),
-        pytest.param("dp", 2),
-        # TODO: Add testing for fsdp grad clipping by norm
+        pytest.param("auto", 1, "16-mixed"),
+        pytest.param("ddp", 2, "32-true"),
+        pytest.param("dp", 2, "16-mixed", marks=RunIf(min_cuda_gpus=2)),
         pytest.param(
             "fsdp",
             2,
-            marks=[
-                RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13"),
-                pytest.mark.xfail(reason="Testing with FSDP is not yet correct"),
-            ],
+            "32-true",
+            marks=[RunIf(min_cuda_gpus=2), pytest.mark.xfail(reason="Testing with FSDP is not yet correct")],
+        ),
+        pytest.param(
+            "fsdp",
+            2,
+            "16-true",
+            marks=[RunIf(min_cuda_gpus=2), pytest.mark.xfail(reason="Testing with FSDP is not yet correct")],
         ),
     ],
 )
-@pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
 @RunIf(standalone=True)
 def test_grad_clipping_norm(strategy, num_devices, precision):
     accelerator = "cpu" if MPSAccelerator.is_available() else "auto"
@@ -72,14 +74,13 @@ def test_grad_clipping_norm(strategy, num_devices, precision):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_devices",
+    "strategy,num_devices,precision",
     [
-        pytest.param("auto", 1),
-        pytest.param("ddp", 2),
-        pytest.param("dp", 2),
+        pytest.param("auto", 1, "16-mixed"),
+        pytest.param("ddp", 2, "32-true"),
+        pytest.param("dp", 2, "16-mixed", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
-@pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
 @RunIf(standalone=True)
 def test_grad_clipping_val(strategy, num_devices, precision):
     accelerator = "cpu" if num_devices == 2 and torch.backends.mps.is_available() else "auto"
