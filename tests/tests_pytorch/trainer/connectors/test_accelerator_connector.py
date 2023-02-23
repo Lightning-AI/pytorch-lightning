@@ -31,6 +31,7 @@ from lightning.fabric.plugins.environments import (
     TorchElasticEnvironment,
     XLAEnvironment,
 )
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import HPUAccelerator, IPUAccelerator, TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -830,6 +831,8 @@ def test_connector_auto_selection(monkeypatch):
         mock_tpu_available(monkeypatch, value)
         monkeypatch.setitem(sys.modules, "torch_xla", Mock())
         monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+        import lightning.fabric  # avoid breakage with standalone package
+
         monkeypatch.setattr(lightning.fabric.plugins.environments.XLAEnvironment, "node_rank", lambda *_: 0)
 
     # CPU
@@ -900,6 +903,9 @@ def test_connector_auto_selection(monkeypatch):
 
     # Multi TPU
     with monkeypatch.context():
+        if _IS_WINDOWS:
+            # simulate fork support on windows
+            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
         mock_cuda_count(monkeypatch, 0)
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
@@ -951,9 +957,14 @@ def test_connector_auto_selection(monkeypatch):
 
     # TPU and CUDA: prefers TPU
     with monkeypatch.context():
+        if _IS_WINDOWS:
+            # simulate fork support on windows
+            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
+        mock_ipu_available(monkeypatch, False)
+        mock_hpu_available(monkeypatch, False)
         connector = AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
