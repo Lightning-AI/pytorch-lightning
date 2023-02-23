@@ -68,13 +68,13 @@ To use `Neptune.ai <https://neptune.ai/>`_ first install the neptune package:
 
 .. code-block:: bash
 
-    pip install neptune-client
+    pip install neptune
 
 or with conda:
 
 .. code-block:: bash
 
-    conda install -c conda-forge neptune-client
+    conda install -c conda-forge neptune
 
 Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
@@ -96,7 +96,7 @@ Access the neptune logger from any function (except the LightningModule *init*) 
     class LitModel(LightningModule):
         def any_lightning_module_function_or_hook(self):
             neptune_logger = self.logger.experiment["your/metadata/structure"]
-            neptune_logger.log(metadata)
+            neptune_logger.append(metadata)
 
 Here's the full documentation for the :class:`~pytorch_lightning.loggers.NeptuneLogger`.
 
