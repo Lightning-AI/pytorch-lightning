@@ -194,7 +194,7 @@ class _Connector:
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `lightning.fabric.strategies.Strategy`."
-                " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
+                " Example choices: auto, ddp, ddp_spawn, deepspeed, dp, ..."
                 " Find a complete list of options in our documentation at https://lightning.ai"
             )
 
@@ -205,7 +205,7 @@ class _Connector:
         ):
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
-                f" Available names are: {', '.join(self._registered_accelerators)}."
+                f" Available names are: auto, {', '.join(self._registered_accelerators)}."
             )
 
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
