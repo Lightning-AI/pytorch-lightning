@@ -1292,9 +1292,9 @@ class CustomPredictionWriter(BasePredictionWriter):
 
 def predict(
     tmpdir,
-    strategy=None,
-    accelerator=None,
-    devices=None,
+    strategy="auto",
+    accelerator="auto",
+    devices="auto",
     model=None,
     plugins=None,
     datamodule=True,
@@ -1629,7 +1629,9 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize(
+    "strategy,devices", [("auto", 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
+)
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
@@ -1776,7 +1778,7 @@ class ExceptionCounter(Callback):
         self.exceptions += 1
 
 
-@pytest.mark.parametrize("strategy", [None, pytest.param("ddp_spawn", marks=RunIf(skip_windows=True, mps=False))])
+@pytest.mark.parametrize("strategy", ["auto", pytest.param("ddp_spawn", marks=RunIf(skip_windows=True, mps=False))])
 def test_error_handling_all_stages(tmpdir, strategy):
     model = TrainerStagesErrorsModel()
     counter = ExceptionCounter()
@@ -1871,13 +1873,13 @@ def test_detect_anomaly_nan(tmpdir):
 @pytest.mark.parametrize(
     ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
-        ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
+        ({"strategy": "auto"}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
         pytest.param({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param(
             {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)
         ),
         (
-            {"strategy": None, "accelerator": "cuda", "devices": 1},
+            {"strategy": "auto", "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
             "single_device",
             CUDAAccelerator,
@@ -1891,7 +1893,7 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": None, "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
+        ({"strategy": "auto", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (

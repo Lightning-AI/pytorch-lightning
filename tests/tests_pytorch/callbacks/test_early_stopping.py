@@ -374,8 +374,8 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
 @pytest.mark.parametrize(
     "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices, dist_diverge_epoch",
     [
-        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1, None),
-        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1, None),
+        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "auto", 1, None),
+        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "auto", 1, None),
         pytest.param(
             [EarlyStopping("abc", patience=1), EarlyStopping("cba")], 2, False, "ddp_spawn", 2, 2, **_SPAWN_MARK
         ),
@@ -385,8 +385,8 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
         pytest.param(
             [EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
         ),
-        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1, None),
-        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1, None),
+        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, "auto", 1, None),
+        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, "auto", 1, None),
         pytest.param(
             [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)],
             3,
@@ -412,7 +412,7 @@ def test_multiple_early_stopping_callbacks(
     callbacks: List[EarlyStopping],
     expected_stop_epoch: int,
     check_on_train_epoch_end: bool,
-    strategy: Optional[str],
+    strategy: str,
     devices: int,
     dist_diverge_epoch: Optional[int],
 ):
