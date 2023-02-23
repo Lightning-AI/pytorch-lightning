@@ -49,7 +49,7 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from lightning.pytorch.strategies import DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -1114,9 +1114,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
-        assert mocked.call_count == sum(
-            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
-        )
+    assert mocked.call_count == sum(trainer.num_sanity_val_batches)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.3])
@@ -1288,7 +1286,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
-                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, _IndexBatchSamplerWrapper)
         super().on_predict_epoch_end(trainer, pl_module)
 
 
