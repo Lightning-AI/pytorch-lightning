@@ -47,10 +47,10 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
       itself and are expected to be parsed there.
 
     Options:
-      --accelerator [cpu|gpu|cuda|mps|tpu]
+      --accelerator [auto|cpu|gpu|cuda|mps|tpu]
                                       The hardware accelerator to run on.
-      --strategy [ddp|dp|deepspeed]   Strategy for how to run across multiple
-                                      devices.
+      --strategy [auto|ddp|dp|deepspeed]
+                                      Strategy for how to run across multiple devices.
       --devices TEXT                  Number of devices to run on (``int``), which
                                       devices to run on (``list`` or ``str``), or
                                       ``'auto'``. The value applies per node.
