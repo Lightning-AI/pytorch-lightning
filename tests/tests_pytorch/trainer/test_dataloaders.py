@@ -34,7 +34,7 @@ from lightning.pytorch.demos.boring_classes import (
 )
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
@@ -829,7 +829,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         default_root_dir=tmpdir,
         max_steps=100,
         callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],
-        replace_sampler_ddp=True,
+        use_distributed_sampler=True,
     )
     trainer.fit(model)
     assert trainer.state.finished, "DDP Training failed"

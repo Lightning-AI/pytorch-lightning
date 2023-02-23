@@ -78,9 +78,9 @@ class Fabric:
 
     def __init__(
         self,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
@@ -273,15 +273,16 @@ class Fabric:
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
-        self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+        self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, List[DataLoader]]:
         """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
         Args:
             *dataloaders: A single dataloader or a sequence of dataloaders.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
+                dataloader(s) for distributed training. If you have a custom sampler defined, set this argument
+                to ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
@@ -291,21 +292,24 @@ class Fabric:
         """
         self._validate_setup_dataloaders(dataloaders)
         dataloaders = [
-            self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
+            self._setup_dataloader(
+                dataloader, use_distributed_sampler=use_distributed_sampler, move_to_device=move_to_device
+            )
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
-        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+        self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
         """Set up a single dataloader for accelerated training.
 
         Args:
             dataloader: The dataloader to accelerate.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
+                dataloader for distributed training. If you have a custom sampler defined, set this argument to
+                ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
@@ -314,7 +318,7 @@ class Fabric:
             The wrapped dataloader.
         """
         sampler = dataloader.sampler
-        if replace_sampler and self._requires_distributed_sampler(dataloader):
+        if use_distributed_sampler and self._requires_distributed_sampler(dataloader):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)

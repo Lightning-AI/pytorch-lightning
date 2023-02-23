@@ -44,7 +44,7 @@ data tensors to the correct device automatically.
     train_data, test_data = fabric.setup_dataloaders(train_data, test_data, move_to_device=False)
 
     # If you don't want Fabric to replace the sampler in the context of distributed training
-    train_data, test_data = fabric.setup_dataloaders(train_data, test_data, replace_sampler=False)
+    train_data, test_data = fabric.setup_dataloaders(train_data, test_data, use_distributed_sampler=False)
 
 
 backward

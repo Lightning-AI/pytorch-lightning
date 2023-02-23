@@ -21,16 +21,17 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.trainer.supporters import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 
@@ -47,6 +48,7 @@ class _EvaluationLoop(_Loop):
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = BatchProgress()  # across dataloaders
+        self._max_batches: List[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
@@ -55,6 +57,7 @@ class _EvaluationLoop(_Loop):
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
+        self._last_val_dl_reload_epoch = float("-inf")
 
     @property
     def num_dataloaders(self) -> int:
@@ -66,18 +69,21 @@ class _EvaluationLoop(_Loop):
     @property
     def max_batches(self) -> List[Union[int, float]]:
         """The max number of batches this loop will run for each dataloader."""
-        if self.trainer.testing:
-            return self.trainer.num_test_batches
-        elif self.trainer.sanity_checking:
-            return self.trainer.num_sanity_val_batches
-        elif self.trainer.validating:
-            return self.trainer.num_val_batches
-        raise RuntimeError(f"Unexpected stage: {self.trainer.state.stage}")
+        max_batches = self._max_batches
+        if self.trainer.sanity_checking:
+            return [min(self.trainer.num_sanity_val_steps, batches) for batches in max_batches]
+        return max_batches
 
     @property
     def skip(self) -> bool:
         """Returns whether the evaluation should be skipped."""
         return sum(self.max_batches) == 0
+
+    @property
+    def _should_reload_val_dl(self) -> bool:
+        """Check if validation dataloader should be reloaded."""
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        return bool(n_epochs and self.trainer.current_epoch - self._last_val_dl_reload_epoch >= n_epochs)
 
     @_no_grad_context
     def run(self) -> List[_OUT_DICT]:
@@ -110,11 +116,7 @@ class _EvaluationLoop(_Loop):
     def setup_data(self) -> None:
         trainer = self.trainer
 
-        if (
-            self._combined_loader is not None
-            and trainer.state.fn == "fit"
-            and not trainer._data_connector._should_reload_val_dl
-        ):
+        if self._combined_loader is not None and trainer.state.fn == "fit" and not self._should_reload_val_dl:
             return
 
         source = self._data_source
@@ -130,20 +132,11 @@ class _EvaluationLoop(_Loop):
             (trainer.sanity_checking and trainer.fit_loop.epoch_loop._should_check_val_epoch())
             or not trainer.sanity_checking
         ):
-            trainer._last_val_dl_reload_epoch = trainer.current_epoch
+            self._last_val_dl_reload_epoch = trainer.current_epoch
 
         stage = trainer.state.stage
         assert stage is not None
-        num_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
-        if trainer.testing:
-            trainer.num_test_batches = num_batches
-        elif trainer.sanity_checking:
-            trainer.num_val_batches = num_batches
-            trainer.num_sanity_val_batches = [
-                min(trainer.num_sanity_val_steps, val_batches) for val_batches in num_batches
-            ]
-        else:
-            trainer.num_val_batches = num_batches
+        self._max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
 
         if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
             for dl in combined_loader.flattened:

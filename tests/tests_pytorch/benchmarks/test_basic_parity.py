@@ -161,7 +161,7 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         accelerator="gpu" if device_type == "cuda" else "cpu",
         devices=1,
         logger=False,
-        replace_sampler_ddp=False,
+        use_distributed_sampler=False,
         benchmark=False,
     )
     trainer.fit(model)
