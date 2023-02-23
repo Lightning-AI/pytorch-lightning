@@ -32,6 +32,7 @@ To enable PyTorch Lightning to utilize the IPU accelerator, simply provide ``acc
 To use multiple IPUs set the devices to a number that is a power of 2 (i.e: 2, 4, 8, 16, ...)
 
 .. code-block:: python
+
     # run on as many IPUs as available by default
     trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
     # equivalent to

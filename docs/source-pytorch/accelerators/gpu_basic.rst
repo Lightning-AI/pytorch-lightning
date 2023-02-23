@@ -23,6 +23,7 @@ The Trainer will run on all available GPUs by default. Make sure you're running 
 There's no need to specify any NVIDIA flags as Lightning will do it for you.
 
 .. code-block:: python
+
     # run on as many GPUs as available by default
     trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
     # equivalent to

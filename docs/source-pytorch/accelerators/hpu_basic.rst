@@ -31,6 +31,7 @@ Run on Gaudi
 To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``accelerator="hpu"`` parameter to the Trainer class.
 
 .. code-block:: python
+
     # run on as many Gaudi devices as available by default
     trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
     # equivalent to

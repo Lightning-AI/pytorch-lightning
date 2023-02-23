@@ -35,7 +35,7 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.hpu import HPUAccelerator
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE, IPUAccelerator
+from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
@@ -350,7 +350,7 @@ class AcceleratorConnector:
         """Choose the accelerator type (str) based on availability."""
         if TPUAccelerator.is_available():
             return "tpu"
-        if _IPU_AVAILABLE:
+        if IPUAccelerator.is_available():
             return "ipu"
         if HPUAccelerator.is_available():
             return "hpu"
