@@ -144,7 +144,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 def train_with_swa(
     tmpdir,
     batchnorm=True,
-    strategy=None,
+    strategy="auto",
     accelerator="cpu",
     devices=1,
     interval="epoch",

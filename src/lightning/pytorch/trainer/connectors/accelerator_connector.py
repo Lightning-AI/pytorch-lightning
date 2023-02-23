@@ -575,7 +575,7 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
+                f" `Fabric(strategy='dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )

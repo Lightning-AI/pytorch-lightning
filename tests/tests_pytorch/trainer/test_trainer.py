@@ -1292,9 +1292,9 @@ class CustomPredictionWriter(BasePredictionWriter):
 
 def predict(
     tmpdir,
-    strategy=None,
-    accelerator=None,
-    devices=None,
+    strategy="auto",
+    accelerator="auto",
+    devices="auto",
     model=None,
     plugins=None,
     datamodule=True,
