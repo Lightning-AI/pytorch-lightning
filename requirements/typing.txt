@@ -1,9 +1,5 @@
 mypy==0.982
 
--r pytorch/extra.txt
--r app/cloud.txt
--r app/ui.txt
-
 types-Markdown
 types-PyYAML
 types-bleach
