@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [1.9.4] - 2023-02-28
 
-No changes.
+### Fixed
+
+- Fixed DDP spawn hang on TPU Pods ([#16844](https://github.com/Lightning-AI/lightning/pull/16844))
 
 
 ## [1.9.3] - 2023-02-21
