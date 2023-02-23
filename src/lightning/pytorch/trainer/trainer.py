@@ -89,15 +89,15 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Logger, Iterable[Logger], bool] = True,
-        enable_checkpointing: bool = True,
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        enable_checkpointing: Optional[bool] = None,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
         devices: Optional[Union[List[int], str, int]] = None,
-        enable_progress_bar: bool = True,
+        enable_progress_bar: Optional[bool] = None,
         overfit_batches: Union[int, float] = 0.0,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
@@ -112,13 +112,13 @@ class Trainer:
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        log_every_n_steps: int = 50,
+        log_every_n_steps: Optional[int] = None,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
         precision: _PRECISION_INPUT = "32-true",
-        enable_model_summary: bool = True,
-        num_sanity_val_steps: int = 2,
+        enable_model_summary: Optional[bool] = None,
+        num_sanity_val_steps: Optional[int] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
@@ -127,6 +127,7 @@ class Trainer:
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         inference_mode: bool = True,
+        barebones: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -278,6 +279,10 @@ class Trainer:
 
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
+
+            barebones: Whether to run in "barebones mode", where all features that could impact performance are
+                disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular trainer
+                runs.
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -285,6 +290,79 @@ class Trainer:
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
+
+        self.barebones = barebones
+        if barebones:
+            # opt-outs
+            if enable_checkpointing:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_checkpointing={enable_checkpointing!r})` was passed."
+                    " Checkpointing can impact performance so it is disabled in barebones mode."
+                )
+            enable_checkpointing = False
+            if logger is not None and logger is not False:
+                raise ValueError(
+                    f"`Trainer(barebones=True, logger={logger!r})` was passed."
+                    " Logging can impact performance so it is disabled in barebones mode."
+                )
+            logger = False
+            if enable_progress_bar:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_progress_bar={enable_progress_bar!r})` was passed."
+                    " The progress bar can impact performance so it is disabled in barebones mode."
+                )
+            enable_progress_bar = False
+            if log_every_n_steps is not None and log_every_n_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, log_every_n_steps={log_every_n_steps!r})` was passed."
+                    " Logging can impact performance so it is disabled in barebones mode."
+                )
+            log_every_n_steps = 0
+            if enable_model_summary:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_model_summary={enable_model_summary!r})` was passed."
+                    " Model summary can impact performance so it is disabled in barebones mode."
+                )
+            enable_model_summary = False
+            if num_sanity_val_steps is not None and num_sanity_val_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, num_sanity_val_steps={num_sanity_val_steps!r})` was passed."
+                    " Sanity checking can impact performance so it is disabled in barebones mode."
+                )
+            num_sanity_val_steps = 0
+            # opt-ins
+            if fast_dev_run is not False and fast_dev_run != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, fast_dev_run={fast_dev_run!r})` was passed."
+                    " Development run is not meant for performance evaluation so it is disabled in barebones mode."
+                )
+            fast_dev_run = False
+            if detect_anomaly:
+                raise ValueError(
+                    f"`Trainer(barebones=True, detect_anomaly={detect_anomaly!r})` was passed."
+                    " Anomaly detection can impact performance so it is disabled in barebones mode."
+                )
+            detect_anomaly = False
+            if profiler is not None:
+                raise ValueError(
+                    f"`Trainer(barebones=True, profiler={profiler!r})` was passed."
+                    " Profiling can impact performance so it is disabled in barebones mode."
+                )
+            profiler = None
+        else:
+            # set the opt-out defaults
+            if enable_checkpointing is None:
+                enable_checkpointing = True
+            if logger is None:
+                logger = True
+            if enable_progress_bar is None:
+                enable_progress_bar = True
+            if log_every_n_steps is None:
+                log_every_n_steps = 50
+            if enable_model_summary is None:
+                enable_model_summary = True
+            if num_sanity_val_steps is None:
+                num_sanity_val_steps = 2
 
         # init connectors
         self._data_connector = DataConnector(self)
