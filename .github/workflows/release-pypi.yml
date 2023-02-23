@@ -56,7 +56,6 @@ jobs:
       run: ls -lh dist/
 
     - name: Upload to release
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: AButler/upload-release-assets@v2.0
       with:
         files: 'dist/*'
@@ -65,7 +64,7 @@ jobs:
 
   delay-publish:
     needs: build-package
-    if: startsWith(github.event.ref, 'refs/tags')
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
     - name: Delay ⏰ releasing
@@ -93,7 +92,6 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@v1.6.4
       with:
         user: __token__
@@ -102,7 +100,6 @@ jobs:
         verbose: true
 
     - name: Publish distribution 📦 to PyPI
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@v1.6.4
       with:
         user: __token__
