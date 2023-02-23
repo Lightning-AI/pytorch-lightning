@@ -14,32 +14,30 @@ A Graphics Processing Unit (GPU), is a specialized hardware accelerator designed
 
 ----
 
-Train on 1 GPU
---------------
-
-Make sure you're running on a machine with at least one GPU. There's no need to specify any NVIDIA flags
-as Lightning will do it for you.
-
-.. testcode::
-    :skipif: torch.cuda.device_count() < 1
-
-    trainer = Trainer(accelerator="gpu", devices=1)
-
-----------------
-
-
 .. _multi_gpu:
 
-Train on multiple GPUs
-----------------------
+Train on GPUs
+-------------
 
-The Trainer will run on all available GPUs by default.
+The Trainer will run on all available GPUs by default. Make sure you're running on a machine with at least one GPU.
+There's no need to specify any NVIDIA flags as Lightning will do it for you.
 
-.. code::
-
+.. code-block:: python
+    # run on as many GPUs as available by default
     trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
     # equivalent to
     trainer = Trainer()
+
+    # run on one GPU
+    trainer = Trainer(accelerator="gpu", devices=1)
+    # run on multiple GPUs
+    trainer = Trainer(accelerator="gpu", devices=8)
+    # choose the number of devices automatically
+    trainer = Trainer(accelerator="gpu", devices="auto")
+
+.. note::
+    Setting ``accelerator="gpu"`` will also automatically choose the "mps" device on Apple sillicon GPUs.
+    If you want to avoid this, you can set ``accelerator="cuda"`` instead.
 
 Choosing GPU devices
 ^^^^^^^^^^^^^^^^^^^^

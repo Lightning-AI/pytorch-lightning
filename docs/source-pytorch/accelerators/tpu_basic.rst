@@ -32,16 +32,26 @@ some subset of those 2048 cores.
 
 ----
 
-Run on a specific TPU core
---------------------------
+Run on TPU cores
+----------------
 
-To run on a specific core, specify the index of the TPU core.
+To run on different cores, modify the ``devices`` argument.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(accelerator="tpu", devices=[5])
+    # run on as many TPUs as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
 
-This example runs on the 5th core, not on five cores.
+    # run on one TPU core
+    trainer = Trainer(accelerator="tpu", devices=1)
+    # run on multiple TPU cores
+    trainer = Trainer(accelerator="tpu", devices=8)
+    # run on the 5th core
+    trainer = Trainer(accelerator="tpu", devices=[5])
+    # choose the number of cores automatically
+    trainer = Trainer(accelerator="tpu", devices="auto")
 
 ----
 
