@@ -95,6 +95,8 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     def _wrapping_function(
         self,
+        # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
+        # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
         process_idx: int,
         trainer: Optional["pl.Trainer"],
         function: Callable,
