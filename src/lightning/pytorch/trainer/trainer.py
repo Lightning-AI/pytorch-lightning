@@ -358,21 +358,20 @@ class Trainer:
                     " Profiling can impact raw speed so it is disabled in barebones mode."
                 )
             deactivated = (
-                " - `Trainer(enable_checkpointing=True)`",
-                " - `Trainer(logger=True)`",
-                " - `Trainer(enable_progress_bar=True)`",
-                " - `Trainer(log_every_n_steps>0)`",
-                " - `Trainer(num_sanity_val_steps>0)`",
-                " - `Trainer(fast_dev_run=True)`",
-                " - `Trainer(detect_anomaly=True)`",
-                " - `Trainer(profiler=...)`",
-                " - `LightningModule.log(...)`",
-                " - `LightningModule.log_dict(...)`",
+                " - Checkpointing: `Trainer(enable_checkpointing=True)`",
+                " - Progress bar: `Trainer(enable_progress_bar=True)`",
+                " - Model summary: `Trainer(enable_model_summary=True)`",
+                " - Logging: `Trainer(logger=True)`, `Trainer(log_every_n_steps>0)`,"
+                " `LightningModule.log(...)`, `LightningModule.log_dict(...)`",
+                " - Sanity checking: `Trainer(num_sanity_val_steps>0)`",
+                " - Development run: `Trainer(fast_dev_run=True)`",
+                " - Anomaly detection: `Trainer(detect_anomaly=True)`",
+                " - Profiling: `Trainer(profiler=...)`",
             )
             rank_zero_info(
                 "You are running in `Trainer(barebones=True)` mode. All features that may impact raw speed have been"
                 " disabled to facilitate analyzing the Trainer overhead. Specifically, the following features are"
-                f"deactivated:{os.linesep}{os.linesep.join(deactivated)}"
+                f" deactivated:{os.linesep}{os.linesep.join(deactivated)}"
             )
         else:
             # set the opt-out defaults
