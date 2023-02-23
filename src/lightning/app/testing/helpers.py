@@ -15,7 +15,7 @@
 import subprocess
 import sys
 from queue import Empty
-from typing import List, Optional, Tuple, Any
+from typing import Any, List, Optional, Tuple
 
 from packaging.version import Version
 

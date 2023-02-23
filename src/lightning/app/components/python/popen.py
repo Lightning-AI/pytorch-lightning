@@ -17,7 +17,7 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 from lightning.app.core.work import LightningWork
 from lightning.app.utilities.app_helpers import _collect_child_process_pids, Logger

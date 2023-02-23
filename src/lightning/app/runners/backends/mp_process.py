@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import multiprocessing
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import lightning.app
 from lightning.app.core import constants

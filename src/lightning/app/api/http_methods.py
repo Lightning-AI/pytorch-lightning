@@ -107,7 +107,9 @@ async def _mock_fastapi_request(request: Request):
 
 
 class _HttpMethod:
-    def __init__(self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs: Any):
+    def __init__(
+        self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs: Any
+    ):
         """This class is used to inject user defined methods within the App Rest API.
 
         Arguments:

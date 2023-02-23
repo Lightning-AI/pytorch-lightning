@@ -16,7 +16,7 @@
 import functools
 import os
 import warnings
-from typing import List, Union, Any
+from typing import Any, List, Union
 
 from lightning_utilities.core.imports import module_available
 from packaging.requirements import Marker, Requirement
