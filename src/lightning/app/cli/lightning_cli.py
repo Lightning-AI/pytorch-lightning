@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 import arrow
 import click
@@ -464,7 +464,7 @@ _main.add_command(cmd_install.install)
     default=None,
     help="Specify which component to SSH into",
 )
-def ssh(app_name: str = None, component_name: str = None) -> None:
+def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) -> None:
     """SSH into a Lightning App."""
 
     app_manager = _AppManager()
