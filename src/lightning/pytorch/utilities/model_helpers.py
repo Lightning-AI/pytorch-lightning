@@ -32,8 +32,11 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
             parent = pl.Callback
         if parent is None:
             raise ValueError("Expected a parent")
+
     from lightning_utilities.core.overrides import is_overridden
 
+    assert instance, f"`instance` need to be set, but got {instance}"
+    assert parent, f"`parent` need to be set, but got {parent}"
     return is_overridden(method_name, instance, parent)
 
 
