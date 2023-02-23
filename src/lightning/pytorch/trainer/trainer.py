@@ -336,19 +336,16 @@ class Trainer:
                     f"`Trainer(barebones=True, fast_dev_run={fast_dev_run!r})` was passed."
                     " Development run is not meant for performance evaluation so it is disabled in barebones mode."
                 )
-            fast_dev_run = False
             if detect_anomaly:
                 raise ValueError(
                     f"`Trainer(barebones=True, detect_anomaly={detect_anomaly!r})` was passed."
                     " Anomaly detection can impact performance so it is disabled in barebones mode."
                 )
-            detect_anomaly = False
             if profiler is not None:
                 raise ValueError(
                     f"`Trainer(barebones=True, profiler={profiler!r})` was passed."
                     " Profiling can impact performance so it is disabled in barebones mode."
                 )
-            profiler = None
         else:
             # set the opt-out defaults
             if enable_checkpointing is None:
