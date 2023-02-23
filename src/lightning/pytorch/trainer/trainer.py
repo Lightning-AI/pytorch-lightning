@@ -96,7 +96,7 @@ class Trainer:
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         check_val_every_n_epoch: Optional[int] = 1,
@@ -113,8 +113,8 @@ class Trainer:
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
         log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         sync_batchnorm: bool = False,
         precision: _PRECISION_INPUT = "32-true",
         enable_model_summary: bool = True,
@@ -259,9 +259,8 @@ class Trainer:
                 sampler was already added, Lightning will not replace the existing one. For iterable-style datasets,
                 we don't do this automatically.
 
-            strategy: Supports different training strategies with aliases
-                as well custom strategies.
-                Default: ``None``.
+            strategy: Supports different training strategies with aliases as well custom strategies.
+                Default: ``"auto"``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
