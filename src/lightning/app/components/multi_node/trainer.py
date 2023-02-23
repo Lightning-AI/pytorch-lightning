@@ -70,7 +70,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["TORCHELASTIC_RUN_ID"] = "1"
 
         # Used to pass information to the Trainer directly.
-        def pre_fn(trainer, *args, **kwargs):
+        def pre_fn(trainer, *args: Any, **kwargs: Any):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
             if any(acc.is_available() for acc in mps_accelerators):
