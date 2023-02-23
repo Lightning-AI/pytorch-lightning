@@ -66,6 +66,7 @@ class ClusterState(StrEnum):
         parsed = str(status).lower().split("_", maxsplit=2)[-1]
         return cls.from_str(parsed)  # type: ignore[return-value]  # todo si fixed with 0.7.1
 
+
 class ClusterList(Formatable):
     def __init__(self, clusters: List[Externalv1Cluster]):
         self.clusters = clusters
