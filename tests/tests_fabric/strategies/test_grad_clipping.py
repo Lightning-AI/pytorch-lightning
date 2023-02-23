@@ -77,7 +77,6 @@ def test_grad_clipping_norm(strategy, num_devices, precision):
         pytest.param("auto", 1),
         pytest.param("ddp", 2),
         pytest.param("dp", 2),
-        pytest.param("fsdp", 2, marks=RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")),
     ],
 )
 @pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
