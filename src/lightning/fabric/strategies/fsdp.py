@@ -37,7 +37,7 @@ from lightning.fabric.utilities.distributed import (
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
-from lightning.fabric.utilities.rank_zero import rank_zero_only
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 
 if TYPE_CHECKING:
@@ -279,9 +279,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         error_if_nonfinite: bool = True,
     ) -> None:
         """Clip gradients by norm."""
-        from lightning.fabric.wrappers import _unwrap_objects
 
-        optimizer = _unwrap_objects(optimizer)
+        rank_zero_warn('Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!')
         self.precision.unscale_gradients_(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
