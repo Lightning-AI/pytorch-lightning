@@ -37,7 +37,7 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
 
     assert instance is not None, f"`instance` need to be set, but got {instance}"
     assert parent is not None, f"`parent` need to be set, but got {parent}"
-    return is_overridden(method_name, instance, parent)
+    return is_overridden(method_name, instance, parent)  # type: ignore[misc]
 
 
 def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
