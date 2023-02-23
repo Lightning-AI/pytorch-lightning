@@ -34,15 +34,11 @@ jobs:
       with:
         python-version: '3.10.6'
 
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Cache pip
+    - name: Mypy pip
       uses: actions/cache@v3
       with:
-        path: ~/.cache/pip
-        key: pip-${{ hashFiles('requirements/typing.txt') }}
-        restore-keys: pip-
-        enableCrossOsArchive: true
+        path: .mypy_cache
+        key: mypy-${{ hashFiles('requirements/typing.txt') }}
 
     - name: Install dependencies
       run: |
@@ -53,6 +49,4 @@ jobs:
         pip list
 
     - name: Check typing
-      run: |
-        mkdir .mypy_cache
-        mypy src/
+      run: mypy

@@ -69,9 +69,6 @@ max-complexity = 10
 [tool.mypy]
 files = [
     "src/lightning",
-    "src/lightning_App",
-    "src/lightning_fabric",
-    "src/pytorch_lightning",
 ]
 # This section is for folders with "-" as they are not valid python modules
 exclude = [
