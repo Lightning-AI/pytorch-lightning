@@ -901,7 +901,6 @@ def test_grad_clipping(clip_val, max_norm):
 
     fabric.strategy.clip_gradients_norm = Mock()
     fabric.strategy.clip_gradients_value = Mock()
-    fabric.strategy.precision.unscale_gradients = Mock()
 
     model = nn.Linear(1, 1)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
@@ -913,10 +912,8 @@ def test_grad_clipping(clip_val, max_norm):
 
     fabric.strategy.clip_gradients_value.assert_not_called()
     fabric.strategy.clip_gradients_norm.assert_not_called()
-    fabric.strategy.precision.unscale_gradients.assert_not_called()
 
     fabric.clip_gradients(model, optimizer, max_norm=max_norm, clip_val=clip_val)
-    fabric.strategy.precision.unscale_gradients.assert_called_once()
 
     if clip_val is not None:
         fabric.strategy.clip_gradients_value.assert_called_once()
