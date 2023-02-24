@@ -16,13 +16,12 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+from tests_fabric.helpers.runif import RunIf
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
-
-from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
 
 @pytest.mark.parametrize(
@@ -118,12 +117,12 @@ def test_ddp_module_state_dict():
         ),
     ],
 )
-@pytest.mark.parametrize('clip_type', ['norm', 'val'])
-@pytest.mark.parametrize('accelerator', ["cpu", pytest.param('cuda', marks=RunIf(min_cuda_gpus=2))])
+@pytest.mark.parametrize("clip_type", ["norm", "val"])
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))])
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
-    if clip_type == 'norm':
+    if clip_type == "norm":
         clipping_test_cls = _MyFabricGradNorm
     else:
         clipping_test_cls = _MyFabricGradVal
-    fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy='ddp')
+    fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
     fabric.run()

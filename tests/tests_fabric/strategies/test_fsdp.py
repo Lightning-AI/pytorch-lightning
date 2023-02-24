@@ -146,6 +146,7 @@ def test_fsdp_grad_clipping_value_error():
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
+
 class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
     def after_backward(self, model, optimizer):
         self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
@@ -153,11 +154,11 @@ class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
         with model._forward_module.summon_full_params(model._forward_module):
             parameters = model.parameters()
             grad_norm = torch.linalg.vector_norm(
-                torch.stack(
-                    [torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
+                torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
                 2,
             )
             torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+
 
 @pytest.mark.parametrize(
     "precision",
@@ -177,5 +178,5 @@ class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
 @pytest.mark.xfail(reason="Testing with FSDP is not yet correct")
 def test_fsdp_grad_clipping_norm(precision):
 
-    fabric = _MyFSDPFabricGradientNorm(accelerator='cuda', devices=2, precision=precision, strategy='fsdp')
+    fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
     fabric.run()

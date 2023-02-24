@@ -894,6 +894,7 @@ def test_all_reduce():
     fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
+
 def test_grad_clipping():
     fabric = Fabric()
 
