@@ -78,9 +78,9 @@ class Fabric:
 
     def __init__(
         self,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,

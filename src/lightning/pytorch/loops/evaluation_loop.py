@@ -21,11 +21,12 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection

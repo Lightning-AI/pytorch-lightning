@@ -196,7 +196,7 @@ class CloudRuntime(Runtime):
         cloudspace_id: str,
         name: str,
         cluster_id: str,
-    ):
+    ) -> str:
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
         such as the project and cluster IDs that are instead passed directly.
 
@@ -210,12 +210,15 @@ class CloudRuntime(Runtime):
             ApiException: If there was an issue in the backend.
             RuntimeError: If there are validation errors.
             ValueError: If there are validation errors.
+
+        Returns:
+            The URL of the created job.
         """
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
         repo = self._resolve_repo(root)
-        self._resolve_cloudspace(project_id, cloudspace_id)
+        project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
@@ -240,7 +243,7 @@ class CloudRuntime(Runtime):
         run = self._api_create_run(project_id, cloudspace_id, run_body)
         self._api_package_and_upload_repo(repo, run)
 
-        self._api_create_run_instance(
+        run_instance = self._api_create_run_instance(
             cluster_id,
             project_id,
             name,
@@ -250,6 +253,8 @@ class CloudRuntime(Runtime):
             queue_server_type,
             env_vars,
         )
+
+        return self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui")
 
     def dispatch(
         self,
@@ -451,16 +456,9 @@ class CloudRuntime(Runtime):
 
         return LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
 
-    def _resolve_project(self) -> V1Membership:
+    def _resolve_project(self, project_id: Optional[str] = None) -> V1Membership:
         """Determine the project to run on, choosing a default if multiple projects are found."""
-        return _get_project(self.backend.client)
-
-    def _resolve_cloudspace(self, project_id: str, cloudspace_id: str) -> V1CloudSpace:
-        """Get a cloudspace by project / cloudspace ID."""
-        return self.backend.client.cloud_space_service_get_cloud_space(
-            project_id=project_id,
-            id=cloudspace_id,
-        )
+        return _get_project(self.backend.client, project_id=project_id)
 
     def _resolve_existing_cloudspaces(self, project_id: str, cloudspace_name: str) -> List[V1CloudSpace]:
         """Lists all the cloudspaces with a name matching the provided cloudspace name."""
