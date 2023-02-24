@@ -922,6 +922,11 @@ def test_grad_clipping():
     fabric.strategy.clip_gradients_value.reset_mock()
     fabric.strategy.clip_gradients_norm.reset_mock()
     fabric.strategy.precision.unscale_gradients.reset_mock()
+    optimizer.step()
+    optimizer.zero_grad()
+
+    loss = model(torch.rand(1, 1).to(fabric.device))
+    fabric.backward(loss)
 
     fabric.strategy.clip_gradients_value.assert_not_called()
     fabric.strategy.clip_gradients_norm.assert_not_called()
