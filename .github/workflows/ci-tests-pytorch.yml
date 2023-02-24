@@ -113,8 +113,7 @@ jobs:
         pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
-      # FIXME
-      #if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
