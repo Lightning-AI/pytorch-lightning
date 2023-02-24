@@ -82,19 +82,18 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@pytest.mark.parametrize("strategy", [None, "ddp_spawn"])
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize(
     "devices", (pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2)))
 )
-def test_amp_gpus(tmpdir, strategy, precision, devices):
+def test_amp_gpus(tmpdir, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         accelerator="gpu",
         devices=devices,
-        strategy=("ddp_spawn" if strategy is None and devices > 1 else strategy),
+        strategy=("ddp_spawn" if devices > 1 else "auto"),
         precision=precision,
     )
 

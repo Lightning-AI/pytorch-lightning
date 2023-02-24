@@ -96,7 +96,7 @@ class Trainer:
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         check_val_every_n_epoch: Optional[int] = 1,
@@ -113,8 +113,8 @@ class Trainer:
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
         log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         sync_batchnorm: bool = False,
         precision: _PRECISION_INPUT = "32-true",
         enable_model_summary: bool = True,
@@ -123,7 +123,7 @@ class Trainer:
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         inference_mode: bool = True,
@@ -251,14 +251,16 @@ class Trainer:
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
-                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
-                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
-                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+            use_distributed_sampler: Whether to wrap the DataLoader's sampler with
+                :class:`torch.utils.data.DistributedSampler`. If not specified this is toggled automatically for
+                strategies that require it. By default, it will add ``shuffle=True`` for the train sampler and
+                ``shuffle=False`` for validation/test/predict samplers. If you want to disable this logic, you can pass
+                ``False`` and add your own distributed sampler in the dataloader hooks. If ``True`` and a distributed
+                sampler was already added, Lightning will not replace the existing one. For iterable-style datasets,
+                we don't do this automatically.
 
-            strategy: Supports different training strategies with aliases
-                as well custom strategies.
-                Default: ``None``.
+            strategy: Supports different training strategies with aliases as well custom strategies.
+                Default: ``"auto"``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
@@ -293,7 +295,7 @@ class Trainer:
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
-            replace_sampler_ddp=replace_sampler_ddp,
+            use_distributed_sampler=use_distributed_sampler,
             deterministic=deterministic,
             precision=precision,
             plugins=plugins,
@@ -349,7 +351,11 @@ class Trainer:
         )
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init()
+
+        setup._log_device_info(self)
+
+        self.should_stop = False
+        self.state = TrainerState()
 
         # configure profiler
         setup._init_profiler(self, profiler)
@@ -377,22 +383,6 @@ class Trainer:
             val_check_interval,
             num_sanity_val_steps,
         )
-
-    def _setup_on_init(self) -> None:
-        setup._log_device_info(self)
-
-        self.should_stop = False
-        self.state = TrainerState()
-
-        # TODO(carmocca): move these to the loops
-        self.num_training_batches = float("inf")
-        self.num_sanity_val_batches: List[Union[int, float]] = []
-        self.num_test_batches: List[Union[int, float]] = []
-        self.num_val_batches: List[Union[int, float]] = []
-        self.num_predict_batches: List[Union[int, float]] = []
-
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
 
     def fit(
         self,
@@ -1304,6 +1294,31 @@ class Trainer:
     def predict_dataloaders(self) -> EVAL_DATALOADERS:
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
+
+    @property
+    def num_training_batches(self) -> Union[int, float]:
+        return self.fit_loop.max_batches
+
+    @property
+    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+        max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
+        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+
+    @property
+    def num_val_batches(self) -> List[Union[int, float]]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validate_loop.max_batches
+        # if no trainer.fn is set, assume fit's validation
+        # use the protected access, because it shouldn't return the sanity_val batches
+        return self.fit_loop.epoch_loop.val_loop._max_batches
+
+    @property
+    def num_test_batches(self) -> List[Union[int, float]]:
+        return self.test_loop.max_batches
+
+    @property
+    def num_predict_batches(self) -> List[Union[int, float]]:
+        return self.predict_loop.max_batches
 
     @property
     def _evaluation_loop(self) -> _EvaluationLoop:
