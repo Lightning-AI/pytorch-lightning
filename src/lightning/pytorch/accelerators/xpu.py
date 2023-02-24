@@ -64,10 +64,6 @@ class XPUAccelerator(Accelerator):
 
         Returns:
             A dictionary mapping the metrics to their values.
-
-        Raises:
-            FileNotFoundError:
-                If xpum-smi installation not found
         """
         return torch.xpu.memory_stats(device)
 
@@ -104,7 +100,7 @@ class XPUAccelerator(Accelerator):
 
 
 def get_intel_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
-    """Get GPU stats including memory, fan speed, and temperature from xpum-smi.
+    """Get GPU stats including memory, fan speed, and temperature from xpu-smi.
 
     Args:
         device: GPU device for which to get stats
@@ -114,28 +110,28 @@ def get_intel_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cove
 
     Raises:
         FileNotFoundError:
-            If xpum-smi installation not found
+            If xpu-smi installation not found
+        ValueError:
+            results returned from xpu-smi are incorrect
     """
-    xpum_smi_path = shutil.which("xpum-smi")
+    xpum_smi_path = shutil.which("xpu-smi")
     if xpum_smi_path is None:
-        raise FileNotFoundError("xpum-smi: command not found")
+        raise FileNotFoundError("xpu-smi: command not found")
 
     gpu_stat_metrics = [
-        ("utilization.gpu", "%"),
-        ("memory.used", "MB"),
-        ("memory.free", "MB"),
-        ("utilization.memory", "%"),
-        ("fan.speed", "%"),
-        ("temperature.gpu", "°C"),
-        ("temperature.memory", "°C"),
+        ("0", "GPU Utilization", "%"),
+        ("18", "GPU Memory Used", "MiB"),
+        ("5", "GPU Memory Utilization", "%"),
+        ("3", "GPU Core Temperature", "°C"),
+        ("4", "GPU Memory Temperature", "°C"),
     ]
-    gpu_stat_keys = [k for k, _ in gpu_stat_metrics]
+    gpu_stat_keys = [k for k, _, _ in gpu_stat_metrics]
     gpu_query = ",".join(gpu_stat_keys)
 
     index = torch._utils._get_device_index(device)
     gpu_id = _get_gpu_id(index)
     result = subprocess.run(
-        [xpum_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
+        [xpum_smi_path, "dump", "--device", f"{gpu_id}", "--metrics", f"{gpu_query}", "-n", "1"],
         encoding="utf-8",
         capture_output=True,
         check=True,
@@ -145,11 +141,16 @@ def get_intel_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cove
         try:
             return float(x)
         except ValueError:
-            return 0.0
+            return -1
 
-    s = result.stdout.strip()
-    stats = [_to_float(x) for x in s.split(", ")]
-    gpu_stats = {f"{x} ({unit})": stat for (x, unit), stat in zip(gpu_stat_metrics, stats)}
+    s = result.stdout.strip().split("\n")
+    if len(s) < 2:
+        raise ValueError("xpu-smi: unexpected outputs")
+    r = s[-1].split(",")
+    if len(r) != len(gpu_stat_metrics) + 2:
+        raise ValueError("xpu-smi: unexpected outputs")
+    stats = [_to_float(r[i].strip()) for i in range(2, len(r))]
+    gpu_stats = {f"{x} ({unit})": stat for (_, x, unit), stat in zip(gpu_stat_metrics, stats)}
     return gpu_stats
 
 
