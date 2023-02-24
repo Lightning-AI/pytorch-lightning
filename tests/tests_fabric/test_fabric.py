@@ -893,3 +893,40 @@ def test_all_reduce():
     # dict
     fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
+
+def test_grad_clipping():
+    fabric = Fabric()
+
+    fabric.strategy.clip_gradients_norm = Mock()
+    fabric.strategy.clip_gradients_value = Mock()
+    fabric.strategy.precision.unscale_gradients = Mock()
+
+    model = nn.Linear(1, 1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+
+    model, optimizer = fabric.setup(model, optimizer)
+
+    loss = model(torch.rand(1, 1).to(fabric.device))
+    fabric.backward(loss)
+
+    fabric.strategy.clip_gradients_value.assert_not_called()
+    fabric.strategy.clip_gradients_norm.assert_not_called()
+    fabric.strategy.precision.unscale_gradients.assert_not_called()
+
+    fabric.clip_gradients(model, optimizer, max_norm=1)
+    fabric.strategy.clip_gradients_norm.assert_called_once()
+    fabric.strategy.precision.unscale_gradients.assert_called_once()
+    fabric.strategy.clip_gradients_value.assert_not_called()
+
+    fabric.strategy.clip_gradients_value.reset_mock()
+    fabric.strategy.clip_gradients_norm.reset_mock()
+    fabric.strategy.precision.unscale_gradients.reset_mock()
+
+    fabric.strategy.clip_gradients_value.assert_not_called()
+    fabric.strategy.clip_gradients_norm.assert_not_called()
+    fabric.strategy.precision.unscale_gradients.assert_not_called()
+
+    fabric.clip_gradients(model, optimizer, clip_val=1e-3)
+    fabric.strategy.clip_gradients_value.assert_called_once()
+    fabric.strategy.clip_gradients_norm.assert_not_called()
+    fabric.strategy.precision.unscale_gradients.assert_called_once()
