@@ -68,9 +68,7 @@ class MixedPrecisionBoringFabric(BoringFabric):
     ],
 )
 def test_amp(accelerator, precision, expected_dtype):
-    # TODO: devices>1 fails with:
-    # DDP expects same model across all ranks, but Rank 0 has 2 params, while rank 1 has inconsistent 1 params
-    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=1)
+    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
     fabric.expected_dtype = expected_dtype
     fabric.run()
 

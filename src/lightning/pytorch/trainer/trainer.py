@@ -89,15 +89,15 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Logger, Iterable[Logger], bool] = True,
-        enable_checkpointing: bool = True,
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        enable_checkpointing: Optional[bool] = None,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
         devices: Union[List[int], str, int] = "auto",
-        enable_progress_bar: bool = True,
+        enable_progress_bar: Optional[bool] = None,
         overfit_batches: Union[int, float] = 0.0,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
@@ -112,13 +112,13 @@ class Trainer:
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        log_every_n_steps: int = 50,
+        log_every_n_steps: Optional[int] = None,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
         sync_batchnorm: bool = False,
         precision: _PRECISION_INPUT = "32-true",
-        enable_model_summary: bool = True,
-        num_sanity_val_steps: int = 2,
+        enable_model_summary: Optional[bool] = None,
+        num_sanity_val_steps: Optional[int] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
@@ -127,6 +127,7 @@ class Trainer:
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         inference_mode: bool = True,
+        barebones: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -141,8 +142,8 @@ class Trainer:
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
-                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set
-                to ``True``, this will default to ``False``. Override to manually set a different value.
+                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic`
+                is set to ``True``, this will default to ``False``. Override to manually set a different value.
                 Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
@@ -277,6 +278,21 @@ class Trainer:
 
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
+
+            barebones: Whether to run in "barebones mode", where all features that may impact raw speed are
+                disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular training
+                runs. The following features are deactivated:
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_checkpointing`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.logger`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_progress_bar`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.log_every_n_steps`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_model_summary`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.num_sanity_val_steps`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.detect_anomaly`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
+                :meth:`~lightning.pytorch.core.module.LightningModule.log`,
+                :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -284,6 +300,92 @@ class Trainer:
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
+
+        self.barebones = barebones
+        if barebones:
+            # opt-outs
+            if enable_checkpointing:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_checkpointing={enable_checkpointing!r})` was passed."
+                    " Checkpointing can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_checkpointing = False
+            if logger is not None and logger is not False:
+                raise ValueError(
+                    f"`Trainer(barebones=True, logger={logger!r})` was passed."
+                    " Logging can impact raw speed so it is disabled in barebones mode."
+                )
+            logger = False
+            if enable_progress_bar:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_progress_bar={enable_progress_bar!r})` was passed."
+                    " The progress bar can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_progress_bar = False
+            if log_every_n_steps is not None and log_every_n_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, log_every_n_steps={log_every_n_steps!r})` was passed."
+                    " Logging can impact raw speed so it is disabled in barebones mode."
+                )
+            log_every_n_steps = 0
+            if enable_model_summary:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_model_summary={enable_model_summary!r})` was passed."
+                    " Model summary can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_model_summary = False
+            if num_sanity_val_steps is not None and num_sanity_val_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, num_sanity_val_steps={num_sanity_val_steps!r})` was passed."
+                    " Sanity checking can impact raw speed so it is disabled in barebones mode."
+                )
+            num_sanity_val_steps = 0
+            # opt-ins
+            if fast_dev_run is not False and fast_dev_run != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, fast_dev_run={fast_dev_run!r})` was passed."
+                    " Development run is not meant for raw speed evaluation so it is disabled in barebones mode."
+                )
+            if detect_anomaly:
+                raise ValueError(
+                    f"`Trainer(barebones=True, detect_anomaly={detect_anomaly!r})` was passed."
+                    " Anomaly detection can impact raw speed so it is disabled in barebones mode."
+                )
+            if profiler is not None:
+                raise ValueError(
+                    f"`Trainer(barebones=True, profiler={profiler!r})` was passed."
+                    " Profiling can impact raw speed so it is disabled in barebones mode."
+                )
+            deactivated = (
+                " - Checkpointing: `Trainer(enable_checkpointing=True)`",
+                " - Progress bar: `Trainer(enable_progress_bar=True)`",
+                " - Model summary: `Trainer(enable_model_summary=True)`",
+                " - Logging: `Trainer(logger=True)`, `Trainer(log_every_n_steps>0)`,"
+                " `LightningModule.log(...)`, `LightningModule.log_dict(...)`",
+                " - Sanity checking: `Trainer(num_sanity_val_steps>0)`",
+                " - Development run: `Trainer(fast_dev_run=True)`",
+                " - Anomaly detection: `Trainer(detect_anomaly=True)`",
+                " - Profiling: `Trainer(profiler=...)`",
+            )
+            rank_zero_info(
+                "You are running in `Trainer(barebones=True)` mode. All features that may impact raw speed have been"
+                " disabled to facilitate analyzing the Trainer overhead. Specifically, the following features are"
+                f" deactivated:{os.linesep}{os.linesep.join(deactivated)}"
+            )
+        else:
+            # set the opt-out defaults
+            if enable_checkpointing is None:
+                enable_checkpointing = True
+            if logger is None:
+                logger = True
+            if enable_progress_bar is None:
+                enable_progress_bar = True
+            if log_every_n_steps is None:
+                log_every_n_steps = 50
+            if enable_model_summary is None:
+                enable_model_summary = True
+            if num_sanity_val_steps is None:
+                num_sanity_val_steps = 2
 
         # init connectors
         self._data_connector = DataConnector(self)
