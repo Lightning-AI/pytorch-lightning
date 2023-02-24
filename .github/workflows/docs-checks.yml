@@ -100,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["lightning", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -137,13 +137,11 @@ jobs:
 
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: |
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: |
-          make linkcheck
+        run: make linkcheck
         continue-on-error: true
 
       - name: Upload built docs
