@@ -281,7 +281,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         """Clip gradients by norm."""
 
         rank_zero_warn("Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!")
-        self.precision.unscale_gradients_(optimizer)
+        self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     def clip_gradients_value(  # type: ignore[override]
