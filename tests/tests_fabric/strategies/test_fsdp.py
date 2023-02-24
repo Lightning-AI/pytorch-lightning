@@ -176,6 +176,7 @@ class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
 )
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.xfail(reason="Testing with FSDP is not yet correct")
+# TODO: Investigate testing with fsdp
 def test_fsdp_grad_clipping_norm(precision):
 
     fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
