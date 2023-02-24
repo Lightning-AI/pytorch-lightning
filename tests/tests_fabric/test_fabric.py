@@ -919,9 +919,9 @@ def test_grad_clipping():
     fabric.strategy.precision.unscale_gradients.assert_called_once()
     fabric.strategy.clip_gradients_value.assert_not_called()
 
-    fabric.strategy.clip_gradients_value.reset_mock()
-    fabric.strategy.clip_gradients_norm.reset_mock()
-    fabric.strategy.precision.unscale_gradients.reset_mock()
+    fabric.strategy.clip_gradients_value = Mock()
+    fabric.strategy.clip_gradients_norm = Mock()
+    fabric.strategy.precision.unscale_gradients = Mock()
     optimizer.step()
     optimizer.zero_grad()
 
