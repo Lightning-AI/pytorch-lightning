@@ -15,7 +15,7 @@ Community Examples
 - `NeuralTexture (CVPR) <https://github.com/henzler/neuraltexture>`_
 - `Recurrent Attentive Neural Process <https://github.com/3springs/attentive-neural-processes>`_
 - `Siamese Nets for One-shot Image Recognition <https://github.com/bhiziroglu/Siamese-Neural-Networks>`_
-- `Speech Transformers <https://github.com/tongjinle123/speech-transformer-pytorch_lightning>`_
+- `Speech Transformers <https://github.com/tongjinle123/speech-transformer-lightning.pytorch>`_
 - `Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
 - `Transformers text classification <https://github.com/ricardorei/lightning-text-classification>`_
 - `VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>`_
@@ -32,5 +32,5 @@ Community Examples
 PyTorch Ecosystem Examples
 ==========================
 
-- `PyTorch Geometric: Deep learning on graphs and other irregular structures <https://github.com/rusty1s/pytorch_geometric/tree/master/examples/pytorch_lightning>`_.
-- `TorchIO, MONAI and Lightning for 3D medical image segmentation <https://colab.research.google.com/github/fepegar/torchio-notebooks/blob/main/notebooks/TorchIO_MONAI_PyTorch_Lightning.ipynb>`_.
+- `PyTorch Geometric: Deep learning on graphs and other irregular structures <https://github.com/rusty1s/pytorch_geometric/tree/master/examples/lightning.pytorch>`_.
+- `TorchIO, MONAI and Lightning for 3D medical image segmentation <https://colab.research.google.com/github/fepegar/torchio-notebooks/blob/main/notebooks/TorchIO_MONAI_lightning.pytorch.ipynb>`_.
