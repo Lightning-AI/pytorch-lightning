@@ -119,6 +119,7 @@ def test_ddp_module_state_dict():
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))])
+@RunIf(standalone=True)
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
     if clip_type == "norm":
         clipping_test_cls = _MyFabricGradNorm
