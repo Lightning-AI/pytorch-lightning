@@ -17,6 +17,9 @@ from unittest.mock import MagicMock, Mock
 import torch
 
 from lightning.fabric.strategies import DataParallelStrategy
+from tests_fabric.helpers.runif import RunIf
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
+import pytest
 
 
 def test_data_parallel_root_device():
@@ -68,3 +71,28 @@ def test_dp_module_state_dict():
     with mock.patch("lightning.fabric.strategies.dp.DataParallel", DataParallelMock):
         wrapped_module = strategy.setup_module(original_module)
         assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
+
+
+@pytest.mark.parametrize(
+    "precision",
+    [
+        "32-true",
+        "16-mixed",
+        pytest.param(
+            "bf16-mixed",
+            marks=pytest.mark.skipif(
+                torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
+                reason="If Cuda, has to be bf16 enabled",
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize('clip_type', ['norm', 'val'])
+@RunIf(min_cuda_gpus=2)
+def test_dp_grad_clipping(clip_type, precision):
+    if clip_type == 'norm':
+        clipping_test_cls = _MyFabricGradNorm
+    else:
+        clipping_test_cls = _MyFabricGradVal
+    fabric = clipping_test_cls(accelerator='cuda', devices=2, precision=precision, strategy='dp')
+    fabric.run()

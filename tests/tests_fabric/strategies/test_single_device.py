@@ -15,8 +15,11 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.strategies import SingleDeviceStrategy
+from lightning.fabric.wrappers import _FabricModule, _FabricOptimizer
 
 
 def test_single_device_default_device():
@@ -52,3 +55,59 @@ def test_single_device_module_to_device():
     module = Mock(spec=torch.nn.Module)
     strategy.module_to_device(module)
     module.to.assert_called_with(strategy.root_device)
+
+
+class _MyFabricGradNorm(BoringFabric):
+    def after_backward(self, model: _FabricModule, optimizer: _FabricOptimizer):
+        self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
+
+        parameters = model.parameters()
+        grad_norm = torch.linalg.vector_norm(
+            torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
+            2,
+        )
+        torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+
+    def run(self):
+        while True:
+            try:
+                super().run()
+                break
+            except RuntimeError:  # nonfinite grads -> skip and continue
+                pass
+
+
+class _MyFabricGradVal(BoringFabric):
+    def after_backward(self, model, optimizer):
+        self.clip_gradients(model, optimizer, clip_val=1e-10)
+
+        parameters = model.parameters()
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
+
+@pytest.mark.parametrize(
+    "precision",
+    [
+        "32-true",
+        pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            "bf16-mixed",
+            marks=pytest.mark.skipif(
+                torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
+                reason="If Cuda, has to be bf16 enabled",
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize('clip_type', ['norm', 'val'])
+def test_single_device_grad_clipping(clip_type, precision):
+    if clip_type == 'norm':
+        clipping_test_cls = _MyFabricGradNorm
+    else:
+        clipping_test_cls = _MyFabricGradVal
+    fabric = clipping_test_cls(accelerator="auto", devices=1, precision=precision)
+    fabric.run()
+
+
+
