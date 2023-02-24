@@ -429,4 +429,4 @@ For this, all data pre-loading should be done on the main process inside :meth:`
     trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_spawn")
     trainer.fit(model, datamodule)
 
-See the `graph-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/lightning.pytorch/gin.py>`_ and `node-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/lightning.pytorch/graph_sage.py>`_ prediction examples in PyTorch Geometric for practical use-cases.
+See the `graph-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pytorch_lightning/gin.py>`_ and `node-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pytorch_lightning/graph_sage.py>`_ prediction examples in PyTorch Geometric for practical use-cases.
