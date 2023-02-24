@@ -895,7 +895,8 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
-def test_grad_clipping():
+@pytest.mark.parametrize('clip_val,max_norm', [(1e-3, None), (None, 1)])
+def test_grad_clipping(clip_val, max_norm):
     fabric = Fabric()
 
     fabric.strategy.clip_gradients_norm = Mock()
@@ -914,25 +915,12 @@ def test_grad_clipping():
     fabric.strategy.clip_gradients_norm.assert_not_called()
     fabric.strategy.precision.unscale_gradients.assert_not_called()
 
-    fabric.clip_gradients(model, optimizer, max_norm=1)
-    fabric.strategy.clip_gradients_norm.assert_called_once()
+    fabric.clip_gradients(model, optimizer, max_norm=max_norm, clip_val=clip_val)
     fabric.strategy.precision.unscale_gradients.assert_called_once()
-    fabric.strategy.clip_gradients_value.assert_not_called()
 
-    fabric.strategy.clip_gradients_value = Mock()
-    fabric.strategy.clip_gradients_norm = Mock()
-    fabric.strategy.precision.unscale_gradients = Mock()
-    optimizer.step()
-    optimizer.zero_grad()
-
-    loss = model(torch.rand(1, 1).to(fabric.device))
-    fabric.backward(loss)
-
-    fabric.strategy.clip_gradients_value.assert_not_called()
-    fabric.strategy.clip_gradients_norm.assert_not_called()
-    fabric.strategy.precision.unscale_gradients.assert_not_called()
-
-    fabric.clip_gradients(model, optimizer, clip_val=1e-3)
-    fabric.strategy.clip_gradients_value.assert_called_once()
-    fabric.strategy.clip_gradients_norm.assert_not_called()
-    fabric.strategy.precision.unscale_gradients.assert_called_once()
+    if clip_val is not None:
+        fabric.strategy.clip_gradients_value.assert_called_once()
+        fabric.strategy.clip_gradients_norm.assert_not_called()
+    else:
+        fabric.strategy.clip_gradients_value.assert_not_called()
+        fabric.strategy.clip_gradients_norm.assert_called_once()
