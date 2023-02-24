@@ -421,7 +421,7 @@ class NeptuneLogger(Logger):
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
             # Lightning does not always guarantee.
-            self.run[key].log(val)
+            self.run[key].append(val)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
