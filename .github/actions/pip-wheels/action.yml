@@ -9,7 +9,7 @@ inputs:
   wheel-dir:
     description: local path for export wheels
     required: false
-    default: ".wheels/"
+    default: "_pip-wheels/"
   cache-key:
     description: update this cache
     required: false
@@ -54,7 +54,7 @@ runs:
     run: |
       import os, glob
       wheels = [os.path.basename(p) for p in glob.glob(".wheels/*")]
-      pkgs = [os.path.basename(p) for p in glob.glob("${{ inputs.pypi-dir }}/*")]
+      pkgs = [os.path.basename(p) for p in glob.glob("${{ inputs.wheel-dir }}/*")]
       diff = [w for w in wheels if w not in pkgs]
       print(diff)
       with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
@@ -68,7 +68,7 @@ runs:
       path: ${{ inputs.wheel-dir }}
       key: ${{ inputs.cache-key }}
 
-  - run: cp .wheels/* ${{ inputs.pypi-dir }}
+  - run: cp .wheels/* ${{ inputs.wheel-dir }}
     if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
     shell: bash
 
@@ -76,5 +76,5 @@ runs:
     if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
     uses: actions/cache/save@v3
     with:
-      path: ${{ inputs.pypi-dir }}
+      path: ${{ inputs.wheel-dir }}
       key: ${{ inputs.cache-key }}
