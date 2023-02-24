@@ -120,7 +120,7 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
             # exit early if we found the right number of GPUs
             break
 
-    if len(available_devices) != num_devices:
+    if num_devices != -1 and len(available_devices) != num_devices:
         raise RuntimeError(
             f"You requested to find {num_devices} devices but only {len(available_devices)} are currently available."
             f" The devices {unavailable_devices} are occupied by other processes and can't be used at the moment."
