@@ -15,7 +15,7 @@ Community Examples
 - `NeuralTexture (CVPR) <https://github.com/henzler/neuraltexture>`_
 - `Recurrent Attentive Neural Process <https://github.com/3springs/attentive-neural-processes>`_
 - `Siamese Nets for One-shot Image Recognition <https://github.com/bhiziroglu/Siamese-Neural-Networks>`_
-- `Speech Transformers <https://github.com/tongjinle123/speech-transformer-lightning.pytorch>`_
+- `Speech Transformers <https://github.com/tongjinle123/speech-transformer-pytorch_lightning>`_
 - `Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
 - `Transformers text classification <https://github.com/ricardorei/lightning-text-classification>`_
 - `VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>`_
