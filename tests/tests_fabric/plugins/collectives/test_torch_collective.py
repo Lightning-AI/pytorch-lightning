@@ -8,12 +8,12 @@ import pytest
 import torch
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning_fabric.plugins.collectives import TorchCollective
-from lightning_fabric.plugins.environments import LightningEnvironment
-from lightning_fabric.strategies.ddp import DDPStrategy
-from lightning_fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning.fabric.plugins.collectives import TorchCollective
+from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.strategies.ddp import DDPStrategy
+from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 
 if TorchCollective.is_available():
     from torch.distributed import ReduceOp
@@ -31,10 +31,10 @@ PASSED_OBJECT = mock.Mock()
 @contextlib.contextmanager
 def check_destroy_group():
     with mock.patch(
-        "lightning_fabric.plugins.collectives.torch_collective.TorchCollective.new_group",
+        "lightning.fabric.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
     ) as mock_new, mock.patch(
-        "lightning_fabric.plugins.collectives.torch_collective.TorchCollective.destroy_group",
+        "lightning.fabric.plugins.collectives.torch_collective.TorchCollective.destroy_group",
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
@@ -123,10 +123,7 @@ def test_convert_ops():
     # Test we are handling different casing properly
     assert TorchCollective._convert_to_native_op("BOR") == ReduceOp.BOR
     assert TorchCollective._convert_to_native_op("BoR") == ReduceOp.BOR
-
-    # AVG is very recent!
-    if _TORCH_GREATER_EQUAL_1_11:
-        assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
+    assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
 
     # Test invalid type
     with pytest.raises(ValueError, match="Unsupported op 1 of type int"):

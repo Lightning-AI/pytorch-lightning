@@ -182,10 +182,8 @@ Under the hood, Lightning does the following (pseudocode):
     model.train()
     torch.set_grad_enabled(True)
 
-    outs = []
     for batch_idx, batch in enumerate(train_dataloader):
         loss = training_step(batch, batch_idx)
-        outs.append(loss.detach())
 
         # clear gradients
         optimizer.zero_grad()
@@ -214,7 +212,7 @@ If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_l
          self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
-The :meth:`~pytorch_lightning.core.module.LightningModule.log` object automatically reduces the
+The :meth:`~pytorch_lightning.core.module.LightningModule.log` method automatically reduces the
 requested metrics across a complete epoch and devices. Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
@@ -223,116 +221,46 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
     for batch_idx, batch in enumerate(train_dataloader):
         # forward
         loss = training_step(batch, batch_idx)
-        outs.append(loss)
+        outs.append(loss.detach())
 
         # clear gradients
         optimizer.zero_grad()
-
         # backward
         loss.backward()
-
         # update parameters
         optimizer.step()
 
-    epoch_metric = torch.mean(torch.stack([x for x in outs]))
+    # note: in reality, we do this incrementally, instead of keeping all outputs in memory
+    epoch_metric = torch.mean(torch.stack(outs))
 
 Train Epoch-level Operations
 ============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.module.LightningModule.training_step`,
-override the :meth:`~pytorch_lightning.core.module.LightningModule.training_epoch_end` method.
+In the case that you need to make use of all the outputs from each :meth:`~pytorch_lightning.LightningModule.training_step`,
+override the :meth:`~pytorch_lightning.LightningModule.on_training_epoch_end` method.
 
 .. code-block:: python
 
-     def training_step(self, batch, batch_idx):
-         x, y = batch
-         y_hat = self.model(x)
-         loss = F.cross_entropy(y_hat, y)
-         preds = ...
-         return {"loss": loss, "other_stuff": preds}
+    def __init__(self):
+        super().__init__()
+        self.training_step_outputs = []
 
 
-     def training_epoch_end(self, training_step_outputs):
-         all_preds = torch.stack(training_step_outputs)
-         ...
-
-The matching pseudocode is:
-
-.. code-block:: python
-
-    outs = []
-    for batch_idx, batch in enumerate(train_dataloader):
-        # forward
-        loss = training_step(batch, batch_idx)
-        outs.append(loss)
-
-        # clear gradients
-        optimizer.zero_grad()
-
-        # backward
-        loss.backward()
-
-        # update parameters
-        optimizer.step()
-
-    training_epoch_end(outs)
-
-Training with DataParallel
-==========================
-
-When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP).
-
-In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.training_step_end`
-method which will have outputs from all the devices and you can accumulate to get the effective results.
-
-.. code-block:: python
-
-     def training_step(self, batch, batch_idx):
-         x, y = batch
-         y_hat = self.model(x)
-         loss = F.cross_entropy(y_hat, y)
-         pred = ...
-         return {"loss": loss, "pred": pred}
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.model(x)
+        loss = F.cross_entropy(y_hat, y)
+        preds = ...
+        self.training_step_outputs.append(preds)
+        return loss
 
 
-     def training_step_end(self, batch_parts):
-         # predictions from each GPU
-         predictions = batch_parts["pred"]
-         # losses from each GPU
-         losses = batch_parts["loss"]
+    def on_train_epoch_end(self):
+        all_preds = torch.stack(self.training_step_outputs)
+        # do something with all preds
+        ...
+        self.training_step_outputs.clear()  # free memory
 
-         gpu_0_prediction = predictions[0]
-         gpu_1_prediction = predictions[1]
-
-         # do something with both outputs
-         return (losses[0] + losses[1]) / 2
-
-
-     def training_epoch_end(self, training_step_outputs):
-         for out in training_step_outputs:
-             ...
-
-Here is the Lightning training pseudo-code for DP:
-
-.. code-block:: python
-
-    outs = []
-    for batch_idx, train_batch in enumerate(train_dataloader):
-        batches = split_batch(train_batch)
-        dp_outs = []
-        for sub_batch in batches:
-            # 1
-            dp_out = training_step(sub_batch, batch_idx)
-            dp_outs.append(dp_out)
-
-        # 2
-        out = training_step_end(dp_outs)
-        outs.append(out)
-
-    # do something with the outputs for all batches
-    # 3
-    training_epoch_end(outs)
 
 ------------------
 
@@ -399,79 +327,31 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
 Validation Epoch-level Metrics
 ==============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.module.LightningModule.validation_step`,
-override the :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end` method. Note that this method is called before :meth:`~pytorch_lightning.core.module.LightningModule.training_epoch_end`.
+In the case that you need to make use of all the outputs from each :meth:`~pytorch_lightning.LightningModule.validation_step`,
+override the :meth:`~pytorch_lightning.LightningModule.on_validation_epoch_end` method.
+Note that this method is called before :meth:`~pytorch_lightning.LightningModule.on_train_epoch_end`.
 
 .. code-block:: python
 
-     def validation_step(self, batch, batch_idx):
-         x, y = batch
-         y_hat = self.model(x)
-         loss = F.cross_entropy(y_hat, y)
-         pred = ...
-         return pred
+    def __init__(self):
+        super().__init__()
+        self.validation_step_outputs = []
 
 
-     def validation_epoch_end(self, validation_step_outputs):
-         all_preds = torch.stack(validation_step_outputs)
-         ...
-
-Validating with DataParallel
-============================
-
-When validating using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP).
-
-In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.validation_step_end`
-method which will have outputs from all the devices and you can accumulate to get the effective results.
-
-.. code-block:: python
-
-     def validation_step(self, batch, batch_idx):
-         x, y = batch
-         y_hat = self.model(x)
-         loss = F.cross_entropy(y_hat, y)
-         pred = ...
-         return {"loss": loss, "pred": pred}
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.model(x)
+        loss = F.cross_entropy(y_hat, y)
+        pred = ...
+        self.validation_step_outputs.append(pred)
+        return pred
 
 
-     def validation_step_end(self, batch_parts):
-         # predictions from each GPU
-         predictions = batch_parts["pred"]
-         # losses from each GPU
-         losses = batch_parts["loss"]
-
-         gpu_0_prediction = predictions[0]
-         gpu_1_prediction = predictions[1]
-
-         # do something with both outputs
-         return (losses[0] + losses[1]) / 2
-
-
-     def validation_epoch_end(self, validation_step_outputs):
-         for out in validation_step_outputs:
-             ...
-
-Here is the Lightning validation pseudo-code for DP:
-
-.. code-block:: python
-
-    outs = []
-    for batch in dataloader:
-        batches = split_batch(batch)
-        dp_outs = []
-        for sub_batch in batches:
-            # 1
-            dp_out = validation_step(sub_batch)
-            dp_outs.append(dp_out)
-
-        # 2
-        out = validation_step_end(dp_outs)
-        outs.append(out)
-
-    # do something with the outputs for all batches
-    # 3
-    validation_epoch_end(outs)
+    def on_validation_epoch_end(self):
+        all_preds = torch.stack(self.validation_step_outputs)
+        # do something with all preds
+        ...
+        self.validation_step_outputs.clear()  # free memory
 
 ----------------
 
@@ -918,18 +798,6 @@ test_step
 .. automethod:: pytorch_lightning.core.module.LightningModule.test_step
     :noindex:
 
-test_step_end
-~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.test_step_end
-    :noindex:
-
-test_epoch_end
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.test_epoch_end
-    :noindex:
-
 to_onnx
 ~~~~~~~
 
@@ -948,17 +816,6 @@ training_step
 .. automethod:: pytorch_lightning.core.module.LightningModule.training_step
     :noindex:
 
-training_step_end
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.training_step_end
-    :noindex:
-
-training_epoch_end
-~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.module.LightningModule.training_epoch_end
-    :noindex:
-
 unfreeze
 ~~~~~~~~
 
@@ -975,18 +832,6 @@ validation_step
 ~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.validation_step
-    :noindex:
-
-validation_step_end
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.validation_step_end
-    :noindex:
-
-validation_epoch_end
-~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.validation_epoch_end
     :noindex:
 
 -----------
@@ -1035,7 +880,7 @@ global_step
 ~~~~~~~~~~~
 
 The number of optimizer steps taken (does not reset each epoch).
-This includes multiple optimizers and TBPTT steps (if enabled).
+This includes multiple optimizers (if enabled).
 
 .. code-block:: python
 
@@ -1155,9 +1000,8 @@ See :ref:`manual optimization <common/optimization:Manual optimization>` for det
         self.manual_backward(loss)
         opt.step()
 
-This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note
-that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter.
 Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
+It is required when you are using 2+ optimizers because with automatic optimization, you can only use one optimizer.
 
 .. code-block:: python
 
@@ -1194,79 +1038,6 @@ Set and access example_input_array, which basically represents a single batch.
     def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
-
-truncated_bptt_steps
-~~~~~~~~~~~~~~~~~~~~
-
-Truncated Backpropagation Through Time (TBPTT) performs perform backpropogation every k steps of
-a much longer sequence. This is made possible by passing training batches
-split along the time-dimensions into splits of size k to the
-``training_step``. In order to keep the same forward propagation behavior, all
-hidden states should be kept in-between each time-dimension split.
-
-
-If this is enabled, your batches will automatically get truncated
-and the Trainer will apply Truncated Backprop to it.
-
-(`Williams et al. "An efficient gradient-based algorithm for on-line training of
-recurrent network trajectories."
-<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
-
-`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
-
-.. testcode:: python
-
-    from pytorch_lightning import LightningModule
-
-
-    class MyModel(LightningModule):
-        def __init__(self, input_size, hidden_size, num_layers):
-            super().__init__()
-            # batch_first has to be set to True
-            self.lstm = nn.LSTM(
-                input_size=input_size,
-                hidden_size=hidden_size,
-                num_layers=num_layers,
-                batch_first=True,
-            )
-
-            ...
-
-            # Important: This property activates truncated backpropagation through time
-            # Setting this value to 2 splits the batch into sequences of size 2
-            self.truncated_bptt_steps = 2
-
-        # Truncated back-propagation through time
-        def training_step(self, batch, batch_idx, hiddens):
-            x, y = batch
-
-            # the training step must be updated to accept a ``hiddens`` argument
-            # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(x, hiddens)
-
-            ...
-
-            return {"loss": ..., "hiddens": hiddens}
-
-Lightning takes care of splitting your batch along the time-dimension. It is
-assumed to be the second dimension of your batches. Therefore, in the
-example above, we have set ``batch_first=True``.
-
-.. code-block:: python
-
-    # we use the second as the time dimension
-    # (batch, time, ...)
-    sub_batch = batch[0, 0:t, ...]
-
-To modify how the batch is split,
-override the :meth:`pytorch_lightning.core.module.LightningModule.tbptt_split_batch` method:
-
-.. testcode:: python
-
-    class LitMNIST(LightningModule):
-        def tbptt_split_batch(self, batch, split_size):
-            # do your own splitting on the batch
-            return splits
 
 --------------
 
@@ -1320,7 +1091,7 @@ for more information.
             transfer_batch_to_device()
             on_after_batch_transfer()
 
-            training_step()
+            out = training_step()
 
             on_before_zero_grad()
             optimizer_zero_grad()
@@ -1333,12 +1104,10 @@ for more information.
             configure_gradient_clipping()
             optimizer_step()
 
-            on_train_batch_end()
+            on_train_batch_end(out, batch, batch_idx)
 
             if should_check_val:
                 val_loop()
-        # end training epoch
-        training_epoch_end()
 
         on_train_epoch_end()
 
@@ -1350,7 +1119,6 @@ for more information.
         on_validation_start()
         on_validation_epoch_start()
 
-        val_outs = []
         for batch_idx, batch in enumerate(val_dataloader()):
             on_validation_batch_start(batch, batch_idx)
 
@@ -1360,10 +1128,7 @@ for more information.
 
             out = validation_step(batch, batch_idx)
 
-            on_validation_batch_end(batch, batch_idx)
-            val_outs.append(out)
-
-        validation_epoch_end(val_outs)
+            on_validation_batch_end(out, batch, batch_idx)
 
         on_validation_epoch_end()
         on_validation_end()
@@ -1634,12 +1399,6 @@ setup
 ~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.setup
-    :noindex:
-
-tbptt_split_batch
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.tbptt_split_batch
     :noindex:
 
 teardown

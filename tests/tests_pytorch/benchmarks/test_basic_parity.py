@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import pytest
 import torch
 from tqdm import tqdm
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from lightning.pytorch import LightningModule, seed_everything, Trainer
 from tests_pytorch.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
 
 _EXTEND_BENCHMARKS = os.getenv("PL_RUNNING_BENCHMARKS", "0") == "1"
@@ -161,7 +161,7 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         accelerator="gpu" if device_type == "cuda" else "cpu",
         devices=1,
         logger=False,
-        replace_sampler_ddp=False,
+        use_distributed_sampler=False,
         benchmark=False,
     )
     trainer.fit(model)

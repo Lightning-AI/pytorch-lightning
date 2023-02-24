@@ -10,6 +10,7 @@ on:
       - ".actions/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
       - "dockers/**"
+      - "requirements/*.txt"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
       - "environment.yml"
@@ -40,14 +41,13 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # The matrix here is the same as the one in release-docker.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -64,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/tpu-tests.yml'
-        python_version: ["3.7"]
+        python_version: ["3.8"]
         xla_version: ["1.12"]
     steps:
       - uses: actions/checkout@v3
@@ -74,7 +74,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -102,7 +102,6 @@ jobs:
         include:
           # These are the base images for PL release docker images,
           # so include at least all of the combinations in release-dockers.yml.
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
@@ -114,7 +113,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -142,7 +141,7 @@ jobs:
       matrix:
         include:
           # the config used in 'dockers/ci-runner-ipu/Dockerfile'
-          - {python_version: "3.9", pytorch_version: "1.10"}
+          - {python_version: "3.9", pytorch_version: "1.13"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -151,7 +150,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -160,7 +159,7 @@ jobs:
           push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 100
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -196,7 +195,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           build-args: |
             DIST=latest
@@ -224,8 +223,25 @@ jobs:
         uses: actions/checkout@v3
       - name: Build Conda Docker
         # publish master/release
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           file: dockers/nvidia/Dockerfile
           push: false
         timeout-minutes: 55
+
+  build-docs:
+    # if: github.event.pull_request.draft == false  # fixme
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        if: env.PUSH_NIGHTLY == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/build-push-action@v4
+        with:
+          file: dockers/docs/Dockerfile
+          push: ${{ env.PUSH_NIGHTLY }}
+          tags: pytorchlightning/pytorch_lightning:docs

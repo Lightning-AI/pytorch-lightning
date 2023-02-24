@@ -35,9 +35,9 @@ Inside a Lightning checkpoint you'll find:
 - State of all learning rate schedulers
 - State of all callbacks (for stateful callbacks)
 - State of datamodule (for stateful datamodules)
-- The hyperparameters used for that model if passed in as hparams (Argparse.Namespace)
-- The hyperparameters used for that datamodule if passed in as hparams (Argparse.Namespace)
-- State of Loops (if using Fault-Tolerant training)
+- The hyperparameters (init arguments) with which the model was created
+- The hyperparameters (init arguments) with which the datamodule was created
+- State of Loops
 
 ----
 

@@ -15,7 +15,7 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "setup.cfg"  # includes metadata used in the package creation
+      - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
 
@@ -27,34 +27,34 @@ defaults:
   run:
     shell: bash
 
+env:
+  FREEZE_REQUIREMENTS: "1"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+
 jobs:
   make-doctest:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: pytorchlightning/pytorch_lightning:docs
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]
-    env:
-      FREEZE_REQUIREMENTS: "1"
+        pkg-name: ["lightning", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-
       - uses: aws-actions/configure-aws-credentials@v1
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
       - run: aws s3 sync s3://sphinx-packages/ pypi/
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -62,63 +62,56 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc
-          pip --version
+          key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-test-${{ matrix.pkg-name }}-
 
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name == 'app' }}
-        env:
-          FREEZE_REQUIREMENTS: 1
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
-          pip install -e . -U -v -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
+          pip install -e . -U -v -f pypi -f ${TORCH_URL}
 
       - name: Adjust docs refs
-        if: ${{ matrix.pkg-name == 'app' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
           pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
             --source_import="pytorch_lightning,lightning_fabric" \
             --target_import="lightning.pytorch,lightning.fabric"
 
+      - name: adjust paths
+        run: |
+          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
+          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
+
       - name: Install this package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        working-directory: ./docs/${{ env.DOCS_DIR }}
         run: |
           make doctest
           make coverage
 
   make-html:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: pytorchlightning/pytorch_lightning:docs
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]
+        pkg-name: ["lightning", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
 
       - uses: aws-actions/configure-aws-credentials@v1
         if: ${{ matrix.pkg-name != 'pytorch' }}
@@ -136,30 +129,30 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-
+          key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-make-
+
+      - name: adjust paths
+        run: |
+          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
+          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
 
       - name: Install package & dependencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
+          pip install -e . -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        working-directory: ./docs/${{ env.DOCS_DIR }}
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        working-directory: ./docs/${{ env.DOCS_DIR }}
         run: |
           make linkcheck
         continue-on-error: true

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A trivial script that wraps a LightningCLI around the BoringModel and BoringDataModule."""
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 
 if __name__ == "__main__":
     LightningCLI(

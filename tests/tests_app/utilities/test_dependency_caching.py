@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from lightning_app.utilities.dependency_caching import get_hash
+from lightning.app.utilities.dependency_caching import get_hash
 
 
 def test_get_hash(tmpdir):

@@ -147,21 +147,15 @@ In practice, the code looks like this:
 
         def training_step(...):
 
-        def training_step_end(...):
-
-        def training_epoch_end(...):
+        def on_train_epoch_end(...):
 
         def validation_step(...):
 
-        def validation_step_end(...):
-
-        def validation_epoch_end(...):
+        def on_validation_epoch_end(...):
 
         def test_step(...):
 
-        def test_step_end(...):
-
-        def test_epoch_end(...):
+        def on_test_epoch_end(...):
 
         def configure_optimizers(...):
 
@@ -202,7 +196,6 @@ DataLoaders
 Lightning uses :class:`~torch.utils.data.DataLoader` to handle all the data flow through the system. Whenever you structure dataloaders,
 make sure to tune the number of workers for maximum efficiency.
 
-.. warning:: Make sure not to use ``Trainer(strategy="ddp_spawn")`` with ``num_workers>0`` in the DataLoader or you will bottleneck you code.
 
 DataModules
 ===========

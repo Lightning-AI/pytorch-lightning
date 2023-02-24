@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from lightning_fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device
 
 
 @pytest.mark.parametrize("should_return", [False, True])
@@ -34,3 +34,22 @@ def test_wrongly_implemented_transferable_data_type(should_return):
     tensor = torch.tensor(0.1)
     obj = TensorObject(tensor, should_return)
     assert obj == move_data_to_device(obj, torch.device("cpu"))
+
+
+def test_convert_tensors_to_scalars():
+    assert convert_tensors_to_scalars("string") == "string"
+    assert convert_tensors_to_scalars(1) == 1
+    assert convert_tensors_to_scalars(True) is True
+    assert convert_tensors_to_scalars({"scalar": 1.0}) == {"scalar": 1.0}
+
+    result = convert_tensors_to_scalars({"tensor": torch.tensor(2.0)})
+    # note: `==` comparison as above is not sufficient, since `torch.tensor(x) == x` evaluates to truth
+    assert not isinstance(result["tensor"], Tensor) and result["tensor"] == 2.0
+
+    data = {"tensor": torch.tensor([2.0])}
+    result = convert_tensors_to_scalars(data)
+    assert not isinstance(result["tensor"], Tensor) and result["tensor"] == 2.0
+    assert isinstance(data["tensor"], Tensor) and data["tensor"] == 2.0  # does not modify the input data
+
+    with pytest.raises(ValueError, match="does not contain a single element"):
+        convert_tensors_to_scalars({"tensor": torch.tensor([1, 2, 3])})

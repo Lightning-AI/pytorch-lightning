@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,15 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import Mock
+
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.conftest import mock_cuda_count
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.configuration_validator import (
+    __verify_eval_loop_configuration,
+    __verify_train_val_loop_configuration,
+)
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_wrong_train_setting(tmpdir):
@@ -135,14 +140,11 @@ def test_trainer_manual_optimization_config():
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}, {"accelerator": "gpu", "strategy": "dp"}])
+@pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}])
 @pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
 def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks."""
-    if trainer_kwargs.get("accelerator") == "gpu":
-        match_pattern = rf"Overriding `{hook}` is not .* in DP mode."
-        mock_cuda_count(monkeypatch, 2)
-    elif trainer_kwargs.get("accelerator") == "ipu":
+    if trainer_kwargs.get("accelerator") == "ipu":
         match_pattern = rf"Overriding `{hook}` is not .* with IPUs"
         monkeypatch.setattr(pl.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
         monkeypatch.setattr(pl.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
@@ -158,3 +160,28 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
 
     with pytest.raises(MisconfigurationException, match=match_pattern):
         trainer.fit(model)
+
+
+def test_legacy_epoch_end_hooks():
+    class TrainingEpochEndModel(BoringModel):
+        def training_epoch_end(self, outputs):
+            pass
+
+    class ValidationEpochEndModel(BoringModel):
+        def validation_epoch_end(self, outputs):
+            pass
+
+    trainer = Mock()
+    with pytest.raises(NotImplementedError, match="training_epoch_end` has been removed in v2.0"):
+        __verify_train_val_loop_configuration(trainer, TrainingEpochEndModel())
+    with pytest.raises(NotImplementedError, match="validation_epoch_end` has been removed in v2.0"):
+        __verify_train_val_loop_configuration(trainer, ValidationEpochEndModel())
+
+    class TestEpochEndModel(BoringModel):
+        def test_epoch_end(self, outputs):
+            pass
+
+    with pytest.raises(NotImplementedError, match="validation_epoch_end` has been removed in v2.0"):
+        __verify_eval_loop_configuration(ValidationEpochEndModel(), "val")
+    with pytest.raises(NotImplementedError, match="test_epoch_end` has been removed in v2.0"):
+        __verify_eval_loop_configuration(TestEpochEndModel(), "test")

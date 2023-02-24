@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 
-from pytorch_lightning import callbacks, cli_lightning_logo, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.demos.mnist_datamodule import MNIST
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning.pytorch import callbacks, cli_lightning_logo, LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.demos.mnist_datamodule import MNIST
+from lightning.pytorch.utilities import rank_zero_only
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -178,9 +178,9 @@ def cli_main():
         LitAutoEncoder,
         MyDataModule,
         seed_everything_default=1234,
-        save_config_overwrite=True,
         run=False,  # used to de-activate automatic fitting.
         trainer_defaults={"callbacks": ImageSampler(), "max_epochs": 10},
+        save_config_kwargs={"overwrite": True},
     )
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)

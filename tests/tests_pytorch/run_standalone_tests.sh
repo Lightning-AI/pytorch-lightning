@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,13 @@ set -e
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
 test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
-source="${PL_STANDALONE_TESTS_SOURCE:-"pytorch_lightning"}"
+source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults="-m coverage run --source $source --append -m pytest --no-header -v -s"
+defaults="-m coverage run --source ${source} --append -m pytest --no-header -v -s"
+echo "Using defaults: ${defaults}"
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
@@ -50,7 +51,7 @@ function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
     cat standalone_test_output.txt
     # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
-    if grep --quiet --ignore-case --extended-regexp 'error|exception|traceback|failed' standalone_test_output.txt; then
+    if grep -iE 'error|exception|traceback|failed' standalone_test_output.txt | grep -qvE 'on_exception|xfailed'; then
       echo "Potential error! Stopping."
       rm standalone_test_output.txt
       exit 1

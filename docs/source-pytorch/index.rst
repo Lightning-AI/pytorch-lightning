@@ -4,7 +4,7 @@ Welcome to ⚡ PyTorch Lightning
 .. twocolumns::
    :left:
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
-         :alt: Animation showing how to convert a standard training loop to a Lightning loop
+         :alt: Animation showing how to convert standard training code to Lightning
    :right:
       PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
       Lightning evolves with you as your projects go from idea to paper/production.
@@ -64,7 +64,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.10 and above.
+We are fully compatible with any stable PyTorch version v1.11 and above.
 
 .. raw:: html
 
@@ -200,9 +200,7 @@ Current Lightning Users
    clouds/cluster
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
-   Training over the internet <strategies/hivemind>
    advanced/model_parallel
-   clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
@@ -226,27 +224,23 @@ Current Lightning Users
    Debugging <debug/debugging>
    Early stopping <common/early_stopping>
    Experiment manager (Logger) <visualize/experiment_managers>
-   Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/finetuning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
-   Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
    Half precision <common/precision>
    HPU <accelerators/hpu>
    Inference <deploy/production_intermediate>
    IPU <accelerators/ipu>
    Lightning CLI <cli/lightning_cli>
-   Lightning Lite <model/build_model_expert>
+   Lightning Fabric <fabric/fabric>
    LightningDataModule <data/datamodule>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize/loggers>
-   Loops <extensions/loops>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
    Model Parallel <advanced/model_parallel>
-   Collaborative Training <strategies/hivemind>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>
@@ -258,7 +252,6 @@ Current Lightning Users
    Strategy <extensions/strategy>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
-   Sweep <clouds/run_intermediate>
    SWA <advanced/training_tricks>
    SLURM <clouds/cluster_advanced>
    Transfer learning <advanced/transfer_learning>

@@ -20,13 +20,15 @@ clean:
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
-	rm -rf ./docs/source-app/generated
-	rm -rf ./docs/source-app/*/generated
+	rm -rf ./docs/source/generated
+	rm -rf ./docs/source/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
 	rm -rf src/*.egg-info
-	rm -rf src/lightning/*/
+	rm -rf src/lightning_app/*/
+	rm -rf src/lightning_fabric/*/
+	rm -rf src/pytorch_lightning/*/
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
@@ -38,14 +40,14 @@ test: clean
 	-r requirements/app/test.txt
 
 	# run tests with coverage
-	python -m coverage run --source src/pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch -v
-	python -m coverage run --source src/lightning_app -m pytest tests/tests_app -v
-	python -m coverage run --source src/lightning_fabric -m pytest src/lightning_fabric tests/tests_fabric -v
+	python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
+	python -m coverage run --source src/lightning/app -m pytest tests/tests/app -v
+	python -m coverage run --source src/lightning/fabric -m pytest src/lightning/fabric tests/tests_fabric -v
 	python -m coverage report
 
 docs: clean
 	pip install -e . --quiet -r requirements/app/docs.txt
-	cd docs/source-app && $(MAKE) html
+	cd docs/source && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning_fabric.plugins.environments import TorchElasticEnvironment
-from lightning_fabric.utilities.device_parser import _parse_gpu_ids
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.fabric.plugins.environments import TorchElasticEnvironment
+from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -43,6 +43,7 @@ def test_multi_gpu_none_backend(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         accelerator="gpu",
+        strategy="ddp_spawn",
         devices=2,
     )
 
@@ -54,7 +55,6 @@ def test_multi_gpu_none_backend(tmpdir):
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("devices", [1, [0], [1]])
 def test_single_gpu_model(tmpdir, devices):
-    """Make sure single GPU works (DP mode)."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -63,6 +63,7 @@ def test_single_gpu_model(tmpdir, devices):
         limit_val_batches=0.1,
         accelerator="gpu",
         devices=devices,
+        strategy="ddp_spawn",
     )
 
     model = BoringModel()
@@ -99,18 +100,17 @@ def test_root_gpu_property_0_raising(mps_count_0, cuda_count_0, devices):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
-def test_torchelastic_gpu_parsing(cuda_count_1, gpus):
-    """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
+@pytest.mark.parametrize("devices", [[0, 1, 2], 2, "0,", [0, 2]])
+def test_torchelastic_gpu_parsing(cuda_count_1, devices):
+    """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device that we omit
     sanitizing the gpus as only one of the GPUs is visible."""
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(gpus=gpus)
+    trainer = Trainer(accelerator="cuda", devices=devices)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
-    # when use gpu
-    if _parse_gpu_ids(gpus, include_cuda=True) is not None:
+    # when using gpu
+    if _parse_gpu_ids(devices, include_cuda=True) is not None:
         assert isinstance(trainer.accelerator, CUDAAccelerator)
-        assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
-        assert trainer.device_ids == _parse_gpu_ids(gpus, include_cuda=True)
+        assert trainer.num_devices == len(devices) if isinstance(devices, list) else devices
+        assert trainer.device_ids == _parse_gpu_ids(devices, include_cuda=True)
     # fall back to cpu
     else:
         assert isinstance(trainer.accelerator, CPUAccelerator)

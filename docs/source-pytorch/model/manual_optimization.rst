@@ -3,11 +3,10 @@ Manual Optimization
 *******************
 
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to
-manually manage the optimization process.
+manually manage the optimization process, especially when dealing with multiple optimizers at the same time.
 
-This is only recommended for experts who need ultimate flexibility.
-Lightning will handle only accelerator, precision and strategy logic.
-The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
+In this mode, Lightning will handle only accelerator, precision and strategy logic.
+The users are left with ``optimizer.zero_grad()``, gradient accumulation, optimizer toggling, etc..
 
 To manually optimize, do the following:
 
@@ -18,6 +17,7 @@ To manually optimize, do the following:
   * ``optimizer.zero_grad()`` to clear the gradients from the previous training step
   * ``self.manual_backward(loss)`` instead of ``loss.backward()``
   * ``optimizer.step()`` to update your model parameters
+  * ``self.toggle_optimizer()`` and ``self.untoggle_optimizer()`` if needed
 
 Here is a minimal example of manual optimization.
 
@@ -38,10 +38,6 @@ Here is a minimal example of manual optimization.
             loss = self.compute_loss(batch)
             self.manual_backward(loss)
             opt.step()
-
-.. warning::
-   Before 1.2, ``optimizer.step()`` was calling ``optimizer.zero_grad()`` internally.
-   From 1.2, it is left to the user's expertise.
 
 .. tip::
    Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
@@ -131,6 +127,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
 .. warning::
    * Note that ``configure_gradient_clipping()`` won't be called in Manual Optimization. Instead consider using ``self. clip_gradients()`` manually like in the example above.
+
 
 Use Multiple Optimizers (like GANs)
 ===================================
@@ -278,12 +275,40 @@ If you want to call schedulers that require a metric value after each epoch, con
         self.automatic_optimization = False
 
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         sch = self.lr_schedulers()
 
         # If the selected scheduler is a ReduceLROnPlateau scheduler.
         if isinstance(sch, torch.optim.lr_scheduler.ReduceLROnPlateau):
             sch.step(self.trainer.callback_metrics["loss"])
+
+
+Optimizer Steps at Different Frequencies
+========================================
+
+In manual optimization, you are free to ``step()`` one optimizer more often than another one.
+For example, here we step the optimizer for the *discriminator* weights twice as often as the optimizer for the *generator*.
+
+.. testcode:: python
+
+    # Alternating schedule for optimizer steps (e.g. GANs)
+    def training_step(self, batch, batch_idx):
+        g_opt, d_opt = self.optimizers()
+        ...
+
+        # update discriminator every other step
+        d_opt.zero_grad()
+        self.manual_backward(errD)
+        if (batch_idx + 1) % 2 == 0:
+            d_opt.step()
+
+        ...
+
+        # update generator every step
+        g_opt.zero_grad()
+        self.manual_backward(errG)
+        g_opt.step()
+
 
 Use Closure for LBFGS-like Optimizers
 =====================================

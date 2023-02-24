@@ -1,11 +1,11 @@
 import torch
 
 import lightning as L
-from lightning.app.components import LiteMultiNode
+from lightning.app.components import FabricMultiNode
 from lightning.fabric import Fabric
 
 
-class LitePyTorchDistributed(L.LightningWork):
+class FabricPyTorchDistributed(L.LightningWork):
     def run(self):
         # 1. Prepare the model
         model = torch.nn.Sequential(
@@ -15,7 +15,7 @@ class LitePyTorchDistributed(L.LightningWork):
         )
 
         # 2. Create Fabric.
-        fabric = Fabric(strategy="ddp", precision=16)
+        fabric = Fabric(strategy="ddp", precision="16-mixed")
         model, optimizer = fabric.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()
 
@@ -33,8 +33,8 @@ class LitePyTorchDistributed(L.LightningWork):
 
 # 8 GPUs: (2 nodes of 4 x v100)
 app = L.LightningApp(
-    LiteMultiNode(
-        LitePyTorchDistributed,
+    FabricMultiNode(
+        FabricPyTorchDistributed,
         cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
         num_nodes=2,
     )

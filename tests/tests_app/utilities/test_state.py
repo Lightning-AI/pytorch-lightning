@@ -5,14 +5,14 @@ from unittest import mock
 import pytest
 import requests
 
-import lightning_app
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.structures import Dict, List
-from lightning_app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin
-from lightning_app.utilities.state import AppState
+import lightning.app
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.structures import Dict, List
+from lightning.app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin
+from lightning.app.utilities.state import AppState
 
 
-@mock.patch("lightning_app.utilities.state._configure_session", return_value=requests)
+@mock.patch("lightning.app.utilities.state._configure_session", return_value=requests)
 def test_app_state_not_connected(_):
 
     """Test an error message when a disconnected AppState tries to access attributes."""
@@ -32,7 +32,7 @@ def test_app_state_not_connected(_):
         (None, ("a", "b"), ("a", "b")),
     ],
 )
-@mock.patch("lightning_app.utilities.state._configure_session", return_value=requests)
+@mock.patch("lightning.app.utilities.state._configure_session", return_value=requests)
 def test_app_state_affiliation(_, my_affiliation, global_affiliation, expected):
     AppState._MY_AFFILIATION = global_affiliation
     state = AppState(my_affiliation=my_affiliation)
@@ -84,7 +84,7 @@ def test_app_state_state_access():
         state.work0 = "work0"
 
 
-@mock.patch("lightning_app.utilities.state.AppState.send_delta")
+@mock.patch("lightning.app.utilities.state.AppState.send_delta")
 def test_app_state_state_access_under_affiliation(*_):
     """Test the access to attributes when the state is restricted under the given affiliation."""
     mocked_state = dict(
@@ -207,7 +207,7 @@ def test_attach_plugin():
     assert isinstance(app_state._plugin, _CustomAppStatePlugin)
 
 
-@mock.patch("lightning_app.utilities.state._configure_session", return_value=requests)
+@mock.patch("lightning.app.utilities.state._configure_session", return_value=requests)
 def test_app_state_connection_error(_):
     """Test an error message when a connection to retrieve the state can't be established."""
     app_state = AppState(port=8000)
@@ -236,7 +236,7 @@ class Flow(LightningFlow):
     def run(self):
         if self.should_start:
             self.w.run()
-            self._exit()
+            self.stop()
 
 
 class MockResponse:
@@ -251,7 +251,7 @@ class MockResponse:
 def test_get_send_request(monkeypatch):
 
     app = LightningApp(Flow())
-    monkeypatch.setattr(lightning_app.utilities.state, "_configure_session", mock.MagicMock())
+    monkeypatch.setattr(lightning.app.utilities.state, "_configure_session", mock.MagicMock())
 
     state = AppState(plugin=AppStatePlugin())
     state._session.get._mock_return_value = MockResponse(app.state_with_changes, 500)
@@ -266,7 +266,7 @@ def test_get_send_request(monkeypatch):
     state.w.counter = 1
 
 
-@mock.patch("lightning_app.utilities.state.APP_SERVER_HOST", "https://lightning-cloud.com")
+@mock.patch("lightning.app.utilities.state.APP_SERVER_HOST", "https://lightning-cloud.com")
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "https://lightning-cloud.com"})
 def test_app_state_with_env_var(**__):
     state = AppState()
@@ -290,7 +290,7 @@ class FlowStructures(LightningFlow):
         self.w_dict = Dict(**{"toto": Work(), "toto_2": Work()})
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
 class FlowStructuresEmpty(LightningFlow):
@@ -300,7 +300,7 @@ class FlowStructuresEmpty(LightningFlow):
         self.w_dict = Dict()
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
 def test_app_state_with_structures():

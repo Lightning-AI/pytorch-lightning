@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import optim
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
-from lightning_fabric.plugins.environments import SLURMEnvironment
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -30,7 +29,7 @@ class AMPTestModel(BoringModel):
     def step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
-        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16-mixed"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         loss = self.loss(output)
         return loss
@@ -38,7 +37,7 @@ class AMPTestModel(BoringModel):
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()
         output = self(batch)
-        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16-mixed"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return output
 
@@ -53,10 +52,10 @@ class AMPTestModel(BoringModel):
 @pytest.mark.parametrize(
     ("strategy", "precision", "devices"),
     (
-        ("single_device", 16, 1),
-        ("single_device", "bf16", 1),
-        ("ddp_spawn", 16, 2),
-        ("ddp_spawn", "bf16", 2),
+        ("single_device", "16-mixed", 1),
+        ("single_device", "bf16-mixed", 1),
+        ("ddp_spawn", "16-mixed", 2),
+        ("ddp_spawn", "bf16-mixed", 2),
     ),
 )
 def test_amp_cpus(tmpdir, strategy, precision, devices):
@@ -83,19 +82,18 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
-@pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
+@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize(
     "devices", (pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2)))
 )
-def test_amp_gpus(tmpdir, strategy, precision, devices):
+def test_amp_gpus(tmpdir, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         accelerator="gpu",
         devices=devices,
-        strategy=strategy,
+        strategy=("ddp_spawn" if devices > 1 else "auto"),
         precision=precision,
     )
 
@@ -136,86 +134,12 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         accelerator="gpu",
         devices=[0],
         strategy="ddp_spawn",
-        precision=16,
+        precision="16-mixed",
         callbacks=[checkpoint],
         logger=logger,
     )
     trainer.fit(model)
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-
-
-@mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
-def test_amp_without_apex(bwd_mock, tmpdir):
-    """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
-    model = BoringModel()
-
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        assert trainer.amp_backend is None
-
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        assert trainer.amp_backend is None
-    trainer.fit(model)
-    assert not bwd_mock.called
-
-
-@RunIf(min_cuda_gpus=1, amp_apex=True)
-@mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
-def test_amp_with_apex(bwd_mock, tmpdir):
-    """Check calling apex scaling in training."""
-
-    class CustomModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
-            optimizer2 = optim.SGD(self.parameters(), lr=0.01)
-            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
-            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
-            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
-
-    model = CustomModel()
-    model.training_epoch_end = None
-
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        trainer = Trainer(
-            default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", accelerator="gpu", devices=1
-        )
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        assert str(trainer.amp_backend) == "apex"
-    trainer.fit(model)
-    # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
-    # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
-    assert bwd_mock.call_count == 6
-
-    assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
-    assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)
-
-
-@RunIf(min_cuda_gpus=1, amp_apex=True)
-def test_amp_with_apex_reload(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_steps=1,
-            limit_test_batches=1,
-            precision=16,
-            amp_backend="apex",
-            accelerator="gpu",
-            devices=1,
-        )
-    trainer.fit(model)
-    trainer.fit_loop.max_steps = 2
-
-    with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
-        trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
-
-    trainer.test(model, ckpt_path="best")
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
@@ -228,7 +152,7 @@ def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
         enable_progress_bar=False,
         max_epochs=1,
         devices=1,
-        precision=16,
+        precision="16-mixed",
         limit_train_batches=4,
         limit_val_batches=0,
         gradient_clip_val=clip_val,

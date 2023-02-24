@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ from unittest.mock import MagicMock, Mock
 
 import torch
 
-from lightning_fabric.plugins import CheckpointIO, TorchCheckpointIO
-from lightning_fabric.utilities.types import _PATH
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
-from pytorch_lightning.strategies import SingleDeviceStrategy
+from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO
+from lightning.fabric.utilities.types import _PATH
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
+from lightning.pytorch.strategies import SingleDeviceStrategy
 
 
 class CustomCheckpointIO(CheckpointIO):

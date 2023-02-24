@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 import torch
 import torch.nn as nn
-from tests_fabric.helpers.models import BoringLite
+from tests_fabric.helpers.models import BoringFabric
 
 
 class BoringDoubleModule(nn.Module):
@@ -31,7 +31,7 @@ class BoringDoubleModule(nn.Module):
         return self.layer(x)
 
 
-class DoublePrecisionBoringLite(BoringLite):
+class DoublePrecisionBoringFabric(BoringFabric):
     def get_model(self):
         return BoringDoubleModule()
 
@@ -49,6 +49,6 @@ class DoublePrecisionBoringLite(BoringLite):
         assert model.layer.weight.grad.dtype == torch.float64
 
 
-def test_double_precision(tmpdir):
-    lite = DoublePrecisionBoringLite(precision=64)
-    lite.run()
+def test_double_precision():
+    fabric = DoublePrecisionBoringFabric(precision="64-true")
+    fabric.run()

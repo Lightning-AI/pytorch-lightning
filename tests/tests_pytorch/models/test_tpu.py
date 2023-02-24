@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from argparse import ArgumentParser
 from functools import partial
 from unittest import mock
 
@@ -21,14 +20,14 @@ import torch
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import TPUAccelerator
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.strategies import TPUSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla import _XLALauncher
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.strategies import XLAStrategy
+from lightning.pytorch.strategies.launchers.xla import _XLALauncher
+from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -105,7 +104,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
@@ -125,7 +124,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
@@ -147,7 +146,7 @@ def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         max_epochs=1,
         accelerator="tpu",
@@ -257,26 +256,6 @@ def test_accelerator_set_when_using_tpu(devices):
     assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, TPUAccelerator)
 
 
-@pytest.mark.parametrize(
-    ["cli_args", "expected"],
-    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
-)
-@RunIf(tpu=True, standalone=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_cores_with_argparse(cli_args, expected):
-    """Test passing tpu_cores in command line."""
-    cli_args = cli_args.split(" ") if cli_args else []
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
-        parser = ArgumentParser(add_help=False)
-        parser = Trainer.add_argparse_args(parent_parser=parser)
-        args = Trainer.parse_argparser(parser)
-
-    for k, v in expected.items():
-        assert getattr(args, k) == v
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        assert Trainer.from_argparse_args(args)
-
-
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_if_test_works_with_checkpoint_false(tmpdir):
@@ -306,7 +285,7 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
     accelerator = TPUAccelerator()
-    strategy = TPUSpawnStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
+    strategy = XLAStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)
@@ -346,7 +325,7 @@ def test_tpu_debug_mode(tmpdir):
         devices=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        strategy=TPUSpawnStrategy(debug=True),
+        strategy=XLAStrategy(debug=True),
     )
 
     model = DebugModel()
@@ -380,6 +359,6 @@ def test_tpu_host_world_size(tmpdir):
 
 @RunIf(tpu=True)
 def test_device_type_when_tpu_strategy_passed(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    assert isinstance(trainer.strategy, XLAStrategy)
     assert isinstance(trainer.accelerator, TPUAccelerator)

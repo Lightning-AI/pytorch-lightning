@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_fabric.strategies import STRATEGY_REGISTRY
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.strategies import STRATEGY_REGISTRY
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 def test_strategy_registry_with_new_strategy():
@@ -28,7 +28,7 @@ def test_strategy_registry_with_new_strategy():
     strategy_name = "test_strategy"
     strategy_description = "Test Strategy"
 
-    # TODO(lite): Registering classes that do not inherit from Strategy should not be allowed
+    # TODO(fabric): Registering classes that do not inherit from Strategy should not be allowed
     STRATEGY_REGISTRY.register(strategy_name, TestStrategy, description=strategy_description, param1="abc", param2=123)
 
     assert strategy_name in STRATEGY_REGISTRY
@@ -43,7 +43,6 @@ def test_strategy_registry_with_new_strategy():
 
 def test_available_strategies_in_registry():
     expected = {
-        "ddp_sharded",
         "ddp",
         "deepspeed",
         "deepspeed_stage_1",
@@ -52,15 +51,13 @@ def test_available_strategies_in_registry():
         "deepspeed_stage_3",
         "deepspeed_stage_3_offload",
         "deepspeed_stage_3_offload_nvme",
-        "ddp_sharded_spawn",
         "ddp_spawn",
         "ddp_fork",
         "ddp_notebook",
         "single_tpu",
-        "tpu_spawn",
         "xla",
         "dp",
     }
     if _TORCH_GREATER_EQUAL_1_12:
-        expected |= {"fsdp", "fsdp_full_shard_offload"}
+        expected |= {"fsdp", "fsdp_cpu_offload"}
     assert set(STRATEGY_REGISTRY.available_strategies()) == expected

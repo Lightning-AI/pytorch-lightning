@@ -5,16 +5,16 @@ from unittest import mock
 import pytest
 from lightning_utilities.core.imports import module_available
 
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.packaging import lightning_utils
-from lightning_app.utilities.packaging.lightning_utils import (
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.packaging import lightning_utils
+from lightning.app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
     _verify_lightning_version,
     get_dist_path_if_editable_install,
 )
 
 
-@pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning_app too")
+@pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning.app too")
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
     package_name = "lightning"
@@ -34,7 +34,7 @@ def _mocked_get_dist_path_if_editable_install(*args, **kwargs):
 
 
 @mock.patch(
-    "lightning_app.utilities.packaging.lightning_utils.get_dist_path_if_editable_install",
+    "lightning.app.utilities.packaging.lightning_utils.get_dist_path_if_editable_install",
     new=_mocked_get_dist_path_if_editable_install,
 )
 def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_editable_mode(tmpdir):

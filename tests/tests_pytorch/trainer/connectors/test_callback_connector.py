@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.callbacks import (
+from lightning.pytorch import Callback, LightningModule, Trainer
+from lightning.pytorch.callbacks import (
     EarlyStopping,
     GradientAccumulationScheduler,
     LearningRateMonitor,
@@ -29,10 +29,10 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
-from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
@@ -50,7 +50,6 @@ def test_checkpoint_callbacks_are_last(tmpdir):
         progress_bar,
         lr_monitor,
         model_summary,
-        trainer.accumulation_scheduler,
         checkpoint1,
         checkpoint2,
     ]
@@ -65,7 +64,6 @@ def test_checkpoint_callbacks_are_last(tmpdir):
         progress_bar,
         lr_monitor,
         model_summary,
-        trainer.accumulation_scheduler,
         checkpoint1,
         checkpoint2,
     ]
@@ -80,7 +78,6 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     assert trainer.callbacks == [
         progress_bar,
         lr_monitor,
-        trainer.accumulation_scheduler,
         early_stopping,
         model_summary,
         checkpoint1,
@@ -99,7 +96,6 @@ def test_checkpoint_callbacks_are_last(tmpdir):
         batch_size_finder,
         progress_bar,
         lr_monitor,
-        trainer.accumulation_scheduler,
         early_stopping,
         model_summary,
         checkpoint2,
@@ -188,18 +184,18 @@ def test_attach_model_callbacks():
 
     # no callbacks
     trainer = _attach_callbacks(trainer_callbacks=[], model_callbacks=[])
-    assert trainer.callbacks == [trainer.accumulation_scheduler]
+    assert trainer.callbacks == []
 
     # callbacks of different types
     trainer = _attach_callbacks(trainer_callbacks=[early_stopping1], model_callbacks=[progress_bar])
-    assert trainer.callbacks == [early_stopping1, trainer.accumulation_scheduler, progress_bar]
+    assert trainer.callbacks == [early_stopping1, progress_bar]
 
     # same callback type twice, different instance
     trainer = _attach_callbacks(
         trainer_callbacks=[progress_bar, EarlyStopping(monitor="red")],
         model_callbacks=[early_stopping1],
     )
-    assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping1]
+    assert trainer.callbacks == [progress_bar, early_stopping1]
 
     # multiple callbacks of the same type in trainer
     trainer = _attach_callbacks(
@@ -211,7 +207,7 @@ def test_attach_model_callbacks():
         ],
         model_callbacks=[early_stopping1, lr_monitor],
     )
-    assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping1, lr_monitor]
+    assert trainer.callbacks == [early_stopping1, lr_monitor]
 
     # multiple callbacks of the same type, in both trainer and model
     trainer = _attach_callbacks(
@@ -265,20 +261,20 @@ def test_configure_external_callbacks():
 
     with _make_entry_point_query_mock(factory_no_callback):
         trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
-    assert trainer.callbacks == [trainer.accumulation_scheduler]  # this scheduler callback gets added by default
+    assert trainer.callbacks == []
 
     with _make_entry_point_query_mock(factory_one_callback):
         trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
-    assert isinstance(trainer.callbacks[1], ExternalCallback)
+    assert isinstance(trainer.callbacks[0], ExternalCallback)
 
     with _make_entry_point_query_mock(factory_one_callback_list):
         trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
-    assert isinstance(trainer.callbacks[1], ExternalCallback)
+    assert isinstance(trainer.callbacks[0], ExternalCallback)
 
     with _make_entry_point_query_mock(factory_multiple_callbacks_list):
         trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[0], ExternalCallback)
     assert isinstance(trainer.callbacks[1], ExternalCallback)
-    assert isinstance(trainer.callbacks[2], ExternalCallback)
 
 
 @contextlib.contextmanager

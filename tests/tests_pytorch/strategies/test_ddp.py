@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@ import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
+import lightning.pytorch as pl
+from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -74,8 +74,8 @@ def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-@mock.patch("pytorch_lightning.accelerators.cuda._check_cuda_matmul_precision")
-def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
+@mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
+def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, mps_count_0, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
@@ -95,8 +95,8 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
-@pytest.mark.parametrize("precision", (16, 32))
+@RunIf(min_cuda_gpus=2, standalone=True)
+@pytest.mark.parametrize("precision", ("16-mixed", "32-true"))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
 
@@ -163,8 +163,9 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
     [
         ("ddp", {}),
         ("ddp_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_find_unused_parameters_true", {"find_unused_parameters": True}),
     ],
 )
-def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_0):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

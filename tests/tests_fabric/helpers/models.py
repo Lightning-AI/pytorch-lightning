@@ -7,7 +7,8 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from lightning_fabric import Fabric
+from lightning.fabric import Fabric
+from lightning.fabric.strategies.fsdp import FSDPStrategy
 
 
 class RandomDataset(Dataset):
@@ -32,7 +33,7 @@ class RandomIterableDataset(IterableDataset):
             yield torch.randn(self.size)
 
 
-class BoringLite(Fabric):
+class BoringFabric(Fabric):
     def get_model(self) -> Module:
         return nn.Linear(32, 2)
 
@@ -55,10 +56,15 @@ class BoringLite(Fabric):
 
     def run(self) -> None:
         model = self.get_model()
-        optimizer = self.get_optimizer(model)
-        dataloader = self.get_dataloader()
+        if isinstance(self.strategy, FSDPStrategy):
+            model = self.setup_module(model)
+            optimizer = self.get_optimizer(model)
+            optimizer = self.setup_optimizers(optimizer)
+        else:
+            optimizer = self.get_optimizer(model)
+            model, optimizer = self.setup(model, optimizer)
 
-        model, optimizer = self.setup(model, optimizer)
+        dataloader = self.get_dataloader()
         dataloader = self.setup_dataloaders(dataloader)
 
         self.model = model

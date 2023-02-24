@@ -63,7 +63,7 @@ Since computation happens in FP16, there is a chance of numerical instability du
 
 .. note::
 
-    When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported half precision type on TPUs.
+    When using TPUs, setting ``precision='16-mixed'`` will enable bfloat16, the only supported half precision type on TPUs.
 
 .. testcode::
     :skipif: not torch.cuda.is_available()
@@ -107,6 +107,7 @@ Lightning doesn't support it out of the box yet but you can still use it by conf
 .. code-block:: python
 
     import bitsandbytes as bnb
+
 
     # in your LightningModule, return the 8-bit optimizer
     def configure_optimizers(self):

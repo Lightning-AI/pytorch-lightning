@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,10 +29,10 @@ import torch
 import torchvision
 import torchvision.transforms as T
 
-from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.profilers.pytorch import PyTorchProfiler
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.profilers.pytorch import PyTorchProfiler
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 DEFAULT_CMD_LINE = (
     "fit",

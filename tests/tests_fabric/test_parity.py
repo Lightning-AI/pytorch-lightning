@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,11 +30,11 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from lightning_fabric.fabric import Fabric
-from lightning_fabric.plugins.environments.lightning import find_free_network_port
-from lightning_fabric.strategies.ddp import DDPStrategy
-from lightning_fabric.utilities.apply_func import move_data_to_device
-from lightning_fabric.utilities.cloud_io import _atomic_save
+from lightning.fabric.fabric import Fabric
+from lightning.fabric.plugins.environments.lightning import find_free_network_port
+from lightning.fabric.strategies.ddp import DDPStrategy
+from lightning.fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.cloud_io import _atomic_save
 
 
 class BoringModel(nn.Module):
@@ -72,7 +72,7 @@ def main(
     return model.state_dict()
 
 
-class LiteRunner(Fabric):
+class FabricRunner(Fabric):
     def run(self, model: nn.Module, train_dataloader: DataLoader, num_epochs: int = 10, tmpdir: str = None):
         optimizer = configure_optimizers(model)
         model, optimizer = self.setup(model, optimizer)
@@ -107,38 +107,38 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
 
 
 @pytest.mark.parametrize(
-    "precision, strategy, devices, accelerator",
+    "precision, accelerator",
     [
-        pytest.param(32, None, 1, "cpu"),
-        pytest.param(32, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(16, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
-        pytest.param(32, None, 1, "mps", marks=RunIf(mps=True)),
+        (32, "cpu"),
+        pytest.param(32, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16", "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
+        pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
-def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_fabric_model_single_device(precision, accelerator):
     Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
-    lite.run(model, train_dataloader, num_epochs=num_epochs)
-    lite_state_dict = model.state_dict()
+    fabric = FabricRunner(precision=precision, accelerator=accelerator)
+    fabric.run(model, train_dataloader, num_epochs=num_epochs)
+    fabric_state_dict = model.state_dict()
 
     with precision_context(precision, accelerator):
         model.load_state_dict(state_dict)
-        pure_state_dict = main(lite.to_device, model, train_dataloader, num_epochs=num_epochs)
+        pure_state_dict = main(fabric.to_device, model, train_dataloader, num_epochs=num_epochs)
 
-    state_dict = apply_to_collection(state_dict, Tensor, lite.to_device)
-    for w_pure, w_lite in zip(state_dict.values(), lite_state_dict.values()):
+    state_dict = apply_to_collection(state_dict, Tensor, fabric.to_device)
+    for w_pure, w_fabric in zip(state_dict.values(), fabric_state_dict.values()):
         # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
-        assert not torch.allclose(w_pure, w_lite)
+        assert not torch.allclose(w_pure, w_fabric)
 
-    for w_pure, w_lite in zip(pure_state_dict.values(), lite_state_dict.values()):
+    for w_pure, w_fabric in zip(pure_state_dict.values(), fabric_state_dict.values()):
         # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
-        assert torch.allclose(w_pure, w_lite)
+        assert torch.allclose(w_pure, w_fabric)
 
 
 def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir):
@@ -170,19 +170,19 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         (32, "ddp_spawn", 2, "gpu"),
     ],
 )
-def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_fabric_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
     Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
-    checkpoint_path = lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
+    fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    checkpoint_path = fabric.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
     spawn_model_state_dict = torch.load(checkpoint_path)
 
-    for w_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
-        assert not torch.equal(w_pure.cpu(), w_lite.cpu())
+    for w_pure, w_fabric in zip(state_dict.values(), spawn_model_state_dict.values()):
+        assert not torch.equal(w_pure.cpu(), w_fabric.cpu())
 
     model.load_state_dict(state_dict)
     os.environ["MASTER_ADDR"] = "127.0.0.1"
@@ -190,8 +190,8 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     mp.spawn(run, args=(model, train_dataloader, num_epochs, precision, accelerator, tmpdir), nprocs=2)
     spawn_pure_model_state_dict = torch.load(os.path.join(tmpdir, "model_spawn.pt"))
 
-    for w_pure, w_lite in zip(spawn_pure_model_state_dict.values(), spawn_model_state_dict.values()):
-        assert torch.equal(w_pure.cpu(), w_lite.cpu())
+    for w_pure, w_fabric in zip(spawn_pure_model_state_dict.values(), spawn_model_state_dict.values()):
+        assert torch.equal(w_pure.cpu(), w_fabric.cpu())
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
@@ -201,26 +201,26 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
         (32, "ddp", 2, "gpu"),
     ],
 )
-def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_fabric_model_ddp(precision, strategy, devices, accelerator, tmpdir):
     Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4), shuffle=True)
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
-    lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
+    fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    fabric.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
 
-    lite_model_state_dict = model.state_dict()
+    fabric_model_state_dict = model.state_dict()
 
-    for w_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
-        assert not torch.allclose(w_pure.cpu(), w_lite.cpu())
+    for w_pure, w_fabric in zip(state_dict.values(), fabric_model_state_dict.values()):
+        assert not torch.allclose(w_pure.cpu(), w_fabric.cpu())
 
     Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4), shuffle=True)
     model = BoringModel()
-    run(lite.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)
+    run(fabric.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)
     pure_model_state_dict = model.state_dict()
 
-    for w_pure, w_lite in zip(pure_model_state_dict.values(), lite_model_state_dict.values()):
-        torch.testing.assert_close(w_pure.cpu(), w_lite.cpu())
+    for w_pure, w_fabric in zip(pure_model_state_dict.values(), fabric_model_state_dict.values()):
+        torch.testing.assert_close(w_pure.cpu(), w_fabric.cpu())

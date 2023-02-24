@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, IterableDataset
 
-from pytorch_lightning import cli_lightning_logo, LightningModule, seed_everything, Trainer
+from lightning.pytorch import cli_lightning_logo, LightningModule, seed_everything, Trainer
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
@@ -189,6 +189,8 @@ class PPOLightning(LightningModule):
         self.max_episode_len = max_episode_len
         self.clip_ratio = clip_ratio
         self.save_hyperparameters()
+
+        self.automatic_optimization = False
 
         self.env = gym.make(env)
         # value network
@@ -374,16 +376,11 @@ class PPOLightning(LightningModule):
         loss_critic = (qval - value).pow(2).mean()
         return loss_critic
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx, optimizer_idx):
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Carries out a single update to actor and critic network from a batch of replay buffer.
 
         Args:
             batch: batch of replay buffer/trajectory data
-            batch_idx: not used
-            optimizer_idx: idx that controls optimizing actor or critic network
-
-        Returns:
-            loss
         """
         state, action, old_logp, qval, adv = batch
 
@@ -394,23 +391,25 @@ class PPOLightning(LightningModule):
         self.log("avg_ep_reward", self.avg_ep_reward, prog_bar=True, on_step=False, on_epoch=True)
         self.log("avg_reward", self.avg_reward, prog_bar=True, on_step=False, on_epoch=True)
 
-        if optimizer_idx == 0:
-            loss_actor = self.actor_loss(state, action, old_logp, qval, adv)
-            self.log("loss_actor", loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        optimizer_actor, optimizer_critic = self.optimizers()
 
-            return loss_actor
+        loss_actor = self.actor_loss(state, action, old_logp, qval, adv)
+        self.manual_backward(loss_actor)
+        optimizer_actor.step()
+        optimizer_actor.zero_grad()
 
-        if optimizer_idx == 1:
-            loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
-            self.log("loss_critic", loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
+        self.manual_backward(loss_critic)
+        optimizer_critic.step()
+        optimizer_critic.zero_grad()
 
-            return loss_critic
+        self.log("loss_critic", loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log("loss_actor", loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer."""
         optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.lr_actor)
         optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.lr_critic)
-
         return optimizer_actor, optimizer_critic
 
     def optimizer_step(self, *args, **kwargs):
@@ -429,36 +428,10 @@ class PPOLightning(LightningModule):
         """Get train loader."""
         return self._dataloader()
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = parent_parser.add_argument_group("PPOLightning")
-        parser.add_argument("--env", type=str, default="CartPole-v0")
-        parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-        parser.add_argument("--lam", type=float, default=0.95, help="advantage discount factor")
-        parser.add_argument("--lr_actor", type=float, default=3e-4, help="learning rate of actor network")
-        parser.add_argument("--lr_critic", type=float, default=1e-3, help="learning rate of critic network")
-        parser.add_argument("--max_episode_len", type=int, default=1000, help="capacity of the replay buffer")
-        parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
-        parser.add_argument(
-            "--steps_per_epoch",
-            type=int,
-            default=2048,
-            help="how many action-state pairs to rollout for trajectory collection per epoch",
-        )
-        parser.add_argument(
-            "--nb_optim_iters", type=int, default=4, help="how many steps of gradient descent to perform on each batch"
-        )
-        parser.add_argument(
-            "--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective"
-        )
-
-        return parent_parser
-
 
 def main(args) -> None:
     model = PPOLightning(**vars(args))
-
-    trainer = Trainer.from_argparse_args(args)
+    trainer = Trainer(accelerator="cpu", devices=1, val_check_interval=100)
     trainer.fit(model)
 
 
@@ -466,10 +439,26 @@ if __name__ == "__main__":
     cli_lightning_logo()
     seed_everything(0)
 
-    parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser = Trainer.add_argparse_args(parent_parser)
-
-    parser = PPOLightning.add_model_specific_args(parent_parser)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--env", type=str, default="CartPole-v0")
+    parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
+    parser.add_argument("--lam", type=float, default=0.95, help="advantage discount factor")
+    parser.add_argument("--lr_actor", type=float, default=3e-4, help="learning rate of actor network")
+    parser.add_argument("--lr_critic", type=float, default=1e-3, help="learning rate of critic network")
+    parser.add_argument("--max_episode_len", type=int, default=1000, help="capacity of the replay buffer")
+    parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
+    parser.add_argument(
+        "--steps_per_epoch",
+        type=int,
+        default=2048,
+        help="how many action-state pairs to rollout for trajectory collection per epoch",
+    )
+    parser.add_argument(
+        "--nb_optim_iters", type=int, default=4, help="how many steps of gradient descent to perform on each batch"
+    )
+    parser.add_argument(
+        "--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective"
+    )
     args = parser.parse_args()
 
     main(args)

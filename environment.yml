@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,21 +26,19 @@ channels:
     - conda-forge
 
 dependencies:
-    - python>=3.7
+    - python>=3.8
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.10.*
+    - pytorch>=1.11.0
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.57.0
     - fsspec[http]>=2021.06.1
-    #- tensorboard>=2.2.0  # not needed, already included in pytorch
 
     # Optional
-    #- nvidia-apex  # missing for py3.8
     - scikit-learn >0.22.1
     - matplotlib>=3.1.1
     - omegaconf>=2.0.5
 
     # Examples
-    - torchvision>=0.11.*
+    - torchvision>=0.12.0

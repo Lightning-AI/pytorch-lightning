@@ -10,10 +10,10 @@ import torchvision
 import torchvision.transforms as T
 from PIL import Image as PILImage
 
-from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.serve import ServableModule, ServableModuleValidator
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.serve import ServableModule, ServableModuleValidator
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
@@ -81,7 +81,7 @@ class Top1:
 class ProductionReadyModel(LitModule, ServableModule):
     def configure_payload(self):
         # 1: Access the train dataloader and load a single sample.
-        image, _ = self.trainer.train_dataloader.loaders.dataset[0]
+        image, _ = self.trainer.train_dataloader.iterables.dataset[0]
 
         # 2: Convert the image into a PIL Image to bytes and encode it with base64
         pil_image = T.ToPILImage()(image)

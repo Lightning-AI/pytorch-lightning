@@ -49,67 +49,8 @@ You can also perform iterative pruning, apply the `lottery ticket hypothesis <ht
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=compute_amount)])
 
 
-************
-Quantization
-************
 
-.. warning ::
-     Quantization is in beta and subject to change.
+Post-training Quantization
+==========================
 
-Model quantization is another performance optimization technique that allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating-point precision. This is particularly beneficial during model deployment.
-
-Quantization Aware Training (QAT) mimics the effects of quantization during training: The computations are carried-out in floating-point precision but the subsequent quantization effect is taken into account. The weights and activations are quantized into lower precision only for inference, when training is completed.
-
-Quantization is useful when it is required to serve large models on machines with limited memory, or when there's a need to switch between models and reducing the I/O time is important. For example, switching between monolingual speech recognition models across multiple languages.
-
-Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch's native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`__), which allows creating fully quantized models (compatible with torchscript).
-
-.. code-block:: python
-
-    from pytorch_lightning.callbacks import QuantizationAwareTraining
-
-
-    class RegressionModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.layer_0 = nn.Linear(16, 64)
-            self.layer_0a = torch.nn.ReLU()
-            self.layer_1 = nn.Linear(64, 64)
-            self.layer_1a = torch.nn.ReLU()
-            self.layer_end = nn.Linear(64, 1)
-
-        def forward(self, x):
-            x = self.layer_0(x)
-            x = self.layer_0a(x)
-            x = self.layer_1(x)
-            x = self.layer_1a(x)
-            x = self.layer_end(x)
-            return x
-
-
-    trainer = Trainer(callbacks=[QuantizationAwareTraining()])
-    qmodel = RegressionModel()
-    trainer.fit(qmodel, ...)
-
-    batch = iter(my_dataloader()).next()
-    qmodel(qmodel.quant(batch[0]))
-
-    tsmodel = qmodel.to_torchscript()
-    tsmodel(tsmodel.quant(batch[0]))
-
-You can further customize the callback:
-
-.. code-block:: python
-
-
-    qcb = QuantizationAwareTraining(
-        # specification of quant estimation quality
-        observer_type="histogram",
-        # specify which layers shall be merged together to increase efficiency
-        modules_to_fuse=[(f"layer_{i}", f"layer_{i}a") for i in range(2)],
-        # make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
-        input_compatible=True,
-    )
-
-    batch = iter(my_dataloader()).next()
-    qmodel(batch[0])
+If you want to quantize a fine-tuned model with PTQ, it is recommended to adopt a third party API names Intel® Neural Compressor, read more :doc:`here <./post_training_quantization>`, which provides a convenient tool for accelerating the model inference speed on Intel CPUs and GPUs.

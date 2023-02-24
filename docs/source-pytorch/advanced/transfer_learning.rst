@@ -120,7 +120,6 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             self.num_classes = 3
 
         def forward(self, input_ids, attention_mask, token_type_ids):
-
             h, _, attn = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 
             h_cls = h[:, 0]

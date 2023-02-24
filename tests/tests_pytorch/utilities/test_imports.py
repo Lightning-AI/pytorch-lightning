@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,38 +20,15 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
-from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
-from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
+from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
+from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
-    try:
-        import apex  # noqa
-    except ModuleNotFoundError:
-        assert not _APEX_AVAILABLE
-    else:
-        assert _APEX_AVAILABLE
-
-    try:
-        import bagua  # noqa
-    except ModuleNotFoundError:
-        assert not _BAGUA_AVAILABLE
-    else:
-        assert _BAGUA_AVAILABLE
-
-    try:
-        import horovod.torch  # noqa
-    except ModuleNotFoundError:
-        assert not _HOROVOD_AVAILABLE
-    else:
-        assert _HOROVOD_AVAILABLE
-
     try:
         import omegaconf  # noqa
     except ModuleNotFoundError:
@@ -113,29 +90,24 @@ def clean_import():
 @pytest.mark.parametrize(
     ["patch_name", "new_fn", "to_import"],
     [
-        ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "pytorch_lightning"),
+        ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
-            "pytorch_lightning.loggers.neptune",
+            "lightning.pytorch.loggers.neptune",
         ),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
-            "pytorch_lightning.cli",
-        ),
-        (
-            "lightning_utilities.core.imports.module_available",
-            _shortcut_patch(module_available, ("fairscale.nn",)),
-            "pytorch_lightning.strategies",
+            "lightning.pytorch.cli",
         ),
         (
             "lightning_utilities.core.imports.compare_version",
             _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
-            "pytorch_lightning.strategies.fully_sharded_native",
+            "lightning.pytorch.strategies.fsdp",
         ),
     ],
-    ids=["ProcessGroup", "neptune", "cli", "fairscale", "fully_sharded_native"],
+    ids=["ProcessGroup", "neptune", "cli", "fsdp"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
     """This tests simulates unavailability of certain modules by patching the functions that check for their
@@ -154,8 +126,15 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
-        import pytorch_lightning
+
+        # pretend torch.distributed not available
+        for name in list(torch.distributed.__dict__.keys()):
+            if not name.startswith("__"):
+                delattr(torch.distributed, name)
+
+        torch.distributed.is_available = lambda: False
+
+        import lightning.pytorch
         """
     )
     # run in complete isolation
@@ -167,12 +146,12 @@ def test_import_deepspeed_lazily():
     """Test that we are importing deepspeed only when necessary."""
     code = dedent(
         """
-        import pytorch_lightning
+        import lightning.pytorch
         import sys
 
         assert 'deepspeed' not in sys.modules
-        from pytorch_lightning.strategies import DeepSpeedStrategy
-        from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
+        from lightning.pytorch.strategies import DeepSpeedStrategy
+        from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
         assert 'deepspeed' not in sys.modules
 
         import deepspeed

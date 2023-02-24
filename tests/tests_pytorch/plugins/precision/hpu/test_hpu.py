@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
+from lightning.pytorch import Callback, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import HPUPrecisionPlugin
+from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -34,15 +34,15 @@ def hmp_params(request):
 
 @RunIf(hpu=True)
 def test_precision_plugin(hmp_params):
-    plugin = HPUPrecisionPlugin(precision="bf16", **hmp_params)
-    assert plugin.precision == "bf16"
+    plugin = HPUPrecisionPlugin(precision="bf16-mixed", **hmp_params)
+    assert plugin.precision == "bf16-mixed"
 
 
 @RunIf(hpu=True)
 def test_mixed_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-            assert trainer.strategy.model.precision == "bf16"
+            assert trainer.precision == "bf16-mixed"
             raise SystemExit
 
     model = BoringModel()
@@ -51,12 +51,12 @@ def test_mixed_precision(tmpdir, hmp_params: dict):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision="bf16", **hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision="bf16-mixed", **hmp_params)],
         callbacks=TestCallback(),
     )
     assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == "bf16"
+    assert trainer.strategy.precision_plugin.precision == "bf16-mixed"
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -65,7 +65,7 @@ def test_mixed_precision(tmpdir, hmp_params: dict):
 def test_pure_half_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.precision == "16-mixed"
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -77,13 +77,13 @@ def test_pure_half_precision(tmpdir, hmp_params: dict):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision=16, **hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision="16-mixed", **hmp_params)],
         callbacks=TestCallback(),
     )
 
     assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16-mixed"
 
     with pytest.raises(RuntimeError, match=r"float16/half is not supported on Gaudi."):
         trainer.fit(model)

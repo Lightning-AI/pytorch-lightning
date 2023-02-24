@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 import torch
 import torch.distributed
 
-from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
+from lightning.pytorch.utilities.distributed import _collect_states_on_rank_zero
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 

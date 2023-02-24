@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ def main_train(dir_path, max_epochs: int = 20):
     seed_everything(42)
     stopping = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
     trainer = pl.Trainer(
+        accelerator="auto",
         default_root_dir=dir_path,
-        devices=int(torch.cuda.is_available()),
         precision=(16 if torch.cuda.is_available() else 32),
         callbacks=[stopping],
         min_epochs=3,

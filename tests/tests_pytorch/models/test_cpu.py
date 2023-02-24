@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@ import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@mock.patch("lightning_fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
+@mock.patch("lightning.fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
 def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     model = BoringModel()
@@ -111,7 +111,6 @@ def test_early_stopping_cpu_model(tmpdir):
         callbacks=[stopping],
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
-        track_grad_norm=2,
         enable_progress_bar=False,
         accumulate_grad_batches=2,
         limit_train_batches=0.1,
@@ -240,13 +239,12 @@ def test_running_test_no_val(tmpdir):
     """
 
     class ModelTrainTest(BoringModel):
-        def val_dataloader(self):
-            pass
-
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
             self.log("test_loss", output["y"])
             return output
+
+        val_dataloader = None
 
     model = ModelTrainTest()
 
@@ -305,7 +303,6 @@ def test_all_features_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
         overfit_batches=0.20,
-        track_grad_norm=2,
         enable_progress_bar=False,
         accumulate_grad_batches=2,
         max_epochs=1,

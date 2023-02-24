@@ -28,7 +28,7 @@ GPU Training
 Lightning supports a variety of plugins to speed up distributed GPU training. Most notably:
 
 * :class:`~pytorch_lightning.strategies.DDPStrategy`
-* :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
+* :class:`~pytorch_lightning.strategies.FSDPStrategy`
 * :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
@@ -49,22 +49,9 @@ GPU Training Speedup Tips
 When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
 Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/model_parallel>`.
 
-Prefer DDP Over DP
-^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs three GPU transfers for EVERY batch:
-
-1. Copy the model to the device.
-2. Copy the data to the device.
-3. Copy the outputs of each device back to the main device.
-
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
-    :alt: Animation showing DP execution.
-    :width: 500
-    :align: center
-
 |
 
-Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations, making DDP much faster than DP:
+:class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations for each step, making it the simplest distributed training strategy:
 
 1. Moving data to the device.
 2. Transfer and sync gradients.
@@ -426,11 +413,12 @@ In order to improve performance, you can override :meth:`~pytorch_lightning.core
 
 For a more detailed explanation of the pros / cons of this technique,
 read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.
+This is enabled by default on ``torch>=2.0.0``.
 
 .. testcode::
 
     class Model(LightningModule):
-        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
             optimizer.zero_grad(set_to_none=True)
 
 

@@ -8,7 +8,7 @@ The second one is using [Lightning Fabric](https://pytorch-lightning.readthedocs
 Tip: You can easily inspect the difference between the two files with:
 
 ```bash
-  sdiff train_torch.py train_fabric.py
+sdiff train_torch.py train_fabric.py
 ```
 
 |                                                         Real                                                         |                                                     Generated                                                      |
@@ -19,13 +19,13 @@ Tip: You can easily inspect the difference between the two files with:
 
 **Raw PyTorch:**
 
-```commandline
+```bash
 python train_torch.py
 ```
 
 **Accelerated using Lightning Fabric:**
 
-```commandline
+```bash
 python train_fabric.py
 ```
 

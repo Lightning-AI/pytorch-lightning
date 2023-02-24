@@ -6,10 +6,22 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
+  pull_request:  # this shall test only the part of workflow before publishing
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - '.github/actions/pkg-publish/*'
+      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_build-packages.yml"
+      - ".github/workflows/release-pypi.yml"
 
 defaults:
   run:
     shell: bash
+
+env:
+  FREEZE_REQUIREMENTS: 1
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 jobs:
 
@@ -44,12 +56,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: install Package
-      env:
-        PACKAGE_NAME: "lightning"
-      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      run: |
+        pip install . -f ${TORCH_URL}
+        pip list
     - name: package Version
       id: lai-package
-      run: python -c "import lightning as L; print(f'version={L.__version__}')" >> $GITHUB_OUTPUT
+      run: python -c "import lightning ; print(f'version={lightning.__version__}')" >> $GITHUB_OUTPUT
 
 
   signaling:
@@ -121,70 +133,56 @@ jobs:
     runs-on: ubuntu-20.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    strategy:
+      matrix:
+        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
     - uses: actions/checkout@v3  # needed for local action bellow
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: |
+    - name: Browse folder
+      id: folder
+      run: |
         sudo apt install -q -y tree
         tree -L 2 -h dist/
+        python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/app
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/fabric
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_FABRIC }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/pytorch
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_PYTORCH }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/lightning
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
+        pkg-folder: dist/${{ steps.folder.outputs.pkg }}
+        pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
 
 
   publish-packages:
     runs-on: ubuntu-20.04
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    strategy:
+      matrix:
+        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
     - uses: actions/checkout@v3  # needed for local action bellow
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: |
+    - name: Browse folder
+      id: folder
+      run: |
         sudo apt install -q -y tree
         tree -L 2 -h dist/
+        python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/app
-        pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/fabric
-        pypi-token: ${{ secrets.PYPI_TOKEN_FABRIC }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/pytorch
-        pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/lightning
-        pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
+        pkg-folder: dist/${{ steps.folder.outputs.pkg }}
+        pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
 
 
   legacy-checkpoints:
     needs: [build-packages]
-    uses: ./.github/workflows/legacy-checkpoints.yml
+    uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
+    secrets: inherit

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ ENV \
 # show system info
 RUN lsb_release -a && cat /etc/*-release
 
-RUN apt-get update -qq && \
+RUN apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -55,13 +55,14 @@ RUN apt-get update -qq && \
 ENV \
     PATH="/root/miniconda3/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
+
 COPY environment.yml environment.yml
 
 RUN conda create -y --name $CONDA_ENV && \
     conda init bash && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    # drop unnecessary packages
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'horovod'])])" && \
+    # drop unnecessary packages and channels
+    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'nvidia', 'torchvision'])])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
     conda clean -ya && \
@@ -75,15 +76,7 @@ ENV \
 
 # Disable cache
 RUN pip --version && \
-    pip config set global.cache-dir false && \
-    conda remove pytorch torchvision && \
-    # Install PyTorch XLA
-    py_version=${PYTHON_VERSION/./} && \
-    gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    pip install *.whl && \
-    rm *.whl
+    pip config set global.cache-dir false
 
 # Get package
 COPY ./ ./lightning/
@@ -91,24 +84,25 @@ COPY ./ ./lightning/
 RUN \
     python --version && \
     cd lightning && \
-    pip install -q -r .actions/requirements.txt && \
     # Pin mkl version to avoid OSError on torch import
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
-    # drop packages installed with XLA
-    python .actions/assistant.py requirements_prune_pkgs "--packages=[torch,torchvision]" && \
-    # drop unnecessary packages
-    python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
+    # set particular PyTorch version \
+    for fpath in `ls requirements/**/*.txt`; do \
+      python requirements/pytorch/adjust-versions.py $fpath ${XLA_VERSION}; \
+    done && \
     # install PL dependencies
-    pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
+    pip install --requirement requirements/pytorch/devel.txt && \
+    # Install PyTorch XLA
+    py_version=${PYTHON_VERSION/./} && \
+    pip install "https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}-linux_x86_64.whl" && \
     cd .. && \
     rm -rf lightning && \
-    rm -rf /root/.cache
+    rm -rf /root/.cache \
 
 RUN \
     # Show what we have
-    pip --version && \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,21 +15,22 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
-from pytorch_lightning.utilities import find_shared_parameters
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
+from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
+from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
+from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
 class WeightSharingModule(BoringModel):
@@ -80,44 +81,21 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
+def test_accelerator_cpu_when_tpu_available(tpu_available):
     assert TPUAccelerator.is_available()
-
     trainer = Trainer(accelerator="cpu", devices=8)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    trainer = Trainer(accelerator="tpu", devices=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
-def test_accelerator_tpu(accelerator, devices, tpu_available):
+@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_accelerator_tpu(_, accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.num_devices == 8
-
-
-@RunIf(skip_windows=True)
-def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
-    """Test for checking `tpu_cores` flag takes priority over `devices`."""
-    tpu_cores = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
-
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert trainer.num_devices == tpu_cores
-
-
-@RunIf(skip_windows=True)
-def test_set_devices_if_none_tpu(tpu_available):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(accelerator="tpu", tpu_cores=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.strategy, XLAStrategy)
     assert trainer.num_devices == 8
 
 
@@ -152,14 +130,14 @@ def test_manual_optimization_tpus(tmpdir):
                 opt.zero_grad()
             return loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update:
                 assert not torch.equal(self.weight_before, after_before), self.count
             else:
                 assert torch.equal(self.weight_before, after_before)
-            assert torch.all(self.layer.weight.grad == 0)
+            assert_emtpy_grad(self.layer.weight.grad)
             self.count += 1
 
         def on_train_start(self):
@@ -177,8 +155,6 @@ def test_manual_optimization_tpus(tmpdir):
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
-    model.training_step_end = None
-    model.training_epoch_end = None
 
     trainer = Trainer(
         max_epochs=1,
@@ -201,15 +177,16 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_tpu_str_tpu_spawn_debug(tpu_available):
-    trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
+    trainer = Trainer(strategy="xla_debug", accelerator="tpu", devices=8)
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @RunIf(tpu=True)
 def test_strategy_choice_tpu_strategy():
-    trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @RunIf(tpu=True)
@@ -260,8 +237,8 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
 
-def test_tpu_invalid_raises(tpu_available):
-    strategy = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
+def test_tpu_invalid_raises(tpu_available, mps_count_0):
+    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
 
@@ -270,40 +247,59 @@ def test_tpu_invalid_raises(tpu_available):
         Trainer(strategy=strategy, devices=8)
 
 
-def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
+def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
     accelerator = TPUAccelerator()
-    strategy = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
+    strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
         Trainer(strategy=strategy, devices=8)
 
     accelerator = TPUAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy"
+        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy"
     ):
         Trainer(strategy=strategy, devices=8)
 
 
 @RunIf(skip_windows=True)
-def test_xla_checkpoint_plugin_being_default(tpu_available):
+@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+def test_xla_checkpoint_plugin_being_default(_, tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
 @RunIf(tpu=True)
-@patch("torch_xla.distributed.parallel_loader.MpDeviceLoader")
-@patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
-def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
+@patch("lightning.pytorch.strategies.xla.XLAStrategy.root_device")
+def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
-    processed_dataloader = TPUSpawnStrategy().process_dataloader(dataloader)
-    mp_loader_mock.assert_called_with(dataloader, root_device_mock)
+    strategy = XLAStrategy()
+    isinstance_return = True
+
+    import torch_xla.distributed.parallel_loader as parallel_loader
+
+    class MpDeviceLoaderMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make `isinstance(dataloader, MpDeviceLoader)` pass with a mock as class
+            return isinstance_return
+
+    mp_loader_mock = MpDeviceLoaderMock()
+    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
+
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    assert processed_dataloader is dataloader
+    mp_loader_mock.assert_not_called()  # no-op
+
+    isinstance_return = False
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
+    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
 def test_warning_if_tpus_not_used(tpu_available):
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
-        Trainer()
+        Trainer(accelerator="cpu")
 
 
 @RunIf(tpu=True, standalone=True)

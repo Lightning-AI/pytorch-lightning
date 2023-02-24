@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ from unittest.mock import patch
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning import Callback, Trainer
+import lightning.pytorch as pl
+from lightning.pytorch import Callback, Trainer
 from tests_pytorch import _PATH_LEGACY
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -69,7 +69,7 @@ def test_legacy_ckpt_threading(tmpdir, pl_version: str):
     def load_model():
         import torch
 
-        from pytorch_lightning.utilities.migration import pl_legacy_patch
+        from lightning.pytorch.utilities.migration import pl_legacy_patch
 
         with pl_legacy_patch():
             _ = torch.load(PATH_LEGACY)
@@ -103,7 +103,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             default_root_dir=str(tmpdir),
             accelerator="auto",
             devices=1,
-            precision=(16 if torch.cuda.is_available() else 32),
+            precision=("16-mixed" if torch.cuda.is_available() else "32-true"),
             callbacks=[stop],
             max_epochs=21,
             accumulate_grad_batches=2,

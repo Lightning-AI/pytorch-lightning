@@ -7,21 +7,20 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
-from lightning_fabric.utilities.data import _replace_dunder_methods
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.data import (
+from lightning.fabric.utilities.data import _replace_dunder_methods
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _update_dataloader,
     extract_batch_size,
-    get_len,
     has_len_all_ranks,
     warning_cache,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_extract_batch_size():
@@ -90,15 +89,6 @@ def test_extract_batch_size():
 
     data = CustomBatch()
     _check_error_raised(data)
-
-
-def test_get_len():
-    assert get_len(DataLoader(RandomDataset(1, 1))) == 1
-
-    value = get_len(DataLoader(RandomIterableDataset(1, 1)))
-
-    assert isinstance(value, float)
-    assert value == float("inf")
 
 
 def test_has_len_all_rank():
@@ -186,8 +176,8 @@ def test_custom_batch_sampler(predicting):
     batch_sampler = dataloader.batch_sampler
 
     if predicting:
-        assert isinstance(batch_sampler, IndexBatchSamplerWrapper)
-        batch_sampler = batch_sampler._sampler
+        assert isinstance(batch_sampler, _IndexBatchSamplerWrapper)
+        batch_sampler = batch_sampler._batch_sampler
 
     assert isinstance(batch_sampler, MyBatchSampler)
     assert batch_sampler.drop_last == (not predicting)

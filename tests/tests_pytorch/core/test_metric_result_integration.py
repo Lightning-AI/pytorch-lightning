@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 import os
 import pickle
 from contextlib import suppress
-from copy import deepcopy
 from unittest import mock
 
 import pytest
@@ -25,12 +24,12 @@ from torch import Tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.logger_connector.result import (
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import OnExceptionCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _Metadata,
     _ResultCollection,
     _ResultMetric,
@@ -237,32 +236,11 @@ def test_result_collection_restoration(tmpdir):
             lightning_log("training_step", "c", metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
             lightning_log("training_step", "a_1", a, on_step=True, on_epoch=True)
             lightning_log("training_step", "b_1", b, on_step=False, on_epoch=True)
-            lightning_log("training_step", "c_1", {"1": c, "2": c}, on_step=True, on_epoch=False)
+            lightning_log("training_step", "c_1", c, on_step=True, on_epoch=False)
 
             batch_log = result.metrics(on_step=True)["log"]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
-            assert set(batch_log["c_1"]) == {"1", "2"}
-
-            result_copy = deepcopy(result)
-            new_result = _ResultCollection(True, torch.device("cpu"))
-            state_dict = result.state_dict()
-            # check the sync fn was dropped
-            assert "fn" not in state_dict["items"]["training_step.a"]["meta"]["_sync"]
-
-            assert not new_result.result_metrics
-            assert len(result.result_metrics) == 7 + epoch > 0
-
-            new_result.load_state_dict(
-                state_dict, metrics={"metric": metric, "metric_b": metric_b, "metric_c": metric_c}
-            )
-            # should match
-            assert result_copy == new_result
-            # the sync fn has been kept
-            assert result_copy["training_step.a"].meta.sync.fn == new_result["training_step.a"].meta.sync.fn
-
-        epoch_log = result.metrics(on_step=False)["log"]
-        epoch_log_copy = result_copy.metrics(on_step=False)["log"]
-        assert epoch_log == epoch_log_copy
+            assert len(result.result_metrics) == 6 + epoch > 0
 
         lightning_log("train_epoch_end", "a", metric_a, on_step=False, on_epoch=True)
         epoch_log = result.metrics(on_step=False)["log"]
@@ -290,69 +268,6 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize(
-    "accelerator,device",
-    (
-        ("cpu", "cpu"),
-        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps", marks=RunIf(mps=True)),
-    ),
-)
-def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
-    class LoggingModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.metric = DummyMetric()
-
-        def validation_step(self, batch, batch_idx):
-            v = self.metric(batch_idx)
-            self.log_dict({"v": v, "m": self.metric})
-            return super().validation_step(batch, batch_idx)
-
-        def on_save_checkpoint(self, checkpoint) -> None:
-            results = self.trainer._results
-            # simplify logic
-            state_dict = results.state_dict(drop_value=False)
-
-            # check device
-            assert results["validation_step.v"].value.device.type == device
-            assert state_dict["items"]["validation_step.v"]["value"].device.type == device
-
-            # sync fn should be kept
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
-
-            # sync fn dropped from the state dict
-            assert "fn" not in state_dict["items"]["validation_step.v"]["meta"]["_sync"]
-            results.load_state_dict(state_dict)
-
-            # check device after loading
-            assert results["validation_step.v"].value.device.type == device
-
-            # sync fn was preserved in the original result
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
-
-            # default sync fn
-            new_results = _ResultCollection(False, device)
-            new_results.load_state_dict(state_dict, map_location="cpu")
-            assert new_results["validation_step.v"].meta.sync.fn is None
-
-            # check map location
-            assert new_results["validation_step.v"].value.device.type == "cpu"
-
-    model = LoggingModel()
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=False)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        callbacks=[ckpt],
-        accelerator=accelerator,
-        devices=1,
-    )
-    trainer.fit(model)
-
-
 class DummyMeanMetric(Metric):
     def __init__(self):
         super().__init__()
@@ -370,12 +285,11 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(accelerator="auto", devices=1, **kwargs):
-    """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
-    Tolerant Training is correct."""
-
+def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **kwargs):
     class CustomException(Exception):
         pass
+
+    batches = 5
 
     class ExtendedBoringModel(BoringModel):
         def __init__(self):
@@ -389,12 +303,10 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
             return self.trainer.fit_loop._results
 
         def training_step(self, batch, batch_idx):
-
-            # In the training step, we will accumulate metrics using batch_idx from 0 to 4
-            # Without failure, we would expect to get `total=10 * world_size` and `num_batches=5 * world_size`
-            # Therefore, compute on `epoch_end` should provide 2 as `10 / 5`.
-            # However, below we will simulate a failure on `batch_idx=3`.
-
+            # We run 5 batches, meaning batch_idx from [0..4]
+            # Without failure, we expect to get `total=sum(range(5))` and `num_batches=5`
+            # When not restarting, it simulates a failure on `batch_idx=3` and test the state after reload
+            # Compute `on_epoch_end` would be `10/5=2` if the metric state had been serialized and reloaded
             if self.trainer.fit_loop.restarting:
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                 self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
@@ -402,8 +314,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.results["training_step.tracking_metric"].value
-                value_2 = self.results["training_step.tracking"].value
+                value = self.results["training_step.tracking_metric"]
+                value_2 = self.results["training_step.tracking"]
 
                 # On failure, the Metric states are being accumulated on rank 0 and zeroed-out on other ranks.
                 # The shift indicates we failed while the state was `shift=sign(is_global_zero > 0) * [0..3]`
@@ -423,7 +335,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.results["training_step.tracking"].value
+                value = self.results["training_step.tracking"]
                 assert value == sum(range(batch_idx + 1))
 
                 value = self.results["training_step.tracking_2"]
@@ -433,23 +345,33 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
         def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
-                total = sum(range(5)) * devices
+                # the state of the results before the exception is not saved and restored, so the total starts after
+                # the breaking_batch_idx
+                total = sum(range(self.breaking_batch_idx, batches))
                 metrics = self.results.metrics(on_step=False)
+                computed_value = self.dummy_metric.compute()
+
                 assert self.results["training_step.tracking"].value == total
-                assert metrics["callback"]["tracking"] == self.dummy_metric.compute() == 2
-                assert self.results["training_step.tracking_2"].value == total
-                assert metrics["callback"]["tracking_2"] == self.dummy_metric.compute() == 2
+                expected = total / (batches - self.breaking_batch_idx)
+                assert metrics["callback"]["tracking"] == expected
+                assert computed_value == 2
+
+                assert self.results["training_step.tracking_2"].value == total * devices
+                assert metrics["callback"]["tracking_2"] == expected
+                assert computed_value == 2
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
     trainer_kwargs = {
         "max_epochs": 1,
-        "limit_train_batches": 5,
+        "limit_train_batches": batches,
         "limit_val_batches": 0,
         "accelerator": accelerator,
         "devices": devices,
         "enable_progress_bar": False,
         "enable_model_summary": False,
+        "default_root_dir": default_root_dir,
+        "callbacks": OnExceptionCheckpoint(default_root_dir),
     }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
@@ -463,33 +385,25 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir)
-
-
 @pytest.mark.parametrize(
-    "accelerator",
-    [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-    ],
+    "kwargs",
+    (
+        {},
+        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
+        ),
+    ),
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True)
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
+def test_result_collection_reload(tmpdir, kwargs):
+    result_collection_reload(default_root_dir=tmpdir, **kwargs)
 
 
 def test_metric_collections(tmpdir):
@@ -674,7 +588,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result._distributed_available",
+        "lightning.pytorch.trainer.connectors.logger_connector.result._distributed_available",
         return_value=distributed_env,
     ):
         with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):

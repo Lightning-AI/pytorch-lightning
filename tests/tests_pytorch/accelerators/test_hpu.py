@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,23 +17,16 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import HPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
-from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
-from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch.accelerators import HPUAccelerator
+from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
+from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
-
-
-class HPUTestModel(BoringModel):
-    def configure_optimizers(self):
-        opt_a = torch.optim.Adam(self.layer.parameters(), lr=0.001)
-        opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
-        return opt_a, opt_b
 
 
 @RunIf(hpu=True)
@@ -68,7 +61,7 @@ def test_all_stages(tmpdir, hpus):
         fast_dev_run=True,
         accelerator="hpu",
         devices=hpus,
-        precision=16,
+        precision="16-mixed",
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -145,16 +138,16 @@ def test_stages_correct(tmpdir):
             return (output - output) + torch.tensor(4)
 
     class TestCallback(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
+        def on_train_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["loss"].item() == 1
 
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_validation_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["x"].item() == 2
 
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_test_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert outputs["y"].item() == 3
 
-        def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_predict_batch_end(self, trainer, pl_module, outputs, *_) -> None:
             assert torch.all(outputs == 4).item()
 
     model = StageModel()
@@ -277,21 +270,26 @@ def test_strategy_params_with_hpu_parallel_strategy():
 
 @RunIf(hpu=True)
 def test_multi_optimizers_with_hpu(tmpdir):
-    class TestModel(HPUTestModel):
+    class MultiOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt_a = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+            opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+            return opt_a, opt_b
 
-        optims = [False, False]
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+            loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+            loss = self.loss(self.step(batch))
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt2.step()
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            self.optims[optimizer_idx] = True
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
-    model = TestModel()
+    model = MultiOptimizerModel()
+    model.automatic_optimization = False
     model.val_dataloader = None
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="hpu",
@@ -304,11 +302,9 @@ def test_multi_optimizers_with_hpu(tmpdir):
     )
     trainer.fit(model)
 
-    assert all(model.optims)
-
 
 @RunIf(hpu=True)
-def test_hpu_device_stats_monitor(tmpdir):
+def test_hpu_device_stats_monitor():
 
     hpu_stats = HPUAccelerator().get_device_stats("hpu")
     fields = [

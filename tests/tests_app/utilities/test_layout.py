@@ -1,9 +1,9 @@
 import pytest
 
-from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork
-from lightning_app.frontend.web import StaticWebFrontend
-from lightning_app.utilities.layout import _collect_layout
+from lightning.app.core.flow import LightningFlow
+from lightning.app.core.work import LightningWork
+from lightning.app.frontend.web import StaticWebFrontend
+from lightning.app.utilities.layout import _collect_layout
 
 
 class _MockApp:
