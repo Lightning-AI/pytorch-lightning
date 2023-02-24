@@ -895,7 +895,7 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
-@pytest.mark.parametrize('clip_val,max_norm', [(1e-3, None), (None, 1)])
+@pytest.mark.parametrize("clip_val,max_norm", [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
     fabric = Fabric()
 
