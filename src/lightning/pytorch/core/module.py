@@ -381,14 +381,21 @@ class LightningModule(
             value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor)
         )
 
-        if self._trainer is None:
+        trainer = self._trainer
+        if trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
             rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
                 " This is most likely because the model hasn't been passed to the `Trainer`"
             )
             return
-        results = self.trainer._results
+        if trainer.barebones:
+            rank_zero_warn(
+                "You are trying to `self.log()` but `Trainer(barebones=True)` is configured."
+                " Logging can impact raw speed so it is disabled under this setting."
+            )
+            return
+        results = trainer._results
         if results is None:
             raise MisconfigurationException(
                 "You are trying to `self.log()` but the loop's result collection is not registered"
@@ -413,7 +420,7 @@ class LightningModule(
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
 
-        if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
+        if trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
@@ -439,7 +446,7 @@ class LightningModule(
                 )
 
         if (
-            self.trainer.training
+            trainer.training
             and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
             and batch_size is None
         ):
@@ -447,7 +454,7 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
-        if logger and self.trainer.logger is None:
+        if logger and trainer.logger is None:
             rank_zero_warn(
                 f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
                 " by doing `Trainer(logger=ALogger(...))`"
@@ -470,13 +477,13 @@ class LightningModule(
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and _distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,  # type: ignore[truthy-function]
+            sync_dist_fn=trainer.strategy.reduce or _sync_ddp,  # type: ignore[truthy-function]
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
         )
 
-        self.trainer._logger_connector._current_fx = self._current_fx_name
+        trainer._logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
