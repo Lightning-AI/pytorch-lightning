@@ -34,7 +34,7 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = RequirementCache("neptune")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune") or RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     import neptune
     from neptune import Run
