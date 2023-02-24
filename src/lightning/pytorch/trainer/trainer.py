@@ -280,7 +280,7 @@ class Trainer:
                 evaluation (``validate``/``test``/``predict``).
 
             barebones: Whether to run in "barebones mode", where all features that may impact raw speed are
-                disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular trainer
+                disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular training
                 runs. The following features are deactivated:
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_checkpointing`,
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.logger`,
