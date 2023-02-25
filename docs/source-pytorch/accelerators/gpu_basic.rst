@@ -20,7 +20,8 @@ Train on GPUs
 -------------
 
 The Trainer will run on all available GPUs by default. Make sure you're running on a machine with at least one GPU.
-There's no need to specify any NVIDIA flags as Lightning will do it for you.
+There's no need to specify any NVIDIA flags for CUDA gpus as Lightning will do it for you.
+In order to use Intel(R) GPUs, you need to install Intel(R) Extension for PyTorch* separately. Check `Installation Guide <https://intel.github.io/intel-extension-for-pytorch/xpu/latest/tutorials/installation.html>`_ for details. To run DDP on Intel(R) GPU, Intel(R) oneCCL Bindings for PyTorch* is required. Check `Installation Guide <https://github.com/intel/torch-ccl/tree/master#install-prebuilt-wheel>`_ for details.
 
 .. code-block:: python
 
@@ -38,7 +39,7 @@ There's no need to specify any NVIDIA flags as Lightning will do it for you.
 
 .. note::
     Setting ``accelerator="gpu"`` will also automatically choose the "mps" device on Apple sillicon GPUs.
-    If you want to avoid this, you can set ``accelerator="cuda"`` instead.
+    If you want to avoid this, you can set ``accelerator="cuda"`` or ``accelerator="xpu"`` instead.
 
 Choosing GPU devices
 ^^^^^^^^^^^^^^^^^^^^
@@ -67,6 +68,7 @@ a comma separated list of GPU ids:
 
     # To use all available GPUs put -1 or '-1'
     # equivalent to list(range(torch.cuda.device_count()))
+    # equivalent to list(range(torch.xpu.device_count()))
     Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.

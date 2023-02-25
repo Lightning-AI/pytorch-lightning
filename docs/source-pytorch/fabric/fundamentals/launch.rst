@@ -47,7 +47,7 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
       itself and are expected to be parsed there.
 
     Options:
-      --accelerator [cpu|gpu|cuda|mps|tpu]
+      --accelerator [cpu|gpu|xpu|cuda|mps|tpu]
                                       The hardware accelerator to run on.
       --strategy [ddp|dp|deepspeed]   Strategy for how to run across multiple
                                       devices.
@@ -86,6 +86,14 @@ Here is how you run DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/doc
         --strategy=ddp \
         --devices=8 \
         --accelerator=cuda \
+        --precision="bf16"
+
+.. code-block:: bash
+
+    lightning run model ./path/to/train.py \
+        --strategy=ddp \
+        --devices=8 \
+        --accelerator=xpu \
         --precision="bf16"
 
 Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ with mixed precision:

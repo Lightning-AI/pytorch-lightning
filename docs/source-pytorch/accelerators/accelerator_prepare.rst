@@ -10,11 +10,11 @@ To train on CPU/GPU/TPU without changing your code, we need to build a few good 
 
 ----
 
-*****************************
-Delete .cuda() or .to() calls
-*****************************
+*************************************
+Delete .cuda(), .xpu() or .to() calls
+*************************************
 
-Delete any calls to .cuda() or .to(device).
+Delete any calls to .cuda(), .xpu() or .to(device).
 
 .. testcode::
 

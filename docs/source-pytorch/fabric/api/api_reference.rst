@@ -32,6 +32,7 @@ Accelerators
 
     Accelerator
     CPUAccelerator
+    XPUAccelerator
     CUDAAccelerator
     MPSAccelerator
     TPUAccelerator

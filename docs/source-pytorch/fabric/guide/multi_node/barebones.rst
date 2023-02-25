@@ -66,7 +66,7 @@ Example: 10.10.10.16
 
 **Step 3**: Launch the script on each node using the Lightning CLI.
 
-In this example, we want to launch training across two nodes, each with 8 GPUs.
+In this example, we want to launch training across two nodes, each with 8 GPUs. Set ``--accelerator`` to ``cuda`` on NVidia(R) GPUs, ``xpu`` on Intel(R) GPUs.
 Log in to the **first node** and run this command:
 
 .. code-block:: bash

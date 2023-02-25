@@ -30,16 +30,16 @@ Create a Custom Accelerator
 ---------------------------
 
 Here is how you create a new Accelerator.
-Let's pretend we want to integrate the fictional XPU accelerator and we have access to its hardware through a library
-``xpulib``.
+Let's pretend we want to integrate the fictional YPU accelerator and we have access to its hardware through a library
+``ypulib``.
 
 .. code-block:: python
 
-    import xpulib
+    import ypulib
 
 
-    class XPUAccelerator(Accelerator):
-        """Experimental support for XPU, optimized for large-scale machine learning."""
+    class YPUAccelerator(Accelerator):
+        """Experimental support for YPU, optimized for large-scale machine learning."""
 
         @staticmethod
         def parse_devices(devices: Any) -> Any:
@@ -50,29 +50,29 @@ Let's pretend we want to integrate the fictional XPU accelerator and we have acc
         @staticmethod
         def get_parallel_devices(devices: Any) -> Any:
             # Here, convert the device indices to actual device objects
-            return [torch.device("xpu", idx) for idx in devices]
+            return [torch.device("ypu", idx) for idx in devices]
 
         @staticmethod
         def auto_device_count() -> int:
             # Return a value for auto-device selection when `Trainer(devices="auto")`
-            return xpulib.available_devices()
+            return ypulib.available_devices()
 
         @staticmethod
         def is_available() -> bool:
-            return xpulib.is_available()
+            return ypulib.is_available()
 
         def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
             # Return optional device statistics for loggers
             return {}
 
 
-Finally, add the XPUAccelerator to the Trainer:
+Finally, add the YPUAccelerator to the Trainer:
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
 
-    accelerator = XPUAccelerator()
+    accelerator = YPUAccelerator()
     trainer = Trainer(accelerator=accelerator, devices=2)
 
 
@@ -88,28 +88,28 @@ If you wish to switch to a custom accelerator from the CLI without code changes,
 
 .. code-block:: python
 
-    class XPUAccelerator(Accelerator):
+    class YPUAccelerator(Accelerator):
         ...
 
         @classmethod
         def register_accelerators(cls, accelerator_registry):
             accelerator_registry.register(
-                "xpu",
+                "ypu",
                 cls,
-                description=f"XPU Accelerator - optimized for large-scale machine learning.",
+                description=f"YPU Accelerator - optimized for large-scale machine learning.",
             )
 
 Now, this is possible:
 
 .. code-block:: python
 
-    trainer = Trainer(accelerator="xpu")
+    trainer = Trainer(accelerator="ypu")
 
 Or if you are using the Lightning CLI, for example:
 
 .. code-block:: bash
 
-    python train.py fit --trainer.accelerator=xpu --trainer.devices=2
+    python train.py fit --trainer.accelerator=ypu --trainer.devices=2
 
 
 ----------
@@ -125,6 +125,7 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
+    XPUAccelerator
     CUDAAccelerator
     HPUAccelerator
     IPUAccelerator

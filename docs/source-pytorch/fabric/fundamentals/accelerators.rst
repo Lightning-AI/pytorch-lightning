@@ -12,7 +12,7 @@ Set accelerator and devices
 Fabric enables you to take full advantage of the hardware on your system. It supports
 
 - CPU
-- GPU (NVIDIA, AMD, Apple Silicon)
+- GPU (NVIDIA, Intel, AMD, Apple Silicon)
 - TPU
 
 By default, Fabric tries to maximize the hardware utilization of your system
@@ -45,6 +45,9 @@ You can also explicitly set which accelerator to use:
     # GPU: NVIDIA CUDA only
     fabric = Fabric(accelerator="cuda", devices=8)
 
+    # GPU: Intel XPU only
+    fabric = Fabric(accelerator="xpu", devices=8)
+
     # TPU
     fabric = Fabric(accelerator="tpu", devices=8)
 
@@ -66,6 +69,8 @@ This lets you replace boilerplate code like this:
 
     - if torch.cuda.is_available():
     -     device = torch.device("cuda")
+    - if torch.xpu.is_available():
+    -     device = torch.device("xpu")
     - else:
     -     device = torch.device("cpu")
 

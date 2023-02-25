@@ -89,7 +89,7 @@ Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html
 
     Trainer(accelerator="gpu", devices=1, precision="bf16")
 
-It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
+It is also possible to use BFloat16 mixed precision on the CPU, relying on oneDNN under the hood.
 
 .. testcode::
 

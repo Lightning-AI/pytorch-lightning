@@ -12,8 +12,14 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
     world_size = num_nodes * nprocs
 
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
+        if torch.cuda.is_available():
+            backend = "nccl"
+        elif torch.xpu.is_available():
+            backend = "ccl"
+        else:
+            backend = "gloo"
         torch.distributed.init_process_group(
-            "nccl" if torch.cuda.is_available() else "gloo",
+            backend,
             rank=global_rank,
             world_size=world_size,
             init_method=f"tcp://{main_address}:{main_port}",
@@ -21,8 +27,19 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
 
     # 2. PREPARE DISTRIBUTED MODEL
     model = torch.nn.Linear(32, 2)
-    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
-    model = DistributedDataParallel(model, device_ids=[local_rank] if torch.cuda.is_available() else None).to(device)
+    if torch.cuda.is_available():
+        device = torch.device(f"cuda:{local_rank}")
+    elif torch.xpu.is_available():
+        device = torch.device(f"xpu:{local_rank}")
+    else:
+        device = torch.device("cpu")
+    if torch.cuda.is_available():
+        device_ids = [local_rank]
+    elif torch.xpu.is_available():
+        device_ids = [local_rank]
+    else:
+        device_ids = None
+    model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
     # 3. SETUP LOSS AND OPTIMIZER
     criterion = torch.nn.MSELoss()
@@ -47,7 +64,12 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
 
 class PyTorchDistributed(L.LightningWork):
     def run(self, main_address: str, main_port: int, num_nodes: int, node_rank: int):
-        nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
+        if torch.cuda.is_available():
+            nprocs = torch.cuda.device_count()
+        elif torch.xpu.is_available():
+            nprocs = torch.xpu.device_count()
+        else:
+            nprocs = 1
         torch.multiprocessing.spawn(
             distributed_train,
             args=(main_address, main_port, num_nodes, node_rank, nprocs),

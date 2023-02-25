@@ -8,7 +8,12 @@ from PIL import Image as PILImage
 class PyTorchServer(PythonServer):
     def setup(self):
         self._model = torchvision.models.resnet18(pretrained=True)
-        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self._device = torch.device("cuda:0")
+        elif torch.xpu.is_available():
+            self._device = torch.device("xpu:0")
+        else:
+            self._device = torch.device("cpu")
         self._model.to(self._device)
 
     def predict(self, request):

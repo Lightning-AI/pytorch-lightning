@@ -5,7 +5,12 @@ import torch
 
 class PyTorchComponent(L.LightningWork):
    def run(self):
-      device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+      if torch.cuda.is_available():
+          device = torch.device("cuda:0")
+      elif torch.xpu.is_available():
+          device = torch.device("xpu:0")
+      else:
+          device = torch.device("cpu")
       model = torch.nn.Sequential(torch.nn.Linear(1, 1),
                                  torch.nn.ReLU(),
                                  torch.nn.Linear(1, 1))

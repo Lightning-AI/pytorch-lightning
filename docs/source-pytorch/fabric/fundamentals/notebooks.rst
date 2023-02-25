@@ -23,7 +23,10 @@ If you want to use multiprocessing, for example, multi-GPU, you can put your cod
 
 
     # Notebook Cell
+    # on NVidia(R) GPUs
     fabric = Fabric(accelerator="cuda", devices=2)
+    # on Intel(R) GPUs
+    fabric = Fabric(accelerator="xpu", devices=2)
     fabric.launch(train)  # Launches the `train` function on two GPUs
 
 

@@ -21,7 +21,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
     model, optimizer = fabric.setup(model, optimizer)
     dataloader = fabric.setup_dataloaders(dataloader)
 
-**Step 3:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
+**Step 3:** Remove all ``.to``, ``.cuda`` and ``.xpu`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
 
 .. code-block:: diff
 
@@ -62,7 +62,10 @@ All steps combined, this is how your code will change:
       class PyTorchDataset(Dataset):
           ...
 
+    + # on NVidia(R) GPUs
     + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
+    + # on Intel(R) GPUs
+    + fabric = Fabric(accelerator="xpu", devices=8, strategy="ddp")
     + fabric.launch()
 
     - device = "cuda" if torch.cuda.is_available() else "cpu"

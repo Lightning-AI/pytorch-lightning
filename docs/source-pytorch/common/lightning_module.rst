@@ -39,7 +39,7 @@ Notice a few things.
         trainer = Trainer()
         trainer.fit(net)
 
-4.  There are no ``.cuda()`` or ``.to(device)`` calls required. Lightning does these for you.
+4.  There are no ``.cuda()``, ``.xpu()`` or ``.to(device)`` calls required. Lightning does these for you.
 
 |
 
@@ -48,6 +48,7 @@ Notice a few things.
         # don't do in Lightning
         x = torch.Tensor(2, 3)
         x = x.cuda()
+        x = x.xpu()
         x = x.to(device)
 
         # do this instead
@@ -57,7 +58,9 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.to(x)
 
-5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
+5. Importing ``intel_extension_for_pytorch`` and ``oneccl_bindings_for_pytorch`` are not required. Lightning does these for you.
+
+6. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 
 |
 
@@ -72,7 +75,7 @@ Notice a few things.
         data = MNIST(...)
         DataLoader(data)
 
-6.  A :class:`~LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
+7.  A :class:`~LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
 
 |
 

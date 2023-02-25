@@ -23,7 +23,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH
 try:
     import intel_extension_for_pytorch as ipex
 
-    rank_zero_info(f"Using Intel® Extension for PyTorch* {ipex.__version__}")
+    rank_zero_info(f"Using Intel(R) Extension for PyTorch* {ipex.__version__}")
     try:
         import sys
 
@@ -33,8 +33,8 @@ try:
         del oneccl_bindings_for_pytorch
     except ImportError:
         rank_zero_info(
-            "Intel® oneCCL Bindings for PyTorch* is required to run DDP on XPU gpus, but it is not"
-            " detected. If you see \"ValueError: Invalid backend: 'ccl'\" error, please install Intel® oneCCL"
+            "Intel(R) oneCCL Bindings for PyTorch* is required to run DDP on Intel(R) GPUs, but it is not"
+            " detected. If you see \"ValueError: Invalid backend: 'ccl'\" error, please install Intel(R) oneCCL"
             " Bindings for PyTorch*."
         )
 except ImportError:
@@ -90,7 +90,7 @@ class XPUAccelerator(Accelerator):
 
 
 def find_usable_xpu_devices(num_devices: int = -1) -> List[int]:
-    """Returns a list of all available and usable XPU GPU devices.
+    """Returns a list of all available and usable Intel(R) GPU devices.
 
     A GPU is considered usable if we can successfully move a tensor to the device, and this is what this function
     tests for each GPU on the system until the target number of usable devices is found.
@@ -100,7 +100,7 @@ def find_usable_xpu_devices(num_devices: int = -1) -> List[int]:
 
     Args:
         num_devices: The number of devices you want to request. By default, this function will return as many as there
-            are usable XPU GPU devices available.
+            are usable Intel(R) GPU devices available.
 
     Warning:
         If multiple processes call this function at the same time, there can be race conditions in the case where
@@ -140,7 +140,7 @@ def find_usable_xpu_devices(num_devices: int = -1) -> List[int]:
 
 
 def _get_all_visible_xpu_devices() -> List[int]:
-    """Returns a list of all visible XPU GPU devices.
+    """Returns a list of all visible Intel(R) GPU devices.
 
     Devices masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
     have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
