@@ -214,7 +214,7 @@ class _MultiProcessingLauncher(_Launcher):
 
         Args:
             trainer: reference to the Trainer.
-            
+
         Returns:
             A dictionary with items to send back to the main process where :meth:`update_main_process_results` will
             process this output.
