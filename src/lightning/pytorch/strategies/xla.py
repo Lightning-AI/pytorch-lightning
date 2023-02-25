@@ -96,7 +96,7 @@ class XLAStrategy(DDPStrategy):
 
     @property
     def local_rank(self) -> int:
-        return self._local_rank
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
@@ -214,6 +214,11 @@ class XLAStrategy(DDPStrategy):
         self._launched = True
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None

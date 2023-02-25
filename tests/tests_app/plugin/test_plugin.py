@@ -1,4 +1,5 @@
 import io
+import json
 import sys
 import tarfile
 from dataclasses import dataclass
@@ -9,11 +10,11 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from lightning.app.core.plugin import _Run, _start_plugin_server
+from lightning.app.plugin.plugin import _Run, _start_plugin_server
 
 
 @pytest.fixture()
-@mock.patch("lightning.app.core.plugin.uvicorn")
+@mock.patch("lightning.app.plugin.plugin.uvicorn")
 def mock_plugin_server(mock_uvicorn) -> TestClient:
     """This fixture returns a `TestClient` for the plugin server."""
 
@@ -32,6 +33,9 @@ def mock_plugin_server(mock_uvicorn) -> TestClient:
 @dataclass
 class _MockResponse:
     content: bytes
+
+    def raise_for_status(self):
+        pass
 
 
 def mock_requests_get(valid_url, return_value):
@@ -59,7 +63,7 @@ def as_tar_bytes(file_name, content):
 
 
 _plugin_with_internal_error = """
-from lightning.app.core.plugin import LightningPlugin
+from lightning.app.plugin.plugin import LightningPlugin
 
 class TestPlugin(LightningPlugin):
     def run(self):
@@ -127,7 +131,7 @@ plugin = TestPlugin()
         ),
     ],
 )
-@mock.patch("lightning.app.core.plugin.requests")
+@mock.patch("lightning.app.plugin.plugin.requests")
 def test_run_errors(mock_requests, mock_plugin_server, body, message, tar_file_name, content):
     if tar_file_name is not None:
         content = as_tar_bytes(tar_file_name, content)
@@ -140,8 +144,8 @@ def test_run_errors(mock_requests, mock_plugin_server, body, message, tar_file_n
     assert message in response.text
 
 
-_plugin_with_job_run = """
-from lightning.app.core.plugin import LightningPlugin
+_plugin_with_job_run_no_actions = """
+from lightning.app.plugin.plugin import LightningPlugin
 
 class TestPlugin(LightningPlugin):
     def run(self, name, entrypoint):
@@ -151,13 +155,46 @@ plugin = TestPlugin()
 """
 
 
+_plugin_with_job_run_toast = """
+from lightning.app.plugin.actions import Toast
+from lightning.app.plugin.plugin import LightningPlugin
+
+class TestPlugin(LightningPlugin):
+    def run(self, name, entrypoint):
+        self.run_job(name, entrypoint)
+        return [Toast("info", "testing")]
+
+plugin = TestPlugin()
+"""
+
+_plugin_with_job_run_navigate = """
+from lightning.app.plugin.actions import NavigateTo
+from lightning.app.plugin.plugin import LightningPlugin
+
+class TestPlugin(LightningPlugin):
+    def run(self, name, entrypoint):
+        self.run_job(name, entrypoint)
+        return [NavigateTo("/testing")]
+
+plugin = TestPlugin()
+"""
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
+@pytest.mark.parametrize(
+    "plugin_source, actions",
+    [
+        (_plugin_with_job_run_no_actions, []),
+        (_plugin_with_job_run_toast, [{"content": "info:testing", "type": "TOAST"}]),
+        (_plugin_with_job_run_navigate, [{"content": "/testing", "type": "NAVIGATE_TO"}]),
+    ],
+)
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
-@mock.patch("lightning.app.core.plugin.requests")
-def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server):
+@mock.patch("lightning.app.plugin.plugin.requests")
+def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_source, actions):
     """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct
     arguments."""
-    content = as_tar_bytes("plugin.py", _plugin_with_job_run)
+    content = as_tar_bytes("plugin.py", plugin_source)
     mock_requests.get.side_effect = mock_requests_get("http://test.tar.gz", content)
 
     body = _Run(
@@ -175,6 +212,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server):
     response = mock_plugin_server.post("/v1/runs", json=body.dict(exclude_none=True))
 
     assert response.status_code == status.HTTP_200_OK
+    assert json.loads(response.text)["actions"] == actions
 
     mock_cloud_runtime.load_app_from_file.assert_called_once()
     assert "test_entrypoint" in mock_cloud_runtime.load_app_from_file.call_args[0][0]

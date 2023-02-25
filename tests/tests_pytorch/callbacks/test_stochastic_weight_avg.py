@@ -145,7 +145,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 def train_with_swa(
     tmpdir,
     batchnorm=True,
-    strategy=None,
+    strategy="auto",
     accelerator="cpu",
     devices=1,
     interval="epoch",
@@ -296,7 +296,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         "default_root_dir": tmpdir,
         "max_epochs": 5,
         "accelerator": "cpu",
-        "strategy": "ddp_spawn" if ddp else None,
+        "strategy": "ddp_spawn" if ddp else "auto",
         "devices": 2 if ddp else 1,
         "limit_train_batches": 5,
         "limit_val_batches": 0,

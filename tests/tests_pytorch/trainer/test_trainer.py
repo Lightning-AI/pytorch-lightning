@@ -49,7 +49,7 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
@@ -1115,9 +1115,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
-        assert mocked.call_count == sum(
-            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
-        )
+    assert mocked.call_count == sum(trainer.num_sanity_val_batches)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.3])
@@ -1289,15 +1287,15 @@ class CustomPredictionWriter(BasePredictionWriter):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
-                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, _IndexBatchSamplerWrapper)
         super().on_predict_epoch_end(trainer, pl_module)
 
 
 def predict(
     tmpdir,
-    strategy=None,
-    accelerator=None,
-    devices=None,
+    strategy="auto",
+    accelerator="auto",
+    devices="auto",
     model=None,
     plugins=None,
     datamodule=True,
@@ -1632,7 +1630,9 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize(
+    "strategy,devices", [("auto", 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
+)
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
@@ -1779,7 +1779,7 @@ class ExceptionCounter(Callback):
         self.exceptions += 1
 
 
-@pytest.mark.parametrize("strategy", [None, pytest.param("ddp_spawn", marks=RunIf(skip_windows=True, mps=False))])
+@pytest.mark.parametrize("strategy", ["auto", pytest.param("ddp_spawn", marks=RunIf(skip_windows=True, mps=False))])
 def test_error_handling_all_stages(tmpdir, strategy):
     model = TrainerStagesErrorsModel()
     counter = ExceptionCounter()
@@ -1874,11 +1874,11 @@ def test_detect_anomaly_nan(tmpdir):
 @pytest.mark.parametrize(
     ["trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"],
     [
-        ({"strategy": None}, SingleDeviceStrategy, CPUAccelerator, 1),
+        ({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1),
         pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         (
-            {"strategy": None, "accelerator": "cuda", "devices": 1},
+            {"strategy": "auto", "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
             CUDAAccelerator,
             1,
@@ -1890,7 +1890,7 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": None, "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
+        ({"strategy": "auto", "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, CPUAccelerator, 2),
         (
