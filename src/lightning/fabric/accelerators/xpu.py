@@ -253,7 +253,7 @@ def _check_xpu_math_precision(device: torch.device) -> None:
     if torch.xpu.get_fp32_math_mode() == torch.xpu.FP32MathMode.FP32:  # default
         rank_zero_info(
             f"You are using an XPU device ({torch.xpu.get_device_name(device)!r}). To properly utilize computation "
-            "power, you can set `torch.xpu.set_fp32_math_mode(mode=torch.xpu.FP32MathMode.FP32, device='cpu')` "
+            "power, you can set `torch.xpu.set_fp32_math_mode(mode=torch.xpu.FP32MathMode.FP32, device='xpu')` "
             "which will trade-off precision for performance. For more details, read https://intel.github.io/"
             "intel-extension-for-pytorch/xpu/latest/tutorials/api_doc.html#torch.xpu.set_fp32_math_mode"
         )

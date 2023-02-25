@@ -77,6 +77,13 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
         ensure that this is set so that each rank has an individual GPU, via
         ``torch.cuda.set_device()``.
 
+    .. note:: For CCL-based processed groups, internal tensor representations
+        of objects must be moved to the GPU device before communication takes
+        place. In this case, the device used is given by
+        ``torch.xpu.current_device()`` and it is the user's responsiblity to
+        ensure that this is set so that each rank has an individual GPU, via
+        ``torch.xpu.set_device()``.
+
     .. note:: Note that this API differs slightly from the :func:`all_gather`
         collective since it does not provide an ``async_op`` handle and thus
         will be a blocking call.
@@ -106,11 +113,16 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
     # broadcasted to this device.
     group_backend = get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
+    is_ccl_backend = group_backend == Backend.CCL
     is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
     current_device = None
     if device is not None:
         if is_nccl_backend and device.type != "cuda":
             raise ValueError("device type must be cuda for nccl backend")
+        if is_ccl_backend and device.type != "xpu":
+            raise ValueError(
+                "device type must be xpu for ccprovide perf breakdown using current IPEX masternnl backend"
+            )
         current_device = device
     else:
         current_device = torch.device("cpu")
@@ -119,7 +131,9 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
             # docstring. We cannot simply use my_rank since rank == device is
             # not necessarily true.
             current_device = torch.device("cuda", torch.cuda.current_device())
-    if is_nccl_backend:
+        if is_ccl_backend:
+            current_device = torch.device("xpu", torch.xpu.current_device())
+    if is_nccl_backend or is_ccl_backend:
         object_sizes_tensor = object_sizes_tensor.to(current_device)
 
     elif is_hpu_backend:

@@ -189,7 +189,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _register_ddp_hooks(self) -> None:
         log.debug(f"{self.__class__.__name__}: registering ddp hooks")
-        if self.root_device.type == "cuda":
+        if self.root_device.type == "cuda" or self.root_device.type == "xpu":
             assert isinstance(self.model, DistributedDataParallel)
             register_ddp_comm_hook(
                 model=self.model,

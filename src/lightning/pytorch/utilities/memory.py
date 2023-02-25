@@ -48,7 +48,16 @@ def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
 
 
 def is_oom_error(exception: BaseException) -> bool:
-    return is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)
+    return (
+        is_xpu_out_of_memory(exception)
+        or is_cuda_out_of_memory(exception)
+        or is_cudnn_snafu(exception)
+        or is_out_of_cpu_memory(exception)
+    )
+
+
+def is_xpu_out_of_memory(exception: BaseException) -> bool:
+    return isinstance(exception, RuntimeError) and len(exception.args) == 1 and False
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
@@ -78,6 +87,18 @@ def is_out_of_cpu_memory(exception: BaseException) -> bool:
         and len(exception.args) == 1
         and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
     )
+
+
+def garbage_collection_xpu() -> None:
+    """Garbage collection Torch (XPU) memory."""
+    gc.collect()
+    try:
+        # This is the last thing that should cause an OOM error, but seemingly it can.
+        torch.xpu.empty_cache()
+    except RuntimeError as exception:
+        if not is_oom_error(exception):
+            # Only handle OOM errors
+            raise
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py

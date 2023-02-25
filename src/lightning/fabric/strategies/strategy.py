@@ -262,6 +262,7 @@ class Strategy(ABC):
             given, the full checkpoint will be returned.
         """
         torch.cuda.empty_cache()
+        torch.xpu.empty_cache()
         checkpoint = self.checkpoint_io.load_checkpoint(path)
         if not state:
             return checkpoint

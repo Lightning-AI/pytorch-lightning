@@ -56,6 +56,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    torch.xpu.manual_seed_all(seed)
 
     os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
 
@@ -104,8 +105,9 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     random.seed(stdlib_seed)
 
 
-def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
+def _collect_rng_states(include_xpu: bool = True, include_cuda: bool = True) -> Dict[str, Any]:
+    """Collect the global random state of :mod:`torch`, :mod:`torch.xpu`, :mod:`torch.cuda`, :mod:`numpy` and
+    Python."""
     states = {
         "torch": torch.get_rng_state(),
         "numpy": np.random.get_state(),
@@ -113,16 +115,20 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
     }
     if include_cuda:
         states["torch.cuda"] = torch.cuda.get_rng_state_all()
+    if include_xpu:
+        states["torch.xpu"] = torch.xpu.get_rng_state_all()
     return states
 
 
 def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
-    process."""
+    """Set the global random state of :mod:`torch`, :mod:`torch.xpu`, :mod:`torch.cuda`, :mod:`numpy` and Python in
+    the current process."""
     torch.set_rng_state(rng_state_dict["torch"])
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:
         torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
+    if "torch.xpu" in rng_state_dict:
+        torch.xpu.set_rng_state_all(rng_state_dict["torch.xpu"])
     np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))
