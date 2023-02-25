@@ -71,7 +71,6 @@ class XLAStrategy(DDPStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
-        self._local_rank = 0
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
