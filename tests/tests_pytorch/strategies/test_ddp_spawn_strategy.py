@@ -46,7 +46,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
     """Tests if device is set correctly when training for DDPStrategy."""
-    trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
+    trainer = Trainer(devices=2, strategy="ddp_spawn", accelerator="cpu", fast_dev_run=True)
     # assert strategy attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
