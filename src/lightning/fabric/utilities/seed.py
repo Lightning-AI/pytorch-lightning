@@ -56,7 +56,10 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.xpu.manual_seed_all(seed)
+    try:
+        torch.xpu.manual_seed_all(seed)
+    except AttributeError:
+        pass
 
     os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
 
@@ -116,7 +119,10 @@ def _collect_rng_states(include_xpu: bool = True, include_cuda: bool = True) -> 
     if include_cuda:
         states["torch.cuda"] = torch.cuda.get_rng_state_all()
     if include_xpu:
-        states["torch.xpu"] = torch.xpu.get_rng_state_all()
+        try:
+            states["torch.xpu"] = torch.xpu.get_rng_state_all()
+        except AttributeError:
+            pass
     return states
 
 

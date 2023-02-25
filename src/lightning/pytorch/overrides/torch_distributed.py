@@ -113,7 +113,10 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
     # broadcasted to this device.
     group_backend = get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
-    is_ccl_backend = group_backend == Backend.CCL
+    try:
+        is_ccl_backend = group_backend == Backend.CCL
+    except AttributeError:
+        is_ccl_backend = False
     is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
     current_device = None
     if device is not None:

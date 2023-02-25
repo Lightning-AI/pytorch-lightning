@@ -345,7 +345,10 @@ class Strategy(ABC):
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
-        torch.xpu.empty_cache()
+        try:
+            torch.xpu.empty_cache()
+        except AttributeError:
+            pass
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
