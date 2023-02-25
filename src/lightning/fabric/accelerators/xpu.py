@@ -24,6 +24,19 @@ try:
     import intel_extension_for_pytorch as ipex
 
     rank_zero_info(f"Using Intel® Extension for PyTorch* {ipex.__version__}")
+    try:
+        import sys
+
+        import oneccl_bindings_for_pytorch
+
+        del sys.modules["oneccl_bindings_for_pytorch"]
+        del oneccl_bindings_for_pytorch
+    except ImportError:
+        rank_zero_info(
+            "Intel® oneCCL Bindings for PyTorch* is required to run DDP on XPU gpus, but it is not"
+            " detected. If you see \"ValueError: Invalid backend: 'ccl'\" error, please install Intel® oneCCL"
+            " Bindings for PyTorch*."
+        )
 except ImportError:
     pass
 

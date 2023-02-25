@@ -469,7 +469,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
 
         torch.cuda.empty_cache()
-        torch.xpu.empty_cache()
+        try:
+            torch.xpu.empty_cache()
+        except AttributeError:
+            pass
         _, client_state = engine.load_checkpoint(
             path,
             tag="checkpoint",

@@ -95,6 +95,8 @@ def garbage_collection_xpu() -> None:
     try:
         # This is the last thing that should cause an OOM error, but seemingly it can.
         torch.xpu.empty_cache()
+    except AttributeError:
+        pass
     except RuntimeError as exception:
         if not is_oom_error(exception):
             # Only handle OOM errors
