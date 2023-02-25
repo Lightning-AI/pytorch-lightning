@@ -18,7 +18,7 @@ from lightning.fabric.utilities.types import ReduceOp
 try:
     import oneccl_bindings_for_pytorch as torch_ccl
 
-    rank_zero_info(f"Using Intel® oneCCL Bindings for PyTorch* {torch_ccl.__version__}")
+    rank_zero_info(f"Using Intel(R) oneCCL Bindings for PyTorch* {torch_ccl.__version__}")
 except ImportError:
     pass
 

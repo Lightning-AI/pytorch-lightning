@@ -20,6 +20,7 @@ In a single line of code, you can seed PyTorch, NumPy, and Python:
     - numpy.random.seed(seed)
     - torch.manual_seed(seed)
     - torch.cuda.manual_seed(seed)
+    - torch.xpu.manual_seed(seed)
 
     + seed_everything(seed)
 

@@ -249,15 +249,24 @@ Example::
 
         # This is part of the built-in `CUDAAccelerator`
         class CUDAAccelerator(Accelerator):
-            """Accelerator for GPU devices."""
+            """Accelerator for CUDA GPU devices."""
 
             @staticmethod
             def auto_device_count() -> int:
                 """Get the devices when set to auto."""
                 return torch.cuda.device_count()
 
+        # This is part of the built-in `XPUAccelerator`
+        class XPUAccelerator(Accelerator):
+            """Accelerator for XPU GPU devices."""
 
-        # Training with GPU Accelerator using total number of gpus available on the system
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.xpu.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus, either CUDA or XPU, available on the system
         Trainer(accelerator="gpu")
 
 accumulate_grad_batches
@@ -471,8 +480,17 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
                 """Get the devices when set to auto."""
                 return torch.cuda.device_count()
 
+        # This is part of the built-in `XPUAccelerator`
+        class XPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
 
-        # Training with GPU Accelerator using total number of gpus available on the system
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.xpu.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus, either CUDA or XPU, available on the system
         Trainer(accelerator="gpu")
 
 enable_checkpointing

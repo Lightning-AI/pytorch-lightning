@@ -123,13 +123,13 @@ If you need a prediction loop, configure how your prediction routine behaves wit
 
 --------
 
-******************************************
-7. Remove any .cuda() or .to(device) Calls
-******************************************
+**************************************************
+7. Remove any .cuda(), .xpu() or .to(device) Calls
+**************************************************
 
 Your :doc:`LightningModule <../common/lightning_module>` can automatically run on any hardware!
 
-If you have any explicit calls to ``.cuda()`` or ``.to(device)``, you can remove them since Lightning makes sure that the data coming from :class:`~torch.utils.data.DataLoader`
+If you have any explicit calls to ``.cuda()``, ``.xpu()`` or ``.to(device)``, you can remove them since Lightning makes sure that the data coming from :class:`~torch.utils.data.DataLoader`
 and all the :class:`~torch.nn.Module` instances initialized inside ``LightningModule.__init__`` are moved to the respective devices automatically.
 If you still need to access the current device, you can use ``self.device`` anywhere in your ``LightningModule`` except in the ``__init__`` and ``setup`` methods.
 

@@ -227,8 +227,8 @@ Comparison of DDP variants and tradeoffs
      - No
    * - Limitations in the main process
      - None
-     - None
-     - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
+     - The state of objects is not up-to-date after returning to the main process (`Trainer.fit()` etc). Only the model parameters get transferred over.
+     - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` or ``torch.xpu`` functions before invoking ``Trainer.fit`` is not allowed.
    * - Process creation time
      - Slow
      - Slow
@@ -497,7 +497,7 @@ on installation and more use cases.
 Optimize multi-machine communication
 ------------------------------------
 
-By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
+By default, Lightning will select the ``nccl`` backend when running on NVidia(R) GPUs or ``ccl`` backend when running on Intel(R) GPUs over ``gloo``.
 Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
 
 Lightning allows explicitly specifying the backend via the `process_group_backend` constructor argument on the relevant Strategy classes. By default, Lightning will select the appropriate process group backend based on the hardware used.
@@ -508,6 +508,8 @@ Lightning allows explicitly specifying the backend via the `process_group_backen
 
     # Explicitly specify the process group backend if you choose to
     ddp = DDPStrategy(process_group_backend="nccl")
+    # Explicitly specify the process group backend if you choose to
+    ddp = DDPStrategy(process_group_backend="ccl")
 
     # Configure the strategy on the Trainer
     trainer = Trainer(strategy=ddp, accelerator="gpu", devices=8)

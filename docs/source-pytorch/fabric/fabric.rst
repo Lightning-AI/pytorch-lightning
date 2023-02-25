@@ -5,15 +5,11 @@ Fabric (Beta)
 Fabric allows you to scale any PyTorch model with just a few lines of code!
 With Fabric, you can easily scale your model to run on distributed devices using the strategy of your choice while keeping complete control over the training loop and optimization logic.
 
-With only a few changes to your code, Fabric allows you to:
-
-- Automatic placement of models and data onto the device
-- Automatic support for mixed precision (speedup and smaller memory footprint)
-- Seamless switching between hardware (CPU, GPU, TPU)
-- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
-- Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
-- Multi-node support (TorchElastic, SLURM, and more)
-- You keep complete control of your training loop
+- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, XPU, ...), TPU, multi-GPU or even multi-node training
+- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
+- Handles all the boilerplate device logic for you
+- Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
+- Designed with multi-billion parameter models in mind
 
 
 .. code-block:: diff
@@ -30,7 +26,10 @@ With only a few changes to your code, Fabric allows you to:
       class PyTorchDataset(Dataset):
           ...
 
+    + on NVidia(R) GPUs
     + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
+    + on Intel(R) GPUs
+    + fabric = Fabric(accelerator="xpu", devices=8, strategy="ddp")
     + fabric.launch()
 
     - device = "cuda" if torch.cuda.is_available() else "cpu

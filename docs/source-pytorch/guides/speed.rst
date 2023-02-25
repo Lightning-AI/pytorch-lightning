@@ -206,7 +206,7 @@ less memory bandwidth and run match operations much faster on GPUs that support 
 
 Mixed precision combines the use of both 32 and 16-bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving upto +3X speedups on modern GPUs.
 
-Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
+Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for Intel(R) CPUs, Intel(R) GPUs and TPUs.
 
 
 .. testcode::
@@ -450,7 +450,7 @@ takes a great deal of care to be optimized for this.
 Clear Cache
 ===========
 
-Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
+Don't call `torch.xpu.empty_cache` and :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
 
 Transferring Tensors to Device
 ==============================
@@ -461,6 +461,7 @@ LightningModules know what device they are on! Construct tensors on the device d
 
     # bad
     t = torch.rand(2, 2).cuda()
+    t = torch.rand(2, 2).xpu()
 
     # good (self is LightningModule)
     t = torch.rand(2, 2, device=self.device)
