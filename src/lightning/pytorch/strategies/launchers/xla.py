@@ -139,6 +139,6 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        self.add_to_queue(trainer, extra)
+        self.get_extra_results(trainer, extra)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
