@@ -255,7 +255,7 @@ class _WorkerOutput(NamedTuple):
     weights_path: Optional[_PATH]
     trainer_state: TrainerState
     trainer_results: Any
-    extra: dict
+    extra: Dict[str, Any]
 
 
 @dataclass
