@@ -44,18 +44,6 @@ class DataConnector:
         self.trainer = trainer
         self._datahook_selector: Optional[_DataHookSelector] = None
 
-    @property
-    def _should_reload_train_dl(self) -> bool:
-        """Check if train dataloader should be reloaded."""
-        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
-
-    @property
-    def _should_reload_val_dl(self) -> bool:
-        """Check if validation dataloader should be reloaded."""
-        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return bool(n_epochs and self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
-
     def on_trainer_init(
         self,
         val_check_interval: Optional[Union[int, float]],
@@ -83,7 +71,6 @@ class DataConnector:
             )
 
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
-        self.trainer._is_data_prepared = False
 
     def prepare_data(self) -> None:
         trainer = self.trainer
@@ -107,7 +94,6 @@ class DataConnector:
             lm_prepare_data_per_node = lightning_module.prepare_data_per_node
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
                 call._call_lightning_module_hook(trainer, "prepare_data")
-                trainer._is_data_prepared = True
 
     def attach_data(
         self,
@@ -229,7 +215,7 @@ class DataConnector:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self.trainer._accelerator_connector.replace_sampler_ddp
+            self.trainer._accelerator_connector.use_distributed_sampler
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)

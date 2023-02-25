@@ -68,7 +68,7 @@ class MixedPrecisionBoringFabric(BoringFabric):
     ],
 )
 def test_amp(accelerator, precision, expected_dtype):
-    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
+    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
     fabric.expected_dtype = expected_dtype
     fabric.run()
 

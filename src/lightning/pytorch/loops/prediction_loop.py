@@ -6,12 +6,13 @@ from lightning_utilities import WarningCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities import move_data_to_device
+from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _set_sampler_epoch
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
@@ -31,6 +32,7 @@ class _PredictionLoop(_Loop):
         self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
         self.batch_progress = Progress()  # across dataloaders
+        self.max_batches: List[Union[int, float]] = []
 
         self._warning_cache = WarningCache()
         self._data_source = _DataLoaderSource(None, "predict_dataloader")
@@ -72,11 +74,6 @@ class _PredictionLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> List[Union[int, float]]:
-        """The max number of batches this loop will run for each dataloader."""
-        return self.trainer.num_predict_batches
-
-    @property
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
@@ -109,7 +106,7 @@ class _PredictionLoop(_Loop):
         if not source.is_defined() or trainer.limit_predict_batches == 0:
             return
 
-        trainer.num_predict_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(
+        self.max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(
             RunningStage.PREDICTING, model=pl_module
         )
         for dl in combined_loader.flattened:
@@ -219,18 +216,14 @@ class _PredictionLoop(_Loop):
 
     def _get_batch_indices(self, dataloader: object) -> List[List[int]]:  # batches x samples
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
-        :class:`~lightning.pytorch.overrides.distributed.IndexBatchSamplerWrapper`."""
+        :class:`~lightning.pytorch.overrides.distributed._IndexBatchSamplerWrapper`."""
         batch_sampler = getattr(dataloader, "batch_sampler", None)
-        if not isinstance(batch_sampler, IndexBatchSamplerWrapper):
+        if not isinstance(batch_sampler, _IndexBatchSamplerWrapper):
             self._warning_cache.warn(
                 f"Couldn't infer the batch indices fetched from your dataloader: `{type(dataloader).__name__}`"
             )
             return []
-        seen_batch_indices = batch_sampler.seen_batch_indices
-        # TODO(carmocca): this could be avoided
-        # we need to truncate the list because `IndexBatchSamplerWrapper` computes all indices on `__iter__`
-        seen_batch_indices = seen_batch_indices[: (self.batch_progress.current.completed + 1)]
-        return seen_batch_indices
+        return batch_sampler.seen_batch_indices
 
     def _store_data_for_prediction_writer(self, batch_idx: int, dataloader_idx: int) -> bool:
         prediction_writers = [cb for cb in self.trainer.callbacks if isinstance(cb, BasePredictionWriter)]
@@ -242,7 +235,7 @@ class _PredictionLoop(_Loop):
             dataloader = combined_loader.flattened[dataloader_idx]
             batch_indices = self._get_batch_indices(dataloader)
             if not batch_indices:
-                # this is only available with `IndexBatchSamplerWrapper`, but it's only used on DataLoaders, if this is
+                # this is only available with `_IndexBatchSamplerWrapper`, but it's only used on DataLoaders, if this is
                 # reached, it's likely because a non-DataLoader was passed
                 return any_on_epoch
             batch_indices = batch_indices[batch_idx]
