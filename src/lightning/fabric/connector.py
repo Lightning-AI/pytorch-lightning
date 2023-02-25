@@ -285,6 +285,13 @@ class _Connector:
                                 f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                             )
                         self._accelerator_flag = "cpu"
+                    if self._strategy_flag.parallel_devices[0].type == "xpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "xpu", "gpu"):
+                            raise ValueError(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
+                        self._accelerator_flag = "xpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
                         if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
                             raise ValueError(
@@ -397,8 +404,8 @@ class _Connector:
             return "ddp"
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            if isinstance(self._accelerator_flag, (XPUAccelerator, CUDAAccelerator, MPSAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("xpu", "cuda", "gpu", "mps")
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:
@@ -434,7 +441,7 @@ class _Connector:
             )
         if (
             strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and self._accelerator_flag not in ("xpu", "cuda", "gpu"):
             raise ValueError(
                 "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"
                 " to continue or select a different strategy."
@@ -487,7 +494,9 @@ class _Connector:
                 if self._precision_input == "16"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
+            device = (
+                self._accelerator_flag if self._accelerator_flag == "cpu" or self._accelerator_flag == "xpu" else "cuda"
+            )
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPPrecision(precision=self._precision_input, device=device)

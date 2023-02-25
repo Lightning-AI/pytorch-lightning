@@ -143,7 +143,7 @@ def _set_env_variables(args: Namespace) -> None:
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
     if accelerator == "gpu":
-        parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
+        parsed_devices = _parse_gpu_ids(devices, include_xpu=True, include_cuda=True, include_mps=True)
     elif accelerator == "xpu":
         parsed_devices = XPUAccelerator.parse_devices(devices)
     elif accelerator == "cuda":

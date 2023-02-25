@@ -193,14 +193,15 @@ class DDPStrategy(ParallelStrategy):
 
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
-        if self.root_device.type == "cuda" and self._is_single_process_single_device:
-            assert isinstance(self.model, DistributedDataParallel)
-            register_ddp_comm_hook(
-                model=self.model,
-                ddp_comm_state=self._ddp_comm_state,
-                ddp_comm_hook=self._ddp_comm_hook,
-                ddp_comm_wrapper=self._ddp_comm_wrapper,
-            )
+        if self.root_device.type == "cuda" or self.root_device.type == "xpu":
+            if self._is_single_process_single_device:
+                assert isinstance(self.model, DistributedDataParallel)
+                register_ddp_comm_hook(
+                    model=self.model,
+                    ddp_comm_state=self._ddp_comm_state,
+                    ddp_comm_hook=self._ddp_comm_hook,
+                    ddp_comm_wrapper=self._ddp_comm_wrapper,
+                )
 
     def _enable_model_averaging(self) -> None:
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")

@@ -61,7 +61,7 @@ class Fabric:
 
     Args:
         accelerator: The hardware to run on. Possible choices are:
-            ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
+            ``"cpu"``, ``"xpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.

@@ -326,6 +326,13 @@ class AcceleratorConnector:
                                 f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                             )
                         self._accelerator_flag = "cpu"
+                    if self._strategy_flag.parallel_devices[0].type == "xpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "xpu", "gpu"):
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
+                        self._accelerator_flag = "xpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
                         if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
                             raise MisconfigurationException(
@@ -496,7 +503,7 @@ class AcceleratorConnector:
             strategy_flag = "ddp"
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and self._accelerator_flag not in ("xpu", "cuda", "gpu"):
             raise MisconfigurationException(
                 f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
             )
@@ -560,12 +567,9 @@ class AcceleratorConnector:
             rank_zero_info(
                 f"Using {'16bit' if self._precision_flag == 16 else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
-            if self._accelerator_flag == "cpu":
-                device = "cpu"
-            elif self._accelerator_flag == "xpu":
-                device = "xpu"
-            else:
-                device = "cuda"
+            device = (
+                self._accelerator_flag if self._accelerator_flag == "cpu" or self._accelerator_flag == "xpu" else "cuda"
+            )
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPMixedPrecisionPlugin(self._precision_flag, device)

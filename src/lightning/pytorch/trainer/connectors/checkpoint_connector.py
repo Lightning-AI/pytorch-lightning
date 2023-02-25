@@ -220,6 +220,7 @@ class CheckpointConnector:
         # free memory
         self._loaded_checkpoint = {}
         torch.cuda.empty_cache()
+        torch.xpu.empty_cache()
 
         # wait for all to catch up
         self.trainer.strategy.barrier("CheckpointConnector.resume_end")

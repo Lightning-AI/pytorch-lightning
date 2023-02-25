@@ -18,7 +18,7 @@ from copy import deepcopy
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 import lightning.pytorch as pl
-from lightning.pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
+from lightning.pytorch.utilities.memory import garbage_collection_cuda, garbage_collection_xpu, is_oom_error
 from lightning.pytorch.utilities.parsing import lightning_getattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -85,6 +85,7 @@ def _scale_batch_size(
         new_size = _run_binary_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
 
     garbage_collection_cuda()
+    garbage_collection_xpu()
 
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
@@ -178,6 +179,7 @@ def _run_power_scaling(
     any_success = False
     for _ in range(max_trials):
         garbage_collection_cuda()
+        garbage_collection_xpu()
 
         # reset after each try
         _reset_progress(trainer)
@@ -196,6 +198,7 @@ def _run_power_scaling(
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
+                garbage_collection_xpu()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 # Force the train dataloader to reset as the batch size has changed
                 _reset_dataloaders(trainer, pl_module)
@@ -225,6 +228,7 @@ def _run_binary_scaling(
     count = 0
     while True:
         garbage_collection_cuda()
+        garbage_collection_xpu()
 
         # reset after each try
         _reset_progress(trainer)
@@ -256,6 +260,7 @@ def _run_binary_scaling(
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
+                garbage_collection_xpu()
 
                 high = new_size
                 midval = (high + low) // 2
