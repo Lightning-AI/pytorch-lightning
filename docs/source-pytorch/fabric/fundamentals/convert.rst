@@ -14,7 +14,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
     fabric = Fabric()
 
-**Step 2:** Call :class:`~lightning_fabric.fabric.Fabric.launch` if you intend to use multiple devices (e.g., multi-GPU).
+**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.launch` if you intend to use multiple devices (e.g., multi-GPU).
 
 .. code-block:: python
 
