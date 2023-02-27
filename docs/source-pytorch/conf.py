@@ -162,7 +162,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -393,8 +393,15 @@ import torch
 import lightning.pytorch as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
+from lightning.pytorch.utilities import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
+from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
+from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
+from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 

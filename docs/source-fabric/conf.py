@@ -88,7 +88,6 @@ extensions = [
     "sphinx.ext.imgmath",
     "myst_parser",
     "sphinx.ext.autosectionlabel",
-    "nbsphinx",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "sphinx_paramlinks",
@@ -134,7 +133,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -397,8 +396,11 @@ import importlib
 import os
 import lightning as L
 
+from lightning_utilities.core.imports import package_available
 from lightning import LightningModule, Trainer
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+
+_TORCHVISION_AVAILABLE = package_available("torchvision")
 """
 coverage_skip_undoc_in_source = True
 
