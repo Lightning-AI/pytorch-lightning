@@ -129,10 +129,6 @@ class DDPStrategy(ParallelStrategy):
         return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     @property
-    def _is_single_process_single_device(self) -> bool:
-        return True
-
-    @property
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
@@ -206,7 +202,7 @@ class DDPStrategy(ParallelStrategy):
         log.debug(f"{self.__class__.__name__}: registering ddp hooks")
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if self.root_device.type == "cuda" and self._is_single_process_single_device:
+        if self.root_device.type == "cuda":
             assert isinstance(self.model, DistributedDataParallel)
             register_ddp_comm_hook(
                 model=self.model,
