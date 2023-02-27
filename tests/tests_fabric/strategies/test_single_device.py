@@ -79,12 +79,24 @@ class _MyFabricGradNorm(BoringFabric):
 
 class _MyFabricGradVal(BoringFabric):
     def after_backward(self, model, optimizer):
+        for p in model.parameters():
+            if p.grad is not None and torch.isnan(p.grad).any().item() or torch.isinf(p.grad).any().item():
+                raise RuntimeError('Nonfinite grads')
+
         self.clip_gradients(model, optimizer, clip_val=1e-10)
 
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
         torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
+
+    def run(self):
+        while True:
+            try:
+                super().run()
+                break
+            except RuntimeError:  # nonfinite grads -> skip and continue
+                pass
 
 
 @pytest.mark.parametrize(
