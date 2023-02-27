@@ -52,7 +52,7 @@ Checkpoints can also save the state of :doc:`datamodules <../extensions/datamodu
 ****************************
 Modify a checkpoint anywhere
 ****************************
-When you need to change the components of a checkpoint before saving or loading, use the :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` of your ``LightningModule``.
+When you need to change the components of a checkpoint before saving or loading, use the :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` of your ``LightningModule``.
 
 .. code:: python
 
@@ -63,7 +63,7 @@ When you need to change the components of a checkpoint before saving or loading,
         def on_load_checkpoint(self, checkpoint):
             my_cool_pickable_object = checkpoint["something_cool_i_want_to_save"]
 
-Use the above approach when you need to couple this behavior to your LightningModule for reproducibility reasons. Otherwise, Callbacks also have the :meth:`~pytorch_lightning.callbacks.callback.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.callback.Callback.on_load_checkpoint` which you should use instead:
+Use the above approach when you need to couple this behavior to your LightningModule for reproducibility reasons. Otherwise, Callbacks also have the :meth:`~lightning.pytorch.callbacks.callback.Callback.on_save_checkpoint` and :meth:`~lightning.pytorch.callbacks.callback.Callback.on_load_checkpoint` which you should use instead:
 
 .. code:: python
 
