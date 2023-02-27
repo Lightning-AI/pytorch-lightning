@@ -74,7 +74,7 @@ for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
     shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
-    os.path.join(PATH_ROOT, "src", "pytorch_lightning", "CHANGELOG.md"),
+    os.path.join(PATH_ROOT, "src", "lightning", "pytorch", "CHANGELOG.md"),
     os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
