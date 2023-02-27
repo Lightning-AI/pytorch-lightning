@@ -34,7 +34,7 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0.0")
 if _NEPTUNE_AVAILABLE:
     import neptune
     from neptune.run import Run
@@ -55,13 +55,13 @@ class NeptuneLogger(Logger):
 
     .. code-block:: bash
 
-        pip install neptune-client
+        pip install neptune
 
     or conda:
 
     .. code-block:: bash
 
-        conda install -c conda-forge neptune-client
+        conda install -c conda-forge neptune
 
     **Quickstart**
 

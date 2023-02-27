@@ -1384,7 +1384,7 @@ def test_comet_logger_init_args():
     )
 
 
-@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
+@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune is required")
 def test_neptune_logger_init_args():
     _test_logger_init_args(
         "NeptuneLogger",

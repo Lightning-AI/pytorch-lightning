@@ -68,13 +68,13 @@ To use `Neptune.ai <https://neptune.ai/>`_ first install the neptune package:
 
 .. code-block:: bash
 
-    pip install neptune-client
+    pip install neptune
 
 or with conda:
 
 .. code-block:: bash
 
-    conda install -c conda-forge neptune-client
+    conda install -c conda-forge neptune
 
 Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
 
