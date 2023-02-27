@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for automatically calling `set_epoch` on the `dataloader.batch_sampler.sampler` ([#16841](https://github.com/Lightning-AI/lightning/pull/16841))
 
 
-- Added support for writing logs remote file systems on `CSVLoggers`. ([#16880](https://github.com/Lightning-AI/lightning/pull/16880))
+- Added support for writing logs to remote file systems with the `CSVLogger` ([#16880](https://github.com/Lightning-AI/lightning/pull/16880))
 
 ### Changed
 
