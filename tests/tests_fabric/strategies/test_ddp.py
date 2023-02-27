@@ -115,8 +115,8 @@ def test_ddp_module_state_dict():
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))])
 @RunIf(standalone=True)
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
-    if accelerator == 'cpu' and precision == '16-mixed':
-        pytest.skip('CPU and 16-bit mixed precision are not compatible.')
+    if accelerator == "cpu" and precision == "16-mixed":
+        pytest.skip("CPU and 16-bit mixed precision are not compatible.")
     if clip_type == "norm":
         clipping_test_cls = _MyFabricGradNorm
     else:
