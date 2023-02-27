@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
-from typing import Callable, Generator
+from typing import Callable
 
 import pytest
 import torch
@@ -36,6 +35,8 @@ from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.cloud_io import _atomic_save
 
+from tests_fabric.parity.utils import configure_optimizers, precision_context
+
 
 class BoringModel(nn.Module):
     def __init__(self):
@@ -45,10 +46,6 @@ class BoringModel(nn.Module):
     def forward(self, x):
         x = self.layer(x)
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
-
-
-def configure_optimizers(module: nn.Module):
-    return torch.optim.SGD(module.parameters(), lr=0.0001)
 
 
 def main(
@@ -91,19 +88,6 @@ class FabricRunner(Fabric):
             checkpoint_path = os.path.join(tmpdir, "model.pt")
             _atomic_save(model.state_dict(), checkpoint_path)
             return checkpoint_path
-
-
-@contextmanager
-def precision_context(precision, accelerator) -> Generator[None, None, None]:
-    if precision == 32:
-        yield
-        return
-    if accelerator == "gpu":
-        with torch.cuda.amp.autocast():
-            yield
-    elif accelerator == "cpu":
-        with torch.cpu.amp.autocast():
-            yield
 
 
 @pytest.mark.parametrize(
