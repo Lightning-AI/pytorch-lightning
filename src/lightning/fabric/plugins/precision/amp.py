@@ -96,7 +96,7 @@ class MixedPrecision(Precision):
 
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = getattr(self.precision, "scaler", None)
-        if scaler is not None:
+        if self.scaler is not None:
             if _optimizer_handles_unscaling(optimizer):
                 raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
             scaler.unscale_(optimizer)
