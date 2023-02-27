@@ -50,7 +50,8 @@ from lightning.pytorch.demos.boring_classes import (
 )
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from lightning.pytorch.strategies import DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
+from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
@@ -1330,7 +1331,7 @@ def predict(
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
-    if not isinstance(trainer.strategy, DDPSpawnStrategy):
+    if not isinstance(trainer.strategy.launcher, _MultiProcessingLauncher):
         if use_callbacks:
             assert cb.write_on_batch_end_called
             assert not cb.write_on_epoch_end_called
@@ -1429,7 +1430,7 @@ def test_spawn_predict_return_predictions(tmpdir):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn strategies."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPStrategy)
     with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
@@ -1871,78 +1872,68 @@ def test_detect_anomaly_nan(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
+    ["trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"],
     [
-        ({"strategy": "auto"}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        pytest.param({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
-        pytest.param(
-            {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)
-        ),
+        ({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1),
+        pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
+        pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         (
             {"strategy": "auto", "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
-            "single_device",
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": "ddp", "accelerator": "cuda", "devices": 1}, DDPStrategy, "ddp", CUDAAccelerator, 1),
+        ({"strategy": "ddp", "accelerator": "cuda", "devices": 1}, DDPStrategy, CUDAAccelerator, 1),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 1},
-            DDPSpawnStrategy,
-            "ddp_spawn",
+            DDPStrategy,
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": "auto", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
-        ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
-        ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        ({"strategy": "auto", "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, CPUAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
-            DDPSpawnStrategy,
-            "ddp_spawn",
+            DDPStrategy,
             CPUAccelerator,
             2,
         ),
         (
             {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 1},
-            DDPSpawnStrategy,
-            "ddp_spawn",
+            DDPStrategy,
             CPUAccelerator,
             1,
         ),
         (
-            {"strategy": DDPSpawnStrategy(), "accelerator": "cpu", "devices": 2},
-            DDPSpawnStrategy,
-            "ddp_spawn",
+            {"strategy": DDPStrategy(), "accelerator": "cpu", "devices": 2},
+            DDPStrategy,
             CPUAccelerator,
             2,
         ),
         (
-            {"strategy": DDPSpawnStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPSpawnStrategy,
-            "ddp_spawn",
+            {"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2},
+            DDPStrategy,
             CUDAAccelerator,
             2,
         ),
-        pytest.param({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
-        ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
+        pytest.param({"strategy": DDPStrategy()}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
+        ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
-            DDPSpawnStrategy,
-            "ddp_spawn",
+            DDPStrategy,
             CUDAAccelerator,
             2,
         ),
     ],
 )
-def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
+def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, accelerator_cls, devices):
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
 
     trainer = Trainer(**trainer_kwargs)
 
     assert isinstance(trainer.strategy, strategy_cls)
-    assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
@@ -1951,7 +1942,6 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     trainer_kwargs.pop("devices", None)
 
     assert isinstance(trainer.strategy, strategy_cls)
-    assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)

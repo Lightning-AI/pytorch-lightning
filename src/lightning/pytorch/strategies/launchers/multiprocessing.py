@@ -64,7 +64,7 @@ class _MultiProcessingLauncher(_Launcher):
     """
 
     def __init__(
-        self, strategy: "pl.strategies.DDPSpawnStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+        self, strategy: "pl.strategies.ParallelStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
     ) -> None:
         self._strategy = strategy
         self._start_method = start_method
@@ -144,7 +144,7 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-        self._strategy._local_rank = process_idx
+        os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
         if trainer is not None:
@@ -207,7 +207,7 @@ class _MultiProcessingLauncher(_Launcher):
             if _is_deferred(self._strategy.lightning_module):
                 raise NotImplementedError(
                     f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                    f" initialization."
+                    f" initialization when `start_method='spawn'`."
                 )
 
     def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:

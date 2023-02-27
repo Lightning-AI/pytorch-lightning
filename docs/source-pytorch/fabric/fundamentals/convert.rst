@@ -4,9 +4,9 @@
 Convert PyTorch code to Fabric
 ##############################
 
-Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale your PyTorch models.
+Here are five easy steps to let :class:`~lightning.fabric.fabric.Fabric` scale your PyTorch models.
 
-**Step 1:** Create the :class:`~lightning_fabric.fabric.Fabric` object at the beginning of your training code.
+**Step 1:** Create the :class:`~lightning.fabric.fabric.Fabric` object at the beginning of your training code.
 
 .. code-block:: python
 
@@ -14,7 +14,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
     fabric = Fabric()
 
-**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.launch` if you intend to use multiple devices (e.g., multi-GPU).
+**Step 2:** Call :meth:`~lightning.fabric.fabric.Fabric.launch` if you intend to use multiple devices (e.g., multi-GPU).
 
 .. code-block:: python
 
@@ -27,7 +27,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
     model, optimizer = fabric.setup(model, optimizer)
     dataloader = fabric.setup_dataloaders(dataloader)
 
-**Step 4:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
+**Step 4:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning.fabric.fabric.Fabric` will take care of it.
 
 .. code-block:: diff
 

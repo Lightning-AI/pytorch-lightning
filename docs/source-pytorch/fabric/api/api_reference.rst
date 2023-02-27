@@ -10,7 +10,7 @@ API Reference
 Fabric
 ^^^^^^
 
-.. currentmodule:: lightning_fabric.fabric
+.. currentmodule:: lightning.fabric.fabric
 
 .. autosummary::
     :toctree: ../../api
@@ -23,7 +23,7 @@ Fabric
 Accelerators
 ^^^^^^^^^^^^
 
-.. currentmodule:: lightning_fabric.accelerators
+.. currentmodule:: lightning.fabric.accelerators
 
 .. autosummary::
     :toctree: ../../api
@@ -40,7 +40,7 @@ Accelerators
 Loggers
 ^^^^^^^
 
-.. currentmodule:: lightning_fabric.loggers
+.. currentmodule:: lightning.fabric.loggers
 
 .. autosummary::
     :toctree: ../../api
@@ -60,7 +60,7 @@ Precision
 
 .. TODO(fabric): include DeepSpeedPrecision
 
-.. currentmodule:: lightning_fabric.plugins.precision
+.. currentmodule:: lightning.fabric.plugins.precision
 
 .. autosummary::
     :toctree: ../../api
@@ -78,7 +78,7 @@ Precision
 Environments
 """"""""""""
 
-.. currentmodule:: lightning_fabric.plugins.environments
+.. currentmodule:: lightning.fabric.plugins.environments
 
 .. autosummary::
     :toctree: ../../api
@@ -98,7 +98,7 @@ Environments
 IO
 ""
 
-.. currentmodule:: lightning_fabric.plugins.io
+.. currentmodule:: lightning.fabric.plugins.io
 
 .. autosummary::
     :toctree: ../../api
@@ -113,7 +113,7 @@ IO
 Collectives
 """""""""""
 
-.. currentmodule:: lightning_fabric.plugins.collectives
+.. currentmodule:: lightning.fabric.plugins.collectives
 
 .. autosummary::
     :toctree: ../../api
@@ -130,7 +130,7 @@ Strategies
 
 .. TODO(fabric): include DeepSpeedStrategy, XLAStrategy
 
-.. currentmodule:: lightning_fabric.strategies
+.. currentmodule:: lightning.fabric.strategies
 
 .. autosummary::
     :toctree: ../../api

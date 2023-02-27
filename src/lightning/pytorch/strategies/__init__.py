@@ -13,7 +13,6 @@
 # limitations under the License.
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.pytorch.strategies.ddp import DDPStrategy  # noqa: F401
-from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning.pytorch.strategies.fsdp import FSDPStrategy  # noqa: F401
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy  # noqa: F401
