@@ -170,7 +170,7 @@ class ModelHooks:
         """Called in the training loop at the very end of the epoch.
 
         To access all batch outputs at the end of the epoch, you can cache step outputs as an attribute of the
-        :class:`pytorch_lightning.LightningModule` and access them in this hook:
+        :class:`~lightning.pytorch.LightningModule` and access them in this hook:
 
         .. code-block:: python
 

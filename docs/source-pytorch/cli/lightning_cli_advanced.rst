@@ -9,7 +9,7 @@ Configure hyperparameters from the CLI (Advanced)
 
 As a project becomes more complex, the number of configurable options becomes very large, making it inconvenient to
 control through individual command line arguments. To address this, CLIs implemented using
-:class:`~pytorch_lightning.cli.LightningCLI` always support receiving input from configuration files. The default format
+:class:`~lightning.pytorch.cli.LightningCLI` always support receiving input from configuration files. The default format
 used for config files is YAML.
 
 .. tip::
@@ -48,7 +48,7 @@ respective log directory a ``config.yaml`` file. These files can be used to triv
 
     python main.py fit --config lightning_logs/version_7/config.yaml
 
-The automatic saving of the config is done by the special callback :class:`~pytorch_lightning.cli.SaveConfigCallback`.
+The automatic saving of the config is done by the special callback :class:`~lightning.pytorch.cli.SaveConfigCallback`.
 This callback is automatically added to the ``Trainer``. To disable the save of the config, instantiate ``LightningCLI``
 with ``save_config_callback=None``.
 
@@ -107,7 +107,7 @@ which generates a config like:
     trainer:
       ...
     model:
-      class_path: pytorch_lightning.demos.boring_classes.DemoModel
+      class_path: lightning.pytorch.demos.boring_classes.DemoModel
       init_args:
         out_dim: 10
         learning_rate: 0.02
