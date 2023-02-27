@@ -103,18 +103,21 @@ def test_ddp_module_state_dict():
         assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
 
 
-@pytest.mark.parametrize('clip_type,accelerator,precision', [
-    ('norm', 'cpu', '32-true'),
-    ('val', 'cpu', '32-true'),
-    ('norm', 'cpu', 'bf16-mixed'),
-    ('val', 'cpu', 'bf16-mixed'),
-    pytest.param('norm', 'cuda', '32-true', marks=RunIf(min_cuda_gpus=2)),
-    pytest.param('val', 'cuda', '32-true', marks=RunIf(min_cuda_gpus=2)),
-    pytest.param('norm', 'cuda', '16-mixed', marks=RunIf(min_cuda_gpus=2)),
-    pytest.param('val', 'cuda', '16-mixed', marks=RunIf(min_cuda_gpus=2)),
-    pytest.param('norm', 'cuda', 'bf16-mixed', marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
-    pytest.param('val', 'cuda', 'bf16-mixed', marks=RunIf(min_cuda_gpus=2, bf16_cuda=True))
-])
+@pytest.mark.parametrize(
+    "clip_type,accelerator,precision",
+    [
+        ("norm", "cpu", "32-true"),
+        ("val", "cpu", "32-true"),
+        ("norm", "cpu", "bf16-mixed"),
+        ("val", "cpu", "bf16-mixed"),
+        pytest.param("norm", "cuda", "32-true", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("val", "cuda", "32-true", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("norm", "cuda", "16-mixed", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("val", "cuda", "16-mixed", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("norm", "cuda", "bf16-mixed", marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
+        pytest.param("val", "cuda", "bf16-mixed", marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
+    ],
+)
 @RunIf(standalone=True)
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
     if clip_type == "norm":
