@@ -108,8 +108,6 @@ class _MyFabricGradVal(BoringFabric):
             finally:
                 i += 1
 
-
-
     # def run(self):
     #     while True:
     #         try:
