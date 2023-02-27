@@ -14,35 +14,40 @@ Here are five easy steps to let :class:`~lightning.fabric.fabric.Fabric` scale y
 
     fabric = Fabric()
 
-**Step 2:** Call :meth:`~lightning.fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
+**Step 2:** Call :meth:`~lightning.fabric.fabric.Fabric.launch` if you intend to use multiple devices (e.g., multi-GPU).
+
+.. code-block:: python
+
+    fabric.launch()
+
+**Step 3:** Call :meth:`~lightning.fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
 
 .. code-block:: python
 
     model, optimizer = fabric.setup(model, optimizer)
     dataloader = fabric.setup_dataloaders(dataloader)
 
-**Step 3:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning.fabric.fabric.Fabric` will take care of it.
+**Step 4:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning.fabric.fabric.Fabric` will take care of it.
 
 .. code-block:: diff
 
   - model.to(device)
   - batch.to(device)
 
-**Step 4:** Replace ``loss.backward()`` by ``fabric.backward(loss)``.
+**Step 5:** Replace ``loss.backward()`` by ``fabric.backward(loss)``.
 
 .. code-block:: diff
 
   - loss.backward()
   + fabric.backward(loss)
 
-**Step 5:** Run the script from the terminal with
+
+These are all code changes required to prepare your script for Fabric.
+You can now simply run from the terminal:
 
 .. code-block:: bash
 
-    lightning run model path/to/train.py
-
-or use the :meth:`~lightning.fabric.fabric.Fabric.launch` method in a notebook.
-Learn more about :doc:`launching distributed training <launch>`.
+    python path/to/your/script.py
 
 |
 

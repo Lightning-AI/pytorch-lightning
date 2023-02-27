@@ -65,19 +65,12 @@ jobs:
           key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-test-${{ matrix.pkg-name }}-
 
-      - name: Install LAI package
-        # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name != 'pytorch' }}
-        run: pip install -e . -U -v -f pypi -f ${TORCH_URL}
-
       - name: adjust paths
         run: |
           python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'fabric': '-fabric', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
           python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
 
       - name: Install this package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
@@ -129,8 +122,6 @@ jobs:
           python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
 
       - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip --version
           pip install -e . -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
@@ -151,5 +142,3 @@ jobs:
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failuress
-        if: success()
