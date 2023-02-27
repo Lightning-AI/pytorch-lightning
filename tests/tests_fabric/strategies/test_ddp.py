@@ -108,10 +108,7 @@ def test_ddp_module_state_dict():
     [
         "32-true",
         pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(
-            "bf16-mixed",
-            marks=RunIf(bf16_cuda=True)
-        ),
+        pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])

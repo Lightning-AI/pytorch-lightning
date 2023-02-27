@@ -78,10 +78,7 @@ def test_dp_module_state_dict():
     [
         "32-true",
         "16-mixed",
-        pytest.param(
-            "bf16-mixed",
-            marks=RunIf(bf16_cuda=True)
-        ),
+        pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
