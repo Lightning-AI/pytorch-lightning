@@ -202,7 +202,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
             _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
 
-        self._module = module
 
         return wrapped_module
 
