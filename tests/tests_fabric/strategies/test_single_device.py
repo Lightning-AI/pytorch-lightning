@@ -95,7 +95,9 @@ class _MyFabricGradVal(BoringFabric):
             try:
                 super().run()
                 break
-            except RuntimeError:  # nonfinite grads -> skip and continue
+            except RuntimeError:
+                # nonfinite grads -> skip and continue
+                # this may repeat until the sacler finds a factor where overflow is avoided, so the while loop should eventually break
                 pass
 
 
