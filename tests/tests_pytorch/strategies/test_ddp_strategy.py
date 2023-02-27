@@ -115,7 +115,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp():
+def test_ddp_configure_ddp(mps_count_0):
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
@@ -236,6 +236,7 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     ddp_strategy = DDPStrategy(timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
+        accelerator="cpu",
         strategy=ddp_strategy,
     )
     # test wrap the model if fitting

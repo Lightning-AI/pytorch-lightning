@@ -43,3 +43,24 @@ def test_flatten_unflatten():
     dataset1, dataset2 = ["a", "b"], ["c"]
     datasets = [[dataset1, dataset2]]
     assert_tree_flatten_unflatten(datasets, [dataset1, dataset2])
+
+
+def test_flatten_unflatten_depth_2_or_more():
+    datasets = [range(1), [range(2), [range(3)]]]
+    flat, spec = _tree_flatten(datasets)
+    assert flat == [range(1), range(2), range(3)]
+    unflattened = tree_unflatten(flat, spec)
+    assert unflattened == datasets
+
+    datasets = [[1], [[2], [[3]]]]
+    flat, spec = _tree_flatten(datasets)
+    assert flat == [[1], [2], [3]]
+    unflattened = tree_unflatten(flat, spec)
+    assert unflattened == datasets
+
+    datasets = [1, [2, [3]]]
+    flat, spec = _tree_flatten(datasets)
+    # [3] is a container of all primitives so it is treated as a leaf
+    assert flat == [1, 2, [3]]
+    unflattened = tree_unflatten(flat, spec)
+    assert unflattened == datasets

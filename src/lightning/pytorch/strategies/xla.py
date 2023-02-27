@@ -93,6 +93,10 @@ class XLAStrategy(DDPSpawnStrategy):
 
         return xm.xla_device()
 
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
+
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
         if not has_len(dataloader):
@@ -210,6 +214,11 @@ class XLAStrategy(DDPSpawnStrategy):
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -225,27 +234,8 @@ class XLAStrategy(DDPSpawnStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def _pod_progress_bar_force_stdout(self) -> None:
-        # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the main worker doesn't work well with tqdm
-        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
-        # The print statement seems to force tqdm to flush stdout.
-        import torch_xla.core.xla_env_vars as xenv
-
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
-            print()
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -299,3 +289,13 @@ class XLAStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def _pod_progress_bar_force_stdout(self) -> None:
+        # Why is it required? The way `pytorch_xla.distributed` streams logs
+        # from different vms to the main worker doesn't work well with tqdm
+        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
+        # The print statement seems to force tqdm to flush stdout.
+        import torch_xla.core.xla_env_vars as xenv
+
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print()

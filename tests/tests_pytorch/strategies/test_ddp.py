@@ -75,7 +75,7 @@ def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
-def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
+def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, mps_count_0, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
@@ -96,7 +96,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.parametrize("precision", (16, 32))
+@pytest.mark.parametrize("precision", ("16-mixed", "32-true"))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
 

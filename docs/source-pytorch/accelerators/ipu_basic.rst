@@ -24,23 +24,26 @@ See the `Graphcore Glossary <https://docs.graphcore.ai/projects/graphcore-glossa
 
 ----
 
-Run on 1 IPU
-------------
-To use a single IPU, set the accelerator and devices argument.
+Run on IPU
+----------
 
-.. code-block:: python
+To enable PyTorch Lightning to utilize the IPU accelerator, simply provide ``accelerator="ipu"`` parameter to the Trainer class.
 
-    trainer = pl.Trainer(accelerator="ipu", devices=1)
-
-----
-
-Run on multiple IPUs
---------------------
 To use multiple IPUs set the devices to a number that is a power of 2 (i.e: 2, 4, 8, 16, ...)
 
 .. code-block:: python
 
-    trainer = pl.Trainer(accelerator="ipu", devices=8)
+    # run on as many IPUs as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
+
+    # run on one IPU
+    trainer = Trainer(accelerator="ipu", devices=1)
+    # run on multiple IPUs
+    trainer = Trainer(accelerator="ipu", devices=8)
+    # choose the number of devices automatically
+    trainer = Trainer(accelerator="ipu", devices="auto")
 
 ----
 

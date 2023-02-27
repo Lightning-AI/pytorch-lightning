@@ -46,14 +46,11 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
     """Tests if device is set correctly when training for DDPSpawnStrategy."""
-    trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
+    trainer = Trainer(devices=2, strategy="ddp_spawn", accelerator="cpu", fast_dev_run=True)
     # assert strategy attributes for device setting
-
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
-
     model = BoringModelDDPCPU()
-
     trainer.fit(model)
 
 
@@ -132,6 +129,7 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
+        accelerator="cpu",
         strategy=ddp_spawn_strategy,
     )
     # test wrap the model if fitting

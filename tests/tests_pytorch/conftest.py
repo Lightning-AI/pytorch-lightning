@@ -171,24 +171,33 @@ def mps_count_4(monkeypatch):
     mock_mps_count(monkeypatch, 4)
 
 
+def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+
+
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    mock_xla_available(monkeypatch)
+
+
+def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    mock_xla_available(monkeypatch, value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
 
 
 @pytest.fixture(scope="function")
-def tpu_available(xla_available, monkeypatch) -> None:
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+def tpu_available(monkeypatch) -> None:
+    mock_tpu_available(monkeypatch)
 
 
 @pytest.fixture

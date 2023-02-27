@@ -798,12 +798,6 @@ test_step
 .. automethod:: pytorch_lightning.core.module.LightningModule.test_step
     :noindex:
 
-test_step_end
-~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.test_step_end
-    :noindex:
-
 to_onnx
 ~~~~~~~
 
@@ -822,12 +816,6 @@ training_step
 .. automethod:: pytorch_lightning.core.module.LightningModule.training_step
     :noindex:
 
-training_step_end
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.training_step_end
-    :noindex:
-
 unfreeze
 ~~~~~~~~
 
@@ -844,12 +832,6 @@ validation_step
 ~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.validation_step
-    :noindex:
-
-validation_step_end
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.validation_step_end
     :noindex:
 
 -----------
@@ -1110,7 +1092,6 @@ for more information.
             on_after_batch_transfer()
 
             out = training_step()
-            training_step_end(out)
 
             on_before_zero_grad()
             optimizer_zero_grad()
@@ -1123,7 +1104,7 @@ for more information.
             configure_gradient_clipping()
             optimizer_step()
 
-            on_train_batch_end()
+            on_train_batch_end(out, batch, batch_idx)
 
             if should_check_val:
                 val_loop()
@@ -1146,9 +1127,8 @@ for more information.
             batch = on_after_batch_transfer(batch)
 
             out = validation_step(batch, batch_idx)
-            out = validation_step_end(out)
 
-            on_validation_batch_end(batch, batch_idx)
+            on_validation_batch_end(out, batch, batch_idx)
 
         on_validation_epoch_end()
         on_validation_end()

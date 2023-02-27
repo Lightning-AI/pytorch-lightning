@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, Optional, Tuple
+from typing import Any, Callable, Generator, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -123,19 +123,6 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
-    """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
-
-    Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
-    :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
-    of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
-    """
-    for sampler_name in ("sampler", "batch_sampler"):
-        sampler = getattr(dataloader, sampler_name, None)
-        if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
-            sampler.set_epoch(epoch)
-
-
 def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
     lightning_module = trainer.lightning_module
     if trainer.testing:
@@ -144,6 +131,8 @@ def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
         step_fx_name = "training_step"
     elif trainer.validating or trainer.sanity_checking:
         step_fx_name = "validation_step"
+    elif trainer.predicting:
+        step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
     step_fx = getattr(lightning_module, step_fx_name)

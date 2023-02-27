@@ -68,4 +68,4 @@ def test_gpu_availability():
 @RunIf(min_cuda_gpus=1)
 def test_warning_if_gpus_not_used():
     with pytest.warns(UserWarning, match="GPU available but not used. Set `accelerator` and `devices`"):
-        Trainer()
+        Trainer(accelerator="cpu")
