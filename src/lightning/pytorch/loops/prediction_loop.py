@@ -1,3 +1,16 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
@@ -13,7 +26,7 @@ from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.states import RunningStage
@@ -49,15 +62,15 @@ class _PredictionLoop(_Loop):
 
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
-        # `DDPSpawnStrategy` plugins and derivatives don't support return predictions.
-        is_ddp_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
-        if return_predictions and is_ddp_spawn:
+        # Strategies that spawn or fork don't support returning predictions
+        return_supported = not isinstance(self.trainer.strategy.launcher, _MultiProcessingLauncher)
+        if return_predictions and not return_supported:
             raise MisconfigurationException(
-                "`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. "
-                f"Found {return_predictions} with strategy {type(self.trainer.strategy)}."
+                "`return_predictions` should be set to `False` when using the strategies that spawn or fork."
+                f" Found {return_predictions} with strategy {type(self.trainer.strategy)}."
             )
-        # For non `DDPSpawnStrategy` plugin, the `return_predictions` is True by default unless user decide otherwise.
-        self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
+        # For strategies that support it, `return_predictions` is True by default unless user decide otherwise.
+        self._return_predictions = return_supported if return_predictions is None else return_predictions
 
     @property
     def predictions(self) -> List[Any]:
