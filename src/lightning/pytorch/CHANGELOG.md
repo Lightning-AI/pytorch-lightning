@@ -147,6 +147,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `NeptuneLogger` now requires `neptune>=1.0.0` ([#16888](https://github.com/Lightning-AI/lightning/pull/16888))
 
 
+- Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
+
+
 ### Deprecated
 
 -
