@@ -70,12 +70,16 @@ class _MyFabricGradNorm(BoringFabric):
 
     def run(self):
         # 10 retries
-        for i in range(10):
+        i = 0
+        while True:
             try:
                 super().run()
                 break
-            except RuntimeError:  # nonfinite grads -> skip and continue
-                pass
+            except RuntimeError as e:  # nonfinite grads -> skip and continue
+                if i > 10:
+                    raise e
+            finally:
+                i += 1
 
 
 class _MyFabricGradVal(BoringFabric):
@@ -90,6 +94,21 @@ class _MyFabricGradVal(BoringFabric):
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
         torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
+
+    def run(self):
+        # 10 retries
+        i = 0
+        while True:
+            try:
+                super().run()
+                break
+            except RuntimeError as e:  # nonfinite grads -> skip and continue
+                if i > 10:
+                    raise e
+            finally:
+                i += 1
+
+
 
     # def run(self):
     #     while True:
