@@ -200,7 +200,7 @@ as well as custom accelerator instances.
     # Training with GPU Accelerator using the DistributedDataParallel strategy
     trainer = Trainer(devices=4, accelerator="gpu", strategy="ddp")
 
-.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the respective ``Accelerator``.
+.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the appropriate ``Accelerator``.
 
 .. code-block:: python
 
@@ -417,7 +417,7 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
 
 .. code-block:: python
 
-    # If your machine has GPUs, it will use all the available GPUs for training
+    # Use whatever hardware your machine has available
     trainer = Trainer(devices="auto", accelerator="auto")
 
     # Training with CPU Accelerator using 1 process
