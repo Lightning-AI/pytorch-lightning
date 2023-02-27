@@ -15,22 +15,21 @@ import time
 
 import lightning as L
 import torch
-import torch.nn as nn
 from tests_fabric.parity.utils import make_deterministic
 from tests_fabric.parity.models import ConvNet
 
 
-def train_torch(steps=100, batch_size=4):
+def train_torch(num_steps=100, batch_size=4):
     make_deterministic()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = ConvNet().to(device)
-    dataloader = model.get_dataloader(dataset_size=(steps * batch_size), batch_size=batch_size)
+    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     loss_fn = model.get_loss_function()
     optimizer = model.get_optimizer()
 
     iteration_timings = []
     iterator = iter(dataloader)
-    for _ in range(steps):
+    for _ in range(num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)
@@ -44,15 +43,15 @@ def train_torch(steps=100, batch_size=4):
         t1 = time.perf_counter()
         iteration_timings.append(t1 - t0)
 
-    return dict(iteration_timings=torch.tensor(iteration_timings))
+    return torch.tensor(iteration_timings)
 
 
-def train_fabric(steps=100, batch_size=4):
+def train_fabric(num_steps=100, batch_size=4):
     make_deterministic()
     fabric = L.Fabric(accelerator="cpu")
 
     model = ConvNet()
-    dataloader = model.get_dataloader(dataset_size=(steps * batch_size), batch_size=batch_size)
+    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     loss_fn = model.get_loss_function()
     optimizer = model.get_optimizer()
 
@@ -61,7 +60,7 @@ def train_fabric(steps=100, batch_size=4):
 
     iteration_timings = []
     iterator = iter(dataloader)
-    for _ in range(steps):
+    for _ in range(num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)
@@ -74,20 +73,12 @@ def train_fabric(steps=100, batch_size=4):
         t1 = time.perf_counter()
         iteration_timings.append(t1 - t0)
 
-    return dict(iteration_timings=torch.tensor(iteration_timings))
+    return torch.tensor(iteration_timings)
 
 
-def test_compare():
-    outputs_torch = train_torch(steps=2000)
-    outputs_fabric = train_fabric(steps=2000)
+def test_parity_cpu():
+    timings_torch = train_torch(num_steps=2000)
+    timings_fabric = train_fabric(num_steps=2000)
 
-    # 3.5009579733014107e-06
-    # 3.5009579733014107e-06
-    median = torch.median(outputs_fabric["iteration_timings"]) - torch.median(outputs_torch["iteration_timings"])
-    mean = torch.mean(outputs_fabric["iteration_timings"]) - torch.mean(outputs_torch["iteration_timings"])
-    print("median", median.abs().item())
-    print("mean", mean.abs().item())
-
-
-if __name__ == "__main__":
-    compare()
+    # The median is more robust to outliers than the mean
+    assert torch.isclose(torch.median(timings_torch), torch.median(timings_fabric), rtol=1e-4, atol=1e-4)
