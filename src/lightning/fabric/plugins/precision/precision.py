@@ -49,12 +49,20 @@ class Precision:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
-    def convert_input(self, data: Tensor) -> Tensor:
+    def convert_input(self, data) -> Tensor:
         """Convert model inputs (forward) to the floating point precision type of this plugin.
 
         This is a no-op for tensors that are not of floating-point type or already have the desired type.
         """
-        return _convert_fp_tensor(data, torch.float32)
+        return data # _convert_fp_tensor(data, torch.float32)
+
+    def convert_output(self, data: Tensor) -> Tensor:
+        """Convert model inputs (forward) to the floating point precision type of this plugin.
+
+        This is a no-op for tensors that are not of floating-point type or already have the desired type.
+        """
+        return data # _convert_fp_tensor(data, torch.float32)
+
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.

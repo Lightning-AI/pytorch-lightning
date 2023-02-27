@@ -105,7 +105,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward
         method."""
-        args, kwargs = apply_to_collection([args, kwargs], function=self._precision.convert_input, dtype=Tensor)
+        # only by 64 and maybe deepspeed, tpu
+        args, kwargs = self._precision.convert_input((args, kwargs))
+        # args, kwargs = apply_to_collection([args, kwargs], function=self._precision.convert_input, dtype=Tensor)
 
         with self._precision.forward_context():
             output = self._forward_module(*args, **kwargs)
