@@ -61,10 +61,7 @@ class TorchCollective(Collective):
         return tensor
 
     def reduce_scatter(
-        self,
-        output: Tensor,
-        input_list: List[Tensor],
-        op: Union[str, ReduceOp, RedOpType] = "sum",
+        self, output: Tensor, input_list: List[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
     ) -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
