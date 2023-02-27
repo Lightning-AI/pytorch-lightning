@@ -312,7 +312,7 @@ class Strategy(ABC):
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
-    ) -> Optional[torch.Tensor]:
+    ) -> torch.Tensor:
         """Clip gradients by norm."""
         self.precision.unscale_gradients(optimizer)
         parameters = self.precision.main_params(optimizer)

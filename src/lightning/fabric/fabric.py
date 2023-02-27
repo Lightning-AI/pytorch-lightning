@@ -365,8 +365,8 @@ class Fabric:
 
     def clip_gradients(
         self,
-        module: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
+        module: Union[torch.nn.Module, _FabricModule],
+        optimizer: Union[Optimizer, _FabricOptimizer],
         clip_val: Optional[Union[float, int]] = None,
         max_norm: Optional[Union[float, int]] = None,
         norm_type: Union[float, int] = 2.0,
@@ -380,7 +380,6 @@ class Fabric:
         if clip_val is not None:
             self.strategy.clip_gradients_value(_unwrap_objects(module), _unwrap_objects(optimizer), clip_val=clip_val)
             return None
-
         elif max_norm is not None:
             return self.strategy.clip_gradients_norm(
                 _unwrap_objects(module),

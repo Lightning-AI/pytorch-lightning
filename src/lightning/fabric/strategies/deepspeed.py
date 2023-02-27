@@ -493,7 +493,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
-    ) -> None:
+    ) -> torch.Tensor:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "
             "Make sure to set the `gradient_clipping` value in your Config."

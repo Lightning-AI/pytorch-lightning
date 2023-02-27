@@ -275,12 +275,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
-    ) -> None:
+    ) -> Tensor:
         """Clip gradients by norm."""
-
         rank_zero_warn("Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!")
         self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)  # type: ignore[return-value]
 
     def clip_gradients_value(  # type: ignore[override]
         self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
