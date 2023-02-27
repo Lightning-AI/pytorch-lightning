@@ -100,12 +100,12 @@ class _MyFabricGradVal(BoringFabric):
             if p.grad is not None and torch.isnan(p.grad).any().item() or torch.isinf(p.grad).any().item():
                 raise RuntimeError("Nonfinite grads")
 
-        self.clip_gradients(model, optimizer, clip_val=1e-3)
+        self.clip_gradients(model, optimizer, clip_val=1e-10)
 
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
-        torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-3, device=self.device))
+        torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
         print("done")
 
     def run(self):
