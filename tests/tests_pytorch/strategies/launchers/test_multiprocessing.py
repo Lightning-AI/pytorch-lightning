@@ -22,7 +22,7 @@ import torch
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
@@ -101,7 +101,7 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
     cluster_environment.local_rank.return_value = fake_local_rank
     cluster_environment.global_rank.return_value = fake_global_rank
 
-    strategy = DDPSpawnStrategy(cluster_environment=cluster_environment)
+    strategy = DDPStrategy(cluster_environment=cluster_environment, start_method="spawn")
     strategy._local_rank = fake_local_rank
 
     launcher = _MultiProcessingLauncher(strategy=strategy)
@@ -133,7 +133,7 @@ def test_transfer_weights(tmpdir, trainer_fn):
     """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the
     temporary file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
-    strategy = DDPSpawnStrategy()
+    strategy = DDPStrategy(start_method="spawn")
     trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
@@ -156,7 +156,7 @@ def test_non_strict_loading(tmpdir):
     """Tests that the multiprocessing launcher loads the weights back into the main process but with strict loading
     disabled, not erroring for missing keys."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
-    strategy = DDPSpawnStrategy()
+    strategy = DDPStrategy(start_method="spawn")
     trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = TrainerFn.FITTING  # state dict loading only relevant for the FITTING case

@@ -65,12 +65,6 @@ jobs:
           key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-test-${{ matrix.pkg-name }}-
 
-      - name: Install LAI package
-        # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: |
-          pip install -e . -U -v -f pypi -f ${TORCH_URL}
-
       - name: Adjust docs refs
         if: ${{ matrix.pkg-name == 'lightning' }}
         run: |
@@ -85,8 +79,6 @@ jobs:
           python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
 
       - name: Install this package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
@@ -138,8 +130,6 @@ jobs:
           python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
 
       - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip --version
           pip install -e . -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
@@ -148,13 +138,11 @@ jobs:
 
       - name: Make Documentation
         working-directory: ./docs/${{ env.DOCS_DIR }}
-        run: |
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
         working-directory: ./docs/${{ env.DOCS_DIR }}
-        run: |
-          make linkcheck
+        run: make linkcheck
         continue-on-error: true
 
       - name: Upload built docs
@@ -162,5 +150,3 @@ jobs:
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failuress
-        if: success()

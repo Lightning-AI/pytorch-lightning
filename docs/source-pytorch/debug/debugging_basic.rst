@@ -47,7 +47,7 @@ Run all your model code once quickly
 ************************************
 If you've ever trained a model for days only to crash during validation or testing then this trainer argument is about to become your best friend.
 
-The :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run` argument in the trainer runs 5 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
+The :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run` argument in the trainer runs 5 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
 
 .. code:: python
 
@@ -63,8 +63,8 @@ To change how many batches to use, change the argument to an integer. Here we ru
 .. note::
 
     This argument will disable tuner, checkpoint callbacks, early stopping callbacks,
-    loggers and logger callbacks like :class:`~pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor` and
-    :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`.
+    loggers and logger callbacks like :class:`~lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor` and
+    :class:`~lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor`.
 
 ----
 
@@ -92,8 +92,8 @@ Run a Sanity Check
 Lightning runs **2** steps of validation in the beginning of training.
 This avoids crashing in the validation loop sometime deep into a lengthy training loop.
 
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.num_sanity_val_steps`
-argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
+(See: :paramref:`~lightning.pytorch.trainer.trainer.Trainer.num_sanity_val_steps`
+argument of :class:`~lightning.pytorch.trainer.trainer.Trainer`)
 
 .. testcode::
 
@@ -120,11 +120,11 @@ this generate a table like:
     1 | net.0 | Linear      | 131 K
     2 | net.1 | BatchNorm1d | 1.0 K
 
-To add the child modules to the summary add a :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`:
+To add the child modules to the summary add a :class:`~lightning.pytorch.callbacks.model_summary.ModelSummary`:
 
 .. testcode::
 
-    from pytorch_lightning.callbacks import ModelSummary
+    from lightning.pytorch.callbacks import ModelSummary
 
     trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
 
@@ -132,7 +132,7 @@ To print the model summary if ``.fit()`` is not called:
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.model_summary import ModelSummary
+    from lightning.pytorch.utilities.model_summary import ModelSummary
 
     model = LitModel()
     summary = ModelSummary(model, max_depth=-1)
