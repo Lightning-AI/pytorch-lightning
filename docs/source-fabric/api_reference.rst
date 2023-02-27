@@ -51,10 +51,6 @@ Loggers
     CSVLogger
     TensorBoardLogger
 
-
-Plugins
-^^^^^^^
-
 Precision
 """""""""
 
