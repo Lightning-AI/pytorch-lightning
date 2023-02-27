@@ -397,7 +397,7 @@ import importlib
 import os
 import lightning as L
 
-from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 
