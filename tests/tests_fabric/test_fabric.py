@@ -902,10 +902,10 @@ def test_grad_clipping(clip_val, max_norm):
     fabric.strategy.clip_gradients_norm = Mock()
     fabric.strategy.clip_gradients_value = Mock()
 
-    model = nn.Linear(1, 1)
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    torch_model = nn.Linear(1, 1)
+    torch_optimizer = torch.optim.SGD(torch_model.parameters(), lr=1e-3)
 
-    model, optimizer = fabric.setup(model, optimizer)
+    model, optimizer = fabric.setup(torch_model, torch_optimizer)
 
     loss = model(torch.rand(1, 1).to(fabric.device))
     fabric.backward(loss)
@@ -916,8 +916,10 @@ def test_grad_clipping(clip_val, max_norm):
     fabric.clip_gradients(model, optimizer, max_norm=max_norm, clip_val=clip_val)
 
     if clip_val is not None:
-        fabric.strategy.clip_gradients_value.assert_called_once()
+        fabric.strategy.clip_gradients_value.assert_called_once_with(torch_model, torch_optimizer, clip_val=clip_val)
         fabric.strategy.clip_gradients_norm.assert_not_called()
     else:
         fabric.strategy.clip_gradients_value.assert_not_called()
-        fabric.strategy.clip_gradients_norm.assert_called_once()
+        fabric.strategy.clip_gradients_norm.assert_called_once_with(
+            torch_model, torch_optimizer, max_norm=max_norm, norm_type=2.0, error_if_nonfinite=True
+        )

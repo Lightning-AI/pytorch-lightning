@@ -104,13 +104,7 @@ class _MyFabricGradVal(BoringFabric):
     [
         "32-true",
         pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(
-            "bf16-mixed",
-            marks=pytest.mark.skipif(
-                torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
-                reason="If Cuda, has to be bf16 enabled",
-            ),
-        ),
+        pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])

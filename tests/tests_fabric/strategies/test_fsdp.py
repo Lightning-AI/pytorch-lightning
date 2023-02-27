@@ -162,22 +162,10 @@ class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
 
 @pytest.mark.parametrize(
     "precision",
-    [
-        "32-true",
-        "16-mixed",
-        pytest.param(
-            "bf16-mixed",
-            marks=pytest.mark.skipif(
-                torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
-                reason="If Cuda, has to be bf16 enabled",
-            ),
-        ),
-    ],
+    ["32-true", "16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))],
 )
 @RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.xfail(reason="Testing with FSDP is not yet correct")
-# TODO: Investigate testing with fsdp
+@pytest.mark.xfail(reason="Testing with FSDP is not yet correct")  # TODO: Investigate testing with fsdp
 def test_fsdp_grad_clipping_norm(precision):
-
     fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
     fabric.run()
