@@ -362,13 +362,13 @@ def test_setup_dataloaders_move_to_device(fabric_device_mock):
 
 
 def test_setup_dataloaders_distributed_sampler_not_needed():
-    """Test that replace_sampler option has no effect when no distributed sampler is needed."""
+    """Test that `use_distributed_sampler` option has no effect when no distributed sampler is needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
     # keep the custom sampler when not needed to replace
     fabric = EmptyFabric()
-    fabric_dataloader = fabric.setup_dataloaders(dataloader, replace_sampler=True)
+    fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
     assert fabric_dataloader.sampler is custom_sampler
 
 
@@ -469,10 +469,10 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
     fabric = EmptyFabric(accelerator="cpu", strategy=strategy, devices=2)
     if hasattr(fabric.strategy, "distributed_sampler_kwargs"):
         with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
-            fabric.setup_dataloaders(dataloader, replace_sampler=True)
+            fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
 
-    # setting `replace_sampler=False` leaves the sampler untouched
-    fabric_dataloader = fabric.setup_dataloaders(dataloader, replace_sampler=False)
+    # setting `use_distributed_sampler=False` leaves the sampler untouched
+    fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=False)
     assert fabric_dataloader.sampler is custom_sampler
 
 

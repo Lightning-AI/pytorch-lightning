@@ -43,11 +43,11 @@ else:
     MpDeviceLoader = None
 
 
-class TPUSpawnStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
-    strategy_name = "tpu_spawn"
+    strategy_name = "xla"
 
     def __init__(
         self,
@@ -92,6 +92,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         import torch_xla.core.xla_model as xm
 
         return xm.xla_device()
+
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
@@ -143,7 +147,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
-        TPUSpawnStrategy._validate_dataloader(dataloader)
+        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -192,7 +196,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
             raise ValueError(
-                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
                 f" {reduce_op}"
             )
 
@@ -210,6 +214,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -225,27 +234,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def _pod_progress_bar_force_stdout(self) -> None:
-        # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the main worker doesn't work well with tqdm
-        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
-        # The print statement seems to force tqdm to flush stdout.
-        import torch_xla.core.xla_env_vars as xenv
-
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
-            print()
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -293,12 +283,19 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
-        )
-
+        strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
         strategy_registry.register(
             cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def _pod_progress_bar_force_stdout(self) -> None:
+        # Why is it required? The way `pytorch_xla.distributed` streams logs
+        # from different vms to the main worker doesn't work well with tqdm
+        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
+        # The print statement seems to force tqdm to flush stdout.
+        import torch_xla.core.xla_env_vars as xenv
+
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print()

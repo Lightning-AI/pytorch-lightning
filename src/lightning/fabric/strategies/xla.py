@@ -59,7 +59,6 @@ class XLAStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
-        self._local_rank = 0
 
     @property
     def root_device(self) -> torch.device:
@@ -72,10 +71,6 @@ class XLAStrategy(ParallelStrategy):
     @property
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
-
-    @property
-    def local_rank(self) -> int:
-        return self._local_rank
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -209,15 +204,11 @@ class XLAStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        # TODO(fabric): Deprecate the name "tpu_spawn" through the connector
-        strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @staticmethod

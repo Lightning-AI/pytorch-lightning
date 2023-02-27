@@ -50,7 +50,7 @@ Launch multi-node training in the cloud
         def run(self):
             # Set up Fabric
             # The `devices` and `num_nodes` gets set by Lightning automatically
-            fabric = L.Fabric(strategy="ddp", precision=16)
+            fabric = L.Fabric(strategy="ddp", precision="16-mixed")
 
             # Your training code
             model = ...

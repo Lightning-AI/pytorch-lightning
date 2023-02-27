@@ -64,7 +64,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         )
 
     # verify minimum validation requirements
-    has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
+    has_val_loader = trainer.fit_loop.epoch_loop.val_loop._data_source.is_defined()
     has_val_step = is_overridden("validation_step", model)
     if has_val_loader and not has_val_step:
         rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")

@@ -239,13 +239,12 @@ def test_running_test_no_val(tmpdir):
     """
 
     class ModelTrainTest(BoringModel):
-        def val_dataloader(self):
-            pass
-
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
             self.log("test_loss", output["y"])
             return output
+
+        val_dataloader = None
 
     model = ModelTrainTest()
 

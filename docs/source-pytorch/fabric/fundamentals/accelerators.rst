@@ -15,12 +15,12 @@ Fabric enables you to take full advantage of the hardware on your system. It sup
 - GPU (NVIDIA, AMD, Apple Silicon)
 - TPU
 
-By default, Fabric recognizes the accelerator(s) on your system
+By default, Fabric tries to maximize the hardware utilization of your system
 
 .. code-block:: python
 
     # Default settings
-    fabric = Fabric(accelerator="auto", devices="auto")
+    fabric = Fabric(accelerator="auto", devices="auto", strategy="auto")
 
     # Same as
     fabric = Fabric()
@@ -40,7 +40,7 @@ You can also explicitly set which accelerator to use:
     fabric = Fabric(accelerator="gpu", devices=8)
 
     # GPU: Apple M1/M2 only
-    fabric = Fabric(accelerator="mps", devices=8)
+    fabric = Fabric(accelerator="mps")
 
     # GPU: NVIDIA CUDA only
     fabric = Fabric(accelerator="cuda", devices=8)
