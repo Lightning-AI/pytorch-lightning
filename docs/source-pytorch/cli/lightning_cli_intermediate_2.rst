@@ -57,7 +57,7 @@ To support multiple models, when instantiating ``LightningCLI`` omit the ``model
 
     # main.py
     from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel
+    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class Model1(DemoModel):
@@ -101,7 +101,7 @@ To support multiple data modules, when instantiating ``LightningCLI`` omit the `
     # main.py
     import torch
     from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import BoringDataModule
+    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class FakeDataset1(BoringDataModule):
