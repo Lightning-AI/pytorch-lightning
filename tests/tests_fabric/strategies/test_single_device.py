@@ -81,7 +81,7 @@ class _MyFabricGradVal(BoringFabric):
     def after_backward(self, model, optimizer):
         for p in model.parameters():
             if p.grad is not None and torch.isnan(p.grad).any().item() or torch.isinf(p.grad).any().item():
-                raise RuntimeError('Nonfinite grads')
+                raise RuntimeError("Nonfinite grads")
 
         self.clip_gradients(model, optimizer, clip_val=1e-10)
 
