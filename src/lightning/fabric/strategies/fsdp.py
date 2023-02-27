@@ -37,7 +37,7 @@ from lightning.fabric.utilities.distributed import (
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
-from lightning.fabric.utilities.rank_zero import rank_zero_only
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 
 if TYPE_CHECKING:
@@ -267,6 +267,29 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def clip_gradients_norm(  # type: ignore[override]
+        self,
+        module: "FullyShardedDataParallel",
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> Tensor:
+        """Clip gradients by norm."""
+        rank_zero_warn("Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!")
+        self.precision.unscale_gradients(optimizer)
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)  # type: ignore[return-value]
+
+    def clip_gradients_value(  # type: ignore[override]
+        self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
+    ) -> None:
+        """Clip gradients by value."""
+
+        raise NotImplementedError(
+            "FSDP currently does not support to clip gradients by value. "
+            "Consider clipping by norm instead or choose another strategy!"
+        )
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
