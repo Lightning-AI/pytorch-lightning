@@ -211,7 +211,6 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    DDPSpawnStrategy
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
