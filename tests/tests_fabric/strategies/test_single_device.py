@@ -68,13 +68,14 @@ class _MyFabricGradNorm(BoringFabric):
         )
         torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
 
-    # def run(self):
-    #     while True:
-    #         try:
-    #             super().run()
-    #             break
-    #         except RuntimeError:  # nonfinite grads -> skip and continue
-    #             pass
+    def run(self):
+        # 10 retries
+        for i in range(10):
+            try:
+                super().run()
+                break
+            except RuntimeError:  # nonfinite grads -> skip and continue
+                pass
 
 
 class _MyFabricGradVal(BoringFabric):
