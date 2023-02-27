@@ -23,7 +23,6 @@ from lightning_utilities.core.rank_zero import rank_zero_info
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
-    _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
 
@@ -161,11 +160,11 @@ def num_cuda_devices() -> int:
     Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
     """
-    if _TORCH_GREATER_EQUAL_1_13:
+    if _TORCH_GREATER_EQUAL_2_0:
         return torch.cuda.device_count()
 
     # Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879
-    # TODO: Remove once minimum supported PyTorch version is 1.13
+    # TODO: Remove once minimum supported PyTorch version is 2.0
     nvml_count = _device_count_nvml()
     return torch.cuda.device_count() if nvml_count < 0 else nvml_count
 
@@ -181,8 +180,6 @@ def is_cuda_available() -> bool:
 
 
 # TODO: Remove once minimum supported PyTorch version is 2.0
-
-
 def _parse_visible_devices() -> Union[List[int], List[str]]:
     """Parse CUDA_VISIBLE_DEVICES environment variable."""
     var = os.getenv("CUDA_VISIBLE_DEVICES")
@@ -231,7 +228,7 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
     return rc
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.13
+# TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_count_nvml() -> int:
     """Return number of devices as reported by NVML or negative value if NVML discovery/initialization failed."""
     from ctypes import byref, c_int, CDLL
