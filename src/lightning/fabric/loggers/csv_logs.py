@@ -64,7 +64,7 @@ class CSVLogger(Logger):
     ):
         super().__init__()
         self.fs, _ = fsspec.core.url_to_fs(str(root_dir))
-        self._root_dir = root_dir
+        self._root_dir = str(root_dir)
         self._name = name or ""
         self._version = version
         self._prefix = prefix
