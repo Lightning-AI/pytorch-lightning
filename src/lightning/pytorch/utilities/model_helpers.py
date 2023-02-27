@@ -35,8 +35,6 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
 
     from lightning_utilities.core.overrides import is_overridden as _is_overridden
 
-    assert instance is not None, f"`instance` need to be set, but got {instance}"
-    assert parent is not None, f"`parent` need to be set, but got {parent}"
     return _is_overridden(method_name, instance, parent)
 
 

@@ -38,7 +38,7 @@ try:
     from wandb.wandb_run import Run
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
-    wandb = Run = RunDisabled = None  # type: ignore[assignment,misc]
+    wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
