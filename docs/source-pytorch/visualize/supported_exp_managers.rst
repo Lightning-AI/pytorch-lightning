@@ -82,9 +82,10 @@ Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.train
     :skipif: not _NEPTUNE_AVAILABLE
 
     from pytorch_lightning.loggers import NeptuneLogger
+    import neptune
 
     neptune_logger = NeptuneLogger(
-        api_key="ANONYMOUS",  # replace with your own
+        api_key=neptune.ANONYMOUS_API_TOKEN,  # replace with your own
         project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
     )
     trainer = Trainer(logger=neptune_logger)

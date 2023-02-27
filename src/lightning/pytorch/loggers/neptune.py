@@ -72,9 +72,10 @@ class NeptuneLogger(Logger):
 
         from lightning.pytorch import Trainer
         from lightning.pytorch.loggers import NeptuneLogger
+        import neptune
 
         neptune_logger = NeptuneLogger(
-            api_key="ANONYMOUS",  # replace with your own
+            api_key=neptune.ANONYMOUS_API_TOKEN,  # replace with your own
             project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
             tags=["training", "resnet"],  # optional
         )
@@ -383,6 +384,7 @@ class NeptuneLogger(Logger):
         Example::
 
             from lightning.pytorch.loggers import NeptuneLogger
+            import neptune
 
             PARAMS = {
                 "batch_size": 64,
@@ -391,7 +393,7 @@ class NeptuneLogger(Logger):
             }
 
             neptune_logger = NeptuneLogger(
-                api_key="ANONYMOUS",
+                api_key=neptune.ANONYMOUS_API_TOKEN,
                 project="common/pytorch-lightning-integration"
             )
 
