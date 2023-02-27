@@ -36,8 +36,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
-    from neptune import new as neptune
-    from neptune.new.run import Run
+    import neptune
+    from neptune.run import Run
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
@@ -86,7 +86,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: python
 
-        from neptune.new.types import File
+        from neptune.types import File
         from lightning.pytorch import LightningModule
 
 
@@ -302,7 +302,7 @@ class NeptuneLogger(Logger):
     ) -> None:
         # check if user passed the client `Run` object
         if run is not None and not isinstance(run, Run):
-            raise ValueError("Run parameter expected to be of type `neptune.new.Run`.")
+            raise ValueError("Run parameter expected to be of type `neptune.Run`.")
         # check if user passed redundant neptune.init_run arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
