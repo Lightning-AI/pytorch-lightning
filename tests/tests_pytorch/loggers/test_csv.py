@@ -14,6 +14,7 @@
 import os
 from unittest.mock import MagicMock
 
+import fsspec
 import pytest
 import torch
 
@@ -117,6 +118,20 @@ def test_fit_csv_logger(tmpdir):
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert os.path.isfile(metrics_file)
+
+
+@RunIf(sklearn=True)
+def test_fit_csv_logger_remotefs():
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    logger = CSVLogger(save_dir="memory://test_fit_csv_logger_remotefs")
+    trainer = Trainer(
+        default_root_dir="memory://test_fit_csv_logger_remotefs", max_steps=10, logger=logger, log_every_n_steps=1
+    )
+    trainer.fit(model, datamodule=dm)
+    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    fs, _ = fsspec.core.url_to_fs("memory://test_fit_csv_logger_remotefs")
+    assert fs.isfile(metrics_file)
 
 
 def test_flush_n_steps(tmpdir):
