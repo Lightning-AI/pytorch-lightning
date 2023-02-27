@@ -389,8 +389,7 @@ class Fabric:
                 norm_type=norm_type,
                 error_if_nonfinite=error_if_nonfinite,
             )
-        else:
-            raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
+        raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
 
     @contextmanager
     def autocast(self) -> Generator[None, None, None]:
