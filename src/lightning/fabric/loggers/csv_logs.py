@@ -160,7 +160,7 @@ class CSVLogger(Logger):
         for d in self.fs.listdir(root_dir, detail=False):
             name = d[len(root_dir) + 1 :]  # removes parent directories
             if self.fs.isdir(d) and name.startswith("version_"):
-                existing_versions.append(int(d.split("_")[1]))
+                existing_versions.append(int(name.split("_")[1]))
 
         if len(existing_versions) == 0:
             return 0

@@ -121,16 +121,17 @@ def test_fit_csv_logger(tmpdir):
 
 
 @RunIf(sklearn=True)
-def test_fit_csv_logger_remotefs():
-    dm = ClassifDataModule()
-    model = ClassificationModel()
+def test_csv_logger_remotefs():
     logger = CSVLogger(save_dir="memory://test_fit_csv_logger_remotefs")
-    trainer = Trainer(
-        default_root_dir="memory://test_fit_csv_logger_remotefs", max_steps=10, logger=logger, log_every_n_steps=1
-    )
-    trainer.fit(model, datamodule=dm)
-    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     fs, _ = fsspec.core.url_to_fs("memory://test_fit_csv_logger_remotefs")
+    exp = logger.experiment
+    exp.log_metrics(
+        {
+            "loss": 0.1,
+        }
+    )
+    exp.save()
+    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert fs.isfile(metrics_file)
 
 
