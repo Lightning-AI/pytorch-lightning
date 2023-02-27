@@ -344,7 +344,7 @@ API
 .. displayitem::
     :header: Full API Reference
     :description: Reference of all public classes, methods and functions. Useful for developers.
-    :button_link: api/api_reference.html
+    :button_link: api_reference.html
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
