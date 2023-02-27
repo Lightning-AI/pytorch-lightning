@@ -394,6 +394,7 @@ import lightning.pytorch as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning.pytorch import LightningModule, Trainer
 """
 coverage_skip_undoc_in_source = True
 
