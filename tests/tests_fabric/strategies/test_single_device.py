@@ -68,13 +68,13 @@ class _MyFabricGradNorm(BoringFabric):
         )
         torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
 
-    def run(self):
-        while True:
-            try:
-                super().run()
-                break
-            except RuntimeError:  # nonfinite grads -> skip and continue
-                pass
+    # def run(self):
+    #     while True:
+    #         try:
+    #             super().run()
+    #             break
+    #         except RuntimeError:  # nonfinite grads -> skip and continue
+    #             pass
 
 
 class _MyFabricGradVal(BoringFabric):
@@ -90,16 +90,16 @@ class _MyFabricGradVal(BoringFabric):
         grad_max = torch.max(torch.stack(grad_max_list))
         torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
 
-    def run(self):
-        while True:
-            try:
-                super().run()
-                break
-            except RuntimeError:
-                # nonfinite grads -> skip and continue
-                # this may repeat until the scaler finds a factor where overflow is avoided,
-                # so the while loop should eventually break
-                pass
+    # def run(self):
+    #     while True:
+    #         try:
+    #             super().run()
+    #             break
+    #         except RuntimeError:
+    #             # nonfinite grads -> skip and continue
+    #             # this may repeat until the scaler finds a factor where overflow is avoided,
+    #             # so the while loop should eventually break
+    #             pass
 
 
 @pytest.mark.parametrize(
