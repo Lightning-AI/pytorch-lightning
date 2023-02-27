@@ -180,7 +180,7 @@ def is_cuda_available() -> bool:
     return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.13
+# TODO: Remove once minimum supported PyTorch version is 2.0
 
 
 def _parse_visible_devices() -> Union[List[int], List[str]]:
@@ -250,7 +250,7 @@ def _raw_device_count_nvml() -> int:
     return dev_count.value
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.13
+# TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_uuid_nvml() -> Optional[List[str]]:
     """Return list of device UUID as reported by NVML or None if NVM discovery/initialization failed."""
     from ctypes import byref, c_int, c_void_p, CDLL, create_string_buffer
@@ -283,7 +283,7 @@ def _raw_device_uuid_nvml() -> Optional[List[str]]:
     return uuids
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.13
+# TODO: Remove once minimum supported PyTorch version is 2.0
 def _transform_uuid_to_ordinals(candidates: List[str], uuids: List[str]) -> List[int]:
     """Given the set of partial uuids and list of known uuids builds a set of ordinals excluding ambiguous partials
     IDs."""
@@ -312,7 +312,7 @@ def _transform_uuid_to_ordinals(candidates: List[str], uuids: List[str]) -> List
     return rc
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.13
+# TODO: Remove once minimum supported PyTorch version is 2.0
 def _device_count_nvml() -> int:
     """Return number of devices as reported by NVML taking CUDA_VISIBLE_DEVICES into account.
 
