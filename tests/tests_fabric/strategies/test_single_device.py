@@ -80,13 +80,13 @@ class _MyFabricGradNorm(BoringFabric):
                 # this may repeat until the scaler finds a factor where overflow is avoided,
                 # so the while loop should eventually break
                 # stop after a max of 10 tries
-                if i > 10 or not str(e).startswith('The total norm'):
+                if i > 10 or not str(e).startswith("The total norm"):
                     raise e
 
                 # unscale was already called by last attempt,
                 # but no update afterwards since optimizer step was missing.
                 # Manually update here -> Need to update inf stats first.
-                scaler = getattr(self._precision, 'scaler', None)
+                scaler = getattr(self._precision, "scaler", None)
                 if scaler is not None:
                     scaler._check_inf_per_device(self.optimizer)
                     scaler.update()
@@ -106,7 +106,7 @@ class _MyFabricGradVal(BoringFabric):
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
         torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-3, device=self.device))
-        print('done')
+        print("done")
 
     def run(self):
         # 10 retries
@@ -120,13 +120,13 @@ class _MyFabricGradVal(BoringFabric):
                 # this may repeat until the scaler finds a factor where overflow is avoided,
                 # so the while loop should eventually break
                 # stop after a max of 10 tries
-                if i > 10 or not str(e).startswith('Nonfinite grads'):
+                if i > 10 or not str(e).startswith("Nonfinite grads"):
                     raise e
 
                 # unscale was already called by last attempt,
                 # but no update afterwards since optimizer step was missing.
                 # Manually update here -> Need to update inf stats first.
-                scaler = getattr(self._precision, 'scaler', None)
+                scaler = getattr(self._precision, "scaler", None)
                 if scaler is not None:
                     scaler._check_inf_per_device(self.optimizer)
                     scaler.update()
