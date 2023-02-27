@@ -118,7 +118,7 @@ jobs:
 
       - name: adjust paths
         run: |
-          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
+          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'fabric': '-fabric', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
           python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
 
       - name: Install package & dependencies

@@ -122,7 +122,6 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
 
    self
    Install <install/installation>
-   Lightning Fabric <fabric/fabric>
 
 .. toctree::
    :maxdepth: 1
