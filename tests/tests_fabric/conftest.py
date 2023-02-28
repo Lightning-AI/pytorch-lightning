@@ -55,7 +55,7 @@ def restore_env_variables():
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # set by tensorboardX
-        "CUBLAS_WORKSPACE_CONFIG", # handled by the `reset_deterministic_algorithm` fixture below
+        "CUBLAS_WORKSPACE_CONFIG",  # handled by the `reset_deterministic_algorithm` fixture below
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

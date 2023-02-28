@@ -47,7 +47,6 @@ def train_torch_ddp(
     device=torch.device("cpu"),
     num_steps=NUM_STEPS_DEFAULT,
     batch_size=4,
-    checkpoint_dir=".",
 ):
     make_deterministic()
 
@@ -60,7 +59,7 @@ def train_torch_ddp(
 
     ddp_model = DistributedDataParallel(model.to(device), device_ids=([rank] if device.type == "cuda" else None))
 
-    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
+    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * world_size), batch_size=batch_size)
     sampler = DistributedSampler(
         dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False
     )
@@ -82,39 +81,36 @@ def train_torch_ddp(
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, ddp_model.module.state_dict())
 
-    if rank == 0:
-        _atomic_save(ddp_model.module.state_dict(), os.path.join(checkpoint_dir, "torch_model.pt"))
+    return ddp_model.module.state_dict()
 
 
-class FabricRunner(Fabric):
-    def run(self, num_steps=NUM_STEPS_DEFAULT, batch_size=4, checkpoint_dir="."):
-        make_deterministic()
+def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
+    make_deterministic()
 
-        model = ConvNet()
-        initial_state_dict = deepcopy(model.state_dict())
+    model = ConvNet()
+    initial_state_dict = deepcopy(model.state_dict())
 
-        optimizer = model.get_optimizer()
-        model, optimizer = self.setup(model, optimizer)
+    optimizer = model.get_optimizer()
+    model, optimizer = fabric.setup(model, optimizer)
 
-        dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
-        dataloader = self.setup_dataloaders(dataloader)
-        loss_fn = model.get_loss_function()
+    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * fabric.world_size), batch_size=batch_size)
+    dataloader = fabric.setup_dataloaders(dataloader)
+    loss_fn = model.get_loss_function()
 
-        model.train()
-        iterator = iter(dataloader)
-        for _ in range(num_steps):
-            inputs, labels = next(iterator)
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = loss_fn(outputs, labels)
-            self.backward(loss)
-            optimizer.step()
+    model.train()
+    iterator = iter(dataloader)
+    for _ in range(num_steps):
+        inputs, labels = next(iterator)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = loss_fn(outputs, labels)
+        fabric.backward(loss)
+        optimizer.step()
 
-        # check that the model has changed
-        assert not is_state_dict_equal(initial_state_dict, model.state_dict())
+    # check that the model has changed
+    assert not is_state_dict_equal(initial_state_dict, model.state_dict())
 
-        if self.global_rank == 0:
-            _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "fabric_model.pt"))
+    return model.state_dict()
 
 
 @RunIf(standalone=True)
@@ -125,17 +121,13 @@ class FabricRunner(Fabric):
         pytest.param(32, "ddp", 2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
-@mock.patch.dict(os.environ, {}, clear=True)
-def test_boring_fabric_model_ddp(precision, strategy, devices, accelerator, tmpdir):
-    fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
-    fabric.run(checkpoint_dir=tmpdir)
+def test_parity_ddp(precision, strategy, devices, accelerator, tmpdir):
+    fabric = Fabric(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    fabric.launch()
 
-    train_torch_ddp(
-        rank=fabric.global_rank, world_size=fabric.world_size, device=fabric.device, checkpoint_dir=tmpdir
+    fabric_state_dict = train_fabric_ddp(fabric)
+    torch_state_dict = train_torch_ddp(
+        rank=fabric.global_rank, world_size=fabric.world_size, device=fabric.device
     )
 
-    tmpdir = fabric.broadcast(tmpdir)
-
-    fabric_state_dict = torch.load(os.path.join(tmpdir, "fabric_model.pt"))
-    torch_state_dict = torch.load(os.path.join(tmpdir, "torch_model.pt"))
     assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
