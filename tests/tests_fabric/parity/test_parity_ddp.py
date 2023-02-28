@@ -39,35 +39,6 @@ from tests_fabric.parity.utils import precision_context, is_state_dict_equal, ma
 from tests_fabric.parity.models import ConvNet
 
 
-def train_torch(
-    move_to_device: Callable,
-    precision_context,
-    num_steps=1,
-    batch_size=4,
-    checkpoint_dir=".",
-):
-    make_deterministic()
-    model = ConvNet()
-    model = move_to_device(model)
-    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
-    optimizer = model.get_optimizer()
-    loss_fn = model.get_loss_function()
-
-    model.train()
-    iterator = iter(dataloader)
-    for _ in range(num_steps):
-        inputs, labels = next(iterator)
-        inputs, labels = move_to_device(inputs), move_to_device(labels)
-        optimizer.zero_grad()
-        with precision_context():
-            outputs = model(inputs)
-        loss = loss_fn(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-    _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "torch_model.pt"))
-
-
 def train_torch_ddp(
     rank,
     world_size,
@@ -99,7 +70,7 @@ def train_torch_ddp(
     iterator = iter(dataloader)
     for _ in range(num_steps):
         inputs, labels = next(iterator)
-        inputs, labels = move_to_device(inputs), move_to_device(labels)
+        inputs, labels = inputs.to(device), inputs.to(labels)
         optimizer.zero_grad()
         outputs = ddp_model(inputs)
         loss = loss_fn(outputs, labels)
@@ -144,29 +115,6 @@ class FabricRunner(Fabric):
             _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "fabric_model.pt"))
 
 
-@pytest.mark.parametrize(
-    "precision, accelerator",
-    [
-        (32, "cpu"),
-        pytest.param(32, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        # pytest.param(16, "gpu", marks=RunIf(min_cuda_gpus=1)),  # TODO: requires GradScaler
-        pytest.param("bf16", "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
-        pytest.param(32, "mps", marks=RunIf(mps=True)),
-    ],
-)
-@mock.patch.dict(os.environ, {}, clear=True)
-def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
-    fabric = FabricRunner(precision=precision, accelerator=accelerator, devices=1)
-    fabric.run(checkpoint_dir=tmpdir)
-
-    precision_ctx = partial(precision_context, precision=precision, accelerator=accelerator)
-    train_torch(fabric.to_device, precision_context=fabric.autocast, checkpoint_dir=tmpdir)
-
-    fabric_state_dict = torch.load(os.path.join(tmpdir, "fabric_model.pt"))
-    torch_state_dict = torch.load(os.path.join(tmpdir, "torch_model.pt"))
-    assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
-
-
 @RunIf(standalone=True)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
@@ -180,10 +128,9 @@ def test_boring_fabric_model_ddp(precision, strategy, devices, accelerator, tmpd
     fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     fabric.run(checkpoint_dir=tmpdir)
 
-    with precision_context(precision, accelerator):
-        train_torch_ddp(
-            rank=fabric.global_rank, world_size=fabric.world_size, device=fabric.device, checkpoint_dir=tmpdir
-        )
+    train_torch_ddp(
+        rank=fabric.global_rank, world_size=fabric.world_size, device=fabric.device, checkpoint_dir=tmpdir
+    )
 
     tmpdir = fabric.broadcast(tmpdir)
 

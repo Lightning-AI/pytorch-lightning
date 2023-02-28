@@ -13,26 +13,16 @@
 # limitations under the License.
 import os
 from copy import deepcopy
-from functools import partial
 from typing import Callable
 
 import pytest
 import torch
 import torch.distributed
-import torch.multiprocessing as mp
 import torch.nn.functional
-from lightning_utilities.core.apply_func import apply_to_collection
 from tests_fabric.helpers.runif import RunIf
-from torch import nn, Tensor
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from unittest import mock
 
 from lightning.fabric.fabric import Fabric
-from lightning.fabric.plugins.environments.lightning import find_free_network_port
-from lightning.fabric.strategies.ddp import DDPStrategy
-from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.cloud_io import _atomic_save
 
 from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
@@ -109,12 +99,10 @@ class FabricRunner(Fabric):
         pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
-@mock.patch.dict(os.environ, {}, clear=True)
 def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
     fabric = FabricRunner(precision=precision, accelerator=accelerator, devices=1)
     fabric.run(checkpoint_dir=tmpdir)
 
-    precision_ctx = partial(precision_context, precision=precision, accelerator=accelerator)
     train_torch(fabric.to_device, precision_context=fabric.autocast, checkpoint_dir=tmpdir)
 
     fabric_state_dict = torch.load(os.path.join(tmpdir, "fabric_model.pt"))
