@@ -18,7 +18,7 @@ XLA configuration is missing?
     ...
     File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
         raise MisconfigurationException('No TPU devices were found.')
-    pytorch_lightning.utilities.exceptions.MisconfigurationException: No TPU devices were found.
+    lightning.pytorch.utilities.exceptions.MisconfigurationException: No TPU devices were found.
 
 This means the system is missing XLA configuration. You would need to set up XRT TPU device configuration.
 
@@ -61,7 +61,7 @@ How to resolve the replication issue?
         .format(len(local_devices), len(kind_devices)))
     RuntimeError: Cannot replicate if number of devices (1) is different from 8
 
-This error is raised when the XLA device is called outside the spawn process. Internally in `TPUSpawn` Strategy for training on multiple tpu cores, we use XLA's `xmp.spawn`.
+This error is raised when the XLA device is called outside the spawn process. Internally in the XLA-Strategy for training on multiple tpu cores, we use XLA's `xmp.spawn`.
 Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 ----
@@ -88,10 +88,10 @@ How to setup the debug mode for Training on TPUs?
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(accelerator="tpu", devices=8, strategy="tpu_spawn_debug")
+    trainer = pl.Trainer(accelerator="tpu", devices=8, strategy="xla_debug")
     trainer.fit(my_model)
 
 Example Metrics report:
@@ -108,7 +108,7 @@ Example Metrics report:
 
 A lot of PyTorch operations aren't lowered to XLA, which could lead to significant slowdown of the training process.
 These operations are moved to the CPU memory and evaluated, and then the results are transferred back to the XLA device(s).
-By using the `tpu_spawn_debug` Strategy, users could create a metrics report to diagnose issues.
+By using the `xla_debug` Strategy, users could create a metrics report to diagnose issues.
 
 The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):
 

@@ -2,7 +2,7 @@
 Style Guide
 ###########
 The main goal of PyTorch Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
-finding a :class:`~pytorch_lightning.core.module.LightningModule`, and knowing exactly where to look to find the things you care about.
+finding a :class:`~lightning.pytorch.core.module.LightningModule`, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
 
@@ -12,7 +12,7 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 LightningModule
 ***************
 
-These are best practices for structuring your :class:`~pytorch_lightning.core.module.LightningModule` class:
+These are best practices for structuring your :class:`~lightning.pytorch.core.module.LightningModule` class:
 
 Systems vs Models
 =================
@@ -147,21 +147,15 @@ In practice, the code looks like this:
 
         def training_step(...):
 
-        def training_step_end(...):
-
-        def training_epoch_end(...):
+        def on_train_epoch_end(...):
 
         def validation_step(...):
 
-        def validation_step_end(...):
-
-        def validation_epoch_end(...):
+        def on_validation_epoch_end(...):
 
         def test_step(...):
 
-        def test_step_end(...):
-
-        def test_epoch_end(...):
+        def on_test_epoch_end(...):
 
         def configure_optimizers(...):
 
@@ -171,8 +165,8 @@ In practice, the code looks like this:
 Forward vs training_step
 ========================
 
-We recommend using :meth:`~pytorch_lightning.core.module.LightningModule.forward` for inference/predictions and keeping
-:meth:`~pytorch_lightning.core.module.LightningModule.training_step` independent.
+We recommend using :meth:`~lightning.pytorch.core.module.LightningModule.forward` for inference/predictions and keeping
+:meth:`~lightning.pytorch.core.module.LightningModule.training_step` independent.
 
 .. code-block:: python
 
@@ -202,13 +196,12 @@ DataLoaders
 Lightning uses :class:`~torch.utils.data.DataLoader` to handle all the data flow through the system. Whenever you structure dataloaders,
 make sure to tune the number of workers for maximum efficiency.
 
-.. warning:: Make sure not to use ``Trainer(strategy="ddp_spawn")`` with ``num_workers>0`` in the DataLoader or you will bottleneck you code.
 
 DataModules
 ===========
 
-The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
-hooks from the :class:`~pytorch_lightning.core.module.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
+The :class:`~lightning.pytorch.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
+hooks from the :class:`~lightning.pytorch.core.module.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Check out :ref:`data` document to understand data management within Lightning and its best practices.

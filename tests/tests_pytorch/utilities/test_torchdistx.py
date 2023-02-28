@@ -55,7 +55,7 @@ def test_deferred_init_with_lightning_module():
     (
         {"accelerator": "auto", "devices": 1},
         pytest.param(
-            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": 16},
+            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": "16-mixed"},
             marks=RunIf(min_cuda_gpus=2, deepspeed=True),
         ),
     ),
@@ -88,5 +88,5 @@ def test_deferred_init_ddp_spawn(tmpdir):
         devices="1",
         strategy="ddp_spawn",
     )
-    with pytest.raises(NotImplementedError, match="DDPSpawnStrategy` strategy does not support.*torchdistx"):
+    with pytest.raises(NotImplementedError, match="DDPStrategy` strategy does not support.*torchdistx"):
         trainer.fit(model)

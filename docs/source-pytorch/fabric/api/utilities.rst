@@ -61,7 +61,7 @@ By default, ``seed_everything`` also handles the initialization of the seed in :
 print
 =====
 
-Avoid duplicated print statements in the logs in distributed training by using Fabric's :meth:`~lightning_fabric.fabric.Fabric.print` method:
+Avoid duplicated print statements in the logs in distributed training by using Fabric's :meth:`~lightning.fabric.fabric.Fabric.print` method:
 
 .. code-block:: python
 
