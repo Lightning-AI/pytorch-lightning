@@ -51,6 +51,7 @@ You can keep an eye on the gradient norm by logging it in your LightningModule:
 
     from lightning.pytorch.utilities import grad_norm
 
+
     def on_before_optimizer_step(self, optimizer):
         # Compute the 2-norm for each layer
         # If using mixed precision, the gradients are already unscaled here
