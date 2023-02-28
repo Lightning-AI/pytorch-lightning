@@ -22,11 +22,13 @@ from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
@@ -60,6 +62,7 @@ class RunIf:
         omegaconf: bool = False,
         psutil: bool = False,
         sklearn: bool = False,
+        onnx: bool = False,
         **kwargs,
     ):
         """
@@ -83,6 +86,7 @@ class RunIf:
             omegaconf: Require that omry/omegaconf is installed.
             psutil: Require that psutil is installed.
             sklearn: Require that scikit-learn is installed.
+            onnx: Require that onnx is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -177,6 +181,10 @@ class RunIf:
         if sklearn:
             conditions.append(not _SKLEARN_AVAILABLE)
             reasons.append("scikit-learn")
+
+        if onnx:
+            conditions.append(_TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE)
+            reasons.append("onnx")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
