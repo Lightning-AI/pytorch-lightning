@@ -74,7 +74,7 @@ or with conda:
 
 .. code-block:: bash
 
-    conda install -c conda-forge neptune
+    conda install -c conda-forge neptune-client
 
 Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
 
