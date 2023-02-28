@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from contextlib import contextmanager
-from typing import Generator
-
 import torch
 
 
@@ -23,19 +20,6 @@ def make_deterministic():
     torch.use_deterministic_algorithms(True)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
-
-
-@contextmanager
-def precision_context(precision, accelerator) -> Generator[None, None, None]:
-    if precision == 32:
-        yield
-        return
-    if accelerator == "gpu":
-        with torch.cuda.amp.autocast():
-            yield
-    elif accelerator == "cpu":
-        with torch.cpu.amp.autocast():
-            yield
 
 
 def is_state_dict_equal(state0, state1):
