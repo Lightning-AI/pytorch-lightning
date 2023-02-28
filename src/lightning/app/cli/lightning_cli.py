@@ -87,7 +87,10 @@ def main() -> None:
         except Exception:
             # Note: We intentionally ignore all exceptions here so that we never panic if one of the above calls fails.
             # If they fail for some reason users should still be able to continue with their command.
-            pass
+            click.echo(
+                "We encountered an unexpected problem while checking your environment."
+                "We will still proceed with the command, however, there is a chance that errors may occur."
+            )
 
     # 1: Handle connection to a Lightning App.
     if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
