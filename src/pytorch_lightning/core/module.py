@@ -1873,22 +1873,30 @@ class LightningModule(
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
             **kwargs: Will be passed to torch.onnx.export function.
 
-        Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-            >>> import os, tempfile
-            >>> model = SimpleModel()
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model.to_onnx(tmpfile.name, torch.randn((1, 64)), export_params=True)
-            ...     os.path.isfile(tmpfile.name)
-            True
+        .. testcode::
+
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+
+            import os, tempfile
+
+            model = SimpleModel()
+            with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
+                model.to_onnx(tmpfile.name, torch.randn((1, 64)), export_params=True)
+                os.path.isfile(tmpfile.name)
         """
+        if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
+            )
+
         mode = self.training
 
         if input_sample is None:

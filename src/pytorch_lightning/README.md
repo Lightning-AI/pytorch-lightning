@@ -290,12 +290,11 @@ torch.jit.save(autoencoder.to_torchscript(), "model.pt")
 <summary>Export to ONNX (production use)</summary>
 
 ```python
+autoencoder = LitAutoEncoder()
+input_sample = torch.randn((1, 64))
 # onnx
 with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
-    autoencoder = LitAutoEncoder()
-    input_sample = torch.randn((1, 64))
     autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
-    os.path.isfile(tmpfile.name)
 ```
 
 </details>

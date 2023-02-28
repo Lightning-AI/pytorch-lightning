@@ -72,7 +72,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
             You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
             implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default: no offoading
+            to work with the optimizer. This API is subject to change. Default: no offloading
         backward_prefetch: This is an experimental feature that is subject to change in the near future. It allows
             users to enable two different backward prefetching algorithms to help backward communication and
             computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
@@ -82,7 +82,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
-        \**kwargs: Optional keywoard arguments passed to the FSDP context manager which will configure the FSDP class
+        \**kwargs: Optional keyword arguments passed to the FSDP context manager which will configure the FSDP class
             when wrapping modules.
     """
 

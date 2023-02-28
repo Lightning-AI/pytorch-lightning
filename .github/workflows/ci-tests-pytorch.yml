@@ -66,9 +66,16 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          # pytorch 2.0 Tests  # TODO
+          #  - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          #  - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          #  - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
 
     timeout-minutes: 70  # tests with macOS-11, py3.7 oldest takes much longer then expected
-
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
     steps:
     - uses: actions/checkout@v3
 
@@ -123,8 +130,6 @@ jobs:
 
     - name: Env. variables
       run: |
-        # Switch PyTorch URL
-        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
         # Whether to run slow tests
@@ -142,26 +147,6 @@ jobs:
         # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
         pip list
 
-    #- name: Reinstall Horovod if necessary
-    #  if: runner.os != 'windows'
-    #  env:
-    #    HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-    #    HOROVOD_WITHOUT_MXNET: 1
-    #    HOROVOD_WITHOUT_TENSORFLOW: 1
-    #  run: |
-    #    HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-    #    if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-    #      pip uninstall -y horovod
-    #      # grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
-    #      # pip install --no-cache-dir -r requirements/pytorch/horovod.txt
-    #
-    #      # we hardcode the version for testing due to difficulties installing and compiling the package
-    #      pip install --no-cache-dir horovod==0.21.2
-    #    fi
-    #    horovodrun --check-build
-    #    python -c "import horovod.torch"
-    #    pip list
-
     - name: Cache datasets
       uses: actions/cache@v3
       with:
@@ -170,8 +155,9 @@ jobs:
 
     - name: Sanity check
       run: |
-        python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
+        set -e
         python requirements/pytorch/check-avail-extras.py
+        python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name == 'lightning' }}
