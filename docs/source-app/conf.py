@@ -136,8 +136,8 @@ master_doc = "index"
 # Usually you set "language" from the command line for these cases.
 language = None
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
+# List of patterns, relative to source-app directory, that match files and
+# directories to ignore when looking for source-app files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
@@ -208,7 +208,7 @@ latex_elements = {
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
+# (source-app start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, project + ".tex", project + " Documentation", author, "manual"),
@@ -217,13 +217,13 @@ latex_documents = [
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
+# (source-app start file, name, description, authors, manual section).
 man_pages = [(master_doc, project, project + " Documentation", [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
+# (source-app start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
     (
@@ -324,7 +324,7 @@ autodoc_mock_imports = MOCK_PACKAGES
 
 
 # Resolve function
-# This function is used to populate the (source) links in the API
+# This function is used to populate the (source-app) links in the API
 def linkcode_resolve(domain, info):
     def find_source():
         # try to find the file and line number, based on code from numpy:

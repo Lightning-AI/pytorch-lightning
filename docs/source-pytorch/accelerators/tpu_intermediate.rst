@@ -42,7 +42,7 @@ To use a full TPU pod skip to the TPU pod section.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     my_model = MyLightningModule()
     trainer = pl.Trainer(accelerator="tpu", devices=8)
@@ -105,7 +105,7 @@ set the 16-bit flag.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     my_model = MyLightningModule()
     trainer = pl.Trainer(accelerator="tpu", devices=8, precision=16)

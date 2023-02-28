@@ -97,6 +97,9 @@ class Precision:
         for group in optimizer.param_groups:
             yield from group["params"]
 
+    def unscale_gradients(self, optimizer: Optimizer) -> None:
+        return
+
     def state_dict(self) -> Dict[str, Any]:
         """Called when saving a checkpoint, implement to generate precision plugin state_dict.
 

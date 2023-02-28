@@ -23,21 +23,21 @@ By default, HPU training will use 32-bit precision. To enable mixed precision, s
 Customize Mixed Precision
 -------------------------
 
-Internally, :class:`~pytorch_lightning.plugins.precision.hpu.HPUPrecisionPlugin` uses the Habana Mixed Precision (HMP) package to enable mixed precision training.
+Internally, :class:`~lightning.pytorch.plugins.precision.hpu.HPUPrecisionPlugin` uses the Habana Mixed Precision (HMP) package to enable mixed precision training.
 
 You can execute the ops in FP32 or BF16 precision. The HMP package modifies the Python operators to add the appropriate cast operations for the arguments before execution.
 The default settings enable users to enable mixed precision training with minimal code easily.
 
 In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their
-BF16 and FP32 operator lists by passing them as parameter to :class:`~pytorch_lightning.plugins.precision.hpu.HPUPrecisionPlugin`.
+BF16 and FP32 operator lists by passing them as parameter to :class:`~lightning.pytorch.plugins.precision.hpu.HPUPrecisionPlugin`.
 
 The below snippet shows an example model using MNIST with a single Habana Gaudi device and making use of HMP by overriding the default parameters.
 This enables advanced users to provide their own BF16 and FP32 operator list instead of using the HMP defaults.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    from pytorch_lightning.plugins import HPUPrecisionPlugin
+    import lightning.pytorch as pl
+    from lightning.pytorch.plugins import HPUPrecisionPlugin
 
     # Initialize a trainer with HPU accelerator for HPU strategy for single device,
     # with mixed precision using overidden HMP settings
@@ -72,7 +72,7 @@ For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <ht
 Enabling DeviceStatsMonitor with HPUs
 ----------------------------------------
 
-:class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor` is a callback that automatically monitors and logs device stats during the training stage.
+:class:`~lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor` is a callback that automatically monitors and logs device stats during the training stage.
 This callback can be passed for training with HPUs. It returns a map of the following metrics with their values in bytes of type uint64:
 
 - **Limit**: amount of total memory on HPU device.
@@ -90,8 +90,8 @@ The below snippet shows how DeviceStatsMonitor can be enabled.
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import DeviceStatsMonitor
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.callbacks import DeviceStatsMonitor
 
     device_stats = DeviceStatsMonitor()
     trainer = Trainer(accelerator="hpu", callbacks=[device_stats])

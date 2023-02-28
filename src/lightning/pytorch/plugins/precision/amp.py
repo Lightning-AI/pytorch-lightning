@@ -18,6 +18,7 @@ from torch.optim import LBFGS, Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -116,13 +117,3 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-
-def _optimizer_handles_unscaling(optimizer: Any) -> bool:
-    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
-    :class:`torch.cuda.amp.GradScaler`.
-
-    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
-    value will only be reliable for built-in PyTorch optimizers.
-    """
-    return getattr(optimizer, "_step_supports_amp_scaling", False)

@@ -23,8 +23,8 @@ Customize Checkpointing
 
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
-that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
-and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
+that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint`
+and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
 what's saved in the checkpoint.
 
 
@@ -40,14 +40,14 @@ Built-in Checkpoint IO Plugins
 
    * - Plugin
      - Description
-   * - :class:`~pytorch_lightning.plugins.io.TorchCheckpointIO`
+   * - :class:`~lightning.pytorch.plugins.io.TorchCheckpointIO`
      - CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
        respectively, common for most use cases.
-   * - :class:`~pytorch_lightning.plugins.io.XLACheckpointIO`
+   * - :class:`~lightning.pytorch.plugins.io.XLACheckpointIO`
      - CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
-   * - :class:`~pytorch_lightning.plugins.io.HPUCheckpointIO`
+   * - :class:`~lightning.pytorch.plugins.io.HPUCheckpointIO`
      - CheckpointIO to save checkpoints for HPU training strategies.
-   * - :class:`~pytorch_lightning.plugins.io.AsyncCheckpointIO`
+   * - :class:`~lightning.pytorch.plugins.io.AsyncCheckpointIO`
      - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 
 
@@ -59,10 +59,10 @@ Custom Checkpoint IO Plugin
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import ModelCheckpoint
-    from pytorch_lightning.plugins import CheckpointIO
-    from pytorch_lightning.strategies import SingleDeviceStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.callbacks import ModelCheckpoint
+    from lightning.pytorch.plugins import CheckpointIO
+    from lightning.pytorch.strategies import SingleDeviceStrategy
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -109,11 +109,11 @@ Asynchronous Checkpointing
     This is currently an experimental plugin/feature and API changes are to be expected.
 
 To enable saving the checkpoints asynchronously without blocking your training, you can configure
-:class:`~pytorch_lightning.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.
+:class:`~lightning.pytorch.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.
 
 .. code-block:: python
 
-   from pytorch_lightning.plugins.io import AsyncCheckpointIO
+   from lightning.pytorch.plugins.io import AsyncCheckpointIO
 
 
    async_ckpt_io = AsyncCheckpointIO()
@@ -126,7 +126,7 @@ But if you want the plugin to use your own custom base ``CheckpointIO`` and want
 
 .. code-block:: python
 
-   from pytorch_lightning.plugins.io import AsyncCheckpointIO
+   from lightning.pytorch.plugins.io import AsyncCheckpointIO
 
    base_ckpt_io = MyCustomCheckpointIO()
    async_ckpt_io = AsyncCheckpointIO(checkpoint_io=base_ckpt_io)
