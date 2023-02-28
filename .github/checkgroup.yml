@@ -310,7 +310,7 @@ subprojects:
       - ".actions/**"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
-      - "docs/source/**"
+      - "docs/source-app/**"
       - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
       - "requirements/app/**"
@@ -319,8 +319,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (lightning)"
-      - "make-html (lightning)"
+      - "make-doctest (app)"
+      - "make-html (app)"
 
   # SECTION: common
 
