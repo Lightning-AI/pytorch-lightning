@@ -55,7 +55,6 @@ def train_torch(
     for _ in range(num_epochs):
         for batch in train_dataloader:
             batch = move_to_device(batch)
-            print("torch", batch)
             optimizer.zero_grad()
 
             precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16}
@@ -67,7 +66,6 @@ def train_torch(
             loss = loss.to(torch.get_default_dtype()) if torch.is_floating_point(loss) else tensor
             loss.backward()
             optimizer.step()
-            break
 
     _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "torch_model.pt"))
 
@@ -102,7 +100,6 @@ def train_torch_ddp(
         sampler.set_epoch(epoch)
         for batch in train_dataloader:
             batch = batch.to(device)
-            print("torch", batch)
             optimizer.zero_grad()
             loss = ddp_model(batch)
             loss.backward()
@@ -132,12 +129,10 @@ class FabricRunner(Fabric):
         for _ in range(num_epochs):
             for batch in train_dataloader:
                 batch = self.to_device(batch)
-                print("fabric", batch)
                 optimizer.zero_grad()
                 loss = model(batch)
                 self.backward(loss)
                 optimizer.step()
-                break
 
         # check that the model has changed
         assert not is_state_dict_equal(initial_state_dict, model.state_dict())
