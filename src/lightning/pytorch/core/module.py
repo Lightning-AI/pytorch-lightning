@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optio
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -34,7 +35,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -50,6 +51,8 @@ from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORC
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
+
+_ONNX_AVAILABLE = RequirementCache("onnx")
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -1299,22 +1302,23 @@ class LightningModule(
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
 
-            >>> import os, tempfile
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model = SimpleModel()
-            ...     input_sample = torch.randn((1, 64))
-            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
-            ...     os.path.isfile(tmpfile.name)
-            True
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)
+
+            model = SimpleModel()
+            input_sample = torch.randn(1, 64)
+            model.to_onnx("export.onnx", input_sample, export_params=True)
         """
+        if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
+            )
+
         mode = self.training
 
         if input_sample is None:
