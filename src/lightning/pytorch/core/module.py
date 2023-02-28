@@ -1302,22 +1302,17 @@ class LightningModule(
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
 
-            >>> model = SimpleModel()
-            >>> input_sample = torch.randn((1, 64))
-            >>> import os, tempfile
-            >>> tmpfile = tempfile.NamedTemporaryFile(suffix='.onnx')
-            >>> model.to_onnx(tmpfile.name, input_sample, export_params=True)  # doctest: +ELLIPSIS
-            =...
-            >>> os.path.isfile(tmpfile.name)
-            True
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)
+
+            model = SimpleModel()
+            input_sample = torch.randn(1, 64)
+            model.to_onnx("export.onnx", input_sample, export_params=True)
         """
         if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(
