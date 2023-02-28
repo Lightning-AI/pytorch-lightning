@@ -762,15 +762,17 @@ def test_hooks_with_different_argument_names(tmpdir):
             self.assert_args(x2, batch_nb2)
             return super().validation_step(x2, batch_nb2)
 
-        def test_step(self, x3, batch_nb3, dl_idx3):
+        # we don't support a different name for `dataloader_idx`
+        def test_step(self, x3, batch_nb3, dataloader_idx):
             self.assert_args(x3, batch_nb3)
-            assert isinstance(dl_idx3, int)
+            assert isinstance(dataloader_idx, int)
             return super().test_step(x3, batch_nb3)
 
-        def predict(self, x4, batch_nb4, dl_idx4):
+        # we don't support a different name for `dataloader_idx`
+        def predict_step(self, x4, batch_nb4, dataloader_idx):
             self.assert_args(x4, batch_nb4)
-            assert isinstance(dl_idx4, int)
-            return super().predict(x4, batch_nb4, dl_idx4)
+            assert isinstance(dataloader_idx, int)
+            return super().predict_step(x4, batch_nb4, dataloader_idx)
 
         def test_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
@@ -783,7 +785,6 @@ def test_hooks_with_different_argument_names(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     trainer.test(model)
 
     preds = trainer.predict(model)

@@ -81,7 +81,7 @@ You can pass a list to Fabric:
     callback2.any_callback_method(arg1=..., arg2=...)
 
 
-The :meth:`~lightning_fabric.fabric.Fabric.call` calls the callback objects in the order they were given to Fabric.
+The :meth:`~lightning.fabric.fabric.Fabric.call` calls the callback objects in the order they were given to Fabric.
 Not all objects registered via ``Fabric(callbacks=...)`` must implement a method with the given name.
 The ones that have a matching method name will get called.
 

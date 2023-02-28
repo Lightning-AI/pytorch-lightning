@@ -172,3 +172,272 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
     model = MyModel()
     with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
         trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
+
+
+def test_invalid_dataloader_idx_raises_step(tmp_path):
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
+
+    class ExtraDataloaderIdx(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            ...
+
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = ExtraDataloaderIdx()
+    with pytest.raises(RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.validation_step"):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.test_step"):
+        trainer.test(model)
+
+    class GoodDefault(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+    model = GoodDefault()
+    trainer.validate(model)
+    trainer.test(model)
+
+    class ExtraDlIdxOtherName(BoringModel):
+        def validation_step(self, batch, batch_idx, dl_idx):
+            ...
+
+        def test_step(self, batch, batch_idx, dl_idx):
+            ...
+
+    model = ExtraDlIdxOtherName()
+    # different names are not supported
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'dl_idx"):
+        trainer.validate(model)
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'dl_idx"):
+        trainer.test(model)
+
+    class MultipleDataloader(BoringModel):
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+        def test_dataloader(self):
+            return [super().test_dataloader(), super().test_dataloader()]
+
+    model = MultipleDataloader()
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `MultipleDataloader.validation_step"):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `MultipleDataloader.test_step"):
+        trainer.test(model)
+
+    class IgnoringModel(MultipleDataloader):
+        def validation_step(self, batch, batch_idx, *_):
+            ...
+
+        def test_step(self, batch, batch_idx, *_):
+            ...
+
+    model = IgnoringModel()
+    trainer.validate(model)
+    trainer.test(model)
+
+    class IgnoringModel2(MultipleDataloader):
+        def validation_step(self, batch, batch_idx, **_):
+            ...
+
+        def test_step(self, batch, batch_idx, **_):
+            ...
+
+    model = IgnoringModel2()
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.validation_step"):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.test_step"):
+        trainer.test(model)
+
+
+def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
+
+    class ExtraDataloaderIdx(BoringModel):
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+            ...
+
+        def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = ExtraDataloaderIdx()
+    with pytest.raises(
+        RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.on_validation_batch_start"
+    ):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.on_test_batch_start"):
+        trainer.test(model)
+
+    class GoodDefault(BoringModel):
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+    model = GoodDefault()
+    trainer.validate(model)
+    trainer.test(model)
+
+    class ExtraDlIdxOtherName(BoringModel):
+        def on_validation_batch_start(self, batch, batch_idx, dl_idx):
+            ...
+
+        def on_test_batch_start(self, batch, batch_idx, dl_idx):
+            ...
+
+    model = ExtraDlIdxOtherName()
+    # different names are not supported
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'dl_idx"):
+        trainer.validate(model)
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'dl_idx"):
+        trainer.test(model)
+
+    class MultipleDataloader(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def on_validation_batch_start(self, batch, batch_idx):
+            ...
+
+        def on_test_batch_start(self, batch, batch_idx):
+            ...
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+        def test_dataloader(self):
+            return [super().test_dataloader(), super().test_dataloader()]
+
+    model = MultipleDataloader()
+    with pytest.raises(
+        RuntimeError, match="no `dataloader_idx` argument in `MultipleDataloader.on_validation_batch_start"
+    ):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `MultipleDataloader.on_test_batch_start"):
+        trainer.test(model)
+
+    class IgnoringModel(MultipleDataloader):
+        def on_validation_batch_start(self, batch, batch_idx, *_):
+            ...
+
+        def on_test_batch_start(self, batch, batch_idx, *_):
+            ...
+
+    model = IgnoringModel()
+    trainer.validate(model)
+    trainer.test(model)
+
+    class IgnoringModel2(MultipleDataloader):
+        def on_validation_batch_start(self, batch, batch_idx, **_):
+            ...
+
+        def on_test_batch_start(self, batch, batch_idx, **_):
+            ...
+
+    model = IgnoringModel2()
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_validation_batch_start"):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_test_batch_start"):
+        trainer.test(model)
+
+
+def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
+
+    class ExtraDataloaderIdx(BoringModel):
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            ...
+
+        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = ExtraDataloaderIdx()
+    with pytest.raises(
+        RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.on_validation_batch_end"
+    ):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.on_test_batch_end"):
+        trainer.test(model)
+
+    class GoodDefault(BoringModel):
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+            ...
+
+    model = GoodDefault()
+    trainer.validate(model)
+    trainer.test(model)
+
+    class ExtraDlIdxOtherName(BoringModel):
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dl_idx):
+            ...
+
+        def on_test_batch_end(self, outputs, batch, batch_idx, dl_idx):
+            ...
+
+    model = ExtraDlIdxOtherName()
+    # different names are not supported
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'dl_idx"):
+        trainer.validate(model)
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'dl_idx"):
+        trainer.test(model)
+
+    class MultipleDataloader(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
+            ...
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx):
+            ...
+
+        def on_test_batch_end(self, outputs, batch, batch_idx):
+            ...
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+        def test_dataloader(self):
+            return [super().test_dataloader(), super().test_dataloader()]
+
+    model = MultipleDataloader()
+    with pytest.raises(
+        RuntimeError, match="no `dataloader_idx` argument in `MultipleDataloader.on_validation_batch_end"
+    ):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `MultipleDataloader.on_test_batch_end"):
+        trainer.test(model)
+
+    class IgnoringModel(MultipleDataloader):
+        def on_validation_batch_end(self, outputs, batch, batch_idx, *_):
+            ...
+
+        def on_test_batch_end(self, outputs, batch, batch_idx, *_):
+            ...
+
+    model = IgnoringModel()
+    trainer.validate(model)
+    trainer.test(model)
+
+    class IgnoringModel2(MultipleDataloader):
+        def on_validation_batch_end(self, outputs, batch, batch_idx, **_):
+            ...
+
+        def on_test_batch_end(self, outputs, batch, batch_idx, **_):
+            ...
+
+    model = IgnoringModel2()
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_validation_batch_end"):
+        trainer.validate(model)
+    with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_test_batch_end"):
+        trainer.test(model)

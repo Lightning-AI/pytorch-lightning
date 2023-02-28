@@ -46,7 +46,7 @@ To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``acc
 
 
 The ``devices>1`` parameter with HPUs enables the Habana accelerator for distributed training.
-It uses :class:`~pytorch_lightning.strategies.hpu_parallel.HPUParallelStrategy` internally which is based on DDP
+It uses :class:`~lightning.pytorch.strategies.hpu_parallel.HPUParallelStrategy` internally which is based on DDP
 strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and
 scale-out across multiple nodes.
 

@@ -41,7 +41,7 @@ Optionally, explore other strategies too:
     fabric = Fabric(accelerator="gpu", devices=8, num_nodes=4, strategy="fsdp")
 
 
-**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.launch` to initialize the communication between devices and nodes.
+**Step 2:** Call :meth:`~lightning.fabric.fabric.Fabric.launch` to initialize the communication between devices and nodes.
 
 .. code-block:: python
 
