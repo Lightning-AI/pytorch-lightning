@@ -65,22 +65,7 @@ jobs:
           key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-test-${{ matrix.pkg-name }}-
 
-      - name: Install LAI package
-        # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name == 'app' }}
-        run: pip install -e . -U -v -f pypi -f ${TORCH_URL}
-
-      - name: Adjust docs refs
-        if: ${{ matrix.pkg-name == 'app' }}
-        run: |
-          pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
-            --source_import="pytorch_lightning,lightning_fabric" \
-            --target_import="lightning.pytorch,lightning.fabric"
-
       - name: Install this package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
@@ -127,8 +112,6 @@ jobs:
           restore-keys: docs-make-
 
       - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip --version
           pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
@@ -149,5 +132,3 @@ jobs:
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failuress
-        if: success()
