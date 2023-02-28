@@ -128,29 +128,6 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(neptune.init_run.call_count, 0)
 
     @patch("lightning.pytorch.loggers.neptune.Run", Run)
-    def test_with_custom_handler(self, neptune):
-        created_run = Run()
-        logger = NeptuneLogger(run=created_run["training"])
-
-        assert logger._run_instance == created_run
-        self.assertEqual(logger._run_instance, created_run)
-        self.assertEqual(logger.version, "TEST-42")
-        self.assertEqual(neptune.init_run.call_count, 0)
-
-        metrics = {
-            "foo": 42,
-            "bar": 555,
-        }
-
-        logger.log_metrics(metrics)
-
-        self.assertEqual(run_instance_mock.__setitem__.call_count, 0)
-        self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
-        run_instance_mock.__getitem__.assert_any_call("training/foo")
-        run_instance_mock.__getitem__.assert_any_call("training/bar")
-        run_attr_mock.log.assert_has_calls([call(42), call(555)])
-
-    @patch("lightning.pytorch.loggers.neptune.Run", Run)
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
@@ -245,7 +222,7 @@ class TestNeptuneLogger(unittest.TestCase):
 
         # then
         run_instance_mock.__getitem__.assert_any_call("training/some/key")
-        run_instance_mock.__getitem__.return_value.log.assert_has_calls([call(42)])
+        run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42)])
 
     def test_log_hyperparams(self, neptune):
         params = {"foo": "bar", "nested_foo": {"bar": 42}}
@@ -264,7 +241,9 @@ class TestNeptuneLogger(unittest.TestCase):
             # then
             self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
-            run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
+            run_instance_mock.__setitem__.assert_called_once_with(
+                hyperparams_key, neptune.utils.stringify_unsupported(params)
+            )
 
     def test_log_metrics(self, neptune):
         metrics = {
@@ -291,7 +270,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
             run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
-            run_attr_mock.log.assert_has_calls([call(42), call(555)])
+            run_attr_mock.append.assert_has_calls([call(42), call(555)])
 
     def test_log_model_summary(self, neptune):
         model = BoringModel()

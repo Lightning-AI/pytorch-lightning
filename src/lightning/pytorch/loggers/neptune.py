@@ -249,7 +249,7 @@ class NeptuneLogger(Logger):
 
             # make sure that we've log integration version for outside `Run` instances
             root_obj = self._run_instance
-            if isinstance(root_obj, neptune.handler.Handler):
+            if isinstance(root_obj, Handler):
                 root_obj = root_obj.get_root_object()
 
             root_obj[_INTEGRATION_VERSION_KEY] = pl.__version__
@@ -307,7 +307,7 @@ class NeptuneLogger(Logger):
         neptune_run_kwargs: dict,
     ) -> None:
         # check if user passed the client `Run`/`Handler` object
-        if run is not None and not isinstance(run, Run, neptune.handler.Handler):
+        if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
         # check if user passed redundant neptune.init_run arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
