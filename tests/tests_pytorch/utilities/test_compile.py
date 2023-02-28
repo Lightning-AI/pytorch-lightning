@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 
 import pytest
 import torch
@@ -24,6 +25,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_torch="2.0.0")
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
 def test_trainer_compiled_model(tmp_path, monkeypatch):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
