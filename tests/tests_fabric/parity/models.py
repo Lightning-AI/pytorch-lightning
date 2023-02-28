@@ -14,11 +14,11 @@
 from abc import ABC, abstractmethod
 from typing import Callable
 
-import torch.nn as nn
-from torch.optim import Optimizer
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import TensorDataset, DataLoader
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader, TensorDataset
 
 
 class ParityModel(ABC, nn.Module):

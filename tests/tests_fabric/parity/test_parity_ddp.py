@@ -14,29 +14,19 @@
 import os
 import time
 from copy import deepcopy
-from functools import partial
-from typing import Callable
 
 import pytest
 import torch
 import torch.distributed
-import torch.multiprocessing as mp
 import torch.nn.functional
-from lightning_utilities.core.apply_func import apply_to_collection
 from tests_fabric.helpers.runif import RunIf
-from torch import nn, Tensor
+from tests_fabric.parity.models import ConvNet
+from tests_fabric.parity.utils import is_state_dict_equal, make_deterministic
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from unittest import mock
 
 from lightning.fabric.fabric import Fabric
-from lightning.fabric.plugins.environments.lightning import find_free_network_port
-from lightning.fabric.strategies.ddp import DDPStrategy
-from lightning.fabric.utilities.apply_func import move_data_to_device
-
-from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
-from tests_fabric.parity.models import ConvNet
 
 NUM_STEPS_DEFAULT = 100
 
@@ -60,9 +50,7 @@ def train_torch_ddp(
     ddp_model = DistributedDataParallel(model.to(device), device_ids=([rank] if device.type == "cuda" else None))
 
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * world_size), batch_size=batch_size)
-    sampler = DistributedSampler(
-        dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False
-    )
+    sampler = DistributedSampler(dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False)
     dataloader = DataLoader(dataloader.dataset, sampler=sampler)
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import time
 from copy import deepcopy
 from typing import Callable
@@ -21,10 +20,10 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
+from tests_fabric.parity.models import ConvNet
+from tests_fabric.parity.utils import is_state_dict_equal, make_deterministic
 
 from lightning.fabric.fabric import Fabric
-from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
-from tests_fabric.parity.models import ConvNet
 
 NUM_STEPS_DEFAULT = 1000
 
