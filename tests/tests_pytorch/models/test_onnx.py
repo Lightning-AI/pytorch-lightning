@@ -77,8 +77,7 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
     assert os.path.getsize(file_path) > 4e2
 
 
-@RunIf(min_cuda_gpus=2)
-@RunIf(onnx=True)
+@RunIf(min_cuda_gpus=2, onnx=True)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
     trainer_options = dict(

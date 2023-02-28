@@ -86,7 +86,7 @@ class RunIf:
             omegaconf: Require that omry/omegaconf is installed.
             psutil: Require that psutil is installed.
             sklearn: Require that scikit-learn is installed.
-            sklearn: Require that onnx is installed.
+            onnx: Require that onnx is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
