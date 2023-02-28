@@ -276,24 +276,6 @@ def setup(app):
     app.add_css_file("main.css")
 
 
-# copy all notebooks to local folder
-path_nbs = os.path.join(_PATH_HERE, "notebooks")
-if not os.path.isdir(path_nbs):
-    os.mkdir(path_nbs)
-for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, "notebooks", "*.ipynb")):
-    path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
-    shutil.copy(path_ipynb, path_ipynb2)
-
-# copy all examples to local folder
-path_examples = os.path.join(_PATH_HERE, "..", "examples")
-if not os.path.isdir(path_examples):
-    os.mkdir(path_examples)
-for path_app_example in glob.glob(os.path.join(_PATH_ROOT, "examples", "app_*")):
-    path_app_example2 = os.path.join(path_examples, os.path.basename(path_app_example))
-    if not os.path.isdir(path_app_example2):
-        shutil.copytree(path_app_example, path_app_example2, dirs_exist_ok=True)
-
-
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def _package_list_from_file(file):
