@@ -56,8 +56,8 @@ def train_torch(
         for batch in train_dataloader:
             batch = move_to_device(batch)
             optimizer.zero_grad()
-            with precision_context():
-                loss = model(batch)
+            # with precision_context():
+            loss = model(batch)
             loss.backward()
             optimizer.step()
 
@@ -124,7 +124,6 @@ class FabricRunner(Fabric):
         for _ in range(num_epochs):
             for batch in train_dataloader:
                 batch = self.to_device(batch)
-                print("fabric", batch)
                 optimizer.zero_grad()
                 loss = model(batch)
                 self.backward(loss)
