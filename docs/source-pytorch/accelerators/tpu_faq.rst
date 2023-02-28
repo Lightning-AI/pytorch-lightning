@@ -18,7 +18,7 @@ XLA configuration is missing?
     ...
     File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
         raise MisconfigurationException('No TPU devices were found.')
-    pytorch_lightning.utilities.exceptions.MisconfigurationException: No TPU devices were found.
+    lightning.pytorch.utilities.exceptions.MisconfigurationException: No TPU devices were found.
 
 This means the system is missing XLA configuration. You would need to set up XRT TPU device configuration.
 
@@ -88,7 +88,7 @@ How to setup the debug mode for Training on TPUs?
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     my_model = MyLightningModule()
     trainer = pl.Trainer(accelerator="tpu", devices=8, strategy="xla_debug")

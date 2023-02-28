@@ -80,7 +80,13 @@ def parse_class_init_keys(
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
+def get_init_args(frame: types.FrameType) -> Dict[str, Any]:  # pragma: no-cover
+    """For backwards compatibility: #16369."""
+    _, local_args = _get_init_args(frame)
+    return local_args
+
+
+def _get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if "__class__" not in local_vars:
         return None, {}
@@ -123,7 +129,7 @@ def collect_init_args(
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    local_self, local_args = get_init_args(frame)
+    local_self, local_args = _get_init_args(frame)
     if "__class__" in local_vars and (not classes or isinstance(local_self, classes)):
         # recursive update
         path_args.append(local_args)

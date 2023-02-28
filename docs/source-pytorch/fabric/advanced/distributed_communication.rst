@@ -236,7 +236,7 @@ Reduce
 
 The reduction is an operation that takes multiple values (tensors) as input and returns a single value.
 An example of a reduction is *summation*, e.g., ``torch.sum()``.
-The :meth:`~lightning_fabric.fabric.Fabric.all_reduce` operation allows you to apply a reduction across multiple processes:
+The :meth:`~lightning.fabric.fabric.Fabric.all_reduce` operation allows you to apply a reduction across multiple processes:
 
 .. code-block:: python
 
