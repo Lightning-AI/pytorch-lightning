@@ -17,6 +17,7 @@ import pytest
 import torch
 from lightning_utilities.core import module_available
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
@@ -25,11 +26,12 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 def skip_if_unsupported():
-    from torch._dynamo.eval_frame import check_if_dynamo_supported
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch._dynamo.eval_frame import is_dynamo_supported
 
-    try:
-        check_if_dynamo_supported()
-    except RuntimeError:
+        if not is_dynamo_supported():
+            pytest.skip("TorchDynamo unsupported")
+    elif sys.platform == "win32" or sys.version_info >= (3, 11):
         pytest.skip("TorchDynamo unsupported")
 
 
