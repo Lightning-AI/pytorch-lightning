@@ -230,7 +230,7 @@ jobs:
         timeout-minutes: 55
 
   build-docs:
-    # if: github.event.pull_request.draft == false  # fixme
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
