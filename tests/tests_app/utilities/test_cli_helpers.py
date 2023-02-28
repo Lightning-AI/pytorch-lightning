@@ -121,48 +121,43 @@ def test_get_newer_version(mock_requests, releases, current_version, newer_versi
 
 
 @patch("lightning.app.utilities.cli_helpers._redirect_command")
-def test_check_environment_and_redirect(mock_redirect_command, tmpdir):
-    original_path = os.environ["PATH"]
-
+def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypatch):
     # Ensure that the test fails if it tries to redirect
     mock_redirect_command.side_effect = RuntimeError
 
-    try:
-        # Test normal executable on the path
-        # Ensure current executable is on the path
-        os.environ["PATH"] = f"{os.path.dirname(sys.executable)}"
+    # Test normal executable on the path
+    # Ensure current executable is on the path
+    monkeypatch.setenv("PATH", f"{os.path.dirname(sys.executable)}")
 
-        assert _check_environment_and_redirect() is None
+    assert _check_environment_and_redirect() is None
 
-        # Test executable on the path with redirect
-        fake_python_path = os.path.join(tmpdir, "python")
+    # Test executable on the path with redirect
+    fake_python_path = os.path.join(tmpdir, "python")
 
-        os.symlink(sys.executable, fake_python_path)
+    os.symlink(sys.executable, fake_python_path)
 
-        os.environ["PATH"] = f"{tmpdir}"
-        assert _check_environment_and_redirect() is None
+    monkeypatch.setenv("PATH", f"{tmpdir}")
+    assert _check_environment_and_redirect() is None
 
-        os.remove(fake_python_path)
+    os.remove(fake_python_path)
 
-        descriptor = os.open(
-            fake_python_path,
-            flags=(
-                os.O_WRONLY  # access mode: write only
-                | os.O_CREAT  # create if not exists
-                | os.O_TRUNC  # truncate the file to zero
-            ),
-            mode=0o777,
+    descriptor = os.open(
+        fake_python_path,
+        flags=(
+            os.O_WRONLY  # access mode: write only
+            | os.O_CREAT  # create if not exists
+            | os.O_TRUNC  # truncate the file to zero
+        ),
+        mode=0o777,
+    )
+
+    with open(descriptor, "w") as f:
+        f.writelines(
+            [
+                "#!/bin/bash\n",
+                f'{sys.executable} "$@"',
+            ]
         )
 
-        with open(descriptor, "w") as f:
-            f.writelines(
-                [
-                    "#!/bin/bash\n",
-                    f'{sys.executable} "$@"',
-                ]
-            )
-
-        os.environ["PATH"] = f"{tmpdir}"
-        assert _check_environment_and_redirect() is None
-    finally:
-        sys.path = original_path
+    monkeypatch.setenv("PATH", f"{tmpdir}")
+    assert _check_environment_and_redirect() is None
