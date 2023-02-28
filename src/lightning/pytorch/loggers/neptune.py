@@ -36,9 +36,16 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 _NEPTUNE_AVAILABLE = RequirementCache("neptune") or RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
-    import neptune
-    from neptune import Run
-    from neptune.handler import Handler
+    try:  # >1.0 package structure
+        import neptune
+        from neptune import Run
+        from neptune.handler import Handler
+        from neptune.utils import stringify_unsupported
+    except ImportError:  # 0.16.8 package structure
+        import neptune.new as neptune
+        from neptune.new import Run
+        from neptune.new.handler import Handler
+        from neptune.new.utils import stringify_unsupported
 else:
     # needed for test mocks, and function signatures
     neptune, Run, Handler = None, None, None
@@ -410,7 +417,7 @@ class NeptuneLogger(Logger):
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)
 
-        self.run[parameters_key] = neptune.utils.stringify_unsupported(params)
+        self.run[parameters_key] = stringify_unsupported(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
