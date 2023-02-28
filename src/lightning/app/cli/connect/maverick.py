@@ -23,7 +23,7 @@ from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
-from lightning.app.core.constants import get_lightning_cloud_url
+from lightning.app.core.constants import get_lightning_cloud_url, DEBUG_ENABLED
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
 
@@ -87,7 +87,9 @@ def connect_maverick(name: str) -> None:
     if "lightning.ai" in CLOUD_PROXY_HOST:
         _error_and_exit("Maverick connection isn't publicly available. Open an issue on Github.")
 
-    with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
+    register_to_cloud(name)
+
+    with Live(Spinner("point", text=Text("setting up...", style="white")), transient=True) as live:
         # run network creation in the background
         out = subprocess.run(CMD_CREATE_NETWORK, shell=True, capture_output=True)
         error = out.stderr
@@ -111,7 +113,8 @@ def connect_maverick(name: str) -> None:
             if out.stdout:
                 subprocess.run(f"docker rm -f {CODE_SERVER_CONTAINER}", shell=True, check=True)
             else:
-                live.update(Spinner("point", text=Text("pulling code server image", style="white")))
+                if DEBUG_ENABLED:
+                    live.update(Spinner("point", text=Text("pulling code server image", style="white")))
                 out = subprocess.run(f"docker pull {CODE_SERVER_IMAGE}", shell=True, check=True, capture_output=True)
                 error = out.stderr
                 if error:
@@ -119,7 +122,8 @@ def connect_maverick(name: str) -> None:
                     rich.print(f"[red]Failed[/red]: code server image pull failed with error: {str(error)}")
                     return
             cmd = get_code_server_docker_command()
-            live.update(Spinner("point", text=Text("running code server", style="white")))
+            if DEBUG_ENABLED:
+                live.update(Spinner("point", text=Text("running code server", style="white")))
             _ = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # if lightning daemon is already running, ignore.
@@ -139,7 +143,8 @@ def connect_maverick(name: str) -> None:
             if out.stdout:
                 subprocess.run(f"docker rm -f {LIGHTNING_DAEMON_CONTAINER}", shell=True, check=True)
             else:
-                live.update(Spinner("point", text=Text("pulling lightning daemon image", style="white")))
+                if DEBUG_ENABLED:
+                    live.update(Spinner("point", text=Text("pulling lightning daemon image", style="white")))
                 out = subprocess.run(
                     f"docker pull {LIGHTNING_DAEMON_IMAGE}", shell=True, check=True, capture_output=True
                 )
@@ -149,7 +154,8 @@ def connect_maverick(name: str) -> None:
                     rich.print(f"[red]Failed[/red]: lightnign daemon image pull failed with error: {str(error)}")
                     return
             cmd = get_lightning_daemon_command(name)
-            live.update(Spinner("point", text=Text("running lightning daemon", style="white")))
+            if DEBUG_ENABLED:
+                live.update(Spinner("point", text=Text("running lightning daemon", style="white")))
             _ = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # wait until if both docker containers are running
@@ -197,3 +203,11 @@ def disconnect_maverick(name: str) -> None:
         subprocess.run(f"docker stop {CODE_SERVER_CONTAINER}", shell=True, capture_output=True)
         subprocess.run(f"docker stop {LIGHTNING_DAEMON_CONTAINER}", shell=True, capture_output=True)
     rich.print(f"[green]Succeeded[/green]: maverick {name} has been disconnected from lightning.")
+
+
+def register_to_cloud(name):
+    pass
+
+
+def deregister_from_cloud(name):
+    pass
