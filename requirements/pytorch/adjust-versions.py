@@ -5,6 +5,8 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
+    dict(torch="2.1.0", torchvision="0.16.0"),  # nightly
+    dict(torch="2.0.0", torchvision="0.15.1"),  # stable
     dict(torch="1.14.0", torchvision="0.15.0"),  # nightly
     dict(torch="1.13.1", torchvision="0.14.1"),  # stable
     dict(torch="1.13.0", torchvision="0.14.0"),

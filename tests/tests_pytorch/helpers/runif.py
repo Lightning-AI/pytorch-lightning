@@ -36,7 +36,9 @@ from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _HIVEMIND_AVAILABLE,
     _OMEGACONF_AVAILABLE,
+    _ONNX_AVAILABLE,
     _PSUTIL_AVAILABLE,
+    _TORCH_GREATER_EQUAL_2_0,
     _TORCH_QUANTIZE_AVAILABLE,
 )
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
@@ -92,6 +94,7 @@ class RunIf:
         psutil: bool = False,
         hivemind: bool = False,
         sklearn: bool = False,
+        onnx: bool = False,
         **kwargs,
     ):
         """
@@ -124,6 +127,7 @@ class RunIf:
             psutil: Require that psutil is installed.
             hivemind: Require that Hivemind is installed.
             sklearn: Require that scikit-learn is installed.
+            onnx: Require that onnx is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -264,6 +268,10 @@ class RunIf:
         if sklearn:
             conditions.append(not _SKLEARN_AVAILABLE)
             reasons.append("scikit-learn")
+
+        if onnx:
+            conditions.append(_TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE)
+            reasons.append("onnx")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
