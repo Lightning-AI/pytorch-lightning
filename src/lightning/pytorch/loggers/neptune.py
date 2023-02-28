@@ -38,9 +38,10 @@ _NEPTUNE_AVAILABLE = RequirementCache("neptune") or RequirementCache("neptune-cl
 if _NEPTUNE_AVAILABLE:
     import neptune
     from neptune import Run
+    from neptune.handler import Handler
 else:
     # needed for test mocks, and function signatures
-    neptune, Run = None, None
+    neptune, Run, Handler = None, None, None
 
 log = logging.getLogger(__name__)
 
@@ -251,7 +252,7 @@ class NeptuneLogger(Logger):
             if isinstance(root_obj, neptune.handler.Handler):
                 root_obj = root_obj.get_root_object()
 
-            root_obj[INTEGRATION_VERSION_KEY] = __version__
+            root_obj[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
         assert self._run_instance is not None
