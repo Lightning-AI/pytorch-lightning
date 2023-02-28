@@ -156,12 +156,12 @@ def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
     assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
 
 
-# @RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(standalone=True)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
         (32, "ddp", 2, "cpu"),
-        # (32, "ddp", 2, "gpu"),
+        pytest.param(32, "ddp", 2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_boring_fabric_model_ddp(precision, strategy, devices, accelerator, tmpdir):
