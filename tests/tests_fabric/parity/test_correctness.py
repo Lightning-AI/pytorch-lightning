@@ -57,13 +57,13 @@ def train_torch(
             batch = move_to_device(batch)
             optimizer.zero_grad()
 
-            precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16}
-            dst_type = precision_to_type["bf16-mixed"]
-            batch = batch.to(dst_type)
+            # precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16}
+            # dst_type = precision_to_type["bf16-mixed"]
+            # batch = batch.to(dst_type)
             with precision_context():
                 loss = model(batch)
 
-            loss = loss.to(torch.get_default_dtype()) if torch.is_floating_point(loss) else tensor
+            # loss = loss.to(torch.get_default_dtype()) if torch.is_floating_point(loss) else tensor
             loss.backward()
             optimizer.step()
 
