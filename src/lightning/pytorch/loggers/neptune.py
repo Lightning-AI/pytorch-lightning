@@ -224,7 +224,7 @@ class NeptuneLogger(Logger):
         api_key: Optional[str] = None,
         project: Optional[str] = None,
         name: Optional[str] = None,
-        run: Optional["Run"] = None,
+        run: Optional[Union["Run", "Handler"]] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
         **neptune_run_kwargs: Any,
@@ -302,7 +302,7 @@ class NeptuneLogger(Logger):
         api_key: Optional[str],
         project: Optional[str],
         name: Optional[str],
-        run: Optional["Run", "Handler"],
+        run: Optional[Union["Run", "Handler"]],
         neptune_run_kwargs: dict,
     ) -> None:
         # check if user passed the client `Run`/`Handler` object
