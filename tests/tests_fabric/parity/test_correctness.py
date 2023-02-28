@@ -62,6 +62,8 @@ def train_torch(
             batch = batch.to(dst_type)
             with precision_context():
                 loss = model(batch)
+
+            loss = loss.to(torch.get_default_dtype()) if torch.is_floating_point(loss) else tensor
             loss.backward()
             optimizer.step()
 
