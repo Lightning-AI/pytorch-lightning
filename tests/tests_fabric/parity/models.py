@@ -19,6 +19,7 @@ from torch.optim import Optimizer
 import torch
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
+from tests_fabric.helpers.models import RandomDataset
 
 
 class ParityModel(ABC, nn.Module):
@@ -35,6 +36,25 @@ class ParityModel(ABC, nn.Module):
     @abstractmethod
     def get_loss_function(self) -> Callable:
         pass
+
+#
+# class BoringModel(ParityModel):
+#     def __init__(self):
+#         super().__init__()
+#         self.layer = torch.nn.Linear(32, 2, bias=False)
+#
+#     def forward(self, x):
+#         x = self.layer(x)
+#         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
+#
+#     def get_optimizer(self):
+#         return torch.optim.SGD(self.parameters(), lr=0.1)
+#
+#     def get_dataloader(self, *args, **kwargs) -> DataLoader:
+#         return DataLoader(RandomDataset(32, 4))
+#
+#     def get_loss_function(self) -> Callable:
+#         pass
 
 
 class ConvNet(ParityModel):
