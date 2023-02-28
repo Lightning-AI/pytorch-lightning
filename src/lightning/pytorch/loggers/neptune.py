@@ -41,14 +41,14 @@ if _NEPTUNE_AVAILABLE:
         from neptune import Run
         from neptune.handler import Handler
         from neptune.utils import stringify_unsupported
-    except ImportError:  # 0.16.8 package structure
+    except ImportError:  # <1.0 package structure
         import neptune.new as neptune
         from neptune.new import Run
         from neptune.new.handler import Handler
         from neptune.new.utils import stringify_unsupported
 else:
     # needed for test mocks, and function signatures
-    neptune, Run, Handler = None, None, None
+    neptune, Run, Handler, stringify_unsupported = None, None, None, None
 
 log = logging.getLogger(__name__)
 
@@ -263,11 +263,15 @@ class NeptuneLogger(Logger):
 
     def _retrieve_run_data(self) -> None:
         assert self._run_instance is not None
-        self._run_instance.wait()
+        root_obj = self._run_instance
+        if isinstance(root_obj, Handler):
+            root_obj = root_obj.get_root_object()
 
-        if self._run_instance.exists("sys/id"):
-            self._run_short_id = self._run_instance["sys/id"].fetch()
-            self._run_name = self._run_instance["sys/name"].fetch()
+        root_obj.wait()
+
+        if root_obj.exists("sys/id"):
+            self._run_short_id = root_obj["sys/id"].fetch()
+            self._run_name = root_obj["sys/name"].fetch()
         else:
             self._run_short_id = "OFFLINE"
             self._run_name = "offline-name"
