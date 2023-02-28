@@ -18,7 +18,6 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -42,8 +41,6 @@ class BoringModelGPU(BoringModel):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True)
-# TODO: https://github.com/pytorch/pytorch/issues/95668
-@pytest.mark.xfail(condition=_TORCH_GREATER_EQUAL_2_0, raises=AssertionError, reason="cuBLAS issue")
 def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU strategy.
 
