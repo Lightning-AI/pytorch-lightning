@@ -286,14 +286,14 @@ subprojects:
       - "app-examples (windows-2022, lightning, 3.9, oldest)"
       - "app-examples (windows-2022, app, 3.9, latest)"
 
-  - id: "lightning: Flagships"
-    paths:
-      - ".github/workflows/_flagship-apps.yml"
-      - ".github/workflows/ci-flagship-apps.yml"
-      - "github/actions/prep-apps/action.yml"
-      - "tests/integrations_app/flagship/**"
-    checks:
-      - "test-flagships / run-flagships (flashy, Lightning-Universe/Flashy-app)"
+  #- id: "lightning: Flagships"
+  #  paths:
+  #    - ".github/workflows/_flagship-apps.yml"
+  #    - ".github/workflows/ci-flagship-apps.yml"
+  #    - "github/actions/prep-apps/action.yml"
+  #    - "tests/integrations_app/flagship/**"
+  #  checks:
+  #    - "test-flagships / run-flagships (flashy, Lightning-Universe/Flashy-app)"
 
   - id: "lightning: Store"
     paths:
@@ -326,7 +326,7 @@ subprojects:
       - ".actions/**"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
-      - "docs/source/**"
+      - "docs/source-app/**"
       - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
       - "requirements/app/**"
@@ -335,8 +335,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (lightning)"
-      - "make-html (lightning)"
+      - "make-doctest (app)"
+      - "make-html (app)"
 
   # SECTION: common
 

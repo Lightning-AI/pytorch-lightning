@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["lightning", "fabric", "pytorch"]
+        pkg-name: ["app", "fabric", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -65,20 +65,15 @@ jobs:
           key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-test-${{ matrix.pkg-name }}-
 
-      - name: adjust paths
-        run: |
-          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'fabric': '-fabric', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
-          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
-
       - name: Install this package
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs/${{ env.DOCS_DIR }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make doctest
           make coverage
@@ -90,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["lightning", "fabric", "pytorch"]
+        pkg-name: ["app", "fabric", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -116,24 +111,19 @@ jobs:
           key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-make-
 
-      - name: adjust paths
-        run: |
-          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'fabric': '-fabric', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
-          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
-
       - name: Install package & dependencies
         run: |
           pip --version
-          pip install -e . -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
+          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs/${{ env.DOCS_DIR }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
-        working-directory: ./docs/${{ env.DOCS_DIR }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make linkcheck
         continue-on-error: true
 

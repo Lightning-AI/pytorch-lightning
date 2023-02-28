@@ -136,6 +136,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Predict's custom BatchSampler that tracks the batch indices no longer consumes the entire batch sampler at the beginning ([#16826](https://github.com/Lightning-AI/lightning/pull/16826))
 
 
+- Gradient norm tracking with `track_grad_norm` no longer rounds the norms to 4 digits, but instead logs them at full resolution ([#16877](https://github.com/Lightning-AI/lightning/pull/16877))
+
+
 - Merged the `DDPSpawnStrategy` into `DDPStrategy` ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
 
@@ -396,6 +399,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [1.9.3] - 2023-02-21
 
 ### Fixed
+
+- Fixed backwards compatibility for `lightning.pytorch.utilities.parsing.get_init_args` ([#16851](https://github.com/Lightning-AI/lightning/pull/16851))
+
 
 - Fixed an issue causing a wrong environment plugin to be selected when `accelerator=tpu` and `devices > 1` ([#16806](https://github.com/Lightning-AI/lightning/pull/16806))
 
