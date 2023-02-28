@@ -75,6 +75,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Setup macOS
+      if: ${{ runner.os == 'macOS' && matrix.pytorch-version == '2.0' }}
+      run: |
+        # fix for `torch._inductor.exc.CppCompileError: C++ compile error. 'omp.h' file not found`
+        brew install libomp
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
