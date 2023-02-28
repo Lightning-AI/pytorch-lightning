@@ -132,7 +132,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'en'
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -143,7 +143,7 @@ exclude_patterns = [
     "readme.md",
     "_templates",
     "code_samples/convert_pl_to_app/requirements.txt",
-    "**/_static/*"
+    "**/_static/*",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -155,7 +155,7 @@ pygments_style = None
 # a list of builtin themes.
 #
 html_theme = "lai_sphinx_theme"
-html_theme_path = [os.environ.get('LIT_SPHINX_PATH', lai_sphinx_theme.get_html_theme_path())]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
