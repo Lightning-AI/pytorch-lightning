@@ -18,7 +18,6 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -116,9 +115,8 @@ def test_ddp_wrapper(tmpdir, precision):
     class CustomCallback(Callback):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
-            expected = {"module.something"} if _TORCH_GREATER_EQUAL_2_0 else ["module.something"]
-            assert trainer.strategy.model.parameters_to_ignore == expected
-            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == expected
+            assert trainer.strategy.model.parameters_to_ignore == ["module.something"]
+            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == ["module.something"]
 
     model = CustomModel()
     trainer = Trainer(
