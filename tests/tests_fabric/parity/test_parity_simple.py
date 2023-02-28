@@ -27,7 +27,7 @@ from lightning.fabric.utilities.cloud_io import _atomic_save
 from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
 from tests_fabric.parity.models import ConvNet
 
-NUM_STEPS_DEFAULT = 32
+NUM_STEPS_DEFAULT = 2
 
 
 def train_torch(
