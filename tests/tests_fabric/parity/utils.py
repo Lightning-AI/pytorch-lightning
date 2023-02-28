@@ -18,6 +18,7 @@ import torch
 
 
 def make_deterministic():
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.use_deterministic_algorithms(True)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
