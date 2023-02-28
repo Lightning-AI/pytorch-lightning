@@ -55,13 +55,14 @@ def test_ddp_cpu():
 
 
 class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
-    def add_to_queue(self, trainer, queue) -> None:
-        queue.put("test_val")
-        return super().add_to_queue(trainer, queue)
+    def get_extra_results(self, trainer):
+        extra = super().get_extra_results(trainer)
+        extra["test_val"] = "test_val"
+        return extra
 
-    def get_from_queue(self, trainer: Trainer, queue) -> None:
-        trainer.strategy.test_val = queue.get()
-        return super().get_from_queue(trainer, queue)
+    def update_main_process_results(self, trainer, extra) -> None:
+        trainer.strategy.test_val = extra.pop("test_val")
+        return super().update_main_process_results(trainer, extra)
 
 
 class TestDDPSpawnStrategy(DDPStrategy):
@@ -71,7 +72,7 @@ class TestDDPSpawnStrategy(DDPStrategy):
 
 @RunIf(skip_windows=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
-    """Tests add_to_queue/get_from_queue with DDPStrategy."""
+    """Tests get_extra_results/update_main_process_results with DDPSpawnStrategy."""
 
     ddp_spawn_strategy = TestDDPSpawnStrategy()
     trainer = Trainer(
