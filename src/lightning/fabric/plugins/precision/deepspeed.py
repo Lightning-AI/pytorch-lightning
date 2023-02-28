@@ -14,13 +14,13 @@
 from typing import Any, Literal, TYPE_CHECKING
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import get_args
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import Steppable
-from lightning_utilities.core.apply_func import apply_to_collection
 
 if TYPE_CHECKING:
     from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE

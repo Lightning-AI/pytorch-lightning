@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal, Any
+from typing import Any, Literal
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
-from lightning_utilities.core.apply_func import apply_to_collection
 from lightning.fabric.plugins.precision import TPUPrecision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 

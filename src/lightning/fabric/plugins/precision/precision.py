@@ -14,12 +14,10 @@
 import contextlib
 from typing import Any, Dict, Generator, Literal, Optional, Union
 
-import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import _PARAMETERS, Optimizable
 
 _PRECISION_INPUT_INT = Literal[64, 32, 16]
@@ -52,16 +50,16 @@ class Precision:
     def convert_input(self, data: Any) -> Any:
         """Convert model inputs (forward) to the floating point precision type of this plugin.
 
-        This is a no-op in the base precision plugin, since we assume the data already has the desired type (default
-        is torch.float32).
+        This is a no-op in the base precision plugin, since we assume the data already has the desired type (default is
+        torch.float32).
         """
         return data
 
     def convert_output(self, data: Any) -> Any:
         """Convert outputs to the floating point precision type expected after model's forward.
 
-        This is a no-op in the base precision plugin, since we assume the data already has the desired type (default
-        is torch.float32).
+        This is a no-op in the base precision plugin, since we assume the data already has the desired type (default is
+        torch.float32).
         """
         return data
 

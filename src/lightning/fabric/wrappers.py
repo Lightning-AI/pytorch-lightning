@@ -23,7 +23,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch

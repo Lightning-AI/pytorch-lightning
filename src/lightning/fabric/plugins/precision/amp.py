@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from functools import partial
 from typing import Any, cast, Dict, Generator, Literal, Optional
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS
@@ -24,7 +24,6 @@ from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import Optimizable
-from lightning_utilities.core.apply_func import apply_to_collection
 
 
 class MixedPrecision(Precision):
