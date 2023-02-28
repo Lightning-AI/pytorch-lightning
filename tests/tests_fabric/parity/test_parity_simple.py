@@ -14,19 +14,13 @@
 import os
 import time
 from copy import deepcopy
-from functools import partial
 from typing import Callable
 
 import pytest
 import torch
 import torch.distributed
-import torch.multiprocessing as mp
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
-from torch import nn, Tensor
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from unittest import mock
 
 from lightning.fabric.fabric import Fabric
@@ -124,7 +118,6 @@ class FabricRunner(Fabric):
         pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
-@mock.patch.dict(os.environ, {}, clear=True)
 def test_parity_single_device(precision, accelerator, tmpdir):
     fabric = FabricRunner(precision=precision, accelerator=accelerator, devices=1)
     fabric.run(checkpoint_dir=tmpdir)
