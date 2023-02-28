@@ -25,9 +25,9 @@ Example:
 
 .. code-block:: python
 
-    from pytorch_lightning.core.module import LightningModule
+    from lightning.pytorch.core.module import LightningModule
     from torch import nn
-    from pytorch_lightning.trainer.trainer import Trainer
+    from lightning.pytorch.trainer.trainer import Trainer
 
 
     class WeightSharingModule(LightningModule):

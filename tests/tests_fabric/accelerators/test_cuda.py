@@ -143,3 +143,9 @@ def test_find_usable_cuda_devices_error_handling():
         "lightning.fabric.accelerators.cuda.torch.tensor", tensor_mock
     ), pytest.raises(RuntimeError, match=escape("The devices [0, 1] are occupied by other processes")):
         find_usable_cuda_devices(2)
+
+    # Request for as many GPUs as there are, no error should be raised
+    with mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=5), mock.patch(
+        "lightning.fabric.accelerators.cuda.torch.tensor"
+    ):
+        assert find_usable_cuda_devices(-1) == [0, 1, 2, 3, 4]

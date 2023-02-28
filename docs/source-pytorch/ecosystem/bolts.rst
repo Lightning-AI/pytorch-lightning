@@ -83,7 +83,7 @@ We also have a collection of callbacks.
 .. code-block:: python
 
     from pl_bolts.callbacks import PrintTableMetricsCallback
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     trainer = pl.Trainer(callbacks=[PrintTableMetricsCallback()])
 
