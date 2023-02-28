@@ -45,7 +45,7 @@ class DoublePrecisionBoringFabric(BoringFabric):
         loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
         return loss
 
-    def after_backward(self, model):
+    def after_backward(self, model, optimizer):
         assert model.layer.weight.grad.dtype == torch.float64
 
 

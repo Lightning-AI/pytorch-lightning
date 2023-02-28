@@ -26,7 +26,7 @@ from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
@@ -194,6 +194,8 @@ class _EvaluationLoop(_Loop):
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
+        self._verify_dataloader_idx_requirement()
+
         self._on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
@@ -375,6 +377,20 @@ class _EvaluationLoop(_Loop):
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
+
+    def _verify_dataloader_idx_requirement(self) -> None:
+        trainer = self.trainer
+        step_hook = "test_step" if trainer.testing else "validation_step"
+        batch_start_hook = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
+        batch_end_hook = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
+        assert self._combined_loader is not None
+        assert trainer.state.stage is not None
+        _verify_dataloader_idx_requirement(
+            (step_hook, batch_start_hook, batch_end_hook),
+            self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
+            trainer.state.stage,
+            trainer.lightning_module,
+        )
 
     @staticmethod
     def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
