@@ -8,7 +8,7 @@ Fabric in Notebooks
 
 Fabric works the same way in notebooks (Jupyter, Google Colab, Kaggle, etc.) if you only run in a single process or GPU.
 If you want to use multiprocessing, for example, multi-GPU, you can put your code in a function and pass that function to the
-:meth:`~lightning_fabric.fabric.Fabric.launch` method:
+:meth:`~lightning.fabric.fabric.Fabric.launch` method:
 
 
 .. code-block:: python
