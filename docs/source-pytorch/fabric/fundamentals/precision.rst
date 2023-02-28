@@ -33,7 +33,7 @@ This is how you select the precision in Fabric:
     fabric = Fabric(precision="32")
 
     # FP16 mixed precision
-    fabric = Fabric(precision="16-mixed)
+    fabric = Fabric(precision="16-mixed")
 
     # BFloat16 precision (Volta GPUs and later)
     fabric = Fabric(precision="bf16-mixed")
