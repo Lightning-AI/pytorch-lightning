@@ -13,13 +13,11 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
@@ -31,15 +29,13 @@ from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -47,11 +43,11 @@ else:
     MpDeviceLoader = None
 
 
-class TPUSpawnStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
-    strategy_name = "tpu_spawn"
+    strategy_name = "xla"
 
     def __init__(
         self,
@@ -97,35 +93,19 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return xm.xla_device()
 
-    @staticmethod
-    def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
-        def check_has_len(dataloader: DataLoader) -> None:
-            if not has_len(dataloader):
-                raise MisconfigurationException(
-                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
-                )
-
-        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @staticmethod
-    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector: DataConnector = model.trainer._data_connector
-        sources = (
-            connector._train_dataloader_source,
-            connector._val_dataloader_source,
-            connector._test_dataloader_source,
-            connector._predict_dataloader_source,
-        )
-        for source in sources:
-            if not source.is_module():
-                assert source.instance is not None
-                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
-                TPUSpawnStrategy._validate_dataloader(source.instance)
+    def _validate_dataloader(dataloader: object) -> None:
+        if not has_len(dataloader):
+            raise TypeError(
+                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
+                " HINT: You can mock the length on your dataset to bypass this error."
+            )
 
     def connect(self, model: "pl.LightningModule") -> None:
-        TPUSpawnStrategy._validate_patched_dataloaders(model)
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
@@ -166,8 +146,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
-    def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
-        TPUSpawnStrategy._validate_dataloader(dataloader)
+    def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
+        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -216,7 +196,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
             raise ValueError(
-                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
                 f" {reduce_op}"
             )
 
@@ -234,6 +214,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -249,27 +234,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def _pod_progress_bar_force_stdout(self) -> None:
-        # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the main worker doesn't work well with tqdm
-        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
-        # The print statement seems to force tqdm to flush stdout.
-        import torch_xla.core.xla_env_vars as xenv
-
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
-            print()
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -317,12 +283,19 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
-        )
-
+        strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
         strategy_registry.register(
             cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def _pod_progress_bar_force_stdout(self) -> None:
+        # Why is it required? The way `pytorch_xla.distributed` streams logs
+        # from different vms to the main worker doesn't work well with tqdm
+        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
+        # The print statement seems to force tqdm to flush stdout.
+        import torch_xla.core.xla_env_vars as xenv
+
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print()

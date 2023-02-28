@@ -29,7 +29,7 @@ Put everything into a dictionary, including models and optimizers and whatever m
 Save a checkpoint
 *****************
 
-To save the state to the filesystem, pass it to the :meth:`~lightning_fabric.fabric.Fabric.save` method:
+To save the state to the filesystem, pass it to the :meth:`~lightning.fabric.fabric.Fabric.save` method:
 
 .. code-block:: python
 
@@ -47,7 +47,7 @@ For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy=
 Restore from a checkpoint
 *************************
 
-You can restore the state by loading a saved checkpoint back with :meth:`~lightning_fabric.fabric.Fabric.load`:
+You can restore the state by loading a saved checkpoint back with :meth:`~lightning.fabric.fabric.Fabric.load`:
 
 .. code-block:: python
 

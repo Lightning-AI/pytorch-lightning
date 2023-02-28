@@ -518,7 +518,7 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", (None, TensorBoardLogger(".")))
+@pytest.mark.parametrize("logger", (False, TensorBoardLogger(".")))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException

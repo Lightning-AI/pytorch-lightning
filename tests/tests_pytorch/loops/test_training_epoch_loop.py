@@ -39,10 +39,12 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     trainer = Trainer(**trainer_kwargs)
 
     with patch.object(
-        trainer.fit_loop.epoch_loop.val_loop, "advance", wraps=trainer.fit_loop.epoch_loop.val_loop.advance
-    ) as advance_mocked:
+        trainer.fit_loop.epoch_loop.val_loop,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop._evaluation_step,
+    ) as step_mock:
         trainer.fit(model, ckpt_path=ckpt_path)
-        assert advance_mocked.call_count == 1
+    assert step_mock.call_count == 1
 
 
 @pytest.mark.parametrize(
@@ -64,7 +66,7 @@ def test_should_stop_early_stopping_conditions_not_met(
     """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
     met."""
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
-    trainer.num_training_batches = 10
+    trainer.fit_loop.max_batches = 10
     trainer.should_stop = True
     trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.optimizer.step.total.completed = global_step
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
