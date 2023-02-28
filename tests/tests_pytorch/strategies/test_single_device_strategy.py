@@ -43,7 +43,7 @@ class BoringModelGPU(BoringModel):
 
 @RunIf(min_cuda_gpus=1, skip_windows=True)
 # TODO: https://github.com/pytorch/pytorch/issues/95668
-@pytest.mark.xfail(condition=_TORCH_GREATER_EQUAL_2_0, raises=AssertionError)
+@pytest.mark.xfail(condition=_TORCH_GREATER_EQUAL_2_0, raises=AssertionError, reason="cuBLAS issue")
 def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU strategy.
 
