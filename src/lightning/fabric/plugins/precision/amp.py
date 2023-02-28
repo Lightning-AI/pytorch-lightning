@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
+from functools import partial
 from typing import Any, cast, Dict, Generator, Literal, Optional
 
 import torch
@@ -23,6 +24,7 @@ from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import Optimizable
+from lightning_utilities.core.apply_func import apply_to_collection
 
 
 class MixedPrecision(Precision):
@@ -50,15 +52,19 @@ class MixedPrecision(Precision):
         self.device = device
         self.scaler = scaler
 
+        precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16}
+        self._desired_dtype = precision_to_type[self.precision]
+
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         with self._autocast_context_manager():
             yield
 
-    def convert_input(self, data: Tensor) -> Tensor:
-        precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16}
-        dst_type = precision_to_type[self.precision]
-        return _convert_fp_tensor(data, dst_type)
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
