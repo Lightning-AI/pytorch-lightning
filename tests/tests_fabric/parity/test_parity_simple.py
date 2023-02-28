@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import time
 from copy import deepcopy
 from typing import Callable
 
@@ -42,8 +43,11 @@ def train_torch(
     loss_fn = model.get_loss_function()
 
     model.train()
+    iteration_timings = []
     iterator = iter(dataloader)
     for _ in range(num_steps):
+        t0 = time.perf_counter()
+
         inputs, labels = next(iterator)
         inputs, labels = move_to_device(inputs), move_to_device(labels)
         optimizer.zero_grad()
@@ -53,7 +57,10 @@ def train_torch(
         loss.backward()
         optimizer.step()
 
-    return model.state_dict()
+        t1 = time.perf_counter()
+        iteration_timings.append(t1 - t0)
+
+    return model.state_dict(), torch.tensor(iteration_timings)
 
 
 def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
@@ -70,8 +77,11 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     loss_fn = model.get_loss_function()
 
     model.train()
+    iteration_timings = []
     iterator = iter(dataloader)
     for _ in range(num_steps):
+        t0 = time.perf_counter()
+
         inputs, labels = next(iterator)
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -79,10 +89,13 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
         fabric.backward(loss)
         optimizer.step()
 
+        t1 = time.perf_counter()
+        iteration_timings.append(t1 - t0)
+
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, model.state_dict())
 
-    return model.state_dict()
+    return model.state_dict(), torch.tensor(iteration_timings)
 
 
 @pytest.mark.parametrize(
@@ -98,7 +111,10 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
 def test_parity_single_device(precision, accelerator, tmpdir):
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
 
-    fabric_state_dict = train_fabric(fabric)
-    torch_state_dict = train_torch(fabric.to_device, precision_context=fabric.autocast)
+    fabric_state_dict, timings_fabric = train_fabric(fabric)
+    torch_state_dict, timings_torch = train_torch(fabric.to_device, precision_context=fabric.autocast)
 
     assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
+
+    # The median is more robust to outliers than the mean
+    assert torch.isclose(torch.median(timings_torch), torch.median(timings_fabric), rtol=1e-4, atol=1e-4)
