@@ -162,7 +162,7 @@ def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
     fabric.run(checkpoint_dir=tmpdir)
 
     precision_ctx = partial(precision_context, precision=precision, accelerator=accelerator)
-    train_torch(fabric.to_device, precision_context=precision_ctx, checkpoint_dir=tmpdir)
+    train_torch(fabric.to_device, precision_context=fabric.autocast, checkpoint_dir=tmpdir)
 
     fabric_state_dict = torch.load(os.path.join(tmpdir, "fabric_model.pt"))
     torch_state_dict = torch.load(os.path.join(tmpdir, "torch_model.pt"))
