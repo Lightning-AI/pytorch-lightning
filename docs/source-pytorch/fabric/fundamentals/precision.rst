@@ -24,18 +24,27 @@ This is how you select the precision in Fabric:
     from lightning.fabric import Fabric
 
     # This is the default
+    fabric = Fabric(precision="32-true")
+
+    # Also FP32
     fabric = Fabric(precision=32)
 
-    # FP16 mixed precision
-    fabric = Fabric(precision=16)
+    # FP32 as well
+    fabric = Fabric(precision="32")
 
-    # Precision values can also be set as a string
-    fabric = Fabric(precision="16")
+    # FP16 mixed precision
+    fabric = Fabric(precision="16-mixed)
 
     # BFloat16 precision (Volta GPUs and later)
-    fabric = Fabric(precision="bf16")
+    fabric = Fabric(precision="bf16-mixed")
 
     # Double precision
+    fabric = Fabric(precision="64-true")
+
+    # Or
+    fabric = Fabric(precision="64")
+
+    # Or
     fabric = Fabric(precision=64)
 
 
@@ -43,7 +52,7 @@ The same values can also be set through the :doc:`command line interface <launch
 
 .. code-block:: bash
 
-    lightning run model train.py --precision=bf16
+    lightning run model train.py --precision=bf16-mixed
 
 
 .. note::
@@ -70,14 +79,11 @@ This is how you enable FP16 in Fabric:
 .. code-block:: python
 
     # Select FP16 mixed precision
-    fabric = Fabric(precision=16)
-
-    # Or as a string
-    fabric = Fabric(precision="16")
+    fabric = Fabric(precision="16-mixed")
 
 .. note::
 
-    When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported half-precision type on TPUs.
+    When using TPUs, setting ``precision="16-mixed"`` will enable bfloat16 based mixed precision, the only supported half-precision type on TPUs.
 
 
 ----
@@ -94,7 +100,7 @@ For more information, see `this TPU performance blog post <https://cloud.google.
 .. code-block:: python
 
     # Select BF16 precision
-    fabric = Fabric(precision="bf16")
+    fabric = Fabric(precision="bf16-mixed")
 
 
 Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html>`__ with the dtype set to ``bfloat16``, with no gradient scaling.
@@ -117,7 +123,7 @@ Fabric automatically casts the data type and operations in the ``forward`` of yo
 
 .. code-block:: python
 
-    fabric = Fabric(precision="bf16")
+    fabric = Fabric(precision="bf16-mixed")
 
     model = ...
     optimizer = ...
@@ -131,7 +137,7 @@ Fabric automatically casts the data type and operations in the ``forward`` of yo
     # Precision does NOT get applied here (only in forward)
     loss = loss_function(output, target)
 
-If you want to enable operations in lower bit-precision **outside** your model's ``forward()``, you can use the :meth:`~lightning_fabric.fabric.Fabric.autocast` context manager:
+If you want to enable operations in lower bit-precision **outside** your model's ``forward()``, you can use the :meth:`~lightning.fabric.fabric.Fabric.autocast` context manager:
 
 .. code-block:: python
 

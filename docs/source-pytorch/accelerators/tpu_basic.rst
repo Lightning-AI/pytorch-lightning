@@ -32,36 +32,26 @@ some subset of those 2048 cores.
 
 ----
 
-Run on 1 TPU core
------------------
-Enable the following Trainer arguments to run on 1 TPU.
+Run on TPU cores
+----------------
 
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=1)
-
-----
-
-Run on multiple TPU cores
--------------------------
-For multiple TPU cores, change the value of the devices flag.
-
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-
-----
-
-Run on a specific TPU core
---------------------------
-
-To run on a specific core, specify the index of the TPU core.
+To run on different cores, modify the ``devices`` argument.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(accelerator="tpu", devices=[5])
+    # run on as many TPUs as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
 
-This example runs on the 5th core, not on five cores.
+    # run on one TPU core
+    trainer = Trainer(accelerator="tpu", devices=1)
+    # run on multiple TPU cores
+    trainer = Trainer(accelerator="tpu", devices=8)
+    # run on the 5th core
+    trainer = Trainer(accelerator="tpu", devices=[5])
+    # choose the number of cores automatically
+    trainer = Trainer(accelerator="tpu", devices="auto")
 
 ----
 
@@ -88,7 +78,7 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install cloud-tpu-client https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.12-cp39-cp39m-linux_x86_64.whl
+        !pip install cloud-tpu-client https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.13-cp38-cp38m-linux_x86_64.whl
 
 5. Once the above is done, install PyTorch Lightning.
 

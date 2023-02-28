@@ -12,7 +12,7 @@ from lightning.app.testing.testing import run_app_in_cloud
 @pytest.mark.cloud
 def test_commands_and_api_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_commands_and_api")) as (
-        admin_page,
+        _,
         view_page,
         fetch_logs,
         app_name,
@@ -23,7 +23,7 @@ def test_commands_and_api_example_cloud() -> None:
         cmd_2 = "python -m lightning command with client --name=this"
         cmd_3 = "python -m lightning command without client --name=is"
         cmd_4 = "python -m lightning command without client --name=awesome"
-        cmd_5 = "lightning disconnect app"
+        cmd_5 = "lightning logout"
         process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4, cmd_5]), shell=True)
         process.wait()
 
