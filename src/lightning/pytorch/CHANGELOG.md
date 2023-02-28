@@ -142,6 +142,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Merged the `DDPSpawnStrategy` into `DDPStrategy` ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
 
+- The `NeptuneLogger` now requires `neptune>=1.0.0` ([#16888](https://github.com/Lightning-AI/lightning/pull/16888))
+
+
 ### Deprecated
 
 -
