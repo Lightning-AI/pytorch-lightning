@@ -24,9 +24,20 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
+def skip_if_unsupported():
+    from torch._dynamo.eval_frame import check_if_dynamo_supported
+
+    try:
+        check_if_dynamo_supported()
+    except RuntimeError:
+        pytest.skip("TorchDynamo unsupported")
+
+
 @RunIf(min_torch="2.0.0")
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
 def test_trainer_compiled_model(tmp_path, monkeypatch):
+    skip_if_unsupported()
+
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,
@@ -80,6 +91,8 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
 
 @RunIf(min_torch="2.0.0")
 def test_compile_uncompile():
+    skip_if_unsupported()
+
     model = BoringModel()
     compiled_model = torch.compile(model)
 
