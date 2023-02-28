@@ -109,7 +109,7 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
         pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
-def test_parity_single_device(precision, accelerator, tmpdir):
+def test_parity_single_device(precision, accelerator):
     # Train with Fabric
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
     fabric_state_dict, timings_fabric = train_fabric(fabric)

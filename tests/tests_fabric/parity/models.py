@@ -19,7 +19,6 @@ from torch.optim import Optimizer
 import torch
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
-from tests_fabric.helpers.models import RandomDataset
 
 
 class ParityModel(ABC, nn.Module):

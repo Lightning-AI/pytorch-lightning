@@ -134,7 +134,7 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
         pytest.param(32, "ddp", 2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
-def test_parity_ddp(precision, strategy, devices, accelerator, tmpdir):
+def test_parity_ddp(precision, strategy, devices, accelerator):
     # Train with Fabric
     fabric = Fabric(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     fabric.launch()
