@@ -27,6 +27,7 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
 
+@RunIf(onnx=True)
 def test_model_saves_with_input_sample(tmpdir):
     """Test that ONNX model saves with input sample and size is greater than 3 MB."""
     model = BoringModel()
@@ -43,6 +44,7 @@ def test_model_saves_with_input_sample(tmpdir):
 @pytest.mark.parametrize(
     "accelerator", [pytest.param("mps", marks=RunIf(mps=True)), pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))]
 )
+@RunIf(onnx=True)
 def test_model_saves_on_gpu(tmpdir, accelerator):
     """Test that model saves on gpu."""
     model = BoringModel()
@@ -63,6 +65,7 @@ def test_model_saves_on_gpu(tmpdir, accelerator):
         (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10))),
     ],
 )
+@RunIf(onnx=True)
 def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
     """Test that ONNX model saves with example_input_array and size is greater than 3 MB."""
     model = modelclass()
@@ -75,6 +78,7 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
 
 
 @RunIf(min_cuda_gpus=2)
+@RunIf(onnx=True)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
     trainer_options = dict(
@@ -98,6 +102,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
     assert os.path.exists(file_path) is True
 
 
+@RunIf(onnx=True)
 def test_verbose_param(tmpdir, capsys):
     """Test that output is present when verbose parameter is set."""
     model = BoringModel()
@@ -116,6 +121,7 @@ def test_verbose_param(tmpdir, capsys):
         assert "graph(%" in captured.out
 
 
+@RunIf(onnx=True)
 def test_error_if_no_input(tmpdir):
     """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
@@ -129,6 +135,7 @@ def test_error_if_no_input(tmpdir):
         model.to_onnx(file_path)
 
 
+@RunIf(onnx=True)
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()

@@ -16,6 +16,7 @@ import os
 import pytest
 
 from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
 from tests_pytorch.helpers.datamodules import ClassifDataModule, RegressDataModule
@@ -30,10 +31,11 @@ from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionM
         (None, BasicGAN),
         (None, ParityModuleRNN),
         (None, ParityModuleMNIST),
-        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True)),
-        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True)),
+        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True, onnx=True)),
+        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True, onnx=True)),
     ],
 )
+@pytest.mark.skipif(not _ONNX_AVAILABLE, reason="Requires ONNX")
 def test_models(tmpdir, data_class, model_class):
     """Test simple models."""
     dm = data_class() if data_class else data_class
