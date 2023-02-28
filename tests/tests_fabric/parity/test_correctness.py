@@ -148,7 +148,7 @@ class FabricRunner(Fabric):
 )
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
-    fabric = FabricRunner(precision=precision, accelerator=accelerator)
+    fabric = FabricRunner(precision=precision, accelerator=accelerator, devices=1)
     fabric.run(checkpoint_dir=tmpdir)
 
     precision_ctx = partial(precision_context, precision=precision, accelerator=accelerator)
