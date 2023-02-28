@@ -26,7 +26,7 @@ from lightning.fabric.fabric import Fabric
 from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
 from tests_fabric.parity.models import ConvNet
 
-NUM_STEPS_DEFAULT = 100
+NUM_STEPS_DEFAULT = 1000
 
 
 def train_torch(
@@ -98,6 +98,7 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     return model.state_dict(), torch.tensor(iteration_timings)
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     "precision, accelerator",
     [
@@ -109,12 +110,16 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     ],
 )
 def test_parity_single_device(precision, accelerator, tmpdir):
+    # Train with Fabric
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
-
     fabric_state_dict, timings_fabric = train_fabric(fabric)
+
+    # Train with raw PyTorch
     torch_state_dict, timings_torch = train_torch(fabric.to_device, precision_context=fabric.autocast)
 
+    # Compare the final weights
     assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
 
+    # Compare the time per iteration
     # The median is more robust to outliers than the mean
     assert torch.isclose(torch.median(timings_torch), torch.median(timings_fabric), rtol=1e-4, atol=1e-4)

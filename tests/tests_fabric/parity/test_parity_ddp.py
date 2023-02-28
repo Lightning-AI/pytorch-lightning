@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import time
 from copy import deepcopy
 from functools import partial
 from typing import Callable
@@ -67,8 +68,11 @@ def train_torch_ddp(
     loss_fn = model.get_loss_function()
 
     ddp_model.train()
+    iteration_timings = []
     iterator = iter(dataloader)
     for _ in range(num_steps):
+        t0 = time.perf_counter()
+
         inputs, labels = next(iterator)
         inputs, labels = inputs.to(device), inputs.to(labels)
         optimizer.zero_grad()
@@ -77,10 +81,13 @@ def train_torch_ddp(
         loss.backward()
         optimizer.step()
 
+        t1 = time.perf_counter()
+        iteration_timings.append(t1 - t0)
+
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, ddp_model.module.state_dict())
 
-    return ddp_model.module.state_dict()
+    return ddp_model.module.state_dict(), torch.tensor(iteration_timings)
 
 
 def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
@@ -97,8 +104,11 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     loss_fn = model.get_loss_function()
 
     model.train()
+    iteration_timings = []
     iterator = iter(dataloader)
     for _ in range(num_steps):
+        t0 = time.perf_counter()
+
         inputs, labels = next(iterator)
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -106,13 +116,17 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
         fabric.backward(loss)
         optimizer.step()
 
+        t1 = time.perf_counter()
+        iteration_timings.append(t1 - t0)
+
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, model.state_dict())
 
-    return model.state_dict()
+    return model.state_dict(), torch.tensor(iteration_timings)
 
 
 @RunIf(standalone=True)
+# @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
@@ -121,12 +135,21 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     ],
 )
 def test_parity_ddp(precision, strategy, devices, accelerator, tmpdir):
+    # Train with Fabric
     fabric = Fabric(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     fabric.launch()
+    fabric_state_dict, timings_fabric = train_fabric_ddp(fabric)
 
-    fabric_state_dict = train_fabric_ddp(fabric)
-    torch_state_dict = train_torch_ddp(
-        rank=fabric.global_rank, world_size=fabric.world_size, device=fabric.device
+    # Train with raw PyTorch
+    torch_state_dict, timings_torch = train_torch_ddp(
+        rank=fabric.global_rank,
+        world_size=fabric.world_size,
+        device=fabric.device,
     )
 
+    # Compare the final weights
     assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
+
+    # Compare the time per iteration
+    # The median is more robust to outliers than the mean
+    assert torch.isclose(torch.median(timings_torch), torch.median(timings_fabric), rtol=1e-4, atol=1e-4)
