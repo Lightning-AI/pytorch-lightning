@@ -98,12 +98,14 @@ class TQDMProgressBar(ProgressBarBase):
             together. This corresponds to
             :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
             :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+        file: The file stream to write the progress bar to. Defaults to ``sys.stdout``.
     """
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0, file: Any = sys.stdout):
         super().__init__()
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position
+        self._file = file
         self._enabled = True
         self._train_progress_bar: Optional[_tqdm] = None
         self._val_progress_bar: Optional[_tqdm] = None
@@ -184,7 +186,7 @@ class TQDMProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self._file,
         )
         return bar
 
@@ -196,7 +198,7 @@ class TQDMProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self._file,
             smoothing=0,
         )
         return bar
@@ -209,7 +211,7 @@ class TQDMProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self._file,
             smoothing=0,
         )
         return bar
@@ -224,7 +226,7 @@ class TQDMProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=not has_main_bar,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self._file,
         )
         return bar
 
@@ -236,7 +238,7 @@ class TQDMProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self._file,
         )
         return bar
 
