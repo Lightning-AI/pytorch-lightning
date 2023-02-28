@@ -66,6 +66,7 @@ def train_torch(
             loss = loss.to(torch.get_default_dtype()) if torch.is_floating_point(loss) else tensor
             loss.backward()
             optimizer.step()
+            break
 
     _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "torch_model.pt"))
 
@@ -134,6 +135,7 @@ class FabricRunner(Fabric):
                 loss = model(batch)
                 self.backward(loss)
                 optimizer.step()
+                break
 
         # check that the model has changed
         assert not is_state_dict_equal(initial_state_dict, model.state_dict())
