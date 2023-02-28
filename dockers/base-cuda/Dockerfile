@@ -93,7 +93,7 @@ RUN \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
-      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION} ; \
+      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
 
     # Install base requirements \
