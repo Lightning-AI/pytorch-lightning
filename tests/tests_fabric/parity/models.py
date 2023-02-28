@@ -51,7 +51,7 @@ class BoringModel(ParityModel):
         return torch.optim.SGD(self.parameters(), lr=0.1)
 
     def get_dataloader(self, *args, **kwargs) -> DataLoader:
-        return DataLoader(RandomDataset(32, 4), shuffle=True)
+        return DataLoader(RandomDataset(32, 4))
 
     def get_loss_function(self) -> Callable:
         pass
@@ -81,7 +81,7 @@ class ConvNet(ParityModel):
 
     def get_dataloader(self, dataset_size=100, batch_size=4):
         inputs = torch.rand(dataset_size, 3, 32, 32)
-        labels = torch.randint(0, 10, (dataset_size, ))
+        labels = torch.randint(0, 10, (dataset_size,))
         dataset = TensorDataset(inputs, labels)
         dataloader = DataLoader(
             dataset,
