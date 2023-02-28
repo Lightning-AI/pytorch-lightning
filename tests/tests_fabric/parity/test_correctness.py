@@ -89,7 +89,7 @@ def train_torch_ddp(
 
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     sampler = DistributedSampler(
-        dataloader.dataset, rank=rank, num_replicas=world_size, seed=1, drop_last=False, shuffle=False
+        dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False
     )
     dataloader = DataLoader(dataloader.dataset, sampler=sampler)
     optimizer = model.get_optimizer()
