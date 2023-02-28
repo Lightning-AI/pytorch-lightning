@@ -65,7 +65,7 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
-    timeout-minutes: 70
+    timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
