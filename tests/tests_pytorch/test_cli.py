@@ -1392,7 +1392,7 @@ def test_neptune_logger_init_args():
             "name": "neptune",  # Resolve from NeptuneLogger.__init__
         },
         {
-            "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
+            "description": "neptune",  # Unsupported resolving from neptune.internal.init.run.init_run
         },
     )
 
