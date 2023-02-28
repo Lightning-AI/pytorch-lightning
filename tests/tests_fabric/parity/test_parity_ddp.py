@@ -38,12 +38,14 @@ from lightning.fabric.utilities.cloud_io import _atomic_save
 from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
 from tests_fabric.parity.models import ConvNet
 
+NUM_STEPS_DEFAULT = 100
+
 
 def train_torch_ddp(
     rank,
     world_size,
     device=torch.device("cpu"),
-    num_steps=1,
+    num_steps=NUM_STEPS_DEFAULT,
     batch_size=4,
     checkpoint_dir=".",
 ):
@@ -85,7 +87,7 @@ def train_torch_ddp(
 
 
 class FabricRunner(Fabric):
-    def run(self, num_steps=1, batch_size=4, checkpoint_dir="."):
+    def run(self, num_steps=NUM_STEPS_DEFAULT, batch_size=4, checkpoint_dir="."):
         make_deterministic()
 
         model = ConvNet()
