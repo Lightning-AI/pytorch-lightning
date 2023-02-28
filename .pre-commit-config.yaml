@@ -56,7 +56,7 @@ repos:
           - "flake8-docstrings"
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.249
+    rev: v0.0.253
     hooks:
       - id: ruff
         args: ["--fix"]
