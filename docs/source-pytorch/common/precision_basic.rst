@@ -36,10 +36,10 @@ Use 16-bit mixed precision to lower your memory consumption by up to half so tha
 
 .. testcode::
 
-    Trainer(precision='32-true')
+    Trainer(precision="32-true")
 
     # or
-    Trainer(precision='32')
+    Trainer(precision="32")
 
     # or
     Trainer(precision=32)
@@ -54,10 +54,10 @@ For certain scientific computations, 64-bit precision enables more accurate mode
 
 .. testcode::
 
-    Trainer(precision='64-true')
+    Trainer(precision="64-true")
 
     # or
-    Trainer(precision='64')
+    Trainer(precision="64")
 
     # or
     Trainer(precision=64)
