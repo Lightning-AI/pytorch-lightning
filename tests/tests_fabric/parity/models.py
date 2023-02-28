@@ -37,24 +37,24 @@ class ParityModel(ABC, nn.Module):
     def get_loss_function(self) -> Callable:
         pass
 
-
-class BoringModel(ParityModel):
-    def __init__(self):
-        super().__init__()
-        self.layer = torch.nn.Linear(32, 2, bias=False)
-
-    def forward(self, x):
-        x = self.layer(x)
-        return torch.nn.functional.mse_loss(x, torch.ones_like(x))
-
-    def get_optimizer(self):
-        return torch.optim.SGD(self.parameters(), lr=0.1)
-
-    def get_dataloader(self, *args, **kwargs) -> DataLoader:
-        return DataLoader(RandomDataset(32, 4))
-
-    def get_loss_function(self) -> Callable:
-        pass
+#
+# class BoringModel(ParityModel):
+#     def __init__(self):
+#         super().__init__()
+#         self.layer = torch.nn.Linear(32, 2, bias=False)
+#
+#     def forward(self, x):
+#         x = self.layer(x)
+#         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
+#
+#     def get_optimizer(self):
+#         return torch.optim.SGD(self.parameters(), lr=0.1)
+#
+#     def get_dataloader(self, *args, **kwargs) -> DataLoader:
+#         return DataLoader(RandomDataset(32, 4))
+#
+#     def get_loss_function(self) -> Callable:
+#         pass
 
 
 class ConvNet(ParityModel):
@@ -77,7 +77,7 @@ class ConvNet(ParityModel):
         return x
 
     def get_optimizer(self):
-        return torch.optim.SGD(module.parameters(), lr=0.0001)
+        return torch.optim.SGD(self.parameters(), lr=0.0001)
 
     def get_dataloader(self, dataset_size=100, batch_size=4):
         inputs = torch.rand(dataset_size, 3, 32, 32)
@@ -86,7 +86,6 @@ class ConvNet(ParityModel):
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
-            shuffle=True,
             num_workers=2,
         )
         return dataloader

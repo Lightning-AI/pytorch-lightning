@@ -36,30 +36,34 @@ from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.cloud_io import _atomic_save
 
 from tests_fabric.parity.utils import precision_context, is_state_dict_equal, make_deterministic
-from tests_fabric.parity.models import BoringModel
+from tests_fabric.parity.models import ConvNet
 
 
 def train_torch(
     move_to_device: Callable,
     precision_context,
-    num_epochs=1,
+    num_steps=1,
+    batch_size=4,
     checkpoint_dir=".",
 ):
     make_deterministic()
-    model = BoringModel()
+    model = ConvNet()
     model = move_to_device(model)
-    train_dataloader = model.get_dataloader()
+    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     optimizer = model.get_optimizer()
+    loss_fn = model.get_loss_function()
 
     model.train()
-    for _ in range(num_epochs):
-        for batch in train_dataloader:
-            batch = move_to_device(batch)
-            optimizer.zero_grad()
-            with precision_context():
-                loss = model(batch)
-            loss.backward()
-            optimizer.step()
+    iterator = iter(dataloader)
+    for _ in range(num_steps):
+        inputs, labels = next(iterator)
+        inputs, labels = move_to_device(inputs), move_to_device(labels)
+        optimizer.zero_grad()
+        with precision_context():
+            outputs = model(inputs)
+        loss = loss_fn(outputs, labels)
+        loss.backward()
+        optimizer.step()
 
     _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "torch_model.pt"))
 
@@ -68,7 +72,8 @@ def train_torch_ddp(
     rank,
     world_size,
     device=torch.device("cpu"),
-    num_epochs=1,
+    num_steps=1,
+    batch_size=4,
     checkpoint_dir=".",
 ):
     make_deterministic()
@@ -77,27 +82,29 @@ def train_torch_ddp(
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
-    model = BoringModel()
+    model = ConvNet().to(device)
     initial_state_dict = deepcopy(model.state_dict())
 
     ddp_model = DistributedDataParallel(model.to(device), device_ids=([rank] if device.type == "cuda" else None))
 
-    train_dataloader = model.get_dataloader()
+    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     sampler = DistributedSampler(
-        train_dataloader.dataset, rank=rank, num_replicas=world_size, seed=1, drop_last=False, shuffle=False
+        dataloader.dataset, rank=rank, num_replicas=world_size, seed=1, drop_last=False, shuffle=False
     )
-    train_dataloader = DataLoader(train_dataloader.dataset, sampler=sampler)
+    dataloader = DataLoader(dataloader.dataset, sampler=sampler)
     optimizer = model.get_optimizer()
+    loss_fn = model.get_loss_function()
 
     ddp_model.train()
-    for epoch in range(num_epochs):
-        sampler.set_epoch(epoch)
-        for batch in train_dataloader:
-            batch = batch.to(device)
-            optimizer.zero_grad()
-            loss = ddp_model(batch)
-            loss.backward()
-            optimizer.step()
+    iterator = iter(dataloader)
+    for _ in range(num_steps):
+        inputs, labels = next(iterator)
+        inputs, labels = move_to_device(inputs), move_to_device(labels)
+        optimizer.zero_grad()
+        outputs = ddp_model(inputs)
+        loss = loss_fn(outputs, labels)
+        loss.backward()
+        optimizer.step()
 
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, ddp_model.module.state_dict())
@@ -107,26 +114,28 @@ def train_torch_ddp(
 
 
 class FabricRunner(Fabric):
-    def run(self, num_epochs=1, checkpoint_dir="."):
+    def run(self, num_steps=1, batch_size=4, checkpoint_dir="."):
         make_deterministic()
 
-        model = BoringModel()
+        model = ConvNet()
         initial_state_dict = deepcopy(model.state_dict())
 
         optimizer = model.get_optimizer()
         model, optimizer = self.setup(model, optimizer)
 
-        dataloader = model.get_dataloader()
-        train_dataloader = self.setup_dataloaders(dataloader)
+        dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
+        dataloader = self.setup_dataloaders(dataloader)
+        loss_fn = model.get_loss_function()
 
         model.train()
-        for _ in range(num_epochs):
-            for batch in train_dataloader:
-                batch = self.to_device(batch)
-                optimizer.zero_grad()
-                loss = model(batch)
-                self.backward(loss)
-                optimizer.step()
+        iterator = iter(dataloader)
+        for _ in range(num_steps):
+            inputs, labels = next(iterator)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = loss_fn(outputs, labels)
+            self.backward(loss)
+            optimizer.step()
 
         # check that the model has changed
         assert not is_state_dict_equal(initial_state_dict, model.state_dict())
