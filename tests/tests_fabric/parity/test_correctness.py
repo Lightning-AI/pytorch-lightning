@@ -57,7 +57,7 @@ def train_torch(
             for batch in train_dataloader:
                 batch = move_to_device(batch)
                 optimizer.zero_grad()
-                    loss = model(batch)
+                loss = model(batch)
                 loss.backward()
                 optimizer.step()
 
