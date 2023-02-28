@@ -48,18 +48,18 @@ def train_torch(
     make_deterministic()
     model = BoringModel()
     model = move_to_device(model)
-    train_dataloader = model.get_dataloader()
-    optimizer = model.get_optimizer()
+    with precision_context():
+        train_dataloader = model.get_dataloader()
+        optimizer = model.get_optimizer()
 
-    model.train()
-    for _ in range(num_epochs):
-        for batch in train_dataloader:
-            batch = move_to_device(batch)
-            optimizer.zero_grad()
-            with precision_context():
-                loss = model(batch)
-            loss.backward()
-            optimizer.step()
+        model.train()
+        for _ in range(num_epochs):
+            for batch in train_dataloader:
+                batch = move_to_device(batch)
+                optimizer.zero_grad()
+                    loss = model(batch)
+                loss.backward()
+                optimizer.step()
 
     _atomic_save(model.state_dict(), os.path.join(checkpoint_dir, "torch_model.pt"))
 
