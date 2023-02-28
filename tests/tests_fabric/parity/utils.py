@@ -15,17 +15,12 @@ from contextlib import contextmanager
 from typing import Generator
 
 import torch
-from torch import nn
 
 
 def make_deterministic():
     torch.use_deterministic_algorithms(True)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
-
-
-# def configure_optimizers(module: nn.Module):
-#     return torch.optim.SGD(module.parameters(), lr=0.0001)
 
 
 @contextmanager
@@ -39,3 +34,8 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     elif accelerator == "cpu":
         with torch.cpu.amp.autocast():
             yield
+
+
+def is_state_dict_equal(state0, state1):
+    # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+    return all(torch.allclose(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))

@@ -13,15 +13,15 @@
 # limitations under the License.
 import time
 
-import lightning as L
+from lightning.fabric import Fabric
 import torch
 from tests_fabric.parity.utils import make_deterministic
 from tests_fabric.parity.models import ConvNet
 
 
-def train_torch(num_steps=100, batch_size=4):
+def train_torch(rank=0, accelerator="cpu", devices=1, num_steps=100, batch_size=4):
     make_deterministic()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda" if accelerator == "cuda" else "cpu", rank)
     model = ConvNet().to(device)
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     loss_fn = model.get_loss_function()
@@ -48,7 +48,8 @@ def train_torch(num_steps=100, batch_size=4):
 
 def train_fabric(num_steps=100, batch_size=4):
     make_deterministic()
-    fabric = L.Fabric(accelerator="cpu")
+    fabric = Fabric(accelerator="cpu")
+    fabric.launch()
 
     model = ConvNet()
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
@@ -74,6 +75,11 @@ def train_fabric(num_steps=100, batch_size=4):
         iteration_timings.append(t1 - t0)
 
     return torch.tensor(iteration_timings)
+
+
+def launch_fabric():
+    fabric = Fabric()
+    fabric.launch(train_fabric, **kwargs)
 
 
 def test_parity_cpu():
