@@ -18,10 +18,10 @@ from torch.jit import ScriptModule
 
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.utilities.parsing import (
+    _get_init_args,
     AttributeDict,
     clean_namespace,
     collect_init_args,
-    get_init_args,
     is_picklable,
     lightning_getattr,
     lightning_hasattr,
@@ -209,7 +209,7 @@ def test_get_init_args():
 
         def get_init_args_wrapper(self):
             frame = inspect.currentframe().f_back
-            self.result = get_init_args(frame)
+            self.result = _get_init_args(frame)
 
     my_class = AutomaticArgsModel("test", anykw=32, otherkw=123)
     assert my_class.result == (my_class, {"anyarg": "test", "anykw": 32, "otherkw": 123})
