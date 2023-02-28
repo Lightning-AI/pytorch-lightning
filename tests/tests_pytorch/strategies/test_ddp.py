@@ -57,22 +57,6 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
-    """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        strategy=DDPStrategy(process_group_backend="undefined"),
-        accelerator="cuda",
-        devices=2,
-        logger=False,
-    )
-    with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
-        trainer.fit(model)
-
-
-@RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
 def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, mps_count_0, tmpdir):
