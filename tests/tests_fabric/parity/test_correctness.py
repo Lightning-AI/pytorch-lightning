@@ -27,6 +27,7 @@ from torch import nn, Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from unittest import mock
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
@@ -40,7 +41,8 @@ from tests_fabric.parity.models import BoringModel
 
 def train_torch(
     move_to_device: Callable,
-    num_epochs: int = 1,
+    precision_context,
+    num_epochs=1,
     checkpoint_dir=".",
 ):
     make_deterministic()
@@ -54,7 +56,8 @@ def train_torch(
         for batch in train_dataloader:
             batch = move_to_device(batch)
             optimizer.zero_grad()
-            loss = model(batch)
+            with precision_context():
+                loss = model(batch)
             loss.backward()
             optimizer.step()
 
@@ -144,12 +147,13 @@ class FabricRunner(Fabric):
         pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
     fabric = FabricRunner(precision=precision, accelerator=accelerator)
     fabric.run(checkpoint_dir=tmpdir)
 
-    with precision_context(precision, accelerator):
-        train_torch(fabric.to_device, checkpoint_dir=tmpdir)
+    precision_ctx = partial(precision_context, precision=precision, accelerator=accelerator)
+    train_torch(fabric.to_device, precision_context=precision_ctx, checkpoint_dir=tmpdir)
 
     fabric_state_dict = torch.load(os.path.join(tmpdir, "fabric_model.pt"))
     torch_state_dict = torch.load(os.path.join(tmpdir, "torch_model.pt"))
@@ -164,6 +168,7 @@ def test_boring_fabric_model_single_device(precision, accelerator, tmpdir):
         pytest.param(32, "ddp", 2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_boring_fabric_model_ddp(precision, strategy, devices, accelerator, tmpdir):
     fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     fabric.run(checkpoint_dir=tmpdir)
