@@ -36,12 +36,12 @@ To track a metric, add the following:
 
 Built-in loggers you can choose from:
 
-- :class:`~lightning_fabric.loggers.TensorBoardLogger`
-- :class:`~lightning_fabric.loggers.CSVLogger`
+- :class:`~lightning.fabric.loggers.TensorBoardLogger`
+- :class:`~lightning.fabric.loggers.CSVLogger`
 
 |
 
-**Step 2:** Add :meth:`~lightning_fabric.fabric.Fabric.log` calls in your code.
+**Step 2:** Add :meth:`~lightning.fabric.fabric.Fabric.log` calls in your code.
 
 .. code-block:: python
 
@@ -49,7 +49,7 @@ Built-in loggers you can choose from:
     fabric.log("some_value", value)
 
 
-To log multiple metrics at once, use :meth:`~lightning_fabric.fabric.Fabric.log_dict`:
+To log multiple metrics at once, use :meth:`~lightning.fabric.fabric.Fabric.log_dict`:
 
 .. code-block:: python
 
@@ -67,7 +67,7 @@ View logs dashboard
 How you can view the metrics depends on the individual logger you choose.
 Most have a dashboard that lets you browse everything you log in real time.
 
-For the :class:`~lightning_fabric.loggers.tensorboard.TensorBoardLogger` shown above, you can open it by running
+For the :class:`~lightning.fabric.loggers.tensorboard.TensorBoardLogger` shown above, you can open it by running
 
 .. code-block:: bash
 

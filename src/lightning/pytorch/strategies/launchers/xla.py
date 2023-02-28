@@ -47,7 +47,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
+    def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
@@ -95,6 +95,8 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     def _wrapping_function(
         self,
+        # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
+        # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
         process_idx: int,
         trainer: Optional["pl.Trainer"],
         function: Callable,
@@ -103,16 +105,15 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if process_idx == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-        _rank_teardown(process_idx)
+        _rank_teardown(self._strategy.local_rank)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")

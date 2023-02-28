@@ -54,21 +54,21 @@ class MixedPrecisionBoringFabric(BoringFabric):
         loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
         return loss
 
-    def after_backward(self, model):
+    def after_backward(self, model, optimizer):
         assert model.layer.weight.grad.dtype == torch.float32
 
 
 @pytest.mark.parametrize(
     "accelerator, precision, expected_dtype",
     [
-        ("cpu", 16, torch.bfloat16),
-        ("cpu", "bf16", torch.bfloat16),
-        pytest.param("cuda", 16, torch.float16, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("cuda", "bf16", torch.bfloat16, marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
+        ("cpu", "16-mixed", torch.bfloat16),
+        ("cpu", "bf16-mixed", torch.bfloat16),
+        pytest.param("cuda", "16-mixed", torch.float16, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", "bf16-mixed", torch.bfloat16, marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
     ],
 )
 def test_amp(accelerator, precision, expected_dtype):
-    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
+    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
     fabric.expected_dtype = expected_dtype
     fabric.run()
 

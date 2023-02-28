@@ -1,4 +1,4 @@
-lightning-cloud>=0.5.24
+lightning-cloud>=0.5.27
 packaging
 typing-extensions>=4.0.0, <=4.4.0
 deepdiff>=5.7.0, <6.2.4

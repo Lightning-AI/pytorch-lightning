@@ -22,7 +22,7 @@ from lightning.fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("precision", ["bf16", 16, 32])
+@pytest.mark.parametrize("precision", ["bf16-mixed", "16-mixed", "32-true"])
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_deepspeed_precision_choice(_, precision):
     """Test to ensure precision plugin is correctly chosen.

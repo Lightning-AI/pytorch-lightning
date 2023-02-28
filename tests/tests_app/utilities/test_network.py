@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from lightning.app.core import constants
 from lightning.app.utilities.network import find_free_network_port, LightningClient
 
 
@@ -39,6 +40,9 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 
     # Check that all ports are unique
     assert len(ports) == num_ports
+
+    # Shouldn't use the APP_SERVER_PORT
+    assert constants.APP_SERVER_PORT not in ports
 
 
 def test_lightning_client_retry_enabled():
