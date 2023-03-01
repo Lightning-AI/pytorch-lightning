@@ -21,10 +21,9 @@ import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import is_state_dict_equal, make_deterministic
+from tests_fabric.parity.utils import get_model_input_dtype, is_state_dict_equal, make_deterministic
 
 from lightning.fabric.fabric import Fabric
-from tests_fabric.parity.utils import get_model_input_dtype
 
 NUM_STEPS_DEFAULT = 1000
 
