@@ -1,6 +1,6 @@
 import random
 
-from lightning_cloud.openapi import V1ClusterType, V1ProjectClusterBinding, ProjectIdProjectclustersbindingsBody
+from lightning_cloud.openapi import ProjectIdProjectclustersbindingsBody, V1ClusterType
 from lightning_cloud.openapi.rest import ApiException
 
 from lightning.app.utilities.network import LightningClient
