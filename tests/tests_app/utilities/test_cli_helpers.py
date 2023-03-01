@@ -1,10 +1,17 @@
+import os
+import sys
 from unittest.mock import Mock, patch
 
 import arrow
 import pytest
 
 import lightning.app
-from lightning.app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables, _get_newer_version
+from lightning.app.utilities.cli_helpers import (
+    _arrow_time_callback,
+    _check_environment_and_redirect,
+    _format_input_env_variables,
+    _get_newer_version,
+)
 
 
 def test_format_input_env_variables():
@@ -111,3 +118,46 @@ def test_get_newer_version(mock_requests, releases, current_version, newer_versi
 
     _get_newer_version.cache_clear()
     assert _get_newer_version() == newer_version
+
+
+@patch("lightning.app.utilities.cli_helpers._redirect_command")
+def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypatch):
+    # Ensure that the test fails if it tries to redirect
+    mock_redirect_command.side_effect = RuntimeError
+
+    # Test normal executable on the path
+    # Ensure current executable is on the path
+    monkeypatch.setenv("PATH", f"{os.path.dirname(sys.executable)}")
+
+    assert _check_environment_and_redirect() is None
+
+    # Test executable on the path with redirect
+    fake_python_path = os.path.join(tmpdir, "python")
+
+    os.symlink(sys.executable, fake_python_path)
+
+    monkeypatch.setenv("PATH", f"{tmpdir}")
+    assert _check_environment_and_redirect() is None
+
+    os.remove(fake_python_path)
+
+    descriptor = os.open(
+        fake_python_path,
+        flags=(
+            os.O_WRONLY  # access mode: write only
+            | os.O_CREAT  # create if not exists
+            | os.O_TRUNC  # truncate the file to zero
+        ),
+        mode=0o777,
+    )
+
+    with open(descriptor, "w") as f:
+        f.writelines(
+            [
+                "#!/bin/bash\n",
+                f'{sys.executable} "$@"',
+            ]
+        )
+
+    monkeypatch.setenv("PATH", f"{tmpdir}")
+    assert _check_environment_and_redirect() is None

@@ -13,17 +13,51 @@ To run your code distributed across many devices and many machines, you need to 
 ----
 
 
+*************
+Simple Launch
+*************
+
+You can configure and launch processes on your machine directly with Fabric's :meth:`~lightning_fabric.fabric.Fabric.launch` method:
+
+.. code-block:: python
+
+    # train.py
+    ...
+
+    # Configure accelerator, devices, num_nodes, etc.
+    fabric = Fabric(devices=4, ...)
+
+    # This launches itself into multiple processes
+    fabric.launch()
+
+
+In the command line, you run this like any other Python script:
+
+.. code-block:: bash
+
+    python train.py
+
+
+This is the recommended way for running on a single machine and is the most convenient method for development and debugging.
+
+It is also possible to use Fabric in a Jupyter notebook (including Google Colab, Kaggle, etc.) and launch multiple processes there.
+You can learn more about it :ref:`here <Fabric in Notebooks>`.
+
+
+----
+
+
 *******************
 Launch with the CLI
 *******************
 
-The most convenient way to do all of the above is to run your Python script directly with the built-in command line interface (CLI):
+An alternative way to launch your Python script in multiple processes is to use the dedicated command line interface (CLI):
 
 .. code-block:: bash
 
     lightning run model path/to/your/script.py
 
-This is essentially the same as running ``python path/to/your/script.py``, but it also lets you configure:
+This is essentially the same as running ``python path/to/your/script.py``, but it also lets you configure the following settings externally without changing your code:
 
 - ``--accelerator``: The accelerator to use
 - ``--devices``: The number of devices to use (per machine)
@@ -98,7 +132,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
         --accelerator=cuda \
         --precision=16
 
-:class:`~lightning_fabric.fabric.Fabric` can also figure it out automatically for you!
+:class:`~lightning.fabric.fabric.Fabric` can also figure it out automatically for you!
 
 .. code-block:: bash
 
@@ -106,46 +140,6 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
         --devices=auto \
         --accelerator=auto \
         --precision=16
-
-
-----
-
-
-*******************
-Programmatic Launch
-*******************
-
-Launching the processes programmatically directly from within the Python script is also possible.
-This is useful for debugging or when you want to build your own CLI around Fabric.
-
-.. code-block:: python
-
-    # train.py
-    ...
-
-    # Configure accelerator, devices, num_nodes, etc.
-    fabric = Fabric(devices=4, ...)
-
-    # This launches itself into multiple processes
-    fabric.launch()
-
-
-In the command line, you run this like any other Python script:
-
-.. code-block:: bash
-
-    python train.py
-
-
-----
-
-
-************************
-Launch inside a Notebook
-************************
-
-It is also possible to use Fabric in a Jupyter notebook (including Google Colab, Kaggle, etc.) and launch multiple processes there.
-You can learn more about it :ref:`here <Fabric in Notebooks>`.
 
 
 ----
