@@ -132,6 +132,22 @@ subprojects:
   #  checks:
   #    - "test-on-tpus"
 
+  - id: "fabric: Docs"
+    paths:
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
+      - "docs/source-fabric/**"
+      - ".github/workflows/docs-checks.yml"
+      - "requirements/docs.txt"
+      - "requirements/fabric/**"
+      - "setup.py"
+      - "pyproject.toml"  # includes metadata used in the package creation
+      - "!*.md"
+      - "!**/*.md"
+    checks:
+      - "make-doctest (fabric)"
+      - "make-html (fabric)"
+
   - id: "pytorch_lightning: Docs"
     paths:
       - "src/lightning/pytorch/**"
