@@ -126,7 +126,7 @@ def train_fabric_ddp(fabric):
 
 
 @pytest.mark.flaky(reruns=3)
-# @RunIf(standalone=True)
+@RunIf(standalone=True)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
     "accelerator, devices, tolerance",
