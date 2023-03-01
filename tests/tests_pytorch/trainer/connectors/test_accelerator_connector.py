@@ -892,3 +892,15 @@ def test_connector_defaults_match_trainer_defaults():
     for name, connector_default in connector_defaults.items():
         name = lut.get(name, name)
         assert connector_default == trainer_defaults[name]
+
+
+def test_connector_auto_selection(cuda_count_2, mps_count_0):
+    trainer = Trainer(accelerator="auto", strategy=None, devices="auto")
+    assert isinstance(trainer.accelerator, CUDAAccelerator)
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert trainer.num_devices == 2
+
+    trainer = Trainer(accelerator="auto", strategy="auto", devices="auto")
+    assert isinstance(trainer.accelerator, CUDAAccelerator)
+    assert isinstance(trainer.strategy, DDPStrategy)
+    assert trainer.num_devices == 2

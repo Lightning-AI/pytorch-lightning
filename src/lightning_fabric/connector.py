@@ -145,7 +145,7 @@ class _Connector:
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
 
         # 4. Instantiate Strategy - Part 1
-        if self._strategy_flag is None:
+        if self._strategy_flag in (None, "auto"):
             self._strategy_flag = self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
@@ -184,7 +184,11 @@ class _Connector:
         if strategy is not None:
             self._strategy_flag = strategy
 
-        if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+        if (
+            strategy not in (None, "auto")
+            and strategy not in self._registered_strategies
+            and not isinstance(strategy, Strategy)
+        ):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `lightning.fabric.strategies.Strategy`."
