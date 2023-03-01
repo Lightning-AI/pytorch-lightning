@@ -22,12 +22,12 @@ import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
 from tests_fabric.parity.utils import (
+    cuda_reset,
     get_model_input_dtype,
     is_cuda_memory_close,
     is_state_dict_equal,
     is_timing_close,
     make_deterministic,
-    cuda_reset,
 )
 
 from lightning.fabric.fabric import Fabric
