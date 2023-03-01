@@ -77,7 +77,7 @@ def get_lightning_daemon_command(prefix: str) -> str:
 
 
 @click.argument("name", required=True)
-@click.option("--project_name", help="The project name to which the machine should connect..", required=False)
+@click.option("--project_name", help="The project name to which the machine should connect.", required=False)
 def connect_maverick(name: str, project_name: str = "") -> None:
     """Create a new maverick connection."""
     # print system architecture and OS
