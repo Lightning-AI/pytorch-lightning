@@ -25,7 +25,7 @@ ______________________________________________________________________
 
 #### 2. K-Fold Image Classification with Lightning Fabric
 
-This script shows you how to scale the pure PyTorch code to enable GPU and multi-GPU training using [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html).
+This script shows you how to scale the pure PyTorch code to enable GPU and multi-GPU training using [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html).
 
 ```bash
 # CPU
