@@ -20,7 +20,7 @@ Here are five easy steps to let :class:`~lightning.fabric.fabric.Fabric` scale y
 
     fabric.launch()
 
-**Step 3:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
+**Step 3:** Call :meth:`~lightning.fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
 
 .. code-block:: python
 

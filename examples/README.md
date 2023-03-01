@@ -13,7 +13,7 @@ ______________________________________________________________________
 
 ## Lightning Fabric Examples
 
-We show how to accelerate your PyTorch code with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html) with minimal code changes.
+We show how to accelerate your PyTorch code with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html) with minimal code changes.
 You stay in full control of the training loop.
 
 - [MNIST: Vanilla PyTorch vs. Fabric](fabric/image_classifier/README.md)
