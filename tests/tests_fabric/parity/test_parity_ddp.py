@@ -21,7 +21,7 @@ import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import is_state_dict_equal, make_deterministic
+from tests_fabric.parity.utils import is_state_dict_equal, make_deterministic, is_timing_close, is_memory_close
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -39,6 +39,7 @@ def train_torch_ddp(
     batch_size=4,
 ):
     make_deterministic()
+    memory_stats = {}
 
     os.environ["LOCAL_RANK"] = str(rank)
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
@@ -54,6 +55,8 @@ def train_torch_ddp(
     dataloader = DataLoader(dataloader.dataset, sampler=sampler, batch_size=batch_size)
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()
+
+    memory_stats["start"] = torch.cuda.memory_stats()
 
     ddp_model.train()
     iteration_timings = []
@@ -72,14 +75,17 @@ def train_torch_ddp(
         t1 = time.perf_counter()
         iteration_timings.append(t1 - t0)
 
+    memory_stats["end"] = torch.cuda.memory_stats()
+
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, ddp_model.module.state_dict())
 
-    return ddp_model.module.state_dict(), torch.tensor(iteration_timings)
+    return ddp_model.module.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
 def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     make_deterministic()
+    memory_stats = {}
 
     model = ConvNet()
     initial_state_dict = deepcopy(model.state_dict())
@@ -90,6 +96,8 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * fabric.world_size), batch_size=batch_size)
     dataloader = fabric.setup_dataloaders(dataloader)
     loss_fn = model.get_loss_function()
+
+    memory_stats["start"] = torch.cuda.memory_stats()
 
     model.train()
     iteration_timings = []
@@ -107,10 +115,12 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
         t1 = time.perf_counter()
         iteration_timings.append(t1 - t0)
 
+    memory_stats["end"] = torch.cuda.memory_stats()
+
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, model.state_dict())
 
-    return model.state_dict(), torch.tensor(iteration_timings)
+    return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
 @RunIf(standalone=True)
@@ -127,10 +137,10 @@ def test_parity_ddp(accelerator, devices):
     # Train with Fabric
     fabric = Fabric(accelerator=accelerator, strategy="ddp", devices=devices)
     fabric.launch()
-    state_dict_fabric, timings_fabric = train_fabric_ddp(fabric)
+    state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
     # Train with raw PyTorch
-    state_dict_torch, timings_torch = train_torch_ddp(
+    state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
         rank=fabric.global_rank,
         world_size=fabric.world_size,
         device=fabric.device,
@@ -140,7 +150,8 @@ def test_parity_ddp(accelerator, devices):
     assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
 
     # Compare the time per iteration
-    # Drop measurements of the first iterations, as they may be slower than others
-    # The median is more robust to outliers than the mean
-    # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * |torch| + ATOL
-    assert torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=1e-3, atol=1e-3)
+    assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
+
+    # Compare memory usage
+    assert is_memory_close(memory_torch["start"], memory_fabric["start"])
+    assert is_memory_close(memory_torch["end"], memory_fabric["end"])

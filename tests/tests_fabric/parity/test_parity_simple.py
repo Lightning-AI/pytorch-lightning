@@ -21,7 +21,7 @@ import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import get_model_input_dtype, is_state_dict_equal, make_deterministic
+from tests_fabric.parity.utils import get_model_input_dtype, is_state_dict_equal, make_deterministic, is_timing_close, is_memory_close
 
 from lightning.fabric.fabric import Fabric
 
@@ -138,12 +138,8 @@ def test_parity_single_device(precision, accelerator):
     assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
 
     # Compare the time per iteration
-    # Drop measurements of the first iterations, as they may be slower than others
-    # The median is more robust to outliers than the mean
-    # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * |torch| + ATOL
-    assert torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=1e-3, atol=1e-3)
+    assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
 
-    # Compare peak CUDA memory usage
-    if memory_torch["start"]:
-        assert memory_torch["start"]["allocated_bytes.all.peak"] >= memory_fabric["start"]["allocated_bytes.all.peak"]
-        assert memory_torch["end"]["allocated_bytes.all.peak"] >= memory_fabric["end"]["allocated_bytes.all.peak"]
+    # Compare memory usage
+    assert is_memory_close(memory_torch["start"], memory_fabric["start"])
+    assert is_memory_close(memory_torch["end"], memory_fabric["end"])

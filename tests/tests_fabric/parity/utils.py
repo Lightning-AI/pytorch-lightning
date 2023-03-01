@@ -37,3 +37,15 @@ def get_model_input_dtype(precision):
 def is_state_dict_equal(state0, state1):
     # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
     return all(torch.allclose(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
+
+
+def is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3):
+    # Drop measurements of the first iterations, as they may be slower than others
+    # The median is more robust to outliers than the mean
+    # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * |torch| + ATOL
+    return torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=rtol, atol=atol)
+
+
+def is_memory_close(memory_stats_torch, memory_stats_fabric):
+    # We require Fabric's peak memory usage to be smaller or equal to that of PyTorch
+    return memory_stats_torch.get("allocated_bytes.all.peak", 0) >= memory_stats_fabric.get("allocated_bytes.all.peak", 0)
