@@ -25,22 +25,18 @@ from tests_fabric.parity.utils import get_model_input_dtype, is_state_dict_equal
 
 from lightning.fabric.fabric import Fabric
 
-NUM_STEPS_DEFAULT = 1000
-
 
 def train_torch(
     move_to_device: Callable,
     precision_context,
     input_dtype=torch.float32,
-    num_steps=NUM_STEPS_DEFAULT,
-    batch_size=4,
 ):
     make_deterministic()
     memory_stats = {}
 
     model = ConvNet()
     model = move_to_device(model)
-    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
+    dataloader = model.get_dataloader()
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()
 
@@ -49,7 +45,7 @@ def train_torch(
     model.train()
     iteration_timings = []
     iterator = iter(dataloader)
-    for _ in range(num_steps):
+    for _ in range(model.num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)
@@ -69,7 +65,7 @@ def train_torch(
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
+def train_fabric(fabric):
     make_deterministic()
     memory_stats = {}
 
@@ -79,7 +75,7 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     optimizer = model.get_optimizer()
     model, optimizer = fabric.setup(model, optimizer)
 
-    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
+    dataloader = model.get_dataloader()
     dataloader = fabric.setup_dataloaders(dataloader)
     loss_fn = model.get_loss_function()
 
@@ -88,7 +84,7 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     model.train()
     iteration_timings = []
     iterator = iter(dataloader)
-    for _ in range(num_steps):
+    for _ in range(model.num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)

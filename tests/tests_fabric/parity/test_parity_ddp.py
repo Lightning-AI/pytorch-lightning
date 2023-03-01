@@ -28,15 +28,11 @@ from torch.utils.data.distributed import DistributedSampler
 
 from lightning.fabric.fabric import Fabric
 
-NUM_STEPS_DEFAULT = 1000
-
 
 def train_torch_ddp(
     rank,
     world_size,
     device=torch.device("cpu"),
-    num_steps=NUM_STEPS_DEFAULT,
-    batch_size=4,
 ):
     make_deterministic()
     memory_stats = {}
@@ -50,9 +46,9 @@ def train_torch_ddp(
 
     ddp_model = DistributedDataParallel(model.to(device), device_ids=([rank] if device.type == "cuda" else None))
 
-    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * world_size), batch_size=batch_size)
+    dataloader = model.get_dataloader()
     sampler = DistributedSampler(dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False)
-    dataloader = DataLoader(dataloader.dataset, sampler=sampler, batch_size=batch_size)
+    dataloader = DataLoader(dataloader.dataset, sampler=sampler, batch_size=model.batch_size)
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()
 
@@ -61,7 +57,7 @@ def train_torch_ddp(
     ddp_model.train()
     iteration_timings = []
     iterator = iter(dataloader)
-    for _ in range(num_steps):
+    for _ in range(model.num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)
@@ -83,7 +79,7 @@ def train_torch_ddp(
     return ddp_model.module.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
+def train_fabric_ddp(fabric):
     make_deterministic()
     memory_stats = {}
 
@@ -93,7 +89,7 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     optimizer = model.get_optimizer()
     model, optimizer = fabric.setup(model, optimizer)
 
-    dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * fabric.world_size), batch_size=batch_size)
+    dataloader = model.get_dataloader()
     dataloader = fabric.setup_dataloaders(dataloader)
     loss_fn = model.get_loss_function()
 
@@ -102,7 +98,7 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     model.train()
     iteration_timings = []
     iterator = iter(dataloader)
-    for _ in range(num_steps):
+    for _ in range(model.num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)

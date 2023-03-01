@@ -24,6 +24,10 @@ from torch.utils.data import DataLoader, TensorDataset
 class ParityModel(ABC, nn.Module):
     """Defines the interface for a model in a Fabric-PyTorch parity test."""
 
+    # Benchmarking parameters that should be model-specific
+    batch_size = 1
+    num_steps = 1
+
     @abstractmethod
     def get_optimizer(self, *args, **kwargs) -> Optimizer:
         pass
@@ -38,6 +42,9 @@ class ParityModel(ABC, nn.Module):
 
 
 class ConvNet(ParityModel):
+    batch_size = 4
+    num_steps = 1000
+
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -59,13 +66,15 @@ class ConvNet(ParityModel):
     def get_optimizer(self):
         return torch.optim.SGD(self.parameters(), lr=0.0001)
 
-    def get_dataloader(self, dataset_size=100, batch_size=4):
+    def get_dataloader(self):
+        # multiply * 8 just in case world size is larger than 1
+        dataset_size = self.num_steps * self.batch_size * 8
         inputs = torch.rand(dataset_size, 3, 32, 32)
         labels = torch.randint(0, 10, (dataset_size,))
         dataset = TensorDataset(inputs, labels)
         dataloader = DataLoader(
             dataset,
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             num_workers=2,
         )
         return dataloader
