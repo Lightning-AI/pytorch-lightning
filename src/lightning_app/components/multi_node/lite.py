@@ -74,8 +74,8 @@ class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
         # Used to force Lite to setup the distributed environnement.
         os.environ["LT_CLI_USED"] = "1"
 
-        # Used to pass information to Lite directly.
-        def pre_fn(lite, *args, **kwargs):
+        # Used to pass information to Fabric directly.
+        def pre_fn(fabric, *args: Any, **kwargs: Any):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
 

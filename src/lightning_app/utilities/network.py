@@ -185,11 +185,11 @@ class LightningClient(GridRestClient):
 
 
 class CustomRetryAdapter(HTTPAdapter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         self.timeout = kwargs.pop("timeout", _DEFAULT_REQUEST_TIMEOUT)
         super().__init__(*args, **kwargs)
 
-    def send(self, request, **kwargs):
+    def send(self, request, **kwargs: Any):
         kwargs["timeout"] = kwargs.get("timeout", self.timeout)
         return super().send(request, **kwargs)
 
@@ -212,7 +212,7 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
-def _response(r, *args, **kwargs):
+def _response(r, *args: Any, **kwargs: Any):
     return r.raise_for_status()
 
 
@@ -267,7 +267,7 @@ class HTTPClient:
         url = urljoin(self.base_url, path)
         return self.session.delete(url)
 
-    def log_function(self, message: str, *args, **kwargs):
+    def log_function(self, message: str, *args, **kwargs: Any):
         """This function is used to log the messages in the client, it can be overridden by caller to customise the
         logging logic.
 

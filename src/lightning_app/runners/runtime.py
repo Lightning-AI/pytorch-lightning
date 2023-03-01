@@ -167,7 +167,7 @@ class Runtime:
         if self.app.stage == AppStage.FAILED:
             sys.exit(1)
 
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args: Any, **kwargs: Any):
         raise NotImplementedError
 
     def _add_stopped_status_to_work(self, work: "lightning_app.LightningWork") -> None:
