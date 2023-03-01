@@ -41,35 +41,6 @@ class ParityModel(ABC, nn.Module):
         pass
 
 
-class TinyModel(ParityModel):
-    batch_size = 2
-    num_steps = 3
-
-    def __init__(self):
-        super().__init__()
-        self.layer = nn.Linear(10, 2)
-
-    def forward(self, x):
-        return self.layer(x)
-
-    def get_optimizer(self):
-        return torch.optim.SGD(self.parameters(), lr=0.0001)
-
-    def get_dataloader(self):
-        inputs = torch.rand(32, 10)
-        labels = torch.rand(32, 2)
-        dataset = TensorDataset(inputs, labels)
-        dataloader = DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            num_workers=2,
-        )
-        return dataloader
-
-    def get_loss_function(self):
-        return F.mse_loss
-
-
 class ConvNet(ParityModel):
     batch_size = 4
     num_steps = 1000

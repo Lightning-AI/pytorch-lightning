@@ -67,6 +67,7 @@ def train_torch(
         iteration_timings.append(t1 - t0)
 
     memory_stats["end"] = torch.cuda.memory_stats()
+
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
