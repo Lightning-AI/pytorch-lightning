@@ -120,7 +120,7 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     "accelerator, devices",
     [
         ("cpu", 2),
-        # pytest.param("gpu", 2, marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("gpu", 2, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_parity_ddp(accelerator, devices):
