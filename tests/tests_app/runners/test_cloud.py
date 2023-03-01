@@ -14,6 +14,7 @@ from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     Gridv1ImageSpec,
     IdGetBody1,
+    ProjectIdProjectclustersbindingsBody,
     V1BuildSpec,
     V1CloudSpace,
     V1ClusterSpec,
@@ -50,7 +51,7 @@ from lightning_cloud.openapi import (
     V1UserFeatures,
     V1UserRequestedComputeConfig,
     V1UserRequestedFlowComputeConfig,
-    V1Work, ProjectIdProjectclustersbindingsBody,
+    V1Work,
 )
 
 from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
