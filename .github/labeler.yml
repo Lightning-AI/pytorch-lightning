@@ -5,7 +5,7 @@ app:
   - 'tests/integrations_app/**'
   - 'tests/integrations_app_examples/**'
   - 'examples/app_*/**'
-  - 'docs/source/**'
+  - 'docs/source-app/**'
   - 'requirements/app/**'
 
 pl:
