@@ -15,14 +15,19 @@ import logging
 from typing import Optional, Union
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.data import _auto_add_worker_init_fn, _set_sampler_epoch
+from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import Progress
 from lightning.pytorch.loops.training_epoch_loop import _TrainingEpochLoop
 from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher
 from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
+from lightning.pytorch.trainer.connectors.data_connector import (
+    _DataLoaderSource,
+    _process_dataloader,
+    _request_dataloader,
+    _resolve_overfit_batches,
+)
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -209,42 +214,34 @@ class _FitLoop(_Loop):
 
         log.debug(f"{self.__class__.__name__}: resetting train dataloader")
 
-        train_dataloader = trainer._data_connector._request_dataloader()
+        train_dataloader = _request_dataloader(source)
+        trainer.strategy.barrier("train_dataloader()")
+
         if not isinstance(train_dataloader, CombinedLoader):
             combined_loader = CombinedLoader(train_dataloader, "max_size_cycle")
         else:
             combined_loader = train_dataloader
 
         if trainer.overfit_batches > 0:
-            trainer._data_connector._resolve_overfit_batches(combined_loader, mode=RunningStage.TRAINING)
+            _resolve_overfit_batches(combined_loader, mode=RunningStage.TRAINING)
 
-        dataloaders = []
-        for i, dl in enumerate(combined_loader.flattened):
-            # automatically add samplers
-            dl = trainer._data_connector._prepare_dataloader(dl, shuffle=shuffle, mode=RunningStage.TRAINING)
-            # let the strategy inject its logic
-            dl = trainer.strategy.process_dataloader(dl)
-            # check the workers
-            trainer._data_connector._worker_check(dl, "train_dataloader")
-            # add worker_init_fn for correct seeding in worker processes
-            _auto_add_worker_init_fn(dl, trainer.global_rank)
-            dataloaders.append(dl)
-
+        dataloaders = [_process_dataloader(trainer, dl) for dl in combined_loader.flattened]
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
 
-        module = pl_module or trainer.datamodule
-        orig_train_batches = self.max_batches = (
-            len(self._combined_loader)
-            if has_len_all_ranks(self._combined_loader, trainer.strategy, module)
-            else float("inf")
-        )
+        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+
+        has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
+        orig_train_batches = self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
         if orig_train_batches == 0:
             return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch
 
+        # FIXME: _eval_num_batches???
         if isinstance(trainer.limit_train_batches, int):
             self.max_batches = min(orig_train_batches, trainer.limit_train_batches)
         elif self.max_batches != float("inf"):
@@ -265,7 +262,7 @@ class _FitLoop(_Loop):
                     " If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
                 )
         else:
-            if not has_len_all_ranks(self._combined_loader, trainer.strategy, module):
+            if not has_len_all_ranks_:
                 if trainer.val_check_interval == 1.0:
                     trainer.val_check_batch = float("inf")
                 else:
