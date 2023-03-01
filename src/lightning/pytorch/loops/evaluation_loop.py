@@ -30,7 +30,7 @@ from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fet
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import (
     _DataLoaderSource,
-    _eval_num_batches,
+    _parse_num_batches,
     _process_dataloader,
     _request_dataloader,
     _resolve_overfit_batches,
@@ -168,7 +168,7 @@ class _EvaluationLoop(_Loop):
             # determine number of batches
             length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
             limit_batches = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
-            num_batches = _eval_num_batches(stage, length, limit_batches)
+            num_batches = _parse_num_batches(stage, length, limit_batches)
             self._max_batches.append(num_batches)
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader

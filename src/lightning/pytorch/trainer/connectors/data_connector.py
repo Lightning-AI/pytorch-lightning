@@ -437,13 +437,13 @@ def _worker_check(dataloader: DataLoader, using_spawn: bool, name: str) -> None:
         )
 
 
-def _eval_num_batches(
+def _parse_num_batches(
     stage: RunningStage, length: Union[int, float], limit_batches: Union[int, float]
 ) -> Union[int, float]:
-    num_batches = length
     if length == 0:
         return int(length)
 
+    num_batches = length
     # limit num batches either as a percent or num steps
     if isinstance(limit_batches, int):
         num_batches = min(length, limit_batches)

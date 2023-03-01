@@ -1151,11 +1151,11 @@ def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity
     stages = []
     original_request_dataloader = _request_dataloader
 
-    def mock_request_dataloader(ds):
+    def side_effect_request_dataloader(ds):
         stages.append(trainer.state.stage)
         return original_request_dataloader(ds)
 
-    request_dataloader_mock = Mock(wraps=mock_request_dataloader)
+    request_dataloader_mock = Mock(wraps=side_effect_request_dataloader)
     monkeypatch.setattr(lightning.pytorch.loops.fit_loop, "_request_dataloader", request_dataloader_mock)
     monkeypatch.setattr(lightning.pytorch.loops.evaluation_loop, "_request_dataloader", request_dataloader_mock)
 

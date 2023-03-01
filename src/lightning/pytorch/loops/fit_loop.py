@@ -24,6 +24,7 @@ from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_dat
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import (
     _DataLoaderSource,
+    _parse_num_batches,
     _process_dataloader,
     _request_dataloader,
     _resolve_overfit_batches,
@@ -202,7 +203,7 @@ class _FitLoop(_Loop):
         self._restarting = False
         self.on_run_end()
 
-    def setup_data(self, shuffle: bool = True) -> None:
+    def setup_data(self) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
             return
 
@@ -234,23 +235,15 @@ class _FitLoop(_Loop):
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
 
         has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
-        orig_train_batches = self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
-        if orig_train_batches == 0:
+        self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
+        if self.max_batches == 0:
             return
+
+        stage = RunningStage.TRAINING
+        self.max_batches = _parse_num_batches(stage, self.max_batches, trainer.limit_train_batches)
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch
-
-        # FIXME: _eval_num_batches???
-        if isinstance(trainer.limit_train_batches, int):
-            self.max_batches = min(orig_train_batches, trainer.limit_train_batches)
-        elif self.max_batches != float("inf"):
-            self.max_batches = int(orig_train_batches * trainer.limit_train_batches)
-        elif trainer.limit_train_batches != 1.0:
-            raise MisconfigurationException(
-                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
-                "An int specifies `num_training_batches` to use."
-            )
 
         if isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
@@ -281,20 +274,6 @@ class _FitLoop(_Loop):
                 f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
                 category=PossibleUserWarning,
-            )
-
-        if (
-            self.max_batches == 0
-            and trainer.limit_train_batches > 0.0
-            and isinstance(trainer.limit_train_batches, float)
-            and orig_train_batches != float("inf")
-        ):
-            min_percentage = 1.0 / orig_train_batches
-            raise MisconfigurationException(
-                f"You requested to check {trainer.limit_train_batches} of the `train_dataloader` but"
-                f" {trainer.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
-                f" `limit_train_batches` argument. Try at least"
-                f" `limit_train_batches={min_percentage}`"
             )
 
     def reset(self) -> None:

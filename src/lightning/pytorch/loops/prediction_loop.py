@@ -29,7 +29,7 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import (
     _DataLoaderSource,
-    _eval_num_batches,
+    _parse_num_batches,
     _process_dataloader,
     _request_dataloader,
 )
@@ -144,7 +144,7 @@ class _PredictionLoop(_Loop):
 
             # determine number of batches
             length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
-            num_batches = _eval_num_batches(stage, length, trainer.limit_predict_batches)
+            num_batches = _parse_num_batches(stage, length, trainer.limit_predict_batches)
             self.max_batches.append(num_batches)
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
