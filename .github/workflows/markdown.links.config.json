@@ -5,9 +5,6 @@
     },
     {
       "pattern": ".*https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/.*"
-    },
-    {
-      "pattern": "https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html"
     }
   ],
   "httpHeaders": [
