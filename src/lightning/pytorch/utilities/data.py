@@ -29,7 +29,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     sized_len,
 )
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
@@ -246,7 +246,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
 
-    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
+    If the dataloader is being used for prediction, the sampler will be wrapped into an `_IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices.
 
     If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
@@ -322,8 +322,9 @@ def _dataloader_init_kwargs_resolve_sampler(
                     ) from e
 
             if is_predicting:
-                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+                batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
 
+            # batch_sampler option is mutually exclusive with batch_size, shuffle, sampler, and drop_last
             return {
                 "sampler": None,
                 "shuffle": False,

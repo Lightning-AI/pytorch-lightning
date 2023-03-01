@@ -107,23 +107,23 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
 
 
 @pytest.mark.parametrize(
-    "precision, strategy, devices, accelerator",
+    "precision, accelerator",
     [
-        pytest.param(32, None, 1, "cpu"),
-        pytest.param(32, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(16, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
-        pytest.param(32, None, 1, "mps", marks=RunIf(mps=True)),
+        (32, "cpu"),
+        pytest.param(32, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16", "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
+        pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
-def test_boring_fabric_model_single_device(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_fabric_model_single_device(precision, accelerator):
     Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    fabric = FabricRunner(precision=precision, accelerator=accelerator)
     fabric.run(model, train_dataloader, num_epochs=num_epochs)
     fabric_state_dict = model.state_dict()
 

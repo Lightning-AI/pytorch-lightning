@@ -25,7 +25,7 @@ from lightning.fabric.utilities.data import _auto_add_worker_init_fn, _replace_d
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -43,18 +43,6 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
         self._datahook_selector: Optional[_DataHookSelector] = None
-
-    @property
-    def _should_reload_train_dl(self) -> bool:
-        """Check if train dataloader should be reloaded."""
-        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
-
-    @property
-    def _should_reload_val_dl(self) -> bool:
-        """Check if validation dataloader should be reloaded."""
-        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return bool(n_epochs and self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
 
     def on_trainer_init(
         self,
@@ -83,7 +71,6 @@ class DataConnector:
             )
 
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
-        self.trainer._is_data_prepared = False
 
     def prepare_data(self) -> None:
         trainer = self.trainer
@@ -107,7 +94,6 @@ class DataConnector:
             lm_prepare_data_per_node = lightning_module.prepare_data_per_node
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
                 call._call_lightning_module_hook(trainer, "prepare_data")
-                trainer._is_data_prepared = True
 
     def attach_data(
         self,
@@ -197,7 +183,7 @@ class DataConnector:
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
+        using_spawn = isinstance(self.trainer.strategy, DDPStrategy) and self.trainer.strategy._start_method == "spawn"
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -229,7 +215,7 @@ class DataConnector:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self.trainer._accelerator_connector.replace_sampler_ddp
+            self.trainer._accelerator_connector.use_distributed_sampler
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
