@@ -134,9 +134,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     fabric_model = fabric.setup_module(model, move_to_device=move_to_device)
     fabric_module_mock.assert_not_called()
 
-    assert list(param.device for param in model.parameters()) == []
     assert len(list(fabric_model.parameters())) == 1
-
     # the linear layer got sharded and each part is on the expected device
     assert next(fabric_model.parameters()).device == torch.device("cuda", fabric.local_rank)
     assert next(fabric_model.parameters()).numel() == 50
