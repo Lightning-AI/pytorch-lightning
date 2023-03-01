@@ -36,11 +36,15 @@ def train_torch(
     batch_size=4,
 ):
     make_deterministic()
+    memory_stats = {}
+
     model = ConvNet()
     model = move_to_device(model)
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()
+
+    memory_stats["start"] = torch.cuda.memory_stats()
 
     model.train()
     iteration_timings = []
@@ -60,11 +64,14 @@ def train_torch(
         t1 = time.perf_counter()
         iteration_timings.append(t1 - t0)
 
-    return model.state_dict(), torch.tensor(iteration_timings)
+    memory_stats["end"] = torch.cuda.memory_stats()
+
+    return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
 def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     make_deterministic()
+    memory_stats = {}
 
     model = ConvNet()
     initial_state_dict = deepcopy(model.state_dict())
@@ -75,6 +82,8 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size), batch_size=batch_size)
     dataloader = fabric.setup_dataloaders(dataloader)
     loss_fn = model.get_loss_function()
+
+    memory_stats["start"] = torch.cuda.memory_stats()
 
     model.train()
     iteration_timings = []
@@ -92,10 +101,12 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
         t1 = time.perf_counter()
         iteration_timings.append(t1 - t0)
 
+    memory_stats["end"] = torch.cuda.memory_stats()
+
     # check that the model has changed
     assert not is_state_dict_equal(initial_state_dict, model.state_dict())
 
-    return model.state_dict(), torch.tensor(iteration_timings)
+    return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
 @pytest.mark.flaky(reruns=3)
@@ -116,18 +127,23 @@ def test_parity_single_device(precision, accelerator):
 
     # Train with Fabric
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
-    fabric_state_dict, timings_fabric = train_fabric(fabric)
+    state_dict_fabric, timings_fabric, memory_fabric = train_fabric(fabric)
 
     # Train with raw PyTorch
-    torch_state_dict, timings_torch = train_torch(
+    state_dict_torch, timings_torch, memory_torch = train_torch(
         fabric.to_device, precision_context=fabric.autocast, input_dtype=input_dtype
     )
 
     # Compare the final weights
-    assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
+    assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
 
     # Compare the time per iteration
     # Drop measurements of the first iterations, as they may be slower than others
     # The median is more robust to outliers than the mean
     # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * |torch| + ATOL
     assert torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=1e-4, atol=1e-4)
+
+    # Compare peak CUDA memory usage
+    if memory_torch["start"]:
+        assert memory_torch["start"]["allocated_bytes.all.peak"] == memory_fabric["start"]["allocated_bytes.all.peak"]
+        assert memory_torch["end"]["allocated_bytes.all.peak"] == memory_fabric["end"]["allocated_bytes.all.peak"]

@@ -127,17 +127,17 @@ def test_parity_ddp(accelerator, devices):
     # Train with Fabric
     fabric = Fabric(accelerator=accelerator, strategy="ddp", devices=devices)
     fabric.launch()
-    fabric_state_dict, timings_fabric = train_fabric_ddp(fabric)
+    state_dict_fabric, timings_fabric = train_fabric_ddp(fabric)
 
     # Train with raw PyTorch
-    torch_state_dict, timings_torch = train_torch_ddp(
+    state_dict_torch, timings_torch = train_torch_ddp(
         rank=fabric.global_rank,
         world_size=fabric.world_size,
         device=fabric.device,
     )
 
     # Compare the final weights
-    assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
+    assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
 
     # Compare the time per iteration
     # Drop measurements of the first iterations, as they may be slower than others
