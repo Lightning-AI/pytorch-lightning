@@ -21,7 +21,7 @@ import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import get_model_input_dtype, is_state_dict_equal, make_deterministic, is_timing_close, is_memory_close
+from tests_fabric.parity.utils import get_model_input_dtype, is_state_dict_equal, make_deterministic, is_timing_close, is_cuda_memory_close
 
 from lightning.fabric.fabric import Fabric
 
@@ -137,5 +137,6 @@ def test_parity_single_device(precision, accelerator):
     assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
 
     # Compare memory usage
-    assert is_memory_close(memory_torch["start"], memory_fabric["start"])
-    assert is_memory_close(memory_torch["end"], memory_fabric["end"])
+    if accelerator == "gpu":
+        assert is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])
+        assert is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])
