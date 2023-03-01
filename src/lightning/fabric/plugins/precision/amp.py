@@ -18,7 +18,7 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
@@ -98,3 +98,20 @@ class MixedPrecision(Precision):
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
         return torch.autocast(self.device, dtype=self._desired_dtype)
+
+    def unscale_gradients(self, optimizer: Optimizer) -> None:
+        scaler = self.scaler
+        if scaler is not None:
+            if _optimizer_handles_unscaling(optimizer):
+                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
+            scaler.unscale_(optimizer)
+
+
+def _optimizer_handles_unscaling(optimizer: Any) -> bool:
+    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
+    :class:`torch.cuda.amp.GradScaler`.
+
+    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
+    value will only be reliable for built-in PyTorch optimizers.
+    """
+    return getattr(optimizer, "_step_supports_amp_scaling", False)

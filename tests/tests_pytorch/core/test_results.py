@@ -18,7 +18,7 @@ import torch.distributed as dist
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from tests_pytorch.helpers.runif import RunIf
@@ -30,8 +30,11 @@ def spawn_launch(fn, parallel_devices):
     # initialization to be implemented
     device_to_accelerator = {"cuda": CUDAAccelerator, "mps": MPSAccelerator, "cpu": CPUAccelerator}
     accelerator_cls = device_to_accelerator[parallel_devices[0].type]
-    strategy = DDPSpawnStrategy(
-        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    strategy = DDPStrategy(
+        accelerator=accelerator_cls(),
+        parallel_devices=parallel_devices,
+        cluster_environment=LightningEnvironment(),
+        start_method="spawn",
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
