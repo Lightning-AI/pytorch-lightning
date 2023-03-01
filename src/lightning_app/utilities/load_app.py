@@ -25,7 +25,7 @@ from lightning_app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
     from lightning_app import LightningApp, LightningFlow, LightningWork
-    from lightning_app.core.plugin import LightningPlugin
+    from lightning_app.plugin.plugin import LightningPlugin
 
 from lightning_app.utilities.app_helpers import _mock_missing_imports, Logger
 
@@ -85,7 +85,7 @@ def _load_objects_from_file(
 
 
 def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
-    from lightning_app.core.plugin import LightningPlugin
+    from lightning_app.plugin.plugin import LightningPlugin
 
     # TODO: Plugin should be run in the context of the created main module here
     plugins, _ = _load_objects_from_file(filepath, LightningPlugin, raise_exception=True, mock_imports=False)
@@ -112,7 +112,7 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
     )
 
     # TODO: Remove this, downstream code shouldn't depend on side-effects here but it does
-    _patch_sys_path(os.path.dirname(os.path.abspath(filepath))).__enter__()
+    sys.path.append(os.path.dirname(os.path.abspath(filepath)))
     sys.modules["__main__"] = main_module
 
     if len(apps) > 1:
