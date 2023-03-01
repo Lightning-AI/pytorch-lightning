@@ -125,6 +125,7 @@ def test_parity_single_device(precision, accelerator):
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric(fabric)
 
+    torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
 
     # Train with raw PyTorch
