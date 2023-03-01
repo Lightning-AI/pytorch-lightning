@@ -60,6 +60,7 @@ jobs:
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: 1
+      PYPI_CACHE: "_pip-wheels"
     steps:
     - uses: actions/checkout@v3
 
@@ -69,14 +70,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: basic setup
-      run: |
-        pip --version
-        pip install -q -r .actions/requirements.txt
+      run: pip install -q -r .actions/requirements.txt
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: |
-        python .actions/assistant.py replace_oldest_ver
+      run: python .actions/assistant.py replace_oldest_ver
 
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
@@ -87,29 +85,30 @@ jobs:
         cat requirements/fabric/base.txt
 
     - name: pip wheels cache
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v3
       with:
-        path: .wheels
-        key: pip_wheels  # to not being cleand with crone
-        enableCrossOsArchive: true
+        path: ${{ env.PYPI_CACHE }}
+        key: pypi_wheels
     - run: |
-        mkdir -p .wheels
-        ls -lh .wheels/
+        mkdir -p $PYPI_CACHE
+        ls -lh $PYPI_CACHE
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
-        pip install -r requirements/fabric/strategies.txt -f ".wheels/" --prefer-binary
+        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} -f ${PYPI_CACHE} --prefer-binary
+        pip install -r requirements/fabric/strategies.txt -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
-      if: github.event_name == 'push'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
+        wheel-dir: ${{ env.PYPI_CACHE }}
         torch-url: ${{ env.TORCH_URL }}
+        cache-key: "pypi_wheels"
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name != 'lightning' }}

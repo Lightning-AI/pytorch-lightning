@@ -48,6 +48,7 @@ jobs:
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: 1
+      PYPI_CACHE: "_pip-wheels"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -63,28 +64,29 @@ jobs:
       run: python .actions/assistant.py replace_oldest_ver
 
     - name: pip wheels cache
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v3
       with:
-        path: .wheels
-        key: pip_wheels  # to not being cleand with crone
-        enableCrossOsArchive: true
+        path: ${{ env.PYPI_CACHE }}
+        key: pypi_wheels
     - run: |
-        mkdir -p .wheels
-        ls -lh .wheels/
+        mkdir -p $PYPI_CACHE
+        ls -lh $PYPI_CACHE
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[dev] -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
+        pip install -e .[dev] -U -f ${TORCH_URL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
-      if: github.event_name == 'push'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
+        wheel-dir: ${{ env.PYPI_CACHE }}
         torch-url: ${{ env.TORCH_URL }}
+        cache-key: "pypi_wheels"
 
     - name: Setup Node.js
       uses: actions/setup-node@v3

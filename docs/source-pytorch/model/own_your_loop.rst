@@ -19,14 +19,6 @@ Use a pure PyTorch training loop
    :height: 150
    :tag: advanced
 
-.. displayitem::
-   :header: Use a Raw PyTorch Loop
-   :description: Migrate complex PyTorch projects to Lightning and push bleeding-edge research with the raw PyTorch loop.
-   :col_css: col-md-4
-   :button_link: ../fabric/fabric.html
-   :height: 150
-   :tag: advanced
-
 .. raw:: html
 
         </div>
