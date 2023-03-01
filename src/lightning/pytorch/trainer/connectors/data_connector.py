@@ -472,7 +472,7 @@ def _process_dataloader(trainer: "pl.Trainer", dataloader: object) -> object:
     if trainer_fn is None or stage is None:
         raise RuntimeError("Unexpected state")
 
-    if trainer_fn != TrainerFn.FITTING:
+    if stage != RunningStage.TRAINING:
         is_shuffled = _is_dataloader_shuffled(dataloader)
         # limit this warning only for samplers assigned automatically when shuffle is set
         if is_shuffled:
