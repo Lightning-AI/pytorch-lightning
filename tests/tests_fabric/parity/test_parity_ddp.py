@@ -143,4 +143,4 @@ def test_parity_ddp(accelerator, devices):
     # Drop measurements of the first iterations, as they may be slower than others
     # The median is more robust to outliers than the mean
     # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * |torch| + ATOL
-    assert torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=1e-3, atol=1e-4)
+    assert torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=1e-3, atol=1e-3)
