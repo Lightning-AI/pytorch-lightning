@@ -99,6 +99,7 @@ def train_fabric(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
 
 
 @pytest.mark.flaky(reruns=3)
+@pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
     "precision, accelerator",
     [

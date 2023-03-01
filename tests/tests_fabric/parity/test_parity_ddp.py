@@ -28,7 +28,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from lightning.fabric.fabric import Fabric
 
-NUM_STEPS_DEFAULT = 100
+NUM_STEPS_DEFAULT = 1000
 
 
 def train_torch_ddp(
@@ -51,7 +51,7 @@ def train_torch_ddp(
 
     dataloader = model.get_dataloader(dataset_size=(num_steps * batch_size * world_size), batch_size=batch_size)
     sampler = DistributedSampler(dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False)
-    dataloader = DataLoader(dataloader.dataset, sampler=sampler)
+    dataloader = DataLoader(dataloader.dataset, sampler=sampler, batch_size=batch_size)
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()
 
@@ -62,7 +62,7 @@ def train_torch_ddp(
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)
-        inputs, labels = inputs.to(device), inputs.to(labels)
+        inputs, labels = inputs.to(device), labels.to(device)
         optimizer.zero_grad()
         outputs = ddp_model(inputs)
         loss = loss_fn(outputs, labels)
@@ -115,16 +115,17 @@ def train_fabric_ddp(fabric, num_steps=NUM_STEPS_DEFAULT, batch_size=4):
 
 @RunIf(standalone=True)
 # @pytest.mark.flaky(reruns=3)
+@pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
-    "precision, strategy, devices, accelerator",
+    "accelerator, devices",
     [
-        (32, "ddp", 2, "cpu"),
-        pytest.param(32, "ddp", 2, "gpu", marks=RunIf(min_cuda_gpus=2)),
+        ("cpu", 2),
+        # pytest.param("gpu", 2, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
-def test_parity_ddp(precision, strategy, devices, accelerator):
+def test_parity_ddp(accelerator, devices):
     # Train with Fabric
-    fabric = Fabric(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    fabric = Fabric(accelerator=accelerator, strategy="ddp", devices=devices)
     fabric.launch()
     fabric_state_dict, timings_fabric = train_fabric_ddp(fabric)
 

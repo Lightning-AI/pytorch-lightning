@@ -77,6 +77,14 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
+@pytest.fixture
+def reset_cudnn_benchmark():
+    """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
+    benchmark = torch.backends.cudnn.benchmark
+    yield
+    torch.backends.cudnn.benchmark = benchmark
+
+
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
