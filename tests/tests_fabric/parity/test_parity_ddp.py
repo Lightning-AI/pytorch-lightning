@@ -21,7 +21,7 @@ import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import is_state_dict_equal, make_deterministic, is_timing_close, is_cuda_memory_close
+from tests_fabric.parity.utils import is_cuda_memory_close, is_state_dict_equal, is_timing_close, make_deterministic
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
