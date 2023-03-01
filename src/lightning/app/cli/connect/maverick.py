@@ -221,7 +221,7 @@ def disconnect_maverick(name: str) -> None:
     rich.print(f"[green]Succeeded[/green]: maverick {name} has been disconnected from lightning.")
 
 
-def register_to_cloud(name: str, project_name: str):
+def register_to_cloud(name: str, project_name: str) -> None:
     client = LightningClient(retry=False)
     projects = client.projects_service_list_memberships()
     if project_name:
