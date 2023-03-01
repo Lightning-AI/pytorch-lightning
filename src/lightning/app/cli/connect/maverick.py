@@ -19,8 +19,14 @@ import time
 
 import click
 import rich
-from lightning_cloud.openapi import V1CreateClusterRequest, V1ClusterSpec, V1ClusterType, V1ClusterDriver, \
-    V1BYOMClusterDriver, V1ClusterState
+from lightning_cloud.openapi import (
+    V1BYOMClusterDriver,
+    V1ClusterDriver,
+    V1ClusterSpec,
+    V1ClusterState,
+    V1ClusterType,
+    V1CreateClusterRequest,
+)
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
@@ -240,9 +246,7 @@ def register_to_cloud(name: str, project_name: str):
             name=name,
             spec=V1ClusterSpec(
                 cluster_type=V1ClusterType.BYOM,
-                driver=V1ClusterDriver(
-                    byom=V1BYOMClusterDriver()
-                ),
+                driver=V1ClusterDriver(byom=V1BYOMClusterDriver()),
             ),
         )
         resp = client.cluster_service_create_cluster(body=body)
@@ -259,4 +263,3 @@ def deregister_from_cloud(name):
             break
     else:
         raise RuntimeError(f"Cluster {name} does not exist.")
-
