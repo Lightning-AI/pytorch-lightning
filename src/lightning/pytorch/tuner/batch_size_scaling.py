@@ -15,7 +15,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import lightning.pytorch as pl
 from lightning.pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
@@ -129,7 +129,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     if isinstance(loop, pl.loops._FitLoop):
         trainer.limit_train_batches = 1.0
         trainer.limit_val_batches = steps_per_trial
-        trainer.fit_loop.max_steps = steps_per_trial
+        trainer.fit_loop.epoch_loop.max_steps = steps_per_trial
     elif isinstance(loop, pl.loops._EvaluationLoop):
         stage = trainer.state.stage
         assert stage is not None
@@ -145,7 +145,7 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     loop = trainer._active_loop
     assert loop is not None
     if isinstance(loop, pl.loops._FitLoop):
-        loop.max_steps = params["max_steps"]
+        loop.epoch_loop.max_steps = params["max_steps"]
         trainer.limit_train_batches = params["limit_train_batches"]
         trainer.limit_val_batches = params["limit_val_batches"]
     elif isinstance(loop, pl.loops._EvaluationLoop):
@@ -293,29 +293,27 @@ def _adjust_batch_size(
     model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     assert batch_size is not None
-    new_size = value if value is not None else int(batch_size * factor)
-    if desc:
-        rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     loop = trainer._active_loop
     assert loop is not None
     loop.setup_data()
     combined_loader = loop._combined_loader
     assert combined_loader is not None
-    if not _is_valid_batch_size(new_size, combined_loader, trainer):
-        new_size = min(new_size, len(combined_loader.dataset))  # type: ignore[arg-type]
+    try:
+        combined_dataset_length = combined_loader._dataset_length()
+        if batch_size >= combined_dataset_length:
+            rank_zero_info(f"The batch size {batch_size} is greater or equal than the length of your dataset.")
+            return batch_size, False
+    except NotImplementedError:
+        # all datasets are iterable style
+        pass
 
+    new_size = value if value is not None else int(batch_size * factor)
+    if desc:
+        rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
     return new_size, changed
-
-
-def _is_valid_batch_size(batch_size: int, dataloader: Iterable, trainer: "pl.Trainer") -> bool:
-    from lightning.pytorch.utilities.data import has_len_all_ranks
-
-    module = trainer.lightning_module or trainer.datamodule
-    has_len = has_len_all_ranks(dataloader, trainer.strategy, module)
-    return not has_len or batch_size <= len(dataloader)  # type: ignore[arg-type]
 
 
 def _reset_dataloaders(trainer: "pl.Trainer") -> None:

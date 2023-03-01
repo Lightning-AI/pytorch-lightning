@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optio
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -34,7 +35,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -50,6 +51,8 @@ from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORC
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
+
+_ONNX_AVAILABLE = RequirementCache("onnx")
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -381,14 +384,21 @@ class LightningModule(
             value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor)
         )
 
-        if self._trainer is None:
+        trainer = self._trainer
+        if trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
             rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
                 " This is most likely because the model hasn't been passed to the `Trainer`"
             )
             return
-        results = self.trainer._results
+        if trainer.barebones:
+            rank_zero_warn(
+                "You are trying to `self.log()` but `Trainer(barebones=True)` is configured."
+                " Logging can impact raw speed so it is disabled under this setting."
+            )
+            return
+        results = trainer._results
         if results is None:
             raise MisconfigurationException(
                 "You are trying to `self.log()` but the loop's result collection is not registered"
@@ -413,7 +423,7 @@ class LightningModule(
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
 
-        if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
+        if trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
@@ -439,7 +449,7 @@ class LightningModule(
                 )
 
         if (
-            self.trainer.training
+            trainer.training
             and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
             and batch_size is None
         ):
@@ -447,7 +457,7 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
-        if logger and self.trainer.logger is None:
+        if logger and trainer.logger is None:
             rank_zero_warn(
                 f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
                 " by doing `Trainer(logger=ALogger(...))`"
@@ -470,13 +480,13 @@ class LightningModule(
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and _distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
+            sync_dist_fn=trainer.strategy.reduce or _sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
         )
 
-        self.trainer._logger_connector._current_fx = self._current_fx_name
+        trainer._logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
@@ -681,67 +691,6 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
-
-        Note:
-            If you later switch to ddp or some other mode, this will still be called
-            so that you don't have to change your code
-
-        .. code-block:: python
-
-            # pseudocode
-            sub_batches = split_batches_for_dp(batch)
-            step_output = [training_step(sub_batch) for sub_batch in sub_batches]
-            training_step_end(step_output)
-
-        Args:
-            step_output: What you return in `training_step` for each batch part.
-
-        Return:
-            Anything
-
-        When using the DP strategy, only a portion of the batch is inside the training_step:
-
-        .. code-block:: python
-
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self(x)
-
-                # softmax uses only a portion of the batch in the denominator
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                return loss
-
-        If you wish to do something with all the parts of the batch, then use this method to do it:
-
-        .. code-block:: python
-
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self.encoder(x)
-                return {"pred": out}
-
-
-            def training_step_end(self, training_step_output):
-                gpu_0_pred = training_step_output[0]["pred"]
-                gpu_1_pred = training_step_output[1]["pred"]
-                gpu_n_pred = training_step_output[n]["pred"]
-
-                # this softmax now uses the full batch
-                loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
-                return loss
-
-        See Also:
-            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
-        """
-
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the validation set.
@@ -756,15 +705,6 @@ class LightningModule(
         Return:
             - Any object or value
             - ``None`` - Validation will skip to the next batch
-
-        .. code-block:: python
-
-            # pseudocode of order
-            for val_batch in val_data:
-                out = validation_step(val_batch)
-                if defined("validation_step_end"):
-                    out = validation_step_end(out)
-
 
         .. code-block:: python
 
@@ -817,59 +757,6 @@ class LightningModule(
             When the :meth:`validation_step` is called, the model has been put in eval mode
             and PyTorch gradients have been disabled. At the end of validation,
             the model goes back to training mode and gradients are enabled.
-        """
-
-    def validation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
-
-        Note:
-            If you later switch to ddp or some other mode, this will still be called
-            so that you don't have to change your code.
-
-        .. code-block:: python
-
-            # pseudocode
-            sub_batches = split_batches_for_dp(batch)
-            step_output = [validation_step(sub_batch) for sub_batch in sub_batches]
-            validation_step_end(step_output)
-
-        Args:
-            step_output: What you return in :meth:`validation_step` for each batch part.
-
-        Return:
-            None or anything
-
-        .. code-block:: python
-
-            # WITHOUT validation_step_end
-            # if used in DP, this batch is 1/num_gpus large
-            def validation_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self.encoder(x)
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                self.log("val_loss", loss)
-
-
-            # --------------
-            # with validation_step_end to do softmax over the full batch
-            def validation_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self(x)
-                return out
-
-
-            def validation_step_end(self, val_step_outputs):
-                for out in val_step_outputs:
-                    ...
-
-        See Also:
-            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -941,60 +828,6 @@ class LightningModule(
             When the :meth:`test_step` is called, the model has been put in eval mode and
             PyTorch gradients have been disabled. At the end of the test epoch, the model goes back
             to training mode and gradients are enabled.
-        """
-
-    def test_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
-        this is still optional and only needed for things like softmax or NCE loss.
-
-        Note:
-            If you later switch to ddp or some other mode, this will still be called
-            so that you don't have to change your code.
-
-        .. code-block:: python
-
-            # pseudocode
-            sub_batches = split_batches_for_dp(batch)
-            step_output = [test_step(sub_batch) for sub_batch in sub_batches]
-            test_step_end(step_output)
-
-        Args:
-            step_output: What you return in :meth:`test_step` for each batch part.
-
-        Return:
-            None or anything
-
-        .. code-block:: python
-
-            # WITHOUT test_step_end
-            # if used in DP, this batch is 1/num_gpus large
-            def test_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self(x)
-                loss = self.softmax(out)
-                self.log("test_loss", loss)
-
-
-            # --------------
-            # with test_step_end to do softmax over the full batch
-            def test_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
-
-                out = self.encoder(x)
-                return out
-
-
-            def test_step_end(self, output_results):
-                # this out is now the full size of the batch
-                all_test_step_outs = output_results.out
-                loss = nce_loss(all_test_step_outs)
-                self.log("test_loss", loss)
-
-        See Also:
-            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
@@ -1469,22 +1302,23 @@ class LightningModule(
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
 
-            >>> import os, tempfile
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model = SimpleModel()
-            ...     input_sample = torch.randn((1, 64))
-            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
-            ...     os.path.isfile(tmpfile.name)
-            True
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)
+
+            model = SimpleModel()
+            input_sample = torch.randn(1, 64)
+            model.to_onnx("export.onnx", input_sample, export_params=True)
         """
+        if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
+            )
+
         mode = self.training
 
         if input_sample is None:

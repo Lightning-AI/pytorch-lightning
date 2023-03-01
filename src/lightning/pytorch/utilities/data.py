@@ -29,7 +29,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     sized_len,
 )
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
@@ -246,21 +246,21 @@ def _dataloader_init_kwargs_resolve_sampler(
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
 
-    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
-    Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
-    `FastForwardSampler`.
+    If the dataloader is being used for prediction, the sampler will be wrapped into an `_IndexBatchSamplerWrapper`, so
+    Lightning can keep track of its indices.
 
     If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
     automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
-    batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
+    batch_sampler = getattr(dataloader, "batch_sampler")
+    batch_sampler_cls = type(batch_sampler)
 
     if batch_sampler is not None:
         if disallow_batch_sampler:
             # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
             if not (
-                type(batch_sampler) is BatchSampler
+                batch_sampler_cls is BatchSampler
                 and batch_sampler.sampler == sampler
                 and dataloader.batch_size == batch_sampler.batch_size
             ):
@@ -268,8 +268,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                     "It is not possible to have a batch sampler in your dataloader, "
                     "when running on multiple IPU devices."
                 )
-        elif type(batch_sampler) is not BatchSampler or is_predicting:
-            batch_sampler_cls = type(batch_sampler)
+        elif batch_sampler_cls is not BatchSampler or is_predicting:
             if hasattr(batch_sampler, "__pl_saved_args"):
                 args = batch_sampler.__pl_saved_args
                 kwargs = batch_sampler.__pl_saved_kwargs
@@ -323,8 +322,9 @@ def _dataloader_init_kwargs_resolve_sampler(
                     ) from e
 
             if is_predicting:
-                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+                batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
 
+            # batch_sampler option is mutually exclusive with batch_size, shuffle, sampler, and drop_last
             return {
                 "sampler": None,
                 "shuffle": False,
@@ -344,7 +344,7 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
             return dataloader.__pl_saved_kwargs["shuffle"]
         if "shuffle" in dataloader.__pl_saved_arg_names:
             return dataloader.__pl_saved_args[dataloader.__pl_saved_arg_names.index("shuffle")]
-    if isinstance(dataloader.dataset, IterableDataset):
+    if hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset):
         # shuffling is useless with iterable datasets
         return False
     if not hasattr(dataloader, "sampler"):

@@ -486,6 +486,27 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             state[k] = client_state.pop(k)
         return client_state
 
+    def clip_gradients_norm(
+        self,
+        module: "deepspeed.DeepSpeedEngine",
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> torch.Tensor:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
+    def clip_gradients_value(
+        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
+    ) -> None:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")

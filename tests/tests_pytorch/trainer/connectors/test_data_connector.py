@@ -26,10 +26,9 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -138,7 +137,6 @@ class TestSpawnBoringModel(BoringModel):
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -211,7 +209,7 @@ def test_dataloaders_with_missing_keyword_arguments():
 
 
 def test_update_dataloader_with_multiprocessing_context():
-    """This test verifies that replace_sampler conserves multiprocessing context."""
+    """This test verifies that `use_distributed_sampler` conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
@@ -253,21 +251,24 @@ def test_dataloader_reinit_for_subclass():
             self.something_unrelated = 1
 
     trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn")
+    mode = RunningStage.TRAINING
 
     class CustomDummyObj:
         sampler = None
 
-    result = trainer._data_connector._prepare_dataloader(CustomDummyObj(), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDummyObj(), shuffle=True, mode=mode)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(10))
-    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset), shuffle=True, mode=mode)
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
 
     # Shuffled DataLoader should also work
-    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset, shuffle=True), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(
+        CustomDataLoader(dataset, shuffle=True), shuffle=True, mode=mode
+    )
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
@@ -285,7 +286,7 @@ def test_dataloader_reinit_for_subclass():
 
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
-    result = trainer._data_connector._prepare_dataloader(dataloader)
+    result = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False, mode=mode)
     result_dataset = list(result)
     assert len(result_dataset) == 5
     assert result_dataset == [Tensor([x]) for x in [0, 2, 4, 6, 8]]
@@ -299,15 +300,15 @@ class LoaderTestModel(BoringModel):
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
-        assert len(self.trainer.val_dataloaders[0]) == 10
+        assert len(self.trainer.val_dataloaders) == 10
         return super().validation_step(batch, batch_idx)
 
     def test_step(self, batch, batch_idx):
-        assert len(self.trainer.test_dataloaders[0]) == 10
+        assert len(self.trainer.test_dataloaders) == 10
         return super().test_step(batch, batch_idx)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        assert len(self.trainer.predict_dataloaders[0]) == 10
+        assert len(self.trainer.predict_dataloaders) == 10
         return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
 
@@ -564,7 +565,7 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     trainer.state.fn = TrainerFn.FITTING
     trainer.state.stage = RunningStage.VALIDATING
     trainer.fit_loop.epoch_loop.val_loop.setup_data()
-    assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
+    assert trainer.val_dataloaders.sampler.shuffle == shuffle
 
 
 def test_error_raised_with_insufficient_float_limit_train_dataloader():

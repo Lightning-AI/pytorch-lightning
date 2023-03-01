@@ -217,8 +217,6 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     `training_step`"""
 
     model = ManualOptimizationExtendedModel()
-    model.training_step_end = None
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
@@ -302,8 +300,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             assert self.called["on_train_batch_end"] == 20
 
     model = ExtendedModel()
-    model.training_step_end = None
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
@@ -835,8 +831,6 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
 def test_lr_scheduler_step_not_called(tmpdir):
     """Test `lr_scheduler.step()` is not called in manual optimization."""
     model = ManualOptimBoringModel()
-    model.training_step_end = None
-
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, fast_dev_run=2)
 
     with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:

@@ -14,6 +14,7 @@ from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     Gridv1ImageSpec,
     IdGetBody1,
+    ProjectIdProjectclustersbindingsBody,
     V1BuildSpec,
     V1CloudSpace,
     V1ClusterSpec,
@@ -401,7 +402,7 @@ class TestAppCreationClient:
         )
         cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
             project_id="default-project-id",
-            body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id"),
+            body=ProjectIdProjectclustersbindingsBody(cluster_id="test1234"),
         )
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -629,7 +630,7 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning.app.runners.cloud._get_project",
-            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+            lambda _, project_id: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
 
@@ -819,7 +820,7 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning.app.runners.cloud._get_project",
-            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+            lambda _, project_id: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
 
@@ -954,7 +955,7 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning.app.runners.cloud._get_project",
-            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+            lambda _, project_id: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.run_app_comment_commands = True
         cloud_runtime.dispatch()
@@ -1094,7 +1095,7 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning.app.runners.cloud._get_project",
-            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+            lambda _, project_id: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
 
@@ -1314,7 +1315,7 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning.app.runners.cloud._get_project",
-            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+            lambda _, project_id: V1Membership(name="test-project", project_id="test-project-id"),
         )
         cloud_runtime.dispatch()
 
@@ -1596,6 +1597,7 @@ class TestCloudspaceDispatch:
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
             username="tester",
+            features=V1UserFeatures(),
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="project", project_id="project_id")]

@@ -43,6 +43,7 @@ def test_multi_gpu_none_backend(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         accelerator="gpu",
+        strategy="ddp_spawn",
         devices=2,
     )
 
@@ -62,6 +63,7 @@ def test_single_gpu_model(tmpdir, devices):
         limit_val_batches=0.1,
         accelerator="gpu",
         devices=devices,
+        strategy="ddp_spawn",
     )
 
     model = BoringModel()

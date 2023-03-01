@@ -61,10 +61,17 @@ jobs:
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13"}
-    timeout-minutes: 70
+          # pytorch 2.0 Tests (currently pre-release, change this once it's released)
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
+    timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
+      TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
       FREEZE_REQUIREMENTS: 1
+      PYPI_CACHE: "_pip-wheels"
     steps:
     - uses: actions/checkout@v3
 
@@ -74,20 +81,17 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: basic setup
-      run: |
-        pip --version
-        pip install -q -r .actions/requirements.txt
+      run: pip install -q -r .actions/requirements.txt
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: |
-        python .actions/assistant.py replace_oldest_ver
+      run: python .actions/assistant.py replace_oldest_ver
 
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Adjust PyTorch versions in requirements files
-      if: ${{ matrix.requires != 'oldest' }}
+      if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
       run: |
         for fpath in `ls requirements/**/*.txt`; do \
           python ./requirements/pytorch/adjust-versions.py $fpath ${{ matrix.pytorch-version }}; \
@@ -95,32 +99,34 @@ jobs:
         cat requirements/pytorch/base.txt
 
     - name: pip wheels cache
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v3
       with:
-        path: .wheels
-        key: pip_wheels  # to not being cleand with crone
-        enableCrossOsArchive: true
+        path: ${{ env.PYPI_CACHE }}
+        key: pypi_wheels
     - run: |
-        mkdir -p .wheels
-        ls -lh .wheels/
+        mkdir -p $PYPI_CACHE
+        ls -lh $PYPI_CACHE
 
     - name: Env. variables
       run: |
         # Switch PyTorch URL
-        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.release }}' == 'pre' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+        python -c "print('TORCH_PREINSTALL=' + str('--pre' if '${{ matrix.release }}' == 'pre' else ''))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} -f ".wheels/" --prefer-binary
+        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
-      if: github.event_name == 'push'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
+        wheel-dir: ${{ env.PYPI_CACHE }}
         torch-url: ${{ env.TORCH_URL }}
+        cache-key: "pypi_wheels"
 
     - name: Cache datasets
       uses: actions/cache@v3
@@ -130,8 +136,9 @@ jobs:
 
     - name: Sanity check
       run: |
-        python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
+        set -e
         python requirements/pytorch/check-avail-extras.py
+        python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
 
     - name: Adjust tests -> PL
       if: ${{ matrix.pkg-name != 'lightning' }}
@@ -149,8 +156,7 @@ jobs:
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
-        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest . -v --timeout=60 --durations=50 --reruns 3 --reruns-delay 1
+        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} -m pytest . -v --timeout=60 --durations=50
 
     - name: Statistics
       if: success()
