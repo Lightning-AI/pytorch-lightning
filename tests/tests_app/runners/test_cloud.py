@@ -14,6 +14,7 @@ from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     Gridv1ImageSpec,
     IdGetBody1,
+    ProjectIdProjectclustersbindingsBody,
     V1BuildSpec,
     V1CloudSpace,
     V1ClusterSpec,
@@ -401,7 +402,7 @@ class TestAppCreationClient:
         )
         cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
             project_id="default-project-id",
-            body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id"),
+            body=ProjectIdProjectclustersbindingsBody(cluster_id="test1234"),
         )
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
