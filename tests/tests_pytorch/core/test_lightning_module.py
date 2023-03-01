@@ -27,7 +27,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 def test_lightning_module_not_abstract():

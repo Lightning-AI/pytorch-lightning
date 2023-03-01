@@ -23,7 +23,7 @@ from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 class BoringModelDDPCPU(BoringModel):

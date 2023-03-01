@@ -31,7 +31,7 @@ from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 class MockTqdm(Tqdm):

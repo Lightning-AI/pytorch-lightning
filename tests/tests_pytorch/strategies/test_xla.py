@@ -22,8 +22,8 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.strategies import XLAStrategy
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_error_process_iterable_dataloader(xla_available):

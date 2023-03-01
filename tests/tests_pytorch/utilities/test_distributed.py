@@ -16,8 +16,8 @@ import torch
 import torch.distributed
 
 from lightning.pytorch.utilities.distributed import _collect_states_on_rank_zero
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.core.test_results import spawn_launch
-from tests_pytorch.helpers.runif import RunIf
 
 
 def collect_states_fn(strategy):

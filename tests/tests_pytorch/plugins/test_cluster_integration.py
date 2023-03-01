@@ -21,7 +21,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment, SLURMEnv
 from lightning.pytorch import Trainer
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 def environment_combinations():

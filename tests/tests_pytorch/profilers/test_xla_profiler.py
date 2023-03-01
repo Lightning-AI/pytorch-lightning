@@ -20,7 +20,7 @@ import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.profilers import XLAProfiler
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 @RunIf(tpu=True)

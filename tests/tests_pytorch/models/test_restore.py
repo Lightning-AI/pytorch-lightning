@@ -24,15 +24,15 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 
+import tests_pytorch.helpers.other as tutils
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from lightning.fabric import seed_everything
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.loops.test_loops import CustomException
 

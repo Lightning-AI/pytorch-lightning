@@ -30,7 +30,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, R
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 def test_swa_callback_initial_state():

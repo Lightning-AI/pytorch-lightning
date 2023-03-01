@@ -28,8 +28,8 @@ from lightning.pytorch.plugins import IPUPrecisionPlugin
 from lightning.pytorch.strategies.ipu import IPUStrategy
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 if _IPU_AVAILABLE:

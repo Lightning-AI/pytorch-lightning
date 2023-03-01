@@ -23,7 +23,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
 

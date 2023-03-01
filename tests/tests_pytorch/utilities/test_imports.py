@@ -25,7 +25,7 @@ from torch.distributed import is_available
 
 from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 def test_imports():

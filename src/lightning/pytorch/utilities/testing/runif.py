@@ -16,7 +16,6 @@ import os
 import sys
 from typing import Optional
 
-import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
@@ -89,6 +88,8 @@ class RunIf:
             onnx: Require that onnx is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
+        import pytest
+
         conditions = []
         reasons = []
 
@@ -190,14 +191,3 @@ class RunIf:
         return pytest.mark.skipif(
             *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
         )
-
-
-@RunIf(min_torch="99")
-def test_always_skip():
-    exit(1)
-
-
-@pytest.mark.parametrize("arg1", [0.5, 1.0, 2.0])
-@RunIf(min_torch="0.0")
-def test_wrapper(arg1: float):
-    assert arg1 > 0.0

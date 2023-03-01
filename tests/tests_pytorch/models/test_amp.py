@@ -18,11 +18,11 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-import tests_pytorch.helpers.utils as tutils
+import tests_pytorch.helpers.other as tutils
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 class AMPTestModel(BoringModel):

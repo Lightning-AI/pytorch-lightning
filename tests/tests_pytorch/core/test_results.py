@@ -21,7 +21,7 @@ from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator, MPSA
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.models.test_tpu import wrap_launch_function
 
 

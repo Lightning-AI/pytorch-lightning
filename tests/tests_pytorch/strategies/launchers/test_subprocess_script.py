@@ -6,7 +6,7 @@ import pytest
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 _HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
 _HYDRA_WITH_RUN_PROCESS = RequirementCache("hydra-core>=1.0.7")

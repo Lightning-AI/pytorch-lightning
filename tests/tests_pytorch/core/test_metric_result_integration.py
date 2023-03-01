@@ -35,8 +35,8 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.core.test_results import spawn_launch
-from tests_pytorch.helpers.runif import RunIf
 
 
 class DummyMetric(Metric):

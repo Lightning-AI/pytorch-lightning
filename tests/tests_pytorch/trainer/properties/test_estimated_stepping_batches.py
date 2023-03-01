@@ -23,8 +23,8 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.strategies.ipu import IPUStrategy
+from lightning.pytorch.utilities.testing import RunIf
 from tests_pytorch.conftest import mock_cuda_count
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_num_stepping_batches_basic():

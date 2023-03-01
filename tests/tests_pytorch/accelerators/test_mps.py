@@ -21,7 +21,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import MPSAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 @RunIf(mps=True)

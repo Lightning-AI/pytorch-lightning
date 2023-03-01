@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.testing import RunIf
 
 
 class HookedDataModule(BoringDataModule):
