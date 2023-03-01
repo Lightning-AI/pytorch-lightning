@@ -4,14 +4,25 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from lightning_cloud.openapi import V1ListMembershipsResponse, V1Membership, V1CreateClusterRequest, V1ClusterSpec, \
-    V1ClusterDriver, V1BYOMClusterDriver, V1ClusterType, ProjectIdProjectclustersbindingsBody, Externalv1Cluster
+from lightning_cloud.openapi import (
+    Externalv1Cluster,
+    ProjectIdProjectclustersbindingsBody,
+    V1BYOMClusterDriver,
+    V1ClusterDriver,
+    V1ClusterSpec,
+    V1ClusterType,
+    V1CreateClusterRequest,
+    V1ListMembershipsResponse,
+    V1Membership,
+)
 
-from lightning.app.cli.connect.maverick import register_to_cloud, deregister_from_cloud
+from lightning.app.cli.connect.maverick import deregister_from_cloud, register_to_cloud
 
 
-@pytest.mark.skipif(sys.platform != "darwin" or platform.processor() != "arm",
-                    reason="lightning connect maverick is only supported on m1 mac")
+@pytest.mark.skipif(
+    sys.platform != "darwin" or platform.processor() != "arm",
+    reason="lightning connect maverick is only supported on m1 mac",
+)
 def test_register_to_cloud(monkeypatch):
     mocked_client = MagicMock()
     monkeypatch.setattr("lightning.app.cli.connect.maverick.LightningClient", MagicMock(return_value=mocked_client))
@@ -29,10 +40,7 @@ def test_register_to_cloud(monkeypatch):
     mocked_client.cluster_service_create_cluster.assert_called_with(
         body=V1CreateClusterRequest(
             name="maverick-001",
-            spec=V1ClusterSpec(
-                cluster_type=V1ClusterType.BYOM,
-                driver=V1ClusterDriver(byom=V1BYOMClusterDriver())
-            )
+            spec=V1ClusterSpec(cluster_type=V1ClusterType.BYOM, driver=V1ClusterDriver(byom=V1BYOMClusterDriver())),
         )
     )
 
@@ -45,7 +53,9 @@ def test_register_to_cloud(monkeypatch):
 def test_register_to_cloud_without_project(monkeypatch):
     mocked_client = MagicMock()
     monkeypatch.setattr("lightning.app.cli.connect.maverick.LightningClient", MagicMock(return_value=mocked_client))
-    mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(memberships=[V1Membership(project_id="project-id-0")])
+    mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(project_id="project-id-0")]
+    )
     mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[
             V1Membership(name="project-0", project_id="project-id-0"),
@@ -60,10 +70,7 @@ def test_register_to_cloud_without_project(monkeypatch):
     mocked_client.cluster_service_create_cluster.assert_called_with(
         body=V1CreateClusterRequest(
             name="maverick-001",
-            spec=V1ClusterSpec(
-                cluster_type=V1ClusterType.BYOM,
-                driver=V1ClusterDriver(byom=V1BYOMClusterDriver())
-            )
+            spec=V1ClusterSpec(cluster_type=V1ClusterType.BYOM, driver=V1ClusterDriver(byom=V1BYOMClusterDriver())),
         )
     )
 
@@ -76,6 +83,8 @@ def test_register_to_cloud_without_project(monkeypatch):
 def test_deregister_from_cloud(monkeypatch):
     mocked_client = MagicMock()
     monkeypatch.setattr("lightning.app.cli.connect.maverick.LightningClient", MagicMock(return_value=mocked_client))
-    mocked_client.cluster_service_list_clusters.return_value = MagicMock(clusters=[Externalv1Cluster(id="cluster-id-0", name="maverick-001")])
+    mocked_client.cluster_service_list_clusters.return_value = MagicMock(
+        clusters=[Externalv1Cluster(id="cluster-id-0", name="maverick-001")]
+    )
     deregister_from_cloud("maverick-001")
     mocked_client.cluster_service_delete_cluster.assert_called_with(id="cluster-id-0", force=True)
