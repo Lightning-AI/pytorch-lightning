@@ -135,6 +135,8 @@ def test_parity_ddp(accelerator, devices):
     fabric.launch()
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
+    torch.cuda.reset_peak_memory_stats()
+
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
         rank=fabric.global_rank,
