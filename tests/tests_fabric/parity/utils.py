@@ -23,6 +23,16 @@ def make_deterministic():
     torch.cuda.manual_seed(1)
 
 
+def get_model_input_dtype(precision):
+    if precision in ("16-mixed", "16", 16):
+        return torch.float16
+    elif precision in ("bf16-mixed", "bf16"):
+        return torch.bfloat16
+    elif precision in ("64-true", "64", 64):
+        return torch.double
+    return torch.float32
+
+
 def is_state_dict_equal(state0, state1):
     # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
     return all(torch.allclose(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))

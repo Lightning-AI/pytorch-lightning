@@ -139,5 +139,6 @@ def test_parity_ddp(precision, strategy, devices, accelerator):
     assert is_state_dict_equal(torch_state_dict, fabric_state_dict)
 
     # Compare the time per iteration
+    # Drop measurements of the first iterations, as they may be slower than others
     # The median is more robust to outliers than the mean
-    assert torch.isclose(torch.median(timings_torch), torch.median(timings_fabric), rtol=1e-4, atol=1e-4)
+    assert torch.isclose(torch.median(timings_torch[3:]), torch.median(timings_fabric[3:]), rtol=1e-4, atol=1e-4)
