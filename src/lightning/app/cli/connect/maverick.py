@@ -224,12 +224,14 @@ def disconnect_maverick(name: str) -> None:
 def register_to_cloud(name: str, project_name: str):
     client = LightningClient(retry=False)
     projects = client.projects_service_list_memberships()
-    project_id = None
-    for project in projects.memberships:
-        if project.name == project_name:
-            project_id = project.project_id
-            break
-    if project_id is None:
+    if project_name:
+        for project in projects.memberships:
+            if project.name == project_name:
+                project_id = project.project_id
+                break
+        else:
+            raise ValueError(f"Project {project_name} does not exist.")
+    else:
         project_id = _get_project(client, verbose=False).project_id
 
     cluster_bindings = client.projects_service_list_project_cluster_bindings(project_id=project_id)
