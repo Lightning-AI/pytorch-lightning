@@ -93,15 +93,13 @@ def connect_maverick(name: str, project_name: str = "") -> None:
     if "lightning.ai" in CLOUD_PROXY_HOST:
         _error_and_exit("Maverick connection isn't publicly available. Open an issue on Github.")
 
-    with Live(Spinner("point", text=Text("Registering machine...", style="white")), transient=True) as live:
+    with Live(Spinner("point", text=Text("Registering maverick...", style="white")), transient=True) as live:
         try:
             register_to_cloud(name, project_name)
         except Exception as e:
             live.stop()
-            rich.print(f"[red]Failed[/red]: Registering machine failed with error {e}")
+            rich.print(f"[red]Failed[/red]: Registering maverick failed with error {e}")
             return
-
-        return
 
         live.update(Spinner("point", text=Text("Setting up ...", style="white")))
 
