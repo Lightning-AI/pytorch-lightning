@@ -57,12 +57,6 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
-def test_accelerator_choice_cpu():
-    connector = _Connector()
-    assert isinstance(connector.accelerator, CPUAccelerator)
-    assert isinstance(connector.strategy, SingleDeviceStrategy)
-
-
 @RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
@@ -383,7 +377,7 @@ def test_set_devices_if_none_cpu():
 @RunIf(mps=False)
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        connector = _Connector(strategy="dp", devices=2)
+        connector = _Connector(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(connector.strategy, DDPStrategy)
 
 
@@ -497,9 +491,9 @@ def test_strategy_choice_ddp_spawn_cpu():
 @RunIf(skip_windows=True)
 @mock.patch("lightning.fabric.connector._IS_INTERACTIVE", True)
 def test_strategy_choice_ddp_fork_in_interactive():
-    """Test that when accelerator and strategy are unspecified, the connector chooses DDP Fork in interactive
-    environments by default."""
-    connector = _Connector(devices=2)
+    """Test that when strategy is unspecified, the connector chooses DDP Fork in interactive environments by
+    default."""
+    connector = _Connector(accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
@@ -782,7 +776,7 @@ def test_precision_selection_16_on_cpu_warns():
         UserWarning,
         match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
     ):
-        _Connector(precision="16-mixed")
+        _Connector(accelerator="cpu", precision="16-mixed")
 
 
 class MyAMP(MixedPrecision):
@@ -800,6 +794,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     if is_custom_plugin:
         plugin = plugin_cls("16-mixed", "cpu")
     connector = _Connector(
+        accelerator="cpu",
         precision="16-mixed",
         devices=devices,
         strategy=strategy,
@@ -849,7 +844,7 @@ def test_accelerator_strategy_from_environment(accelerator, strategy, expected_a
         env_vars["LT_STRATEGY"] = strategy
 
     with mock.patch.dict(os.environ, env_vars):
-        connector = _Connector()
+        connector = _Connector(accelerator="cpu" if accelerator is None else "auto")
         assert isinstance(connector.accelerator, expected_accelerator)
         assert isinstance(connector.strategy, expected_strategy)
 
@@ -893,7 +888,7 @@ def test_arguments_from_environment_collision():
 def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
-        _Connector(strategy="fsdp")
+        _Connector(accelerator="cpu", strategy="fsdp")
 
 
 def test_connector_defaults_match_fabric_defaults():
