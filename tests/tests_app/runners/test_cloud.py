@@ -50,7 +50,7 @@ from lightning_cloud.openapi import (
     V1UserFeatures,
     V1UserRequestedComputeConfig,
     V1UserRequestedFlowComputeConfig,
-    V1Work,
+    V1Work, ProjectIdProjectclustersbindingsBody,
 )
 
 from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
@@ -401,7 +401,7 @@ class TestAppCreationClient:
         )
         cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
             project_id="default-project-id",
-            body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id"),
+            body=ProjectIdProjectclustersbindingsBody(cluster_id="test1234"),
         )
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
