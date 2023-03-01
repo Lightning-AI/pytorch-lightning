@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extended `StrEnum.from_str` with optional raising ValueError ([#99](https://github.com/Lightning-AI/utilities/pull/99))
 
 
+- Added requirements parser ([#107](https://github.com/Lightning-AI/utilities/pull/107))
+
+
 ### Changed
 
 - CI/docs: allow passing env. variables ([#96](https://github.com/Lightning-AI/utilities/pull/96))
