@@ -21,7 +21,7 @@ import torch.distributed
 import torch.nn.functional
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import is_cuda_memory_close, is_state_dict_equal, is_timing_close, make_deterministic
+from tests_fabric.parity.utils import is_cuda_memory_close, is_state_dict_equal, is_timing_close, make_deterministic, cuda_reset
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -129,14 +129,14 @@ def train_fabric_ddp(fabric):
     ],
 )
 def test_parity_ddp(accelerator, devices):
+    cuda_reset()
+
     # Train with Fabric
     fabric = Fabric(accelerator=accelerator, strategy="ddp", devices=devices)
     fabric.launch()
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
-    if accelerator == "cuda":
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+    cuda_reset()
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(

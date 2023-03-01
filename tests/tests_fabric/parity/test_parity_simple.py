@@ -27,6 +27,7 @@ from tests_fabric.parity.utils import (
     is_state_dict_equal,
     is_timing_close,
     make_deterministic,
+    cuda_reset,
 )
 
 from lightning.fabric.fabric import Fabric
@@ -127,13 +128,13 @@ def train_fabric(fabric):
 def test_parity_single_device(precision, accelerator):
     input_dtype = get_model_input_dtype(precision)
 
+    cuda_reset()
+
     # Train with Fabric
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric(fabric)
 
-    if accelerator == "cuda":
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+    cuda_reset()
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch(

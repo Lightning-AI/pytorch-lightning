@@ -49,3 +49,9 @@ def get_model_input_dtype(precision):
     elif precision in ("64-true", "64", 64):
         return torch.double
     return torch.float32
+
+
+def cuda_reset():
+    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
