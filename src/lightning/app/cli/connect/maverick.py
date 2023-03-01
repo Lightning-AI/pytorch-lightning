@@ -253,7 +253,7 @@ def register_to_cloud(name: str, project_name: str):
         _ensure_cluster_project_binding(client, project_id, resp.id)
 
 
-def deregister_from_cloud(name):
+def deregister_from_cloud(name: str) -> None:
     client = LightningClient(retry=False)
     clusters = client.cluster_service_list_clusters()
     # TODO (sherin) this should wait for gridlet to stop running before deleting the cluster
