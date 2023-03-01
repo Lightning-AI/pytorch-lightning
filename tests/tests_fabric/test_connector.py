@@ -54,7 +54,7 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 
 
 @RunIf(tpu=True, standalone=True)
@@ -889,8 +889,14 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     no_mps = mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
     single_mps = mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 
-    monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", is_interactive)
-    monkeypatch.setattr(lightning.fabric.connector, "_IS_INTERACTIVE", is_interactive)
+    def _mock_interactive():
+        monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", is_interactive)
+        monkeypatch.setattr(lightning.fabric.connector, "_IS_INTERACTIVE", is_interactive)
+        if _IS_WINDOWS:
+            # simulate fork support on windows
+            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
+    _mock_interactive()
 
     # CPU
     with no_cuda, no_mps, monkeypatch.context():
@@ -944,7 +950,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
-    monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", is_interactive)
+    _mock_interactive()
 
     # Multi TPU
     with no_cuda, no_mps, monkeypatch.context():

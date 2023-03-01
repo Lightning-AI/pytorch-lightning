@@ -793,7 +793,15 @@ def test_colossalai_external_strategy(monkeypatch):
 def test_connector_auto_selection(monkeypatch, is_interactive):
     import lightning.fabric  # avoid breakage with standalone package
 
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive)
+    def _mock_interactive():
+        monkeypatch.setattr(
+            lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive
+        )
+        if _IS_WINDOWS:
+            # simulate fork support on windows
+            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
+    _mock_interactive()
 
     def _mock_tpu_available(value):
         mock_tpu_available(monkeypatch, value)
@@ -872,13 +880,10 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive)
+    _mock_interactive()
 
     # Multi TPU
     with monkeypatch.context():
-        if _IS_WINDOWS:
-            # simulate fork support on windows
-            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
         mock_cuda_count(monkeypatch, 0)
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
@@ -920,7 +925,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive)
+    _mock_interactive()
 
     if not is_interactive:  # HPU does not support interactive environments
         # Multi HPU
@@ -940,9 +945,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
     # TPU and CUDA: prefers TPU
     with monkeypatch.context():
-        if _IS_WINDOWS:
-            # simulate fork support on windows
-            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
