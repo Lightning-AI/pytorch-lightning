@@ -21,7 +21,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
 from sklearn import model_selection
-from torch.optim.lr_scheduler import StepLR
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision.datasets import MNIST
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "..", "Datasets")
@@ -105,50 +105,53 @@ def validate_dataloader(model, data_loader, hparams, fold):
     # compute acc
     acc = 100.0 * correct / len_
     print(f"\nFor fold: {fold} Validation set: Average loss: {loss:.4f}, Accuracy: ({acc:.0f}%)\n")
+    return acc
 
 
 def run(hparams):
     torch.manual_seed(hparams.seed)
 
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    torch.device("cuda" if use_cuda else "cpu")
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
 
     # initialize dataset
     dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
 
-    # Loop over different folds
+    # Loop over different folds (shuffle = False by default so reproducible)
     kfold = model_selection.KFold(n_splits=5)
-    for fold, (train_ids, val_ids) in enumerate(kfold.split(dataset)):
-        print(f"Working on fold {fold}")
 
-        # split dataset
-        train_sampler = torch.utils.data.SubsetRandomSampler(train_ids)
-        val_sampler = torch.utils.data.SubsetRandomSampler(val_ids)
+    # initialize n_splits models and optimizers
+    models = [Net() for _ in range(kfold.n_splits)]
+    optimizers = [optim.Adadelta(model.parameters(), lr=hparams.lr) for model in models]
 
-        # initialize dataloaders
-        train_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams.batch_size, sampler=train_sampler)
-        val_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams.batch_size, sampler=val_sampler)
+    # loop over epochs
+    for epoch in range(1, hparams.epochs + 1):
 
-        model = Net().to(device)
-        optimizer = optim.Adadelta(model.parameters(), lr=hparams.lr)
+        # loop over folds
+        epoch_acc = 0
+        for fold, (train_ids, val_ids) in enumerate(kfold.split(dataset)):
+            print(f"Working on fold {fold}")
 
-        scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
+            # initialize dataloaders based on folds
+            batch_size = hparams.batch_size
+            train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(train_ids))
+            val_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(val_ids))
 
-        # EPOCH LOOP
-        for epoch in range(1, hparams.epochs + 1):
+            # get model and optimizer for the current fold
+            model, optimizer = models[fold], optimizers[fold]
 
-            # TRAINING LOOP
+            # train and validate
             train_dataloader(model, train_loader, optimizer, epoch, hparams, fold)
+            epoch_acc += validate_dataloader(model, val_loader, hparams, fold)
 
-            scheduler.step()
-
-            # VALIDATION LOOP
-            validate_dataloader(model, val_loader, hparams, fold)
+        # log epoch metrics
+        print(f"Epoch {epoch} - Average acc: {epoch_acc / kfold.n_splits}")
 
         if hparams.dry_run:
             break
 
+    # save model
     if hparams.save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
 

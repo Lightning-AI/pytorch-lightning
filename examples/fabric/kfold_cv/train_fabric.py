@@ -21,7 +21,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
 from sklearn import model_selection
-from torch.optim.lr_scheduler import StepLR
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
 
@@ -70,8 +70,7 @@ def train_dataloader(model, data_loader, optimizer, fabric, epoch, hparams, fold
         optimizer.step()
         if (batch_idx == 0) or ((batch_idx + 1) % hparams.log_interval == 0):
             print(
-                "Fold {} Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    fold,
+                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                     epoch,
                     batch_idx * len(data),
                     len(data_loader.dataset),
@@ -84,7 +83,7 @@ def train_dataloader(model, data_loader, optimizer, fabric, epoch, hparams, fold
             break
 
 
-def validate_dataloader(model, data_loader, fabric, hparams, metric_fn, fold):
+def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
     model.eval()
     loss = 0
     with torch.no_grad():
@@ -93,12 +92,8 @@ def validate_dataloader(model, data_loader, fabric, hparams, metric_fn, fold):
             output = model(data)
             loss += F.nll_loss(output, target, reduction="sum").item()
 
-            # WITHOUT TorchMetrics
-            # pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            # correct += pred.eq(target.view_as(pred)).sum().item()
-
-            # WITH TorchMetrics
-            metric_fn(output, target)
+            # Accuracy with torchmetrics
+            acc_metric.update(output, target)
 
             if hparams.dry_run:
                 break
@@ -106,11 +101,11 @@ def validate_dataloader(model, data_loader, fabric, hparams, metric_fn, fold):
     # all_gather is used to aggregated the value across processes
     loss = fabric.all_gather(loss).sum() / len(data_loader.dataset)
 
-    # val acc
-    acc = metric_fn.compute()
+    # compute acc
+    acc = acc_metric.compute() * 100
 
-    print(f"\nFor fold: {fold} Validation set: Average loss: {loss:.4f}, Accuracy: ({100 * acc:.0f}%)\n")
-    metric_fn.reset()
+    print(f"\nFor fold: {fold} Validation set: Average loss: {loss:.4f}, Accuracy: ({acc:.0f}%)\n")
+    return acc
 
 
 def run(hparams):
@@ -129,44 +124,43 @@ def run(hparams):
     # initialize dataset
     dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
 
-    # Loop over different folds
+    # Loop over different folds (shuffle = False by default so reproducible)
     kfold = model_selection.KFold(n_splits=5)
-    for fold, (train_ids, val_ids) in enumerate(kfold.split(dataset)):
-        print(f"Working on fold {fold}")
 
-        # split dataset
-        train_sampler = torch.utils.data.SubsetRandomSampler(train_ids)
-        val_sampler = torch.utils.data.SubsetRandomSampler(val_ids)
+    # initialize n_splits models and optimizers
+    models = [Net() for _ in range(kfold.n_splits)]
+    optimizers = [optim.Adadelta(model.parameters(), lr=hparams.lr) for model in models]
 
-        # initialize dataloaders
-        train_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams.batch_size, sampler=train_sampler)
-        val_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams.batch_size, sampler=val_sampler)
+    # fabric setup for models and optimizers
+    for i in range(kfold.n_splits):
+        models[i], optimizers[i] = fabric.setup(models[i], optimizers[i])
 
-        # don't forget to call `setup_dataloaders` to prepare for dataloaders for distributed training.
-        train_loader, val_loader = fabric.setup_dataloaders(train_loader, val_loader)
+    # Accuracy using torchmetrics
+    acc_metric = Accuracy(task="multiclass", num_classes=10).to(fabric.device)
 
-        model = Net()  # remove call to .to(device)
-        optimizer = optim.Adadelta(model.parameters(), lr=hparams.lr)
+    # loop over epochs
+    for epoch in range(1, hparams.epochs + 1):
 
-        # don't forget to call `setup` to prepare for model / optimizer for distributed training.
-        # the model is moved automatically to the right device.
-        model, optimizer = fabric.setup(model, optimizer)
+        # loop over folds
+        epoch_acc = 0
+        for fold, (train_ids, val_ids) in enumerate(kfold.split(dataset)):
+            print(f"Working on fold {fold}")
 
-        scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
+            # initialize dataloaders based on folds
+            batch_size = hparams.batch_size
+            train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(train_ids))
+            val_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(val_ids))
 
-        # use torchmetrics instead of manually computing the accuracy
-        test_acc = Accuracy(task="multiclass", num_classes=10).to(fabric.device)
+            # get model and optimizer for the current fold
+            model, optimizer = models[fold], optimizers[fold]
 
-        # EPOCH LOOP
-        for epoch in range(1, hparams.epochs + 1):
-
-            # TRAINING LOOP
+            # train and validate
             train_dataloader(model, train_loader, optimizer, fabric, epoch, hparams, fold)
+            epoch_acc += validate_dataloader(model, val_loader, fabric, hparams, fold, acc_metric)
+            acc_metric.reset()
 
-            scheduler.step()
-
-            # VALIDATION LOOP
-            validate_dataloader(model, val_loader, fabric, hparams, test_acc, fold)
+        # log epoch metrics
+        print(f"Epoch {epoch} - Average acc: {epoch_acc / kfold.n_splits}")
 
         if hparams.dry_run:
             break
