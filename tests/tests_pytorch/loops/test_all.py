@@ -15,7 +15,6 @@ import pytest
 
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 def _device_check_helper(batch_device, module_device):

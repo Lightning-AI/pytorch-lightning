@@ -17,7 +17,6 @@ import pytest
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
 from tests_pytorch.helpers.datamodules import ClassifDataModule, RegressDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionModel

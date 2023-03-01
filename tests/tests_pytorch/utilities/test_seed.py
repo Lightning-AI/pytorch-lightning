@@ -6,7 +6,6 @@ import pytest
 import torch
 
 from lightning.pytorch.utilities.seed import isolate_rng
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @pytest.mark.parametrize("with_torch_cuda", [False, pytest.param(True, marks=_RunIf(min_cuda_gpus=1))])

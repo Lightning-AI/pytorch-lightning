@@ -19,7 +19,6 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.meta import _is_deferred
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 _TORCHDISTX_AVAILABLE = RequirementCache("torchdistx")
 

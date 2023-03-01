@@ -20,7 +20,6 @@ import torch.nn as nn
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 
 

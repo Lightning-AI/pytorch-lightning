@@ -32,7 +32,6 @@ from lightning.pytorch.utilities.combined_loader import (
     _supported_modes,
     CombinedLoader,
 )
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @pytest.mark.parametrize(
