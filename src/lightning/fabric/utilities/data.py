@@ -416,7 +416,7 @@ def _replace_value_in_saved_args(
     return False, args, kwargs
 
 
-def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
+def _set_sampler_epoch(dataloader: object, epoch: int) -> None:
     """Calls the ``set_epoch`` method on either the sampler of the given dataloader.
 
     Every PyTorch dataloader has either a sampler or a batch sampler. If the sampler is wrapped by a

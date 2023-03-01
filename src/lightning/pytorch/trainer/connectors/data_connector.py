@@ -194,7 +194,7 @@ class DataConnector:
             and not isinstance(self.trainer.accelerator, IPUAccelerator)
         )
 
-    def _prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: RunningStage) -> Any:
+    def _prepare_dataloader(self, dataloader: object, shuffle: bool, mode: RunningStage) -> object:
         """This function handles the following functionalities:
 
         - Injecting a `DistributedDataSamplerWrapper` into the `DataLoader` if on a distributed environment
@@ -403,7 +403,7 @@ def _check_dataloader_none(
         )
 
 
-def _worker_check(dataloader: DataLoader, using_spawn: bool, name: str) -> None:
+def _worker_check(dataloader: object, using_spawn: bool, name: str) -> None:
     if not isinstance(dataloader, DataLoader):
         return
 
