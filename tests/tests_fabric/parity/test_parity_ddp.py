@@ -120,13 +120,12 @@ def train_fabric_ddp(fabric):
 
 
 @RunIf(standalone=True)
-# @pytest.mark.flaky(reruns=3)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
     "accelerator, devices",
     [
         ("cpu", 2),
-        pytest.param("gpu", 2, marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("cuda", 2, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_parity_ddp(accelerator, devices):
@@ -135,8 +134,9 @@ def test_parity_ddp(accelerator, devices):
     fabric.launch()
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
+    if accelerator == "cuda":
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
@@ -152,6 +152,6 @@ def test_parity_ddp(accelerator, devices):
     assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
 
     # Compare memory usage
-    if accelerator == "gpu":
+    if accelerator == "cuda":
         assert is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])
         assert is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])

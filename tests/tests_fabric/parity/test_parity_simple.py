@@ -131,8 +131,8 @@ def test_parity_single_device(precision, accelerator):
     fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric(fabric)
 
-    torch.cuda.empty_cache()
-    if accelerator == "gpu":
+    if accelerator == "cuda":
+        torch.cuda.empty_cache()
         torch.cuda.reset_peak_memory_stats()
 
     # Train with raw PyTorch
@@ -147,6 +147,6 @@ def test_parity_single_device(precision, accelerator):
     assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
 
     # Compare memory usage
-    if accelerator == "gpu":
+    if accelerator == "cuda":
         assert is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])
         assert is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])
