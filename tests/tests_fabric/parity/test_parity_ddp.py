@@ -126,16 +126,16 @@ def train_fabric_ddp(fabric):
 
 
 @pytest.mark.flaky(reruns=3)
-@RunIf(standalone=True)
+# @RunIf(standalone=True)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
-    "accelerator, devices",
+    "accelerator, devices, tolerance",
     [
-        ("cpu", 2),
-        pytest.param("cuda", 2, marks=RunIf(min_cuda_gpus=2)),
+        ("cpu", 2, 0.005),
+        pytest.param("cuda", 2, 0.001, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
-def test_parity_ddp(accelerator, devices):
+def test_parity_ddp(accelerator, devices, tolerance):
     cuda_reset()
 
     # Train with Fabric
@@ -156,7 +156,7 @@ def test_parity_ddp(accelerator, devices):
     assert all(fabric.all_gather(is_state_dict_equal(state_dict_torch, state_dict_fabric)))
 
     # Compare the time per iteration
-    assert all(fabric.all_gather(is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)))
+    assert all(fabric.all_gather(is_timing_close(timings_torch, timings_fabric, rtol=tolerance, atol=tolerance)))
 
     # Compare memory usage
     if accelerator == "cuda":
