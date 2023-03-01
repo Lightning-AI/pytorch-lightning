@@ -55,7 +55,7 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -1020,7 +1020,7 @@ def test_on_exception_hook(tmpdir):
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
-@pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
+@pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=_RunIf(min_cuda_gpus=1))])
 @RunIf(sklearn=True)
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
@@ -1049,7 +1049,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
     assert model.assertion_called
 
 
-@pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
+@pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=_RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     trainer = Trainer(
@@ -1391,8 +1391,8 @@ def test_trainer_predict_standalone(tmpdir, kwargs):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=_RunIf(mps=True)),
     ],
 )
 def test_trainer_predict_1_gpu(tmpdir, accelerator):
@@ -1400,7 +1400,7 @@ def test_trainer_predict_1_gpu(tmpdir, accelerator):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=_RunIf(min_cuda_gpus=2))])
 def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
     predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
@@ -1486,8 +1486,8 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=_RunIf(mps=True)),
     ],
 )
 def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
@@ -1631,7 +1631,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,devices", [("auto", 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
+    "strategy,devices", [("auto", 1), pytest.param("ddp_spawn", 1, marks=_RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
@@ -1779,7 +1779,7 @@ class ExceptionCounter(Callback):
         self.exceptions += 1
 
 
-@pytest.mark.parametrize("strategy", ["auto", pytest.param("ddp_spawn", marks=RunIf(skip_windows=True, mps=False))])
+@pytest.mark.parametrize("strategy", ["auto", pytest.param("ddp_spawn", marks=_RunIf(skip_windows=True, mps=False))])
 def test_error_handling_all_stages(tmpdir, strategy):
     model = TrainerStagesErrorsModel()
     counter = ExceptionCounter()
@@ -1875,8 +1875,8 @@ def test_detect_anomaly_nan(tmpdir):
     ["trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"],
     [
         ({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1),
-        pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
-        pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
+        pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=_RunIf(mps=False)),
+        pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=_RunIf(mps=False)),
         (
             {"strategy": "auto", "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
@@ -1917,7 +1917,7 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             2,
         ),
-        pytest.param({"strategy": DDPStrategy()}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
+        pytest.param({"strategy": DDPStrategy()}, DDPStrategy, CPUAccelerator, 1, marks=_RunIf(mps=False)),
         ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
@@ -2001,7 +2001,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
         ({"accelerator": "ipu", "devices": 1}, [0]),
         ({"accelerator": "ipu", "devices": 2}, [0, 1]),
-        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
+        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=_RunIf(min_torch="1.12")),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):

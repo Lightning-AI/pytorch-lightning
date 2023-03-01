@@ -31,7 +31,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @RunIf(skip_windows=True)

@@ -17,7 +17,7 @@ import torch
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 def test_model_torch_save(tmpdir):

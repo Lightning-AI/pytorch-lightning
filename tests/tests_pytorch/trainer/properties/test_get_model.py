@@ -16,7 +16,7 @@ import pytest
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class TrainerGetModel(BoringModel):
@@ -61,8 +61,8 @@ def test_get_model_ddp_cpu(tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=_RunIf(mps=True)),
     ],
 )
 def test_get_model_gpu(tmpdir, accelerator):

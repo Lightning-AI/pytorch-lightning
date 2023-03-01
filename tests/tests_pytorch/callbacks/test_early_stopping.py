@@ -28,7 +28,7 @@ from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
@@ -368,7 +368,7 @@ class EarlyStoppingModel(BoringModel):
 
 _ES_CHECK = dict(check_on_train_epoch_end=True)
 _ES_CHECK_P3 = dict(patience=3, check_on_train_epoch_end=True)
-_SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
+_SPAWN_MARK = dict(marks=_RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(

@@ -17,7 +17,7 @@ from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.model_summary import DeepSpeedSummary
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @RunIf(min_cuda_gpus=2, deepspeed=True, standalone=True)

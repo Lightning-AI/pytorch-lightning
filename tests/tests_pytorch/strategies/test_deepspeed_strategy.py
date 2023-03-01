@@ -33,7 +33,7 @@ from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 
 if _DEEPSPEED_AVAILABLE:

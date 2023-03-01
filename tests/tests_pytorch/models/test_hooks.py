@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class HookedDataModule(BoringDataModule):
@@ -102,8 +102,8 @@ def test_on_train_epoch_end_metrics_collection(tmpdir):
 @pytest.mark.parametrize(
     "accelerator,expected_device_str",
     [
-        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+        pytest.param("gpu", "cuda:0", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=_RunIf(mps=True)),
     ],
 )
 @mock.patch(
@@ -397,10 +397,10 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision="16-mixed"), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(dict(accelerator="gpu", devices=1, precision="16-mixed"), marks=_RunIf(min_cuda_gpus=1)),
         pytest.param(
             dict(accelerator="gpu", devices=1, precision="16-mixed", strategy="deepspeed"),
-            marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
+            marks=_RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
 )

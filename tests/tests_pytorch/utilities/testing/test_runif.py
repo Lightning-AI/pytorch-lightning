@@ -1,6 +1,6 @@
 import pytest
 
-from lightning.pytorch.utilities.testing.runif import RunIf
+from lightning.pytorch.utilities.testing._runif import _RunIf
 
 
 @RunIf(min_torch="99")

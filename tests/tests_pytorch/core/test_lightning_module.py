@@ -27,7 +27,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 def test_lightning_module_not_abstract():
@@ -286,8 +286,8 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 @pytest.mark.parametrize(
     "accelerator,device",
     [
-        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+        pytest.param("gpu", "cuda:0", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=_RunIf(mps=True)),
     ],
 )
 def test_device_placement(tmpdir, accelerator, device):

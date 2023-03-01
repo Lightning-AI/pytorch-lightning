@@ -51,7 +51,7 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import lazy_instance, Namespace

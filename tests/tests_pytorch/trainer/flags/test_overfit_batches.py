@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.simple_models import ClassificationModel

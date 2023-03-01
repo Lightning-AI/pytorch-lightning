@@ -24,7 +24,7 @@ from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _Prefet
 from lightning.pytorch.profilers import SimpleProfiler
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 

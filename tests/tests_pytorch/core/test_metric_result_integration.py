@@ -35,7 +35,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.core.test_results import spawn_launch
 
 
@@ -396,9 +396,9 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
     "kwargs",
     (
         {},
-        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=_RunIf(min_cuda_gpus=1)),
         pytest.param(
-            {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
+            {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=_RunIf(min_cuda_gpus=2, standalone=True)
         ),
     ),
 )

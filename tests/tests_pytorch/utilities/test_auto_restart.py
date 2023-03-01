@@ -21,7 +21,7 @@ from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class TestAutoRestartModelUnderSignal(BoringModel):

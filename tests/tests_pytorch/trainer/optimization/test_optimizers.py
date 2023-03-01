@@ -27,7 +27,7 @@ from lightning.pytorch.core.optimizer import (
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 

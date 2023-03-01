@@ -15,7 +15,7 @@ import pytest
 
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 def _device_check_helper(batch_device, module_device):
@@ -83,8 +83,8 @@ class BatchHookObserverModel(BoringModel):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=_RunIf(mps=True)),
     ],
 )
 def test_callback_batch_on_device(tmpdir, accelerator):

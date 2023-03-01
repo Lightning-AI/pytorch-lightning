@@ -26,7 +26,7 @@ from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class BatchSizeDataModule(BoringDataModule):

@@ -22,7 +22,7 @@ import tests_pytorch.helpers.other as tutils
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class AMPTestModel(BoringModel):
@@ -82,9 +82,9 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
+@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=_RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize(
-    "devices", (pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2)))
+    "devices", (pytest.param(1, marks=_RunIf(min_cuda_gpus=1)), pytest.param(2, marks=_RunIf(min_cuda_gpus=2)))
 )
 def test_amp_gpus(tmpdir, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""

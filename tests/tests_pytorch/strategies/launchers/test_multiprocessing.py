@@ -25,7 +25,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
@@ -34,7 +34,7 @@ def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
-@pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
+@pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=_RunIf(standalone=True))])
 @mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
@@ -50,7 +50,7 @@ def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     )
 
 
-@pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
+@pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=_RunIf(standalone=True))])
 @mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
     """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""

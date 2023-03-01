@@ -23,7 +23,7 @@ from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class BoringModelDDPCPU(BoringModel):
@@ -151,25 +151,25 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     "strategy_name,expected_ddp_kwargs",
     [
         ("ddp_spawn", {}),
-        pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
-        pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_fork", {}, marks=_RunIf(skip_windows=True)),
+        pytest.param("ddp_notebook", {}, marks=_RunIf(skip_windows=True)),
         ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
         ("ddp_spawn_find_unused_parameters_true", {"find_unused_parameters": True}),
         pytest.param(
-            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=_RunIf(skip_windows=True)
         ),
         pytest.param(
-            "ddp_fork_find_unused_parameters_true", {"find_unused_parameters": True}, marks=RunIf(skip_windows=True)
+            "ddp_fork_find_unused_parameters_true", {"find_unused_parameters": True}, marks=_RunIf(skip_windows=True)
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             {"find_unused_parameters": False},
-            marks=RunIf(skip_windows=True),
+            marks=_RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_true",
             {"find_unused_parameters": True},
-            marks=RunIf(skip_windows=True),
+            marks=_RunIf(skip_windows=True),
         ),
     ],
 )

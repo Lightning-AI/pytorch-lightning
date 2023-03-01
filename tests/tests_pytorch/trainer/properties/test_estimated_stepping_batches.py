@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.strategies.ipu import IPUStrategy
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.conftest import mock_cuda_count
 
 

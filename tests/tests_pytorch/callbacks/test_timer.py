@@ -23,7 +23,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 def test_trainer_flag(caplog):

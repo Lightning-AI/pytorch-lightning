@@ -23,7 +23,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
 
@@ -42,7 +42,7 @@ def test_model_saves_with_input_sample(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("mps", marks=RunIf(mps=True)), pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))]
+    "accelerator", [pytest.param("mps", marks=_RunIf(mps=True)), pytest.param("gpu", marks=_RunIf(min_cuda_gpus=True))]
 )
 @RunIf(onnx=True)
 def test_model_saves_on_gpu(tmpdir, accelerator):

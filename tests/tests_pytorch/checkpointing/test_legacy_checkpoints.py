@@ -22,7 +22,7 @@ import torch
 
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch import _PATH_LEGACY
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel

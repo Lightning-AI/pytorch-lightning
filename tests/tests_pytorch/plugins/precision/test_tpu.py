@@ -15,7 +15,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 from lightning.pytorch.plugins import TPUPrecisionPlugin
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @RunIf(tpu=True)

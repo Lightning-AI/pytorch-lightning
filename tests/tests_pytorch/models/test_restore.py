@@ -31,7 +31,7 @@ from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.loops.test_loops import CustomException

@@ -28,7 +28,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class BoringModelGPU(BoringModel):
@@ -270,7 +270,7 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
-@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
+@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=_RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()

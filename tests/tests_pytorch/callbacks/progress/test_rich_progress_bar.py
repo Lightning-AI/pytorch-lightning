@@ -24,7 +24,7 @@ from lightning.pytorch.callbacks import ProgressBarBase, RichProgressBar
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 @RunIf(rich=True)

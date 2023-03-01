@@ -21,7 +21,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
 

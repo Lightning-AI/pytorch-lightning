@@ -33,7 +33,7 @@ from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 if _RICH_AVAILABLE:
     from rich import get_console
@@ -648,8 +648,8 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("cuda", marks=_RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=_RunIf(mps=True)),
     ],
 )
 def test_metrics_and_outputs_device(tmpdir, accelerator):

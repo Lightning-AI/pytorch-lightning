@@ -24,7 +24,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
 from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
 

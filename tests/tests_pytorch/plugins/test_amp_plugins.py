@@ -22,7 +22,7 @@ from torch import Tensor
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import MixedPrecisionPlugin
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 class MyAMP(MixedPrecisionPlugin):

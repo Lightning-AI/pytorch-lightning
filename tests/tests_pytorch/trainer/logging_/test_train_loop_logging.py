@@ -34,7 +34,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, R
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 def test__training_step__log(tmpdir):
@@ -347,7 +347,7 @@ class LoggingSyncDistModel(BoringModel):
     [
         (1, "cpu"),
         (2, "cpu"),
-        pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param(2, "gpu", marks=_RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
@@ -504,7 +504,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)),
         "cpu",
     ],
 )

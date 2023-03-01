@@ -36,7 +36,7 @@ from lightning.pytorch.core.saving import load_hparams_from_yaml, save_hparams_t
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -361,7 +361,7 @@ else:
         SubSubClassBoringModel,
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
-        pytest.param(DictConfSubClassBoringModel, marks=RunIf(omegaconf=True)),
+        pytest.param(DictConfSubClassBoringModel, marks=_RunIf(omegaconf=True)),
         BoringModelWithMixin,
         BoringModelWithMixinAndInit,
     ],

@@ -33,7 +33,7 @@ from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AV
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
 
 
-class RunIf:
+class _RunIf:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
     @RunIf(min_torch="0.0")

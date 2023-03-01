@@ -17,7 +17,7 @@ import pytest
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
 from tests_pytorch.helpers.datamodules import ClassifDataModule, RegressDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionModel
@@ -30,8 +30,8 @@ from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionM
         (None, BasicGAN),
         (None, ParityModuleRNN),
         (None, ParityModuleMNIST),
-        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True, onnx=True)),
-        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True, onnx=True)),
+        pytest.param(ClassifDataModule, ClassificationModel, marks=_RunIf(sklearn=True, onnx=True)),
+        pytest.param(RegressDataModule, RegressionModel, marks=_RunIf(sklearn=True, onnx=True)),
     ],
 )
 def test_models(tmpdir, data_class, model_class):

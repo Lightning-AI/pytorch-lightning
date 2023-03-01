@@ -33,7 +33,7 @@ from lightning.pytorch.loggers import (
 from lightning.pytorch.loggers.logger import DummyExperiment
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
 from tests_pytorch.loggers.test_neptune import create_neptune_mock

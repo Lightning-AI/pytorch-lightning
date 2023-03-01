@@ -16,7 +16,7 @@ import multiprocessing
 import torch
 
 from lightning.pytorch.plugins import MixedPrecisionPlugin
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 
 
 # needs to be standalone to avoid other processes initializing CUDA

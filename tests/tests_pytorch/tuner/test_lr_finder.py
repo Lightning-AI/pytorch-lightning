@@ -26,7 +26,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.tuner.lr_finder import _LRFinder
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import RunIf
+from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.other import getattr_recursive
 from tests_pytorch.helpers.simple_models import ClassificationModel
