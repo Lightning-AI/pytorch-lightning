@@ -7,7 +7,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -142,15 +142,6 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def custom_auto_wrap_policy(
-    module,
-    recurse,
-    unwrapped_params: int,
-    min_num_params: int = int(1e8),
-) -> bool:
-    return unwrapped_params >= 2
-
-
 @RunIf(min_torch="1.12")
 def test_invalid_on_cpu(tmpdir):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
@@ -209,6 +200,25 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
+if _TORCH_GREATER_EQUAL_2_0:
+
+    def custom_auto_wrap_policy(
+        module,
+        recurse,
+        nonwrapped_numel: int,
+    ) -> bool:
+        return nonwrapped_numel >= 2
+
+else:
+
+    def custom_auto_wrap_policy(
+        module,
+        recurse,
+        unwrapped_params: int,
+    ) -> bool:
+        return unwrapped_params >= 2
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
     "model, strategy",
@@ -237,6 +247,7 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
         limit_test_batches=2,
         limit_predict_batches=2,
         callbacks=[ck],
+        inference_mode=not _TORCH_GREATER_EQUAL_2_0,  # TODO(carmocca): inference_mode raises RuntimeError
     )
     _run_multiple_stages(trainer, model)
 

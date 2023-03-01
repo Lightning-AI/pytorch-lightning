@@ -1,4 +1,3 @@
-#
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a
@@ -11,76 +10,26 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-# import m2r
 import glob
+import inspect
 import os
 import shutil
 import sys
-import warnings
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
 
 import lightning
 
-# -----------------------
-# VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
-# -----------------------
-_PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
+_PATH_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
+sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
-# -----------------------
-# BUILD stuff
-# -----------------------
-PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
-PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
-_SHOULD_COPY_NOTEBOOKS = True
-sys.path.insert(0, os.path.abspath(PATH_ROOT))
-sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
-
-try:
-    from assistant import AssistantCLI
-except ImportError:
-    _SHOULD_COPY_NOTEBOOKS = False
-    warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
-
-FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
-
-# -- Project documents -------------------------------------------------------
-if _SHOULD_COPY_NOTEBOOKS:
-    AssistantCLI.copy_notebooks(
-        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
-    )
-
-
-def _transform_changelog(path_in: str, path_out: str) -> None:
-    with open(path_in) as fp:
-        chlog_lines = fp.readlines()
-    # enrich short subsub-titles to be unique
-    chlog_ver = ""
-    for i, ln in enumerate(chlog_lines):
-        if ln.startswith("## "):
-            chlog_ver = ln[2:].split("-")[0].strip()
-        elif ln.startswith("### "):
-            ln = ln.replace("###", f"### {chlog_ver} -")
-            chlog_lines[i] = ln
-    with open(path_out, "w") as fp:
-        fp.writelines(chlog_lines)
-
-
-os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
-# copy all documents from GH templates like contribution guide
-for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
-    shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
-# copy also the changelog
-_transform_changelog(
-    os.path.join(PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
-    os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
-)
 
 # -- Project information -----------------------------------------------------
 
-project = "PyTorch Lightning"
+# this name shall match the project name in Github as it is used for linking to code
+project = "lightning"
 copyright = lightning.__copyright__
 author = lightning.__author__
 
@@ -89,11 +38,37 @@ version = lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = lightning.__version__
 
+# Options for the linkcode extension
+# ----------------------------------
+github_user = "Lightning-AI"
+github_repo = project
+
+# -- Project documents -------------------------------------------------------
+
+
+# def _transform_changelog(path_in: str, path_out: str) -> None:
+#     with open(path_in) as fp:
+#         chlog_lines = fp.readlines()
+#     # enrich short subsub-titles to be unique
+#     chlog_ver = ""
+#     for i, ln in enumerate(chlog_lines):
+#         if ln.startswith("## "):
+#             chlog_ver = ln[2:].split("-")[0].strip()
+#         elif ln.startswith("### "):
+#             ln = ln.replace("###", f"### {chlog_ver} -")
+#             chlog_lines[i] = ln
+#     with open(path_out, "w") as fp:
+#         fp.writelines(chlog_lines)
+
+
+# export the READme
+# _convert_markdown(os.path.join(_PATH_ROOT, "README.md"), "readme.md")
+
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = "4.0"
+needs_sphinx = "4.5"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -113,27 +88,21 @@ extensions = [
     "sphinx.ext.imgmath",
     "sphinx.ext.autosectionlabel",
     "myst_parser",
-    "nbsphinx",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
-
-# Suppress warnings about duplicate labels (needed for PL tutorials)
-suppress_warnings = [
-    "autosectionlabel.*",
-]
-
-copybutton_prompt_text = ">>> "
-copybutton_prompt_text1 = "... "
-copybutton_exclude = ".linenos"
-
-copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
+
+# myst-parser, forcing to parse all html pages with mathjax
+# https://github.com/executablebooks/MyST-Parser/issues/394
+myst_update_mathjax = False
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
+myst_heading_anchors = 3
 
 # https://berkeley-stat159-f17.github.io/stat159-f17/lectures/14-sphinx..html#conf.py-(cont.)
 # https://stackoverflow.com/questions/38526888/embed-ipython-notebook-in-sphinx-document
@@ -143,16 +112,17 @@ nbsphinx_execute = "never"
 nbsphinx_allow_errors = True
 nbsphinx_requirejs_path = ""
 
-# myst-parser, forcing to parse all html pages with mathjax
-# https://github.com/executablebooks/MyST-Parser/issues/394
-myst_update_mathjax = False
-# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
-myst_heading_anchors = 3
-
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_parsers = {".rst": "restructuredtext", ".txt": "markdown", ".md": "markdown", ".ipynb": "nbsphinx"}
+# source_suffix = ['.rst', '.md']
+# source_suffix = ['.rst', '.md', '.ipynb']
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".txt": "markdown",
+    ".md": "markdown",
+    ".ipynb": "nbsphinx",
+}
 
 # The master toctree document.
 master_doc = "index"
@@ -168,14 +138,13 @@ language = "en"
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
-    "notebooks/sample-template*",
+    "PULL_REQUEST_TEMPLATE.md",
+    "**/README.md/*",
+    "readme.md",
+    "_templates",
+    "code_samples/convert_pl_to_app/requirements.txt",
+    "**/_static/*",
 ]
-
-if _PL_FAST_DOCS_DEV:
-    exclude_patterns.append("notebooks/*")
-    exclude_patterns.append("tutorials.rst")
-
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -184,25 +153,22 @@ pygments_style = None
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-# http://www.sphinx-doc.org/en/master/usage/theming.html#builtin-themes
-# html_theme = 'bizstyle'
-# https://sphinx-themes.org
-html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
+#
+html_theme = "lai_sphinx_theme"
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": "https://lightning.ai",
-    "canonical_url": lightning.__docs_url__,
+    "pytorch_project": lightning.__homepage__,
+    "analytics_id": "G-D3Q2ESCTZR",
+    "canonical_url": lightning.__homepage__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
 }
-
-html_logo = "_static/images/logo.svg"
 
 html_favicon = "_static/images/icon.svg"
 
@@ -236,13 +202,15 @@ latex_elements = {
     # Additional stuff for the LaTeX preamble.
     # 'preamble': '',
     # Latex figure (float) alignment
-    "figure_align": "htbp"
+    "figure_align": "htbp",
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [(master_doc, project + ".tex", project + " Documentation", author, "manual")]
+latex_documents = [
+    (master_doc, project + ".tex", project + " Documentation", author, "manual"),
+]
 
 # -- Options for manual page output ------------------------------------------
 
@@ -262,9 +230,9 @@ texinfo_documents = [
         project + " Documentation",
         author,
         project,
-        "One line description of project.",
+        lightning.__docs__,
         "Miscellaneous",
-    )
+    ),
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -288,13 +256,11 @@ epub_exclude_files = ["search.html"]
 
 # -- Options for intersphinx extension ---------------------------------------
 
+# Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None),
-    "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
-    "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
-    "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
+    "pytorch_lightning": ("https://pytorch-lightning.readthedocs.io/en/stable/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -310,71 +276,94 @@ def setup(app):
     app.add_css_file("main.css")
 
 
-# copy all notebooks to local folder
-# path_nbs = os.path.join(PATH_HERE, 'notebooks')
-# if not os.path.isdir(path_nbs):
-#     os.mkdir(path_nbs)
-# for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
-#     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
-#     shutil.copy(path_ipynb, path_ipynb2)
-
-
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
-def package_list_from_file(file):
-    """List up package name (not containing version and extras) from a package list file."""
-    mocked_packages = []
+def _package_list_from_file(file):
+    list_pkgs = []
     with open(file) as fp:
-        for ln in fp.readlines():
-            # Example: `tqdm>=4.41.0` => `tqdm`
-            # `[` is for package with extras
-            found = [ln.index(ch) for ch in list(",=<>#[") if ch in ln]
-            pkg = ln[: min(found)] if found else ln
-            if pkg.rstrip():
-                mocked_packages.append(pkg.rstrip())
-    return mocked_packages
+        lines = fp.readlines()
+    for ln in lines:
+        found = [ln.index(ch) for ch in list(",=<>#") if ch in ln]
+        pkg = ln[: min(found)] if found else ln
+        if pkg.rstrip():
+            list_pkgs.append(pkg.rstrip())
+    return list_pkgs
 
 
 # define mapping from PyPI names to python imports
 PACKAGE_MAPPING = {
-    "Pillow": "PIL",
-    "opencv-python": "cv2",
     "PyYAML": "yaml",
-    "hydra-core": "hydra",
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
-    _path_require = lambda fname: os.path.join(PATH_ROOT, "requirements", "pytorch", fname)
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
-    MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
-    MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
+    MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
 
+
+# Resolve function
+# This function is used to populate the (source) links in the API
+def linkcode_resolve(domain, info):
+    def find_source():
+        # try to find the file and line number, based on code from numpy:
+        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
+        obj = sys.modules[info["module"]]
+        for part in info["fullname"].split("."):
+            obj = getattr(obj, part)
+        fname = inspect.getsourcefile(obj)
+        # https://github.com/rtfd/readthedocs.org/issues/5735
+        if any(s in fname for s in ("readthedocs", "rtfd", "checkouts")):
+            # /home/docs/checkouts/readthedocs.org/user_builds/pytorch_lightning/checkouts/
+            #  devel/pytorch_lightning/utilities/cls_experiment.py#L26-L176
+            path_top = os.path.abspath(os.path.join("..", "..", ".."))
+            fname = os.path.relpath(fname, start=path_top)
+        else:
+            # Local build, imitate master
+            fname = "master/" + os.path.relpath(fname, start=os.path.abspath(".."))
+        source, lineno = inspect.getsourcelines(obj)
+        return fname, lineno, lineno + len(source) - 1
+
+    if domain != "py" or not info["module"]:
+        return None
+    try:
+        filename = "%s#L%d-L%d" % find_source()
+    except Exception:
+        filename = info["module"].replace(".", "/") + ".py"
+    # import subprocess
+    # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
+    #                        universal_newlines=True).communicate()[0][:-1]
+    branch = filename.split("/")[0]
+    # do mapping from latest tags to master
+    branch = {"latest": "master", "stable": "master"}.get(branch, branch)
+    filename = "/".join([branch] + filename.split("/")[1:])
+    return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
+
+
 autosummary_generate = True
 
 autodoc_member_order = "groupwise"
-
 autoclass_content = "both"
-
+# the options are fixed and will be soon in release,
+#  see https://github.com/sphinx-doc/sphinx/issues/5459
 autodoc_default_options = {
-    "members": True,
-    "methods": True,
+    "members": None,
+    "methods": None,
+    # 'attributes': None,
     "special-members": "__call__",
     "exclude-members": "_abc_impl",
     "show-inheritance": True,
+    "private-members": True,
+    "noindex": True,
 }
 
 # Sphinx will add “permalinks” for each heading and description environment as paragraph signs that
 #  become visible when the mouse hovers over them.
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
 #  string to disable permalinks.
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
-html_permalinks = True
-html_permalinks_icon = "¶"
-
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_permalinks
+# html_add_permalinks = "¶"
 # True to prefix each section label with the name of the document it is in, followed by a colon.
 #  For example, index:Introduction for a section called Introduction that appears in document index.rst.
 #  Useful for avoiding ambiguity when the same section heading appears in different documents.
@@ -386,22 +375,13 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
-import sys
-from typing import Optional
+import lightning as L
 
-import torch
-import lightning.pytorch as pl
-from torch import nn
-from torch.utils.data import IterableDataset, DataLoader, Dataset
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
-from lightning.pytorch.utilities import _TORCHVISION_AVAILABLE
+from lightning_utilities.core.imports import package_available
+from lightning import LightningModule, Trainer
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
-from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
-from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
-from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
+
+_TORCHVISION_AVAILABLE = package_available("torchvision")
 """
 coverage_skip_undoc_in_source = True
 
@@ -410,11 +390,3 @@ linkcheck_anchors = False
 
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
-
-# ignore the following relative links (false positive errors during linkcheck)
-linkcheck_ignore = [
-    r"^starter/installation.html$",
-    r"^installation.html$",
-    r"^../cli/lightning_cli.html$",
-    r"^../common/trainer.html#trainer-flags$",
-]
