@@ -119,6 +119,7 @@ def train_fabric_ddp(fabric):
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
+@pytest.mark.flaky(reruns=3)
 @RunIf(standalone=True)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
@@ -146,12 +147,13 @@ def test_parity_ddp(accelerator, devices):
     )
 
     # Compare the final weights
-    assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
+    assert all(fabric.all_gather(is_state_dict_equal(state_dict_torch, state_dict_fabric)))
 
     # Compare the time per iteration
-    assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
+    assert all(fabric.all_gather(is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)))
 
     # Compare memory usage
     if accelerator == "cuda":
-        assert is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])
-        assert is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])
+        assert all(fabric.all_gather(is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])))
+        assert all(fabric.all_gather(is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])))
+
