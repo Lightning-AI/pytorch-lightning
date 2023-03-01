@@ -19,13 +19,18 @@ import time
 
 import click
 import rich
+from lightning_cloud.openapi import V1CreateClusterRequest, V1ClusterSpec, V1ClusterType, V1ClusterDriver, \
+    V1BYOMClusterDriver, V1ClusterState
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
-from lightning.app.core.constants import get_lightning_cloud_url, DEBUG_ENABLED
+from lightning.app.core.constants import get_lightning_cloud_url
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
+from lightning.app.utilities.cloud import _get_project
+from lightning.app.utilities.clusters import _ensure_cluster_project_binding
+from lightning.app.utilities.network import LightningClient
 
 logger = Logger(__name__)
 
@@ -66,7 +71,8 @@ def get_lightning_daemon_command(prefix: str) -> str:
 
 
 @click.argument("name", required=True)
-def connect_maverick(name: str) -> None:
+@click.option("--project_name", help="The project name to which the machine should connect..", required=False)
+def connect_maverick(name: str, project_name: str = "") -> None:
     """Create a new maverick connection."""
     # print system architecture and OS
     if sys.platform != "darwin" or platform.processor() != "arm":
@@ -87,9 +93,18 @@ def connect_maverick(name: str) -> None:
     if "lightning.ai" in CLOUD_PROXY_HOST:
         _error_and_exit("Maverick connection isn't publicly available. Open an issue on Github.")
 
-    register_to_cloud(name)
+    with Live(Spinner("point", text=Text("Registering machine...", style="white")), transient=True) as live:
+        try:
+            register_to_cloud(name, project_name)
+        except Exception as e:
+            live.stop()
+            rich.print(f"[red]Failed[/red]: Registering machine failed with error {e}")
+            return
 
-    with Live(Spinner("point", text=Text("setting up...", style="white")), transient=True) as live:
+        return
+
+        live.update(Spinner("point", text=Text("Setting up ...", style="white")))
+
         # run network creation in the background
         out = subprocess.run(CMD_CREATE_NETWORK, shell=True, capture_output=True)
         error = out.stderr
@@ -113,8 +128,6 @@ def connect_maverick(name: str) -> None:
             if out.stdout:
                 subprocess.run(f"docker rm -f {CODE_SERVER_CONTAINER}", shell=True, check=True)
             else:
-                if DEBUG_ENABLED:
-                    live.update(Spinner("point", text=Text("pulling code server image", style="white")))
                 out = subprocess.run(f"docker pull {CODE_SERVER_IMAGE}", shell=True, check=True, capture_output=True)
                 error = out.stderr
                 if error:
@@ -122,8 +135,6 @@ def connect_maverick(name: str) -> None:
                     rich.print(f"[red]Failed[/red]: code server image pull failed with error: {str(error)}")
                     return
             cmd = get_code_server_docker_command()
-            if DEBUG_ENABLED:
-                live.update(Spinner("point", text=Text("running code server", style="white")))
             _ = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # if lightning daemon is already running, ignore.
@@ -143,8 +154,6 @@ def connect_maverick(name: str) -> None:
             if out.stdout:
                 subprocess.run(f"docker rm -f {LIGHTNING_DAEMON_CONTAINER}", shell=True, check=True)
             else:
-                if DEBUG_ENABLED:
-                    live.update(Spinner("point", text=Text("pulling lightning daemon image", style="white")))
                 out = subprocess.run(
                     f"docker pull {LIGHTNING_DAEMON_IMAGE}", shell=True, check=True, capture_output=True
                 )
@@ -154,14 +163,12 @@ def connect_maverick(name: str) -> None:
                     rich.print(f"[red]Failed[/red]: lightnign daemon image pull failed with error: {str(error)}")
                     return
             cmd = get_lightning_daemon_command(name)
-            if DEBUG_ENABLED:
-                live.update(Spinner("point", text=Text("running lightning daemon", style="white")))
             _ = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # wait until if both docker containers are running
         code_server_running = False
         lightning_daemon_running = False
-        live.update(Spinner("point", text=Text("establishing connection ...", style="white")))
+        live.update(Spinner("point", text=Text("Establishing connection ...", style="white")))
         connection_check_start_time = time.time()
 
         # wait for 30 seconds for connection to be established
@@ -200,14 +207,56 @@ def connect_maverick(name: str) -> None:
 def disconnect_maverick(name: str) -> None:
     # disconnect stop and remove the docker containers
     with Live(Spinner("point", text=Text("disconnecting maverick...", style="white")), transient=True):
+        try:
+            deregister_from_cloud(name)
+        except Exception as e:
+            rich.print(f"[red]Failed[/red]: Disconnecting machine failed with error: {e}")
+            return
         subprocess.run(f"docker stop {CODE_SERVER_CONTAINER}", shell=True, capture_output=True)
         subprocess.run(f"docker stop {LIGHTNING_DAEMON_CONTAINER}", shell=True, capture_output=True)
     rich.print(f"[green]Succeeded[/green]: maverick {name} has been disconnected from lightning.")
 
 
-def register_to_cloud(name):
-    pass
+def register_to_cloud(name: str, project_name: str):
+    client = LightningClient(retry=False)
+    projects = client.projects_service_list_memberships()
+    project_id = None
+    for project in projects.memberships:
+        if project.name == project_name:
+            project_id = project.project_id
+            break
+    if project_id is None:
+        project_id = _get_project(client, verbose=False).project_id
+
+    cluster_bindings = client.projects_service_list_project_cluster_bindings(project_id=project_id)
+    for c in cluster_bindings.clusters:
+        if c.cluster_name == name:
+            existing_cluster = client.cluster_service_get_cluster(id=c.cluster_id)
+            if existing_cluster.status.phase == V1ClusterState.RUNNING:
+                raise RuntimeError(f"Cluster {name} already exists and is running.")
+            break
+    else:
+        body = V1CreateClusterRequest(
+            name=name,
+            spec=V1ClusterSpec(
+                cluster_type=V1ClusterType.BYOM,
+                driver=V1ClusterDriver(
+                    byom=V1BYOMClusterDriver()
+                ),
+            ),
+        )
+        resp = client.cluster_service_create_cluster(body=body)
+        _ensure_cluster_project_binding(client, project_id, resp.id)
 
 
 def deregister_from_cloud(name):
-    pass
+    client = LightningClient(retry=False)
+    clusters = client.cluster_service_list_clusters()
+    # TODO (sherin) this should wait for gridlet to stop running before deleting the cluster
+    for cluster in clusters.clusters:
+        if cluster.name == name:
+            client.cluster_service_delete_cluster(id=cluster.id, force=True)
+            break
+    else:
+        raise RuntimeError(f"Cluster {name} does not exist.")
+
