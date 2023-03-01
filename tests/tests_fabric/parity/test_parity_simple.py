@@ -132,7 +132,8 @@ def test_parity_single_device(precision, accelerator):
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric(fabric)
 
     torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
+    if accelerator == "gpu":
+        torch.cuda.reset_peak_memory_stats()
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch(
