@@ -136,7 +136,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Predict's custom BatchSampler that tracks the batch indices no longer consumes the entire batch sampler at the beginning ([#16826](https://github.com/Lightning-AI/lightning/pull/16826))
 
 
+- Gradient norm tracking with `track_grad_norm` no longer rounds the norms to 4 digits, but instead logs them at full resolution ([#16877](https://github.com/Lightning-AI/lightning/pull/16877))
+
+
 - Merged the `DDPSpawnStrategy` into `DDPStrategy` ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
+
+
+- The `NeptuneLogger` now requires `neptune>=1.0.0` ([#16888](https://github.com/Lightning-AI/lightning/pull/16888))
 
 
 ### Deprecated
