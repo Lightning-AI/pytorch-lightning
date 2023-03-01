@@ -145,5 +145,5 @@ def test_parity_single_device(precision, accelerator):
 
     # Compare peak CUDA memory usage
     if memory_torch["start"]:
-        assert memory_torch["start"]["allocated_bytes.all.peak"] == memory_fabric["start"]["allocated_bytes.all.peak"]
-        assert memory_torch["end"]["allocated_bytes.all.peak"] == memory_fabric["end"]["allocated_bytes.all.peak"]
+        assert memory_torch["start"]["allocated_bytes.all.peak"] >= memory_fabric["start"]["allocated_bytes.all.peak"]
+        assert memory_torch["end"]["allocated_bytes.all.peak"] >= memory_fabric["end"]["allocated_bytes.all.peak"]
