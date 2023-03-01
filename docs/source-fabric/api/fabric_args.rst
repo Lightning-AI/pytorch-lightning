@@ -140,7 +140,7 @@ See also: :doc:`../fundamentals/precision`
 plugins
 =======
 
-:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters, etc. For example:
+Plugins allow you to connect arbitrary backends, precision libraries, clusters, etc. For example:
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~lightning.fabric.plugins.environments.ClusterEnvironment`.
 
