@@ -8,7 +8,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-pytorch-dockers.yml"
+      - ".github/workflows/ci-dockers-pytorch.yml"
       - "dockers/**"
       - "requirements/*.txt"
       - "requirements/pytorch/**"
@@ -232,7 +232,7 @@ jobs:
         timeout-minutes: 55
 
   build-docs:
-    # if: github.event.pull_request.draft == false  # fixme
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
