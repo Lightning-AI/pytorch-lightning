@@ -34,7 +34,7 @@ from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AV
 if module_available("_pytest"):
     from _pytest.mark import MarkDecorator
 else:
-    MarkDecorator = None
+    MarkDecorator = Any
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
