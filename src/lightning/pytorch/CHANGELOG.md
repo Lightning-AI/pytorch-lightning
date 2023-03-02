@@ -54,8 +54,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a `Trainer(barebones=True)` argument where all features that may impact raw speed are disabled ([#16854](https://github.com/Lightning-AI/lightning/pull/16854))
 
 
-- Added `DDPStrategy(start_method=...)` argument, defaulting to 'popen' ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
+- Added support for writing logs remote file systems on `CSVLoggers`. ([#16880](https://github.com/Lightning-AI/lightning/pull/16880))
 
+
+- Added `DDPStrategy(start_method=...)` argument, defaulting to 'popen' ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
 ### Changed
 
