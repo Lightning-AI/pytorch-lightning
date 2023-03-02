@@ -847,7 +847,7 @@ class Trainer:
         if self.barebones:
             # no progress bar in barebones can make it look like the Trainer hung
             rank_zero_info(
-                "The `Trainer(barebones=True)` started running. The progress bar is disabled so you might want to"
+                "`Trainer(barebones=True)` started running. The progress bar is disabled so you might want to"
                 " manually print the progress in your hooks."
             )
 
