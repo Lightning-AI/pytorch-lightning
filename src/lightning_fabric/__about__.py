@@ -8,9 +8,6 @@ __homepage__ = "https://github.com/Lightning-AI/lightning"
 __docs_url__ = "https://lightning.ai/docs/pytorch/LTS/"
 # TODO
 __docs__ = ""
-__long_docs__ = """
-
-"""
 
 __all__ = [
     "__author__",

@@ -438,8 +438,8 @@ class WandbLogger(Logger):
     def log_table(
         self,
         key: str,
-        columns: List[str] = None,
-        data: List[List[Any]] = None,
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[Any]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
@@ -455,8 +455,8 @@ class WandbLogger(Logger):
     def log_text(
         self,
         key: str,
-        columns: List[str] = None,
-        data: List[List[str]] = None,
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[str]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
