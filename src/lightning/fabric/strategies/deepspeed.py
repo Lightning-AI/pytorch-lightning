@@ -43,7 +43,8 @@ _DEEPSPEED_AVAILABLE = (
     or not _TORCH_GREATER_EQUAL_2_0
     # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
     # remove the packaging check when min version is >=0.8.1
-    and RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
+    and RequirementCache("deepspeed")
+    and RequirementCache("packaging>=20.0")
 )
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
