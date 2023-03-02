@@ -9,7 +9,7 @@ if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
     from lightning.fabric.__version__ import version as __version__
 elif package_available("lightning"):
-    from lightning import __version__  # type: ignore[misc] # noqa: F401
+    from lightning import __version__  # noqa: F401
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
