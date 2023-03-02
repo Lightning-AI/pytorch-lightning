@@ -844,6 +844,13 @@ class Trainer:
             self.fit_loop.min_epochs = min_epochs
             self.fit_loop.max_epochs = max_epochs
 
+        if self.barebones:
+            # no progress bar in barebones can make it look like the Trainer hung
+            rank_zero_info(
+                "The `Trainer(barebones=True)` started running. The progress bar is disabled so you might want to"
+                " manually print the progress in your hooks."
+            )
+
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
