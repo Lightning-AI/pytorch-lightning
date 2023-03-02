@@ -17,7 +17,7 @@ import re
 import time
 from datetime import datetime
 from textwrap import dedent
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 import click
 import lightning_cloud
@@ -118,10 +118,10 @@ class AWSClusterManager:
     def create(
         self,
         cost_savings: bool = False,
-        cluster_id: str = None,
-        role_arn: str = None,
+        cluster_id: Optional[str] = None,
+        role_arn: Optional[str] = None,
         region: str = "us-east-1",
-        external_id: str = None,
+        external_id: Optional[str] = None,
         edit_before_creation: bool = False,
         do_async: bool = True,
     ) -> None:

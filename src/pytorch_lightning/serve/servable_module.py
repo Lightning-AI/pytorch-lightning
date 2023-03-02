@@ -58,7 +58,6 @@ class ServableModule(torch.nn.Module):
 
     def configure_payload(self) -> Dict[str, Any]:
         """Returns a request payload as a dictionary."""
-        ...
 
     def configure_serialization(self) -> Tuple[Dict[str, Callable], Dict[str, Callable]]:
         """Returns a tuple of dictionaries.
@@ -69,7 +68,6 @@ class ServableModule(torch.nn.Module):
         The second dictionary contains the name of the ``serve_step`` output variables name as its keys
         and the associated serialization function (e.g function to convert a tensors into payload).
         """
-        ...
 
     def serve_step(self, *args: Tensor, **kwargs: Tensor) -> Dict[str, Tensor]:
         r"""
@@ -87,8 +85,6 @@ class ServableModule(torch.nn.Module):
         Return:
             - ``dict`` - A dictionary with their associated tensors.
         """
-        ...
 
     def configure_response(self) -> Dict[str, Any]:
         """Returns a response to validate the server response."""
-        ...

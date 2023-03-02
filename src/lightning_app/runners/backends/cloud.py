@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class CloudBackend(Backend):
-    def __init__(self, entrypoint_file, queue_id: Optional[str] = None, status_update_interval: int = None):
+    def __init__(self, entrypoint_file, queue_id: Optional[str] = None, status_update_interval: Optional[int] = None):
         super().__init__(entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id=queue_id)
         self.client = LightningClient()
 

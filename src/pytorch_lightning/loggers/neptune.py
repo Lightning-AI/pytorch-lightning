@@ -523,7 +523,7 @@ class NeptuneLogger(Logger):
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
-    def _dict_paths(cls, d: Dict[str, Any], path_in_build: str = None) -> Generator:
+    def _dict_paths(cls, d: Dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
         for k, v in d.items():
             path = f"{path_in_build}/{k}" if path_in_build is not None else k
             if not isinstance(v, dict):

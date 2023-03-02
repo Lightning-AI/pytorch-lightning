@@ -174,7 +174,7 @@ class BaseQueue(ABC):
         pass
 
     @abstractmethod
-    def get(self, timeout: int = None):
+    def get(self, timeout: Optional[int] = None):
         """Returns the left most element of the queue.
 
         Parameters
@@ -204,7 +204,7 @@ class MultiProcessQueue(BaseQueue):
     def put(self, item):
         self.queue.put(item)
 
-    def get(self, timeout: int = None):
+    def get(self, timeout: Optional[int] = None):
         if timeout == 0:
             timeout = self.default_timeout
         return self.queue.get(timeout=timeout, block=(timeout is None))
@@ -216,9 +216,9 @@ class RedisQueue(BaseQueue):
         self,
         name: str,
         default_timeout: float,
-        host: str = None,
-        port: int = None,
-        password: str = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        password: Optional[str] = None,
     ):
         """
         Parameters
@@ -278,7 +278,7 @@ class RedisQueue(BaseQueue):
         if is_work:
             item._backend = backend
 
-    def get(self, timeout: int = None):
+    def get(self, timeout: Optional[int] = None):
         """Returns the left most element of the redis queue.
 
         Parameters
@@ -379,7 +379,7 @@ class HTTPQueue(BaseQueue):
         except (ConnectionError, ConnectTimeout, ReadTimeout):
             return False
 
-    def get(self, timeout: int = None) -> Any:
+    def get(self, timeout: Optional[int] = None) -> Any:
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 

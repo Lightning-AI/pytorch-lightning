@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-_RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
+_RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
