@@ -102,7 +102,7 @@ logger = Logger(__name__)
 
 
 SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"
-SYS_CUSTOMIZATIONS_SYNC_PATH = "sys-customizations-sync"
+SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
 
 def _to_clean_dict(swagger_object, map_attributes):
@@ -444,8 +444,7 @@ class CloudRuntime(Runtime):
 
     def _prepare_sys_customizations_sync(self, sys_customizations_root: Path, root: Path) -> None:
         path_to_sync = Path(root, SYS_CUSTOMIZATIONS_SYNC_PATH)
-        path_to_sync.mkdir(exist_ok=True)
-        shutil.copy_tree(sys_customizations_root, path_to_sync)
+        shutil.copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
 
     def _resolve_open_ignore_functions(self) -> List[_IGNORE_FUNCTION]:
         """Used by the ``open`` method.
