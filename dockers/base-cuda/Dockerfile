@@ -25,12 +25,12 @@ ARG MAX_ALLOWED_NCCL=2.16.2
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
 ENV \
-    DEBIAN_FRONTEND=noninteractive \
-    TZ=Europe/Prague \
+    DEBIAN_FRONTEND="noninteractive" \
+    TZ="Etc/UTC" \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
-    MKL_THREADING_LAYER=GNU \
+    MKL_THREADING_LAYER="GNU" \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
 
@@ -44,7 +44,7 @@ RUN \
     echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
-    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
@@ -80,9 +80,7 @@ RUN \
 COPY ./requirements/pytorch/ ./requirements/pytorch/
 COPY ./.actions/assistant.py assistant.py
 
-ENV \
-    PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages \
-    TORCH_URL=https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
+ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
@@ -97,10 +95,11 @@ RUN \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
 
+    rm assistant.py && \
     # Install base requirements \
-    pip install -r requirements/pytorch/base.txt "setuptools==59.5.0" \
-      --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
-    rm assistant.py
+    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
+    pip install -r requirements/pytorch/base.txt \
+      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 ENV \
     HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
@@ -160,11 +159,13 @@ RUN \
 
 RUN \
     # install rest of strategies
+    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links ${TORCH_URL}
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt \
+      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
