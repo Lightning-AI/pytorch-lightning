@@ -14,10 +14,10 @@
 import operator
 import os
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 import torch
-from lightning_utilities.core.imports import compare_version
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
@@ -30,13 +30,14 @@ from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE
-from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
+
+_SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
 
 class _RunIf:
-    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    """Wrapper around ``pytest.mark.skipif`` with specific conditions.
 
-    @RunIf(min_torch="0.0")
+    @RunIf(min_python="3.6")
     @pytest.mark.parametrize("arg1", [1, 2.0])
     def test_wrapper(arg1):
         assert arg1 > 0.0
@@ -44,7 +45,6 @@ class _RunIf:
 
     def __new__(
         self,
-        *args,
         min_cuda_gpus: int = 0,
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
@@ -62,11 +62,9 @@ class _RunIf:
         psutil: bool = False,
         sklearn: bool = False,
         onnx: bool = False,
-        **kwargs,
-    ):
+    ) -> Any:  # not the real return because it would require that pytest is available
         """
         Args:
-            *args: Any :class:`pytest.mark.skipif` arguments.
             min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
@@ -86,12 +84,12 @@ class _RunIf:
             psutil: Require that psutil is installed.
             sklearn: Require that scikit-learn is installed.
             onnx: Require that onnx is installed.
-            **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         import pytest
 
         conditions = []
         reasons = []
+        kwargs = {}
 
         if min_cuda_gpus:
             conditions.append(num_cuda_devices() < min_cuda_gpus)
@@ -188,6 +186,4 @@ class _RunIf:
             reasons.append("onnx")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
-        return pytest.mark.skipif(
-            *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
-        )
+        return pytest.mark.skipif(any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
