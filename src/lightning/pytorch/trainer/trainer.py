@@ -848,7 +848,7 @@ class Trainer:
             # no progress bar in barebones can make it look like the Trainer hung
             rank_zero_info(
                 "`Trainer(barebones=True)` started running. The progress bar is disabled so you might want to"
-                " manually print the progress in your hooks."
+                " manually print the progress in your model."
             )
 
         # clean hparams
