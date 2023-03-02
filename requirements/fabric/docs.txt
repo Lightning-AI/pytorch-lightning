@@ -1,0 +1,4 @@
+-r ../docs.txt
+
+lai-sphinx-theme
+tensorboard
