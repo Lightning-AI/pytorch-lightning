@@ -57,7 +57,7 @@ class TracerPythonScript(LightningWork):
         outputs: Optional[List[str]] = None,
         env: Optional[Dict] = None,
         code: Optional[Code] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         """The TracerPythonScript class enables to easily run a python script.
 
@@ -138,7 +138,7 @@ class TracerPythonScript(LightningWork):
         params: Optional[Dict[str, Any]] = None,
         restart_count: Optional[int] = None,
         code_dir: Optional[str] = ".",
-        **kwargs,
+        **kwargs: Any,
     ):
         """
         Arguments:
