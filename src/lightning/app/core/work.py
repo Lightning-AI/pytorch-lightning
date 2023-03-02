@@ -515,7 +515,7 @@ class LightningWork:
 
     def _wrap_run_for_caching(self, fn):
         @wraps(fn)
-        def new_fn(*args, **kwargs):
+        def new_fn(*args: Any, **kwargs: Any):
             call_hash = self._call_hash(fn, args, kwargs)
 
             entered = call_hash in self._calls
@@ -612,7 +612,7 @@ class LightningWork:
         # This enables to start the run method with a phony input and exit.
         self.run(Action(method="start"))
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any):
         """Override to add your own logic.
 
         Raises:

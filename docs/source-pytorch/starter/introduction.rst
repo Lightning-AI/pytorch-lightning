@@ -118,7 +118,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     from torch import optim, nn, utils, Tensor
     from torchvision.datasets import MNIST
     from torchvision.transforms import ToTensor
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     # define any number of nn.Modules (or use your current ones)
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
@@ -325,15 +325,6 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :image_height: 220px
    :height: 320
 
-.. displayitem::
-   :header: Lightning Fabric
-   :description: Full control over loop for migrating complex PyTorch projects.
-   :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
-   :button_link: ../fabric/fabric.html
-   :image_height: 220px
-   :height: 320
-
 .. raw:: html
 
         </div>
@@ -370,14 +361,6 @@ Depending on your use case, you might want to check one of these out next.
    :button_link: ../tutorials.html
    :height: 180
    :tag: basic
-
-.. displayitem::
-   :header: I need my raw PyTorch Loop
-   :description: Expert-level control for researchers working on the bleeding-edge
-   :col_css: col-md-3
-   :button_link: ../fabric/fabric.html
-   :height: 180
-   :tag: expert
 
 .. displayitem::
    :header: Deploy your model

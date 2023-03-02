@@ -364,7 +364,7 @@ def test_logging_sync_dist_true(tmpdir, devices, accelerator):
         limit_train_batches=3,
         limit_val_batches=3,
         enable_model_summary=False,
-        strategy="ddp_spawn" if use_multiple_devices else None,
+        strategy="ddp_spawn" if use_multiple_devices else "auto",
         accelerator=accelerator,
         devices=devices,
     )

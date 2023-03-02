@@ -26,7 +26,6 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -138,7 +137,6 @@ class TestSpawnBoringModel(BoringModel):
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -211,7 +209,7 @@ def test_dataloaders_with_missing_keyword_arguments():
 
 
 def test_update_dataloader_with_multiprocessing_context():
-    """This test verifies that replace_sampler conserves multiprocessing context."""
+    """This test verifies that `use_distributed_sampler` conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)

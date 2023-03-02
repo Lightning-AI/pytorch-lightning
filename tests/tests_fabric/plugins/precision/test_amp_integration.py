@@ -54,7 +54,7 @@ class MixedPrecisionBoringFabric(BoringFabric):
         loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
         return loss
 
-    def after_backward(self, model):
+    def after_backward(self, model, optimizer):
         assert model.layer.weight.grad.dtype == torch.float32
 
 
@@ -68,7 +68,7 @@ class MixedPrecisionBoringFabric(BoringFabric):
     ],
 )
 def test_amp(accelerator, precision, expected_dtype):
-    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
+    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
     fabric.expected_dtype = expected_dtype
     fabric.run()
 

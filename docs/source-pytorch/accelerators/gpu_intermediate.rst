@@ -228,9 +228,9 @@ DDP can also be used with 1 GPU, but there's no reason to do so other than debug
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.setup_distributed`.
+If you need your own way to init PyTorch DDP you can override :meth:`lightning.pytorch.strategies.ddp.DDPStrategy.setup_distributed`.
 
-If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`lightning.pytorch.strategies.ddp.DDPStrategy.configure_ddp`.
 
 ----------
 
@@ -279,7 +279,7 @@ Lightning allows explicitly specifying the backend via the `process_group_backen
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch.strategies import DDPStrategy
 
     # Explicitly specify the process group backend if you choose to
     ddp = DDPStrategy(process_group_backend="nccl")

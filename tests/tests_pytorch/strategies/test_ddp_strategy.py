@@ -14,6 +14,7 @@
 import os
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -21,9 +22,11 @@ from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
@@ -36,6 +39,8 @@ class BoringModelGPU(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+# TODO: https://github.com/pytorch/pytorch/issues/95668
+@pytest.mark.xfail(condition=_TORCH_GREATER_EQUAL_2_0, raises=AssertionError, reason="cuBLAS issue")
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(
@@ -115,7 +120,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp(cuda_count_2, mps_count_0):
+def test_ddp_configure_ddp(mps_count_0):
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
@@ -225,17 +230,24 @@ def test_configure_launcher_create_processes_externally():
     ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment())
     assert ddp_strategy.launcher is None
     ddp_strategy._configure_launcher()
-    assert ddp_strategy.launcher is None
+    assert isinstance(ddp_strategy.launcher, _SubprocessScriptLauncher)
+
+    ddp_strategy.launcher._call_children_scripts = Mock()
+    launch_fn = Mock()
+    ddp_strategy.launcher.launch(launch_fn)
+    ddp_strategy.launcher._call_children_scripts.assert_not_called()
+    launch_fn.assert_called_once()
 
 
 @mock.patch("torch.distributed.init_process_group")
-def test_ddp_strategy_set_timeout(mock_init_process_group, cuda_count_2, mps_count_0):
+def test_ddp_strategy_set_timeout(mock_init_process_group):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
     ddp_strategy = DDPStrategy(timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
+        accelerator="cpu",
         strategy=ddp_strategy,
     )
     # test wrap the model if fitting

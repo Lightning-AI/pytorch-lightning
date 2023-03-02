@@ -499,7 +499,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     """Test to ensure that DeepSpeed loads from a single file checkpoint."""
     model = BoringModel()
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="cpu", devices=1)
     trainer.fit(model)
     trainer.save_checkpoint(checkpoint_path)
 
@@ -714,6 +714,8 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         fast_dev_run=True,
         enable_progress_bar=False,
         enable_model_summary=False,
+        accelerator="cpu",
+        devices=1,
     )
     trainer.fit(model)
     trainer.save_checkpoint(checkpoint_path)

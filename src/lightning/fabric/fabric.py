@@ -78,9 +78,9 @@ class Fabric:
 
     def __init__(
         self,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
@@ -273,15 +273,16 @@ class Fabric:
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
-        self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+        self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, List[DataLoader]]:
         """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
         Args:
             *dataloaders: A single dataloader or a sequence of dataloaders.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
+                dataloader(s) for distributed training. If you have a custom sampler defined, set this argument
+                to ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
@@ -291,21 +292,24 @@ class Fabric:
         """
         self._validate_setup_dataloaders(dataloaders)
         dataloaders = [
-            self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
+            self._setup_dataloader(
+                dataloader, use_distributed_sampler=use_distributed_sampler, move_to_device=move_to_device
+            )
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
-        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+        self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
         """Set up a single dataloader for accelerated training.
 
         Args:
             dataloader: The dataloader to accelerate.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
+                dataloader for distributed training. If you have a custom sampler defined, set this argument to
+                ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
@@ -314,7 +318,7 @@ class Fabric:
             The wrapped dataloader.
         """
         sampler = dataloader.sampler
-        if replace_sampler and self._requires_distributed_sampler(dataloader):
+        if use_distributed_sampler and self._requires_distributed_sampler(dataloader):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
@@ -358,6 +362,33 @@ class Fabric:
                 self._strategy._deepspeed_engine = module
 
         self._precision.backward(tensor, module, *args, **kwargs)
+
+    def clip_gradients(
+        self,
+        module: Union[torch.nn.Module, _FabricModule],
+        optimizer: Union[Optimizer, _FabricOptimizer],
+        clip_val: Optional[Union[float, int]] = None,
+        max_norm: Optional[Union[float, int]] = None,
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> Optional[torch.Tensor]:
+        if clip_val is not None and max_norm is not None:
+            raise ValueError(
+                "Only one of `clip_val` or `max_norm` can be set as this specifies the underlying clipping algorithm!"
+            )
+
+        if clip_val is not None:
+            self.strategy.clip_gradients_value(_unwrap_objects(module), _unwrap_objects(optimizer), clip_val=clip_val)
+            return None
+        elif max_norm is not None:
+            return self.strategy.clip_gradients_norm(
+                _unwrap_objects(module),
+                _unwrap_objects(optimizer),
+                max_norm=max_norm,
+                norm_type=norm_type,
+                error_if_nonfinite=error_if_nonfinite,
+            )
+        raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
 
     @contextmanager
     def autocast(self) -> Generator[None, None, None]:
