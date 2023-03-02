@@ -55,7 +55,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
             )
 
     @staticmethod
-    def dispatch_run(local_rank, cls, work, delta_queue, *args, **kwargs):
+    def dispatch_run(local_rank, cls, work, delta_queue, *args: Any, **kwargs: Any):
         if local_rank == 0:
             if isinstance(delta_queue, dict):
                 delta_queue = cls.process_queue(delta_queue)
