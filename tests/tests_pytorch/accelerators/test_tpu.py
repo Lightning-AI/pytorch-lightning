@@ -29,7 +29,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 

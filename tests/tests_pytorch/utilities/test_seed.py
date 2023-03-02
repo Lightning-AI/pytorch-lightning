@@ -6,9 +6,10 @@ import pytest
 import torch
 
 from lightning.pytorch.utilities.seed import isolate_rng
+from tests_pytorch.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("with_torch_cuda", [False, pytest.param(True, marks=_RunIf(min_cuda_gpus=1))])
+@pytest.mark.parametrize("with_torch_cuda", [False, pytest.param(True, marks=RunIf(min_cuda_gpus=1))])
 def test_isolate_rng(with_torch_cuda):
     """Test that the isolate_rng context manager isolates the random state from the outer scope."""
     # torch

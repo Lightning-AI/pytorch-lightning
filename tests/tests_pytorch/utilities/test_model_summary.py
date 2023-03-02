@@ -21,6 +21,7 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
+from tests_pytorch.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):
@@ -159,8 +160,8 @@ def test_empty_model_summary_shapes(max_depth):
     "device_str",
     [
         "cpu",
-        pytest.param("cuda:0", marks=_RunIf(min_cuda_gpus=1)),
-        pytest.param("mps:0", marks=_RunIf(mps=True)),
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_linear_model_summary_shapes(device_str, max_depth):
@@ -297,8 +298,8 @@ def test_empty_model_size(max_depth):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=_RunIf(mps=True)),
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
 def test_model_size_precision(tmpdir, accelerator):

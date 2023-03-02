@@ -38,7 +38,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -1087,7 +1087,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
     assert model_checkpoint.current_score == expected
 
 
-@pytest.mark.parametrize("use_omegaconf", [False, pytest.param(True, marks=_RunIf(omegaconf=True))])
+@pytest.mark.parametrize("use_omegaconf", [False, pytest.param(True, marks=RunIf(omegaconf=True))])
 def test_hparams_type(tmpdir, use_omegaconf):
     class TestModel(BoringModel):
         def __init__(self, hparams):

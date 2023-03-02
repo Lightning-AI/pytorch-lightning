@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, Dataset
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import DoublePrecisionPlugin
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class RandomFloatIntDataset(Dataset):

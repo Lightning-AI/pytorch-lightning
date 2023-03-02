@@ -18,8 +18,8 @@ import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer import Trainer
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.strategies.test_ddp_strategy import UnusedParametersModel
 

@@ -18,7 +18,7 @@ import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
@@ -98,25 +98,25 @@ def test_fsdp_strategy_registry(cuda_count_1):
             "ddp_fork_find_unused_parameters_false",
             DDPStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
-            marks=_RunIf(skip_windows=True),
+            marks=RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_fork_find_unused_parameters_true",
             DDPStrategy,
             {"find_unused_parameters": True, "start_method": "fork"},
-            marks=_RunIf(skip_windows=True),
+            marks=RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_false",
             DDPStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
-            marks=_RunIf(skip_windows=True),
+            marks=RunIf(skip_windows=True),
         ),
         pytest.param(
             "ddp_notebook_find_unused_parameters_true",
             DDPStrategy,
             {"find_unused_parameters": True, "start_method": "fork"},
-            marks=_RunIf(skip_windows=True),
+            marks=RunIf(skip_windows=True),
         ),
     ],
 )

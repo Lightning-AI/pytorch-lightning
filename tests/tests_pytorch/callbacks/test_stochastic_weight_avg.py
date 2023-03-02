@@ -30,7 +30,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, R
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_swa_callback_initial_state():
@@ -195,7 +195,7 @@ def test_swa_callback_ddp_cpu(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=_RunIf(mps=True))]
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_swa_callback_1_gpu(tmpdir, accelerator):
     train_with_swa(tmpdir, accelerator=accelerator, devices=1)
@@ -362,8 +362,8 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
 @pytest.mark.parametrize(
     "strategy",
     [
-        pytest.param("deepspeed", marks=_RunIf(deepspeed=True, min_cuda_gpus=1)),
-        pytest.param("fsdp", marks=_RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True, min_cuda_gpus=1)),
+        pytest.param("fsdp", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
     ],
 )
 def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):

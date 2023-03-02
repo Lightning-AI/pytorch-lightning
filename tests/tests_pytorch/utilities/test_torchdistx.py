@@ -19,6 +19,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.meta import _is_deferred
+from tests_pytorch.helpers.runif import RunIf
 
 _TORCHDISTX_AVAILABLE = RequirementCache("torchdistx")
 
@@ -55,7 +56,7 @@ def test_deferred_init_with_lightning_module():
         {"accelerator": "auto", "devices": 1},
         pytest.param(
             {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": "16-mixed"},
-            marks=_RunIf(min_cuda_gpus=2, deepspeed=True),
+            marks=RunIf(min_cuda_gpus=2, deepspeed=True),
         ),
     ),
 )

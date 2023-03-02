@@ -25,7 +25,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.strategies import Strategy
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 def assert_emtpy_grad(grad):
@@ -73,7 +73,7 @@ class ManualOptModel(BoringModel):
 
 @pytest.mark.parametrize(
     "kwargs",
-    [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": "16-mixed"}, marks=_RunIf(min_cuda_gpus=1))],
+    [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": "16-mixed"}, marks=RunIf(min_cuda_gpus=1))],
 )
 def test_multiple_optimizers_manual_call_counts(tmpdir, kwargs):
     model = ManualOptModel()
@@ -129,7 +129,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
 
 
 # precision = 16 not yet working properly with mps backend
-@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=_RunIf(min_cuda_gpus=1))])
+@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
 def test_multiple_optimizers_manual_amp(tmpdir, accelerator):
     model = ManualOptModel()
     model.val_dataloader = None

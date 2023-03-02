@@ -25,7 +25,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)

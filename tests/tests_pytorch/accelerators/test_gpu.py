@@ -20,7 +20,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.accelerators.cuda import get_nvidia_gpu_stats
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=1)

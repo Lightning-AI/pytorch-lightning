@@ -28,7 +28,7 @@ from lightning.pytorch.strategies import XLAStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class SerialLoaderBoringModel(BoringModel):

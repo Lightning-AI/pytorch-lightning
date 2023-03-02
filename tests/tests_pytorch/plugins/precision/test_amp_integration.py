@@ -16,7 +16,7 @@ import torch
 from lightning.fabric import seed_everything
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class FusedOptimizerParityModel(BoringModel):

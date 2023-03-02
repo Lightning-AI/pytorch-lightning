@@ -16,17 +16,17 @@ import torch
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        pytest.param(dict(accelerator="gpu", devices=1), marks=_RunIf(min_cuda_gpus=1)),
-        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=2), marks=_RunIf(min_cuda_gpus=2)),
-        pytest.param(dict(accelerator="mps", devices=1), marks=_RunIf(mps=True)),
+        pytest.param(dict(accelerator="gpu", devices=1), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
+        pytest.param(dict(accelerator="mps", devices=1), marks=RunIf(mps=True)),
     ),
 )
 @RunIf(sklearn=True)

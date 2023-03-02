@@ -21,8 +21,8 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.core.saving import load_hparams_from_yaml
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.csv_logs import ExperimentWriter
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 

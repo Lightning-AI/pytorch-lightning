@@ -32,6 +32,7 @@ from lightning.pytorch.utilities.combined_loader import (
     _supported_modes,
     CombinedLoader,
 )
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
@@ -316,7 +317,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
     assert all(isinstance(ds, CustomDataset) for ds in datasets_flattened)
 
 
-@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=_RunIf(min_cuda_gpus=2))])
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
 @pytest.mark.parametrize("use_distributed_sampler", (False, True))
 def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distributed_sampler):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader

@@ -23,6 +23,7 @@ from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
@@ -82,8 +83,8 @@ def test_torchscript_input_output_trace():
     "device_str",
     [
         "cpu",
-        pytest.param("cuda:0", marks=_RunIf(min_cuda_gpus=1)),
-        pytest.param("mps:0", marks=_RunIf(mps=True)),
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_torchscript_device(device_str):

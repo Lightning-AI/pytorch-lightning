@@ -54,8 +54,8 @@ from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
 from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -248,7 +248,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPStrategy),
-        pytest.param("deepspeed", DeepSpeedStrategy, marks=_RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 @pytest.mark.parametrize("devices", [1, 2])
@@ -331,7 +331,7 @@ def test_set_devices_if_none_cpu():
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_find_unused_parameters_true", DDPStrategy),
-        pytest.param("deepspeed", DeepSpeedStrategy, marks=_RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
@@ -369,7 +369,7 @@ def test_strategy_choice_cpu_instance():
         ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        pytest.param("deepspeed", DeepSpeedStrategy, marks=_RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2, mps_count_0):
@@ -732,8 +732,8 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
 @pytest.mark.parametrize(
     "expected_accelerator_flag,expected_accelerator_class",
     [
-        pytest.param("cuda", CUDAAccelerator, marks=_RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", MPSAccelerator, marks=_RunIf(mps=True)),
+        pytest.param("cuda", CUDAAccelerator, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", MPSAccelerator, marks=RunIf(mps=True)),
     ],
 )
 def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_accelerator_class):

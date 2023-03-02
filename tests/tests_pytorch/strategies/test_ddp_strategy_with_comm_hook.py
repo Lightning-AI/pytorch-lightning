@@ -19,7 +19,7 @@ import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 if torch.distributed.is_available():
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD

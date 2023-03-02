@@ -21,7 +21,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment, SLURMEnv
 from lightning.pytorch import Trainer
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 def environment_combinations():
@@ -59,7 +59,7 @@ def environment_combinations():
 @RunIf(mps=False)
 @pytest.mark.parametrize(
     "strategy_cls",
-    [DDPStrategy, pytest.param(DeepSpeedStrategy, marks=_RunIf(deepspeed=True))],
+    [DDPStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
 @mock.patch("lightning.pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 def test_ranks_available_manual_strategy_selection(_, strategy_cls):
@@ -83,8 +83,8 @@ def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     [
         dict(strategy="ddp", accelerator="cpu", devices=2),
         dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
-        pytest.param(dict(strategy="ddp", accelerator="gpu", devices=[1, 2]), marks=_RunIf(mps=False)),
-        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]), marks=_RunIf(mps=False)),
+        pytest.param(dict(strategy="ddp", accelerator="gpu", devices=[1, 2]), marks=RunIf(mps=False)),
+        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]), marks=RunIf(mps=False)),
     ],
 )
 def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwargs):

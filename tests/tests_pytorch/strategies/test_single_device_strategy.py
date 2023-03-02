@@ -22,8 +22,8 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.strategies import SingleDeviceStrategy
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_single_cpu():
