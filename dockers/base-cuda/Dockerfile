@@ -94,19 +94,19 @@ RUN \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
 
+    rm assistant.py && \
     # Install base requirements \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links ${TORCH_URL} && \
-    rm assistant.py
+    pip install -r requirements/pytorch/base.txt \
+      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 
 RUN \
     # install rest of strategies
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links ${TORCH_URL}
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt \
+      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
