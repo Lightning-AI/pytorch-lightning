@@ -173,7 +173,7 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             os.chdir(cwd)
 
 
-async def _healthz():
+async def _healthz() -> Dict[str, str]:
     """Health check endpoint."""
     return {"status": "ok"}
 
