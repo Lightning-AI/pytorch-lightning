@@ -17,7 +17,7 @@ import sys
 from typing import Any, Optional
 
 import torch
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
@@ -30,6 +30,11 @@ from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _PSUTIL_AVAILABLE
+
+if module_available("_pytest"):
+    from _pytest.mark import MarkDecorator
+else:
+    MarkDecorator = None
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
@@ -62,7 +67,8 @@ class _RunIf:
         psutil: bool = False,
         sklearn: bool = False,
         onnx: bool = False,
-    ) -> Any:  # not the real return because it would require that pytest is available
+        **kwargs: Any,
+    ) -> MarkDecorator:  # not the real return because it would require that pytest is available
         """
         Args:
             min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
@@ -84,12 +90,12 @@ class _RunIf:
             psutil: Require that psutil is installed.
             sklearn: Require that scikit-learn is installed.
             onnx: Require that onnx is installed.
+            **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         import pytest
 
         conditions = []
         reasons = []
-        kwargs = {}
 
         if min_cuda_gpus:
             conditions.append(num_cuda_devices() < min_cuda_gpus)
@@ -186,4 +192,6 @@ class _RunIf:
             reasons.append("onnx")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
-        return pytest.mark.skipif(any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
+        kwargs.pop("condition", None)
+        kwargs.pop("reason", None)
+        return pytest.mark.skipif(condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
