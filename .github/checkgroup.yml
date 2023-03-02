@@ -305,6 +305,7 @@ subprojects:
   - id: "lightning: Store"
     paths:
       - ".azure/app-cloud-store.yml"
+      - "src/lightning/*.py"
       - "src/lightning/store/**"
       - "tests/tests_cloud/**"
     checks:

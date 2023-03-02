@@ -60,7 +60,7 @@ def _setup_args() -> Dict[str, Any]:
     # TODO: remove this once lightning-ui package is ready as a dependency
     _ASSISTANT._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
 
-    base_requires = _ASSISTANT.load_requirements(
+    install_requires = _ASSISTANT.load_requirements(
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
     ) + ["pytorch-lightning"]
 
@@ -87,7 +87,7 @@ def _setup_args() -> Dict[str, Any]:
             ],
         },
         setup_requires=[],
-        install_requires=base_requires,
+        install_requires=install_requires,
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
