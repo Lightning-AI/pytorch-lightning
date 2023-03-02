@@ -17,6 +17,7 @@ import json
 import os
 import random
 import re
+import shutil
 import string
 import sys
 import time
@@ -98,6 +99,10 @@ from lightning.app.utilities.packaging.lightning_utils import _prepare_lightning
 from lightning.app.utilities.secrets import _names_to_ids
 
 logger = Logger(__name__)
+
+
+SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"
+SYS_CUSTOMIZATIONS_SYNC_PATH = "sys-customizations-sync"
 
 
 def _to_clean_dict(swagger_object, map_attributes):
@@ -223,6 +228,9 @@ class CloudRuntime(Runtime):
         name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
 
+        # TODO: comment
+        sys_customizations_sync_root = self._resolve_env_root()
+
         self.app._update_index_file()
 
         # Validation
@@ -238,6 +246,10 @@ class CloudRuntime(Runtime):
         works = self._get_works()
         run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
+
+        # TODO: comment
+        if sys_customizations_sync_root is not None:
+            self._prepare_sys_customizations_sync(sys_customizations_sync_root, root)
 
         # API transactions
         run = self._api_create_run(project_id, cloudspace_id, run_body)
@@ -422,6 +434,18 @@ class CloudRuntime(Runtime):
         if root.is_file():
             root = root.parent
         return root
+
+    def _resolve_env_root(self) -> Path:
+        """Determine whether the root of environment sync files exists."""
+        root = Path(SYS_CUSTOMIZATIONS_SYNC_ROOT)
+        if root.exists():
+            return root
+        return None
+
+    def _prepare_sys_customizations_sync(self, sys_customizations_root: Path, root: Path) -> None:
+        path_to_sync = Path(root, SYS_CUSTOMIZATIONS_SYNC_PATH)
+        path_to_sync.mkdir(exist_ok=True)
+        shutil.copy_tree(sys_customizations_root, path_to_sync)
 
     def _resolve_open_ignore_functions(self) -> List[_IGNORE_FUNCTION]:
         """Used by the ``open`` method.
