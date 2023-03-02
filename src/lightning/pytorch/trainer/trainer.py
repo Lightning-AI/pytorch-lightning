@@ -1508,10 +1508,11 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            stage = self.state.stage
+            state = self.state
+            self.state.fn = TrainerFn.FITTING
             self.training = True
             self.fit_loop.setup_data()
-            self.state.stage = stage
+            self.state = state
 
         total_batches = self.num_training_batches
 

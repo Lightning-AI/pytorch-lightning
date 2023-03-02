@@ -131,6 +131,7 @@ def test_process_dataloader_gets_called_as_expected(keyword, value, monkeypatch)
         trainer.testing = True
         fn = trainer.test_loop.setup_data
     else:
+        trainer.state.fn = "predict"
         trainer.predicting = True
         fn = trainer.predict_loop.setup_data
 
