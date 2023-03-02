@@ -15,7 +15,7 @@
 import subprocess
 import sys
 from queue import Empty
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from packaging.version import Version
 
@@ -66,7 +66,7 @@ class _RunIf:
 
     def __new__(
         self,
-        *args,
+        *args: Any,
         pl: bool = False,
         flash: bool = False,
         min_python: Optional[str] = None,
@@ -75,7 +75,7 @@ class _RunIf:
         skip_mac_os: bool = False,
         local_end_to_end: bool = False,
         cloud: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ):
         """
         Args:

@@ -44,9 +44,9 @@ def dispatch(
     blocking: bool = True,
     open_ui: bool = True,
     name: str = "",
-    env_vars: Dict[str, str] = None,
-    secrets: Dict[str, str] = None,
-    cluster_id: str = None,
+    env_vars: Optional[Dict[str, str]] = None,
+    secrets: Optional[Dict[str, str]] = None,
+    cluster_id: Optional[str] = None,
     run_app_comment_commands: bool = False,
     enable_basic_auth: str = "",
 ) -> Optional[Any]:
@@ -167,7 +167,7 @@ class Runtime:
         if self.app.stage == AppStage.FAILED:
             sys.exit(1)
 
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args: Any, **kwargs: Any):
         raise NotImplementedError
 
     def _add_stopped_status_to_work(self, work: "lightning.app.LightningWork") -> None:
