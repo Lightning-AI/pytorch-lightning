@@ -29,7 +29,7 @@ ENV \
     TZ="Etc/UTC" \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
-    CUDA_VERSION_MM="${CUDA_VERSION%.*}" \
+    CUDA_VERSION_MM=${CUDA_VERSION%.*} \
     MKL_THREADING_LAYER="GNU" \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
