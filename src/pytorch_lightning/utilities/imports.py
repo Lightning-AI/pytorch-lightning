@@ -25,6 +25,7 @@ _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
 _TORCH_GREATER_EQUAL_2_0 = compare_version("torch", operator.ge, "2.0.0")
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
+_TORCHMETRICS_GREATER_EQUAL_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")  # using new API with task
 
 _ONNX_AVAILABLE = package_available("onnx")
 _HIVEMIND_AVAILABLE = package_available("hivemind")

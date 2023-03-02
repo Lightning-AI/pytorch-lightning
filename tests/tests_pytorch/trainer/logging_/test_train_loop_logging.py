@@ -34,6 +34,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, R
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -558,7 +559,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
-            self.val_acc = Accuracy()
+            self.val_acc = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
@@ -644,7 +645,7 @@ def test_logging_raises(tmpdir):
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
@@ -653,10 +654,10 @@ def test_logging_raises(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.bar = Accuracy()
+            self.bar = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
     model = TestModel()
     with pytest.raises(
