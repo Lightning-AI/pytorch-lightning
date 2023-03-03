@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators.tpu import TPUAccelerator
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_auto_device_count():

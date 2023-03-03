@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -412,7 +412,7 @@ class LightningFlow:
         """
         return name in LightningFlow._INTERNAL_STATE_VARS or not name.startswith("_")
 
-    def run(self, *args, **kwargs) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> None:
         """Override with your own logic."""
         pass
 

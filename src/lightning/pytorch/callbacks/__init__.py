@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheck
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.callbacks.progress import ProgressBarBase, RichProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.pruning import ModelPruning
-from lightning.pytorch.callbacks.quantization import QuantizationAwareTraining
 from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from lightning.pytorch.callbacks.timer import Timer
@@ -50,7 +49,6 @@ __all__ = [
     "ModelSummary",
     "OnExceptionCheckpoint",
     "ProgressBarBase",
-    "QuantizationAwareTraining",
     "RichModelSummary",
     "RichProgressBar",
     "StochasticWeightAveraging",

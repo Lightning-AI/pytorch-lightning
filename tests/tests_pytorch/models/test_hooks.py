@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     assert 0 == model.on_before_zero_grad_called
 
 
-def test_training_epoch_end_metrics_collection(tmpdir):
+def test_on_train_epoch_end_metrics_collection(tmpdir):
     """Test that progress bar metrics also get collected at the end of an epoch."""
     num_epochs = 3
 
@@ -77,7 +77,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
             self.log_dict({"step_metric": torch.tensor(-1), "shared_metric": 100}, logger=False, prog_bar=True)
             return output
 
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             epoch = self.current_epoch
             # both scalar tensors and Python numbers are accepted
             self.log_dict(
@@ -97,40 +97,6 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     # metrics are kept after each epoch
     for i in range(num_epochs):
         assert metrics[f"epoch_metric_{i}"] == i
-
-
-def test_training_epoch_end_metrics_collection_on_override(tmpdir):
-    """Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch."""
-
-    class OverriddenModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.len_outputs = 0
-
-        def on_train_epoch_start(self):
-            self.num_train_batches = 0
-
-        def training_epoch_end(self, outputs):
-            self.len_outputs = len(outputs)
-
-        def on_train_batch_end(self, outputs, batch, batch_idx):
-            self.num_train_batches += 1
-
-    class NotOverriddenModel(BoringModel):
-        def on_train_epoch_start(self):
-            self.num_train_batches = 0
-
-        def on_train_batch_end(self, outputs, batch, batch_idx):
-            self.num_train_batches += 1
-
-    overridden_model = OverriddenModel()
-    not_overridden_model = NotOverriddenModel()
-    not_overridden_model.training_epoch_end = None
-
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, overfit_batches=2)
-
-    trainer.fit(overridden_model)
-    assert overridden_model.len_outputs == overridden_model.num_train_batches
 
 
 @pytest.mark.parametrize(
@@ -214,7 +180,6 @@ def test_transfer_batch_hook_ddp(tmpdir):
 
     model = TestModel()
     model.validation_step = None
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -286,14 +251,6 @@ class HookedModel(BoringModel):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
-    def validation_epoch_end(self, *args, **kwargs):
-        # `BoringModel` does not have a return for `validation_step_end` so this would fail
-        pass
-
-    def test_epoch_end(self, *args, **kwargs):
-        # `BoringModel` does not have a return for `test_step_end` so this would fail
-        pass
-
     def _train_batch(self, *args, **kwargs):
         if self.automatic_optimization:
             return self._auto_train_batch(*args, **kwargs)
@@ -315,7 +272,6 @@ class HookedModel(BoringModel):
                     dict(name="on_train_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_before_zero_grad", args=(trainer, model, ANY)),
                     dict(name="on_before_zero_grad", args=(ANY,)),
                     dict(name="optimizer_zero_grad", args=(current_epoch, i, ANY)),
@@ -328,7 +284,6 @@ class HookedModel(BoringModel):
                     # note: unscaling happens here in the case of AMP
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
-                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(
                         name="clip_gradients",
                         args=(ANY,),
@@ -376,9 +331,7 @@ class HookedModel(BoringModel):
                     dict(name="closure"),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
-                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
                     dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                 ]
@@ -387,12 +340,10 @@ class HookedModel(BoringModel):
 
     @staticmethod
     def _eval_epoch(fn, trainer, model, batches, key, device=torch.device("cpu")):
-        outputs = {key: ANY}
         return [
             dict(name=f"Callback.on_{fn}_epoch_start", args=(trainer, model)),
             dict(name=f"on_{fn}_epoch_start"),
             *HookedModel._eval_batch(fn, trainer, model, batches, key, device=device),
-            dict(name=f"{fn}_epoch_end", args=([outputs] * batches,)),
             dict(name=f"Callback.on_{fn}_epoch_end", args=(trainer, model)),
             dict(name=f"on_{fn}_epoch_end"),
         ]
@@ -407,13 +358,12 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    dict(name=f"Callback.on_{fn}_batch_start", args=(trainer, model, ANY, i, 0)),
-                    dict(name=f"on_{fn}_batch_start", args=(ANY, i, 0)),
+                    dict(name=f"Callback.on_{fn}_batch_start", args=(trainer, model, ANY, i)),
+                    dict(name=f"on_{fn}_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name=f"{fn}_step", args=(ANY, i)),
-                    dict(name=f"{fn}_step_end", args=(outputs,)),
-                    dict(name=f"Callback.on_{fn}_batch_end", args=(trainer, model, outputs, ANY, i, 0)),
-                    dict(name=f"on_{fn}_batch_end", args=(outputs, ANY, i, 0)),
+                    dict(name=f"Callback.on_{fn}_batch_end", args=(trainer, model, outputs, ANY, i)),
+                    dict(name=f"on_{fn}_batch_end", args=(outputs, ANY, i)),
                 ]
             )
         return out
@@ -427,13 +377,12 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, torch.device("cpu"), 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    dict(name="Callback.on_predict_batch_start", args=(trainer, model, ANY, i, 0)),
-                    dict(name="on_predict_batch_start", args=(ANY, i, 0)),
+                    dict(name="Callback.on_predict_batch_start", args=(trainer, model, ANY, i)),
+                    dict(name="on_predict_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="predict_step", args=(ANY, i)),
-                    # TODO: `predict_step_end`
-                    dict(name="Callback.on_predict_batch_end", args=(trainer, model, ANY, ANY, i, 0)),
-                    dict(name="on_predict_batch_end", args=(ANY, ANY, i, 0)),
+                    dict(name="Callback.on_predict_batch_end", args=(trainer, model, ANY, ANY, i)),
+                    dict(name="on_predict_batch_end", args=(ANY, ANY, i)),
                 ]
             )
         return out
@@ -444,9 +393,9 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision=16), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(dict(accelerator="gpu", devices=1, precision="16-mixed"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
+            dict(accelerator="gpu", devices=1, precision="16-mixed", strategy="deepspeed"),
             marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
@@ -482,7 +431,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
-        track_grad_norm=1,
         **kwargs,
     )
     trainer.fit(model)
@@ -497,7 +445,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         "loops": ANY,
     }
     using_deepspeed = kwargs.get("strategy") == "deepspeed"
-    if kwargs.get("precision") == 16 and not using_deepspeed:
+    if kwargs.get("precision") == "16-mixed" and not using_deepspeed:
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [
@@ -542,7 +490,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="on_validation_end"),
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
-        dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -585,7 +532,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
-        track_grad_norm=1,
     )
 
     # resume from checkpoint with HookedModel
@@ -621,7 +567,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, 2, current_epoch=1, current_batch=0),
-        dict(name="training_epoch_end", args=([dict(loss=ANY)] * 2,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -667,7 +612,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
-        track_grad_norm=1,
     )
 
     trainer.fit(model, ckpt_path=best_model_path)
@@ -701,7 +645,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, steps_after_reload, current_batch=1),
-        dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="on_train_epoch_end"),  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -787,9 +730,8 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="Callback.on_predict_epoch_start", args=(trainer, model)),
         dict(name="on_predict_epoch_start"),
         *model._predict_batch(trainer, model, batches),
-        # TODO: `predict_epoch_end`
-        dict(name="Callback.on_predict_epoch_end", args=(trainer, model, [[ANY] * batches])),
-        dict(name="on_predict_epoch_end", args=([[ANY] * batches],)),
+        dict(name="Callback.on_predict_epoch_end", args=(trainer, model)),
+        dict(name="on_predict_epoch_end"),
         dict(name="Callback.on_predict_end", args=(trainer, model)),
         dict(name="on_predict_end"),
         # TODO: `on_predict_model_train`
@@ -816,15 +758,17 @@ def test_hooks_with_different_argument_names(tmpdir):
             self.assert_args(x2, batch_nb2)
             return super().validation_step(x2, batch_nb2)
 
-        def test_step(self, x3, batch_nb3, dl_idx3):
+        # we don't support a different name for `dataloader_idx`
+        def test_step(self, x3, batch_nb3, dataloader_idx):
             self.assert_args(x3, batch_nb3)
-            assert isinstance(dl_idx3, int)
+            assert isinstance(dataloader_idx, int)
             return super().test_step(x3, batch_nb3)
 
-        def predict(self, x4, batch_nb4, dl_idx4):
+        # we don't support a different name for `dataloader_idx`
+        def predict_step(self, x4, batch_nb4, dataloader_idx):
             self.assert_args(x4, batch_nb4)
-            assert isinstance(dl_idx4, int)
-            return super().predict(x4, batch_nb4, dl_idx4)
+            assert isinstance(dataloader_idx, int)
+            return super().predict_step(x4, batch_nb4, dataloader_idx)
 
         def test_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
@@ -833,12 +777,10 @@ def test_hooks_with_different_argument_names(tmpdir):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
     model = CustomBoringModel()
-    model.test_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     trainer.test(model)
 
     preds = trainer.predict(model)

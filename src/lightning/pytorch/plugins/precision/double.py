@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
 class DoublePrecisionPlugin(PrecisionPlugin):
     """Plugin for training with double (``torch.float64``) precision."""
 
-    precision: Literal["64"] = "64"
+    precision: Literal["64-true"] = "64-true"
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]

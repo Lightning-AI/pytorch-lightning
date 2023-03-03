@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,13 +23,14 @@ from torch.utils.data import DataLoader, Sampler
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.strategies.utils import _fp_to_half
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
+from lightning.pytorch.utilities import rank_zero_warn
 from lightning.pytorch.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -104,9 +105,6 @@ class IPUStrategy(ParallelStrategy):
         self._optimizer_zero_grad_original: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        # set the `accumulate_grad_batches` property as early as possible
-        self._handle_gradient_accumulation_steps()
-
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
@@ -215,23 +213,6 @@ class IPUStrategy(ParallelStrategy):
             dataloader, opts, *dl_args, explicit_cls=poptorch.DataLoader, **dl_kwargs
         )
         return dataloader
-
-    def _handle_gradient_accumulation_steps(self) -> None:
-        """Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient
-        accumulation has been set.
-
-        ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
-        """
-        assert self.lightning_module is not None
-        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
-            )
-
-        # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
-        accumulation_scheduler.scheduling.update({0: 1})
 
     @property
     def _n_replicate(self) -> int:

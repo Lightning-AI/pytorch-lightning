@@ -7,7 +7,7 @@ lightning.app.components
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.components
+.. currentmodule:: lightning.app.components
 
 
 Built-in Components

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ class ServeGradio(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
         assert self.outputs
@@ -62,7 +62,7 @@ class ServeGradio(LightningWork, abc.ABC):
         return self._model
 
     @abc.abstractmethod
-    def predict(self, *args, **kwargs):
+    def predict(self, *args: Any, **kwargs: Any):
         """Override with your logic to make a prediction."""
 
     @abc.abstractmethod
@@ -72,7 +72,7 @@ class ServeGradio(LightningWork, abc.ABC):
         The model would be accessible under self.model
         """
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any):
         if self._model is None:
             self._model = self.build_model()
         fn = partial(self.predict, *args, **kwargs)

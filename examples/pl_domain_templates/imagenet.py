@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,11 +44,11 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.strategies import ParallelStrategy
-from pytorch_lightning.utilities.model_helpers import get_torchvision_model
+from lightning.pytorch import LightningModule
+from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.strategies import ParallelStrategy
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 
 class ImageNetLightningModel(LightningModule):
@@ -82,10 +82,11 @@ class ImageNetLightningModel(LightningModule):
         self.model = get_torchvision_model(self.arch, weights=self.weights)
         self.train_dataset: Optional[Dataset] = None
         self.eval_dataset: Optional[Dataset] = None
-        self.train_acc1 = Accuracy(top_k=1)
-        self.train_acc5 = Accuracy(top_k=5)
-        self.eval_acc1 = Accuracy(top_k=1)
-        self.eval_acc5 = Accuracy(top_k=5)
+        # ToDo: this number of classes hall be parsed when the dataset is loaded from folder
+        self.train_acc1 = Accuracy(task="multiclass", num_classes=1000, top_k=1)
+        self.train_acc5 = Accuracy(task="multiclass", num_classes=1000, top_k=5)
+        self.eval_acc1 = Accuracy(task="multiclass", num_classes=1000, top_k=1)
+        self.eval_acc5 = Accuracy(task="multiclass", num_classes=1000, top_k=5)
 
     def forward(self, x):
         return self.model(x)

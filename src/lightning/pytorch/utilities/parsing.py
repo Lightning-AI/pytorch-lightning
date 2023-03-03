@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,62 +24,6 @@ from torch import nn
 
 import lightning.pytorch as pl
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-
-
-def str_to_bool_or_str(val: str) -> Union[str, bool]:
-    """Possibly convert a string representation of truth to bool. Returns the input otherwise. Based on the python
-    implementation distutils.utils.strtobool.
-
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values are 'n', 'no', 'f', 'false', 'off', and '0'.
-    """
-    lower = val.lower()
-    if lower in ("y", "yes", "t", "true", "on", "1"):
-        return True
-    if lower in ("n", "no", "f", "false", "off", "0"):
-        return False
-    return val
-
-
-def str_to_bool(val: str) -> bool:
-    """Convert a string representation of truth to bool.
-
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.
-
-    Raises:
-        ValueError:
-            If ``val`` isn't in one of the aforementioned true or false values.
-
-    >>> str_to_bool('YES')
-    True
-    >>> str_to_bool('FALSE')
-    False
-    """
-    val_converted = str_to_bool_or_str(val)
-    if isinstance(val_converted, bool):
-        return val_converted
-    raise ValueError(f"invalid truth value {val_converted}")
-
-
-def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
-    """Convert a string representation to truth of bool if possible, or otherwise try to convert it to an int.
-
-    >>> str_to_bool_or_int("FALSE")
-    False
-    >>> str_to_bool_or_int("1")
-    True
-    >>> str_to_bool_or_int("2")
-    2
-    >>> str_to_bool_or_int("abc")
-    'abc'
-    """
-    val_converted = str_to_bool_or_str(val)
-    if isinstance(val_converted, bool):
-        return val_converted
-    try:
-        return int(val_converted)
-    except ValueError:
-        return val_converted
 
 
 def is_picklable(obj: object) -> bool:
@@ -136,7 +80,13 @@ def parse_class_init_keys(
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
+def get_init_args(frame: types.FrameType) -> Dict[str, Any]:  # pragma: no-cover
+    """For backwards compatibility: #16369."""
+    _, local_args = _get_init_args(frame)
+    return local_args
+
+
+def _get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if "__class__" not in local_vars:
         return None, {}
@@ -179,7 +129,7 @@ def collect_init_args(
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    local_self, local_args = get_init_args(frame)
+    local_self, local_args = _get_init_args(frame)
     if "__class__" in local_vars and (not classes or isinstance(local_self, classes)):
         # recursive update
         path_args.append(local_args)
@@ -187,19 +137,6 @@ def collect_init_args(
     if not inside:
         return collect_init_args(frame.f_back, path_args, inside=False, classes=classes)
     return path_args
-
-
-def flatten_dict(source: Dict[str, Any], result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    if result is None:
-        result = {}
-
-    for k, v in source.items():
-        if isinstance(v, dict):
-            _ = flatten_dict(v, result)
-        else:
-            result[k] = v
-
-    return result
 
 
 def save_hyperparameters(

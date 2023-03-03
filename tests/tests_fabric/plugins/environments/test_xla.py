@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
 from lightning.fabric.plugins.environments import XLAEnvironment
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)

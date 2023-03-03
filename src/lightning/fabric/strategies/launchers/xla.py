@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,6 +77,8 @@ class _XLALauncher(_Launcher):
 
     def _wrapping_function(
         self,
+        # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
+        # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
         process_idx: int,
         function: Callable,
         args: Any,
@@ -84,13 +86,12 @@ class _XLALauncher(_Launcher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
-        if process_idx == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-        _rank_teardown(process_idx)
+        _rank_teardown(self._strategy.local_rank)
 
 
 def _rank_teardown(rank: int) -> None:

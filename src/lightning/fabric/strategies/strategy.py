@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -304,6 +304,27 @@ class Strategy(ABC):
         assert self.accelerator is not None
         self.accelerator.teardown()
         self.checkpoint_io.teardown()
+
+    def clip_gradients_norm(
+        self,
+        module: torch.nn.Module,
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> torch.Tensor:
+        """Clip gradients by norm."""
+        self.precision.unscale_gradients(optimizer)
+        parameters = self.precision.main_params(optimizer)
+        return torch.nn.utils.clip_grad_norm_(
+            parameters, max_norm=max_norm, norm_type=norm_type, error_if_nonfinite=error_if_nonfinite
+        )
+
+    def clip_gradients_value(self, module: torch.nn.Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
+        """Clip gradients by value."""
+        self.precision.unscale_gradients(optimizer)
+        parameters = self.precision.main_params(optimizer)
+        return torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:

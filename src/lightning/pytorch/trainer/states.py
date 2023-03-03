@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,13 +63,11 @@ class RunningStage(LightningEnum):
 
     @property
     def evaluating(self) -> bool:
-        return self in (self.VALIDATING, self.TESTING)
+        return self in (self.VALIDATING, self.TESTING, self.SANITY_CHECKING)
 
     @property
     def dataloader_prefix(self) -> Optional[str]:
-        if self == self.SANITY_CHECKING:
-            return None
-        if self == self.VALIDATING:
+        if self in (self.VALIDATING, self.SANITY_CHECKING):
             return "val"
         return self.value
 

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -154,6 +154,6 @@ class CSVLogger(Logger, FabricCSVLogger):
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        self._fs.makedirs(self.root_dir, exist_ok=True)
         self._experiment = ExperimentWriter(log_dir=self.log_dir)
         return self._experiment

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning import cli_lightning_logo
-from pytorch_lightning.core import LightningModule
-from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning.pytorch import cli_lightning_logo
+from lightning.pytorch.core import LightningModule
+from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -116,8 +116,8 @@ class GAN(LightningModule):
         latent_dim: int = 100,
     ):
         super().__init__()
-
         self.save_hyperparameters()
+        self.automatic_optimization = False
 
         # networks
         self.generator = Generator(latent_dim=self.hparams.latent_dim, img_shape=img_shape)
@@ -127,20 +127,6 @@ class GAN(LightningModule):
 
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
 
-    @staticmethod
-    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group=True):
-        if use_argument_group:
-            parser = parent_parser.add_argument_group("GAN")
-            parser_out = parent_parser
-        else:
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
-            parser_out = parser
-        parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-        parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
-        parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
-        parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-        return parser_out
-
     def forward(self, z):
         return self.generator(z)
 
@@ -148,48 +134,53 @@ class GAN(LightningModule):
     def adversarial_loss(y_hat, y):
         return F.binary_cross_entropy_with_logits(y_hat, y)
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch):
         imgs, _ = batch
+
+        opt_g, opt_d = self.optimizers()
 
         # sample noise
         z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
         z = z.type_as(imgs)
 
-        # train generator
-        if optimizer_idx == 0:
-            # ground truth result (ie: all fake)
-            # put on GPU because we created this tensor inside training_loop
-            valid = torch.ones(imgs.size(0), 1)
-            valid = valid.type_as(imgs)
+        # Train generator
+        # ground truth result (ie: all fake)
+        # put on GPU because we created this tensor inside training_loop
+        valid = torch.ones(imgs.size(0), 1)
+        valid = valid.type_as(imgs)
 
-            # adversarial loss is binary cross-entropy
-            g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
-            tqdm_dict = {"g_loss": g_loss}
-            self.log_dict(tqdm_dict)
-            return g_loss
+        self.toggle_optimizer(opt_g)
+        # adversarial loss is binary cross-entropy
+        g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
+        opt_g.zero_grad()
+        self.manual_backward(g_loss)
+        opt_g.step()
+        self.untoggle_optimizer(opt_g)
 
-        # train discriminator
-        if optimizer_idx == 1:
-            # Measure discriminator's ability to classify real from generated samples
+        # Train discriminator
+        # Measure discriminator's ability to classify real from generated samples
+        # how well can it label as real?
+        valid = torch.ones(imgs.size(0), 1)
+        valid = valid.type_as(imgs)
 
-            # how well can it label as real?
-            valid = torch.ones(imgs.size(0), 1)
-            valid = valid.type_as(imgs)
+        self.toggle_optimizer(opt_d)
+        real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
 
-            real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+        # how well can it label as fake?
+        fake = torch.zeros(imgs.size(0), 1)
+        fake = fake.type_as(imgs)
 
-            # how well can it label as fake?
-            fake = torch.zeros(imgs.size(0), 1)
-            fake = fake.type_as(imgs)
+        fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
 
-            fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
+        # discriminator loss is the average of these
+        d_loss = (real_loss + fake_loss) / 2
 
-            # discriminator loss is the average of these
-            d_loss = (real_loss + fake_loss) / 2
-            tqdm_dict = {"d_loss": d_loss}
-            self.log_dict(tqdm_dict)
+        opt_d.zero_grad()
+        self.manual_backward(d_loss)
+        opt_d.step()
+        self.untoggle_optimizer(opt_d)
 
-            return d_loss
+        self.log_dict({"d_loss": d_loss, "g_loss": g_loss})
 
     def configure_optimizers(self):
         lr = self.hparams.lr
@@ -198,7 +189,7 @@ class GAN(LightningModule):
 
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
-        return [opt_g, opt_d], []
+        return opt_g, opt_d
 
     def on_train_epoch_end(self):
         z = self.validation_z.type_as(self.generator.model[0].weight)
@@ -221,8 +212,8 @@ def main(args: Namespace) -> None:
     # ------------------------
     # If use distributed training  PyTorch recommends to use DistributedDataParallel.
     # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
-    dm = MNISTDataModule.from_argparse_args(args)
-    trainer = Trainer.from_argparse_args(args)
+    dm = MNISTDataModule()
+    trainer = Trainer(accelerator="gpu", devices=1)
 
     # ------------------------
     # 3 START TRAINING
@@ -234,15 +225,11 @@ if __name__ == "__main__":
     cli_lightning_logo()
     parser = ArgumentParser()
 
-    # Add program level args, if any.
-    # ------------------------
-    # Add LightningDataLoader args
-    parser = MNISTDataModule.add_argparse_args(parser)
-    # Add model specific args
-    parser = GAN.add_argparse_args(parser)
-    # Add trainer args
-    parser = Trainer.add_argparse_args(parser)
-    # Parse all arguments
+    # Hyperparameters
+    parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+    parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
+    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
     args = parser.parse_args()
 
     main(args)

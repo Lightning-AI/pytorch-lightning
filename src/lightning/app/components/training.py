@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         parallel: bool = True,
         raise_exception: bool = True,
         env: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(
             script_path,
@@ -63,7 +63,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
         return tracer
 
-    def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None, **kwargs) -> None:
+    def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None, **kwargs: Any) -> None:
         if not internal_urls:
             # Note: This is called only once.
             _logger.info(f"The node {self.node_rank} started !")
@@ -108,7 +108,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
 
         self.has_finished = True
 
-    def _trainer_init_pre_middleware(self, trainer, *args, **kwargs):
+    def _trainer_init_pre_middleware(self, trainer, *args: Any, **kwargs: Any):
         if self.node_rank != 0:
             return {}, args, kwargs
 

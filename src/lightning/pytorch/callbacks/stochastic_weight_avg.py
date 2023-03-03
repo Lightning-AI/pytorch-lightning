@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -250,12 +250,12 @@ class StochasticWeightAveraging(Callback):
 
             # There is no need to perform either backward or optimizer.step as we are
             # performing only one pass over the train data-loader to compute activation statistics
-            # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
-            trainer.num_training_batches += 1
+            # Therefore, we will virtually increase the number of training batches by 1 and skip backward.
+            trainer.fit_loop.max_batches += 1
             trainer.fit_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
-
-            trainer.accumulate_grad_batches = trainer.num_training_batches
+            assert isinstance(trainer.fit_loop.max_batches, int), "Iterable-style datasets are not supported"
+            trainer.accumulate_grad_batches = trainer.fit_loop.max_batches
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", *args: Any) -> None:
         trainer.fit_loop._skip_backward = False
@@ -265,7 +265,7 @@ class StochasticWeightAveraging(Callback):
         if self._model_contains_batch_norm and trainer.current_epoch - 1 == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
-            trainer.num_training_batches -= 1
+            trainer.fit_loop.max_batches -= 1
             assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs -= 1
             self.reset_momenta()

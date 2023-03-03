@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,9 @@ async def _mock_fastapi_request(request: Request):
 
 
 class _HttpMethod:
-    def __init__(self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs):
+    def __init__(
+        self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs: Any
+    ):
         """This class is used to inject user defined methods within the App Rest API.
 
         Arguments:
@@ -151,7 +153,7 @@ class _HttpMethod:
         if not self.attached_to_flow:
             # 3: Define the request handler.
             @wraps(_signature_proxy_function)
-            async def _handle_request(*args, **kwargs):
+            async def _handle_request(*args: Any, **kwargs: Any):
                 if inspect.iscoroutinefunction(self.method):
                     return await self.method(*args, **kwargs)
                 return self.method(*args, **kwargs)
@@ -161,8 +163,8 @@ class _HttpMethod:
 
             # 3: Define the request handler.
             @wraps(_signature_proxy_function)
-            async def _handle_request(*args, **kwargs):
-                async def fn(*args, **kwargs):
+            async def _handle_request(*args: Any, **kwargs: Any):
+                async def fn(*args: Any, **kwargs: Any):
                     args, kwargs = apply_to_collection((args, kwargs), Request, _mock_fastapi_request)
                     for k, v in kwargs.items():
                         if hasattr(v, "__await__"):

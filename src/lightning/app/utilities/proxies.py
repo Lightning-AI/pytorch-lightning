@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, T
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.storage import Path
 from lightning.app.storage.copier import _Copier, _copy_files
@@ -120,7 +121,7 @@ class ProxyWorkRun:
     def __post_init__(self):
         self.work_state = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         self.has_sent = False
 
         self._validate_call_args(args, kwargs)
@@ -500,7 +501,8 @@ class WorkRunner:
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
-        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
+        default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", default_internal_ip)
 
         # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
@@ -611,15 +613,16 @@ class WorkRunner:
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)
             )
-            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
-            self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # kill the thread as the job is going to be terminated.
-        self.copier.join(0)
         if self.state_observer:
             if self.state_observer.started:
                 self.state_observer.join(0)
             self.state_observer = None
+        delta = Delta(DeepDiff(state, deepcopy(self.work.state), verbose_level=2))
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+
+        self.copier.join(0)
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):

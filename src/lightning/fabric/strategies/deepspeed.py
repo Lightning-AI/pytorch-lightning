@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -105,8 +105,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is compatible with either ``precision=16`` or
-                ``precision="bf16"``.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either ``precision="16-mixed"`` or
+                ``precision="bf16-mixed"``.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
@@ -350,9 +350,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == "16":
+            if self.precision.precision == "16-mixed":
                 dtype = torch.float16
-            elif self.precision.precision == "bf16":
+            elif self.precision.precision == "bf16-mixed":
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -486,6 +486,27 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             state[k] = client_state.pop(k)
         return client_state
 
+    def clip_gradients_norm(
+        self,
+        module: "deepspeed.DeepSpeedEngine",
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> torch.Tensor:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
+    def clip_gradients_value(
+        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
+    ) -> None:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
@@ -604,7 +625,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == "16":
+        if self.precision.precision == "16-mixed":
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -616,7 +637,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == "bf16":
+        elif "bf16" not in self.config and self.precision.precision == "bf16-mixed":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

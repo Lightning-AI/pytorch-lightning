@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)

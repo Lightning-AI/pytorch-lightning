@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,5 +48,4 @@ def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator
     if norms:
         total_norm = torch.tensor(list(norms.values())).norm(norm_type)
         norms[f"grad_{norm_type}_norm_total"] = total_norm
-    norms = {k: round(v.item(), 4) for k, v in norms.items()}
     return norms

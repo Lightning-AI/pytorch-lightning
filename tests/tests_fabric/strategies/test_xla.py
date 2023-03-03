@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,19 @@
 import os
 from functools import partial
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.dataloaders import CustomNotImplementedErrorDataloader
-from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
-from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
+from tests_fabric.helpers.dataloaders import CustomNotImplementedErrorDataloader
+from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.runif import RunIf
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
@@ -84,17 +84,30 @@ def test_tpu_reduce():
 @RunIf(tpu=True)
 @mock.patch("lightning.fabric.strategies.xla.XLAStrategy.root_device")
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
-    import torch_xla.distributed.parallel_loader as parallel_loader
-
-    mp_loader_mock = Mock()
-    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
-
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
     strategy = XLAStrategy()
+    isinstance_return = True
+
+    import torch_xla.distributed.parallel_loader as parallel_loader
+
+    class MpDeviceLoaderMock(MagicMock):
+        def __instancecheck__(self, instance):
+            # to make `isinstance(dataloader, MpDeviceLoader)` pass with a mock as class
+            return isinstance_return
+
+    mp_loader_mock = MpDeviceLoaderMock()
+    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
+
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    assert processed_dataloader is dataloader
+    mp_loader_mock.assert_not_called()  # no-op
+
+    isinstance_return = False
     processed_dataloader = strategy.process_dataloader(dataloader)
     mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
+    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
 _loader = DataLoader(RandomDataset(32, 64))

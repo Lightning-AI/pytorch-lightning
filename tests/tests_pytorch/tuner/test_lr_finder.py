@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -335,9 +335,8 @@ def test_lr_finder_ends_before_num_training(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-        def training_step_end(self, outputs):
+        def on_before_optimizer_step(self, optimizer):
             assert self.global_step < num_training
-            return outputs
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionM
         (None, BasicGAN),
         (None, ParityModuleRNN),
         (None, ParityModuleMNIST),
-        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True)),
-        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True)),
+        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True, onnx=True)),
+        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True, onnx=True)),
     ],
 )
 def test_models(tmpdir, data_class, model_class):

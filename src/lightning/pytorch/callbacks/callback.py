@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ Base class used to build new callbacks.
 
 """
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -95,10 +95,29 @@ class Callback:
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the train epoch ends.
 
-        To access all batch outputs at the end of the epoch, either:
+        To access all batch outputs at the end of the epoch, you can cache step outputs as an attribute of the
+        :class:`pytorch_lightning.LightningModule` and access them in this hook:
 
-        1. Implement `training_epoch_end` in the `LightningModule` and access outputs via the module OR
-        2. Cache data across train batch hooks inside the callback implementation to post-process in this hook.
+        .. code-block:: python
+
+            class MyLightningModule(L.LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.training_step_outputs = []
+
+                def training_step(self):
+                    loss = ...
+                    self.training_step_outputs.append(loss)
+                    return loss
+
+
+            class MyCallback(L.Callback):
+                def on_train_epoch_end(self, trainer, pl_module):
+                    # do something with all training_step outputs, for example:
+                    epoch_mean = torch.stack(pl_module.training_step_outputs).mean()
+                    pl_module.log("training_epoch_mean", epoch_mean)
+                    # free up the memory
+                    pl_module.training_step_outputs.clear()
         """
 
     def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -116,11 +135,16 @@ class Callback:
     def on_predict_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the predict epoch begins."""
 
-    def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: List[Any]) -> None:
+    def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the predict epoch ends."""
 
     def on_validation_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         """Called when the validation batch begins."""
 
@@ -131,12 +155,17 @@ class Callback:
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         """Called when the validation batch ends."""
 
     def on_test_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         """Called when the test batch begins."""
 
@@ -147,12 +176,17 @@ class Callback:
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         """Called when the test batch ends."""
 
     def on_predict_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         """Called when the predict batch begins."""
 
@@ -163,7 +197,7 @@ class Callback:
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         """Called when the predict batch ends."""
 

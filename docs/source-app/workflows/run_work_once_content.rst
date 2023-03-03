@@ -86,7 +86,7 @@ By setting ``cache_calls=False``, Lightning won't cache the return value and re-
 .. code:: python
     :emphasize-lines: 7
 
-    from lightning_app import LightningWork
+    from lightning.app import LightningWork
 
 
     class ExampleWork(LightningWork):
@@ -124,7 +124,7 @@ as the work continuously execute in a blocking way.
 .. code-block:: python
     :emphasize-lines: 9-10
 
-    from lightning_app import LightningApp, LightningFlow, LightningWork
+    from lightning.app import LightningApp, LightningFlow, LightningWork
 
 
     class Flow(LightningFlow):

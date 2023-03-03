@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
-from torch.utils.data import DistributedSampler
+from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from tests_fabric.helpers.runif import RunIf
 
 
 class EmptyFabric(Fabric):
@@ -101,9 +101,9 @@ def test_fabric_module_state_dict_access():
 @pytest.mark.parametrize(
     "precision, input_type, expected_type, accelerator, device_str",
     [
-        pytest.param(32, torch.float16, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float16, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float32, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(32, torch.float64, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float64, torch.float64, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.int, torch.int, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.float32, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.float64, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -232,24 +232,36 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
-def test_fabric_dataloader_distributed_sampler_set_epoch():
+@pytest.mark.parametrize("use_batch_sampler", (False, True))
+def test_fabric_dataloader_distributed_sampler_set_epoch(use_batch_sampler):
     """Test that the FabricDataLoader calls `set_epoch()` on the wrapped sampler if applicable."""
-    sampler = DistributedSampler(range(3), num_replicas=2, rank=0)
+    dataset = range(3)
+    sampler = DistributedSampler(dataset, num_replicas=2, rank=0)
     sampler.set_epoch = Mock()
-    dataloader = DataLoader(range(3), sampler=sampler)
+
+    if not use_batch_sampler:
+        dataloader = DataLoader(dataset, sampler=sampler)
+    else:
+        batch_sampler = BatchSampler(sampler, batch_size=1, drop_last=False)
+        dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+
     fabric_dataloader = _FabricDataLoader(dataloader)
     iterator_epoch_0 = iter(fabric_dataloader)
-    dataloader.sampler.set_epoch.assert_not_called()
+    sampler.set_epoch.assert_not_called()
+
     next(iterator_epoch_0)
     # .set_epoch() gets called before the first sample gets fetched from the wrapped dataloader
-    assert dataloader.sampler.set_epoch.call_args_list == [call(0)]
+    assert sampler.set_epoch.mock_calls == [call(0)]
+
     next(iterator_epoch_0)
-    assert dataloader.sampler.set_epoch.call_args_list == [call(0)]
+    assert sampler.set_epoch.mock_calls == [call(0)]
+
     iterator_epoch_1 = iter(fabric_dataloader)
-    assert dataloader.sampler.set_epoch.call_args_list == [call(0)]
+    assert sampler.set_epoch.mock_calls == [call(0)]
+
     next(iterator_epoch_1)
     # with every new iterator call, the epoch increases
-    assert dataloader.sampler.set_epoch.call_args_list == [call(0), call(1)]
+    assert sampler.set_epoch.mock_calls == [call(0), call(1)]
 
 
 def test_fabric_optimizer_wraps():
