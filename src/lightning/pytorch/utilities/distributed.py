@@ -119,7 +119,7 @@ def register_ddp_comm_hook(
         ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
     rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
-    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)  # type: ignore[operator]
+    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
 
 
 def _broadcast_object_list(obj: Any, rank: int) -> Any:
