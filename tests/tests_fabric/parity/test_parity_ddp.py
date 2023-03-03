@@ -19,6 +19,11 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+from lightning.fabric.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
 from tests_fabric.parity.utils import (
@@ -28,11 +33,6 @@ from tests_fabric.parity.utils import (
     is_timing_close,
     make_deterministic,
 )
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
-from lightning.fabric.fabric import Fabric
 
 
 def train_torch_ddp(
