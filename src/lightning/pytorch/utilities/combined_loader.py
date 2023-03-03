@@ -157,14 +157,11 @@ class _CombinationMode(TypedDict):
 _supported_modes = {
     "min_size": _CombinationMode(fn=min, iterator=_MinSize),
     "max_size_cycle": _CombinationMode(fn=max, iterator=_MaxSizeCycle),
-    "sequential": _CombinationMode(fn=sum, iterator=_Sequential),
     "max_size": _CombinationMode(fn=max, iterator=_MaxSize),
+    "sequential": _CombinationMode(fn=sum, iterator=_Sequential),
 }
 
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "max_size", "sequential"]
-
-
-_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
 
 
 class CombinedLoader(Iterable):
