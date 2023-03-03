@@ -202,7 +202,7 @@ def connect_maverick(name: str, project_name: str = "") -> None:
             # Sleeping for 0.5 seconds
             time.sleep(0.5)
     rich.print(
-        f"[green]Succeeded[/green]: maverick {name} has been connected to lightning. \n "
+        f"[green]Succeeded[/green]: maverick {name} has been connected to lightning."
     )
 
 
