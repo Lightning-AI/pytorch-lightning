@@ -40,9 +40,10 @@ class MyCustomTrainer:
         checkpoint_dir: str = "./checkpoints",
         checkpoint_frequency: int = 1,
     ) -> None:
-        """
-        Exemplary Trainer with Fabric. This is a very simple trainer focused on readablity
-        but with reduced featureset. For actual training, we recommend using the :class:`lightning.pytorch.Trainer`.
+        """Exemplary Trainer with Fabric. This is a very simple trainer focused on readablity but with reduced
+        featureset. As a trainer with more included features, we recommend using the
+        :class:`lightning.pytorch.Trainer`.
+
         Args:
             accelerator: The hardware to run on. Possible choices are:
                 ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
@@ -88,8 +89,6 @@ class MyCustomTrainer:
 
         Warning:
             callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
-
-
         """
 
         self.fabric = Fabric(

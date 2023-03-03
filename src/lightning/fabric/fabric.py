@@ -67,7 +67,7 @@ class Fabric:
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
-        precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
+        precision: Double precision (``"64"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
             or bfloat16 precision AMP (``"bf16-mixed"``).
         plugins: One or several custom plugins
         callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
