@@ -42,10 +42,12 @@ _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 class _RunIf:
     """Wrapper around ``pytest.mark.skipif`` with specific conditions.
 
-    @RunIf(min_python="3.6")
-    @pytest.mark.parametrize("arg1", [1, 2.0])
-    def test_wrapper(arg1):
-        assert arg1 > 0.0
+    Example:
+
+        @RunIf(min_python="3.6")
+        @pytest.mark.parametrize("arg1", [1, 2.0])
+        def test_wrapper(arg1):
+            assert arg1 > 0.0
     """
 
     def __new__(
@@ -67,9 +69,9 @@ class _RunIf:
         psutil: bool = False,
         sklearn: bool = False,
         onnx: bool = False,
-        **kwargs: Any,
     ) -> MarkDecorator:  # not the real return because it would require that pytest is available
-        """
+        """Configure.
+
         Args:
             min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
             min_torch: Require that PyTorch is greater or equal than this version.
@@ -90,12 +92,12 @@ class _RunIf:
             psutil: Require that psutil is installed.
             sklearn: Require that scikit-learn is installed.
             onnx: Require that onnx is installed.
-            **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         import pytest
 
         conditions = []
         reasons = []
+        kwargs: dict = {}  # ToDo: this is very confusing, drop it
 
         if min_cuda_gpus:
             conditions.append(num_cuda_devices() < min_cuda_gpus)
