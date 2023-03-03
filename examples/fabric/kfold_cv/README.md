@@ -1,29 +1,14 @@
 ## K-Fold Cross Validation
 
-This is an example of performing K-Fold cross validation supported with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html). To know more about cross validation, check out [this article](https://sebastianraschka.com/blog/2016/model-evaluation-selection-part3.html#introduction-to-k-fold-cross-validation).
+This is an example of performing K-Fold cross validation supported with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html). To learn more about cross validation, check out [this article](https://sebastianraschka.com/blog/2016/model-evaluation-selection-part3.html#introduction-to-k-fold-cross-validation).
 
-We use the MNIST dataset to train a simple CNN model. We create the k-fold cross validation splits using the `ModelSelection.KFold` [class](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html) in the `scikit-learn` library. Ensure that you have the `scikit-learn` library installed.
-
-### Run
-
-Tip: You can easily inspect the difference between the two files with:
+We use the MNIST dataset to train a simple CNN model. We create the k-fold cross validation splits using the `ModelSelection.KFold` [class](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html) in the `scikit-learn` library. Ensure that you have the `scikit-learn` library installed;
 
 ```bash
-sdiff train_torch.py train_fabric.py
+pip install scikit-learn
 ```
 
-#### 1. K-Fold Image Classification with Vanilla PyTorch
-
-Trains a simple CNN over MNIST using vanilla PyTorch with KFold Cross Validation. It only supports singe GPU training.
-
-```bash
-# CPU
-python train_torch.py
-```
-
-______________________________________________________________________
-
-#### 2. K-Fold Image Classification with Lightning Fabric
+#### Run K-Fold Image Classification with Lightning Fabric
 
 This script shows you how to scale the pure PyTorch code to enable GPU and multi-GPU training using [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html).
 
