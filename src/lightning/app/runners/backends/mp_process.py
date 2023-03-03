@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import multiprocessing
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import lightning.app
 from lightning.app.core import constants
@@ -114,7 +114,7 @@ class MultiProcessingBackend(Backend):
 
 
 class CloudMultiProcessingBackend(MultiProcessingBackend):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         # Note: Track the open ports to close them on termination.

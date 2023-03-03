@@ -259,7 +259,7 @@ class CloudRuntime(Runtime):
     def dispatch(
         self,
         name: str = "",
-        cluster_id: str = None,
+        cluster_id: Optional[str] = None,
         open_ui: bool = True,
         no_cache: bool = False,
         **kwargs: Any,

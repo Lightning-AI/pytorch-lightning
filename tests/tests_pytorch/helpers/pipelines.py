@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+
 import torch
 from torchmetrics.functional import accuracy
 
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint
 
 
@@ -100,7 +103,8 @@ def run_model_prediction(trained_model, dataloader, min_acc=0.50):
     x = x.flatten(1)
 
     y_hat = trained_model(x)
-    acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
+    metric = partial(accuracy, task="multiclass") if _TM_GE_0_11 else accuracy
+    acc = metric(y_hat.cpu(), y.cpu(), top_k=2, num_classes=y_hat.size(-1)).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
     trained_model.to(orig_device)
