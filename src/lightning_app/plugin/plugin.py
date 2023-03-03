@@ -173,6 +173,11 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             os.chdir(cwd)
 
 
+async def _healthz() -> Dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
 def _start_plugin_server(host: str, port: int) -> None:
     """Start the plugin server which can be used to dispatch apps or run plugins."""
     fastapi_service = FastAPI()
@@ -186,5 +191,6 @@ def _start_plugin_server(host: str, port: int) -> None:
     )
 
     fastapi_service.post("/v1/runs")(_run_plugin)
+    fastapi_service.get("/healthz", status_code=200)(_healthz)
 
     uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
