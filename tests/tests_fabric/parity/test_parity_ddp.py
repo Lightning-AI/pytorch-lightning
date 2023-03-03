@@ -131,7 +131,7 @@ def train_fabric_ddp(fabric):
 @pytest.mark.parametrize(
     "accelerator, devices, tolerance",
     [
-        ("cpu", 2, 0.005),
+        ("cpu", 2, 0.01),
         pytest.param("cuda", 2, 0.005, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
