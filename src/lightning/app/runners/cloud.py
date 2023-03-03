@@ -81,6 +81,8 @@ from lightning.app.core.constants import (
     get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
+    SYS_CUSTOMIZATIONS_SYNC_PATH,
+    SYS_CUSTOMIZATIONS_SYNC_ROOT,
 )
 from lightning.app.core.work import LightningWork
 from lightning.app.runners.backends.cloud import CloudBackend
@@ -99,10 +101,6 @@ from lightning.app.utilities.packaging.lightning_utils import _prepare_lightning
 from lightning.app.utilities.secrets import _names_to_ids
 
 logger = Logger(__name__)
-
-
-SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"
-SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
 
 def _to_clean_dict(swagger_object, map_attributes):
