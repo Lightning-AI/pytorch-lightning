@@ -44,8 +44,10 @@ class MNISTModule(LightningModule):
 
         optim = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optim, {
-            "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="max"),
+            "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="max", verbose=True),
             "monitor": "val_accuracy",
+            "interval": "epoch",
+            "frequency": 1,
         }
 
     def validation_step(self, *args, **kwargs):
@@ -66,7 +68,11 @@ def train(model):
         val_set, batch_size=64, shuffle=False, pin_memory=torch.cuda.is_available(), num_workers=4
     )
 
-    trainer = Trainer(accelerator="cpu", devices="auto", limit_train_batches=10, limit_val_batches=20, max_epochs=3)
+    accelerator = "cpu" if torch.backends.mps.is_available() else "auto"
+
+    trainer = Trainer(
+        accelerator=accelerator, devices="auto", limit_train_batches=10, limit_val_batches=20, max_epochs=3
+    )
     trainer.fit(model, train_loader, val_loader)
 
 

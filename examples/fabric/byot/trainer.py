@@ -301,7 +301,13 @@ class Trainer:
         elif isinstance(self._current_val_return, Mapping):
             possible_monitor_vals.update({"val_" + k: v for k, v in self._current_val_return.items()})
 
-        monitor = {**self._current_train_return, **self._current_val_return}[scheduler_cfg["monitor"]]
+        try:
+            monitor = possible_monitor_vals[cast(Optional[str], scheduler_cfg["monitor"])]
+        except KeyError as e:
+            possible_keys = list(possible_monitor_vals.keys())
+            raise KeyError(
+                f"monitor {scheduler_cfg['monitor']} is invalid. Possible values are {possible_keys}."
+            ) from e
 
         # rely on model hook for actual step
         model.lr_scheduler_step(scheduler_cfg["scheduler"], monitor)
