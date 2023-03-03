@@ -42,7 +42,9 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", requires: "latest"}
-
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      FREEZE_REQUIREMENTS: 1
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 30
 
@@ -76,9 +78,6 @@ jobs:
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
       - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
           pip install -e .[dev] --upgrade --find-links ${TORCH_URL}
           pip list
@@ -114,19 +113,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
-          PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
             -m pytest -m "not cloud" tests_app \
-            --timeout=300 -vvvv --durations=50 \
-            --junitxml=$PYTEST_ARTIFACT
-
-      - name: Upload pytest test results
-        uses: actions/upload-artifact@v3
-        with:
-          name: unittest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
-          path: tests/results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        if: failure()
+            --timeout=300 -vvvv --durations=50
 
       - name: Statistics
         if: success()
