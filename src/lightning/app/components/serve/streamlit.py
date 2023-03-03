@@ -31,7 +31,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
     You can optionally build a model in the ``build_model`` hook, which will only be called once per session.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         self.ready = False

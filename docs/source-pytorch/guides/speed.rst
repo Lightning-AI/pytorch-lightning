@@ -2,7 +2,7 @@
 
 .. testsetup:: *
 
-    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+    from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 
 .. _training-speedup:
 
@@ -27,9 +27,9 @@ GPU Training
 
 Lightning supports a variety of plugins to speed up distributed GPU training. Most notably:
 
-* :class:`~pytorch_lightning.strategies.DDPStrategy`
-* :class:`~pytorch_lightning.strategies.FSDPStrategy`
-* :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
+* :class:`~lightning.pytorch.strategies.DDPStrategy`
+* :class:`~lightning.pytorch.strategies.FSDPStrategy`
+* :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
 
@@ -49,22 +49,9 @@ GPU Training Speedup Tips
 When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
 Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/model_parallel>`.
 
-Prefer DDP Over DP
-^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs three GPU transfers for EVERY batch:
-
-1. Copy the model to the device.
-2. Copy the data to the device.
-3. Copy the outputs of each device back to the main device.
-
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
-    :alt: Animation showing DP execution.
-    :width: 500
-    :align: center
-
 |
 
-Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations, making DDP much faster than DP:
+:class:`~lightning.pytorch.strategies.ddp.DDPStrategy` only performs two transfer operations for each step, making it the simplest distributed training strategy:
 
 1. Moving data to the device.
 2. Transfer and sync gradients.
@@ -110,7 +97,7 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
     warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
 
     # or to ignore all warnings that could be false positives
-    from pytorch_lightning.utilities.warnings import PossibleUserWarning
+    from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
@@ -174,7 +161,7 @@ Early Stopping
 **************
 
 Usually, long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence.
-Here :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback can help you stop the training entirely by monitoring a metric of your choice.
+Here :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback can help you stop the training entirely by monitoring a metric of your choice.
 
 You can read more about it :ref:`here <early_stopping>`.
 
@@ -352,8 +339,8 @@ Here is an explanation of what it does:
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
-:class:`~pytorch_lightning.core.optimizer.LightningOptimizer` provides a
-:meth:`~pytorch_lightning.core.optimizer.LightningOptimizer.toggle_model` function as a
+:class:`~lightning.pytorch.core.optimizer.LightningOptimizer` provides a
+:meth:`~lightning.pytorch.core.optimizer.LightningOptimizer.toggle_model` function as a
 :func:`contextlib.contextmanager` for advanced users.
 
 Here is an example of an advanced use case:
@@ -422,7 +409,7 @@ Here is an example of an advanced use case:
 Set Grads to None
 *****************
 
-In order to improve performance, you can override :meth:`~pytorch_lightning.core.module.LightningModule.optimizer_zero_grad`.
+In order to improve performance, you can override :meth:`~lightning.pytorch.core.module.LightningModule.optimizer_zero_grad`.
 
 For a more detailed explanation of the pros / cons of this technique,
 read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.

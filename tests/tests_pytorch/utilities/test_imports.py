@@ -24,19 +24,11 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
 from lightning.pytorch.accelerators.ipu import _POPTORCH_AVAILABLE
-from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
-    try:
-        import bagua  # noqa
-    except ModuleNotFoundError:
-        assert not _BAGUA_AVAILABLE
-    else:
-        assert _BAGUA_AVAILABLE
-
     try:
         import omegaconf  # noqa
     except ModuleNotFoundError:
@@ -101,7 +93,7 @@ def clean_import():
         ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
+            _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
             "lightning.pytorch.loggers.neptune",
         ),
         (

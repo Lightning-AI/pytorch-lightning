@@ -29,14 +29,14 @@ Here is a minimal example of the `setup.py` file for the package `my-package`:
         version="0.0.1",
         install_requires=["pytorch-lightning"],
         entry_points={
-            "pytorch_lightning.callbacks_factory": [
+            "lightning.pytorch.callbacks_factory": [
                 # The format here must be [any name]=[module path]:[function name]
                 "monitor_callbacks=factories:my_custom_callbacks_factory"
             ]
         },
     )
 
-The group name for the entry points is ``pytorch_lightning.callbacks_factory`` and it contains a list of strings that
+The group name for the entry points is ``lightning.pytorch.callbacks_factory`` and it contains a list of strings that
 specify where to find the function within the package.
 
 Now, if you `pip install -e .` this package, it will register the ``my_custom_callbacks_factory`` function and Lightning

@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["lightning", "pytorch"]
+        pkg-name: ["app", "fabric", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -47,14 +47,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: aws-actions/configure-aws-credentials@v1
-        if: ${{ matrix.pkg-name == 'lightning' }}
+        if: ${{ matrix.pkg-name != 'pytorch' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
       - run: aws s3 sync s3://sphinx-packages/ pypi/
-        if: ${{ matrix.pkg-name == 'lightning' }}
+        if: ${{ matrix.pkg-name != 'pytorch' }}
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -65,36 +65,15 @@ jobs:
           key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-test-${{ matrix.pkg-name }}-
 
-      - name: Install LAI package
-        # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: |
-          pip install -e . -U -v -f pypi -f ${TORCH_URL}
-
-      - name: Adjust docs refs
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: |
-          pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
-            --source_import="pytorch_lightning,lightning_fabric" \
-            --target_import="lightning.pytorch,lightning.fabric"
-
-      - name: adjust paths
-        run: |
-          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
-          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
-
       - name: Install this package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs/${{ env.DOCS_DIR }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make doctest
           make coverage
@@ -106,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["lightning", "pytorch"]
+        pkg-name: ["app", "fabric", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -132,29 +111,20 @@ jobs:
           key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: docs-make-
 
-      - name: adjust paths
-        run: |
-          python -c "n = '${{ matrix.pkg-name }}' ; print('DOCS_DIR=source' + {'lightning': '', 'pytorch': '-pytorch'}.get(n))" >> $GITHUB_ENV
-          python -c "n = '${{ matrix.pkg-name }}' ; print('REQ_DIR=' + {'lightning': 'app'}.get(n, n))" >> $GITHUB_ENV
-
       - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           pip --version
-          pip install -e . -U -r requirements/${{ env.REQ_DIR }}/docs.txt -f pypi -f ${TORCH_URL}
+          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs/${{ env.DOCS_DIR }}
-        run: |
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
-        working-directory: ./docs/${{ env.DOCS_DIR }}
-        run: |
-          make linkcheck
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        run: make linkcheck
         continue-on-error: true
 
       - name: Upload built docs
@@ -162,5 +132,3 @@ jobs:
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failuress
-        if: success()

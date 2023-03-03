@@ -21,7 +21,6 @@ from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, 
 
 from deepdiff import DeepHash
 
-from lightning.app.core.plugin import Plugin
 from lightning.app.core.work import LightningWork
 from lightning.app.frontend import Frontend
 from lightning.app.storage import Path
@@ -413,7 +412,7 @@ class LightningFlow:
         """
         return name in LightningFlow._INTERNAL_STATE_VARS or not name.startswith("_")
 
-    def run(self, *args, **kwargs) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> None:
         """Override with your own logic."""
         pass
 
@@ -740,22 +739,6 @@ class LightningFlow:
         under the ``/docs`` route.
         """
         raise NotImplementedError
-
-    def configure_plugins(self) -> Optional[List[Dict[str, Plugin]]]:
-        """Configure the plugins of this LightningFlow.
-
-        Returns a list of dictionaries mapping a plugin name to a :class:`lightning_app.core.plugin.Plugin`.
-
-        .. code-block:: python
-
-            class Flow(LightningFlow):
-                def __init__(self):
-                    super().__init__()
-
-                def configure_plugins(self):
-                    return [{"my_plugin_name": MyPlugin()}]
-        """
-        pass
 
     def state_dict(self):
         """Returns the current flow state but not its children."""

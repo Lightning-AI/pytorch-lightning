@@ -4,7 +4,7 @@
 Level 19: Explore HPUs
 ######################
 
-Explore Intelligence Processing Unit (IPU) for model scaling.
+Explore Intel Habana Processing Unit (HPU) for model scaling.
 
 ----
 

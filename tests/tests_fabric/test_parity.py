@@ -23,8 +23,6 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from lightning_utilities.core.apply_func import apply_to_collection
-from tests_fabric.helpers.models import RandomDataset
-from tests_fabric.helpers.runif import RunIf
 from torch import nn, Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
@@ -35,6 +33,8 @@ from lightning.fabric.plugins.environments.lightning import find_free_network_po
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.cloud_io import _atomic_save
+from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
@@ -107,23 +107,23 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
 
 
 @pytest.mark.parametrize(
-    "precision, strategy, devices, accelerator",
+    "precision, accelerator",
     [
-        pytest.param(32, None, 1, "cpu"),
-        pytest.param(32, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(16, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
-        pytest.param(32, None, 1, "mps", marks=RunIf(mps=True)),
+        (32, "cpu"),
+        pytest.param(32, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16", "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
+        pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
-def test_boring_fabric_model_single_device(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_fabric_model_single_device(precision, accelerator):
     Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    fabric = FabricRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    fabric = FabricRunner(precision=precision, accelerator=accelerator)
     fabric.run(model, train_dataloader, num_epochs=num_epochs)
     fabric_state_dict = model.state_dict()
 
