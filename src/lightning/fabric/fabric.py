@@ -382,7 +382,7 @@ class Fabric:
             than the given value.
         norm_type: The type of norm if `max_norm` was passed. Can be ``'inf'`` for infinity norm.
             Default is the 2-norm.
-        error_if_nonfinite: An error is raised if the total norm of the gradients from is NaN or infinite.
+        error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
         """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
