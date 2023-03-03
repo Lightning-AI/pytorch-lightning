@@ -22,9 +22,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
-env:
-  FREEZE_REQUIREMENTS: 1
-
 defaults:
   run:
     shell: bash
@@ -58,12 +55,16 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
-          # pytorch 2.0 Tests  # TODO
-          #  - {os: "macOS-11", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.0"}
-          #  - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.0"}
-          #  - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.0"}
+          # pytorch 2.0 Tests
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.0"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.0"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.0"}
 
-    timeout-minutes: 15
+    timeout-minutes: 25  # because of building grpcio on Mac
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      FREEZE_REQUIREMENTS: 1
 
     steps:
     - uses: actions/checkout@v3
@@ -74,14 +75,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: basic setup
-      run: |
-        pip --version
-        pip install -q -r .actions/requirements.txt
+      run: pip install -q -r .actions/requirements.txt
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: |
-        python .actions/assistant.py replace_oldest_ver
+      run: python .actions/assistant.py replace_oldest_ver
 
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
@@ -103,16 +101,16 @@ jobs:
         restore-keys: pip-${{ matrix.pkg-name }}-${{ matrix.release }}-
         enableCrossOsArchive: true
 
-    - name: Switch PyTorch URL
-      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+    - name: Env. variables
+      run: |
+        # Switch coverage scope
+        python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e .[test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
-        pip install -r requirements/fabric/strategies.txt
+        pip install -e .[test] \
+          "pytest-timeout" -r requirements/fabric/strategies.txt \
+          -U --find-links ${TORCH_URL}
         pip list
 
     - name: Adjust tests
@@ -136,15 +134,7 @@ jobs:
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest -v --timeout=30 --durations=50 \
-          --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Upload pytest results
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_fabric/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+          -m pytest -v --timeout=30 --durations=50
 
     - name: Statistics
       if: success()

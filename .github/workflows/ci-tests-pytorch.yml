@@ -75,7 +75,7 @@ jobs:
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+      FREEZE_REQUIREMENTS: 1
     steps:
     - uses: actions/checkout@v3
 
@@ -85,24 +85,19 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: basic setup
-      run: |
-        pip --version
-        pip install -q -r .actions/requirements.txt
+      run: pip install -q -r .actions/requirements.txt
 
     - name: Setup macOS
       if: runner.os == 'macOS'
-      run: |
-        brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
+      run: brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
 
     - name: Setup Windows
       if: runner.os == 'windows'
-      run: |
-        python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
+      run: python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: |
-        python .actions/assistant.py replace_oldest_ver
+      run: python .actions/assistant.py replace_oldest_ver
 
     - name: Pull legacy checkpoints
       if: ${{ matrix.type != 'slow' }}
@@ -180,15 +175,7 @@ jobs:
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest . -v \
           --timeout=${TEST_TIMEOUT} --durations=50 \
-          --reruns 3 --reruns-delay 1 \
-          --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Upload pytest results
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+          --reruns 3 --reruns-delay 1
 
     - name: Statistics
       if: success()
