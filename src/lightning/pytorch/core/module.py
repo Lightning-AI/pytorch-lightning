@@ -1104,8 +1104,8 @@ class LightningModule(
             return self.fabric.clip_gradients(
                 self,
                 optimizer,
-                clip_val=gradient_clip_val if gradient_clip_algorithm == GradClipAlgorithmType.value else None,
-                max_norm=None if gradient_clip_algorithm == GradClipAlgorithmType.value else gradient_clip_val,
+                clip_val=gradient_clip_val if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else None,
+                max_norm=None if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else gradient_clip_val,
             )
 
         if gradient_clip_val is None:
