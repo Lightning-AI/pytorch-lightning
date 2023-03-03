@@ -492,7 +492,8 @@ class LightningFlow:
         """
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
-            assert frame is not None
+            if frame is None:
+                raise RuntimeError()
             cache_key = f"{cron_pattern}.{frame.f_code.co_filename}.{frame.f_lineno}"
         else:
             cache_key = user_key
@@ -648,7 +649,8 @@ class LightningFlow:
         # TODO: Find a better way. Investigated using __reduce__, but state change invalidate the cache.
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
-            assert frame is not None
+            if frame is None:
+                raise RuntimeError()
             cache_key = f"{frame.f_code.co_filename}.{frame.f_code.co_firstlineno}"
         else:
             cache_key = user_key
