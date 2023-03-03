@@ -73,7 +73,7 @@ logger = Logger(__name__)
 class LightningApp:
     def __init__(
         self,
-        root: Union["LightningFlow", "LightningWork"],
+        root: Union["LightningFlow", LightningWork],
         flow_cloud_compute: Optional["CloudCompute"] = None,
         log_level: str = "info",
         info: frontend.AppInfo = None,
@@ -204,7 +204,7 @@ class LightningApp:
         # this should happen once for all apps before the ui server starts running.
         frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
-    def get_component_by_name(self, component_name: str) -> Union["LightningFlow", "LightningWork"]:
+    def get_component_by_name(self, component_name: str) -> Union["LightningFlow", LightningWork]:
         """Returns the instance corresponding to the given component name."""
         from lightning.app.structures import Dict as LightningDict
         from lightning.app.structures import List as LightningList
@@ -233,7 +233,7 @@ class LightningApp:
         self.set_state(self._original_state)
 
     @property
-    def root(self) -> Union["LightningFlow", "LightningWork"]:
+    def root(self) -> Union["LightningFlow", LightningWork]:
         """Returns the root component of the application."""
         return self._root
 
@@ -328,7 +328,7 @@ class LightningApp:
             self.stage = AppStage.FAILED
 
     @property
-    def flows(self) -> List[Union[LightningWork, LightningFlow]]:
+    def flows(self) -> List[Union[LightningWork, "LightningFlow"]]:
         """Returns all the flows defined within this application."""
         return [self.root] + list(self.root.flows.values())
 
@@ -358,8 +358,8 @@ class LightningApp:
             delta: Optional[
                 Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
             ] = self.get_state_changed_from_queue(
-                self.delta_queue
-            )  # type: ignore[assignment,arg-type]
+                self.delta_queue  # type: ignore[assignment,arg-type]
+            )
             if delta:
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
@@ -545,7 +545,7 @@ class LightningApp:
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
-        for component in breadth_first(self.root, types=(LightningFlow,)):  # type: ignore[arg-type]
+        for component in breadth_first(self.root, types=(lightning.app.LightningFlow,)):  # type: ignore[arg-type]
             layout = _collect_layout(self, component)
             component._layout = layout
 
@@ -561,7 +561,7 @@ class LightningApp:
 
         work_statuses = {}
         assert self.root is not None
-        for work in breadth_first(self.root, types=(LightningWork,)):  # type: ignore[arg-type]
+        for work in breadth_first(self.root, types=(lightning.app.LightningWork,)):  # type: ignore[arg-type]
             work_statuses[work.name] = work.status
 
         self.status = AppStatus(
