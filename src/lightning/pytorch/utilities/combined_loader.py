@@ -195,6 +195,14 @@ class CombinedLoader(Iterable):
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([10, 11, 12, 13, 14])}
+        >>> combined_loader = CombinedLoader(iterables, 'max_size')
+        >>> len(combined_loader)
+        3
+        >>> for batch in combined_loader:
+        ...     print(batch)
+        {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
+        {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
+        {'a': None, 'b': tensor([10, 11, 12, 13, 14])}
         >>> combined_loader = CombinedLoader(iterables, 'min_size')
         >>> len(combined_loader)
         2
