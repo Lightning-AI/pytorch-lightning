@@ -16,13 +16,13 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.models import BoringFabric
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
