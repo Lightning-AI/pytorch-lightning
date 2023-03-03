@@ -82,6 +82,16 @@ This is useful if your model experiences *exploding gradients* during training.
     # element among all
     fabric.clip_gradients(model, clip_norm=2.0, norm_type="inf")
 
+You can also reduce the gradient clipping to just one layer or to the parameters a particular optimizer is referencing (if using multiple optimizers):
+
+.. code-block:: python
+
+    # Clip gradients on a specific layer of your model
+    fabric.clip_gradients(model.fc3, clip_val=1.0)
+
+    # Clip gradients for a specific optimizer if using multiple optimizers
+    fabric.clip_gradients(model, optimizer1, clip_val=1.0)
+
 The :meth:`~lightning.fabric.fabric.Fabric.clip_gradients` method is agnostic to the precision and strategy being used.
 Note: Gradient clipping with FSDP is not yet fully supported.
 
