@@ -232,3 +232,8 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_s
         name="test_name",
         cluster_id=body.cluster_id,
     )
+
+
+def test_healthz(mock_plugin_server):
+    """Smoke test for the healthz endpoint."""
+    assert mock_plugin_server.get("/healthz").status_code == 200
