@@ -231,6 +231,14 @@ Advanced Topics
     :height: 160
     :tag: advanced
 
+.. displayitem::
+    :header: Multiple Models and Optimizers
+    :description: See how flexible Fabric is to work with multiple models and optimizers!
+    :button_link: advanced/multiple_setup.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
 .. raw:: html
 
         </div>
