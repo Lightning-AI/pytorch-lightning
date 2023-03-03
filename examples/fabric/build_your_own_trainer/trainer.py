@@ -227,9 +227,7 @@ class MyCustomTrainer:
                 self.fabric.call("on_before_optimizer_step", optimizer, 0)
 
                 # optimizer step runs train step internally through closure
-                optimizer.step(
-                    partial(self.training_step, model=model, batch=batch, batch_idx=batch_idx)
-                )
+                optimizer.step(partial(self.training_step, model=model, batch=batch, batch_idx=batch_idx))
                 self.fabric.call("on_before_zero_grad", optimizer)
 
                 optimizer.zero_grad()
