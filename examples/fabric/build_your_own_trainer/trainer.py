@@ -6,9 +6,9 @@ from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 import torch
 from lightning_utilities.core import is_overridden
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import lightning as L
 from lightning.fabric.fabric import (
     _PLUGIN_INPUT,
     _PRECISION_INPUT,
@@ -18,13 +18,9 @@ from lightning.fabric.fabric import (
     Logger,
     Strategy,
 )
-from lightning.fabric.strategies.fsdp import FSDPStrategy
-from lightning.fabric.utilities.rank_zero import rank_zero_warn
-from lightning.fabric.utilities.types import LRScheduler, Optimizable
-from lightning.pytorch.core.module import LightningModule
 
 
-class FabricTrainer:
+class MyCustomTrainer:
     def __init__(
         self,
         accelerator: Union[str, Accelerator] = "auto",
@@ -55,8 +51,7 @@ class FabricTrainer:
             devices: Number of devices to train on (``int``),
                 which GPUs to train on (``list`` or ``str``), or ``"auto"``.
                 The value applies per node.
-            num_nodes: Number of GPU nodes for distributed training.
-            precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
+            precision: Double precision (``"64"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
                 or bfloat16 precision AMP (``"bf16-mixed"``).
             plugins: One or several custom plugins
             callbacks: A single callback or a list of callbacks. The following hooks are supported:
@@ -131,7 +126,12 @@ class FabricTrainer:
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_frequency = checkpoint_frequency
 
-    def fit(self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader):
+    def fit(
+        self,
+        model: L.LightningModule,
+        train_loader: torch.utils.data.DataLoader,
+        val_loader: torch.utils.data.DataLoader,
+    ):
         """The main entrypoint of the trainer, triggering the actual training.
 
         Args:
@@ -149,7 +149,7 @@ class FabricTrainer:
             val_loader = self.fabric.setup_dataloaders(val_loader, use_distributed_sampler=self.use_distributed_sampler)
 
         # setup model and optimizer
-        if isinstance(self.fabric.strategy, FSDPStrategy):
+        if isinstance(self.fabric.strategy, L.fabric.strategies.fsdp.FSDPStrategy):
             # currently, there is no way to support fsdp with model.configure_optimizers in fabric
             # as it would require fabric to hold a reference to the model, which we don't want to.
             raise NotImplementedError("BYOT currently does not support FSDP")
@@ -190,11 +190,11 @@ class FabricTrainer:
 
     def train_loop(
         self,
-        model: LightningModule,
+        model: L.LightningModule,
         optimizer: torch.optim.Optimizer,
-        train_loader: DataLoader,
+        train_loader: torch.utils.data.DataLoader,
         limit_batches: Union[int, float] = float("inf"),
-        scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]] = None,
+        scheduler_cfg: Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]] = None,
     ):
         """The training loop running a single training epoch.
 
@@ -208,7 +208,7 @@ class FabricTrainer:
                 Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
         """
         self.fabric.call("on_train_epoch_start")
-        iterable = self.pbar_wrapper(
+        iterable = self.progbar_wrapper(
             train_loader, total=min(len(train_loader), limit_batches), desc=f"Epoch {self.current_epoch}"
         )
 
@@ -228,7 +228,7 @@ class FabricTrainer:
 
                 # optimizer step runs train step internally through closure
                 optimizer.step(
-                    partial(self.training_step, model=model, optimizer=optimizer, batch=batch, batch_idx=batch_idx)
+                    partial(self.training_step, model=model, batch=batch, batch_idx=batch_idx)
                 )
                 self.fabric.call("on_before_zero_grad", optimizer)
 
@@ -258,7 +258,10 @@ class FabricTrainer:
         self.fabric.call("on_train_epoch_end")
 
     def val_loop(
-        self, model: LightningModule, val_loader: Optional[DataLoader], limit_batches: Union[int, float] = float("inf")
+        self,
+        model: L.LightningModule,
+        val_loader: Optional[torch.utils.data.DataLoader],
+        limit_batches: Union[int, float] = float("inf"),
     ):
         """The validation loop ruunning a single validation epoch.
 
@@ -273,8 +276,8 @@ class FabricTrainer:
             return
 
         # no validation but warning if val_loader was passed, but validation_step not implemented
-        elif val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model), LightningModule):
-            rank_zero_warn(
+        elif val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model), L.LightningModule):
+            L.fabric.utilities.rank_zero_warn(
                 "Your LightningModule does not have a validation_step implemented, "
                 "but you passed a validation dataloder. Skipping Validation."
             )
@@ -286,7 +289,7 @@ class FabricTrainer:
 
         self.fabric.call("on_validation_epoch_start")
 
-        iterable = self.pbar_wrapper(val_loader, total=min(len(val_loader), limit_batches), desc="Validation")
+        iterable = self.progbar_wrapper(val_loader, total=min(len(val_loader), limit_batches), desc="Validation")
 
         for batch_idx, batch in enumerate(iterable):
 
@@ -311,7 +314,7 @@ class FabricTrainer:
         self.fabric.call("on_validation_model_train")
         torch.set_grad_enabled(True)
 
-    def training_step(self, model: LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
+    def training_step(self, model: L.LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
         """A single training step, running forward and backward. The optimizer step is called separately, as this
         is given as a closure to the optimizer step.
 
@@ -335,8 +338,8 @@ class FabricTrainer:
 
     def step_scheduler(
         self,
-        model: LightningModule,
-        scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]],
+        model: L.LightningModule,
+        scheduler_cfg: Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]],
         level: Literal["step", "epoch"],
         current_value: int,
     ) -> None:
@@ -450,7 +453,10 @@ class FabricTrainer:
 
     def _parse_optimizers_schedulers(
         self, configure_optim_output
-    ) -> Tuple[Optional[Optimizable], Optional[Mapping[str, Union[LRScheduler, bool, str, int]]]]:
+    ) -> Tuple[
+        Optional[L.fabric.utilities.types.Optimizable],
+        Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]],
+    ]:
         """Recursively parses the output of :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
 
         Args:
@@ -460,11 +466,11 @@ class FabricTrainer:
         _lr_sched_defaults = {"interval": "epoch", "frequency": 1, "monitor": "val_loss"}
 
         # single optimizer
-        if isinstance(configure_optim_output, Optimizable):
+        if isinstance(configure_optim_output, L.fabric.utilities.types.Optimizable):
             return configure_optim_output, None
 
         # single lr scheduler
-        elif isinstance(configure_optim_output, LRScheduler):
+        elif isinstance(configure_optim_output, L.fabric.utilities.types.LRScheduler):
             return None, _lr_sched_defaults.update(scheduler=configure_optim_output)
 
         # single lr scheduler config
@@ -474,14 +480,21 @@ class FabricTrainer:
 
         # list or tuple
         elif isinstance(configure_optim_output, (list, tuple)):
-            if all([isinstance(_opt_cand, Optimizable) for _opt_cand in configure_optim_output]):
+            if all(
+                [isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output]
+            ):
                 # single optimizer in list
                 if len(configure_optim_output) == 1:
                     return configure_optim_output[0][0], None
 
                 raise NotImplementedError("BYOT only supports a single optimizer")
 
-            elif all([isinstance(_lr_cand, (LRScheduler, Mapping)) for _lr_cand in configure_optim_output]):
+            elif all(
+                [
+                    isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
+                    for _lr_cand in configure_optim_output
+                ]
+            ):
 
                 # single scheduler in list
                 if len(configure_optim_output) == 1:

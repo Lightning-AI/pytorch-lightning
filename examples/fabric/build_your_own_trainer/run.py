@@ -1,11 +1,11 @@
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
-from trainer import FabricTrainer
+from trainer import MyCustomTrainer
 
-from lightning.pytorch import LightningModule
+import lightning as L
 
 
-class MNISTModule(LightningModule):
+class MNISTModule(L.LightningModule):
     def __init__(self) -> None:
         super().__init__()
         self.model = torch.nn.Sequential(
@@ -72,7 +72,7 @@ def train(model):
     # If you want to use MPS, set accelerator='auto' and also set PYTORCH_ENABLE_MPS_FALLBACK=1
     accelerator = "cpu" if torch.backends.mps.is_available() else "auto"
 
-    trainer = FabricTrainer(
+    trainer = MyCustomTrainer(
         accelerator=accelerator, devices="auto", limit_train_batches=10, limit_val_batches=20, max_epochs=3
     )
     trainer.fit(model, train_loader, val_loader)
