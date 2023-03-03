@@ -186,8 +186,8 @@ class TransferLearningModel(LightningModule):
 
         self.__build_model()
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
+        self.train_acc = Accuracy(task="binary")
+        self.valid_acc = Accuracy(task="binary")
         self.save_hyperparameters()
 
     def __build_model(self):
