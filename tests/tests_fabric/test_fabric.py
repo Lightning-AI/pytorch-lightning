@@ -15,7 +15,6 @@ import os
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
-from lightning.pytorch.core.module import LightningModule
 
 import pytest
 import torch
@@ -41,6 +40,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning.pytorch.core.module import LightningModule
 
 
 class EmptyFabric(Fabric):
@@ -924,7 +924,9 @@ def test_grad_clipping(clip_val, max_norm):
         fabric.strategy.clip_gradients_norm.assert_called_once_with(
             torch_model, torch_optimizer, max_norm=max_norm, norm_type=2.0, error_if_nonfinite=True
         )
-@pytest.mark.parametrize('algo', ['value', 'norm'])
+
+
+@pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm(algo):
 
     fabric = Fabric()
@@ -934,9 +936,9 @@ def test_grad_clipping_lm(algo):
     fabric.clip_gradients = Mock()
 
     optimizer = Mock()
-    model.clip_gradients(optimizer, gradient_clip_val = 1e-3, gradient_clip_algorithm=algo)
-    
-    if algo == 'value':
+    model.clip_gradients(optimizer, gradient_clip_val=1e-3, gradient_clip_algorithm=algo)
+
+    if algo == "value":
         assert fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=1e-3, max_norm=None)
     else:
         assert fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=None, max_norm=1e-3)
