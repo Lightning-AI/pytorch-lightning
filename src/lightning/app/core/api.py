@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import socket
 import asyncio
 import json
 import os
 import queue
+import socket
 import sys
 import traceback
 from copy import deepcopy
@@ -436,7 +436,7 @@ def register_global_routes() -> None:
 class LightningUvicornServer(uvicorn.Server):
     has_started_queue = None
 
-    def run(self, sockets: Optional[List[socket.socket]]=None) -> None:
+    def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         asyncio.ensure_future(self.serve(sockets=sockets))
@@ -455,8 +455,8 @@ def start_server(
     api_delta_queue: Queue,
     api_response_queue: Queue,
     has_started_queue: Optional[Queue] = None,
-    host: str="127.0.0.1",
-    port: int =8000,
+    host: str = "127.0.0.1",
+    port: int = 8000,
     root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
