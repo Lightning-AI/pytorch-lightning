@@ -187,3 +187,21 @@ def _check_bad_cuda_fork() -> None:
     if _IS_INTERACTIVE:
         message += " You will have to restart the Python kernel."
     raise RuntimeError(message)
+  
+def _check_bad_xpu_fork() -> None:
+    """Checks whether it is safe to fork and initialize XPU in the new processes, and raises an exception if not.
+
+    The error message replaces PyTorch's 'Cannot re-initialize XPU in forked subprocess' with helpful advice for
+    Lightning users.
+    """
+    if not torch.xpu.is_initialized():
+        return
+
+    message = (
+        "Lightning can't create new processes if XPU is already initialized. Did you manually call"
+        " `torch.xpu.*` functions, have moved the model to the device, or allocated memory on the GPU any"
+        " other way? Please remove any such calls, or change the selected strategy."
+    )
+    if _IS_INTERACTIVE:
+        message += " You will have to restart the Python kernel."
+    raise RuntimeError(message)
