@@ -34,36 +34,19 @@ jobs:
       with:
         python-version: '3.10.6'
 
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Cache pip
+    - name: Mypy cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache/pip
-        key: pip-${{ hashFiles('requirements/pytorch/base.txt') }}
-        restore-keys: pip-
-        enableCrossOsArchive: true
+        path: .mypy_cache
+        key: mypy-${{ hashFiles('requirements/typing.txt') }}
 
     - name: Install dependencies
+      env:
+        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install mypy==0.982  # TODO: pull this verion deom requirements/test.txt
-        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
-        pip install \
-          -r requirements/fabric/base.txt \
-          -r requirements/pytorch/base.txt \
-          -r requirements/pytorch/extra.txt \
-          -r requirements/app/base.txt \
-          -r requirements/app/cloud.txt \
-          -r requirements/app/ui.txt \
-          --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -e '.[extra,ui,cloud]' -r requirements/typing.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
-    - name: Build package
-      run: python setup.py build
-
     - name: Check typing
-      run: |
-        mkdir .mypy_cache
-        mypy
+      run: mypy
