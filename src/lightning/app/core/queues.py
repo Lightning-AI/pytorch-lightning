@@ -174,7 +174,7 @@ class BaseQueue(ABC):
         pass
 
     @abstractmethod
-    def get(self, timeout: Optional[int] = None):
+    def get(self, timeout: Optional[float] = None):
         """Returns the left most element of the queue.
 
         Parameters
