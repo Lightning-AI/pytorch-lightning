@@ -61,6 +61,18 @@ This replaces any occurrences of ``loss.backward()`` and makes your code acceler
     fabric.backward(loss)
 
 
+clip_gradients
+==============
+
+Clip the gradients of the model to a given max value or max norm.
+This is useful if your model experiences *exploding gradients* during training.
+
+.. code-block:: python
+
+    self.clip_gradients()
+
+
+
 to_device
 =========
 
