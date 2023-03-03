@@ -8,7 +8,6 @@ from unittest import mock
 import pytest
 from deepdiff import Delta
 from pympler import asizeof
-from tests_app import _PROJECT_ROOT
 
 from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
 from lightning_app.api.request_types import _DeltaRequest
@@ -30,6 +29,7 @@ from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReas
 from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.warnings import LightningFlowWarning
+from tests_app import _PROJECT_ROOT
 
 logger = logging.getLogger()
 

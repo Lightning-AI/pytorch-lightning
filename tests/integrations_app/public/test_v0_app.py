@@ -5,8 +5,8 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning_app import LightningApp
 from lightning_app.runners import CloudRuntime
 from lightning_app.testing import EmptyFlow

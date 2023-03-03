@@ -6,13 +6,13 @@ from unittest import mock
 import click
 import pytest
 from click.testing import CliRunner
-from tests_app import _PROJECT_ROOT
 
 import lightning_app.core.constants as constants
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import _run_app, run_app
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_helpers import convert_print_to_logger_info
+from tests_app import _PROJECT_ROOT
 
 
 @mock.patch("click.launch")

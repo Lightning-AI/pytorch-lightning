@@ -3,11 +3,11 @@ import signal
 from unittest import mock
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning_app.runners import cloud
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from tests_app import _PROJECT_ROOT
 
 
 @pytest.mark.parametrize(

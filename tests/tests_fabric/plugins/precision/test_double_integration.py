@@ -15,6 +15,7 @@
 
 import torch
 import torch.nn as nn
+
 from tests_fabric.helpers.models import BoringFabric
 
 

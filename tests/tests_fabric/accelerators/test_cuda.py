@@ -20,7 +20,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 import lightning_fabric
 from lightning_fabric.accelerators.cuda import (
@@ -30,6 +29,7 @@ from lightning_fabric.accelerators.cuda import (
     is_cuda_available,
     num_cuda_devices,
 )
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)

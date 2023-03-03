@@ -19,7 +19,6 @@ from unittest import mock
 import pytest
 import torch
 import torch.distributed
-from tests_fabric.helpers.runif import RunIf
 
 import lightning_fabric
 from lightning_fabric import Fabric
@@ -50,6 +49,7 @@ from lightning_fabric.strategies import (
 from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_fabric.utilities.exceptions import MisconfigurationException
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu():
