@@ -62,9 +62,9 @@ from lightning.app.utilities.warnings import LightningFlowWarning
 
 if TYPE_CHECKING:
     from lightning.app.core.flow import LightningFlow
-    from lightning.app.utilities.packaging.cloud_compute import CloudCompute
     from lightning.app.runners.backends.backend import Backend, WorkManager
     from lightning.app.runners.runtime import Runtime
+    from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 
 logger = Logger(__name__)
@@ -206,7 +206,8 @@ class LightningApp:
 
     def get_component_by_name(self, component_name: str) -> Union["LightningFlow", "LightningWork"]:
         """Returns the instance corresponding to the given component name."""
-        from lightning.app.structures import Dict as LightningDict, List as LightningList
+        from lightning.app.structures import Dict as LightningDict
+        from lightning.app.structures import List as LightningList
         from lightning.app.utilities.types import ComponentTuple
 
         if component_name == "root":
@@ -356,7 +357,9 @@ class LightningApp:
             # TODO: Fetch all available deltas at once to reduce queue calls.
             delta: Optional[
                 Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
-            ] = self.get_state_changed_from_queue(self.delta_queue)  # type: ignore[assignment,arg-type]
+            ] = self.get_state_changed_from_queue(
+                self.delta_queue
+            )  # type: ignore[assignment,arg-type]
             if delta:
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
@@ -538,7 +541,6 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
-        import lightning.app
 
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
