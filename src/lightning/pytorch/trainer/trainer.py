@@ -29,16 +29,12 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.data import _auto_add_worker_init_fn
 from lightning.fabric.utilities.types import _PATH
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -46,7 +42,7 @@ from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.utilities import _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
-from lightning.pytorch.loops.dataloader.evaluation_loop import _EvaluationLoop
+from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
 from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
@@ -67,14 +63,12 @@ from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnecto
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
-from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import rank_zero_info
 from lightning.pytorch.utilities.seed import isolate_rng
 from lightning.pytorch.utilities.types import (
     _EVALUATE_OUTPUT,
@@ -95,15 +89,15 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Logger, Iterable[Logger], bool] = True,
-        enable_checkpointing: bool = True,
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        enable_checkpointing: Optional[bool] = None,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
-        devices: Optional[Union[List[int], str, int]] = None,
-        enable_progress_bar: bool = True,
+        devices: Union[List[int], str, int] = "auto",
+        enable_progress_bar: Optional[bool] = None,
         overfit_batches: Union[int, float] = 0.0,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
@@ -118,22 +112,22 @@ class Trainer:
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        log_every_n_steps: Optional[int] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         sync_batchnorm: bool = False,
-        precision: _PRECISION_INPUT = 32,
-        enable_model_summary: bool = True,
-        num_sanity_val_steps: int = 2,
+        precision: _PRECISION_INPUT = "32-true",
+        enable_model_summary: Optional[bool] = None,
+        num_sanity_val_steps: Optional[int] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        multiple_trainloader_mode: _LITERAL_SUPPORTED_MODES = "max_size_cycle",
         inference_mode: bool = True,
+        barebones: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -148,8 +142,8 @@ class Trainer:
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
-                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set
-                to ``True``, this will default to ``False``. Override to manually set a different value.
+                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic`
+                is set to ``True``, this will default to ``False``. Override to manually set a different value.
                 Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
@@ -226,9 +220,10 @@ class Trainer:
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
-            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+            precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
+                16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
                 Can be used on CPU, GPU, TPUs, HPUs or IPUs.
-                Default: ``32``.
+                Default: ``'32-true'``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
@@ -257,14 +252,16 @@ class Trainer:
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
-                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
-                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
-                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+            use_distributed_sampler: Whether to wrap the DataLoader's sampler with
+                :class:`torch.utils.data.DistributedSampler`. If not specified this is toggled automatically for
+                strategies that require it. By default, it will add ``shuffle=True`` for the train sampler and
+                ``shuffle=False`` for validation/test/predict samplers. If you want to disable this logic, you can pass
+                ``False`` and add your own distributed sampler in the dataloader hooks. If ``True`` and a distributed
+                sampler was already added, Lightning will not replace the existing one. For iterable-style datasets,
+                we don't do this automatically.
 
-            strategy: Supports different training strategies with aliases
-                as well custom strategies.
-                Default: ``None``.
+            strategy: Supports different training strategies with aliases as well custom strategies.
+                Default: ``"auto"``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
@@ -279,11 +276,23 @@ class Trainer:
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
-            multiple_trainloader_mode: How to loop over the datasets when there are multiple iterables.
-                See :class:`lightning.pytorch.trainer.supporters.CombinedLoader`.
-
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
+
+            barebones: Whether to run in "barebones mode", where all features that may impact raw speed are
+                disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular training
+                runs. The following features are deactivated:
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_checkpointing`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.logger`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_progress_bar`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.log_every_n_steps`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_model_summary`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.num_sanity_val_steps`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.detect_anomaly`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
+                :meth:`~lightning.pytorch.core.module.LightningModule.log`,
+                :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
 
         Raises:
             TypeError:
@@ -300,8 +309,94 @@ class Trainer:
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
 
+        self.barebones = barebones
+        if barebones:
+            # opt-outs
+            if enable_checkpointing:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_checkpointing={enable_checkpointing!r})` was passed."
+                    " Checkpointing can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_checkpointing = False
+            if logger is not None and logger is not False:
+                raise ValueError(
+                    f"`Trainer(barebones=True, logger={logger!r})` was passed."
+                    " Logging can impact raw speed so it is disabled in barebones mode."
+                )
+            logger = False
+            if enable_progress_bar:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_progress_bar={enable_progress_bar!r})` was passed."
+                    " The progress bar can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_progress_bar = False
+            if log_every_n_steps is not None and log_every_n_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, log_every_n_steps={log_every_n_steps!r})` was passed."
+                    " Logging can impact raw speed so it is disabled in barebones mode."
+                )
+            log_every_n_steps = 0
+            if enable_model_summary:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_model_summary={enable_model_summary!r})` was passed."
+                    " Model summary can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_model_summary = False
+            if num_sanity_val_steps is not None and num_sanity_val_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, num_sanity_val_steps={num_sanity_val_steps!r})` was passed."
+                    " Sanity checking can impact raw speed so it is disabled in barebones mode."
+                )
+            num_sanity_val_steps = 0
+            # opt-ins
+            if fast_dev_run is not False and fast_dev_run != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, fast_dev_run={fast_dev_run!r})` was passed."
+                    " Development run is not meant for raw speed evaluation so it is disabled in barebones mode."
+                )
+            if detect_anomaly:
+                raise ValueError(
+                    f"`Trainer(barebones=True, detect_anomaly={detect_anomaly!r})` was passed."
+                    " Anomaly detection can impact raw speed so it is disabled in barebones mode."
+                )
+            if profiler is not None:
+                raise ValueError(
+                    f"`Trainer(barebones=True, profiler={profiler!r})` was passed."
+                    " Profiling can impact raw speed so it is disabled in barebones mode."
+                )
+            deactivated = (
+                " - Checkpointing: `Trainer(enable_checkpointing=True)`",
+                " - Progress bar: `Trainer(enable_progress_bar=True)`",
+                " - Model summary: `Trainer(enable_model_summary=True)`",
+                " - Logging: `Trainer(logger=True)`, `Trainer(log_every_n_steps>0)`,"
+                " `LightningModule.log(...)`, `LightningModule.log_dict(...)`",
+                " - Sanity checking: `Trainer(num_sanity_val_steps>0)`",
+                " - Development run: `Trainer(fast_dev_run=True)`",
+                " - Anomaly detection: `Trainer(detect_anomaly=True)`",
+                " - Profiling: `Trainer(profiler=...)`",
+            )
+            rank_zero_info(
+                "You are running in `Trainer(barebones=True)` mode. All features that may impact raw speed have been"
+                " disabled to facilitate analyzing the Trainer overhead. Specifically, the following features are"
+                f" deactivated:{os.linesep}{os.linesep.join(deactivated)}"
+            )
+        else:
+            # set the opt-out defaults
+            if enable_checkpointing is None:
+                enable_checkpointing = True
+            if logger is None:
+                logger = True
+            if enable_progress_bar is None:
+                enable_progress_bar = True
+            if log_every_n_steps is None:
+                log_every_n_steps = 50
+            if enable_model_summary is None:
+                enable_model_summary = True
+            if num_sanity_val_steps is None:
+                num_sanity_val_steps = 2
+
         # init connectors
-        self._data_connector = DataConnector(self, multiple_trainloader_mode)
+        self._data_connector = DataConnector(self)
 
         self._accelerator_connector = AcceleratorConnector(
             devices=devices,
@@ -310,7 +405,7 @@ class Trainer:
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
-            replace_sampler_ddp=replace_sampler_ddp,
+            use_distributed_sampler=use_distributed_sampler,
             deterministic=deterministic,
             precision=precision,
             plugins=plugins,
@@ -366,7 +461,11 @@ class Trainer:
         )
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init()
+
+        setup._log_device_info(self)
+
+        self.should_stop = False
+        self.state = TrainerState()
 
         # configure profiler
         setup._init_profiler(self, profiler)
@@ -394,26 +493,6 @@ class Trainer:
             val_check_interval,
             num_sanity_val_steps,
         )
-
-    def _setup_on_init(self) -> None:
-        setup._log_device_info(self)
-
-        self.should_stop = False
-        self.state = TrainerState()
-        self.num_training_batches = float("inf")
-
-        self.train_dataloader: Optional[Union[CombinedLoader, TRAIN_DATALOADERS]] = None
-
-        self.num_sanity_val_batches: List[Union[int, float]] = []
-        self.num_test_batches: List[Union[int, float]] = []
-        self.num_val_batches: List[Union[int, float]] = []
-        self.num_predict_batches: List[Union[int, float]] = []
-
-        self.test_dataloaders: Optional[List[DataLoader]] = None
-        self.val_dataloaders: Optional[List[DataLoader]] = None
-        self.predict_dataloaders: Optional[List[DataLoader]] = None
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
 
     def fit(
         self,
@@ -861,13 +940,10 @@ class Trainer:
                                 |                             ||
                         {self._run_stage}                     ||  FLOW
                                 |                             ||
-                        {self._run_train}                     ||  DIRECTION
-                     or {self._run_evaluate}                  ||
-                     or {self._run_predict}                   ||
+                              loops                           ||  DIRECTION
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
-        {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         """
 
         # ----------------------------
@@ -935,7 +1011,7 @@ class Trainer:
         if self.evaluating:
             return self._run_evaluate()
         if self.predicting:
-            return self._run_predict()
+            return self.predict_loop.run()
         self._run_train()
 
     def _pre_training_routine(self) -> None:
@@ -962,18 +1038,11 @@ class Trainer:
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         assert self.evaluating
 
-        # reload dataloaders
-        self._evaluation_loop._reload_evaluation_dataloaders()
-
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         return convert_tensors_to_scalars(eval_loop_results)
-
-    def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        self.reset_predict_dataloader(self.lightning_module)
-        return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
         val_loop = self.fit_loop.epoch_loop.val_loop
@@ -997,12 +1066,6 @@ class Trainer:
 
             call._call_callback_hooks(self, "on_sanity_check_start")
 
-            # reload dataloaders
-            val_loop._reload_evaluation_dataloaders()
-            self.num_sanity_val_batches = [
-                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
-            ]
-
             # run eval step
             val_loop.run()
 
@@ -1024,182 +1087,6 @@ class Trainer:
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
-
-    """
-    Data loading methods
-    """
-
-    def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets the train dataloader and initialises required variables (number of batches, when to validate,
-        etc.).
-
-        Args:
-            model: The ``LightningModule`` if calling this outside of the trainer scope.
-
-        Raises:
-            MisconfigurationException:
-                When using an `IterableDataset`, if `Trainer(limit_train_batches)` is not `1.0` or an int.
-                When you requested to check ``limit_train_batches`` of the `train_dataloader`
-                but ``limit_train_batches`` * ``orig_train_batches` < 1.
-
-            ValueError:
-                If `val_check_interval` is not less than or equal to the number of the training batches.
-        """
-        source = self._data_connector._train_dataloader_source
-        pl_module = model or self.lightning_module
-        has_step = is_overridden("training_step", pl_module)
-        enable_training = self.limit_train_batches > 0
-        if not (source.is_defined() and has_step and enable_training):
-            return
-
-        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
-
-        if self.overfit_batches > 0:
-            self.train_dataloader = self._data_connector._resolve_overfit_batches(
-                self.train_dataloader, mode=RunningStage.TRAINING
-            )
-
-        # automatically add samplers
-        self.train_dataloader = apply_to_collection(
-            self.train_dataloader,
-            (DataLoader, CombinedLoader),
-            self._data_connector._prepare_dataloader,
-            mode=RunningStage.TRAINING,
-        )
-        loaders = (
-            self.train_dataloader.iterables
-            if isinstance(self.train_dataloader, CombinedLoader)
-            else self.train_dataloader
-        )
-
-        # check the workers recursively
-        apply_to_collection(loaders, DataLoader, self._data_connector._worker_check, "train_dataloader")
-
-        # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(loaders, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
-
-        # wrap the sequence of train iterables to a CombinedLoader object for computing the num_training_batches
-        if not isinstance(self.train_dataloader, CombinedLoader):
-            self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
-
-        module = model or self.lightning_module or self.datamodule
-        orig_train_batches = self.num_training_batches = (
-            len(self.train_dataloader)
-            if has_len_all_ranks(self.train_dataloader, self.strategy, module)
-            else float("inf")
-        )
-        if orig_train_batches == 0:
-            return
-
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = self.current_epoch
-
-        if isinstance(self.limit_train_batches, int):
-            self.num_training_batches = min(orig_train_batches, self.limit_train_batches)
-        elif self.num_training_batches != float("inf"):
-            self.num_training_batches = int(orig_train_batches * self.limit_train_batches)
-        elif self.limit_train_batches != 1.0:
-            raise MisconfigurationException(
-                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
-                "An int specifies `num_training_batches` to use."
-            )
-
-        if isinstance(self.val_check_interval, int):
-            self.val_check_batch = self.val_check_interval
-            if self.val_check_batch > self.num_training_batches and self.check_val_every_n_epoch is not None:
-                raise ValueError(
-                    f"`val_check_interval` ({self.val_check_interval}) must be less than or equal "
-                    f"to the number of the training batches ({self.num_training_batches}). "
-                    "If you want to disable validation set `limit_val_batches` to 0.0 instead."
-                    "If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
-                )
-        else:
-            if not has_len_all_ranks(self.train_dataloader, self.strategy, module):
-                if self.val_check_interval == 1.0:
-                    self.val_check_batch = float("inf")
-                else:
-                    raise MisconfigurationException(
-                        "When using an IterableDataset for `train_dataloader`,"
-                        " `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies"
-                        " checking validation every k training batches."
-                    )
-            else:
-                self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
-                self.val_check_batch = max(1, self.val_check_batch)
-
-        if self.loggers and self.num_training_batches < self.log_every_n_steps:
-            rank_zero_warn(
-                f"The number of training batches ({self.num_training_batches}) is smaller than the logging interval"
-                f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-                " you want to see logs for the training epoch.",
-                category=PossibleUserWarning,
-            )
-
-        if (
-            self.num_training_batches == 0
-            and self.limit_train_batches > 0.0
-            and isinstance(self.limit_train_batches, float)
-            and orig_train_batches != float("inf")
-        ):
-            min_percentage = 1.0 / orig_train_batches
-            raise MisconfigurationException(
-                f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
-                f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
-                f" `limit_train_batches` argument. Try at least"
-                f" `limit_train_batches={min_percentage}`"
-            )
-
-    def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets the validation dataloader and determines the number of batches.
-
-        Args:
-            model: The ``LightningModule`` if called outside of the trainer scope.
-        """
-        source = self._data_connector._val_dataloader_source
-        pl_module = self.lightning_module or model
-        has_step = is_overridden("validation_step", pl_module)
-        enable_validation = self.limit_val_batches > 0
-        if source.is_defined() and has_step and enable_validation:
-            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-            # it should not reload again if it has already reloaded during sanity_check
-            if self.state.fn == TrainerFn.FITTING and (
-                (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch())
-                or not self.sanity_checking
-            ):
-                self._last_val_dl_reload_epoch = self.current_epoch
-
-            self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
-                RunningStage.VALIDATING, model=pl_module
-            )
-
-    def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets the test dataloader and determines the number of batches.
-
-        Args:
-            model: The ``LightningModule`` if called outside of the trainer scope.
-        """
-        source = self._data_connector._test_dataloader_source
-        pl_module = self.lightning_module or model
-        has_step = is_overridden("test_step", pl_module)
-        enable_testing = self.limit_test_batches > 0
-        if source.is_defined() and has_step and enable_testing:
-            self.num_test_batches, self.test_dataloaders = self._data_connector._reset_eval_dataloader(
-                RunningStage.TESTING, model=pl_module
-            )
-
-    def reset_predict_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets the predict dataloader and determines the number of batches.
-
-        Args:
-            model: The ``LightningModule`` if called outside of the trainer scope.
-        """
-        source = self._data_connector._predict_dataloader_source
-        pl_module = self.lightning_module or model
-        enable_prediction = self.limit_predict_batches > 0
-        if source.is_defined() and enable_prediction:
-            self.num_predict_batches, self.predict_dataloaders = self._data_connector._reset_eval_dataloader(
-                RunningStage.PREDICTING, model=pl_module
-            )
 
     """
     Accelerator properties
@@ -1328,7 +1215,7 @@ class Trainer:
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         return (
-            self._data_connector._val_dataloader_source.is_defined()
+            self.fit_loop.epoch_loop.val_loop._data_source.is_defined()
             and is_overridden("validation_step", self.lightning_module)
             and self.limit_val_batches > 0
         )
@@ -1540,6 +1427,53 @@ class Trainer:
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
+    def train_dataloader(self) -> TRAIN_DATALOADERS:
+        if (combined_loader := self.fit_loop._combined_loader) is not None:
+            return combined_loader.iterables
+
+    @property
+    def val_dataloaders(self) -> EVAL_DATALOADERS:
+        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None:
+            return combined_loader.iterables
+        elif (combined_loader := self.validate_loop._combined_loader) is not None:
+            return combined_loader.iterables
+
+    @property
+    def test_dataloaders(self) -> EVAL_DATALOADERS:
+        if (combined_loader := self.test_loop._combined_loader) is not None:
+            return combined_loader.iterables
+
+    @property
+    def predict_dataloaders(self) -> EVAL_DATALOADERS:
+        if (combined_loader := self.predict_loop._combined_loader) is not None:
+            return combined_loader.iterables
+
+    @property
+    def num_training_batches(self) -> Union[int, float]:
+        return self.fit_loop.max_batches
+
+    @property
+    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+        max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
+        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+
+    @property
+    def num_val_batches(self) -> List[Union[int, float]]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validate_loop.max_batches
+        # if no trainer.fn is set, assume fit's validation
+        # use the protected access, because it shouldn't return the sanity_val batches
+        return self.fit_loop.epoch_loop.val_loop._max_batches
+
+    @property
+    def num_test_batches(self) -> List[Union[int, float]]:
+        return self.test_loop.max_batches
+
+    @property
+    def num_predict_batches(self) -> List[Union[int, float]]:
+        return self.predict_loop.max_batches
+
+    @property
     def _evaluation_loop(self) -> _EvaluationLoop:
         if self.state.fn == TrainerFn.FITTING:
             return self.fit_loop.epoch_loop.val_loop
@@ -1629,7 +1563,10 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            self.reset_train_dataloader()
+            stage = self.state.stage
+            self.training = True
+            self.fit_loop.setup_data()
+            self.state.stage = stage
 
         total_batches = self.num_training_batches
 

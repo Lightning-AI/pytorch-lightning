@@ -9,10 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added Storage Commands ([#16740](https://github.com/Lightning-AI/lightning/pull/16740))
-  * `rm`: Delete files from your Cloud Platform Filesystem
-
-- Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
+-
 
 
 ### Changed
@@ -29,10 +26,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
 
-
 ### Fixed
 
 -
+
+
+## [1.9.4] - 2023-03-01
+
+### Removed
+
+- Removed implicit ui testing with `testing.run_app_in_cloud` in favor of headless login and app selection ([#16741](https://github.com/Lightning-AI/lightning/pull/16741))
+
+
+## [1.9.3] - 2023-02-21
+
+### Fixed
+
+- Fixed `lightning open` command and improved redirects ([#16794](https://github.com/Lightning-AI/lightning/pull/16794))
+
+
+## [1.9.2] - 2023-02-15
+
+- Added Storage Commands ([#16740](https://github.com/Lightning-AI/lightning/pull/16740))
+  * `rm`: Delete files from your Cloud Platform Filesystem
+- Added `lightning connect data` to register data connection to private s3 buckets ([#16738](https://github.com/Lightning-AI/lightning/pull/16738))
 
 
 ## [1.9.1] - 2023-02-10

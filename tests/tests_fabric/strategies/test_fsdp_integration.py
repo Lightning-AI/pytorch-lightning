@@ -16,13 +16,13 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.models import BoringFabric
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
@@ -86,7 +86,7 @@ def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_par
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")
-@pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
+@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""

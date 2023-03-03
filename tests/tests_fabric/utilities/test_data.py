@@ -1,9 +1,9 @@
 import random
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
 import torch
-from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
@@ -12,12 +12,14 @@ from lightning.fabric.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
     _replace_value_in_saved_args,
+    _set_sampler_epoch,
     _update_dataloader,
     _WrapAttrTag,
     has_iterable_dataset,
     has_len,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 
 
 def test_has_iterable_dataset():
@@ -525,3 +527,23 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
     dataloader = ArrayAttributeDataloader(dataset)
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
+
+
+def test_set_sampler_epoch():
+    # No samplers
+    dataloader = Mock()
+    dataloader.sampler = None
+    dataloader.batch_sampler = None
+    _set_sampler_epoch(dataloader, 55)
+
+    # set_epoch not callable
+    dataloader = Mock()
+    dataloader.sampler.set_epoch = None
+    dataloader.batch_sampler.set_epoch = None
+    _set_sampler_epoch(dataloader, 55)
+
+    # set_epoch callable
+    dataloader = Mock()
+    _set_sampler_epoch(dataloader, 55)
+    dataloader.sampler.set_epoch.assert_called_once_with(55)
+    dataloader.batch_sampler.sampler.set_epoch.assert_called_once_with(55)

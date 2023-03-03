@@ -257,7 +257,6 @@ def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
 
 
-# TODO(fabric): The error messages refer to 'replace_sampler_ddp' in PL but Fabric has it named 'replace_sampler'
 class _DatasetSamplerWrapper(Dataset):
     """Dataset to create indexes from `Sampler` or `Iterable`"""
 
@@ -266,19 +265,19 @@ class _DatasetSamplerWrapper(Dataset):
             raise TypeError(
                 "You seem to have configured a sampler in your DataLoader which"
                 " does not provide `__len__` method. The sampler was about to be"
-                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " replaced by `DistributedSamplerWrapper` since `use_distributed_sampler`"
                 " is True and you are using distributed training. Either provide `__len__`"
-                " method in your sampler, remove it from DataLoader or set `replace_sampler_ddp=False`"
+                " method in your sampler, remove it from DataLoader or set `use_distributed_sampler=False`"
                 " if you want to handle distributed sampling yourself."
             )
         if len(sampler) == float("inf"):
             raise TypeError(
                 "You seem to have configured a sampler in your DataLoader which"
                 " does not provide finite `__len__` method. The sampler was about to be"
-                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " replaced by `DistributedSamplerWrapper` since `use_distributed_sampler`"
                 " is True and you are using distributed training. Either provide `__len__`"
                 " method in your sampler which returns a finite number, remove it from DataLoader"
-                " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
+                " or set `use_distributed_sampler=False` if you want to handle distributed sampling yourself."
             )
         self._sampler = sampler
         # defer materializing an iterator until it is necessary
