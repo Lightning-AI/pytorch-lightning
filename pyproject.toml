@@ -26,9 +26,15 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "pl_examples",
-    "pytorch_lightning",
+    "examples",
+    "lightning",
+    "lightning_app",
     "lightning_fabric",
+    "pytorch_lightning",
+    "integrations_app",
+    "tests_app",
+    "tests_cloud",
+    "tests_fabric",
     "tests_pytorch",
 ]
 profile = "black"
