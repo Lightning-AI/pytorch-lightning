@@ -84,7 +84,7 @@ class Trainer:
     def fit(
         self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader, ckpt_path: Optional[str] = None
     ):
-        if self.fabric.is_global_zero:
+        if self.fabric.local_rank == 0:
             self.fabric.call("prepare_data")
 
         # TODO: Have fabric launch the loop function directly?
