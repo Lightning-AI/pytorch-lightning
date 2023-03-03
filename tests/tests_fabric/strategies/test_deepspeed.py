@@ -19,11 +19,11 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 from torch.optim import Optimizer
 
 from lightning.fabric.accelerators import CPUAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
+from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.fixture
