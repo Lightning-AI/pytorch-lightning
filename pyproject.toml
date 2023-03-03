@@ -26,9 +26,15 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "pl_examples",
-    "pytorch_lightning",
+    "examples",
+    "lightning",
+    "lightning_app",
     "lightning_fabric",
+    "pytorch_lightning",
+    "integrations_app",
+    "tests_app",
+    "tests_cloud",
+    "tests_fabric",
     "tests_pytorch",
 ]
 profile = "black"
@@ -69,10 +75,15 @@ max-complexity = 10
 [tool.mypy]
 files = [
     "src/lightning",
-    "src/pytorch_lightning",
 ]
 # This section is for folders with "-" as they are not valid python modules
 exclude = [
+    "src/lightning_app/__about__.py",
+    "src/lightning_app/__setup__.py",
+    "src/lightning_app/__version__.py",
+    "src/lightning_fabric/__about__.py",
+    "src/lightning_fabric/__setup__.py",
+    "src/lightning_fabric/__version__.py",
     "src/lightning/app/cli/app-template",
     "src/lightning/app/cli/component-template",
     "src/lightning/app/cli/pl-app-template",
@@ -85,7 +96,7 @@ ignore_missing_imports = "True"
 show_error_codes = "True"
 warn_redundant_casts = "True"
 warn_unused_configs = "True"
-warn_unused_ignores = "False"  # TODO: set to True when all mirror packages will be reversed
+warn_unused_ignores = "True"
 allow_redefinition = "True"
 # disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
 disable_error_code = "attr-defined"
@@ -98,34 +109,30 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "lightning.app.components.multi_node.fabric",
-    "lightning.app.components.multi_node.base",
-    "lightning.app.components.multi_node.pytorch_spawn",
-    "lightning.app.components.multi_node.trainer",
     "lightning.app.api.http_methods",
     "lightning.app.api.request_types",
-    "lightning.app.cli.commands.app_commands",
-    "lightning.app.cli.commands.lightning_cli",
-    "lightning.app.cli.commands.cmd_install",
-    "lightning.app.cli.connect.app",
-    "lightning.app.cli.commands.pwd",
-    "lightning.app.cli.commands.ls",
-    "lightning.app.cli.commands.cp",
-    "lightning.app.cli.commands.cd",
-    "lightning.app.cli.connect.data",
     "lightning.app.cli.cmd_install",
+    "lightning.app.cli.commands.app_commands",
+    "lightning.app.cli.commands.cd",
+    "lightning.app.cli.commands.cp",
+    "lightning.app.cli.commands.ls",
+    "lightning.app.cli.connect.app",
     "lightning.app.components.database.client",
     "lightning.app.components.database.server",
     "lightning.app.components.database.utilities",
+    "lightning.app.components.multi_node.base",
+    "lightning.app.components.multi_node.fabric",
+    "lightning.app.components.multi_node.pytorch_spawn",
+    "lightning.app.components.multi_node.trainer",
     "lightning.app.components.python.popen",
     "lightning.app.components.python.tracer",
+    "lightning.app.components.serve.auto_scaler",
     "lightning.app.components.serve.gradio_server",
+    "lightning.app.components.serve.python_server",
     "lightning.app.components.serve.serve",
     "lightning.app.components.serve.streamlit",
     "lightning.app.components.serve.types.image",
     "lightning.app.components.serve.types.type",
-    "lightning.app.components.serve.python_server",
-    "lightning.app.components.serve.auto_scaler",
     "lightning.app.components.training",
     "lightning.app.core.api",
     "lightning.app.core.app",
@@ -136,12 +143,11 @@ module = [
     "lightning.app.frontend.panel.app_state_watcher",
     "lightning.app.frontend.panel.panel_frontend",
     "lightning.app.frontend.panel.panel_serve_render_fn",
-    "lightning.app.frontend.stream_lit",
     "lightning.app.frontend.streamlit_base",
+    "lightning.app.frontend.stream_lit",
     "lightning.app.frontend.utils",
     "lightning.app.frontend.web",
     "lightning.app.perf.pdb",
-    "lightning.app.runners.backends.__init__",
     "lightning.app.runners.backends.backend",
     "lightning.app.runners.backends.cloud",
     "lightning.app.runners.backends.docker",
@@ -155,8 +161,8 @@ module = [
     "lightning.app.source_code.tar",
     "lightning.app.source_code.uploader",
     "lightning.app.storage.copier",
-    "lightning.app.storage.filesystem",
     "lightning.app.storage.drive",
+    "lightning.app.storage.filesystem",
     "lightning.app.storage.orchestrator",
     "lightning.app.storage.path",
     "lightning.app.storage.payload",
@@ -184,18 +190,16 @@ module = [
     "lightning.app.utilities.network",
     "lightning.app.utilities.openapi",
     "lightning.app.utilities.packaging.cloud_compute",
-    "lightning.app.utilities.packaging.docker",
     "lightning.app.utilities.packaging.lightning_utils",
-    "lightning.app.utilities.port",
     "lightning.app.utilities.proxies",
     "lightning.app.utilities.scheduler",
     "lightning.app.utilities.state",
     "lightning.app.utilities.tracer",
     "lightning.app.utilities.tree",
-    "lightning.store.save",
-    "lightning.store.utils",
     "lightning.store.authentication",
     "lightning.store.cloud_api",
+    "lightning.store.save",
+    "lightning.store.utils",
 ]
 ignore_errors = "True"
 
