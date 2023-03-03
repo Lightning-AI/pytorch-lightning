@@ -44,6 +44,57 @@ class FabricTrainer:
         checkpoint_dir: str = "./checkpoints",
         checkpoint_frequency: int = 1,
     ) -> None:
+        """
+        Exemplary Trainer with Fabric. This is a very simple trainer focused on readablity 
+        but with reduced featureset. For actual training, we recommend using the :class:`lightning.pytorch.Trainer`.
+        Args:
+            accelerator: The hardware to run on. Possible choices are:
+                ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
+            strategy: Strategy for how to run across multiple devices. Possible choices are:
+                ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
+            devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
+                The value applies per node.
+            num_nodes: Number of GPU nodes for distributed training.
+            precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
+                or bfloat16 precision AMP (``"bf16-mixed"``).
+            plugins: One or several custom plugins
+            callbacks: A single callback or a list of callbacks. A callback can contain the following hooks:
+                - on_train_epoch_start
+                - on train_epoch_end
+                - on_train_batch_start
+                - on_train_batch_end
+                - on_before_backward
+                - on_after_backward
+                - on_before_zero_grad
+                - on_before_optimizer_step
+                - on_validation_model_eval
+                - on_validation_model_train
+                - on_validation_epoch_start
+                - on_validation_epoch_end
+                - on_validation_batch_start
+                - on_validation_batch_end
+
+            loggers: A single logger or a list of loggers. See :meth:`~lightning.fabric.fabric.Fabric.log` for more
+                information.
+
+            max_epochs: The maximum number of epochs to train
+            max_steps: The maximum number of (optimizer) steps to train
+            grad_accum_steps: How many batches to process before each optimizer step
+            limit_train_batches: Limits the number of train batches per epoch
+                If greater than number of batches in the dataloader, this has no effect.
+            limit_val_batches: Limits the number of validation batches per epoch. 
+                If greater than number of batches in the dataloader, this has no effect.
+            validation_frequency: How many epochs to run before each validation epoch.
+            use_distributed_sampler: Wraps the sampler of each dataloader with a respective distributed-aware sampler 
+                in case of distributed training.
+            checkpoint_dir: Directory to store checkpoints to.
+            checkpoint_frequency: How many epochs to run before each checkpoint is written.
+
+        Warning:
+            callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
+
+
+        """
 
         self.fabric = Fabric(
             accelerator=accelerator,
@@ -80,9 +131,17 @@ class FabricTrainer:
         self.checkpoint_frequency = checkpoint_frequency
 
     def fit(
-        self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader, ckpt_path: Optional[str] = None
+        self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader
     ):
+        """
+        The main entrypoint of the trainer, triggering the actual training.
 
+        Args:
+            model: the lightning module to train. Can have the same hooks as :attr:`callbacks` (see :meth:`FabricTrainer.__init__`).
+            train_loader: the training dataloader. Has to be an iterable returning batches.
+            val_loader: the validation dataloader. Has to be an iterable returning batches. If not specified, no validation will run.
+
+        """
         self.fabric.launch()
 
         # setup dataloaders
@@ -138,6 +197,18 @@ class FabricTrainer:
         limit_batches: Union[int, float] = float("inf"),
         scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]] = None,
     ):
+        """
+        The training loop ruunning a single training epoch.
+
+        Args:
+            model: the LightningModule to train
+            optimizer: the optimizer, optimizing the lightning module.
+            train_loader: The dataloader yielding the training batches.
+            limit_batches: Limits the batches during this training epoch. 
+                If greater then the number of batches in the ``train_loader``, this has no effect.
+            scheduler_cfg: The learningrate scheduler configuration. 
+                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+        """
         self.fabric.call("on_train_epoch_start")
         iterable = self.pbar_wrapper(
             train_loader, total=min(len(train_loader), limit_batches), desc=f"Epoch {self.current_epoch}"
@@ -167,7 +238,7 @@ class FabricTrainer:
 
             else:
                 # gradient accumulation -> no optimizer step
-                self.training_step(model=model, optimizer=optimizer, batch=batch, batch_idx=batch_idx)
+                self.training_step(model=model, batch=batch, batch_idx=batch_idx)
 
             self.fabric.call("on_train_batch_end", self._current_train_return, batch, batch_idx)
 
@@ -191,6 +262,15 @@ class FabricTrainer:
     def val_loop(
         self, model: LightningModule, val_loader: Optional[DataLoader], limit_batches: Union[int, float] = float("inf")
     ):
+        """
+        The validation loop ruunning a single validation epoch.
+
+        Args:
+            model: the LightningModule to evaluate
+            val_loader: The dataloader yielding the validation batches.
+            limit_batches: Limits the batches during this validation epoch. 
+                If greater then the number of batches in the ``val_loader``, this has no effect.
+        """
         # no validation if val_loader wasn't passed
         if val_loader is None:
             return
@@ -238,7 +318,16 @@ class FabricTrainer:
         self.fabric.call("on_validation_model_train")
         torch.set_grad_enabled(True)
 
-    def training_step(self, model, optimizer, batch, batch_idx):
+    def training_step(self, model: LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
+        """
+        A single training step, running forward and backward. 
+        The optimizer step is called separately, as this is given as a closure to the optimizer step.
+        
+        Args:
+            model: the lightning module to train
+            batch: the batch to run the forward on
+            batch_idx: index of the current batch w.r.t the current epoch
+        """
         outputs: Union[torch.Tensor, Mapping[str, Any]] = model.training_step(batch, batch_idx=batch_idx)
 
         loss = outputs if isinstance(outputs, torch.Tensor) else outputs["loss"]
@@ -258,7 +347,18 @@ class FabricTrainer:
         scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]],
         level: Literal["step", "epoch"],
         current_value: int,
-    ):
+    ) -> None:
+        """
+        Steps the learningrate scheduler if necessary
+
+        Args:
+            model: The lightning module to train
+            scheduler_cfg: The learningrate scheduler configuration. 
+                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+            level: whether we are trying to step on epoch- or step-level
+            current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
+        """
+
         # no scheduler
         if scheduler_cfg is None:
             return
@@ -296,14 +396,27 @@ class FabricTrainer:
 
     @property
     def should_validate(self) -> bool:
+        """Whether to currently run validation"""
         return self.current_epoch % self.validation_frequency == 0
 
-    def pbar_wrapper(self, iterable, total, **kwargs):
+    def pbar_wrapper(self, iterable: Iterable, total: int, **kwargs: Any):
+        """Wraps the iterable with tqdm for global rank zero.
+        
+        Args:
+            iterable: the iterable to wrap with tqdm
+            total: the total length of the iterable, necessary in case the number of batches was limited.
+        """
         if self.fabric.is_global_zero:
             return tqdm(iterable, total=total, **kwargs)
         return iterable
 
-    def load(self, state, path):
+    def load(self, state: Optional[Mapping], path: str) -> None:
+        """Loads a checkpoint from a given file into state
+
+        Args:
+            state: a mapping contaning model, optimizer and lr scheduler
+            path: the path to load the checkpoint from
+        """
         if state is None:
             state = {}
 
@@ -314,7 +427,13 @@ class FabricTrainer:
         if remainder:
             raise RuntimeError(f"Unused Checkpoint Values: {remainder}")
 
-    def save(self, state):
+    def save(self, state: Optional[Mapping]) -> None:
+        """
+        Saves a checkpoint to the ``checkpoint_dir``
+
+        Args:
+            state: A mapping containing model, optimizer and lr scheduler.
+        """
         if state is None:
             state = {}
 
@@ -323,17 +442,32 @@ class FabricTrainer:
         self.fabric.save(os.path.join(self.checkpoint_dir, f"epoch-{self.current_epoch:04d}.ckpt"), state)
 
     @staticmethod
-    def get_latest_checkpoint(checkpoint_dir):
+    def get_latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
+        """Returns the latest checkpoint from the ``checkpoint_dir``
+
+        Args:
+            checkpoint_dir: the directory to search for checkpoints
+
+        """
         if not os.path.isdir(checkpoint_dir):
             return None
 
         items = sorted(os.listdir(checkpoint_dir))
+        
+        if not items: 
+            return None
+        
         return os.path.join(checkpoint_dir, items[-1])
 
     def _parse_optimizers_schedulers(
         self, configure_optim_output
     ) -> Tuple[Optional[Optimizable], Optional[Mapping[str, Union[LRScheduler, bool, str, int]]]]:
+        """Recursively parses the output of :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
 
+        Args:
+            configure_optim_output: The output of ``configure_optimizers``. 
+                For supported values, please refer to :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
+        """
         _lr_sched_defaults = {"interval": "epoch", "frequency": 1, "monitor": "val_loss"}
 
         # single optimizer
@@ -378,6 +512,13 @@ class FabricTrainer:
     def _format_iterable(
         prog_bar, candidates: Optional[Union[torch.Tensor, Mapping[str, Union[torch.Tensor, float, int]]]], prefix: str
     ):
+        """Adds values as postfix string to progressbar.
+
+        Args:
+            prog_bar: a progressbar (on global rank zero) or an iterable (every other rank).
+            candidates: the values to add as postfix strings to the progressbar.
+            prefix: the prefix to add to each of these values.
+        """
         if isinstance(prog_bar, tqdm) and candidates is not None:
             postfix_str = ""
             float_candidates = apply_to_collection(candidates, torch.Tensor, lambda x: x.item())
