@@ -1,8 +1,8 @@
 import torch
-
-from lightning.pytorch import LightningModule
 from torchmetrics.functional.classification.accuracy import accuracy
 from trainer import Trainer
+
+from lightning.pytorch import LightningModule
 
 
 class MNISTModule(LightningModule):
@@ -36,32 +36,39 @@ class MNISTModule(LightningModule):
         logits = self(x)
 
         loss = self.loss_fn(logits, y)
-        accuracy_train = accuracy(logits.argmax(-1), y, num_classes=10, task='multiclass', top_k=1)
+        accuracy_train = accuracy(logits.argmax(-1), y, num_classes=10, task="multiclass", top_k=1)
 
-        return {'loss': loss, 'accuracy': accuracy_train}
+        return {"loss": loss, "accuracy": accuracy_train}
 
     def configure_optimizers(self):
 
         optim = torch.optim.Adam(self.parameters(), lr=1e-4)
-        return optim, {'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode='max'), 'monitor':'val_accuracy'}
+        return optim, {
+            "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="max"),
+            "monitor": "val_accuracy",
+        }
 
     def validation_step(self, *args, **kwargs):
         return self.training_step(*args, **kwargs)
-
 
 
 def train(model):
     from torchvision.datasets import MNIST
     from torchvision.transforms import ToTensor
 
-    train_set = MNIST(root='/tmp/data/MNIST', train=True, transform=ToTensor(), download=True)
-    val_set = MNIST(root='/tmp/data/MNIST', train=False, transform=ToTensor(), download=False)
+    train_set = MNIST(root="/tmp/data/MNIST", train=True, transform=ToTensor(), download=True)
+    val_set = MNIST(root="/tmp/data/MNIST", train=False, transform=ToTensor(), download=False)
 
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True, pin_memory=torch.cuda.is_available(), num_workers=4)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=64, shuffle=False, pin_memory=torch.cuda.is_available(), num_workers=4)
+    train_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=64, shuffle=True, pin_memory=torch.cuda.is_available(), num_workers=4
+    )
+    val_loader = torch.utils.data.DataLoader(
+        val_set, batch_size=64, shuffle=False, pin_memory=torch.cuda.is_available(), num_workers=4
+    )
 
-    trainer = Trainer(accelerator='cpu', devices='auto', limit_train_batches=10, limit_val_batches=20, max_epochs=3)
+    trainer = Trainer(accelerator="cpu", devices="auto", limit_train_batches=10, limit_val_batches=20, max_epochs=3)
     trainer.fit(model, train_loader, val_loader)
 
-if __name__ == '__main__':
-        train(MNISTModule())
+
+if __name__ == "__main__":
+    train(MNISTModule())

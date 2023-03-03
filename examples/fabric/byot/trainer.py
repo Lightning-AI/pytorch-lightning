@@ -1,14 +1,22 @@
 from collections.abc import Mapping
 from functools import partial
-from typing import Any, List, Optional, Tuple, Union, cast, Literal
-from lightning_utilities.core.apply_func import apply_to_collection
+from typing import Any, cast, List, Literal, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core import is_overridden
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from lightning.fabric.fabric import _PLUGIN_INPUT, _PRECISION_INPUT, Accelerator, Fabric, Logger, Strategy, _unwrap_objects
+from lightning.fabric.fabric import (
+    _PLUGIN_INPUT,
+    _PRECISION_INPUT,
+    _unwrap_objects,
+    Accelerator,
+    Fabric,
+    Logger,
+    Strategy,
+)
 from lightning.fabric.strategies.fsdp import FSDPStrategy
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import LRScheduler, Optimizable
@@ -62,7 +70,9 @@ class Trainer:
         self._current_train_return: Union[torch.Tensor, Mapping[str, Any]] = {}
         self._current_val_return: Optional[Union[torch.Tensor, Mapping[str, Any]]] = {}
 
-    def fit(self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader, ckpt_path: Optional[str] = None):
+    def fit(
+        self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader, ckpt_path: Optional[str] = None
+    ):
         if self.fabric.is_global_zero:
             self.fabric.call("prepare_data")
 
@@ -92,12 +102,14 @@ class Trainer:
 
         # TODO: should this be a for loop?
         while not self.should_stop:
-            self.train_loop(model, optimizer, train_loader, limit_batches=self.limit_train_batches, scheduler_cfg=scheduler_cfg)
+            self.train_loop(
+                model, optimizer, train_loader, limit_batches=self.limit_train_batches, scheduler_cfg=scheduler_cfg
+            )
 
             if self.should_eval:
                 self.val_loop(model, val_loader, limit_batches=self.limit_val_batches)
 
-            self.step_scheduler(model, scheduler_cfg, level='epoch', current_value=self.current_epoch)
+            self.step_scheduler(model, scheduler_cfg, level="epoch", current_value=self.current_epoch)
             # TODO: Checkpointing
 
             self.current_epoch += 1
@@ -142,7 +154,7 @@ class Trainer:
 
             self.fabric.call("on_train_batch_end", self._current_train_return, batch, batch_idx)
 
-            self.step_scheduler(model, scheduler_cfg, level='step', current_value=self.global_step)
+            self.step_scheduler(model, scheduler_cfg, level="step", current_value=self.global_step)
 
             # only increase global step if optimizer stepped
             self.global_step += int(should_optim_step)
@@ -196,7 +208,7 @@ class Trainer:
     def training_step(self, model, optimizer, batch, batch_idx):
         outputs: Union[torch.Tensor, Mapping[str, Any]] = model.training_step(batch, batch_idx=batch_idx)
 
-        loss = outputs if isinstance(outputs, torch.Tensor) else outputs['loss']
+        loss = outputs if isinstance(outputs, torch.Tensor) else outputs["loss"]
 
         self.fabric.call("on_before_zero_grad", optimizer)
 
@@ -211,33 +223,36 @@ class Trainer:
 
         return loss
 
-    def step_scheduler(self, model: LightningModule, scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]], level: Literal['step', 'epoch'], current_value: int):
+    def step_scheduler(
+        self,
+        model: LightningModule,
+        scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]],
+        level: Literal["step", "epoch"],
+        current_value: int,
+    ):
         if scheduler_cfg is None:
             return
 
-        if scheduler_cfg['interval'] != level:
+        if scheduler_cfg["interval"] != level:
             return
 
-        if cast(int, scheduler_cfg['frequency']) % current_value != 0:
+        if cast(int, scheduler_cfg["frequency"]) % current_value != 0:
             return
 
         possible_monitor_vals = {None: None}
         if isinstance(self._current_train_return, torch.Tensor):
-            possible_monitor_vals.update('train_loss', self._current_train_return)
+            possible_monitor_vals.update("train_loss", self._current_train_return)
         elif isinstance(self._current_train_return, Mapping):
             possible_monitor_vals.update(self._current_train_return)
 
         if isinstance(self._current_val_return, torch.Tensor):
-            possible_monitor_vals.update('val_loss', self._current_val_return)
+            possible_monitor_vals.update("val_loss", self._current_val_return)
         elif isinstance(self._current_val_return, Mapping):
             possible_monitor_vals.update(self._current_val_return)
 
-        monitor = {**self._current_train_return, **self._current_val_return}.get(scheduler_cfg['monitor'], None)
-        
-        model.lr_scheduler_step(scheduler_cfg['scheduler'], monitor)
+        monitor = {**self._current_train_return, **self._current_val_return}.get(scheduler_cfg["monitor"], None)
 
-
-
+        model.lr_scheduler_step(scheduler_cfg["scheduler"], monitor)
 
     @property
     def should_validate(self) -> bool:
