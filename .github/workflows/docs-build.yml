@@ -134,7 +134,7 @@ jobs:
           path: docs/build/html/
 
 
-  docs-deploy:
+  deploy-docs:
     needs: make-html
     if: github.event_name == 'push' && github.repository_owner == 'Lightning-AI'
     runs-on: ubuntu-latest
