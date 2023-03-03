@@ -1122,7 +1122,7 @@ class Trainer:
 
     @property
     def precision(self) -> _PRECISION_INPUT_STR:
-        return self.strategy.precision_plugin.precision  # type: ignore
+        return self.strategy.precision_plugin.precision
 
     @property
     def scaler(self) -> Optional[Any]:

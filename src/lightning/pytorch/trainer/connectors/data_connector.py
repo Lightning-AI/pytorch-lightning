@@ -273,8 +273,7 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
         f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
     )
     updated = [
-        _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode)  # type: ignore[arg-type]
-        for dl in combined_loader.flattened
+        _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) for dl in combined_loader.flattened
     ]
     combined_loader.flattened = updated
 

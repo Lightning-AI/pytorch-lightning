@@ -49,6 +49,7 @@ subprojects:
       - "examples/pl_basics/backbone_image_classifier.py"
       - "examples/pl_basics/autoencoder.py"
       - "requirements/pytorch/**"
+      - "src/lightning/*.py"
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
@@ -80,6 +81,7 @@ subprojects:
       - ".azure/hpu-tests.yml"
       - "examples/pl_hpu/mnist_sample.py"
       - "requirements/fabric/**"
+      - "src/lightning/*.py"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "requirements/pytorch/**"
@@ -93,25 +95,26 @@ subprojects:
     checks:
       - "pytorch-lightning (HPUs)"
 
-# TODO: enable IPU again once machine is ready
-#  - id: "pytorch_lightning: Azure IPU"
-#    paths:
-#      - ".actions/**"
-#      - ".azure/ipu-tests.yml"
-#      - "requirements/fabric/**"
-#      - "src/lightning/fabric/**"
-#      - "src/lightning_fabric/*"
-#      - "requirements/pytorch/**"
-#      - "src/lightning/pytorch/**"
-#      - "src/pytorch_lightning/*"
-#      - "tests/tests_pytorch/**"
-#      - "pyproject.toml"  # includes pytest config
-#      - "!requirements/docs.txt"
-#      - "!requirements/*/docs.txt"
-#      - "!*.md"
-#      - "!**/*.md"
-#    checks:
-#      - "pytorch-lightning (IPUs)"
+  # TODO: enable IPU again once machine is ready
+  #- id: "pytorch_lightning: Azure IPU"
+  #  paths:
+  #    - ".actions/**"
+  #    - ".azure/ipu-tests.yml"
+  #    - "requirements/fabric/**"
+  #    - "src/lightning/*.py"
+  #    - "src/lightning/fabric/**"
+  #    - "src/lightning_fabric/*"
+  #    - "requirements/pytorch/**"
+  #    - "src/lightning/pytorch/**"
+  #    - "src/pytorch_lightning/*"
+  #    - "tests/tests_pytorch/**"
+  #    - "pyproject.toml"  # includes pytest config
+  #    - "!requirements/docs.txt"
+  #    - "!requirements/*/docs.txt"
+  #    - "!*.md"
+  #    - "!**/*.md"
+  #  checks:
+  #    - "pytorch-lightning (IPUs)"
 
   # TODO: since this job has intermittent availability, it cannot be required
   #- id: "pytorch-lightning: TPU workflow"
@@ -229,6 +232,7 @@ subprojects:
       - "tests/tests_fabric/run_standalone_*.sh"
       - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Fabric through a symlink
       - "requirements/fabric/**"
+      - "src/lightning/*.py"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
@@ -301,6 +305,7 @@ subprojects:
   - id: "lightning: Store"
     paths:
       - ".azure/app-cloud-store.yml"
+      - "src/lightning/*.py"
       - "src/lightning/store/**"
       - "tests/tests_cloud/**"
     checks:
@@ -312,6 +317,7 @@ subprojects:
     paths:
       - ".actions/**"
       - ".azure/app-cloud-e2e.yml"
+      - "src/lightning/*.py"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
       - "requirements/app/**"
@@ -406,6 +412,7 @@ subprojects:
   - id: "link-check"
     paths:
       - ".github/workflows/md-check-links.yml"
+      - ".github/workflows/markdown.links.config.json"
       - "**/*.md"
     checks:
       - "markdown-link-check"
