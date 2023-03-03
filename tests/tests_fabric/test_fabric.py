@@ -40,7 +40,6 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from lightning.pytorch.core.module import LightningModule
 
 
 class EmptyFabric(Fabric):
@@ -928,6 +927,9 @@ def test_grad_clipping(clip_val, max_norm):
 
 @pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm(algo):
+    from lightning.pytorch.core.module import LightningModule
+    from lightning.pytorch.utilities.enums import GradClipAlgorithmType
+
     class DummyLM(LightningModule):
         def __init__(self):
             super().__init__()
@@ -940,7 +942,7 @@ def test_grad_clipping_lm(algo):
     fabric.clip_gradients = Mock()
 
     optimizer = Mock()
-    model.clip_gradients(optimizer, gradient_clip_val=1e-3, gradient_clip_algorithm=algo)
+    model.clip_gradients(optimizer, gradient_clip_val=1e-3, gradient_clip_algorithm=GradClipAlgorithmType(algo))
 
     if algo == "value":
         assert fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=1e-3, max_norm=None)
