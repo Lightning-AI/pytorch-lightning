@@ -135,7 +135,7 @@ jobs:
 
 
   deploy-docs:
-    needs: make-html
+    needs: [make-doctest, make-html]
     if: github.repository_owner == 'Lightning-AI' # fixme: && github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
@@ -165,5 +165,5 @@ jobs:
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
-        if: github.ref == 'refs/heads/master'
+        # fixme: if: github.ref == 'refs/heads/master'
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
