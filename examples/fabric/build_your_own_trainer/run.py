@@ -68,6 +68,8 @@ def train(model):
         val_set, batch_size=64, shuffle=False, pin_memory=torch.cuda.is_available(), num_workers=4
     )
 
+    # MPS backend currently does not support all operations used in this example.
+    # If you want to use MPS, set accelerator='auto' and also set PYTORCH_ENABLE_MPS_FALLBACK=1
     accelerator = "cpu" if torch.backends.mps.is_available() else "auto"
 
     trainer = Trainer(
