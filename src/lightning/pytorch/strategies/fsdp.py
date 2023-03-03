@@ -92,7 +92,7 @@ class FSDPStrategy(ParallelStrategy):
         cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
             You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
             implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default: no offoading
+            to work with the optimizer. This API is subject to change. Default: no offloading
         backward_prefetch:
             This is an experimental feature that is subject to change in the
             the near future. It allows users to enable two different backward_prefetch

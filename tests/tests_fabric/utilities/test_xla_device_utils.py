@@ -15,9 +15,9 @@ import time
 from unittest.mock import patch
 
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators.tpu import _multi_process, _XLA_AVAILABLE, TPUAccelerator
+from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
