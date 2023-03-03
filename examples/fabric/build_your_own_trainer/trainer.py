@@ -39,7 +39,6 @@ class Trainer:
         grad_accum_steps: int = 1,
         limit_train_batches: Union[int, float] = float("inf"),
         limit_val_batches: Union[int, float] = float("inf"),
-        val_sanity_check: int = 2,
         validation_frequency: int = 1,
         use_distributed_sampler: bool = True,
         checkpoint_dir: str = "./checkpoints",
@@ -72,7 +71,6 @@ class Trainer:
 
         self.limit_train_batches = limit_train_batches
         self.limit_val_batches = limit_val_batches
-        self.val_sanity_check = val_sanity_check
         self.validation_frequency = validation_frequency
         self.use_distributed_sampler = use_distributed_sampler
         self._current_train_return: Union[torch.Tensor, Mapping[str, Any]] = {}
@@ -84,10 +82,7 @@ class Trainer:
     def fit(
         self, model: LightningModule, train_loader: DataLoader, val_loader: DataLoader, ckpt_path: Optional[str] = None
     ):
-        if self.fabric.local_rank == 0:
-            self.fabric.call("prepare_data")
 
-        # TODO: Have fabric launch the loop function directly?
         self.fabric.launch()
 
         # setup dataloaders
@@ -97,12 +92,9 @@ class Trainer:
 
         # setup model and optimizer
         if isinstance(self.fabric.strategy, FSDPStrategy):
-            model = self.fabric.setup_module(model)
-            # FIXME: currently, there is no way to support fsdp with model.configure_optimizers in fabric
+            # currently, there is no way to support fsdp with model.configure_optimizers in fabric
             # as it would require fabric to hold a reference to the model, which we don't want to.
             raise NotImplementedError("BYOT currently does not support FSDP")
-            optimizer, scheduler_cfg = self._parse_optimizers_schedulers(model.configure_optimizers())
-            optimizer = self.fabric.setup_optimizers(optimizer)
         else:
             optimizer, scheduler_cfg = self._parse_optimizers_schedulers(model.configure_optimizers())
             assert optimizer is not None
@@ -120,11 +112,6 @@ class Trainer:
             if self.max_epochs is not None and self.current_epoch >= self.max_epochs:
                 self.should_stop = True
 
-        # Run validation sanity check
-        if self.val_sanity_check and val_loader is not None and not self.should_stop:
-            self.val_loop(model, val_loader, limit_batches=self.val_sanity_check)
-
-        # TODO: should this be a for loop?
         while not self.should_stop:
             self.train_loop(
                 model, optimizer, train_loader, limit_batches=self.limit_train_batches, scheduler_cfg=scheduler_cfg
@@ -169,7 +156,6 @@ class Trainer:
             if should_optim_step:
                 # currently only supports a single optimizer
                 self.fabric.call("on_before_optimizer_step", optimizer, 0)
-                # TODO: (lower priority) support optimizer without closure?
 
                 # optimizer step runs train step internally through closure
                 optimizer.step(
@@ -219,7 +205,6 @@ class Trainer:
 
         self.fabric.call("on_validation_model_eval")  # calls `model.eval()`
 
-        # TODO: inference mode?
         torch.set_grad_enabled(False)
 
         self.fabric.call("on_validation_epoch_start")
@@ -227,7 +212,7 @@ class Trainer:
         iterable = self.pbar_wrapper(
             val_loader,
             total=min(len(val_loader), limit_batches),
-            desc="Validation Sanity Check" if self.global_step == 0 else "Validation",
+            desc='Validation'
         )
 
         for batch_idx, batch in enumerate(iterable):
@@ -251,7 +236,6 @@ class Trainer:
         self.fabric.call("on_validation_epoch_end")
 
         self.fabric.call("on_validation_model_train")
-        # TODO: Inference mode?
         torch.set_grad_enabled(True)
 
     def training_step(self, model, optimizer, batch, batch_idx):
@@ -262,8 +246,6 @@ class Trainer:
         self.fabric.call("on_before_backward", loss)
         self.fabric.backward(loss)
         self.fabric.call("on_after_backward")
-        # TODO: reroute configure_gradient_clipping in LM to fabric.gradient clipping
-        # self.fabric.call('configure_gradient_clipping')
 
         # avoid gradients in stored/accumulated values -> prevents potential OOM
         self._current_train_return = apply_to_collection(outputs, dtype=torch.Tensor, function=lambda x: x.detach())
