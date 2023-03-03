@@ -1,6 +1,6 @@
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
-from trainer import Trainer
+from trainer import FabricTrainer
 
 from lightning.pytorch import LightningModule
 
@@ -72,7 +72,7 @@ def train(model):
     # If you want to use MPS, set accelerator='auto' and also set PYTORCH_ENABLE_MPS_FALLBACK=1
     accelerator = "cpu" if torch.backends.mps.is_available() else "auto"
 
-    trainer = Trainer(
+    trainer = FabricTrainer(
         accelerator=accelerator, devices="auto", limit_train_batches=10, limit_val_batches=20, max_epochs=3
     )
     trainer.fit(model, train_loader, val_loader)

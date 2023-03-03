@@ -24,7 +24,7 @@ from lightning.fabric.utilities.types import LRScheduler, Optimizable
 from lightning.pytorch.core.module import LightningModule
 
 
-class Trainer:
+class FabricTrainer:
     def __init__(
         self,
         accelerator: Union[str, Accelerator] = "auto",
