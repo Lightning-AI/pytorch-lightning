@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
-## [1.9.4] - 2023-02-28
+## [1.9.4] - 2023-03-01
 
 ### Removed
 
