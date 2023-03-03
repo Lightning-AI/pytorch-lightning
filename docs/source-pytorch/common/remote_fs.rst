@@ -21,7 +21,7 @@ You could pass custom paths to loggers for logging data.
 
 .. code-block:: python
 
-    from pytorch_lightning.loggers import TensorBoardLogger
+    from lightning.pytorch.loggers import TensorBoardLogger
 
     logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
 

@@ -22,7 +22,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.base import ProgressBarBase
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
-_RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
+_RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
@@ -379,7 +379,12 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_validation_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
@@ -442,7 +447,12 @@ class RichProgressBar(ProgressBarBase):
         self.reset_dataloader_idx_tracker()
 
     def on_test_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
@@ -454,7 +464,12 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_predict_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
@@ -470,7 +485,7 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
-        self._update(self.train_progress_bar_id, self.train_batch_idx)
+        self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
@@ -484,14 +499,14 @@ class RichProgressBar(ProgressBarBase):
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled:
             return
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
+            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
         elif self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, self.val_batch_idx)
+            self._update(self.val_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     def on_test_batch_end(
@@ -501,12 +516,12 @@ class RichProgressBar(ProgressBarBase):
         outputs: Optional[STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled:
             return
         assert self.test_progress_bar_id is not None
-        self._update(self.test_progress_bar_id, self.test_batch_idx)
+        self._update(self.test_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     def on_predict_batch_end(
@@ -516,12 +531,12 @@ class RichProgressBar(ProgressBarBase):
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.is_disabled:
             return
         assert self.predict_progress_bar_id is not None
-        self._update(self.predict_progress_bar_id, self.predict_batch_idx)
+        self._update(self.predict_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     def _get_train_description(self, current_epoch: int) -> str:

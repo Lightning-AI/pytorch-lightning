@@ -14,7 +14,7 @@ Lightning provides a flexible way to create complex CLI without much effort.
 1. Implement a simple CLI
 *************************
 
-To create your first CLI, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server side handlers.
+To create your first CLI, you need to override the :class:`~lightning.app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server side handlers.
 
 First, create a file ``app.py`` and copy-paste the following code in to the file:
 

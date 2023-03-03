@@ -10,7 +10,7 @@ Storage
 The Lightning Storage system makes it easy to share files between LightningWork so you can run your app both locally and in the cloud without changing the code.
 
 
-Lightning storage provides two solutions :class:`~lightning_app.storage.drive.Drive` and :class:`~lightning_app.storage.path.Path` to deal with files locally and in the cloud likewise.
+Lightning storage provides two solutions :class:`~lightning.app.storage.drive.Drive` and :class:`~lightning.app.storage.path.Path` to deal with files locally and in the cloud likewise.
 
 
 ----

@@ -59,7 +59,6 @@ The simple profiler measures all the standard methods used in the training loop 
 - on_after_backward
 - optimizer_step
 - on_train_batch_end
-- training_step_end
 - on_training_end
 - etc...
 
@@ -68,7 +67,7 @@ The simple profiler measures all the standard methods used in the training loop 
 **************************************
 Profile the time within every function
 **************************************
-To profile the time within every function, use the :class:`~pytorch_lightning.profilers.advanced.AdvancedProfiler` built on top of Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_.
+To profile the time within every function, use the :class:`~lightning.pytorch.profilers.advanced.AdvancedProfiler` built on top of Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_.
 
 
 .. code-block:: python
@@ -101,7 +100,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 
 .. code-block:: python
 
-    from pytorch_lightning.profilers import AdvancedProfiler
+    from lightning.pytorch.profilers import AdvancedProfiler
 
     profiler = AdvancedProfiler(dirpath=".", filename="perf_logs")
     trainer = Trainer(profiler=profiler)
@@ -112,11 +111,11 @@ If the profiler report becomes too long, you can stream the report to a file:
 Measure accelerator usage
 *************************
 Another helpful technique to detect bottlenecks is to ensure that you're using the full capacity of your accelerator (GPU/TPU/IPU/HPU).
-This can be measured with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`:
+This can be measured with the :class:`~lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor`:
 
 .. testcode::
 
-    from pytorch_lightning.callbacks import DeviceStatsMonitor
+    from lightning.pytorch.callbacks import DeviceStatsMonitor
 
     trainer = Trainer(callbacks=[DeviceStatsMonitor()])
 

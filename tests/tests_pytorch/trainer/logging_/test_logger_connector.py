@@ -20,7 +20,9 @@ import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import Accuracy
+from torchmetrics import AveragePrecision as AvgPre
+from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks.callback import Callback
@@ -31,7 +33,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.models.test_hooks import get_members
 
 
@@ -261,63 +263,6 @@ def test_fx_validator_integration(tmpdir):
     trainer.predict(model)
 
 
-@RunIf(min_cuda_gpus=2)
-def test_epoch_results_cache_dp(tmpdir):
-
-    root_device = torch.device("cuda", 0)
-
-    class TestModel(BoringModel):
-        def training_step(self, *args, **kwargs):
-            result = super().training_step(*args, **kwargs)
-            self.log("train_loss_epoch", result["loss"], on_step=False, on_epoch=True)
-            return result
-
-        def training_step_end(self, training_step_output):  # required for dp
-            loss = training_step_output["loss"].mean()
-            return loss
-
-        def on_train_epoch_end(self):
-            assert self.trainer.callback_metrics["train_loss_epoch"].device == root_device
-
-        def validation_step(self, *args, **kwargs):
-            val_loss = torch.rand(1, device=torch.device("cuda", 1))
-            self.log("val_loss_epoch", val_loss, on_step=False, on_epoch=True)
-            return val_loss
-
-        def on_validation_epoch_end(self):
-            assert self.trainer.callback_metrics["val_loss_epoch"].device == root_device
-
-        def test_step(self, *args, **kwargs):
-            test_loss = torch.rand(1, device=torch.device("cuda", 1))
-            self.log("test_loss_epoch", test_loss, on_step=False, on_epoch=True)
-            return test_loss
-
-        def on_test_epoch_end(self):
-            assert self.trainer.callback_metrics["test_loss_epoch"].device == root_device
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=4)
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=4)
-
-        def test_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=4)
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="dp",
-        accelerator="gpu",
-        devices=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-    )
-    trainer.fit(model)
-    trainer.test(model)
-
-
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     """test that auto_add_dataloader_idx argument works."""
@@ -361,9 +306,9 @@ def test_metrics_reset(tmpdir):
             self.layer = torch.nn.Linear(32, 1)
 
         def _create_metrics(self):
-            acc = Accuracy()
+            acc = Accuracy(task="binary") if _TM_GE_0_11 else Accuracy()
             acc.reset = mock.Mock(side_effect=acc.reset)
-            ap = AveragePrecision(num_classes=1, pos_label=1)
+            ap = AvgPre(task="binary") if _TM_GE_0_11 else AvgPre(num_classes=1, pos_label=1)
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 

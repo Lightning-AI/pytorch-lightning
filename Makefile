@@ -20,13 +20,15 @@ clean:
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
-	rm -rf ./docs/source-app/generated
-	rm -rf ./docs/source-app/*/generated
+	rm -rf ./docs/source/generated
+	rm -rf ./docs/source/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
 	rm -rf src/*.egg-info
-	rm -rf src/lightning/*/
+	rm -rf src/lightning_app/*/
+	rm -rf src/lightning_fabric/*/
+	rm -rf src/pytorch_lightning/*/
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
@@ -45,7 +47,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/app/docs.txt
-	cd docs/source-app && $(MAKE) html
+	cd docs/source && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

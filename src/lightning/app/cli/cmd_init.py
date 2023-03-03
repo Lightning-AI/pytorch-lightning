@@ -15,7 +15,7 @@
 import os
 import re
 import shutil
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from lightning.app.utilities.app_helpers import Logger
 
@@ -85,7 +85,7 @@ def _ls_recursively(dir_name: str) -> List[str]:
     return fname
 
 
-def _capture_valid_app_component_name(value: str = None, resource_type: str = "app") -> str:
+def _capture_valid_app_component_name(value: Optional[str] = None, resource_type: str = "app") -> str:
     prompt = f"""
     ⚡ Creating Lightning {resource_type} ⚡
     """

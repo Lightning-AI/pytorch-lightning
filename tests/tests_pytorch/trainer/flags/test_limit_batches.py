@@ -62,11 +62,25 @@ def test_eval_limit_batches(stage, mode, limit_batches):
 
     trainer = Trainer(**{limit_eval_batches: limit_batches})
     model.trainer = trainer
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
-    loader_num_batches, dataloaders = trainer._data_connector._reset_eval_dataloader(stage, model=model)
+
+    trainer.state.stage = stage
+    trainer.state.fn = stage.value
+    trainer._active_loop.setup_data()
+    if stage == RunningStage.VALIDATING:
+        loader_num_batches = trainer.num_val_batches
+        dataloaders = trainer.val_dataloaders
+    elif stage == RunningStage.TESTING:
+        loader_num_batches = trainer.num_test_batches
+        dataloaders = trainer.test_dataloaders
+    elif stage == RunningStage.PREDICTING:
+        loader_num_batches = trainer.num_predict_batches
+        dataloaders = trainer.predict_dataloaders
+
     expected_batches = int(limit_batches * len(eval_loader)) if isinstance(limit_batches, float) else limit_batches
     assert loader_num_batches[0] == expected_batches
-    assert len(dataloaders[0]) == len(eval_loader)
+    assert len(dataloaders) == len(eval_loader)
 
 
 @pytest.mark.parametrize(
