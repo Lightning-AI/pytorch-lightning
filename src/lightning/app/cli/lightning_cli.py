@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import arrow
 import click
@@ -76,11 +76,21 @@ def main() -> None:
     # Check environment and versions if not in the cloud and not testing
     is_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
     if not is_testing and "LIGHTNING_APP_STATE_URL" not in os.environ:
-        # Enforce running in PATH Python
-        _check_environment_and_redirect()
+        try:
+            # Enforce running in PATH Python
+            _check_environment_and_redirect()
 
-        # Check for newer versions and upgrade
-        _check_version_and_upgrade()
+            # Check for newer versions and upgrade
+            _check_version_and_upgrade()
+        except SystemExit:
+            raise
+        except Exception:
+            # Note: We intentionally ignore all exceptions here so that we never panic if one of the above calls fails.
+            # If they fail for some reason users should still be able to continue with their command.
+            click.echo(
+                "We encountered an unexpected problem while checking your environment."
+                "We will still proceed with the command, however, there is a chance that errors may occur."
+            )
 
     # 1: Handle connection to a Lightning App.
     if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
@@ -464,7 +474,7 @@ _main.add_command(cmd_install.install)
     default=None,
     help="Specify which component to SSH into",
 )
-def ssh(app_name: str = None, component_name: str = None) -> None:
+def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) -> None:
     """SSH into a Lightning App."""
 
     app_manager = _AppManager()

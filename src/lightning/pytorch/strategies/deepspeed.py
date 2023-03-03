@@ -627,7 +627,7 @@ class DeepSpeedStrategy(DDPStrategy):
             try:
                 train_dataloader = data_source.dataloader()
                 if hasattr(train_dataloader, "batch_sampler"):
-                    batch_size = train_dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
+                    batch_size = train_dataloader.batch_sampler.batch_size
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
             # to have been called before
             except Exception:
