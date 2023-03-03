@@ -133,6 +133,22 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._idx = 0
 
 
+class _MaxSize(_ModeIterator[List]):
+    def __next__(self) -> List:
+        n = len(self.iterators)
+        out = [None] * n
+        all_exhausted = True
+        for i in range(n):
+            try:
+                out[i] = next(self.iterators[i])
+                all_exhausted = False
+            except StopIteration:
+                pass
+        if all_exhausted:
+            raise StopIteration
+        return out
+
+
 class _CombinationMode(TypedDict):
     fn: Callable[[List[int]], int]
     iterator: Type[_ModeIterator]
@@ -142,7 +158,12 @@ _supported_modes = {
     "min_size": _CombinationMode(fn=min, iterator=_MinSize),
     "max_size_cycle": _CombinationMode(fn=max, iterator=_MaxSizeCycle),
     "sequential": _CombinationMode(fn=sum, iterator=_Sequential),
+    "max_size": _CombinationMode(fn=max, iterator=_MaxSize),
 }
+
+_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "max_size", "sequential"]
+
+
 
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
 
@@ -157,6 +178,8 @@ class CombinedLoader(Iterable):
                 items) is done.
             * ``"max_size_cycle"`` which raises StopIteration after the longest iterable (the one with most items) is
                 done, while cycling through rest of the iterables.
+            * ``"max_size"`` which raises StopIteration after the longest iterable (the one with most items) is
+                done, while returning None for exhausted iterables.
             * ``"sequential"`` will consume ecah iterable sequentially, and returns a tuple with the associated index
                 from each iterable.
 
