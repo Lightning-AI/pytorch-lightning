@@ -372,7 +372,9 @@ class LightningApp:
                         logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
 
                     if work:
-                        delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))  # type: ignore[arg-type]
+                        delta = _delta_to_app_state_delta(
+                            self.root, work, deepcopy(delta.delta)  # type: ignore[arg-type]
+                        )
                         deltas.append(delta)
                 else:
                     api_or_command_request_deltas.append(delta)
