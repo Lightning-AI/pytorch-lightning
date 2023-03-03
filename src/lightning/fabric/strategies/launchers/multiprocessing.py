@@ -85,6 +85,8 @@ class _MultiProcessingLauncher(_Launcher):
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
+            if torch.xpu.is_available():
+                _check_bad_xpu_fork()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
