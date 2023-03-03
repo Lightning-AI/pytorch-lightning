@@ -6,7 +6,7 @@ on:
     branches: ["master", "release/*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
-  pull_request:  # fixme: pull_request_target
+  pull_request_target:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
@@ -136,7 +136,7 @@ jobs:
 
   deploy-docs:
     needs: [make-doctest, make-html]
-    if: github.repository_owner == 'Lightning-AI' # fixme: && github.event_name == 'push'
+    if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -165,5 +165,5 @@ jobs:
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
-        # fixme: if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master'
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
