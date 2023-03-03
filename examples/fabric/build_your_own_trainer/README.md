@@ -1,6 +1,6 @@
 ## Build Your Own Trainer (BYOT)
 
-This example demonstrates, how easy it is, to build a fully customizable trainer working with a `LightningModule`.
+This example demonstrates how easy it is to build a fully customizable trainer for your `LightningModule` using `Fabric`.
 It is built upon `lightning.fabric` for hardware and training orchestration and consists of two files:
 
 - trainer.py contains the actual `FabricTrainer` implementation
@@ -12,7 +12,7 @@ To run this example, call `python run.py`
 
 ### Requirements
 
-This example has the following requirements which need to be installed on your python interpreter:
+This example has the following requirements which need to be installed on your python environment:
 
 - `lightning`
 - `torchmetrics`

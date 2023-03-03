@@ -59,7 +59,7 @@ class FabricTrainer:
             precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
                 or bfloat16 precision AMP (``"bf16-mixed"``).
             plugins: One or several custom plugins
-            callbacks: A single callback or a list of callbacks. A callback can contain the following hooks:
+            callbacks: A single callback or a list of callbacks. The following hooks are supported:
                 - on_train_epoch_start
                 - on train_epoch_end
                 - on_train_batch_start
@@ -135,7 +135,7 @@ class FabricTrainer:
         """The main entrypoint of the trainer, triggering the actual training.
 
         Args:
-            model: the lightning module to train.
+            model: the LightningModule to train.
                 Can have the same hooks as :attr:`callbacks` (see :meth:`FabricTrainer.__init__`).
             train_loader: the training dataloader. Has to be an iterable returning batches.
             val_loader: the validation dataloader. Has to be an iterable returning batches.
@@ -196,15 +196,15 @@ class FabricTrainer:
         limit_batches: Union[int, float] = float("inf"),
         scheduler_cfg: Optional[Mapping[str, Union[LRScheduler, bool, str, int]]] = None,
     ):
-        """The training loop ruunning a single training epoch.
+        """The training loop running a single training epoch.
 
         Args:
             model: the LightningModule to train
-            optimizer: the optimizer, optimizing the lightning module.
+            optimizer: the optimizer, optimizing the LightningModule.
             train_loader: The dataloader yielding the training batches.
             limit_batches: Limits the batches during this training epoch.
                 If greater then the number of batches in the ``train_loader``, this has no effect.
-            scheduler_cfg: The learningrate scheduler configuration.
+            scheduler_cfg: The learning rate scheduler configuration.
                 Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
         """
         self.fabric.call("on_train_epoch_start")
@@ -340,11 +340,11 @@ class FabricTrainer:
         level: Literal["step", "epoch"],
         current_value: int,
     ) -> None:
-        """Steps the learningrate scheduler if necessary.
+        """Steps the learning rate scheduler if necessary.
 
         Args:
-            model: The lightning module to train
-            scheduler_cfg: The learningrate scheduler configuration.
+            model: The LightningModule to train
+            scheduler_cfg: The learning rate scheduler configuration.
                 Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
             level: whether we are trying to step on epoch- or step-level
             current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
@@ -390,7 +390,7 @@ class FabricTrainer:
         """Whether to currently run validation."""
         return self.current_epoch % self.validation_frequency == 0
 
-    def pbar_wrapper(self, iterable: Iterable, total: int, **kwargs: Any):
+    def progbar_wrapper(self, iterable: Iterable, total: int, **kwargs: Any):
         """Wraps the iterable with tqdm for global rank zero.
 
         Args:
