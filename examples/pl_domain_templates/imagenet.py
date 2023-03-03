@@ -82,10 +82,10 @@ class ImageNetLightningModel(LightningModule):
         self.model = get_torchvision_model(self.arch, weights=self.weights)
         self.train_dataset: Optional[Dataset] = None
         self.eval_dataset: Optional[Dataset] = None
-        self.train_acc1 = Accuracy(top_k=1)
-        self.train_acc5 = Accuracy(top_k=5)
-        self.eval_acc1 = Accuracy(top_k=1)
-        self.eval_acc5 = Accuracy(top_k=5)
+        self.train_acc1 = Accuracy(task="multilabel", top_k=1)
+        self.train_acc5 = Accuracy(task="multilabel", top_k=5)
+        self.eval_acc1 = Accuracy(task="multilabel", top_k=1)
+        self.eval_acc5 = Accuracy(task="multilabel", top_k=5)
 
     def forward(self, x):
         return self.model(x)
