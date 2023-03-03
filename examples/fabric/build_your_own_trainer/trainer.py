@@ -1,7 +1,7 @@
 import os
 from collections.abc import Mapping
 from functools import partial
-from typing import Any, cast, List, Literal, Optional, Tuple, Union
+from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core import is_overridden
@@ -52,7 +52,8 @@ class FabricTrainer:
                 ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
             strategy: Strategy for how to run across multiple devices. Possible choices are:
                 ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
-            devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
+            devices: Number of devices to train on (``int``),
+                which GPUs to train on (``list`` or ``str``), or ``"auto"``.
                 The value applies per node.
             num_nodes: Number of GPU nodes for distributed training.
             precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
@@ -134,9 +135,11 @@ class FabricTrainer:
         """The main entrypoint of the trainer, triggering the actual training.
 
         Args:
-            model: the lightning module to train. Can have the same hooks as :attr:`callbacks` (see :meth:`FabricTrainer.__init__`).
+            model: the lightning module to train.
+                Can have the same hooks as :attr:`callbacks` (see :meth:`FabricTrainer.__init__`).
             train_loader: the training dataloader. Has to be an iterable returning batches.
-            val_loader: the validation dataloader. Has to be an iterable returning batches. If not specified, no validation will run.
+            val_loader: the validation dataloader. Has to be an iterable returning batches.
+                If not specified, no validation will run.
         """
         self.fabric.launch()
 
