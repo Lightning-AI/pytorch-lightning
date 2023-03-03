@@ -97,7 +97,7 @@ class _RunIf:
 
         conditions = []
         reasons = []
-        kwargs: dict = {}  # ToDo: this is very confusing, drop it
+        kwargs: dict = {}  # It's required for our CI to run under the different PL_RUN_X_TESTS
 
         if min_cuda_gpus:
             conditions.append(num_cuda_devices() < min_cuda_gpus)
