@@ -134,8 +134,8 @@ class LightningFlow:
         if isinstance(attr, property) and attr.fset is not None:
             return attr.fset(self, value)
 
-        from lightning.app.structures import Dict as AppDict
-        from lightning.app.structures import List as AppList
+        from lightning.app.structures import Dict as ComponentDict
+        from lightning.app.structures import List as ComponentList
 
         if (
             not _is_init_context(self)
@@ -163,12 +163,12 @@ class LightningFlow:
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
             if isinstance(value, (list, dict)) and value:
-                _type = (LightningFlow, LightningWork, AppList, AppDict)
+                _type = (LightningFlow, LightningWork, ComponentList, ComponentDict)
                 if isinstance(value, list) and all(isinstance(va, _type) for va in value):
-                    value = AppList(*value)
+                    value = ComponentList(*value)
 
                 if isinstance(value, dict) and all(isinstance(va, _type) for va in value.values()):
-                    value = AppDict(**value)
+                    value = ComponentDict(**value)
 
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
@@ -190,7 +190,7 @@ class LightningFlow:
                     self._backend._wrap_run_method(_LightningAppRef().get_current(), value)  # type: ignore[arg-type]
                 value._register_cloud_compute()
 
-            elif isinstance(value, (AppDict, AppList)):
+            elif isinstance(value, (ComponentDict, ComponentList)):
                 self._structures.add(name)
                 _set_child_name(self, value, name)
 
