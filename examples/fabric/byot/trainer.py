@@ -65,10 +65,10 @@ class Trainer:
 
         # ensures limit_X_batches is either int or inf
         if not isinstance(limit_train_batches, int):
-            assert limit_train_batches == float('inf')
+            assert limit_train_batches == float("inf")
 
         if not isinstance(limit_val_batches, int):
-            assert limit_val_batches == float('inf')
+            assert limit_val_batches == float("inf")
 
         self.limit_train_batches = limit_train_batches
         self.limit_val_batches = limit_val_batches
@@ -94,7 +94,6 @@ class Trainer:
         train_loader = self.fabric.setup_dataloaders(train_loader, use_distributed_sampler=self.use_distributed_sampler)
         if val_loader is not None:
             val_loader = self.fabric.setup_dataloaders(val_loader, use_distributed_sampler=self.use_distributed_sampler)
-
 
         # setup model and optimizer
         if isinstance(self.fabric.strategy, FSDPStrategy):
@@ -137,7 +136,7 @@ class Trainer:
             self.step_scheduler(model, scheduler_cfg, level="epoch", current_value=self.current_epoch)
 
             self.current_epoch += 1
-            
+
             # stopping condition on epoch level
             if self.max_epochs is not None and self.current_epoch >= self.max_epochs:
                 self.should_stop = True
@@ -171,7 +170,7 @@ class Trainer:
                 # currently only supports a single optimizer
                 self.fabric.call("on_before_optimizer_step", optimizer, 0)
                 # TODO: (lower priority) support optimizer without closure?
-                
+
                 # optimizer step runs train step internally through closure
                 optimizer.step(
                     partial(self.training_step, model=model, optimizer=optimizer, batch=batch, batch_idx=batch_idx)
@@ -225,7 +224,11 @@ class Trainer:
 
         self.fabric.call("on_validation_epoch_start")
 
-        iterable = self.pbar_wrapper(val_loader, total=min(len(val_loader), limit_batches), desc="Validation Sanity Check" if self.global_step == 0 else "Validation")
+        iterable = self.pbar_wrapper(
+            val_loader,
+            total=min(len(val_loader), limit_batches),
+            desc="Validation Sanity Check" if self.global_step == 0 else "Validation",
+        )
 
         for batch_idx, batch in enumerate(iterable):
 
@@ -261,7 +264,7 @@ class Trainer:
         self.fabric.call("on_after_backward")
         # TODO: reroute configure_gradient_clipping in LM to fabric.gradient clipping
         # self.fabric.call('configure_gradient_clipping')
-        
+
         # avoid gradients in stored/accumulated values -> prevents potential OOM
         self._current_train_return = apply_to_collection(outputs, dtype=torch.Tensor, function=lambda x: x.detach())
 
@@ -283,7 +286,7 @@ class Trainer:
             return
 
         # right interval, but wrong step wrt frequency
-        if current_value % cast(int, scheduler_cfg['frequency']) != 0:
+        if current_value % cast(int, scheduler_cfg["frequency"]) != 0:
             return
 
         # assemble potential monitored values
