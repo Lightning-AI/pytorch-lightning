@@ -928,9 +928,13 @@ def test_grad_clipping(clip_val, max_norm):
 
 @pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm(algo):
+    class DummyLM(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = nn.Linear(1, 1)
 
     fabric = Fabric()
-    orig_model = LightningModule()
+    orig_model = DummyLM()
     model = fabric.setup(orig_model)
 
     fabric.clip_gradients = Mock()
