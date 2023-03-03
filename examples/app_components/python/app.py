@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
 
-from examples.components.python.component_tracer import PLTracerPythonScript
-
 import lightning as L
+from examples.components.python.component_tracer import PLTracerPythonScript
 
 
 class RootFlow(L.LightningFlow):

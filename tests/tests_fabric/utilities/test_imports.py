@@ -15,9 +15,8 @@ import subprocess
 import sys
 from textwrap import dedent
 
-from tests_fabric.helpers.runif import RunIf
-
 from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_imports():

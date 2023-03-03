@@ -14,11 +14,11 @@
 from unittest import mock
 
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.connector import _Connector
 from lightning_fabric.plugins import DeepSpeedPrecision
 from lightning_fabric.strategies import DeepSpeedStrategy
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(deepspeed=True)

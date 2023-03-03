@@ -16,13 +16,13 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning_fabric.fabric import Fabric
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from tests_fabric.helpers.runif import RunIf
 
 
 class EmptyFabric(Fabric):

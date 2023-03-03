@@ -2,9 +2,9 @@ import os
 from unittest import mock
 
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 from lightning_utilities.core.imports import package_available
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning_app.testing.helpers import _RunIf
 from lightning_app.testing.testing import application_testing, LightningTestApp
 
