@@ -136,7 +136,7 @@ jobs:
 
   deploy-docs:
     needs: make-html
-    if: github.event_name == 'push' && github.repository_owner == 'Lightning-AI'
+    if: github.repository_owner == 'Lightning-AI' # fixme: && github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
