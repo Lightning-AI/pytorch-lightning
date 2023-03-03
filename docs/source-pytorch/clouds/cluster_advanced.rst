@@ -116,17 +116,17 @@ You can change this signal if your environment requires the use of a different o
 
     #SBATCH --signal=SIGHUP@90
 
-Then, when you make your trainer, pass the `requeue_signal` option to the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+Then, when you make your trainer, pass the `requeue_signal` option to the :class:`~lightning.pytorch.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
 
 .. code-block:: python
 
     trainer = Trainer(plugins=[SLURMEnvironment(requeue_signal=signal.SIGHUP)])
 
-If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+If auto-resubmit is not desired, it can be turned off in the :class:`~lightning.pytorch.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.environments import SLURMEnvironment
+    from lightning.pytorch.plugins.environments import SLURMEnvironment
 
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=False)])
 

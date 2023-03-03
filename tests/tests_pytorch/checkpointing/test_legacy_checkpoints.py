@@ -103,7 +103,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             default_root_dir=str(tmpdir),
             accelerator="auto",
             devices=1,
-            precision=(16 if torch.cuda.is_available() else 32),
+            precision=("16-mixed" if torch.cuda.is_available() else "32-true"),
             callbacks=[stop],
             max_epochs=21,
             accumulate_grad_batches=2,

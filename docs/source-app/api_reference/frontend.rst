@@ -7,7 +7,7 @@ lightning.app.frontend
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.frontend
+.. currentmodule:: lightning.app.frontend
 
 Lightning FrontEnds
 ___________________

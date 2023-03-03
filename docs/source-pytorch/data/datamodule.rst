@@ -122,7 +122,7 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
     from torch.utils.data import random_split, DataLoader
 
     # Note - you must have torchvision installed for this example
@@ -184,9 +184,9 @@ To define a DataModule the following methods are used to create train/val/test/p
 prepare_data
 ============
 Downloading and saving data with multiple processes (distributed settings) will result in corrupted data. Lightning
-ensures the :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` is called only within a single process on CPU,
+ensures the :meth:`~lightning.pytorch.core.hooks.DataHooks.prepare_data` is called only within a single process on CPU,
 so you can safely add your downloading logic within. In case of multi-node training, the execution of this hook
-depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`. :meth:`~pytorch_lightning.core.hooks.DataHooks.setup` is called after
+depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`. :meth:`~lightning.pytorch.core.hooks.DataHooks.setup` is called after
 ``prepare_data`` and there is a barrier in between which ensures that all the processes proceed to ``setup`` once the data is prepared and available for use.
 
 - download, i.e. download data only once on the disk from a single process
@@ -210,7 +210,7 @@ depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`
 
 setup
 =====
-There are also data operations you might want to perform on every GPU. Use :meth:`~pytorch_lightning.core.hooks.DataHooks.setup` to do things like:
+There are also data operations you might want to perform on every GPU. Use :meth:`~lightning.pytorch.core.hooks.DataHooks.setup` to do things like:
 
 - count number of classes
 - build vocabulary
@@ -221,7 +221,7 @@ There are also data operations you might want to perform on every GPU. Use :meth
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
 
     class MNISTDataModule(pl.LightningDataModule):
@@ -262,13 +262,13 @@ It is used to separate setup logic for ``trainer.{fit,validate,test,predict}``.
 
 train_dataloader
 ================
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.train_dataloader` method to generate the training dataloader(s).
+Use the :meth:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` method to generate the training dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:setup>`. This is the dataloader that the Trainer
-:meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` method uses.
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` method uses.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
 
     class MNISTDataModule(pl.LightningDataModule):
@@ -279,13 +279,13 @@ Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:set
 
 val_dataloader
 ==============
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.val_dataloader` method to generate the validation dataloader(s).
+Use the :meth:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` method to generate the validation dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:setup>`. This is the dataloader that the Trainer
-:meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate` methods uses.
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` and :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate` methods uses.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
 
     class MNISTDataModule(pl.LightningDataModule):
@@ -297,13 +297,13 @@ Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:set
 
 test_dataloader
 ===============
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.test_dataloader` method to generate the test dataloader(s).
+Use the :meth:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` method to generate the test dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:setup>`. This is the dataloader that the Trainer
-:meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method uses.
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.test` method uses.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
 
     class MNISTDataModule(pl.LightningDataModule):
@@ -313,13 +313,13 @@ Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:set
 
 predict_dataloader
 ==================
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.predict_dataloader` method to generate the prediction dataloader(s).
+Use the :meth:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` method to generate the prediction dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:setup>`. This is the dataloader that the Trainer
-:meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.predict` method uses.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
 
     class MNISTDataModule(pl.LightningDataModule):
@@ -330,37 +330,37 @@ Usually you just wrap the dataset you defined in :ref:`setup<data/datamodule:set
 transfer_batch_to_device
 ========================
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.transfer_batch_to_device
+.. automethod:: lightning.pytorch.core.datamodule.LightningDataModule.transfer_batch_to_device
     :noindex:
 
 on_before_batch_transfer
 ========================
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_before_batch_transfer
+.. automethod:: lightning.pytorch.core.datamodule.LightningDataModule.on_before_batch_transfer
     :noindex:
 
 on_after_batch_transfer
 =======================
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_after_batch_transfer
+.. automethod:: lightning.pytorch.core.datamodule.LightningDataModule.on_after_batch_transfer
     :noindex:
 
 load_state_dict
 ===============
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.load_state_dict
+.. automethod:: lightning.pytorch.core.datamodule.LightningDataModule.load_state_dict
     :noindex:
 
 state_dict
 ==========
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.state_dict
+.. automethod:: lightning.pytorch.core.datamodule.LightningDataModule.state_dict
     :noindex:
 
 teardown
 ========
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.teardown
+.. automethod:: lightning.pytorch.core.datamodule.LightningDataModule.teardown
     :noindex:
 
 prepare_data_per_node
@@ -458,7 +458,7 @@ Like LightningModules, DataModules support hyperparameters with the same API.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
 
     class CustomDataModule(pl.LightningDataModule):

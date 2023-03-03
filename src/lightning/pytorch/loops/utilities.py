@@ -11,20 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from contextlib import contextmanager
-from typing import Generator, Iterable, Optional, Tuple
+from typing import Any, Callable, Generator, Optional, Tuple
 
 import torch
+import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.loops import _Loop
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.loops.progress import BaseProgress
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import Strategy
+from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -119,14 +125,70 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
-    """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
+def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
+    lightning_module = trainer.lightning_module
+    if trainer.testing:
+        step_fx_name = "test_step"
+    elif trainer.training:
+        step_fx_name = "training_step"
+    elif trainer.validating or trainer.sanity_checking:
+        step_fx_name = "validation_step"
+    elif trainer.predicting:
+        step_fx_name = "predict_step"
+    else:
+        raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return _DataLoaderIterDataFetcher()
+    return _PrefetchDataFetcher()
 
-    Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
-    :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
-    of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
-    """
-    for sampler_name in ("sampler", "batch_sampler"):
-        sampler = getattr(dataloader, sampler_name, None)
-        if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
-            sampler.set_epoch(epoch)
+
+def _no_grad_context(loop_run: Callable) -> Callable:
+    def _decorator(self: _Loop, *args: Any, **kwargs: Any) -> Any:
+        if not isinstance(self, _Loop):
+            raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
+        if not hasattr(self, "inference_mode"):
+            raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
+        context_manager = (
+            torch.inference_mode
+            if (
+                self.inference_mode
+                # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
+                and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
+                and not isinstance(self.trainer.accelerator, TPUAccelerator)
+            )
+            else torch.no_grad
+        )
+        with context_manager():
+            return loop_run(self, *args, **kwargs)
+
+    return _decorator
+
+
+def _verify_dataloader_idx_requirement(
+    hooks: Tuple[str, ...], is_expected: bool, stage: RunningStage, pl_module: "pl.LightningModule"
+) -> None:
+    for hook in hooks:
+        fx = getattr(pl_module, hook)
+        # this validation only works if "dataloader_idx" is used, no other names such as "dl_idx"
+        param_present = is_param_in_hook_signature(fx, "dataloader_idx")
+        if not is_expected:
+            if param_present:
+                params = inspect.signature(fx).parameters
+                if "dataloader_idx" in params and params["dataloader_idx"].default is inspect.Parameter.empty:
+                    raise RuntimeError(
+                        f"You provided only a single `{stage.dataloader_prefix}_dataloader`, but have included "
+                        f"`dataloader_idx` in `{type(pl_module).__name__}.{hook}()`. Either remove the"
+                        " argument or give it a default value i.e. `dataloader_idx=0`."
+                    )
+        else:
+            if not param_present:
+                raise RuntimeError(
+                    f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
+                    f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
+                    " signature."
+                )
