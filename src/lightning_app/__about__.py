@@ -13,21 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
+
 # __version__ = "0.5.1"
 __author__ = "Lightning-AI et al."
 __author_email__ = "name@pytorchlightning.ai"
 __license__ = "Apache-2.0"
-__copyright__ = f"Copyright (c) 2021-2022, {__author__}."
+__copyright__ = f"Copyright (c) 2021-{time.strftime('%Y')}, {__author__}."
 __homepage__ = "https://github.com/Lightning-AI/lightning"
 __docs__ = (
     "Use Lightning Apps to build everything from production-ready, multi-cloud ML systems to simple research demos."
 )
-__long_doc__ = """
-What is it?
------------
-
-TBD @eden
-"""  # TODO
 
 __all__ = [
     "__author__",

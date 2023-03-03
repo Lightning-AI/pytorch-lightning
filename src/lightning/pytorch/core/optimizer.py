@@ -378,7 +378,7 @@ class _MockOptimizer(Optimizer):
     def state_dict(self) -> Dict[str, Any]:
         return {}  # Return Empty
 
-    def step(self, closure: Callable = None) -> None:
+    def step(self, closure: Optional[Callable] = None) -> None:
         if closure is not None:
             closure()
 

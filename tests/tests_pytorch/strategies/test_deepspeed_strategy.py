@@ -33,6 +33,7 @@ from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -541,9 +542,10 @@ class ModelParallelClassificationModel(LightningModule):
         self.num_blocks = num_blocks
         self.prepare_data_per_node = True
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
-        self.test_acc = Accuracy()
+        metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
+        self.train_acc = metric.clone()
+        self.valid_acc = metric.clone()
+        self.test_acc = metric.clone()
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
