@@ -164,7 +164,6 @@ _supported_modes = {
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "max_size", "sequential"]
 
 
-
 _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
 
 

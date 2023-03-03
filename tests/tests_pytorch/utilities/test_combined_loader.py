@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Sequence, NamedTuple, Any
+from typing import Any, NamedTuple, Sequence
 
 import pytest
 import torch
@@ -26,8 +26,8 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities.combined_loader import (
-    _MaxSizeCycle,
     _MaxSize,
+    _MaxSizeCycle,
     _MinSize,
     _Sequential,
     _supported_modes,
@@ -72,7 +72,6 @@ def test_combined_dataset_no_length():
     cl = CombinedLoader(DataLoader(Bar()))
     with pytest.raises(NotImplementedError, match="All datasets are iterable-style"):
         cl._dataset_length()
-
 
 
 def test_combined_loader_modes_for_dict():
