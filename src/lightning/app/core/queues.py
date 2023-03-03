@@ -278,7 +278,7 @@ class RedisQueue(BaseQueue):
         if is_work:
             item._backend = backend
 
-    def get(self, timeout: Optional[int] = None) -> Any:
+    def get(self, timeout: Optional[float] = None) -> Any:
         """Returns the left most element of the redis queue.
 
         Parameters
@@ -288,7 +288,12 @@ class RedisQueue(BaseQueue):
             A timeout of None can be used to block indefinitely.
         """
 
-        timeout = timeout or self.default_timeout
+        if timeout is None:
+            # this means it's blocking in redis
+            timeout = 0
+        # ToDo this is strange logic
+        elif timeout == 0:
+            timeout = self.default_timeout
 
         try:
             out = self.redis.blpop([self.name], timeout=timeout)
