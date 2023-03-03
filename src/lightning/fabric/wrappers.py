@@ -23,7 +23,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
@@ -105,14 +104,12 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward
         method."""
-        args, kwargs = apply_to_collection([args, kwargs], function=self._precision.convert_input, dtype=Tensor)
+        args, kwargs = self._precision.convert_input((args, kwargs))
 
         with self._precision.forward_context():
             output = self._forward_module(*args, **kwargs)
 
-        output = apply_to_collection(
-            output, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype()
-        )
+        output = self._precision.convert_output(output)
         return output
 
     @overload

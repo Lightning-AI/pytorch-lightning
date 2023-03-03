@@ -74,7 +74,7 @@ for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
     shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
-    os.path.join(PATH_ROOT, "src", "lightning", "pytorch", "CHANGELOG.md"),
+    os.path.join(PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
     os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
@@ -162,7 +162,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -396,9 +396,7 @@ from torch.utils.data import IterableDataset, DataLoader, Dataset
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
-from lightning.pytorch.utilities import (
-    _TORCHVISION_AVAILABLE,
-)
+from lightning.pytorch.utilities import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE

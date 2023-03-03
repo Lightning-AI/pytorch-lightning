@@ -19,8 +19,8 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
 ENV \
-    DEBIAN_FRONTEND=noninteractive \
-    TZ=Europe/Prague \
+    DEBIAN_FRONTEND="noninteractive" \
+    TZ="Etc/UTC" \
     PATH="$PATH:/root/.local/bin" \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"

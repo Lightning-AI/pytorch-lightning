@@ -5,7 +5,7 @@ pytest-timeout==2.1.0
 pytest-cov==4.0.0
 pytest-doctestplus>=0.9.0
 pytest-asyncio==0.20.3
-playwright==1.29.1
+playwright==1.30.0
 httpx
 trio<0.22.0
 pympler

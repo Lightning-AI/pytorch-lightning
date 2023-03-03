@@ -412,7 +412,7 @@ class LightningFlow:
         """
         return name in LightningFlow._INTERNAL_STATE_VARS or not name.startswith("_")
 
-    def run(self, *args, **kwargs) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> None:
         """Override with your own logic."""
         pass
 

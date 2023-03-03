@@ -18,11 +18,11 @@ from unittest import mock
 
 import pytest
 import torch
-import torchmetrics
 from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
+from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
+from torchmetrics.classification import Accuracy
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -35,14 +35,17 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
 
 class DummyMetric(Metric):
+    x: Tensor
+
     def __init__(self):
         super().__init__()
-        self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("x", tensor(0), dist_reduce_fx="sum")
 
     def update(self, x):
         self.x += x
@@ -54,7 +57,7 @@ class DummyMetric(Metric):
 def result_reduce_ddp_fn(strategy):
     rank = strategy.local_rank
     worldsize = strategy.num_processes
-    torch.tensor([1.0])
+    tensor([1.0])
 
     metric_a = DummyMetric()
     metric_b = DummyMetric()
@@ -132,7 +135,7 @@ def test_result_metric_integration():
 
         assert epoch_log == {"b": cumulative_sum, "a_epoch": cumulative_sum}
 
-    result.minimize = torch.tensor(1.0)
+    result.minimize = tensor(1.0)
     result.extra = {}
     assert str(result) == (
         "_ResultCollection("
@@ -165,34 +168,34 @@ def test_result_collection_simple_loop():
         result.log(fx, *args, **kwargs)
         current_fx_name = fx
 
-    lightning_log("a0", "a", torch.tensor(0.0), on_step=True, on_epoch=True)
-    lightning_log("a1", "a", torch.tensor(0.0), on_step=True, on_epoch=True)
+    lightning_log("a0", "a", tensor(0.0), on_step=True, on_epoch=True)
+    lightning_log("a1", "a", tensor(0.0), on_step=True, on_epoch=True)
     for epoch in range(2):
-        lightning_log("b0", "a", torch.tensor(1.0) + epoch, on_step=True, on_epoch=True)
-        lightning_log("b1", "a", torch.tensor(1.0) + epoch, on_step=True, on_epoch=True)
+        lightning_log("b0", "a", tensor(1.0) + epoch, on_step=True, on_epoch=True)
+        lightning_log("b1", "a", tensor(1.0) + epoch, on_step=True, on_epoch=True)
         for batch_idx in range(2):
-            lightning_log("c0", "a", torch.tensor(2.0) + epoch, on_step=True, on_epoch=True)
-            lightning_log("c1", "a", torch.tensor(2.0) + epoch, on_step=True, on_epoch=True)
-            lightning_log("c2", "a", torch.tensor(2.0) + epoch, on_step=True, on_epoch=True)
+            lightning_log("c0", "a", tensor(2.0) + epoch, on_step=True, on_epoch=True)
+            lightning_log("c1", "a", tensor(2.0) + epoch, on_step=True, on_epoch=True)
+            lightning_log("c2", "a", tensor(2.0) + epoch, on_step=True, on_epoch=True)
         batch_idx = None
-        lightning_log("d0", "a", torch.tensor(3.0) + epoch, on_step=False, on_epoch=True)
-        lightning_log("d1", "a", torch.tensor(3.0) + epoch, on_step=False, on_epoch=True)
+        lightning_log("d0", "a", tensor(3.0) + epoch, on_step=False, on_epoch=True)
+        lightning_log("d1", "a", tensor(3.0) + epoch, on_step=False, on_epoch=True)
 
         for k in ("a0.a", "a1.a"):
-            assert result[k].value == torch.tensor(0.0), k
-            assert result[k].cumulated_batch_size == torch.tensor(1.0), k
+            assert result[k].value == tensor(0.0), k
+            assert result[k].cumulated_batch_size == tensor(1.0), k
 
         for k in ("b0.a", "b1.a"):
-            assert result[k].value == torch.tensor(1.0) + epoch, k
-            assert result[k].cumulated_batch_size == torch.tensor(1.0), k
+            assert result[k].value == tensor(1.0) + epoch, k
+            assert result[k].cumulated_batch_size == tensor(1.0), k
 
         for k in ("c0.a", "c1.a", "c2.a"):
-            assert result[k].value == torch.tensor(4.0) + epoch * 2, k
-            assert result[k].cumulated_batch_size == torch.tensor(2.0), k
+            assert result[k].value == tensor(4.0) + epoch * 2, k
+            assert result[k].cumulated_batch_size == tensor(2.0), k
 
         for k in ("d0.a", "d1.a"):
-            assert result[k].value == torch.tensor(3.0) + epoch, k
-            assert result[k].cumulated_batch_size == torch.tensor(1.0), k
+            assert result[k].value == tensor(3.0) + epoch, k
+            assert result[k].cumulated_batch_size == tensor(1.0), k
 
 
 def my_sync_dist(x, *_, **__):
@@ -271,8 +274,8 @@ def test_result_collection_restoration(tmpdir):
 class DummyMeanMetric(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
-        self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("sum", tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("count", tensor(0), dist_reduce_fx=torch.sum)
 
     def update(self, increment):
         self.sum += increment
@@ -472,7 +475,7 @@ def test_metric_result_computed_check():
     metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
-    computed_value = torch.tensor([1, 2, 3])
+    computed_value = tensor([1, 2, 3])
     rm._computed = computed_value
     cache = _ResultCollection._get_cache(rm, on_step=False)
     # `enable_graph=True` so no detach, identity works
@@ -492,14 +495,14 @@ def test_metric_result_respects_dtype(floating_dtype):
     assert rm.cumulated_batch_size.dtype == fixed_dtype
 
     # two fixed point numbers - should be converted
-    value, batch_size = torch.tensor(2), 3
+    value, batch_size = tensor(2), 3
     assert value.dtype == fixed_dtype
     with pytest.warns(
         UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
     ):
         rm.update(value, batch_size)
     # floating and fixed
-    rm.update(torch.tensor(4.0), 5)
+    rm.update(tensor(4.0), 5)
 
     total = rm.compute()
 
@@ -518,11 +521,11 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert rm.value.dtype == torch.float
 
     # log a double
-    rm.update(torch.tensor(0, dtype=torch.double), 1)
+    rm.update(tensor(0, dtype=torch.double), 1)
     # `rm.value.dtype` is promoted
     assert rm.value.dtype == torch.double
     # log a float
-    rm.update(torch.tensor(0, dtype=torch.float), 1)
+    rm.update(tensor(0, dtype=torch.float), 1)
     # the previous dtype stays
     assert rm.value.dtype == torch.double
 
@@ -535,7 +538,7 @@ def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
-    rm.update(torch.tensor(expected), 1)
+    rm.update(tensor(expected), 1)
     assert rm.compute() == expected
 
 
@@ -545,7 +548,7 @@ def test_compute_not_a_tensor_raises():
             pass
 
         def compute(self):
-            return torch.tensor(1.0), torch.tensor(2.0)
+            return tensor(1.0), tensor(2.0)
 
     class MyModel(BoringModel):
         def __init__(self):
@@ -570,8 +573,11 @@ def test_compute_not_a_tensor_raises():
 
 
 @pytest.mark.parametrize("distributed_env", [True, False])
-@pytest.mark.parametrize("log_val", [torch.tensor(0.5), torchmetrics.Accuracy()])
+@pytest.mark.parametrize("log_val", [tensor(0.5), "Accuracy"])
 def test_logger_sync_dist(distributed_env, log_val):
+    if log_val == "Accuracy":
+        log_val = Accuracy(task="binary") if _TM_GE_0_11 else Accuracy()
+
     pl.trainer.connectors.logger_connector.result.warning_cache.clear()
 
     # self.log('bar', 0.5, ..., sync_dist=False)
@@ -580,7 +586,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     is_tensor = isinstance(log_val, Tensor)
 
     if not is_tensor:
-        log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))
+        log_val.update(tensor([0, 1]), tensor([0, 0], dtype=torch.long))
 
     result_metric = _ResultMetric(metadata=meta, is_tensor=is_tensor)
     result_metric.update(log_val, 10)

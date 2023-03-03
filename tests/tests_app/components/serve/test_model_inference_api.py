@@ -39,7 +39,7 @@ def test_model_inference_api(workers):
     process = mp.Process(target=target_fn, args=(port, workers))
     process.start()
 
-    image_path = os.path.join(_PROJECT_ROOT, "docs/source/_static/images/logo.png")
+    image_path = os.path.join(_PROJECT_ROOT, "docs/source-app/_static/images/logo.png")
     with open(image_path, "rb") as f:
         imgstr = base64.b64encode(f.read()).decode("UTF-8")
 
