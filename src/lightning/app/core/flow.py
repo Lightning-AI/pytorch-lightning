@@ -17,7 +17,7 @@ import warnings
 from copy import deepcopy
 from datetime import datetime
 from types import FrameType
-from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepHash
 
@@ -33,6 +33,7 @@ from lightning.app.utilities.packaging.cloud_compute import _maybe_create_cloud_
 
 if TYPE_CHECKING:
     from lightning.app.runners.backends.backend import Backend
+
 
 class LightningFlow:
 
@@ -133,7 +134,8 @@ class LightningFlow:
         if isinstance(attr, property) and attr.fset is not None:
             return attr.fset(self, value)
 
-        from lightning.app.structures import Dict as AppDict, List as AppList
+        from lightning.app.structures import Dict as AppDict
+        from lightning.app.structures import List as AppList
 
         if (
             not _is_init_context(self)
