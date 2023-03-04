@@ -291,7 +291,6 @@ class RedisQueue(BaseQueue):
         if timeout is None:
             # this means it's blocking in redis
             timeout = 0
-        # ToDo this is strange logic
         elif timeout == 0:
             timeout = self.default_timeout
 
