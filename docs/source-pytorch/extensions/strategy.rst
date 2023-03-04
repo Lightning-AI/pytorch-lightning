@@ -10,7 +10,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Launch and teardown of training processes (if applicable).
 * Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast, and so on.
-* Owns the :class:`~pytorch_lightning.core.module.LightningModule`
+* Owns the :class:`~lightning.pytorch.core.module.LightningModule`
 * Handles/owns optimizers and schedulers.
 
 
@@ -32,7 +32,7 @@ Selecting a Built-in Strategy
 Built-in strategies can be selected in two ways.
 
 1. Pass the shorthand name to the ``strategy`` Trainer argument
-2. Import a Strategy from :mod:`pytorch_lightning.strategies`, instantiate it and pass it to the ``strategy`` Trainer argument
+2. Import a Strategy from :mod:`lightning.pytorch.strategies`, instantiate it and pass it to the ``strategy`` Trainer argument
 
 The latter allows you to configure further options on the specifc strategy.
 Here are some examples:
@@ -70,31 +70,31 @@ The below table lists all relevant strategies available in Lightning with their 
      - Class
      - Description
    * - fsdp
-     - :class:`~pytorch_lightning.strategies.FSDPStrategy`
+     - :class:`~lightning.pytorch.strategies.FSDPStrategy`
      - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
-   * - ddp_spawn
-     - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
-     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. Useful for debugging. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
    * - ddp
-     - :class:`~pytorch_lightning.strategies.DDPStrategy`
+     - :class:`~lightning.pytorch.strategies.DDPStrategy`
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
+   * - ddp_spawn
+     - :class:`~lightning.pytorch.strategies.DDPStrategy`
+     - Same as "ddp" but launches processes using :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
    * - deepspeed
-     - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
+     - :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
    * - hpu_parallel
-     - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
+     - :class:`~lightning.pytorch.strategies.HPUParallelStrategy`
      - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
    * - hpu_single
-     - :class:`~pytorch_lightning.strategies.SingleHPUStrategy`
+     - :class:`~lightning.pytorch.strategies.SingleHPUStrategy`
      - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
    * - ipu_strategy
-     - :class:`~pytorch_lightning.strategies.IPUStrategy`
+     - :class:`~lightning.pytorch.strategies.IPUStrategy`
      - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
    * - xla
-     - :class:`~pytorch_lightning.strategies.XLAStrategy`
+     - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`
    * - single_tpu
-     - :class:`~pytorch_lightning.strategies.SingleTPUStrategy`
+     - :class:`~lightning.pytorch.strategies.SingleTPUStrategy`
      - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
 
 ----
@@ -125,7 +125,7 @@ There are powerful third-party strategies that integrate well with Lightning but
 Create a Custom Strategy
 ************************
 
-Every strategy in Lightning is a subclass of one of the main base classes: :class:`~pytorch_lightning.strategies.Strategy`, :class:`~pytorch_lightning.strategies.SingleDeviceStrategy` or :class:`~pytorch_lightning.strategies.ParallelStrategy`.
+Every strategy in Lightning is a subclass of one of the main base classes: :class:`~lightning.pytorch.strategies.Strategy`, :class:`~lightning.pytorch.strategies.SingleDeviceStrategy` or :class:`~lightning.pytorch.strategies.ParallelStrategy`.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/hierarchy.jpeg
     :alt: Strategy base classes
@@ -135,7 +135,7 @@ subclassing the base classes.
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch.strategies import DDPStrategy
 
 
     class CustomDDPStrategy(DDPStrategy):

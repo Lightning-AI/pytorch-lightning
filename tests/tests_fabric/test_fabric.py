@@ -21,7 +21,6 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from lightning_utilities.test.warning import no_warning_call
-from tests_fabric.helpers.runif import RunIf
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
@@ -40,6 +39,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from tests_fabric.helpers.runif import RunIf
 
 
 class EmptyFabric(Fabric):
@@ -893,3 +893,33 @@ def test_all_reduce():
     # dict
     fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
+
+
+@pytest.mark.parametrize("clip_val,max_norm", [(1e-3, None), (None, 1)])
+def test_grad_clipping(clip_val, max_norm):
+    fabric = Fabric()
+
+    fabric.strategy.clip_gradients_norm = Mock()
+    fabric.strategy.clip_gradients_value = Mock()
+
+    torch_model = nn.Linear(1, 1)
+    torch_optimizer = torch.optim.SGD(torch_model.parameters(), lr=1e-3)
+
+    model, optimizer = fabric.setup(torch_model, torch_optimizer)
+
+    loss = model(torch.rand(1, 1).to(fabric.device))
+    fabric.backward(loss)
+
+    fabric.strategy.clip_gradients_value.assert_not_called()
+    fabric.strategy.clip_gradients_norm.assert_not_called()
+
+    fabric.clip_gradients(model, optimizer, max_norm=max_norm, clip_val=clip_val)
+
+    if clip_val is not None:
+        fabric.strategy.clip_gradients_value.assert_called_once_with(torch_model, torch_optimizer, clip_val=clip_val)
+        fabric.strategy.clip_gradients_norm.assert_not_called()
+    else:
+        fabric.strategy.clip_gradients_value.assert_not_called()
+        fabric.strategy.clip_gradients_norm.assert_called_once_with(
+            torch_model, torch_optimizer, max_norm=max_norm, norm_type=2.0, error_if_nonfinite=True
+        )

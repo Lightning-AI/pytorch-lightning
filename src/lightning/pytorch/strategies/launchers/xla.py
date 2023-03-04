@@ -22,7 +22,6 @@ from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
-    _FakeQueue,
     _GlobalStateSnapshot,
     _MultiProcessingLauncher,
     _WorkerOutput,
@@ -137,8 +136,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         if self._strategy.local_rank != 0:
             return None
 
-        # adds the `callback_metrics` to the queue
-        extra = _FakeQueue()
-        self.add_to_queue(trainer, extra)
+        # add extra result data from trainer to send to main process
+        extra = self.get_extra_results(trainer)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
