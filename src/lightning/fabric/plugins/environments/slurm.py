@@ -91,9 +91,9 @@ class SLURMEnvironment(ClusterEnvironment):
         """Returns ``True`` if the current process was launched on a SLURM cluster.
 
         It is possible to use the SLURM scheduler to request resources and then launch processes manually using a
-        different environment. For this, the user can set the job name in SLURM to 'bash' or 'interactive'
-        (srun --job-name=interactive). This will then avoid the detection of ``SLURMEnvironment`` and another
-        environment can be detected automatically.
+        different environment. For this, the user can set the job name in SLURM to 'bash' or 'interactive' (srun --job-
+        name=interactive). This will then avoid the detection of ``SLURMEnvironment`` and another environment can be
+        detected automatically.
         """
         SLURMEnvironment._validate_srun_used()
         return _is_srun_used()
