@@ -353,3 +353,23 @@ API
 
         </div>
     </div>
+
+
+.. raw:: html
+
+    <div style="display:none">
+
+.. toctree::
+    :maxdepth: 1
+    :name: api
+    :caption: API Reference
+
+    Fabric Arguments <api_reference/fabric_args>
+    Fabric Methods <api_reference/fabric_methods>
+    Utilities <api_reference/utilities>
+    Full API Reference <api_reference/full_reference>
+
+
+.. raw:: html
+
+    </div>
