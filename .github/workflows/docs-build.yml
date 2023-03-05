@@ -57,10 +57,19 @@ jobs:
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
-      - name: Install package
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-test-${{ matrix.pkg-name }}-
+
+      - name: Install this package
         run: |
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f ${TORCH_URL} -f pypi_pkgs/
+            -f pypi_pkgs/ -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
@@ -95,6 +104,15 @@ jobs:
 
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
+
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
+          restore-keys: docs-make-
 
       - name: Install package & dependencies
         run: |
