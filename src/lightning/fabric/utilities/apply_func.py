@@ -122,5 +122,4 @@ def convert_tensors_to_scalars(data: Any) -> Any:
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
             )
         return value.item()
-
     return apply_to_collection(data, Tensor, to_item)
