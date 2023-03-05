@@ -125,7 +125,7 @@ def run(hparams):
     dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
 
     # Loop over different folds (shuffle = False by default so reproducible)
-    folds = hparams.kfolds
+    folds = hparams.folds
     kfold = model_selection.KFold(n_splits=folds)
 
     # initialize n_splits models and optimizers
@@ -192,7 +192,7 @@ if __name__ == "__main__":
         metavar="N",
         help="how many batches to wait before logging training status",
     )
-    parser.add_argument("--kfolds", type=int, default=5, help="number of folds for k-fold cross validation")
+    parser.add_argument("--folds", type=int, default=5, help="number of folds for k-fold cross validation")
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
     hparams = parser.parse_args()
 
