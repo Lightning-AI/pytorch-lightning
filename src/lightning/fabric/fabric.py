@@ -795,10 +795,9 @@ class Fabric:
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
 
-
-
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
+
 
 def is_wrapped(module: Union[nn.Module, _FabricModule]) -> bool:
     """Method to check if nn.Module is already wrapped as a FabricModule
@@ -806,6 +805,7 @@ def is_wrapped(module: Union[nn.Module, _FabricModule]) -> bool:
         module: The module to be checked if it is _FabricModule or not
     """
     return isinstance(module, _FabricModule)
+
 
 def _do_nothing(*_: Any) -> None:
     pass
