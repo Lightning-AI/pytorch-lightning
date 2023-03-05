@@ -146,6 +146,9 @@ If you set the job name to *bash* or *interactive*, and then log in and run scri
     # make sure to set `--job-name "interactive"`
     srun --account <your-account> --pty bash --job-name "interactive" ...
 
+    # now run scripts normally
+    python train.py ...
+
 
 ----
 
