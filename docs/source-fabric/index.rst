@@ -240,124 +240,48 @@ Advanced Topics
 ----
 
 
-.. _Fabric Examples:
-
-********
-Examples
-********
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. displayitem::
-    :header: Image Classification
-    :description: Train an image classifier on the MNIST dataset
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier
-    :col_css: col-md-4
-    :height: 150
-    :tag: basic
-
-.. displayitem::
-    :header: GAN
-    :description: Train a GAN that generates realistic human faces
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan
-    :col_css: col-md-4
-    :height: 150
-    :tag: intermediate
-
-.. displayitem::
-    :header: Meta-Learning
-    :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning
-    :col_css: col-md-4
-    :height: 150
-    :tag: intermediate
-
-.. displayitem::
-    :header: Large Language Models
-    :description: Pre-train a GPT-2 language model on OpenWebText data
-    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
-    :col_css: col-md-4
-    :height: 150
-    :tag: advanced
-
-.. displayitem::
-    :header: Reinforcement Learning
-    :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
-    :col_css: col-md-4
-    :height: 150
-
-.. displayitem::
-    :header: Active Learning
-    :description: Coming soon
-    :col_css: col-md-4
-    :height: 150
-
-
-
-.. raw:: html
-
-        </div>
-    </div>
-
-
-
-----
-
-
-***
-API
-***
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. displayitem::
-    :header: Fabric Arguments
-    :description: All configuration options for the Fabric object
-    :button_link: api/fabric_args.html
-    :col_css: col-md-4
-    :height: 150
-    :tag: basic
-
-.. displayitem::
-    :header: Fabric Methods
-    :description: Explore all methods that Fabric offers
-    :button_link: api/fabric_methods.html
-    :col_css: col-md-4
-    :height: 150
-    :tag: basic
-
-.. displayitem::
-    :header: Utilities
-    :description: Explore utility functions that make your life easier
-    :button_link: api/utilities.html
-    :col_css: col-md-4
-    :height: 150
-    :tag: basic
-
-.. displayitem::
-    :header: Full API Reference
-    :description: Reference of all public classes, methods and functions. Useful for developers.
-    :button_link: api_reference.html
-    :col_css: col-md-4
-    :height: 150
-    :tag: intermediate
-
-.. raw:: html
-
-        </div>
-    </div>
-
-
 .. raw:: html
 
     <div style="display:none">
+
+
+.. toctree::
+    :maxdepth: 1
+    :name: start
+    :caption: Fundamentals
+
+    Getting Started <fundamentals/convert>
+    Accelerators <fundamentals/accelerators>
+    Code Structure <fundamentals/code_structure>
+    Launch Distributed Training <fundamentals/launch>
+    Fabric in Notebooks <fundamentals/notebooks>
+    Mixed Precision Training <fundamentals/precision>
+
+.. toctree::
+    :maxdepth: 1
+    :name: byot
+    :caption: Build Your Own Trainer
+
+    The LightningModule <guide/lightning_module>
+    Callbacks <guide/callbacks>
+    Logging <guide/logging>
+    Checkpoints <guide/checkpoint>
+    Trainer Template <guide/trainer_template>
+
+.. toctree::
+    :maxdepth: 1
+    :name: advanced
+    :caption: Advanced Topics
+
+    Efficient Gradient Accumulation <advanced/gradient_accumulation>
+    Distributed Communication <advanced/distributed_communication>
+
+.. toctree::
+    :maxdepth: 1
+    :name: examples
+    :caption: Examples
+
+    Examples <examples/index>
 
 .. toctree::
     :maxdepth: 1
