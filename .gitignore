@@ -182,3 +182,9 @@ node_modules/
 
 # instalation artifacts
 requirements/base.txt
+
+# CI
+.wheels/
+
+# sourced notebooks from tutorials
+_notebooks/.notebooks/
