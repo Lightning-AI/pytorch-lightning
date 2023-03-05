@@ -182,3 +182,6 @@ node_modules/
 
 # instalation artifacts
 requirements/base.txt
+
+# sourced notebooks from tutorials
+_notebooks/.notebooks/
