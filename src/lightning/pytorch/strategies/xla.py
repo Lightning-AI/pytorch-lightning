@@ -213,6 +213,9 @@ class XLAStrategy(DDPStrategy):
         self._launched = True
         rank_zero_only.rank = self.global_rank
 
+    def set_world_ranks(self) -> None:
+        pass
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
         with self.precision_plugin.val_step_context():
