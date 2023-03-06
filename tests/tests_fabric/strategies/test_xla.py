@@ -18,15 +18,15 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.dataloaders import CustomNotImplementedErrorDataloader
-from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
-from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
+from tests_fabric.helpers.dataloaders import CustomNotImplementedErrorDataloader
+from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.runif import RunIf
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
