@@ -35,7 +35,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -1440,6 +1440,9 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
+        if _TORCH_GREATER_EQUAL_2_1:
+            # ShardedTensor is deprecated in favor of DistributedTensor
+            return
         if _IS_WINDOWS or not torch.distributed.is_available():
             rank_zero_debug("Could not register sharded tensor state dict hooks")
             return
