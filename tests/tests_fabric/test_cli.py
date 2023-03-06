@@ -19,10 +19,10 @@ from unittest.mock import Mock
 
 import pytest
 import torch.distributed.run
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.cli import _get_supported_strategies, _run_model
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.fixture

@@ -201,10 +201,7 @@ def connect_maverick(name: str, project_name: str = "") -> None:
 
             # Sleeping for 0.5 seconds
             time.sleep(0.5)
-    rich.print(
-        f"[green]Succeeded[/green]: maverick {name} has been connected to lightning. \n "
-        f"Go to https://{name}.{CLOUD_PROXY_HOST} to access the maverick."
-    )
+    rich.print(f"[green]Succeeded[/green]: maverick {name} has been connected to lightning.")
 
 
 @click.argument("name", required=True)
