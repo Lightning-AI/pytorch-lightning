@@ -23,8 +23,6 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from lightning_utilities.core.apply_func import apply_to_collection
-from tests_fabric.helpers.models import RandomDataset
-from tests_fabric.helpers.runif import RunIf
 from torch import nn, Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
@@ -35,6 +33,8 @@ from lightning.fabric.plugins.environments.lightning import find_free_network_po
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.cloud_io import _atomic_save
+from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
