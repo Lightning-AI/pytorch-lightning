@@ -23,5 +23,5 @@ This example has the following requirements which need to be installed on your p
 to install them with the appropriate versions run:
 
 ```bash
-pip install lightning>=2.0 torchmetrics>=0.11 torchvision>=0.14 torch>=1.13 tqdm
+pip install "lightning>=2.0" "torchmetrics>=0.11" "torchvision>=0.14" "torch>=1.13" tqdm
 ```
