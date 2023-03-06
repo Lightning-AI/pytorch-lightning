@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added requirements parser ([#107](https://github.com/Lightning-AI/utilities/pull/107))
+
+
+- Added workflow for checking markdown links ([#81](https://github.com/Lightning-AI/utilities/pull/81))
+
+
 -
 
 
@@ -44,9 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Allow frozen dataclasses in `apply_to_collection` ([#98](https://github.com/Lightning-AI/utilities/pull/98))
 - Extended `StrEnum.from_str` with optional raising ValueError ([#99](https://github.com/Lightning-AI/utilities/pull/99))
-
-
-- Added requirements parser ([#107](https://github.com/Lightning-AI/utilities/pull/107))
 
 
 ### Changed
