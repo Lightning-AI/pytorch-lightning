@@ -10,9 +10,8 @@ def test_no_warning_call():
     with no_warning_call():
         ...
 
-    with pytest.raises(AssertionError, match=escape("`Warning` was raised: UserWarning('foo')")):
-        with no_warning_call():
-            warnings.warn("foo")
+    with pytest.raises(AssertionError, match=escape("`Warning` was raised: UserWarning('foo')")), no_warning_call():
+        warnings.warn("foo")
 
     with no_warning_call(DeprecationWarning):
         warnings.warn("foo")
@@ -20,6 +19,7 @@ def test_no_warning_call():
     class MyDeprecationWarning(DeprecationWarning):
         ...
 
-    with pytest.raises(AssertionError, match=escape("`DeprecationWarning` was raised: MyDeprecationWarning('bar')")):
-        with pytest.warns(DeprecationWarning), no_warning_call(DeprecationWarning):
-            warnings.warn("bar", category=MyDeprecationWarning)
+    with pytest.raises(
+        AssertionError, match=escape("`DeprecationWarning` was raised: MyDeprecationWarning('bar')")
+    ), pytest.warns(DeprecationWarning), no_warning_call(DeprecationWarning):
+        warnings.warn("bar", category=MyDeprecationWarning)

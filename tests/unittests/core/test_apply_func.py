@@ -53,7 +53,7 @@ class WithClassVar:
         """Perform equal operation."""
         if not isinstance(o, WithClassVar):
             return NotImplemented
-        elif isinstance(self.dummy, torch.Tensor):
+        if isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
 
         return self.dummy == o.dummy
@@ -71,7 +71,7 @@ class WithInitVar:
     def __eq__(self, o: object) -> bool:  # noqa: D105
         if not isinstance(o, WithInitVar):
             return NotImplemented
-        elif isinstance(self.dummy, torch.Tensor):
+        if isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
 
         return self.dummy == o.dummy
@@ -90,7 +90,7 @@ class WithClassAndInitVar:
     def __eq__(self, o: object) -> bool:  # noqa: D105
         if not isinstance(o, WithClassAndInitVar):
             return NotImplemented
-        elif isinstance(self.dummy, torch.Tensor):
+        if isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
 
         return self.dummy == o.dummy
@@ -173,9 +173,10 @@ def test_recursive_application_to_collection():
     assert reduced["g"] == expected_result["g"], "Reduction of a number did not yield the desired result"
 
     def _assert_dataclass_reduction(actual, expected, dataclass_type: str = ""):
-        assert dataclasses.is_dataclass(actual) and not isinstance(
-            actual, type
+        assert dataclasses.is_dataclass(
+            actual
         ), f"Reduction of a {dataclass_type} dataclass should result in a dataclass"
+        assert not isinstance(actual, type)
         for field in dataclasses.fields(actual):
             if dataclasses.is_dataclass(field.type):
                 _assert_dataclass_reduction(getattr(actual, field.name), getattr(expected, field.name), "nested")
@@ -224,6 +225,7 @@ def test_apply_to_collection_include_none():
     def fn(x):
         if isinstance(x, float):
             return x
+        return None
 
     reduced = apply_to_collection(to_reduce, (int, float), fn)
     assert reduced == [None, None, 3.4, 5.6, None, (None, 9.1, {10: None})]

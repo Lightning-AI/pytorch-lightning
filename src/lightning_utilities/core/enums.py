@@ -44,7 +44,7 @@ class StrEnum(str, Enum):
                 if requested string does not match any option based on selected source.
         """
         if source in ("key", "any"):
-            for enum_key in cls.__members__.keys():
+            for enum_key in cls.__members__:
                 if enum_key.lower() == value.lower():
                     return cls[enum_key]
         if source in ("value", "any"):

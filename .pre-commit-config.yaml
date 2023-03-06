@@ -53,7 +53,12 @@ repos:
     hooks:
       - id: yesqa
         additional_dependencies:
-          - "flake8-docstrings"
+          - flake8-docstrings
+          - pep8-naming
+          - flake8-comprehensions
+          - flake8-pytest-style
+          - flake8-return
+          - flake8-simplify
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.0.253

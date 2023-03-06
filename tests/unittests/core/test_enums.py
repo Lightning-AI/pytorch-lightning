@@ -19,7 +19,7 @@ def test_consistency():
     assert MyEnum.NUM in (32, "32")
 
     # key-based
-    assert MyEnum.NUM == MyEnum.from_str("num")
+    assert MyEnum.from_str("num") == MyEnum.NUM
 
     # collections
     assert MyEnum.BAZ not in ("FOO", "BAR")

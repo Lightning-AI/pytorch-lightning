@@ -163,7 +163,7 @@ def apply_to_collections(
     """
     if data1 is None:
         if data2 is None:
-            return
+            return None
         # in case they were passed reversed
         data1, data2 = data2, None
 

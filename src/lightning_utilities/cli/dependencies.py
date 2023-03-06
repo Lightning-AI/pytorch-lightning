@@ -38,8 +38,10 @@ def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
 
 
 def _replace_min(fname: str) -> None:
-    req = open(fname).read().replace(">=", "==")
-    open(fname, "w").write(req)
+    with open(fname) as fo:
+        req = fo.read().replace(">=", "==")
+    with open(fname, "w") as fw:
+        fw.write(req)
 
 
 def replace_oldest_ver(req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:

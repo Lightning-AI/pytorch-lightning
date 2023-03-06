@@ -85,12 +85,14 @@ def test_lazy_import():
     def callback_fcn():
         raise ValueError
 
-    with pytest.raises(ValueError):
-        math = lazy_import("math", callback=callback_fcn)
+    math = lazy_import("math", callback=callback_fcn)
+    with pytest.raises(ValueError, match=""):  # noqa: PT011
         math.floor(5.1)
-    with pytest.raises(ModuleNotFoundError):
-        module = lazy_import("asdf")
+
+    module = lazy_import("asdf")
+    with pytest.raises(ModuleNotFoundError, match="No module named 'asdf'"):
         print(module)
+
     os = lazy_import("os")
     assert os.getcwd()
 
