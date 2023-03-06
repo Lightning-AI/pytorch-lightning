@@ -8,13 +8,7 @@ from lightning_utilities.core import apply_to_collection, is_overridden
 from tqdm import tqdm
 
 import lightning as L
-from lightning.fabric.fabric import (
-    _unwrap_objects,
-    Accelerator,
-    Fabric,
-    Logger,
-    Strategy,
-)
+from lightning.fabric.fabric import _unwrap_objects, Accelerator, Fabric, Logger, Strategy
 
 
 class MyCustomTrainer:
