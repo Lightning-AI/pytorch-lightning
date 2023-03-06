@@ -55,6 +55,6 @@ def get_model_input_dtype(precision):
 
 
 def cuda_reset():
-    _clear_cuda_memory()
     if torch.cuda.is_available():
+        _clear_cuda_memory()
         torch.cuda.reset_peak_memory_stats()
