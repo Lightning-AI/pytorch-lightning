@@ -143,6 +143,7 @@ def test_parity_ddp(accelerator, devices, tolerance):
     fabric.launch()
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
+    fabric.barrier()
     cuda_reset()
     torch.distributed.destroy_process_group()
 
