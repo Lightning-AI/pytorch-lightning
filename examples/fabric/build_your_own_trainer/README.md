@@ -4,7 +4,7 @@ This example demonstrates how easy it is to build a fully customizable trainer f
 It is built upon `lightning.fabric` for hardware and training orchestration and consists of two files:
 
 - trainer.py contains the actual `MyCustomTrainer` implementation
-- run.py contains a script utilizing this trainer for training a very simple MNIST Module.
+- run.py contains a script utilizing this trainer for training a very simple MNIST module.
 
 ### Run
 
