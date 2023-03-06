@@ -4,8 +4,7 @@ from functools import partial
 from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 
 import torch
-from lightning_utilities.core import is_overridden
-from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core import is_overridden, apply_to_collection
 from tqdm import tqdm
 
 import lightning as L
