@@ -1,5 +1,5 @@
 Welcome to ⚡ PyTorch Lightning
-==============================
+===============================
 
 .. twocolumns::
    :left:
