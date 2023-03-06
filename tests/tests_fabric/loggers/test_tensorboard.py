@@ -20,10 +20,10 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-from tests_fabric.test_fabric import BoringModel
 
 from lightning.fabric.loggers import TensorBoardLogger
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from tests_fabric.test_fabric import BoringModel
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
