@@ -15,6 +15,7 @@ import os
 
 import torch
 
+from lightning.fabric.accelerators.cuda import _clear_cuda_memory
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
@@ -54,6 +55,6 @@ def get_model_input_dtype(precision):
 
 
 def cuda_reset():
-    torch.cuda.empty_cache()
+    _clear_cuda_memory()
     if torch.cuda.is_available():
         torch.cuda.reset_peak_memory_stats()
