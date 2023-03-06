@@ -14,11 +14,12 @@
 import os
 
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 def is_state_dict_equal(state0, state1):
-    # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
-    return all(torch.allclose(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
+    eq_fn = torch.equal if _TORCH_GREATER_EQUAL_1_12 else torch.allclose
+    return all(eq_fn(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
 
 
 def is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3):
