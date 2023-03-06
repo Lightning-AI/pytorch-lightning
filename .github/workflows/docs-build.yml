@@ -4,6 +4,7 @@ name: Check Docs
 on:
   push:
     branches: ["master", "release/*"]
+    tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
   pull_request_target:
@@ -18,8 +19,6 @@ on:
       - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
-  tags:
-    - "*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
