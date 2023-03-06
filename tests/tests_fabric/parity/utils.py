@@ -14,6 +14,7 @@
 import os
 
 import torch
+
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
