@@ -44,7 +44,7 @@ def train_torch_ddp(
     memory_stats = {}
 
     os.environ["LOCAL_RANK"] = str(rank)
-    if torch.distributed.is_available() and not torch.distributed.is_initialized():
+    if not torch.distributed.is_initialized():
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
     model = ConvNet().to(device)
