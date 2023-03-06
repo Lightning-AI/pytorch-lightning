@@ -195,3 +195,6 @@ requirements/base.txt
 
 # CI
 .wheels/
+
+# sourced notebooks from tutorials
+_notebooks/.notebooks/
