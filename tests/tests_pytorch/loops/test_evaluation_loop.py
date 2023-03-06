@@ -18,6 +18,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
+from lightning_fabric.accelerators.cuda import _clear_cuda_memory
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import EvaluationEpochLoop
@@ -138,7 +139,11 @@ def test_memory_consumption_validation(tmpdir):
     memory allocated.
     """
 
-    initial_memory = torch.cuda.memory_allocated(0)
+    def get_memory():
+        _clear_cuda_memory()
+        return torch.cuda.memory_allocated(0)
+
+    initial_memory = get_memory()
 
     class BoringLargeBatchModel(BoringModel):
         @property
@@ -157,7 +162,7 @@ def test_memory_consumption_validation(tmpdir):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
-            current = torch.cuda.memory_allocated(0)
+            current = get_memory()
             assert lower < current
             assert current - initial_memory < upper
             return super().training_step(batch, batch_idx)
@@ -166,12 +171,12 @@ def test_memory_consumption_validation(tmpdir):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
-            current = torch.cuda.memory_allocated(0)
+            current = get_memory()
             assert lower < current
             assert current - initial_memory < upper
             return super().validation_step(batch, batch_idx)
 
-    torch.cuda.empty_cache()
+    _clear_cuda_memory()
     trainer = Trainer(
         accelerator="gpu",
         devices=1,
