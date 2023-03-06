@@ -1,5 +1,3 @@
-:orphan:
-
 ###########################
 Launch distributed training
 ###########################
