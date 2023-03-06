@@ -18,6 +18,7 @@ on:
       - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
+  tags: ["*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -167,3 +168,8 @@ jobs:
       - name: Upload docs/latest to GCS 🪣
         if: github.ref == 'refs/heads/master'
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/latest to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}"

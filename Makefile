@@ -16,12 +16,15 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
+	rm -rf ./docs/source-fabric/generated
+	rm -rf ./docs/source-fabric/*/generated
+	rm -rf ./docs/source-fabric/api
 	rm -rf ./docs/source-pytorch/notebooks
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
-	rm -rf ./docs/source/generated
-	rm -rf ./docs/source/*/generated
+	rm -rf ./docs/source-app/generated
+	rm -rf ./docs/source-app/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -40,14 +43,14 @@ test: clean
 	-r requirements/app/test.txt
 
 	# run tests with coverage
-	python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
-	python -m coverage run --source src/lightning/app -m pytest tests/tests/app -v
-	python -m coverage run --source src/lightning/fabric -m pytest src/lightning/fabric tests/tests_fabric -v
+	python -m coverage run --source src/pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch -v
+	python -m coverage run --source src/lightning_app -m pytest tests/tests_app -v
+	python -m coverage run --source src/lightning_fabric -m pytest src/lightning_fabric tests/tests_fabric -v
 	python -m coverage report
 
 docs: clean
 	pip install -e . --quiet -r requirements/app/docs.txt
-	cd docs/source && $(MAKE) html
+	cd docs/source-app && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote
