@@ -79,9 +79,8 @@ def reset_deterministic_algorithm():
 @pytest.fixture
 def reset_cudnn_benchmark():
     """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
-    benchmark = torch.backends.cudnn.benchmark
     yield
-    torch.backends.cudnn.benchmark = benchmark
+    torch.backends.cudnn.benchmark = False
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
