@@ -16,12 +16,12 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
+from tests_fabric.helpers.runif import RunIf
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
 
 @pytest.mark.parametrize(

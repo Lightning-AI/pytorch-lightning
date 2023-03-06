@@ -105,7 +105,7 @@ def run(hparams):
     scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
 
     # use torchmetrics instead of manually computing the accuracy
-    test_acc = Accuracy().to(fabric.device)
+    test_acc = Accuracy(task="multiclass", num_classes=10).to(fabric.device)
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):

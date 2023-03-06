@@ -1,5 +1,6 @@
 mypy==0.982
-torch==1.12.0
+-f https://download.pytorch.org/whl/test/cpu/torch_test.html --pre
+torch==2.0.0
 
 types-Markdown
 types-PyYAML

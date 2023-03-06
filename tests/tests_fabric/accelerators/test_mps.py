@@ -13,10 +13,10 @@
 # limitations under the License.
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from tests_fabric.helpers.runif import RunIf
 
 _MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"  # torch.device(mps) only works on torch>=1.12
 
