@@ -1,4 +1,4 @@
-name: Check Docs
+name: Build Docs
 # https://github.com/marketplace/actions/sphinx-build
 
 on:
