@@ -5,7 +5,7 @@ Colossal-AI
 ###########
 
 
-The Colossal-AI strategy implements ZeRO-DP with chunk-based memory management.
+The `Colossal-AI strategy <https://github.com/Lightning-AI/lightning-colossalai>`_ implements ZeRO-DP with chunk-based memory management.
 With this chunk mechanism, really large models can be trained with a small number of GPUs.
 It supports larger trainable model size and batch size than usual heterogeneous training by reducing CUDA memory fragments and CPU memory consumption.
 Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
