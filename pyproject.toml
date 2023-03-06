@@ -138,7 +138,6 @@ module = [
     "lightning_app.core.app",
     "lightning_app.core.flow",
     "lightning_app.core.queues",
-    "lightning_app.core.work",
     "lightning_app.frontend.panel.app_state_comm",
     "lightning_app.frontend.panel.app_state_watcher",
     "lightning_app.frontend.panel.panel_frontend",
