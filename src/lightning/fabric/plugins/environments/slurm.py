@@ -188,5 +188,5 @@ def _is_srun_used() -> bool:
     return "SLURM_NTASKS" in os.environ and not _is_slurm_interactive_mode()
 
 
-def _is_slurm_interactive_mode():
+def _is_slurm_interactive_mode() -> bool:
     return SLURMEnvironment.job_name() in ("bash", "interactive")
