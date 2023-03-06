@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added "sequential" mode support to `CombinedLoader` to consume multiple iterables in sequence ([#16743](https://github.com/Lightning-AI/lightning/pull/16743), [#16784](https://github.com/Lightning-AI/lightning/pull/16784))
 
 
+- Added "max_size" mode support to `CombinedLoader` to consume multiple iterables entirely without cycling ([#16939](https://github.com/Lightning-AI/lightning/pull/16939)
+
+
 - Added a `Trainer(barebones=True)` argument where all features that may impact raw speed are disabled ([#16854](https://github.com/Lightning-AI/lightning/pull/16854))
 
 
