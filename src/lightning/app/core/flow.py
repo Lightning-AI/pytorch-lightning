@@ -17,7 +17,7 @@ import warnings
 from copy import deepcopy
 from datetime import datetime
 from types import FrameType
-from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepHash
 
@@ -31,15 +31,19 @@ from lightning.app.utilities.exceptions import ExitAppException
 from lightning.app.utilities.introspection import _is_init_context, _is_run_context
 from lightning.app.utilities.packaging.cloud_compute import _maybe_create_cloud_compute, CloudCompute
 
+if TYPE_CHECKING:
+    from lightning.app.runners.backends.backend import Backend
+
 
 class LightningFlow:
+
     _INTERNAL_STATE_VARS = {
         # Internal protected variables that are still part of the state (even though they are prefixed with "_")
         "_paths",
         "_layout",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """The LightningFlow is used by the :class:`~lightning.app.core.app.LightningApp` to coordinate and manage
         long- running jobs contained, the :class:`~lightning.app.core.work.LightningWork`.
 
@@ -106,23 +110,22 @@ class LightningFlow:
             >>> assert flow.counter == 1
             >>> assert flow.state["vars"]["counter"] == 1
         """
-        from lightning.app.runners.backends.backend import Backend
 
-        self._state = set()
-        self._name = ""
-        self._flows = set()
-        self._works = set()
-        self._structures = set()
-        self._calls = {}
-        self._changes = {}
+        self._state: set = set()
+        self._name: str = ""
+        self._flows: set = set()
+        self._works: set = set()
+        self._structures: set = set()
+        self._calls: dict = {}
+        self._changes: dict = {}
         self._layout: Union[List[Dict], Dict] = {}
-        self._paths = {}
-        self._backend: Optional[Backend] = None
+        self._paths: dict = {}
+        self._backend: Optional["Backend"] = None
         # tuple instead of a list so that it cannot be modified without using the setter
         self._lightningignore: Tuple[str, ...] = tuple()
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the current LightningFlow name."""
         return self._name or "root"
 
@@ -131,7 +134,8 @@ class LightningFlow:
         if isinstance(attr, property) and attr.fset is not None:
             return attr.fset(self, value)
 
-        from lightning.app.structures import Dict, List
+        from lightning.app.structures import Dict as ComponentDict
+        from lightning.app.structures import List as ComponentList
 
         if (
             not _is_init_context(self)
@@ -159,12 +163,12 @@ class LightningFlow:
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
             if isinstance(value, (list, dict)) and value:
-                _type = (LightningFlow, LightningWork, List, Dict)
+                _type = (LightningFlow, LightningWork, ComponentList, ComponentDict)
                 if isinstance(value, list) and all(isinstance(va, _type) for va in value):
-                    value = List(*value)
+                    value = ComponentList(*value)
 
                 if isinstance(value, dict) and all(isinstance(va, _type) for va in value.values()):
-                    value = Dict(**value)
+                    value = ComponentDict(**value)
 
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
@@ -183,10 +187,10 @@ class LightningFlow:
                 if name in self._state:
                     self._state.remove(name)
                 if self._backend:
-                    self._backend._wrap_run_method(_LightningAppRef().get_current(), value)
+                    self._backend._wrap_run_method(_LightningAppRef().get_current(), value)  # type: ignore[arg-type]
                 value._register_cloud_compute()
 
-            elif isinstance(value, (Dict, List)):
+            elif isinstance(value, (ComponentDict, ComponentList)):
                 self._structures.add(name)
                 _set_child_name(self, value, name)
 
@@ -238,7 +242,7 @@ class LightningFlow:
         super().__setattr__(name, value)
 
     @staticmethod
-    def _attach_backend(flow: "LightningFlow", backend):
+    def _attach_backend(flow: "LightningFlow", backend: "Backend") -> None:
         """Attach the backend to all flows and its children."""
         flow._backend = backend
 
@@ -254,9 +258,9 @@ class LightningFlow:
 
         for child_work in flow.works():
             child_work._backend = backend
-            backend._wrap_run_method(app, child_work)
+            backend._wrap_run_method(app, child_work)  # type: ignore[arg-type]
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         if item in self.__dict__.get("_paths", {}):
             return Path.from_dict(self._paths[item])
         return self.__getattribute__(item)
@@ -268,11 +272,11 @@ class LightningFlow:
         return all(flow.ready for flow in flows.values()) if flows else True
 
     @property
-    def changes(self):
+    def changes(self) -> dict:
         return self._changes.copy()
 
     @property
-    def state(self):
+    def state(self) -> dict:
         """Returns the current flow state along its children."""
         children_state = {child: getattr(self, child).state for child in self._flows}
         works_state = {work: getattr(self, work).state for work in self._works}
@@ -287,7 +291,7 @@ class LightningFlow:
         }
 
     @property
-    def state_vars(self):
+    def state_vars(self) -> dict:
         children_state = {child: getattr(self, child).state_vars for child in self._flows}
         works_state = {work: getattr(self, work).state_vars for work in self._works}
         return {
@@ -298,7 +302,7 @@ class LightningFlow:
         }
 
     @property
-    def state_with_changes(self):
+    def state_with_changes(self) -> dict:
         children_state = {child: getattr(self, child).state_with_changes for child in self._flows}
         works_state = {work: getattr(self, work).state_with_changes for work in self._works}
         return {
@@ -488,6 +492,7 @@ class LightningFlow:
         """
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
+            assert frame is not None
             cache_key = f"{cron_pattern}.{frame.f_code.co_filename}.{frame.f_lineno}"
         else:
             cache_key = user_key
@@ -531,7 +536,7 @@ class LightningFlow:
         else:
             return self._calls["scheduling"][call_hash]["running"]
 
-    def _enable_schedule(self, call_hash) -> None:
+    def _enable_schedule(self, call_hash: str) -> None:
         self._calls["scheduling"][call_hash]["running"] = True
 
     def _disable_running_schedules(self) -> None:
@@ -643,6 +648,7 @@ class LightningFlow:
         # TODO: Find a better way. Investigated using __reduce__, but state change invalidate the cache.
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
+            assert frame is not None
             cache_key = f"{frame.f_code.co_filename}.{frame.f_code.co_firstlineno}"
         else:
             cache_key = user_key
@@ -677,7 +683,7 @@ class LightningFlow:
 
         self._calls[call_hash].update({"has_finished": True})
 
-    def configure_commands(self):
+    def configure_commands(self) -> None:
         """Configure the commands of this LightningFlow.
 
         Returns a list of dictionaries mapping a command name to a flow method.
@@ -707,7 +713,7 @@ class LightningFlow:
         """
         raise NotImplementedError
 
-    def configure_api(self):
+    def configure_api(self) -> None:
         """Configure the API routes of the LightningFlow.
 
         Returns a list of HttpMethod such as Post or Get.
@@ -740,7 +746,7 @@ class LightningFlow:
         """
         raise NotImplementedError
 
-    def state_dict(self):
+    def state_dict(self) -> dict:
         """Returns the current flow state but not its children."""
         return {
             "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
@@ -820,7 +826,7 @@ class LightningFlow:
 
 
 class _RootFlow(LightningFlow):
-    def __init__(self, work):
+    def __init__(self, work: LightningWork) -> None:
         super().__init__()
         self.work = work
 
@@ -831,13 +837,13 @@ class _RootFlow(LightningFlow):
             return ready
         return self.work.url != ""
 
-    def run(self):
+    def run(self) -> None:
         if self.work.has_succeeded:
             self.work.stop()
             self.stop()
         self.work.run()
 
-    def configure_layout(self):
+    def configure_layout(self) -> list:
         if is_overridden("configure_layout", self.work):
             return [{"name": "Main", "content": self.work}]
         return []
