@@ -79,6 +79,10 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
 
     if isinstance(model, OptimizedModule):
         model = model._orig_mod
+        if not isinstance(model, pl.LightningModule):
+            raise TypeError(
+                f"Unexpected error, the wrapped model should be a LightningModule, found {type(model).__name__}"
+            )
 
     elif isinstance(model, pl.LightningModule):
         if model._compiler_ctx is None:
@@ -89,12 +93,14 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
     else:
         raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
 
-    model.forward = model._compiler_ctx["original_forward"]
-    model.training_step = model._compiler_ctx["original_training_step"]
-    model.validation_step = model._compiler_ctx["original_validation_step"]
-    model.test_step = model._compiler_ctx["original_test_step"]
-    model.predict_step = model._compiler_ctx["original_predict_step"]
-    model._compiler_ctx = None
+    ctx = model._compiler_ctx
+    if ctx is not None:
+        model.forward = ctx["original_forward"]  # type: ignore[assignment]
+        model.training_step = ctx["original_training_step"]  # type: ignore[assignment]
+        model.validation_step = ctx["original_validation_step"]  # type: ignore[assignment]
+        model.test_step = ctx["original_test_step"]  # type: ignore[assignment]
+        model.predict_step = ctx["original_predict_step"]  # type: ignore[assignment]
+        model._compiler_ctx = None
 
     return model
 
