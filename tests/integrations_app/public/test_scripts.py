@@ -2,8 +2,8 @@ import os
 
 import pytest
 from click.testing import CliRunner
-from integrations_app.public import _PATH_EXAMPLES
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.cli.lightning_cli import run_app
 from lightning.app.testing.helpers import _run_script, _RunIf
 
