@@ -138,9 +138,11 @@ def train_fabric_ddp(fabric):
 def test_parity_ddp(accelerator, devices, tolerance):
     cuda_reset()
 
-    # Train with Fabric
+    # Launch processes with Fabric and re-use them for the PyTorch training for convenience
     fabric = Fabric(accelerator=accelerator, strategy="ddp", devices=devices)
     fabric.launch()
+
+    # Train with Fabric
     state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
     fabric.barrier()
