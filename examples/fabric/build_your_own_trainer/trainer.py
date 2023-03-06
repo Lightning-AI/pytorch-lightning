@@ -9,8 +9,6 @@ from tqdm import tqdm
 
 import lightning as L
 from lightning.fabric.fabric import (
-    _PLUGIN_INPUT,
-    _PRECISION_INPUT,
     _unwrap_objects,
     Accelerator,
     Fabric,
@@ -25,8 +23,8 @@ class MyCustomTrainer:
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
-        precision: _PRECISION_INPUT = "32-true",
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        precision: Union[str, int] = "32-true",
+        plugins: Optional[Union[str, Any]] = None,
         callbacks: Optional[Union[List[Any], Any]] = None,
         loggers: Optional[Union[Logger, List[Logger]]] = None,
         max_epochs: Optional[int] = 1000,
