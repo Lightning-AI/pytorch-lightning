@@ -50,7 +50,7 @@ def train_torch_ddp(
     model = ConvNet().to(device)
     initial_state_dict = deepcopy(model.state_dict())
 
-    ddp_model = DistributedDataParallel(model.to(device), device_ids=([rank] if device.type == "cuda" else None))
+    ddp_model = DistributedDataParallel(model, device_ids=([rank] if device.type == "cuda" else None))
 
     dataloader = model.get_dataloader()
     sampler = DistributedSampler(dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False)
