@@ -283,6 +283,7 @@ Advanced Topics
 
     Efficient Gradient Accumulation <advanced/gradient_accumulation>
     Distributed Communication <advanced/distributed_communication>
+    Multiple Models and Optimizers <advanced/multiple_setup>
 
 .. toctree::
     :maxdepth: 1
