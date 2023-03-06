@@ -136,7 +136,6 @@ module = [
     "lightning_app.components.training",
     "lightning_app.core.api",
     "lightning_app.core.app",
-    "lightning_app.core.flow",
     "lightning_app.core.queues",
     "lightning_app.frontend.panel.app_state_comm",
     "lightning_app.frontend.panel.app_state_watcher",
