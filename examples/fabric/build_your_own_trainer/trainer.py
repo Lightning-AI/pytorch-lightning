@@ -134,7 +134,7 @@ class MyCustomTrainer:
 
         Args:
             model: the LightningModule to train.
-                Can have the same hooks as :attr:`callbacks` (see :meth:`FabricTrainer.__init__`).
+                Can have the same hooks as :attr:`callbacks` (see :meth:`MyCustomTrainer.__init__`).
             train_loader: the training dataloader. Has to be an iterable returning batches.
             val_loader: the validation dataloader. Has to be an iterable returning batches.
                 If not specified, no validation will run.
