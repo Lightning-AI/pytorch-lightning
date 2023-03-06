@@ -17,6 +17,8 @@ docs/source-pytorch/notebooks
 docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
 
+docs/source-fabric/*/generated
+
 # C extensions
 *.so
 # Byte-compiled / optimized / DLL files
@@ -193,3 +195,6 @@ requirements/base.txt
 
 # CI
 .wheels/
+
+# sourced notebooks from tutorials
+_notebooks/.notebooks/

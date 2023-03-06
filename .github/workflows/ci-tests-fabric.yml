@@ -56,11 +56,17 @@ jobs:
           - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
+          # pytorch 2.0 Tests (currently pre-release, change this once it's released)
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
     timeout-minutes: 25  # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: 1
       PYPI_CACHE: "_pip-wheels"
+      TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
     steps:
     - uses: actions/checkout@v3
 
@@ -77,7 +83,7 @@ jobs:
       run: python .actions/assistant.py replace_oldest_ver
 
     - name: Adjust PyTorch versions in requirements files
-      if: ${{ matrix.requires != 'oldest' }}
+      if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
       run: |
         for fpath in `ls requirements/**/*.txt`; do \
           python ./requirements/pytorch/adjust-versions.py $fpath ${{ matrix.pytorch-version }}; \
@@ -93,12 +99,17 @@ jobs:
         mkdir -p $PYPI_CACHE
         ls -lh $PYPI_CACHE
 
-    - name: Switch PyTorch URL
-      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+    - name: Env. variables
+      run: |
+        # Switch PyTorch URL
+        python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.release }}' == 'pre' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+        python -c "print('TORCH_PREINSTALL=' + str('--pre' if '${{ matrix.release }}' == 'pre' else ''))" >> $GITHUB_ENV
+        # Switch coverage scope
+        python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} -f ${PYPI_CACHE} --prefer-binary
+        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip install -r requirements/fabric/strategies.txt -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
@@ -120,9 +131,6 @@ jobs:
       working-directory: tests/tests_fabric
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
-
-    - name: Switch coverage scope
-      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
 
     - name: Testing Fabric
       working-directory: tests/tests_fabric
