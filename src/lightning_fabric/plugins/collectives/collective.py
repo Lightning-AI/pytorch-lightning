@@ -70,11 +70,11 @@ class Collective(ABC):
         ...
 
     @abstractmethod
-    def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
+    def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None:
         ...
 
     @abstractmethod
-    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
+    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
         ...
 
     @abstractmethod

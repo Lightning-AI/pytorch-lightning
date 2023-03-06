@@ -28,11 +28,11 @@ class TorchCollective(Collective):
     @property
     def rank(self) -> int:
         # local rank
-        return dist.get_rank(self.group)
+        return dist.get_rank(self.group)  # type: ignore[arg-type]
 
     @property
     def world_size(self) -> int:
-        return dist.get_world_size(self.group)
+        return dist.get_world_size(self.group)  # type: ignore[arg-type]
 
     def broadcast(self, tensor: Tensor, src: int) -> Tensor:
         dist.broadcast(tensor, src, group=self.group)
@@ -71,11 +71,11 @@ class TorchCollective(Collective):
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
 
-    def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
-        dist.send(tensor, dst, tag=tag, group=self.group)
+    def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None:
+        dist.send(tensor, dst, tag=tag, group=self.group)  # type: ignore[arg-type]
 
-    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
-        dist.recv(tensor, src, tag=tag, group=self.group)
+    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
+        dist.recv(tensor, src, tag=tag, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     def all_gather_object(self, object_list: List[Any], obj: Any) -> List[Any]:
@@ -168,7 +168,7 @@ class TorchCollective(Collective):
     def destroy_group(cls, group: CollectibleGroup) -> None:
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
-        dist.destroy_process_group(group)
+        dist.destroy_process_group(group)  # type: ignore[arg-type]
 
     @classmethod
     def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
