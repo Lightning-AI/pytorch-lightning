@@ -16,13 +16,13 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from tests_fabric.helpers.runif import RunIf
 
 
 class EmptyFabric(Fabric):
@@ -101,9 +101,9 @@ def test_fabric_module_state_dict_access():
 @pytest.mark.parametrize(
     "precision, input_type, expected_type, accelerator, device_str",
     [
-        pytest.param(32, torch.float16, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float16, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float32, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(32, torch.float64, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float64, torch.float64, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.int, torch.int, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.float32, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.float64, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
