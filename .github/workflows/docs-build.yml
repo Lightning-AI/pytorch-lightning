@@ -18,7 +18,8 @@ on:
       - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
-  tags: ["*"]
+  tags:
+    - "*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
