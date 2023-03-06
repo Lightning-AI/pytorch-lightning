@@ -92,7 +92,8 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "lai_sphinx_theme.extensions.lightning",
+    # "lai_sphinx_theme.extensions.lightning",
+    "pt_lightning_sphinx_theme.extensions.lightning",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -154,7 +155,8 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "lai_sphinx_theme"
+# html_theme = "lai_sphinx_theme"
+html_theme = "pt_lightning_sphinx_theme"
 html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
