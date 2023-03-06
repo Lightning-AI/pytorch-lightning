@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 
-import lai_sphinx_theme
+import pt_lightning_sphinx_theme
 
 import lightning
 
@@ -157,7 +157,7 @@ pygments_style = None
 #
 # html_theme = "lai_sphinx_theme"
 html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
