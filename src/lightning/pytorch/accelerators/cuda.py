@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.cuda import _check_cuda_matmul_precision, num_cuda_devices
+from lightning.fabric.accelerators.cuda import _check_cuda_matmul_precision, _clear_cuda_memory, num_cuda_devices
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -46,8 +46,7 @@ class CUDAAccelerator(Accelerator):
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
-        # clear cache before training
-        torch.cuda.empty_cache()
+        _clear_cuda_memory()
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
@@ -73,8 +72,7 @@ class CUDAAccelerator(Accelerator):
         return torch.cuda.memory_stats(device)
 
     def teardown(self) -> None:
-        # clean up memory
-        torch.cuda.empty_cache()
+        _clear_cuda_memory()
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:

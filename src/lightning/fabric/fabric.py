@@ -67,7 +67,7 @@ class Fabric:
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
-        precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
+        precision: Double precision (``"64"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
             or bfloat16 precision AMP (``"bf16-mixed"``).
         plugins: One or several custom plugins
         callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
@@ -372,6 +372,19 @@ class Fabric:
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
     ) -> Optional[torch.Tensor]:
+        """Clip the gradients of the model to a given max value or max norm.
+
+        Args:
+            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
+            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
+                optimizer is referencing.
+            clip_val: If passed, gradients will be clipped to this value.
+            max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
+                no larger than the given value.
+            norm_type: The type of norm if `max_norm` was passed. Can be ``'inf'`` for infinity norm.
+                Default is the 2-norm.
+            error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
+        """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
                 "Only one of `clip_val` or `max_norm` can be set as this specifies the underlying clipping algorithm!"
