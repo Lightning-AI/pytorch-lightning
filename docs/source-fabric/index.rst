@@ -288,10 +288,10 @@ Advanced Topics
     :name: api
     :caption: API Reference
 
-    Fabric Arguments <api_reference/fabric_args>
-    Fabric Methods <api_reference/fabric_methods>
-    Utilities <api_reference/utilities>
-    Full API Reference <api_reference/full_reference>
+    Fabric Arguments <api/fabric_args>
+    Fabric Methods <api/fabric_methods>
+    Utilities <api/utilities>
+    Full API Reference <api_reference>
 
 
 .. raw:: html
