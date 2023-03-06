@@ -16,7 +16,7 @@ from typing import Union
 import torch
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
 
 
@@ -55,7 +55,8 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     }
 
     orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-    orig_module.forward._torchdynamo_inline = orig_module.forward  # https://github.com/pytorch/pytorch/issues/95630
+    if not _TORCH_GREATER_EQUAL_2_1:
+        orig_module.forward._torchdynamo_inline = orig_module.forward  # https://github.com/pytorch/pytorch/issues/95630
     orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
     orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
     orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
