@@ -459,7 +459,7 @@ class ColossalAIStrategy(DDPStrategy):
 
         if isinstance(reduce_op, str):
             if reduce_op.lower() in ("avg", "mean"):
-                reduce_op = ReduceOp.SUM
+                reduce_op = ReduceOp.SUM  # type: ignore[assignment]
                 div_factor = gpc.get_world_size(parallel_mode=ParallelMode.GLOBAL)
                 with torch.no_grad():
                     tensor = tensor / div_factor

@@ -94,7 +94,10 @@ class ParallelStrategy(Strategy, ABC):
             bool: The reduced boolean decision.
         """
         decision = torch.tensor(int(decision), device=self.root_device)
-        decision = self.all_reduce(decision, reduce_op=ReduceOp.SUM)
+        decision = self.all_reduce(
+            decision,
+            reduce_op=ReduceOp.SUM,  # type: ignore[arg-type]
+        )
         decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
 
