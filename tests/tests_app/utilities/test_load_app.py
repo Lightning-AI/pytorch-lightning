@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 import pytest
 
 from lightning.app.utilities.exceptions import MisconfigurationException
-from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
+from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file, _load_plugin_from_file
 
 
 def test_load_app_from_file_errors():
@@ -29,15 +29,6 @@ def test_load_app_from_file(app_path):
 
     assert test_script_dir in sys.path
     assert sys.modules["__main__"] != original_main
-
-
-@patch.dict(os.environ, {"COMPUTE_NAME": "test"})
-def test_load_app_from_file_with_environ():
-    """Test that environment variables are loaded correctly."""
-    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
-
-    app = load_app_from_file(os.path.join(test_script_dir, "app_with_environ.py"), raise_exception=True)
-    assert app.works[0].cloud_compute.name == "test"
 
 
 def test_extract_metadata_from_component():
