@@ -34,16 +34,6 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
-NUM_CUDA_DEVICES = torch.cuda.device_count()
-DEFAULT_CMD_LINE = (
-    "fit",
-    "--trainer.max_epochs=1",
-    "--trainer.limit_train_batches=15",
-    "--trainer.limit_val_batches=15",
-    "--trainer.profiler=pytorch",
-    "--trainer.accelerator=gpu",
-    f"--trainer.devices={NUM_CUDA_DEVICES or 1}",
-)
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
 
@@ -103,15 +93,21 @@ class CIFAR10DataModule(LightningDataModule):
 
 
 def cli_main():
-    if len(sys.argv) == 1:
-        sys.argv += DEFAULT_CMD_LINE
-
-    LightningCLI(
+    cli = LightningCLI(
         ModelToProfile,
         CIFAR10DataModule,
         save_config_kwargs={"overwrite": True},
-        trainer_defaults={"profiler": PyTorchProfiler()},
+        trainer_defaults={
+            "profiler": PyTorchProfiler(),
+            "max_epochs": 1,
+            "limit_train_batches": 15,
+            "limit_val_batches": 15,
+            "accelerator": "gpu",
+            "devices": torch.cuda.device_count() or 1,
+        },
+        run=False,
     )
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
 
 if __name__ == "__main__":
