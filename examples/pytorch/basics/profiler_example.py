@@ -102,7 +102,7 @@ def cli_main():
             "limit_train_batches": 15,
             "limit_val_batches": 15,
             "accelerator": "gpu",
-            "devices": torch.cuda.device_count() or 1,
+            "devices": "auto",
         },
         run=False,
     )
