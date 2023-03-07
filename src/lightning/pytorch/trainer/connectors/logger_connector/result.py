@@ -111,8 +111,8 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    # cannot default to torch.mean until this is fixed: https://github.com/pytorch/pytorch/issues/96197
-    reduce_fx: Callable = "mean"  # type: ignore[assignment]
+    # https://github.com/pytorch/pytorch/issues/96197
+    reduce_fx: Callable = "mean" if _TORCH_GREATER_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
