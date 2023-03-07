@@ -1539,7 +1539,5 @@ def test_lightning_cli_with_args_given(args):
 
 
 def test_lightning_cli_args_and_sys_argv_warning():
-    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(
-        Warning, match="LightningCLI's args parameter "
-    ):
+    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(Warning, match="LightningCLI's args parameter "):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])
