@@ -5,7 +5,7 @@ Organize Your Code
 Any raw PyTorch can be converted to Fabric with zero refactoring required, giving maximum flexibility in how you want to organize your projects.
 
 However, when developing a project in a team or sharing the code publicly, it can be beneficial to conform to a standard format of how core pieces of the code are organized.
-This is what the :class:`pytorch_lightning.core.module.LightningModule` was made for!
+This is what the `LightningModule <https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html>`_ was made for!
 
 Here is how you can neatly separate the research code (model, loss, optimization, etc.) from the "trainer" code (training loop, checkpointing, logging, etc.).
 
@@ -60,7 +60,7 @@ Take these main ingredients and put them in a LightningModule:
             ...
 
 
-This is a minimal :class:`pytorch_lightning.LightningModule`, but there are `many other useful hooks <https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html#hooks>`_ you can use.
+This is a minimal LightningModule, but there are `many other useful hooks <https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html#hooks>`_ you can use.
 
 
 ----

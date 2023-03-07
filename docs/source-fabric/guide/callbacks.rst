@@ -91,7 +91,8 @@ The ones that have a matching method name will get called.
 Next steps
 **********
 
-Callbacks are a powerful tool for building a Trainer. Learn how in our comprehensive guide.
+Callbacks are a powerful tool for building a Trainer.
+See a real example of how they can be integrated in our Trainer template based on Fabric:
 
 .. raw:: html
 
@@ -99,9 +100,9 @@ Callbacks are a powerful tool for building a Trainer. Learn how in our comprehen
         <div class="row">
 
 .. displayitem::
-    :header: Template Trainer
-    :description: Coming soon
-    :button_link: guide/trainer_template.html
+    :header: Trainer Template
+    :description: Take our Fabric Trainer template and customize it for your needs
+    :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
