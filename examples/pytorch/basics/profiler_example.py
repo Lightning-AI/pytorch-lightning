@@ -22,7 +22,6 @@ visualized in 2 ways:
     2. tensorboard --logdir={FOLDER}
 """
 
-import sys
 from os import path
 
 import torch
