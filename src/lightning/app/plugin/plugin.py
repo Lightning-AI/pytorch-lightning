@@ -47,7 +47,7 @@ class LightningPlugin:
         """Override with the logic to execute on the cloudspace."""
         raise NotImplementedError
 
-    def run_job(self, name: str, app_entrypoint: str, env_vars: dict[str, str] = {}) -> str:
+    def run_job(self, name: str, app_entrypoint: str, env_vars: Dict[str, str] = {}) -> str:
         """Run a job in the cloudspace associated with this plugin.
 
         Args:

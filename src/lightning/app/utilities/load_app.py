@@ -51,7 +51,7 @@ def _load_objects_from_file(
     target_type: Type,
     raise_exception: bool = False,
     mock_imports: bool = False,
-    env_vars: dict[str, str] = {},
+    env_vars: Dict[str, str] = {},
 ) -> Tuple[List[Any], types.ModuleType]:
     """Load all of the top-level objects of the given type from a file.
 
@@ -104,7 +104,7 @@ def load_app_from_file(
     filepath: str,
     raise_exception: bool = False,
     mock_imports: bool = False,
-    env_vars: dict[str, str] = {},
+    env_vars: Dict[str, str] = {},
 ) -> "LightningApp":
     """Load a LightningApp from a file.
 
@@ -221,7 +221,7 @@ def _patch_sys_path(append):
 
 
 @contextmanager
-def _add_to_env(envs: dict[str, str]):
+def _add_to_env(envs: Dict[str, str]):
     """This function adds the given environment variables to the current environment."""
     original_envs = dict(os.environ)
     os.environ.update(envs)

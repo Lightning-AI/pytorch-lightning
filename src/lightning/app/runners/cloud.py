@@ -384,7 +384,7 @@ class CloudRuntime(Runtime):
                 cleanup_handle()
 
     @classmethod
-    def load_app_from_file(cls, filepath: str, env_vars: dict[str, str] = {}) -> "LightningApp":
+    def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
 
         # Pretend we are running in the cloud when loading the app locally

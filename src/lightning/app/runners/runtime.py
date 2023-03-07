@@ -179,5 +179,5 @@ class Runtime:
             work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
 
     @classmethod
-    def load_app_from_file(cls, filepath: str, env_vars) -> "LightningApp":
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
         return load_app_from_file(filepath)
