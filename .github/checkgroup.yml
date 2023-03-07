@@ -46,8 +46,8 @@ subprojects:
       # only the azure GPU workflow runs the examples
       # all examples don't need to be added because they aren't used in CI, but these are
       - "examples/run_pl_examples.sh"
-      - "examples/pl_basics/backbone_image_classifier.py"
-      - "examples/pl_basics/autoencoder.py"
+      - "examples/pytorch/basics/backbone_image_classifier.py"
+      - "examples/pytorch/basics/autoencoder.py"
       - "requirements/pytorch/**"
       - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
@@ -83,7 +83,7 @@ subprojects:
     paths:
       - ".actions/**"
       - ".azure/hpu-tests.yml"
-      - "examples/pl_hpu/mnist_sample.py"
+      - "examples/pytorch/hpu/mnist_sample.py"
       - "requirements/fabric/**"
       - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
