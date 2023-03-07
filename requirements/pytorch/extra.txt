@@ -6,5 +6,5 @@ matplotlib>3.1, <3.6.2
 omegaconf>=2.0.5, <2.4.0
 hydra-core>=1.0.5, <1.4.0
 jsonargparse[signatures]>=4.18.0, <4.19.0
-rich>=10.14.0, !=10.15.0.a, <13.0.0
+rich >=12.3.0, <=13.0.1
 tensorboardX>=2.2, <=2.5.1  # min version is set by torch.onnx missing attribute

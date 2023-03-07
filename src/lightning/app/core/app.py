@@ -64,6 +64,7 @@ if TYPE_CHECKING:
     from lightning.app.core.flow import LightningFlow
     from lightning.app.runners.backends.backend import Backend, WorkManager
     from lightning.app.runners.runtime import Runtime
+    from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 
 logger = Logger(__name__)
@@ -72,12 +73,12 @@ logger = Logger(__name__)
 class LightningApp:
     def __init__(
         self,
-        root: Union["LightningFlow", "LightningWork"],
-        flow_cloud_compute: Optional["lightning.app.CloudCompute"] = None,
+        root: Union["LightningFlow", LightningWork],
+        flow_cloud_compute: Optional["CloudCompute"] = None,
         log_level: str = "info",
         info: frontend.AppInfo = None,
         root_path: str = "",
-    ):
+    ) -> None:
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
         applications. There are two kinds of components: :class:`~lightning.app.core.flow.LightningFlow` and
         :class:`~lightning.app.core.work.LightningWork`. This modular design enables you to reuse components
@@ -170,16 +171,16 @@ class LightningApp:
 
         self.is_headless: Optional[bool] = None
 
-        self._original_state = None
-        self._last_state = self.state
+        self._original_state: Optional[dict] = None
+        self._last_state: dict = self.state
         self.state_accumulate_wait = STATE_ACCUMULATE_WAIT
 
-        self._last_run_time = 0.0
-        self._run_times = []
+        self._last_run_time: float = 0.0
+        self._run_times: list = []
 
         # Path attributes can't get properly attached during the initialization, because the full name
         # is only available after all Flows and Works have been instantiated.
-        _convert_paths_after_init(self.root)
+        _convert_paths_after_init(self.root)  # type: ignore[arg-type]
 
         if log_level not in ("debug", "info"):
             raise Exception(f"Log Level should be in ['debug', 'info']. Found {log_level}")
@@ -198,12 +199,12 @@ class LightningApp:
 
             MultiProcessRuntime(self).dispatch()
 
-    def _update_index_file(self):
+    def _update_index_file(self) -> None:
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
         frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
-    def get_component_by_name(self, component_name: str):
+    def get_component_by_name(self, component_name: str) -> Union["LightningFlow", LightningWork]:
         """Returns the instance corresponding to the given component name."""
         from lightning.app.structures import Dict as LightningDict
         from lightning.app.structures import List as LightningList
@@ -216,76 +217,79 @@ class LightningApp:
 
         current = self.root
         for child_name in component_name.split(".")[1:]:
-            if isinstance(current, (LightningDict, LightningList)):
-                child = current[child_name] if isinstance(current, LightningDict) else current[int(child_name)]
+            if isinstance(current, LightningDict):
+                child = current[child_name]
+            elif isinstance(current, LightningList):
+                child = current[int(child_name)]
             else:
                 child = getattr(current, child_name, None)
             if not isinstance(child, ComponentTuple):
                 raise AttributeError(f"Component '{current.name}' has no child component with name '{child_name}'.")
-            current = child
+            current = child  # type: ignore[assignment]
         return current
 
-    def _reset_original_state(self):
+    def _reset_original_state(self) -> None:
+        assert self._original_state is not None
         self.set_state(self._original_state)
 
     @property
-    def root(self):
+    def root(self) -> Union["LightningFlow", LightningWork]:
         """Returns the root component of the application."""
         return self._root
 
     @property
-    def state(self):
+    def state(self) -> dict:
         """Return the current state of the application."""
         state = self.root.state
         state["app_state"] = {"stage": self.stage.value}
         return state
 
     @property
-    def state_vars(self):
+    def state_vars(self) -> dict:
         """Return the current state restricted to the user defined variables of the application."""
         state_vars = self.root.state_vars
         state_vars["app_state"] = {"stage": self.stage.value}
         return state_vars
 
     @property
-    def state_with_changes(self):
+    def state_with_changes(self) -> dict:
         """Return the current state with the new changes of the application."""
         state_with_changes = self.root.state_with_changes
         state_with_changes["app_state"] = {"stage": self.stage.value}
         return state_with_changes
 
-    def set_state(self, state):
+    def set_state(self, state: dict) -> None:
         """Method to set a new app state set to the application."""
         self.set_last_state(state)
         self.root.set_state(state)
         self.stage = AppStage(state["app_state"]["stage"])
 
     @property
-    def last_state(self):
+    def last_state(self) -> dict:
         """Returns the latest state."""
         return self._last_state
 
     @property
     def checkpoint_dir(self) -> str:
-        return os.path.join(_storage_root_dir(), "checkpoints")
+        return os.path.join(str(_storage_root_dir()), "checkpoints")
 
-    def remove_changes_(self, state):
+    def remove_changes_(self, state: dict) -> None:
         for _, child in state["flows"].items():
             self.remove_changes(child)
         state["changes"] = {}
 
-    def remove_changes(self, state):
+    def remove_changes(self, state: dict) -> dict:
         state = deepcopy(state)
         for _, child in state["flows"].items():
             self.remove_changes_(child)
         state["changes"] = {}
         return state
 
-    def set_last_state(self, state):
+    def set_last_state(self, state: dict) -> None:
         self._last_state = self.remove_changes(state)
 
     @staticmethod
-    def populate_changes(last_state, new_state):
+    def populate_changes(last_state: dict, new_state: dict) -> dict:
         diff = DeepDiff(last_state, new_state, view="tree", verbose_level=2)
 
         changes_categories = [diff[key] for key in diff.to_dict()]
@@ -310,21 +314,21 @@ class LightningApp:
         return new_state
 
     @staticmethod
-    def get_state_changed_from_queue(q: BaseQueue, timeout: Optional[int] = None):
+    def get_state_changed_from_queue(q: BaseQueue, timeout: Optional[float] = None) -> Optional[dict]:
         try:
-            delta = q.get(timeout=timeout or q.default_timeout)
-            return delta
+            timeout = timeout or q.default_timeout
+            return q.get(timeout=timeout)
         except queue.Empty:
             return None
 
     def check_error_queue(self) -> None:
-        exception: Exception = self.get_state_changed_from_queue(self.error_queue)
+        exception: Exception = self.get_state_changed_from_queue(self.error_queue)  # type: ignore[assignment,arg-type]
         if isinstance(exception, Exception):
             self.exception = exception
             self.stage = AppStage.FAILED
 
     @property
-    def flows(self) -> List["LightningFlow"]:
+    def flows(self) -> List[Union[LightningWork, "LightningFlow"]]:
         """Returns all the flows defined within this application."""
         return [self.root] + list(self.root.flows.values())
 
@@ -353,7 +357,9 @@ class LightningApp:
             # TODO: Fetch all available deltas at once to reduce queue calls.
             delta: Optional[
                 Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
-            ] = self.get_state_changed_from_queue(self.delta_queue)
+            ] = self.get_state_changed_from_queue(
+                self.delta_queue  # type: ignore[assignment,arg-type]
+            )
             if delta:
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
@@ -366,7 +372,9 @@ class LightningApp:
                         logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
 
                     if work:
-                        delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
+                        delta = _delta_to_app_state_delta(
+                            self.root, work, deepcopy(delta.delta)  # type: ignore[arg-type]
+                        )
                         deltas.append(delta)
                 else:
                     api_or_command_request_deltas.append(delta)
@@ -383,11 +391,11 @@ class LightningApp:
             # the delta based on the same base state. But this assumption does not hold in general, and there is no way
             # for the Flow to reject or resolve these deltas properly at the moment. Hence, we decide to ignore
             # errors coming from deepdiff when adding deltas together by setting:
-            delta.log_errors = False
-            delta.raise_errors = False
+            delta.log_errors = False  # type: ignore[union-attr]
+            delta.raise_errors = False  # type: ignore[union-attr]
         return deltas
 
-    def maybe_apply_changes(self) -> None:
+    def maybe_apply_changes(self) -> Optional[bool]:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
         self._send_flow_to_work_deltas(self.state)
@@ -433,7 +441,7 @@ class LightningApp:
         self.set_state(state)
         self._has_updated = True
 
-    def run_once(self):
+    def run_once(self) -> bool:
         """Method used to collect changes and run the root Flow once."""
         done = False
         self._last_run_time = 0.0
@@ -481,10 +489,10 @@ class LightningApp:
         self.on_run_once_end()
         return done
 
-    def _reset_run_time_monitor(self):
+    def _reset_run_time_monitor(self) -> None:
         self._run_times = [0.0] * FLOW_DURATION_SAMPLES
 
-    def _update_run_time_monitor(self):
+    def _update_run_time_monitor(self) -> None:
         self._run_times[:-1] = self._run_times[1:]
         self._run_times[-1] = self._last_run_time
 
@@ -535,12 +543,11 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
-        import lightning.app
 
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
-        for component in breadth_first(self.root, types=(lightning.app.LightningFlow,)):
+        for component in breadth_first(self.root, types=(lightning.app.LightningFlow,)):  # type: ignore[arg-type]
             layout = _collect_layout(self, component)
             component._layout = layout
 
@@ -555,7 +562,8 @@ class LightningApp:
         old_status = self.status
 
         work_statuses = {}
-        for work in breadth_first(self.root, types=(lightning.app.LightningWork,)):
+        assert self.root is not None
+        for work in breadth_first(self.root, types=(lightning.app.LightningWork,)):  # type: ignore[arg-type]
             work_statuses[work.name] = work.status
 
         self.status = AppStatus(
@@ -574,7 +582,7 @@ class LightningApp:
         self.stage = AppStage.BLOCKING
         return False
 
-    def _has_work_finished(self, work) -> bool:
+    def _has_work_finished(self, work: LightningWork) -> bool:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if latest_call_hash is None:
             return False
@@ -674,13 +682,13 @@ class LightningApp:
         for flow in self.flows:
             flow._disable_running_schedules()
 
-    def _on_run_end(self):
+    def _on_run_end(self) -> None:
         if os.getenv("LIGHTNING_DEBUG") == "2":
             del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)
 
     @staticmethod
-    def _extract_vars_from_component_name(component_name: str, state):
+    def _extract_vars_from_component_name(component_name: str, state: dict) -> Optional[dict]:
         child = state
         for child_name in component_name.split(".")[1:]:
             if child_name in child["flows"]:
@@ -703,7 +711,7 @@ class LightningApp:
             )
         }
 
-    def _send_flow_to_work_deltas(self, state) -> None:
+    def _send_flow_to_work_deltas(self, state: dict) -> None:
         if not self.flow_to_work_delta_queues:
             return
 
@@ -731,7 +739,7 @@ class LightningApp:
                 logger.debug(f"Sending deep_diff to {w.name} : {deep_diff}")
                 self.flow_to_work_delta_queues[w.name].put(deep_diff)
 
-    def _start_with_flow_works(self):
+    def _start_with_flow_works(self) -> None:
         for w in self.works:
             if w._start_with_flow:
                 parallel = w.parallel
