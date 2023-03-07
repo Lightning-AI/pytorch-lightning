@@ -50,9 +50,6 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
               lr_scheduler.step()
 
 
-.. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
-
-
 ----
 
 
