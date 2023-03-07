@@ -73,4 +73,4 @@ In order to do so, your LightningModule needs to subclass the :class:`~lightning
 
 Below you can find an example of how the serving of a resnet18 can be validated.
 
-.. literalinclude:: ../../../examples/pl_servable_module/production.py
+.. literalinclude:: ../../../examples/pytorch/servable_module/production.py
