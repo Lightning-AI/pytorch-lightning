@@ -125,6 +125,7 @@ def test_compile_uncompile():
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(min_torch="2.0.0")
 def test_trainer_compiled_model_that_logs(tmp_path):
     skip_if_unsupported()
 
