@@ -34,6 +34,7 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
+NUM_CUDA_DEVICES = torch.cuda.device_count()
 DEFAULT_CMD_LINE = (
     "fit",
     "--trainer.max_epochs=1",
@@ -41,7 +42,7 @@ DEFAULT_CMD_LINE = (
     "--trainer.limit_val_batches=15",
     "--trainer.profiler=pytorch",
     "--trainer.accelerator=gpu",
-    f"--trainer.devices={int(torch.cuda.is_available())}",
+    f"--trainer.devices={NUM_CUDA_DEVICES or 1}",
 )
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
