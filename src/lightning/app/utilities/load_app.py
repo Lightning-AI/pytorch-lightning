@@ -70,6 +70,7 @@ def _load_objects_from_file(
         code = _create_code(filepath)
         with _create_fake_main_module(filepath) as module:
             try:
+                # TODO: patch environment variables
                 with _patch_sys_argv():
                     if mock_imports:
                         with _mock_missing_imports():

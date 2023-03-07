@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import ANY
+from unittest.mock import ANY, patch
 
 import pytest
 
@@ -26,6 +26,19 @@ def test_load_app_from_file(app_path):
     original_main = sys.modules["__main__"]
     test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
     load_app_from_file(os.path.join(test_script_dir, app_path), raise_exception=True)
+
+    assert test_script_dir in sys.path
+    assert sys.modules["__main__"] != original_main
+
+
+@patch.dict(os.environ, {"COMPUTE_NAME": "test"})
+def test_load_app_from_file_with_environ():
+    """Test that apps load without error and that sys.path and main module are set."""
+    original_main = sys.modules["__main__"]
+    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
+
+    app = load_app_from_file(os.path.join(test_script_dir, "app_with_environ.py"), raise_exception=True)
+    assert app.works[0].cloud_compute.name == "test"
 
     assert test_script_dir in sys.path
     assert sys.modules["__main__"] != original_main
