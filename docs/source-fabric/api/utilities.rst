@@ -40,7 +40,7 @@ For example, when generating noise or data augmentations. This is very straightf
     fabric.seed_everything(seed + fabric.global_rank)
 
 
-By default, ``seed_everything`` also handles the initialization of the seed in :class:`~torch.utils.data.DataLoader` worker processes:
+By default, :meth:`~lightning.fabric.fabric.Fabric.seed_everything` also handles the initialization of the seed in :class:`~torch.utils.data.DataLoader` worker processes:
 
 .. code-block:: python
 

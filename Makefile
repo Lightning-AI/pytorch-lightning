@@ -16,9 +16,7 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
-	rm -rf ./docs/source-fabric/generated
-	rm -rf ./docs/source-fabric/*/generated
-	rm -rf ./docs/source-fabric/api
+	rm -rf ./docs/source-fabric/api/generated
 	rm -rf ./docs/source-pytorch/notebooks
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
