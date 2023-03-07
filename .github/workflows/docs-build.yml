@@ -1,9 +1,10 @@
-name: Check Docs
+name: Build Docs
 # https://github.com/marketplace/actions/sphinx-build
 
 on:
   push:
     branches: ["master", "release/*"]
+    tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
   pull_request_target:
@@ -166,9 +167,17 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/stable to GCS 🪣
         if: startsWith(github.ref, 'refs/heads/release/')
+        # todo: consider nuke the bucket content before upload
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
         if: github.ref == 'refs/heads/master'
+        # todo: consider nuke the bucket content before upload
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/latest to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/')
+        # todo: consider nuke the bucket content before upload
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}"
