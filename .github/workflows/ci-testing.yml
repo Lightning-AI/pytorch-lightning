@@ -73,7 +73,7 @@ jobs:
         fail_ci_if_error: false
 
 
-  guardian:
+  testing-guardian:
     runs-on: ubuntu-latest
     needs: pytester
     if: always()
