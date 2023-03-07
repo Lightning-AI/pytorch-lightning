@@ -893,3 +893,19 @@ def test_connector_defaults_match_fabric_defaults():
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
         assert connector_default == fabric_defaults[name]
+
+
+@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_connector_auto_selection(*_):
+    connector = _Connector(accelerator="auto", strategy=None, devices="auto")
+    assert isinstance(connector.accelerator, CUDAAccelerator)
+    assert isinstance(connector.strategy, DDPStrategy)
+    assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
+    assert connector._devices_flag == [0, 1]
+
+    connector = _Connector(accelerator="auto", strategy="auto", devices="auto")
+    assert isinstance(connector.accelerator, CUDAAccelerator)
+    assert isinstance(connector.strategy, DDPStrategy)
+    assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
+    assert connector._devices_flag == [0, 1]

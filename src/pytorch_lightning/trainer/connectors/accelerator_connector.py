@@ -207,7 +207,7 @@ class AcceleratorConnector:
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
 
         # 4. Instantiate Strategy - Part 1
-        if self._strategy_flag is None:
+        if self._strategy_flag in (None, "auto"):
             self._strategy_flag = self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
@@ -273,7 +273,11 @@ class AcceleratorConnector:
                     " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
                 )
 
-        if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+        if (
+            strategy not in (None, "auto")
+            and strategy not in self._registered_strategies
+            and not isinstance(strategy, Strategy)
+        ):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `pytorch_lightning.strategies.Strategy`."
@@ -639,6 +643,9 @@ class AcceleratorConnector:
         if len(self._parallel_devices) > 1:
             if _IS_INTERACTIVE:
                 return "ddp_fork"
+            if self._strategy_flag == "auto":
+                # None chooses "ddp_spawn" for backwards compatibility, auto chooses "ddp" for future compatibility
+                return "ddp"
             return "ddp_spawn"
 
         return DDPStrategy.strategy_name

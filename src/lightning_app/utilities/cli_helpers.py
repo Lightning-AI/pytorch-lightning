@@ -16,7 +16,6 @@ import functools
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 from typing import Dict, Optional
@@ -323,7 +322,14 @@ def _check_environment_and_redirect():
     If not, this utility tries to redirect the ``lightning`` call to the environment executable (prompting the user to
     install lightning for them there if needed).
     """
-    env_executable = os.path.realpath(shutil.which("python"))
+    process = subprocess.run(
+        ["python", "-c", "import sys; print(sys.executable)"],
+        capture_output=True,
+        env=os.environ,
+        check=True,
+    )
+
+    env_executable = os.path.realpath(process.stdout.decode().strip())
     sys_executable = os.path.realpath(sys.executable)
 
     # on windows, the extension might be different, where one uses `.EXE` and the other `.exe`

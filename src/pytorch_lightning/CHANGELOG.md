@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.9.4] - 2023-03-01
+
+### Added
+
+- Added `Fabric(strategy="auto")` support. It will choose DDP over DDP-spawn, contrary to `strategy=None` (default) ([#16916](https://github.com/Lightning-AI/lightning/pull/16916))
+
+### Fixed
+
+- Fixed DDP spawn hang on TPU Pods ([#16844](https://github.com/Lightning-AI/lightning/pull/16844))
+- Fixed edge cases in parsing device ids using NVML ([#16795](https://github.com/Lightning-AI/lightning/pull/16795))
+- Fixed backwards compatibility for `lightning.pytorch.utilities.parsing.get_init_args` ([#16851](https://github.com/Lightning-AI/lightning/pull/16851))
+
+
 ## [1.9.3] - 2023-02-21
 
 ### Fixed
