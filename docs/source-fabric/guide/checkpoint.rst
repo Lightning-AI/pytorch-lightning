@@ -81,7 +81,7 @@ If you want to be in complete control of how states get restored, you can omit p
 Next steps
 **********
 
-See how Fabrics checkpoint mechanism can be integrated into a full Trainer in our template implementation:
+Learn from our template how Fabrics checkpoint mechanism can be integrated into a full Trainer:
 
 .. raw:: html
 
