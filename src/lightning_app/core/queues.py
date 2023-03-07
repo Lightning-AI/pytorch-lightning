@@ -174,7 +174,7 @@ class BaseQueue(ABC):
         pass
 
     @abstractmethod
-    def get(self, timeout: Optional[int] = None) -> Any:
+    def get(self, timeout: Optional[float] = None) -> Any:
         """Returns the left most element of the queue.
 
         Parameters
@@ -380,7 +380,7 @@ class HTTPQueue(BaseQueue):
             return False
         return False
 
-    def get(self, timeout: Optional[int] = None) -> Any:
+    def get(self, timeout: Optional[float] = None) -> Any:
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
