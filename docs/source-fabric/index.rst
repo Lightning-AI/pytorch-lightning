@@ -192,7 +192,7 @@ Build Your Own Trainer
 .. displayitem::
     :header: Trainer Template
     :description: Take our Fabric Trainer template and customize it for your needs
-    :button_link: guide/trainer_template.html
+    :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
@@ -266,7 +266,7 @@ Advanced Topics
     Callbacks <guide/callbacks>
     Logging <guide/logging>
     Checkpoints <guide/checkpoint>
-    Trainer Template <guide/trainer_template>
+    Trainer Template <https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer>
 
 .. toctree::
     :maxdepth: 1
