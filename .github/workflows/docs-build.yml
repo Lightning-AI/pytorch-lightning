@@ -136,11 +136,16 @@ jobs:
           make linkcheck
         continue-on-error: true
 
+      - name: Keep artifact
+        id: keep-artifact
+        run: python -c "print('DAYS=' + str(7 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
+          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
 
   deploy-docs:
