@@ -102,7 +102,6 @@ def cli_main():
             "limit_train_batches": 15,
             "limit_val_batches": 15,
             "accelerator": "gpu",
-            "devices": "auto",
         },
         run=False,
     )
