@@ -77,49 +77,6 @@ class ProgressBarBase(Callback):
         return "Predicting"
 
     @property
-    def _val_processed(self) -> int:
-        # use total in case validation runs more than once per training epoch
-        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
-
-    @property
-    def train_batch_idx(self) -> int:
-        """The number of batches processed during training.
-
-        Use this to update your progress bar.
-        """
-        return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
-
-    @property
-    def val_batch_idx(self) -> int:
-        """The number of batches processed during validation.
-
-        Use this to update your progress bar.
-        """
-        if self.trainer.state.fn == "fit":
-            loop = self.trainer.fit_loop.epoch_loop.val_loop
-        else:
-            loop = self.trainer.validate_loop
-
-        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
-        return current_batch_idx
-
-    @property
-    def test_batch_idx(self) -> int:
-        """The number of batches processed during testing.
-
-        Use this to update your progress bar.
-        """
-        return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
-
-    @property
-    def predict_batch_idx(self) -> int:
-        """The number of batches processed during prediction.
-
-        Use this to update your progress bar.
-        """
-        return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
-
-    @property
     def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 
@@ -170,27 +127,6 @@ class ProgressBarBase(Callback):
         """
         return sum(self.trainer.num_val_batches) if self.trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
 
-    @property
-    def total_batches_current_epoch(self) -> Union[int, float]:
-        total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
-        assert self._trainer is not None
-
-        if total_train_batches != float("inf") and total_val_batches != float("inf"):
-            # val can be checked multiple times per epoch
-            val_check_batch = self.trainer.val_check_batch
-            if self.trainer.check_val_every_n_epoch is None:
-                train_batches_processed = self.trainer.fit_loop.total_batch_idx + 1
-                val_checks_per_epoch = ((train_batches_processed + total_train_batches) // val_check_batch) - (
-                    train_batches_processed // val_check_batch
-                )
-            else:
-                val_checks_per_epoch = total_train_batches // val_check_batch
-
-            total_val_batches = total_val_batches * val_checks_per_epoch
-
-        return total_train_batches + total_val_batches
-
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
         old_dataloader_idx = self._current_eval_dataloader_idx
         self._current_eval_dataloader_idx = dataloader_idx
@@ -208,7 +144,7 @@ class ProgressBarBase(Callback):
 
         The :class:`~lightning.pytorch.trainer.trainer.Trainer` will call this in e.g. pre-training
         routines like the :ref:`learning rate finder <advanced/training_tricks:Learning Rate Finder>`.
-        to temporarily enable and disable the main progress bar.
+        to temporarily enable and disable the training progress bar.
         """
         raise NotImplementedError
 

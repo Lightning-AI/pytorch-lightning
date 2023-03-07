@@ -50,7 +50,7 @@ Inside the ``app.py`` file, add the following code.
 
 .. literalinclude:: ../code_samples/convert_pl_to_app/app.py
 
-This App runs the PyTorch Lightning script contained in the ``train.py`` file using the powerful :class:`~lightning_app.components.python.tracer.TracerPythonScript` component. This is really worth checking out!
+This App runs the PyTorch Lightning script contained in the ``train.py`` file using the powerful :class:`~lightning.app.components.python.tracer.TracerPythonScript` component. This is really worth checking out!
 
 ----
 

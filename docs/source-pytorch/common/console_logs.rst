@@ -17,10 +17,10 @@ or redirect output for certain modules to log files:
     import logging
 
     # configure logging at the root level of Lightning
-    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+    logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
     # configure logging on module level, redirect to file
-    logger = logging.getLogger("pytorch_lightning.core")
+    logger = logging.getLogger("lightning.pytorch.core")
     logger.addHandler(logging.FileHandler("core.log"))
 
 Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.

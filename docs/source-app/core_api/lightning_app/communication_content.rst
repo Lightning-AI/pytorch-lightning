@@ -81,7 +81,7 @@ Run the app with:
 
 .. code-block:: bash
 
-    lightning run app docs/source-app/core_api/lightning_app/app.py
+    lightning run app docs/source/core_api/lightning_app/app.py
 
 And here's the output you get when running the App using the **Lightning CLI**:
 

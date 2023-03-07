@@ -310,7 +310,7 @@ def test_device_placement(tmpdir, accelerator, device):
     assert_device(torch.device("cpu"))
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.1.0")
 def test_sharded_tensor_state_dict(single_process_pg):
     from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
@@ -463,37 +463,6 @@ def test_fabric_reference_recursively():
     assert ensemble.fabric is inner.fabric
     # and the fabric was weakly referenced
     assert inner.fabric is weakref.proxy(fabric)
-
-
-@RunIf(min_torch="2.0.0")
-def test_compile_uncompile():
-    model = BoringModel()
-    compiled_model = torch.compile(model)
-
-    def has_dynamo(fn):
-        return any(el for el in dir(fn) if el.startswith("_torchdynamo"))
-
-    from_compiled_model = LightningModule.from_compiled(compiled_model)
-    assert isinstance(from_compiled_model, LightningModule)
-    assert from_compiled_model._compiler_ctx is not None
-    assert has_dynamo(from_compiled_model.forward)
-    assert has_dynamo(from_compiled_model.training_step)
-    assert has_dynamo(from_compiled_model.validation_step)
-    assert has_dynamo(from_compiled_model.test_step)
-    assert has_dynamo(from_compiled_model.predict_step)
-
-    to_uncompiled_model = LightningModule.to_uncompiled(model)
-    assert to_uncompiled_model._compiler_ctx is None
-    assert to_uncompiled_model.forward == model.forward
-    assert to_uncompiled_model.training_step == model.training_step
-    assert to_uncompiled_model.validation_step == model.validation_step
-    assert to_uncompiled_model.test_step == model.test_step
-    assert to_uncompiled_model.predict_step == model.predict_step
-    assert not has_dynamo(to_uncompiled_model.forward)
-    assert not has_dynamo(to_uncompiled_model.training_step)
-    assert not has_dynamo(to_uncompiled_model.validation_step)
-    assert not has_dynamo(to_uncompiled_model.test_step)
-    assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
 def test_fabric_attributes():

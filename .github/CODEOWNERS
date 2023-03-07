@@ -18,6 +18,8 @@
 /docs/                                      @edenlightning @lantiga @borda @awaelchli @RobertLaurella
 /.github/*.md                               @edenlightning @williamfalcon @lantiga @borda
 /.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
+/docs/source-fabric/conf.py                 @borda @awaelchli @carmocca
+/docs/source-fabric/index.rst               @awaelchli @lantiga @carmocca
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
@@ -40,9 +42,9 @@
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Lightning Fabric
-/src/lightning/fabric                         @awaelchli @carmocca @justusschock
-/src/lightning_fabric                         @awaelchli @carmocca @justusschock
-/tests/tests_fabric                           @awaelchli @carmocca @justusschock
+/src/lightning/fabric                       @awaelchli @carmocca @justusschock
+/src/lightning_fabric                       @awaelchli @carmocca @justusschock
+/tests/tests_fabric                         @awaelchli @carmocca @justusschock
 
 # Lightning App
 /src/lightning/app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris

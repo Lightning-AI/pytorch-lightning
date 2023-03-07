@@ -49,7 +49,7 @@ class ObjectiveWork(TracerPythonScript):
 
     def compute_metric(self):
         self.metric = -1 * float(
-            Accuracy()(
+            Accuracy(task="binary")(
                 self._to_labels(self.submission_path),
                 self._to_labels(f"{self.data_dir}/ground_truth.csv"),
             )
