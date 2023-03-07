@@ -4,11 +4,11 @@ from functools import partial
 from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 
 import torch
-from lightning_utilities.core import is_overridden
 from tqdm import tqdm
 
 import lightning as L
 from lightning.fabric.fabric import _unwrap_objects, Accelerator, apply_to_collection, Fabric, Logger, Strategy
+from lightning.pytorch.utilities.model_helpers import is_overridden
 
 
 class MyCustomTrainer:
@@ -264,7 +264,7 @@ class MyCustomTrainer:
             return
 
         # no validation but warning if val_loader was passed, but validation_step not implemented
-        elif val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model), L.LightningModule):
+        elif val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model)):
             L.fabric.utilities.rank_zero_warn(
                 "Your LightningModule does not have a validation_step implemented, "
                 "but you passed a validation dataloder. Skipping Validation."
