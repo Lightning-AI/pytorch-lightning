@@ -5,7 +5,7 @@ Colossal-AI
 ###########
 
 
-The Colossal-AI strategy implements ZeRO-DP with chunk-based memory management.
+The `Colossal-AI strategy <https://github.com/Lightning-AI/lightning-colossalai>`_ implements ZeRO-DP with chunk-based memory management.
 With this chunk mechanism, really large models can be trained with a small number of GPUs.
 It supports larger trainable model size and batch size than usual heterogeneous training by reducing CUDA memory fragments and CPU memory consumption.
 Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
@@ -55,11 +55,30 @@ See a full example of a benchmark with the a `GPT-2 model <https://github.com/hp
         HybridAdam`` now. You can set ``adamw_mode`` to False to use normal Adam. Noticing that ``HybridAdam`` is highly optimized, it uses fused CUDA kernel and parallel CPU kernel.
         It is recomended to use ``HybridAdam``, since it updates parameters in GPU and CPU both.
 
-    *   Your model must be created using the :meth:`~pytorch_lightning.core.module.LightningModule.configure_sharded_model` method.
+    *   Your model must be created using the :meth:`~lightning.pytorch.core.module.LightningModule.configure_sharded_model` method.
 
     *   ``ColossalaiStrategy`` doesn't support gradient accumulation as of now.
 
 .. _colossal_placement_policy:
+
+Model Definition
+================
+
+ColossalAI requires the layers of your model to be created in the special :meth:`~lightning.pytorch.core.module.LightningModule.configure_sharded_model` hook.
+This allows the strategy to efficiently shard your model before materializing the weight tensors.
+
+.. code-block:: python
+
+    class MyModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            # don't instantiate layers here
+            # move the creation of layers to `configure_sharded_model`
+
+        def configure_sharded_model(self):
+            # create all your layers here
+            self.layers = nn.Sequential(...)
+
 
 Placement Policy
 ================

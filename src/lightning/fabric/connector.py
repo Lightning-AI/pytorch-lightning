@@ -100,18 +100,18 @@ class _Connector:
 
     def __init__(
         self,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
 
         # These arguments can be set through environment variables set by the CLI
-        accelerator = self._argument_from_env("accelerator", accelerator, default=None)
-        strategy = self._argument_from_env("strategy", strategy, default=None)
-        devices = self._argument_from_env("devices", devices, default=None)
+        accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
+        strategy = self._argument_from_env("strategy", strategy, default="auto")
+        devices = self._argument_from_env("devices", devices, default="auto")
         num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
         precision = self._argument_from_env("precision", precision, default="32-true")
 
@@ -123,8 +123,8 @@ class _Connector:
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
         # For devices: Assign gpus, etc. to the accelerator flag and devices flag
-        self._strategy_flag: Optional[Union[Strategy, str]] = None
-        self._accelerator_flag: Optional[Union[Accelerator, str]] = None
+        self._strategy_flag: Union[Strategy, str] = "auto"
+        self._accelerator_flag: Union[Accelerator, str] = "auto"
         self._precision_input: _PRECISION_INPUT_STR = "32-true"
         self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
@@ -141,7 +141,7 @@ class _Connector:
 
         # 2. Instantiate Accelerator
         # handle `auto`, `None` and `gpu`
-        if self._accelerator_flag == "auto" or self._accelerator_flag is None:
+        if self._accelerator_flag == "auto":
             self._accelerator_flag = self._choose_auto_accelerator()
         elif self._accelerator_flag == "gpu":
             self._accelerator_flag = self._choose_gpu_accelerator_backend()
@@ -152,7 +152,7 @@ class _Connector:
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
 
         # 4. Instantiate Strategy - Part 1
-        if self._strategy_flag is None:
+        if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
@@ -166,8 +166,8 @@ class _Connector:
 
     def _check_config_and_set_final_flags(
         self,
-        strategy: Optional[Union[str, Strategy]],
-        accelerator: Optional[Union[str, Accelerator]],
+        strategy: Union[str, Strategy],
+        accelerator: Union[str, Accelerator],
         precision: _PRECISION_INPUT,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
     ) -> None:
@@ -188,26 +188,24 @@ class _Connector:
         if isinstance(strategy, str):
             strategy = strategy.lower()
 
-        if strategy is not None:
-            self._strategy_flag = strategy
+        self._strategy_flag = strategy
 
-        if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+        if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `lightning.fabric.strategies.Strategy`."
-                " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
+                " Example choices: auto, ddp, ddp_spawn, deepspeed, dp, ..."
                 " Find a complete list of options in our documentation at https://lightning.ai"
             )
 
         if (
-            accelerator is not None
-            and accelerator not in self._registered_accelerators
+            accelerator not in self._registered_accelerators
             and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
-                f" Available names are: {', '.join(self._registered_accelerators)}."
+                f" Available names are: auto, {', '.join(self._registered_accelerators)}."
             )
 
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
@@ -256,9 +254,9 @@ class _Connector:
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
         # TODO: improve the error messages below
-        if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
+        if isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
-                if self._accelerator_flag:
+                if self._accelerator_flag != "auto":
                     raise ValueError("accelerator set through both strategy class and accelerator flag, choose one")
                 else:
                     self._accelerator_flag = self._strategy_flag._accelerator
@@ -297,9 +295,7 @@ class _Connector:
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(
-        self, devices: Optional[Union[List[int], str, int]], num_nodes: int
-    ) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
@@ -314,21 +310,14 @@ class _Connector:
                 f" using {accelerator_name} accelerator."
             )
 
-        if self._devices_flag == "auto" and self._accelerator_flag is None:
-            raise ValueError(
-                f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'cpu'|'mps')` for the devices mapping."
-            )
-
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if self._accelerator_flag == "auto":
-            if TPUAccelerator.is_available():
-                return "tpu"
-            if MPSAccelerator.is_available():
-                return "mps"
-            if CUDAAccelerator.is_available():
-                return "cuda"
+        if TPUAccelerator.is_available():
+            return "tpu"
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
         return "cpu"
 
     @staticmethod
@@ -337,7 +326,6 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
-
         raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -368,7 +356,7 @@ class _Connector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or self._devices_flag is None:
+        if self._devices_flag == "auto":
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
@@ -415,14 +403,6 @@ class _Connector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag == "ddp_spawn" and (
-            TorchElasticEnvironment.detect()
-            or KubeflowEnvironment.detect()
-            or SLURMEnvironment.detect()
-            or LSFEnvironment.detect()
-            or MPIEnvironment.detect()
-        ):
-            strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
@@ -517,7 +497,9 @@ class _Connector:
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
-            self.strategy.cluster_environment = self.cluster_environment
+            if self.strategy.cluster_environment is None:
+                self.strategy.cluster_environment = self.cluster_environment
+            self.cluster_environment = self.strategy.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
             if self.strategy.parallel_devices:
                 self._parallel_devices = self.strategy.parallel_devices
@@ -533,7 +515,7 @@ class _Connector:
             raise RuntimeError(
                 f"`Fabric(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
+                f" `Fabric(strategy='dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Fabric"
                 " creation inside the worker function."
             )

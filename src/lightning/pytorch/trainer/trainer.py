@@ -63,7 +63,6 @@ from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnecto
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from lightning.pytorch.trainer.supporters import _LITERAL_SUPPORTED_MODES
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
@@ -90,15 +89,15 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Logger, Iterable[Logger], bool] = True,
-        enable_checkpointing: bool = True,
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        enable_checkpointing: Optional[bool] = None,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
-        devices: Optional[Union[List[int], str, int]] = None,
-        enable_progress_bar: bool = True,
+        devices: Union[List[int], str, int] = "auto",
+        enable_progress_bar: Optional[bool] = None,
         overfit_batches: Union[int, float] = 0.0,
         check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
@@ -113,22 +112,22 @@ class Trainer:
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        log_every_n_steps: Optional[int] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         sync_batchnorm: bool = False,
         precision: _PRECISION_INPUT = "32-true",
-        enable_model_summary: bool = True,
-        num_sanity_val_steps: int = 2,
+        enable_model_summary: Optional[bool] = None,
+        num_sanity_val_steps: Optional[int] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         detect_anomaly: bool = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        multiple_trainloader_mode: _LITERAL_SUPPORTED_MODES = "max_size_cycle",
         inference_mode: bool = True,
+        barebones: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -143,8 +142,8 @@ class Trainer:
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
-                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set
-                to ``True``, this will default to ``False``. Override to manually set a different value.
+                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic`
+                is set to ``True``, this will default to ``False``. Override to manually set a different value.
                 Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
@@ -253,14 +252,16 @@ class Trainer:
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
-                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
-                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
-                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+            use_distributed_sampler: Whether to wrap the DataLoader's sampler with
+                :class:`torch.utils.data.DistributedSampler`. If not specified this is toggled automatically for
+                strategies that require it. By default, it will add ``shuffle=True`` for the train sampler and
+                ``shuffle=False`` for validation/test/predict samplers. If you want to disable this logic, you can pass
+                ``False`` and add your own distributed sampler in the dataloader hooks. If ``True`` and a distributed
+                sampler was already added, Lightning will not replace the existing one. For iterable-style datasets,
+                we don't do this automatically.
 
-            strategy: Supports different training strategies with aliases
-                as well custom strategies.
-                Default: ``None``.
+            strategy: Supports different training strategies with aliases as well custom strategies.
+                Default: ``"auto"``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
@@ -275,11 +276,23 @@ class Trainer:
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
-            multiple_trainloader_mode: How to loop over the datasets when there are multiple iterables.
-                See :class:`lightning.pytorch.trainer.supporters.CombinedLoader`.
-
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
+
+            barebones: Whether to run in "barebones mode", where all features that may impact raw speed are
+                disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular training
+                runs. The following features are deactivated:
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_checkpointing`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.logger`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_progress_bar`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.log_every_n_steps`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_model_summary`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.num_sanity_val_steps`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.detect_anomaly`,
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
+                :meth:`~lightning.pytorch.core.module.LightningModule.log`,
+                :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -288,8 +301,94 @@ class Trainer:
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
 
+        self.barebones = barebones
+        if barebones:
+            # opt-outs
+            if enable_checkpointing:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_checkpointing={enable_checkpointing!r})` was passed."
+                    " Checkpointing can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_checkpointing = False
+            if logger is not None and logger is not False:
+                raise ValueError(
+                    f"`Trainer(barebones=True, logger={logger!r})` was passed."
+                    " Logging can impact raw speed so it is disabled in barebones mode."
+                )
+            logger = False
+            if enable_progress_bar:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_progress_bar={enable_progress_bar!r})` was passed."
+                    " The progress bar can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_progress_bar = False
+            if log_every_n_steps is not None and log_every_n_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, log_every_n_steps={log_every_n_steps!r})` was passed."
+                    " Logging can impact raw speed so it is disabled in barebones mode."
+                )
+            log_every_n_steps = 0
+            if enable_model_summary:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_model_summary={enable_model_summary!r})` was passed."
+                    " Model summary can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_model_summary = False
+            if num_sanity_val_steps is not None and num_sanity_val_steps != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, num_sanity_val_steps={num_sanity_val_steps!r})` was passed."
+                    " Sanity checking can impact raw speed so it is disabled in barebones mode."
+                )
+            num_sanity_val_steps = 0
+            # opt-ins
+            if fast_dev_run is not False and fast_dev_run != 0:
+                raise ValueError(
+                    f"`Trainer(barebones=True, fast_dev_run={fast_dev_run!r})` was passed."
+                    " Development run is not meant for raw speed evaluation so it is disabled in barebones mode."
+                )
+            if detect_anomaly:
+                raise ValueError(
+                    f"`Trainer(barebones=True, detect_anomaly={detect_anomaly!r})` was passed."
+                    " Anomaly detection can impact raw speed so it is disabled in barebones mode."
+                )
+            if profiler is not None:
+                raise ValueError(
+                    f"`Trainer(barebones=True, profiler={profiler!r})` was passed."
+                    " Profiling can impact raw speed so it is disabled in barebones mode."
+                )
+            deactivated = (
+                " - Checkpointing: `Trainer(enable_checkpointing=True)`",
+                " - Progress bar: `Trainer(enable_progress_bar=True)`",
+                " - Model summary: `Trainer(enable_model_summary=True)`",
+                " - Logging: `Trainer(logger=True)`, `Trainer(log_every_n_steps>0)`,"
+                " `LightningModule.log(...)`, `LightningModule.log_dict(...)`",
+                " - Sanity checking: `Trainer(num_sanity_val_steps>0)`",
+                " - Development run: `Trainer(fast_dev_run=True)`",
+                " - Anomaly detection: `Trainer(detect_anomaly=True)`",
+                " - Profiling: `Trainer(profiler=...)`",
+            )
+            rank_zero_info(
+                "You are running in `Trainer(barebones=True)` mode. All features that may impact raw speed have been"
+                " disabled to facilitate analyzing the Trainer overhead. Specifically, the following features are"
+                f" deactivated:{os.linesep}{os.linesep.join(deactivated)}"
+            )
+        else:
+            # set the opt-out defaults
+            if enable_checkpointing is None:
+                enable_checkpointing = True
+            if logger is None:
+                logger = True
+            if enable_progress_bar is None:
+                enable_progress_bar = True
+            if log_every_n_steps is None:
+                log_every_n_steps = 50
+            if enable_model_summary is None:
+                enable_model_summary = True
+            if num_sanity_val_steps is None:
+                num_sanity_val_steps = 2
+
         # init connectors
-        self._data_connector = DataConnector(self, multiple_trainloader_mode)
+        self._data_connector = DataConnector(self)
 
         self._accelerator_connector = AcceleratorConnector(
             devices=devices,
@@ -298,7 +397,7 @@ class Trainer:
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
-            replace_sampler_ddp=replace_sampler_ddp,
+            use_distributed_sampler=use_distributed_sampler,
             deterministic=deterministic,
             precision=precision,
             plugins=plugins,
@@ -354,7 +453,11 @@ class Trainer:
         )
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init()
+
+        setup._log_device_info(self)
+
+        self.should_stop = False
+        self.state = TrainerState()
 
         # configure profiler
         setup._init_profiler(self, profiler)
@@ -382,22 +485,6 @@ class Trainer:
             val_check_interval,
             num_sanity_val_steps,
         )
-
-    def _setup_on_init(self) -> None:
-        setup._log_device_info(self)
-
-        self.should_stop = False
-        self.state = TrainerState()
-
-        # TODO(carmocca): move these to the loops
-        self.num_training_batches = float("inf")
-        self.num_sanity_val_batches: List[Union[int, float]] = []
-        self.num_test_batches: List[Union[int, float]] = []
-        self.num_val_batches: List[Union[int, float]] = []
-        self.num_predict_batches: List[Union[int, float]] = []
-
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
 
     def fit(
         self,
@@ -757,6 +844,13 @@ class Trainer:
             self.fit_loop.min_epochs = min_epochs
             self.fit_loop.max_epochs = max_epochs
 
+        if self.barebones:
+            # no progress bar in barebones can make it look like the Trainer hung
+            rank_zero_info(
+                "`Trainer(barebones=True)` started running. The progress bar is disabled so you might want to"
+                " manually print the progress in your model."
+            )
+
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -1035,7 +1129,7 @@ class Trainer:
 
     @property
     def precision(self) -> _PRECISION_INPUT_STR:
-        return self.strategy.precision_plugin.precision  # type: ignore
+        return self.strategy.precision_plugin.precision
 
     @property
     def scaler(self) -> Optional[Any]:
@@ -1309,6 +1403,31 @@ class Trainer:
     def predict_dataloaders(self) -> EVAL_DATALOADERS:
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
+
+    @property
+    def num_training_batches(self) -> Union[int, float]:
+        return self.fit_loop.max_batches
+
+    @property
+    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+        max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
+        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+
+    @property
+    def num_val_batches(self) -> List[Union[int, float]]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validate_loop.max_batches
+        # if no trainer.fn is set, assume fit's validation
+        # use the protected access, because it shouldn't return the sanity_val batches
+        return self.fit_loop.epoch_loop.val_loop._max_batches
+
+    @property
+    def num_test_batches(self) -> List[Union[int, float]]:
+        return self.test_loop.max_batches
+
+    @property
+    def num_predict_batches(self) -> List[Union[int, float]]:
+        return self.predict_loop.max_batches
 
     @property
     def _evaluation_loop(self) -> _EvaluationLoop:

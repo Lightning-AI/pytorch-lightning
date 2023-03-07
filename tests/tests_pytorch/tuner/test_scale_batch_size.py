@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from copy import deepcopy
 from unittest.mock import patch
@@ -293,11 +294,11 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 
 
 @pytest.mark.parametrize("scale_method", ["power", "binsearch"])
-def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
+@pytest.mark.parametrize("init_batch_size", (8, 17, 64))
+def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, init_batch_size):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
-    max_trials = 5
-    init_batch_size = 4
+    max_trials = 2
     scale_batch_size_kwargs = {
         "max_trials": max_trials,
         "steps_per_trial": 2,
@@ -305,15 +306,19 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
         "mode": scale_method,
     }
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
     tuner = Tuner(trainer)
 
-    with patch.object(model, "on_train_epoch_end") as advance_mocked:
+    with caplog.at_level(logging.INFO):
         new_batch_size = tuner.scale_batch_size(model, **scale_batch_size_kwargs)
-        assert advance_mocked.call_count == max_trials
+
+    dataset_len = len(trainer.train_dataloader.dataset)
+    assert dataset_len == 64
+    assert caplog.text.count("trying batch size") == (max_trials if init_batch_size < dataset_len else 0)
+    assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
 
     assert trainer.train_dataloader.batch_size == new_batch_size
-    assert trainer.val_dataloaders[0].batch_size == init_batch_size
+    assert trainer.val_dataloaders.batch_size == init_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
@@ -362,11 +367,11 @@ def test_batch_size_finder_callback(tmpdir, trainer_fn):
         assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
     else:
         if trainer_fn == "validate":
-            dl = trainer.val_dataloaders[0]
+            dl = trainer.val_dataloaders
         elif trainer_fn == "test":
-            dl = trainer.test_dataloaders[0]
+            dl = trainer.test_dataloaders
         elif trainer_fn == "predict":
-            dl = trainer.predict_dataloaders[0]
+            dl = trainer.predict_dataloaders
 
         expected_steps = dl.dataset.len // after_batch_size
         assert trainer.global_step == 0

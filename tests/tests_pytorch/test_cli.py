@@ -518,7 +518,7 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", (None, TensorBoardLogger(".")))
+@pytest.mark.parametrize("logger", (False, TensorBoardLogger(".")))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
@@ -1384,7 +1384,7 @@ def test_comet_logger_init_args():
     )
 
 
-@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
+@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune is required")
 def test_neptune_logger_init_args():
     _test_logger_init_args(
         "NeptuneLogger",
@@ -1392,7 +1392,7 @@ def test_neptune_logger_init_args():
             "name": "neptune",  # Resolve from NeptuneLogger.__init__
         },
         {
-            "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
+            "description": "neptune",  # Unsupported resolving from neptune.internal.init.run.init_run
         },
     )
 

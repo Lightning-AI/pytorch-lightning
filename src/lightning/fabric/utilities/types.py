@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, runt
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from typing_extensions import TypeAlias
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 
@@ -29,7 +30,7 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
-    RedOpType = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object
+    RedOpType: TypeAlias = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object  # type: ignore[misc]
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
     ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
@@ -73,8 +74,10 @@ class LRScheduler(_Stateful[str], Protocol):
         ...
 
 
-_TORCH_LRSCHEDULER = (
-    torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_2_0 else torch.optim.lr_scheduler._LRScheduler
+_TORCH_LRSCHEDULER: TypeAlias = (
+    torch.optim.lr_scheduler.LRScheduler  # type: ignore[misc]
+    if _TORCH_GREATER_EQUAL_2_0
+    else torch.optim.lr_scheduler._LRScheduler
 )
 
 

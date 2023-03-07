@@ -4,11 +4,11 @@ import os
 from unittest.mock import ANY, MagicMock
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning.app.components.serve import serve
 from lightning.app.utilities.imports import _is_numpy_available, _is_torch_available
 from lightning.app.utilities.network import _configure_session, find_free_network_port
+from tests_app import _PROJECT_ROOT
 
 if _is_numpy_available():
     import numpy as np
@@ -39,7 +39,7 @@ def test_model_inference_api(workers):
     process = mp.Process(target=target_fn, args=(port, workers))
     process.start()
 
-    image_path = os.path.join(_PROJECT_ROOT, "docs/source/_static/images/logo.png")
+    image_path = os.path.join(_PROJECT_ROOT, "docs/source-app/_static/images/logo.png")
     with open(image_path, "rb") as f:
         imgstr = base64.b64encode(f.read()).decode("UTF-8")
 

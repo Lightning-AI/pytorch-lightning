@@ -100,11 +100,16 @@ jobs:
       run: |
         bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
+    - name: Keep artifact
+      id: keep-artifact
+      run: python -c "print('DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+
     - name: Upload checkpoints to GitHub Actions artifact
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
         path: ${{ env.legacy_dir }}/checkpoints/
+        retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
     - name: Upload checkpoints to S3 (dryrun)
       working-directory: ${{ env.legacy_dir }}

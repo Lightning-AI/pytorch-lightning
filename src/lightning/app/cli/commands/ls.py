@@ -246,7 +246,7 @@ def _collect_artifacts(
                     continue
                 yield artifact
 
-            if response.next_page_token != "":
+            if response.next_page_token:
                 tokens.append(page_token)
                 yield from _collect_artifacts(
                     client,

@@ -6,7 +6,7 @@ torch>=1.11.0, <=2.0.0
 tqdm>=4.57.0, <4.65.0
 PyYAML>=5.4, <=6.0
 fsspec[http]>2021.06.0, <2023.2.0
-torchmetrics>=0.7.0, <0.10.1  # needed for using fixed compare_version
+torchmetrics>=0.7.0, <0.12.0  # needed for using fixed compare_version
 packaging>=17.1, <=23.0
 typing-extensions>=4.0.0, <=4.4.0
 lightning-utilities>=0.6.0.post0, <0.7.0

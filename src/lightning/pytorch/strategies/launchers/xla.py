@@ -22,7 +22,6 @@ from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
-    _FakeQueue,
     _GlobalStateSnapshot,
     _MultiProcessingLauncher,
     _WorkerOutput,
@@ -95,6 +94,8 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     def _wrapping_function(
         self,
+        # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
+        # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
         process_idx: int,
         trainer: Optional["pl.Trainer"],
         function: Callable,
@@ -103,16 +104,15 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if process_idx == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-        _rank_teardown(process_idx)
+        _rank_teardown(self._strategy.local_rank)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
@@ -136,8 +136,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         if self._strategy.local_rank != 0:
             return None
 
-        # adds the `callback_metrics` to the queue
-        extra = _FakeQueue()
-        self.add_to_queue(trainer, extra)
+        # add extra result data from trainer to send to main process
+        extra = self.get_extra_results(trainer)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)

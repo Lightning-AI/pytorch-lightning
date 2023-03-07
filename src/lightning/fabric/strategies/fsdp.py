@@ -37,7 +37,7 @@ from lightning.fabric.utilities.distributed import (
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
-from lightning.fabric.utilities.rank_zero import rank_zero_only
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
             You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
             implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default: no offoading
+            to work with the optimizer. This API is subject to change. Default: no offloading
         backward_prefetch: This is an experimental feature that is subject to change in the near future. It allows
             users to enable two different backward prefetching algorithms to help backward communication and
             computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
@@ -83,7 +83,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
-        \**kwargs: Optional keywoard arguments passed to the FSDP context manager which will configure the FSDP class
+        \**kwargs: Optional keyword arguments passed to the FSDP context manager which will configure the FSDP class
             when wrapping modules.
     """
 
@@ -267,6 +267,29 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def clip_gradients_norm(  # type: ignore[override]
+        self,
+        module: "FullyShardedDataParallel",
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> Tensor:
+        """Clip gradients by norm."""
+        rank_zero_warn("Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!")
+        self.precision.unscale_gradients(optimizer)
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+
+    def clip_gradients_value(  # type: ignore[override]
+        self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
+    ) -> None:
+        """Clip gradients by value."""
+
+        raise NotImplementedError(
+            "FSDP currently does not support to clip gradients by value. "
+            "Consider clipping by norm instead or choose another strategy!"
+        )
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
