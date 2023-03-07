@@ -1,5 +1,6 @@
-import lightning as L
 import os
+
+import lightning as L
 
 
 class MyWork(L.LightningWork):
