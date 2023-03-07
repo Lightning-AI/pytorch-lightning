@@ -4,7 +4,7 @@ How to structure your code with Fabric
 
 Fabric is flexible enough to adapt to any project structure, regardless of whether you are experimenting with a simple script or an extensive framework, because it makes no assumptions about how your code is organized.
 Despite the ultimate freedom, this page is meant to give beginners a template for how to organize a typical training script with Fabric:
-We also have several :ref:`examples <Fabric Examples>` that you can take inspiration from.
+We also have several :doc:`examples <../examples/index>` that you can take inspiration from.
 
 
 ----
@@ -140,4 +140,29 @@ Here is how the code would be structured if we did that periodically during trai
 Full Trainer
 ************
 
-Coming soon.
+Building a fully-fledged, personalized Trainer can be a lot of work.
+To get started quickly, copy `this <https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer>`_ Trainer template and adapt it to your needs.
+
+- Only ~500 lines of code, all in one file
+- Relies on Fabric to configure accelerator, devices, strategy
+- Simple epoch based training with validation loop
+- Only essential features included: Checkpointing, loggers, progress bar, callbacks, gradient accumulation
+
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Trainer Template
+    :description: Take our Fabric Trainer template and customize it for your needs
+    :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>

@@ -47,6 +47,13 @@ Examples
     :height: 150
 
 .. displayitem::
+    :header: K-Fold Cross Validation
+    :description: Cross validation helps you estimate the generalization error of a model and select the best one.
+    :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/kfold_cv
+    :col_css: col-md-4
+    :height: 150
+
+.. displayitem::
     :header: Active Learning
     :description: Coming soon
     :col_css: col-md-4
