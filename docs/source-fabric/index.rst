@@ -1,6 +1,6 @@
-#############
-Fabric (Beta)
-#############
+################
+Lightning Fabric
+################
 
 Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
 
