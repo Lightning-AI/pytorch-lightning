@@ -29,15 +29,6 @@ sphinx:
   configuration: docs/source-pytorch/conf.py
   fail_on_warning: true
 
-# Build documentation with MkDocs
-#mkdocs:
-#  configuration: mkdocs.yml
-
-# Optionally build your docs in additional formats such as PDF and ePub
-formats:
-  - htmlzip
-  #- pdf
-
 build:
   os: ubuntu-20.04
   tools:
@@ -46,11 +37,9 @@ build:
     - texlive-latex-extra
     - dvipng
     - texlive-pictures
-
-# Optionally set the version of Python and requirements required to build your docs
-python:
-  install:
-    - requirements: requirements/pytorch/docs.txt
-    #- requirements: requirements.txt
-    - method: pip
-      path: .
+  commands:
+    - PACKAGE_NAME=pytorch pip install -e . -r requirements/pytorch/docs.txt -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
+    - pwd ; ls -lh ; ls -lh ./docs/source-pytorch
+    - cd ./docs/source-pytorch ; make html --jobs 2
+    - ls -lh ./docs ; ls -lh ./docs/build
+    - mkdir _readthedocs ; mv docs/build/html _readthedocs/html
