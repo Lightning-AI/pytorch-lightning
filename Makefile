@@ -16,12 +16,13 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
+	rm -rf ./docs/source-fabric/api/generated
 	rm -rf ./docs/source-pytorch/notebooks
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
-	rm -rf ./docs/source/generated
-	rm -rf ./docs/source/*/generated
+	rm -rf ./docs/source-app/generated
+	rm -rf ./docs/source-app/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -47,7 +48,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/app/docs.txt
-	cd docs/source && $(MAKE) html
+	cd docs/source-app && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

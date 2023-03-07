@@ -310,7 +310,7 @@ def test_device_placement(tmpdir, accelerator, device):
     assert_device(torch.device("cpu"))
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.1.0")
 def test_sharded_tensor_state_dict(single_process_pg):
     from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
