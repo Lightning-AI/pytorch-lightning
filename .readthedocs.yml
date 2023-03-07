@@ -42,4 +42,4 @@ build:
     - pwd ; ls -lh ; ls -lh ./docs/source-pytorch
     - cd ./docs/source-pytorch ; make html --jobs 2
     - ls -lh ./docs ; ls -lh ./docs/build
-    - mv docs/build/html _readthedocs/html
+    - mkdir _readthedocs ; mv docs/build/html _readthedocs/html
