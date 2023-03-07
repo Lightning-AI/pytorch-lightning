@@ -25,6 +25,7 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.memory import recursive_detach
@@ -110,7 +111,8 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    reduce_fx: Callable = torch.mean
+    # cannot default to torch.mean until this is fixed: https://github.com/pytorch/pytorch/issues/96197
+    reduce_fx: Callable = "mean"  # type: ignore[assignment]
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -289,7 +291,10 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
-        self.__dict__.update(apply_to_collection(self.__dict__, (Tensor, Metric), move_data_to_device, *args, **kwargs))
+        d = self.__dict__
+        if _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/96198
+            d = dict(d)
+        self.__dict__.update(apply_to_collection(d, (Tensor, Metric), move_data_to_device, *args, **kwargs))
         return self
 
 
