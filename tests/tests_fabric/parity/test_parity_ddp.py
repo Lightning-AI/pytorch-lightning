@@ -150,6 +150,7 @@ def test_parity_ddp(accelerator, devices, tolerance):
     fabric.barrier()
     cuda_reset()
     torch.distributed.destroy_process_group()
+    time.sleep(2)
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
