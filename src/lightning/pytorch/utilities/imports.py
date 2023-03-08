@@ -30,6 +30,7 @@ _POPTORCH_AVAILABLE = package_available("poptorch")
 _RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
+_LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 
 if _POPTORCH_AVAILABLE:
     import poptorch

@@ -788,6 +788,18 @@ def test_colossalai_external_strategy(monkeypatch):
     trainer = Trainer(strategy="colossalai", precision="16-mixed")
     assert isinstance(trainer.strategy, ColossalAIStrategy)
 
+@RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
+@pytest.mark.skipif(not package_available("lightning_bagua"), reason="Requires Bagua Strategy")
+def test_bagua_external_strategy(monkeypatch):
+    with mock.patch(
+        "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_BAGUA_AVAILABLE", False
+    ), pytest.raises(ModuleNotFoundError):
+        Trainer(strategy="bagua")
+
+    from lightning_bagua import BaguaStrategy
+
+    trainer = Trainer(strategy="bagua")
+    assert isinstance(trainer.strategy, BaguaStrategy)
 
 @pytest.mark.parametrize("is_interactive", (False, True))
 def test_connector_auto_selection(monkeypatch, is_interactive):
