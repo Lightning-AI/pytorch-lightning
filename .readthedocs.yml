@@ -34,6 +34,7 @@ build:
   tools:
     python: "3.9"
   commands:
+    - pip install -r requirements/pytorch/docs.txt
     - pwd ; ls -lh ; ls -lh ./docs/source-pytorch
     - cd ./docs/source-pytorch mv _index.rst. index.rst
     - cd ./docs/source-pytorch ; make html --jobs 2
