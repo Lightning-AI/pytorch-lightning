@@ -245,7 +245,7 @@ class CloudRuntime(Runtime):
 
         # If the system customization root is set, prepare files for environment synchronization
         if sys_customizations_sync_root is not None:
-            repo.prepare_sys_customizations_sync(sys_customizations_sync_root, root)
+            repo.prepare_sys_customizations_sync(sys_customizations_sync_root)
 
         # API transactions
         run = self._api_create_run(project_id, cloudspace_id, run_body)

@@ -104,10 +104,10 @@ class LocalSourceCodeDir:
             _tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
         return self.package_path
 
-    def prepare_sys_customizations_sync(self, sys_customizations_root: Path, root: Path) -> None:
+    def prepare_sys_customizations_sync(self, sys_customizations_root: Path) -> None:
         """Prepares files for system environment customization setup by copying conda and system environment files
         to an app files directory."""
-        path_to_sync = Path(root, SYS_CUSTOMIZATIONS_SYNC_PATH)
+        path_to_sync = Path(self.path, SYS_CUSTOMIZATIONS_SYNC_PATH)
         copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
 
     def upload(self, url: str) -> None:
