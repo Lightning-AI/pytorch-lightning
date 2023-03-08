@@ -143,8 +143,8 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
      - n/a*¹
      - ≥3.6, ≤3.8
 
-\*¹ ``torchmetrics`` was part of ``pytorch_lightning`` at the time and was decoupled as a separate package at the time of ``pytorch_lightning`` v1.3 release.
+\*¹ ``torchmetrics`` was part of ``pytorch_lightning`` at the time and was decoupled to a separate package in v1.3.
 
 \*² The joint ``lightning`` package was first published in version 1.8
 
-\*³ Fabric is the evolution of ``LightningLite`` which was released with ``pytorch_lightning`` 1.8 and was decoupled as a separate package in v1.9
+\*³ Fabric is the evolution of ``LightningLite`` which was released inside ``pytorch_lightning`` 1.5 and was decoupled to a separate package in v1.9
