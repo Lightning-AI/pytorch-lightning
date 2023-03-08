@@ -125,7 +125,7 @@ def train_fabric_ddp(fabric):
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-@pytest.mark.flaky(reruns=3)
+# @pytest.mark.flaky(reruns=3)
 @RunIf(standalone=True)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
