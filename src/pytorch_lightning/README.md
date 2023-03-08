@@ -11,7 +11,7 @@ ______________________________________________________________________
   <a href="https://www.pytorchlightning.ai/">Website</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
+  <a href="https://lightning.ai/docs/pytorch/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="https://lightning.ai/">Lightning AI</a> •
@@ -27,7 +27,7 @@ ______________________________________________________________________
 [![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
 [![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Lightning-AI/lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://lightning.ai/docs/pytorch/stable/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://www.pytorchlightning.ai/community)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
 

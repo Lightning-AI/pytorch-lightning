@@ -42,7 +42,7 @@ Simply run the following commands in your terminal to install the requirements a
     pip install -r requirements.txt
     python train.py
 
-Get through `PyTorch Lightning Introduction <https://pytorch-lightning.readthedocs.io/en/stable/starter/introduction.html#step-1-define-lightningmodule>`_ to learn more.
+Get through `PyTorch Lightning Introduction <https://lightning.ai/docs/pytorch/stable/starter/introduction.html#step-1-define-lightningmodule>`_ to learn more.
 
 ----
 

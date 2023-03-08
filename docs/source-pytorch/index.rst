@@ -233,7 +233,7 @@ Current Lightning Users
    Lightning CLI <cli/lightning_cli>
    LightningDataModule <data/datamodule>
    LightningModule <common/lightning_module>
-   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
+   Lightning Transformers <https://lightning.ai/docs/pytorch/stable/ecosystem/transformers.html>
    Log <visualize/loggers>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>

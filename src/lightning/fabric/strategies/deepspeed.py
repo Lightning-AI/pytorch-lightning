@@ -625,7 +625,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.config is None:
             raise ValueError(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
 
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
