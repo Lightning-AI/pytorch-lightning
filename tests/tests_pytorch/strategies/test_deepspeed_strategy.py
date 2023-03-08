@@ -348,13 +348,15 @@ def test_deepspeed_custom_precision_params(tmpdir):
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
+
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 @pytest.mark.parametrize(
     ["precision"],
     ["fp16", "bf16"],
 )
 def test_deepspeed_inference_precision_during_validation(tmpdir, precision):
-    """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains these changes"""
+    """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains
+    these changes."""
 
     class TestCB(Callback):
         def on_validation_start(self, trainer, pl_module) -> None:
@@ -362,7 +364,7 @@ def test_deepspeed_inference_precision_during_validation(tmpdir, precision):
             raise SystemExit()
 
     model = BoringModel()
-    ds = DeepSpeedStrategy(config={precision:{"enabled":True}})
+    ds = DeepSpeedStrategy(config={precision: {"enabled": True}})
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -376,6 +378,7 @@ def test_deepspeed_inference_precision_during_validation(tmpdir, precision):
     )
     with pytest.raises(SystemExit):
         trainer.validate(model)
+
 
 @RunIf(deepspeed=True)
 def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
