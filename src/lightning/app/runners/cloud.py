@@ -431,7 +431,7 @@ class CloudRuntime(Runtime):
             root = root.parent
         return root
 
-    def _resolve_env_root(self) -> Path:
+    def _resolve_env_root(self) -> Optional[Path]:
         """Determine whether the root of environment sync files exists."""
         root = Path(SYS_CUSTOMIZATIONS_SYNC_ROOT)
         if root.exists():
