@@ -44,8 +44,10 @@ def train_torch_ddp(
     make_deterministic()
     memory_stats = {}
 
-    # os.environ["LOCAL_RANK"] = str(rank)
-    # torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
+    os.environ["LOCAL_RANK"] = str(rank)
+    print('ddp', rank, os.environ["MASTER_ADDR"])
+    print('ddp', rank, os.environ["MASTER_PORT"])
+    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
 
     model = ConvNet().to(device)
     initial_state_dict = deepcopy(model.state_dict())
