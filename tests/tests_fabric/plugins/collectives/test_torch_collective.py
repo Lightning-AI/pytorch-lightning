@@ -157,7 +157,9 @@ def test_repeated_create_and_destroy():
     with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
         collective.create_group()
 
-    with mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
+    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {collective.group: None}), mock.patch(
+        "torch.distributed.destroy_process_group"
+    ) as destroy_mock:
         collective.teardown()
     # this would be called twice if `init_process_group` wasn't patched. once for the group and once for the default
     # group
@@ -205,8 +207,9 @@ def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
             c.teardown()
 
 
-def _test_distributed_collectives_fn(strategy, collective):
-    collective.create_group()
+def _test_distributed_collectives_fn(strategy, collective, create_group=True):
+    if create_group:
+        collective.create_group()
 
     # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
@@ -236,8 +239,17 @@ def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
 
-def _test_distributed_collectives_cuda_fn(strategy, collective):
-    collective.create_group()
+@skip_distributed_unavailable
+@pytest.mark.parametrize("n", (1, 2))
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+def test_collectives_distributed_default_pg(n):
+    collective_launch(partial(_test_distributed_collectives_fn, create_group=False), [torch.device("cpu")] * n)
+
+
+def _test_distributed_collectives_cuda_fn(strategy, collective, create_group=True):
+    if create_group:
+        collective.create_group()
 
     this = torch.tensor(1.5, device=strategy.root_device)
     premul_sum = torch.distributed._make_nccl_premul_sum(2.0)
@@ -249,6 +261,12 @@ def _test_distributed_collectives_cuda_fn(strategy, collective):
 @RunIf(min_cuda_gpus=1, min_torch="1.13")
 def test_collectives_distributed_cuda():
     collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
+
+
+@skip_distributed_unavailable
+@RunIf(min_cuda_gpus=1, min_torch="1.13")
+def test_collectives_distributed_cuda_default_pg():
+    collective_launch(partial(_test_distributed_collectives_cuda_fn, create_group=False), [torch.device("cuda")])
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
@@ -269,3 +287,19 @@ def _test_two_groups(strategy, left_collective, right_collective):
 @pytest.mark.skip(reason="TODO(carmocca): causing hangs in CI")
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
+
+
+def _test_default_process_group(strategy, *collectives):
+    for collective in collectives:
+        assert collective.group == torch.distributed.group.WORLD
+    tensor = torch.tensor(strategy.global_rank)
+    for i, collective in enumerate(collectives):
+        tensor = collective.all_reduce(tensor)
+        assert tensor == strategy.world_size ** (i + 1)
+
+
+@skip_distributed_unavailable
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+def test_default_process_group():
+    collective_launch(_test_default_process_group, [torch.device("cpu")] * 3, num_groups=2)
