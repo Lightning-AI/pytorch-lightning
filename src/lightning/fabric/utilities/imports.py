@@ -25,7 +25,10 @@ _IS_WINDOWS = platform.system() == "Windows"
 # 2. The inspection mode via `python -i`: https://stackoverflow.com/a/6879085/1162383
 _IS_INTERACTIVE = hasattr(sys, "ps1") or bool(sys.flags.interactive)
 
-_TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")
-_TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
+# We use "base_version" for non-nightly builds as well, because some environments like NVIDIA's PyTorch dockers
+# install PyTorch from source at a commit that doesn't align with the released version tag.
+# See: https://github.com/Lightning-AI/lightning/issues/16644
+_TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0", use_base_version=True)
+_TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
 _TORCH_GREATER_EQUAL_2_0 = compare_version("torch", operator.ge, "2.0.0", use_base_version=True)
 _TORCH_GREATER_EQUAL_2_1 = compare_version("torch", operator.ge, "2.1.0", use_base_version=True)

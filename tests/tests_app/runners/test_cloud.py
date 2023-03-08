@@ -1768,6 +1768,21 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
     os.remove(app_file)
 
 
+def test_load_app_from_file():
+    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
+
+    app = CloudRuntime.load_app_from_file(
+        os.path.join(test_script_dir, "app_with_env.py"),
+    )
+    assert app.works[0].cloud_compute.name == "default"
+
+    app = CloudRuntime.load_app_from_file(
+        os.path.join(test_script_dir, "app_with_env.py"),
+        env_vars={"COMPUTE_NAME": "foo"},
+    )
+    assert app.works[0].cloud_compute.name == "foo"
+
+
 @pytest.mark.parametrize(
     "print_format,expected",
     [

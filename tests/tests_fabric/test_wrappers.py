@@ -25,11 +25,6 @@ from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricO
 from tests_fabric.helpers.runif import RunIf
 
 
-class EmptyFabric(Fabric):
-    def run(self):
-        pass
-
-
 def test_fabric_module_wraps():
     """Test that the wrapped module is accessible via the property."""
     module = Mock()
@@ -137,7 +132,7 @@ def test_fabric_module_state_dict_access():
 )
 def test_fabric_module_forward_conversion(precision, input_type, expected_type, accelerator, device_str):
     """Test that the FabricModule performs autocasting on the input tensors and during forward()."""
-    fabric = EmptyFabric(precision=precision, accelerator=accelerator, devices=1)
+    fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
     device = torch.device(device_str)
 
     def check_autocast(forward_input):
