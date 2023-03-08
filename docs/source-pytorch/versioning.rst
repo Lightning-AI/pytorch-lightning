@@ -21,12 +21,13 @@ The ``lightning.app`` package is an exception to this rule, as it may contain an
 API Stability
 *************
 
-In Lightning, all API and features are marked as either stable or experimental.
+In Lightning, all public APIs are considered stable unless explicitly marked as beta/experimental in their documentation or docstrings.
+Modules, functions, classes, and methods that are protected (have a leading underscore, see https://peps.python.org/pep-0008/ for more information) may be changed or removed at any time.
 
 Experimental API
 ----------------
 
-Experimental APIs are labelled as experimental or beta in the documentation and/or in the release note and are considered unstable and are discouraged from use in production.
+Experimental APIs are labelled as experimental or beta in their documentation or docstrings and are considered unstable and are discouraged from use in production.
 
 For experimental features, any of the following may be true:
 
