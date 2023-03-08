@@ -263,13 +263,19 @@ Advanced Topics
 
     <div style="display:none">
 
-
 .. toctree::
     :maxdepth: 1
     :name: start
+    :caption: Get Started
+
+    Fabric in 5 minutes <fundamentals/convert>
+    Installation <fundamentals/installation>
+
+.. toctree::
+    :maxdepth: 1
+    :name: fundamentals
     :caption: Fundamentals
 
-    Getting Started <fundamentals/convert>
     Accelerators <fundamentals/accelerators>
     Code Structure <fundamentals/code_structure>
     Launch Distributed Training <fundamentals/launch>
