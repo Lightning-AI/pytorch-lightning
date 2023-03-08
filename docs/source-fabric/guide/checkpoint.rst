@@ -71,3 +71,32 @@ If you want to be in complete control of how states get restored, you can omit p
     model.load_state_dict(full_checkpoint["model"])
     optimizer.load_state_dict(full_checkpoint["optimizer"])
     ...
+
+
+
+----
+
+
+**********
+Next steps
+**********
+
+Learn from our template how Fabrics checkpoint mechanism can be integrated into a full Trainer:
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Trainer Template
+    :description: Take our Fabric Trainer template and customize it for your needs
+    :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>
