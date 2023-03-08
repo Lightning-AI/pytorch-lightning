@@ -18,14 +18,16 @@
 /docs/                                      @edenlightning @lantiga @borda @awaelchli @RobertLaurella
 /.github/*.md                               @edenlightning @williamfalcon @lantiga @borda
 /.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
+/docs/source-fabric/conf.py                 @borda @awaelchli @carmocca
+/docs/source-fabric/index.rst               @awaelchli @lantiga @carmocca
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
 /docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
-/docs/source/                               @williamfalcon @RobertLaurella @tchaton @awaelchli
-/docs/source/conf.py                        @borda @awaelchli @carmocca
-/docs/source/index.rst                      @williamfalcon @lantiga
-/docs/source/expertise_levels               @williamfalcon @RobertLaurella
+/docs/source-app/                           @williamfalcon @RobertLaurella @tchaton @awaelchli
+/docs/source-app/conf.py                    @borda @awaelchli @carmocca
+/docs/source-app/index.rst                  @williamfalcon @lantiga
+/docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
 
 # PyTorch Lightning
 /src/lightning/pytorch                      @williamfalcon @awaelchli @carmocca @justusschock

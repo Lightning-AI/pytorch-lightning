@@ -25,7 +25,6 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import cli_lightning_logo, LightningModule, Trainer
-from lightning.pytorch.loggers import WandbLogger
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
@@ -66,12 +65,6 @@ class KITTI(Dataset):
     In the `get_item` function, images and masks are resized to the given `img_size`, masks are
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
-
-    >>> from examples import DATASETS_PATH
-    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
-    >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
-    >>> KITTI(dataset_path, 'train')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    <...semantic_segmentation.KITTI object at ...>
     """
 
     IMAGE_PATH = os.path.join("training", "image_2")
@@ -364,13 +357,8 @@ class SegModel(LightningModule):
         img = img.float()
         mask = mask.long()
         out = self(img)
-        loss_val = F.cross_entropy(out, mask, ignore_index=250)
-        return {"val_loss": loss_val}
-
-    def validation_epoch_end(self, outputs):
-        loss_val = torch.stack([x["val_loss"] for x in outputs]).mean()
-        log_dict = {"val_loss": loss_val}
-        return {"log": log_dict, "val_loss": log_dict["val_loss"], "progress_bar": log_dict}
+        val_loss = F.cross_entropy(out, mask, ignore_index=250)
+        self.log("val_loss", val_loss, prog_bar=True)
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
@@ -391,22 +379,12 @@ def main(hparams: Namespace):
     model = SegModel(**vars(hparams))
 
     # ------------------------
-    # 2 SET LOGGER
-    # ------------------------
-    logger = False
-    if hparams.log_wandb:
-        logger = WandbLogger()
-
-        # optional: log model topology
-        logger.watch(model.net)
-
-    # ------------------------
-    # 3 INIT TRAINER
+    # 2 INIT TRAINER
     # ------------------------
     trainer = Trainer()
 
     # ------------------------
-    # 5 START TRAINING
+    # 3 START TRAINING
     # ------------------------
     trainer.fit(model)
 

@@ -483,9 +483,9 @@ class LightningCLI:
     def parse_arguments(self, parser: LightningArgumentParser, args: ArgsType) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
         if args is not None and len(sys.argv) > 1:
-            raise ValueError(
+            rank_zero_warn(
                 "LightningCLI's args parameter is intended to run from within Python like if it were from the command "
-                "line. To prevent mistakes it is not allowed to provide both args and command line arguments, got: "
+                "line. To prevent mistakes it is not recommended to provide both args and command line arguments, got: "
                 f"sys.argv[1:]={sys.argv[1:]}, args={args}."
             )
         if isinstance(args, (dict, Namespace)):
