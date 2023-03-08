@@ -21,13 +21,13 @@ The ``lightning.app`` package is an exception to this rule, as it may contain an
 API Stability
 *************
 
-In Lightning, all public APIs are considered stable unless explicitly marked as beta/experimental in their documentation or docstrings.
+In Lightning, all public APIs are considered stable unless explicitly marked as experimental in their documentation or docstrings.
 Modules, functions, classes, and methods that are protected (have a leading underscore, see https://peps.python.org/pep-0008/ for more information) may be changed or removed at any time.
 
 Experimental API
 ----------------
 
-Experimental APIs are labelled as experimental or beta in their documentation or docstrings and are considered unstable and are discouraged from use in production.
+Experimental APIs are labelled as experimental in their documentation or docstrings and are considered unstable and are discouraged from use in production.
 
 For experimental features, any of the following may be true:
 
@@ -53,12 +53,12 @@ Lightning's development is driven by research and best practices in a rapidly de
 
 For API removal, renaming or other forms of backwards-incompatible changes, the procedure is:
 
-#. A deprecation process is initiated at a minor version ``MAJOR.MINOR.PATCH``, producing a deprecation warning at runtime and removing it from the documentation.
+#. A deprecation process is initiated at a minor version ``MAJOR.MINOR.PATCH`` (e.g. ``1.5.0``), producing a deprecation warning at runtime and removing it from the documentation.
 #. The deprecated API remains unchanged during the deprecation phase for two minor versions or the next major update, whichever comes first.
-#. The breaking change is done in version ``MAJOR.MINOR+2.0``, or ``MAJOR+1.0.0``, whichever comes first.
+#. The breaking change is done in version ``MAJOR.(MINOR+2).0`` (e.g. ``1.7.0``), or ``(MAJOR+1).0.0`` (e.g. ``2.0.0``), whichever comes first.
 #. From that version onward, the deprecation warning gets converted into a helpful error, which will remain until next major release.
 
-The ``X+2`` rule is not a strict requirement. Shorter or longer deprecation cycles may apply to some cases.
+This policy is not strict. Shorter or longer deprecation cycles may apply to some cases.
 For example, in the past DDP2 was removed without a deprecation process because the feature was broken and unusable beyond fixing as discussed in `#12584 <https://github.com/Lightning-AI/lightning/issues/12584>`_.
 Also, `#10410 <https://github.com/Lightning-AI/lightning/issues/10410>`_ is an example that a longer deprecation applied to. We deprecated the accelerator arguments, such as ``Trainer(gpus=...)``, in 1.7, however, because the APIs were so core that they would impact almost all use cases, we decided not to introduce the breaking change until 2.0.
 
