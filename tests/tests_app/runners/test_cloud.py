@@ -1,5 +1,6 @@
 import logging
 import os
+import pathlib
 import re
 import sys
 from copy import copy
@@ -1623,6 +1624,57 @@ class TestCloudspaceDispatch:
         cloud_runtime = cloud.CloudRuntime(app=mock.MagicMock(), entrypoint=Path("."))
 
         cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+
+        mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
+            project_id="project_id",
+            cloudspace_id="cloudspace_id",
+            body=mock.ANY,
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.assert_called_once_with(
+            project_id="project_id", cloudspace_id="cloudspace_id", id="run_id", body=mock.ANY
+        )
+
+        assert mock_client.cloud_space_service_create_lightning_run_instance.call_args.kwargs["body"].name == "run_name"
+
+    @mock.patch.object(pathlib.Path, "exists")
+    def test_cloudspace_dispatch_custom_environment_sync(self, mock_path_exists, monkeypatch):
+        """Tests that the cloudspace_dispatch method prepares environment sync files if they exist and calls the
+        expected API endpoints."""
+        mock_client = mock.MagicMock()
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="project", project_id="project_id")]
+        )
+        mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(id="run_id")
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="instance_id"
+        )
+
+        cluster = Externalv1Cluster(id="test", spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL))
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[V1ProjectClusterBinding(cluster_id="cluster_id")],
+        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([cluster])
+        mock_client.cluster_service_get_cluster.return_value = cluster
+
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        mock_repo = mock.MagicMock()
+        mock_local_source = mock.MagicMock(return_value=mock_repo)
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock_local_source)
+
+        test_path = Path("/tmp/sys-customizations-sync")
+        mock_path_exists.return_value = test_path
+
+        cloud_runtime = cloud.CloudRuntime(app=mock.MagicMock(), entrypoint=Path("."))
+
+        cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+
+        mock_repo.prepare_sys_customizations_sync.assert_called_once_with(test_path)
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
             project_id="project_id",
