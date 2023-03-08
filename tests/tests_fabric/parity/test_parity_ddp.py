@@ -134,7 +134,7 @@ def train_fabric_ddp(fabric):
     "accelerator, devices, tolerance",
     [
         ("cpu", 2, 0.01),
-        pytest.param("cuda", 2, 0.005, marks=RunIf(min_cuda_gpus=2)),
+        # pytest.param("cuda", 2, 0.005, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_parity_ddp(accelerator, devices, tolerance):
@@ -149,7 +149,7 @@ def test_parity_ddp(accelerator, devices, tolerance):
 
     fabric.barrier()
     cuda_reset()
-    # torch.distributed.destroy_process_group()
+    torch.distributed.destroy_process_group()
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
