@@ -88,7 +88,7 @@ Fabric ships directly with Lightning. Install it with
 
     pip install lightning
 
-For alternative ways to install, read the `installation guide <https://pytorch-lightning.readthedocs.io/en/stable/starter/installation.html>`_.
+For alternative ways to install, read the :doc:`installation guide <fundamentals/installation>`.
 
 ----
 
