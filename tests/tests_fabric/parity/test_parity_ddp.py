@@ -44,8 +44,8 @@ def train_torch_ddp(
     make_deterministic()
     memory_stats = {}
 
-    os.environ["LOCAL_RANK"] = str(rank)
-    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
+    # os.environ["LOCAL_RANK"] = str(rank)
+    # torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
 
     model = ConvNet().to(device)
     initial_state_dict = deepcopy(model.state_dict())
@@ -147,7 +147,7 @@ def test_parity_ddp(accelerator, devices, tolerance):
 
     fabric.barrier()
     cuda_reset()
-    torch.distributed.destroy_process_group()
+    # torch.distributed.destroy_process_group()
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
