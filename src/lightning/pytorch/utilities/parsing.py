@@ -45,14 +45,12 @@ def clean_namespace(hparams: MutableMapping) -> None:
         del hparams[k]
 
 
-def parse_class_init_keys(
-    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]]
-) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(cls: Type) -> Tuple[str, Optional[str], Optional[str]]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
 
-        >>> class Model():
+        >>> class Model:
         ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
         ...         pass
         >>> parse_class_init_keys(Model)
