@@ -1,0 +1,2 @@
+This folder serves only for building the `lightning-app` package when you install from source code with env variable `PACKAGE_NAME=app`
+Please do not edit these files - you may see some as they are automatically generated/moved from their current location.

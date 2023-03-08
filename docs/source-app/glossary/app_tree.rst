@@ -89,11 +89,11 @@ You can simply attach your components in the **run** method of a flow using the 
             getattr(self, "wonested_flowrk").run()
 
 
-But it is usually more readable to use Lightning built-in :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List` as follows:
+But it is usually more readable to use Lightning built-in :class:`~lightning.app.structures.Dict` or :class:`~lightning.app.structures.List` as follows:
 
 .. code-block:: python
 
-    from lightning_app.structures import Dict
+    from lightning.app.structures import Dict
 
 
     class RootFlow(L.LightningFlow):

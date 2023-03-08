@@ -3,7 +3,7 @@
 accelerators
 ------------
 
-.. currentmodule:: pytorch_lightning.accelerators
+.. currentmodule:: lightning.pytorch.accelerators
 
 .. autosummary::
     :toctree: api
@@ -20,7 +20,7 @@ accelerators
 callbacks
 ---------
 
-.. currentmodule:: pytorch_lightning.callbacks
+.. currentmodule:: lightning.pytorch.callbacks
 
 .. autosummary::
     :toctree: api
@@ -43,7 +43,6 @@ callbacks
     ModelSummary
     OnExceptionCheckpoint
     ProgressBarBase
-    QuantizationAwareTraining
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
@@ -53,7 +52,7 @@ callbacks
 cli
 -----
 
-.. currentmodule:: pytorch_lightning.cli
+.. currentmodule:: lightning.pytorch.cli
 
 .. autosummary::
     :toctree: api
@@ -67,7 +66,7 @@ cli
 core
 ----
 
-.. currentmodule:: pytorch_lightning.core
+.. currentmodule:: lightning.pytorch.core
 
 .. autosummary::
     :toctree: api
@@ -87,7 +86,7 @@ core
 loggers
 -------
 
-.. currentmodule:: pytorch_lightning.loggers
+.. currentmodule:: lightning.pytorch.loggers
 
 .. autosummary::
     :toctree: api
@@ -107,14 +106,13 @@ plugins
 precision
 """""""""
 
-.. currentmodule:: pytorch_lightning.plugins.precision
+.. currentmodule:: lightning.pytorch.plugins.precision
 
 .. autosummary::
     :toctree: api
     :nosignatures:
     :template: classtemplate.rst
 
-    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
@@ -128,7 +126,7 @@ precision
 environments
 """"""""""""
 
-.. currentmodule:: pytorch_lightning.plugins.environments
+.. currentmodule:: lightning.pytorch.plugins.environments
 
 .. autosummary::
     :toctree: api
@@ -147,7 +145,7 @@ environments
 io
 ""
 
-.. currentmodule:: pytorch_lightning.plugins.io
+.. currentmodule:: lightning.pytorch.plugins.io
 
 .. autosummary::
     :toctree: api
@@ -164,7 +162,7 @@ io
 others
 """"""
 
-.. currentmodule:: pytorch_lightning.plugins
+.. currentmodule:: lightning.pytorch.plugins
 
 .. autosummary::
     :toctree: api
@@ -177,7 +175,7 @@ others
 profiler
 --------
 
-.. currentmodule:: pytorch_lightning.profilers
+.. currentmodule:: lightning.pytorch.profilers
 
 .. autosummary::
     :toctree: api
@@ -194,7 +192,7 @@ profiler
 trainer
 -------
 
-.. currentmodule:: pytorch_lightning.trainer.trainer
+.. currentmodule:: lightning.pytorch.trainer.trainer
 
 .. autosummary::
     :toctree: api
@@ -206,18 +204,14 @@ trainer
 strategies
 ----------
 
-.. currentmodule:: pytorch_lightning.strategies
+.. currentmodule:: lightning.pytorch.strategies
 
 .. autosummary::
     :toctree: api
     :nosignatures:
     :template: classtemplate.rst
 
-    BaguaStrategy
-    ColossalAIStrategy
-    DDPSpawnStrategy
     DDPStrategy
-    DataParallelStrategy
     DeepSpeedStrategy
     FSDPStrategy
     HPUParallelStrategy
@@ -227,12 +221,12 @@ strategies
     SingleHPUStrategy
     SingleTPUStrategy
     Strategy
-    TPUSpawnStrategy
+    XLAStrategy
 
 tuner
 -----
 
-.. currentmodule:: pytorch_lightning.tuner.tuning
+.. currentmodule:: lightning.pytorch.tuner.tuning
 
 .. autosummary::
     :toctree: api
@@ -244,17 +238,15 @@ tuner
 utilities
 ---------
 
-.. currentmodule:: pytorch_lightning.utilities
+.. currentmodule:: lightning.pytorch.utilities
 
 .. autosummary::
     :toctree: api
     :nosignatures:
 
-    argparse
     data
     deepspeed
     distributed
-    finite_checks
     memory
     model_summary
     parsing

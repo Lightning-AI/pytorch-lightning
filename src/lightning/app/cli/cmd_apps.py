@@ -14,7 +14,7 @@
 
 import json
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
@@ -48,8 +48,9 @@ class _AppManager:
         )
 
     def list_apps(
-        self, cluster_id: str = None, limit: int = 100, phase_in: List[str] = []
+        self, cluster_id: Optional[str] = None, limit: int = 100, phase_in: Optional[List[str]] = None
     ) -> List[Externalv1LightningappInstance]:
+        phase_in = phase_in or []
         project = _get_project(self.api_client)
 
         kwargs = {
@@ -68,7 +69,8 @@ class _AppManager:
             apps = apps + resp.lightningapps
         return apps
 
-    def list_components(self, app_id: str, phase_in: List[str] = []) -> List[Externalv1Lightningwork]:
+    def list_components(self, app_id: str, phase_in: Optional[List[str]] = None) -> List[Externalv1Lightningwork]:
+        phase_in = phase_in or []
         project = _get_project(self.api_client)
         resp = self.api_client.lightningwork_service_list_lightningwork(
             project_id=project.project_id,
@@ -77,7 +79,7 @@ class _AppManager:
         )
         return resp.lightningworks
 
-    def list(self, cluster_id: str = None, limit: int = 100) -> None:
+    def list(self, cluster_id: Optional[str] = None, limit: int = 100) -> None:
         console = Console()
         console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
 

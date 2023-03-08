@@ -48,10 +48,9 @@ def test__training_step__flow_dict(tmpdir):
 
     # make sure correct steps were called
     assert model.training_step_called
-    assert not model.training_step_end_called
 
 
-def test__training_step__tr_step_end__flow_dict(tmpdir):
+def test__training_step__tr_batch_end__flow_dict(tmpdir):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -62,11 +61,8 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             self.out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
             return self.out
 
-        def training_step_end(self, tr_step_output):
-            assert tr_step_output == self.out
-            assert self.count_num_graphs(tr_step_output) == 1
-            self.training_step_end_called = True
-            return tr_step_output
+        def on_train_batch_end(self, tr_step_output, *_):
+            assert self.count_num_graphs(tr_step_output) == 0
 
         def backward(self, loss):
             return LightningModule.backward(self, loss)
@@ -86,7 +82,6 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
 
     # make sure correct steps were called
     assert model.training_step_called
-    assert model.training_step_end_called
 
 
 def test__training_step__epoch_end__flow_dict(tmpdir):
@@ -119,10 +114,9 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
 
     # make sure correct steps were called
     assert model.training_step_called
-    assert not model.training_step_end_called
 
 
-def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
+def test__training_step__batch_end__epoch_end__flow_dict(tmpdir):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -134,11 +128,8 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
             self.out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
             return self.out
 
-        def training_step_end(self, tr_step_output):
-            assert tr_step_output == self.out
-            assert self.count_num_graphs(tr_step_output) == 1
-            self.training_step_end_called = True
-            return tr_step_output
+        def on_train_batch_end(self, tr_step_output, *_):
+            assert self.count_num_graphs(tr_step_output) == 0
 
         def backward(self, loss):
             return LightningModule.backward(self, loss)
@@ -158,4 +149,3 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
 
     # make sure correct steps were called
     assert model.training_step_called
-    assert model.training_step_end_called

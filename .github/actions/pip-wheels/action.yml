@@ -1,0 +1,80 @@
+name: Dump local wheels
+description: scan local env and dump needed wheels
+
+inputs:
+  torch-url:
+    description: path to the PyTorch downloads
+    required: false
+    default: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  wheel-dir:
+    description: local path for export wheels
+    required: false
+    default: "_pip-wheels/"
+  cache-key:
+    description: update this cache
+    required: false
+    default: "pypi_wheels"
+
+runs:
+  using: "composite"
+  steps:
+
+  - name: install dev. env
+    run: pip install setuptools wheel
+    shell: bash
+
+  - name: Freeze local emv.
+    run: |
+      pip freeze > requirements.dump
+      cat requirements.dump
+    shell: bash
+
+  - name: Filter self pkg
+    run: |
+      import os
+      fp = 'requirements.dump'
+      with open(fp) as fo:
+        lines = [ln.strip() for ln in fo.readlines()]
+      lines = [ln.split('+')[0] for ln in lines if '-e ' not in ln]
+      with open(fp, 'w') as fw:
+        fw.writelines([ln + os.linesep for ln in lines])
+    shell: python
+
+  - name: Dump wheels
+    run: |
+      # cat requirements.dump
+      pip wheel -r requirements.dump --prefer-binary \
+        --wheel-dir=.wheels \
+        -f ${{ inputs.torch-url }} -f ${{ inputs.wheel-dir }}
+      ls -lh .wheels/
+    shell: bash
+
+  - name: Find diff
+    id: wheels-diff
+    run: |
+      import os, glob
+      wheels = [os.path.basename(p) for p in glob.glob(".wheels/*")]
+      pkgs = [os.path.basename(p) for p in glob.glob("${{ inputs.wheel-dir }}/*")]
+      diff = [w for w in wheels if w not in pkgs]
+      print(diff)
+      with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+          print(f'count-new={len(diff)}', file=fh)
+    shell: python
+
+  - name: Cache pull
+    if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
+    uses: actions/cache/restore@v3
+    with:
+      path: ${{ inputs.wheel-dir }}
+      key: ${{ inputs.cache-key }}
+
+  - run: cp .wheels/* ${{ inputs.wheel-dir }}
+    if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
+    shell: bash
+
+  - name: Cache push
+    if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
+    uses: actions/cache/save@v3
+    with:
+      path: ${{ inputs.wheel-dir }}
+      key: ${{ inputs.cache-key }}

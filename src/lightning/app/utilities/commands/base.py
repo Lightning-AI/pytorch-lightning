@@ -97,7 +97,7 @@ class ClientCommand:
     def _to_dict(self):
         return {"owner": self.owner, "requirements": self.requirements}
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs: Any):
         return self.method(**kwargs)
 
 
@@ -139,7 +139,11 @@ def _download_command(
     mod = module_from_spec(spec)
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
-    command = getattr(mod, cls_name)(method=None)
+    command_type = getattr(mod, cls_name)
+    if issubclass(command_type, ClientCommand):
+        command = command_type(method=None)
+    else:
+        raise ValueError(f"Expected class {cls_name} for command {command_name} to be a `ClientCommand`.")
     if tmpdir and os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
     return command
@@ -182,12 +186,11 @@ def _validate_client_command(command: ClientCommand):
             )
 
 
-def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
+def _upload(name: str, prefix: str, obj: Any) -> Optional[str]:
     from lightning.app.storage.path import _filesystem, _is_s3fs_available, _shared_storage_path
 
-    command_name = command_name.replace(" ", "_")
-    filepath = f"commands/{command_name}.py"
-    remote_url = str(_shared_storage_path() / "artifacts" / filepath)
+    name = name.replace(" ", "_")
+    filepath = f"{prefix}/{name}.py"
     fs = _filesystem()
 
     if _is_s3fs_available():
@@ -196,7 +199,7 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
         if not isinstance(fs, S3FileSystem):
             return
 
-        source_file = str(inspect.getfile(command.__class__))
+        source_file = str(inspect.getfile(obj.__class__))
         remote_url = str(_shared_storage_path() / "artifacts" / filepath)
         fs.put(source_file, remote_url)
         return filepath
@@ -211,7 +214,7 @@ def _prepare_commands(app) -> List:
     for command_mapping in commands:
         for command_name, command in command_mapping.items():
             if isinstance(command, ClientCommand):
-                _upload_command(command_name, command)
+                _upload(command_name, "commands", command)
 
     # 2: Cache the commands on the app.
     app.commands = commands

@@ -4,7 +4,7 @@ Customize my Work resources
 ***************************
 
 In the cloud, you can simply configure which machine to run on by passing
-a :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute` to your work ``__init__`` method:
+a :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute` to your work ``__init__`` method:
 
 .. code-block:: python
 
@@ -90,5 +90,5 @@ By providing **idle_timeout=X Seconds**, the work is automatically stopped **X s
 CloudCompute
 ************
 
-.. autoclass:: lightning_app.utilities.packaging.cloud_compute.CloudCompute
+.. autoclass:: lightning.app.utilities.packaging.cloud_compute.CloudCompute
     :noindex:

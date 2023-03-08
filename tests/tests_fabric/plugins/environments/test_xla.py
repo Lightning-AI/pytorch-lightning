@@ -16,10 +16,10 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
 from lightning.fabric.plugins.environments import XLAEnvironment
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)

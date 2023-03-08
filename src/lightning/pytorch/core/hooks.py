@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import torch
 from torch import Tensor
@@ -77,12 +77,12 @@ class ModelHooks:
         """Called in the training loop after the batch.
 
         Args:
-            outputs: The outputs of training_step_end(training_step(x))
+            outputs: The outputs of training_step(x)
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
         """
 
-    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the validation loop before anything happens for that batch.
 
         Args:
@@ -92,18 +92,18 @@ class ModelHooks:
         """
 
     def on_validation_batch_end(
-        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
+        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         """Called in the validation loop after the batch.
 
         Args:
-            outputs: The outputs of validation_step_end(validation_step(x))
+            outputs: The outputs of validation_step(x)
             batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
 
-    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the test loop before anything happens for that batch.
 
         Args:
@@ -113,18 +113,18 @@ class ModelHooks:
         """
 
     def on_test_batch_end(
-        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
+        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         """Called in the test loop after the batch.
 
         Args:
-            outputs: The outputs of test_step_end(test_step(x))
+            outputs: The outputs of test_step(x)
             batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
 
-    def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the predict loop before anything happens for that batch.
 
         Args:
@@ -133,12 +133,12 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
 
-    def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the predict loop after the batch.
 
         Args:
-            outputs: The outputs of predict_step_end(test_step(x))
-            batch: The batched data as it is returned by the test DataLoader.
+            outputs: The outputs of predict_step(x)
+            batch: The batched data as it is returned by the prediction DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -170,7 +170,7 @@ class ModelHooks:
         """Called in the training loop at the very end of the epoch.
 
         To access all batch outputs at the end of the epoch, you can cache step outputs as an attribute of the
-        :class:`pytorch_lightning.LightningModule` and access them in this hook:
+        :class:`~lightning.pytorch.LightningModule` and access them in this hook:
 
         .. code-block:: python
 
@@ -207,7 +207,7 @@ class ModelHooks:
     def on_predict_epoch_start(self) -> None:
         """Called at the beginning of predicting."""
 
-    def on_predict_epoch_end(self, results: List[Any]) -> None:
+    def on_predict_epoch_end(self) -> None:
         """Called at the end of predicting."""
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
@@ -631,7 +631,7 @@ class DataHooks:
                     # skip device transfer for the first dataloader or anything you wish
                     pass
                 else:
-                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
+                    batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
                 return batch
 
         Raises:

@@ -31,11 +31,9 @@ from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
-_IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
-_OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
-_PBAR_METRIC = Union[float, Dict[str, float]]
-_OUT_DICT = Dict[str, _OUT_METRIC]
-_PBAR_DICT = Dict[str, _PBAR_METRIC]
+_VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
+_OUT_DICT = Dict[str, Tensor]
+_PBAR_DICT = Dict[str, float]
 
 
 class _METRICS(TypedDict):
@@ -204,7 +202,7 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
 
-    def update(self, value: _IN_METRIC, batch_size: int) -> None:
+    def update(self, value: _VALUE, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
             if not torch.is_floating_point(value):
@@ -253,7 +251,7 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
             self.value.reset()
         self.has_reset = True
 
-    def forward(self, value: _IN_METRIC, batch_size: int) -> None:
+    def forward(self, value: _VALUE, batch_size: int) -> None:
         if self.meta.enable_graph:
             with torch.no_grad():
                 self.update(value, batch_size)
@@ -343,7 +341,7 @@ class _ResultCollection(dict):
         self,
         fx: str,
         name: str,
-        value: _IN_METRIC,
+        value: _VALUE,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: bool = False,
@@ -402,7 +400,7 @@ class _ResultCollection(dict):
         batch_size = self._extract_batch_size(self[key], batch_size, meta)
         self.update_metrics(key, value, batch_size)
 
-    def register_key(self, key: str, meta: _Metadata, value: _IN_METRIC) -> None:
+    def register_key(self, key: str, meta: _Metadata, value: _VALUE) -> None:
         """Create one _ResultMetric object per value.
 
         Value can be provided as a nested collection
@@ -410,7 +408,7 @@ class _ResultCollection(dict):
         metric = _ResultMetric(meta, isinstance(value, Tensor)).to(self.device)
         self[key] = metric
 
-    def update_metrics(self, key: str, value: _IN_METRIC, batch_size: int) -> None:
+    def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
         result_metric = self[key]
         # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
         result_metric.forward(value.to(self.device), batch_size)

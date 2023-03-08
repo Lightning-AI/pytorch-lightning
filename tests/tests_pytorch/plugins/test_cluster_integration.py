@@ -78,13 +78,13 @@ def test_ranks_available_manual_strategy_selection(_, strategy_cls):
             assert trainer.world_size == expected["world_size"]
 
 
-@RunIf(mps=False)
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(strategy="ddp", accelerator="gpu", devices=[1, 2]),
+        dict(strategy="ddp", accelerator="cpu", devices=2),
         dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
-        dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
+        pytest.param(dict(strategy="ddp", accelerator="gpu", devices=[1, 2]), marks=RunIf(mps=False)),
+        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]), marks=RunIf(mps=False)),
     ],
 )
 def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwargs):
@@ -98,7 +98,9 @@ def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwar
                 # slurm and torchelastic do not work with spawn strategies
                 continue
             # when using spawn, we don't reach rank > 0 until we call Trainer.fit()
-            expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
+            # LOCAL_RANK is only set after we spawned
+            if "LOCAL_RANK" not in variables:
+                expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)
