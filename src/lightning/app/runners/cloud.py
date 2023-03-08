@@ -17,7 +17,6 @@ import json
 import os
 import random
 import re
-import shutil
 import string
 import sys
 import time
@@ -81,7 +80,6 @@ from lightning.app.core.constants import (
     get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
-    SYS_CUSTOMIZATIONS_SYNC_PATH,
     SYS_CUSTOMIZATIONS_SYNC_ROOT,
 )
 from lightning.app.core.work import LightningWork
@@ -226,7 +224,7 @@ class CloudRuntime(Runtime):
         name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
 
-        # TODO: comment
+        # If system customization files found, it will set their location path
         sys_customizations_sync_root = self._resolve_env_root()
 
         self.app._update_index_file()
@@ -245,9 +243,9 @@ class CloudRuntime(Runtime):
         run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
 
-        # TODO: comment
+        # If the system customization root is set, prepare files for environment synchronization
         if sys_customizations_sync_root is not None:
-            self._prepare_sys_customizations_sync(sys_customizations_sync_root, root)
+            repo.prepare_sys_customizations_sync(sys_customizations_sync_root, root)
 
         # API transactions
         run = self._api_create_run(project_id, cloudspace_id, run_body)
@@ -439,10 +437,6 @@ class CloudRuntime(Runtime):
         if root.exists():
             return root
         return None
-
-    def _prepare_sys_customizations_sync(self, sys_customizations_root: Path, root: Path) -> None:
-        path_to_sync = Path(root, SYS_CUSTOMIZATIONS_SYNC_PATH)
-        shutil.copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
 
     def _resolve_open_ignore_functions(self) -> List[_IGNORE_FUNCTION]:
         """Used by the ``open`` method.
