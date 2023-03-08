@@ -18,7 +18,21 @@ import numbers
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    IO,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    overload,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -27,6 +41,7 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
+from typing_extensions import Self
 
 import lightning.fabric as lf
 import lightning.pytorch as pl
@@ -34,14 +49,15 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
+from lightning.fabric.utilities.distributed import _distributed_available
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.core.saving import ModelIO
+from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
@@ -65,7 +81,6 @@ MODULE_OPTIMIZERS = Union[
 class LightningModule(
     _DeviceDtypeModuleMixin,
     HyperparametersMixin,
-    ModelIO,
     ModelHooks,
     DataHooks,
     CheckpointHooks,
@@ -91,6 +106,10 @@ class LightningModule(
         + HyperparametersMixin.__jit_unused_properties__
     )
     _jit_is_scripting = False
+
+    CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
+    CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
+    CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -480,7 +499,7 @@ class LightningModule(
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and _distributed_available(),
-            sync_dist_fn=trainer.strategy.reduce or _sync_ddp,
+            sync_dist_fn=trainer.strategy.reduce,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -1418,6 +1437,95 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: Union[_PATH, IO],
+        map_location: _MAP_LOCATION_TYPE = None,
+        hparams_file: Optional[_PATH] = None,
+        strict: bool = True,
+        **kwargs: Any,
+    ) -> Self:  # type: ignore[valid-type]
+        r"""
+        Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
+        it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
+
+        Any arguments specified through \*\*kwargs will override args stored in ``"hyper_parameters"``.
+
+        Args:
+            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
+            map_location:
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in :func:`torch.load`.
+            hparams_file: Optional path to a ``.yaml`` or ``.csv`` file with hierarchical structure
+                as in this example::
+
+                    drop_prob: 0.2
+                    dataloader:
+                        batch_size: 32
+
+                You most likely won't need this since Lightning will always save the hyperparameters
+                to the checkpoint.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a ``.yaml`` file with the hparams you'd like to use.
+                These will be converted into a :class:`~dict` and passed into your
+                :class:`LightningModule` for use.
+
+                If your model's ``hparams`` argument is :class:`~argparse.Namespace`
+                and ``.yaml`` file has hierarchical structure, you need to refactor your model to treat
+                ``hparams`` as :class:`~dict`.
+            strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
+                returned by this module's state dict.
+            \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
+                hyperparameter values.
+
+        Return:
+            :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
+
+        Note:
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
+            **class** to call it instead of the :class:`LightningModule` instance.
+
+        Example::
+
+            # load weights without mapping ...
+            model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+
+            # or load weights mapping all weights from GPU 1 to GPU 0 ...
+            map_location = {'cuda:1':'cuda:0'}
+            model = MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                map_location=map_location
+            )
+
+            # or load weights and hyperparameters from separate files.
+            model = MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                hparams_file='/path/to/hparams_file.yaml'
+            )
+
+            # override some of the params with new values
+            model = MyLightningModule.load_from_checkpoint(
+                PATH,
+                num_layers=128,
+                pretrained_ckpt_path=NEW_PATH,
+            )
+
+            # predict
+            pretrained_model.eval()
+            pretrained_model.freeze()
+            y_hat = pretrained_model(x)
+        """
+        return _load_from_checkpoint(
+            cls,
+            checkpoint_path,
+            map_location,
+            hparams_file,
+            strict,
+            **kwargs,
+        )
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:

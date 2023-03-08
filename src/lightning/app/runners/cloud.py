@@ -384,14 +384,14 @@ class CloudRuntime(Runtime):
                 cleanup_handle()
 
     @classmethod
-    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+    def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
 
         # Pretend we are running in the cloud when loading the app locally
         os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
 
         try:
-            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True, env_vars=env_vars)
         except FileNotFoundError as e:
             raise e
         except Exception:

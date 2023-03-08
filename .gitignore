@@ -191,6 +191,10 @@ data/
 .lightning
 node_modules/
 
+# examples
+**/events.out.tfevents.*
+examples/**/*.png
+
 # instalation artifacts
 requirements/base.txt
 
