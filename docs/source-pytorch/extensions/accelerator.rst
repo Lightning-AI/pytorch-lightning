@@ -39,7 +39,7 @@ Let's pretend we want to integrate the fictional XPU accelerator and we have acc
 
 
     class XPUAccelerator(Accelerator):
-        """Experimental support for XPU, optimized for large-scale machine learning."""
+        """Support for an hypothetical XPU, optimized for large-scale machine learning."""
 
         @staticmethod
         def parse_devices(devices: Any) -> Any:

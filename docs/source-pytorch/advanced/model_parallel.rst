@@ -53,11 +53,11 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
 
-Cutting-edge and Experimental Strategies
-========================================
+Cutting-edge and third-party Strategies
+=======================================
 
 Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
-If you want to be the first to try the latest and greatest experimental features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
+If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
 
 
 ----
@@ -193,8 +193,7 @@ Enable checkpointing on large layers (like Transformers) by providing the layer 
 DeepSpeed
 *********
 
-.. note::
-    The DeepSpeed strategy is in beta and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any issues.
+.. warning::  This is an experimental feature.
 
 `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
 Using the DeepSpeed strategy, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the `DeepSpeed docs <https://www.deepspeed.ai/tutorials/megatron/>`__.
