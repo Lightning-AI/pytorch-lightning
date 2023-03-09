@@ -989,7 +989,8 @@ class Trainer:
             torch.set_grad_enabled(True)
 
             with torch.autograd.set_detect_anomaly(self._detect_anomaly):
-                return self.fit_loop.run()
+                self.fit_loop.run()
+            return None
 
         raise RuntimeError(f"Unexpected state {self.state}")
 
