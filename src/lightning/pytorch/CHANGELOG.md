@@ -153,6 +153,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
 
 
+- The `ServableModule` is now an abstract interface ([#17000](https://github.com/Lightning-AI/lightning/pull/17000))
+
+
 ### Deprecated
 
 -
@@ -399,6 +402,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
 
+
+- Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16999](https://github.com/Lightning-AI/lightning/pull/16999))
+
+
+- Removed the unused `lightning.pytorch.utilities.memory.get_model_size_mb` function ([#17001](https://github.com/Lightning-AI/lightning/pull/17001))
 
 
 ### Fixed
