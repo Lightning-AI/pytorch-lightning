@@ -92,6 +92,10 @@ All steps combined, this is how your code will change:
 That's it! You can now train on any device at any scale with a switch of a flag.
 Check out our before-and-after example for `image classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_ and many more :doc:`examples <../examples/index>` that use Fabric.
 
+
+----
+
+
 **********
 Next steps
 **********
