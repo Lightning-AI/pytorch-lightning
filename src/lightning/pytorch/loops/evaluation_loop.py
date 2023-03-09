@@ -25,7 +25,7 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
-from lightning.pytorch.loops.progress import BatchProgress
+from lightning.pytorch.loops.progress import _BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import (
@@ -54,7 +54,7 @@ class _EvaluationLoop(_Loop):
         super().__init__(trainer)
         self.verbose = verbose
         self.inference_mode = inference_mode
-        self.batch_progress = BatchProgress()  # across dataloaders
+        self.batch_progress = _BatchProgress()  # across dataloaders
         self._max_batches: List[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
