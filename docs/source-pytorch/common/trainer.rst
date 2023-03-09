@@ -1239,6 +1239,7 @@ logged_metrics
 
 .. autoproperty:: lightning.pytorch.trainer.Trainer.logged_metrics
    :noindex:
+   :no-signature:
 
 progress_bar_metrics
 ********************
