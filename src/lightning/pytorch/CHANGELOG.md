@@ -153,6 +153,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
 
 
+- Removed the `lightning.pytorch.overrides.torch_distributed.broadcast_object_list` function ([#17011](https://github.com/Lightning-AI/lightning/pull/17011))
+
+
 - The `ServableModule` is now an abstract interface ([#17000](https://github.com/Lightning-AI/lightning/pull/17000))
 
 
