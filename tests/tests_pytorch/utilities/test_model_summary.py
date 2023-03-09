@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
 from collections import OrderedDict
+from typing import Any
 
 import pytest
 import torch
@@ -20,7 +20,13 @@ import torch.nn as nn
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.model_summary.model_summary import ModelSummary, summarize, UNKNOWN_SIZE, NON_LAYER_PARAMS_NAME, NOT_APPLICABLE
+from lightning.pytorch.utilities.model_summary.model_summary import (
+    ModelSummary,
+    NON_LAYER_PARAMS_NAME,
+    NOT_APPLICABLE,
+    summarize,
+    UNKNOWN_SIZE,
+)
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -137,8 +143,10 @@ class DeepNestedModel(LightningModule):
     def forward(self, inp):
         return self.head(self.branch1(inp), self.branch2(inp))
 
+
 class NonLayerParamsModel(LightningModule):
-    """A model with parameters not associated with pytorch layer"""
+    """A model with parameters not associated with pytorch layer."""
+
     def __init__(self):
         super().__init__()
         self.param = torch.nn.Parameter(torch.ones(2, 2))
@@ -146,7 +154,7 @@ class NonLayerParamsModel(LightningModule):
         self.example_input_array = torch.ones(2, 2)
 
     def forward(self, inp):
-        self.layer(self.param @ inp)  
+        self.layer(self.param @ inp)
 
 
 def test_invalid_max_depth():
@@ -370,6 +378,7 @@ def test_summary_data_output(example_input):
     summary_data = summary._get_summary_data()
     for column_name, entries in summary_data:
         assert all(isinstance(entry, str) for entry in entries)
+
 
 def test_summary_data_with_non_layer_params():
     summary = summarize(NonLayerParamsModel())
