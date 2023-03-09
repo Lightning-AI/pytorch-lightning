@@ -23,8 +23,7 @@ runs:
   steps:
 
   - name: install assitant's deps
-    run: |
-      pip install fire requests packaging
+    run: pip install fire requests packaging
     shell: bash
 
   - name: Set min. dependencies
@@ -34,16 +33,16 @@ runs:
 
   - name: Determine caches
     id: cache_dirs
-    run: |
-      echo "pip_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+    run: echo "pip_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     shell: bash
 
   - name: Cache 💽 pip
     uses: actions/cache@v3
     with:
       path: ${{ steps.cache_dirs.outputs.pip_dir }}
-      key: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
-      restore-keys: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
+      key: py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
+      restore-keys: py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
+      enableCrossOsArchive: true
 
   - name: Cache 💽 conda
     uses: actions/cache@v3

@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python 🐍
       uses: actions/setup-python@v4
       with:
-          python-version: 3.7
+          python-version: 3.8
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -38,21 +38,15 @@ jobs:
         pip install -e . -U -q -r requirements/docs.txt \
           -f https://download.pytorch.org/whl/cpu/torch_stable.html
         # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
-        sudo apt-get update
+        sudo apt-get update --fix-missing
         sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
         pip --version
         pip list
       shell: bash
 
-    - name: Print 🖨️ dependencies
-      uses: ./.github/actions/pip-list
-
     - name: Make Documentation
-      run: |
-        cd docs
-        make clean
-        # First run the same pipeline as Read-The-Docs
-        make html --jobs 2
+      working-directory: ./docs
+      run: make html --jobs 2
 
     - name: Deploy 🚀
       uses: JamesIves/github-pages-deploy-action@v4.4.1

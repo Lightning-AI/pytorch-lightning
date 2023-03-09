@@ -10,9 +10,9 @@ inputs:
     description: 'Import name to test with after installation'
     required: true
   pip-flags:
-    description: additional pil install flags
+    description: additional pip install flags
     required: false
-    default: ""
+    default: "-f https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 runs:
   using: "composite"

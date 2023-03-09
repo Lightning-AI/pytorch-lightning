@@ -19,7 +19,7 @@ on:
         description: 'Additional pip install flags'
         required: false
         type: string
-        default: ""
+        default: "-f https://download.pytorch.org/whl/cpu/torch_stable.html"
       build-matrix:
         description: 'what building configs in json format'
         required: false

@@ -36,6 +36,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  TORCH_URL: "https://download.pytorch.org/whl/torch_stable.html"
+
 jobs:
 
   docs-test:
@@ -54,8 +57,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e . -U -r ${{ inputs.requirements-file }} \
-          -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -e . -U -r ${{ inputs.requirements-file }} -f ${TORCH_URL}
         pip --version
         pip list
       shell: bash
@@ -88,8 +90,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e . -U -r ${{ inputs.requirements-file }} \
-          -f https://download.pytorch.org/whl/torch_stable.html
+        pip install -e . -U -r ${{ inputs.requirements-file }} -f ${TORCH_URL}
         sudo apt-get update --fix-missing
         sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
         python --version
