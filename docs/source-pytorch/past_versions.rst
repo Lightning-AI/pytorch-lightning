@@ -1,7 +1,7 @@
-Past PyTorch lightning versions
+Past PyTorch Lightning versions
 ===============================
 
-The Pytorch Lightning evolved over time so to keep track, let us share brief version history list with links to particular docs of the given version.
+Pytorch Lightning evolved over time. Here's the full history of PyTorch Lightning versions with links to the respective docs.
 
 
 .. list-table:: Past versions
@@ -10,7 +10,7 @@ The Pytorch Lightning evolved over time so to keep track, let us share brief ver
 
    * - Version
      - Title
-     - Particular Bug-fix versions
+     - Bug-fix versions
 
    * - `1.9 <https://github.com/Lightning-AI/lightning/releases/tag/1.9.0>`_
      - `Stability and additional improvements <https://pytorch-lightning.readthedocs.io/en/1.9.3>`_
