@@ -76,7 +76,7 @@ log = logging.getLogger(__name__)
 _LITERAL_WARN = Literal["warn"]
 
 
-class AcceleratorConnector:
+class _AcceleratorConnector:
     def __init__(
         self,
         devices: Union[List[int], str, int] = "auto",

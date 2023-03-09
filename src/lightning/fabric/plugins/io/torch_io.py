@@ -27,7 +27,10 @@ log = logging.getLogger(__name__)
 
 class TorchCheckpointIO(CheckpointIO):
     """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
-    respectively, common for most use cases."""
+    respectively, common for most use cases.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

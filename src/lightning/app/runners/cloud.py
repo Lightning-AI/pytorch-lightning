@@ -80,6 +80,7 @@ from lightning.app.core.constants import (
     get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
+    SYS_CUSTOMIZATIONS_SYNC_ROOT,
 )
 from lightning.app.core.work import LightningWork
 from lightning.app.runners.backends.cloud import CloudBackend
@@ -223,6 +224,9 @@ class CloudRuntime(Runtime):
         name = self._resolve_run_name(name, existing_instances)
         queue_server_type = self._resolve_queue_server_type()
 
+        # If system customization files found, it will set their location path
+        sys_customizations_sync_root = self._resolve_env_root()
+
         self.app._update_index_file()
 
         # Validation
@@ -238,6 +242,10 @@ class CloudRuntime(Runtime):
         works = self._get_works()
         run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
+
+        # If the system customization root is set, prepare files for environment synchronization
+        if sys_customizations_sync_root is not None:
+            repo.prepare_sys_customizations_sync(sys_customizations_sync_root)
 
         # API transactions
         run = self._api_create_run(project_id, cloudspace_id, run_body)
@@ -384,14 +392,14 @@ class CloudRuntime(Runtime):
                 cleanup_handle()
 
     @classmethod
-    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+    def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
 
         # Pretend we are running in the cloud when loading the app locally
         os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
 
         try:
-            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True, env_vars=env_vars)
         except FileNotFoundError as e:
             raise e
         except Exception:
@@ -422,6 +430,13 @@ class CloudRuntime(Runtime):
         if root.is_file():
             root = root.parent
         return root
+
+    def _resolve_env_root(self) -> Optional[Path]:
+        """Determine whether the root of environment sync files exists."""
+        root = Path(SYS_CUSTOMIZATIONS_SYNC_ROOT)
+        if root.exists():
+            return root
+        return None
 
     def _resolve_open_ignore_functions(self) -> List[_IGNORE_FUNCTION]:
         """Used by the ``open`` method.
