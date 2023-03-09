@@ -21,8 +21,8 @@ import torch.nn as nn
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import (
-    ModelSummary,
     LEFTOVER_PARAMS_NAME,
+    ModelSummary,
     NOT_APPLICABLE,
     summarize,
     UNKNOWN_SIZE,

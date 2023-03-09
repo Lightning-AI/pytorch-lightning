@@ -25,7 +25,7 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     get_human_readable_count,
     LayerSummary,
     ModelSummary,
-    NOT_APPLICABLE
+    NOT_APPLICABLE,
 )
 
 
@@ -102,7 +102,7 @@ class DeepSpeedSummary(ModelSummary):
             self._add_leftover_params_to_summary(arrays, total_leftover_params)
 
         return arrays
-    
+
     def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int):
         """Add summary of params not associated with module or layer to model summary."""
         super()._add_leftover_params_to_summary(arrays, total_leftover_params)
