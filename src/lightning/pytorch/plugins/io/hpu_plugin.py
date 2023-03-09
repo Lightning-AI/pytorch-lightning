@@ -24,7 +24,10 @@ from lightning.fabric.utilities.types import _PATH
 
 
 class HPUCheckpointIO(TorchCheckpointIO):
-    """CheckpointIO to save checkpoints for HPU training strategies."""
+    """CheckpointIO to save checkpoints for HPU training strategies.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

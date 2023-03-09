@@ -49,19 +49,19 @@ from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
-from lightning.pytorch.trainer.configuration_validator import verify_loop_configurations
+from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
+    _AcceleratorConnector,
     _LITERAL_WARN,
     _PRECISION_INPUT,
     _PRECISION_INPUT_STR,
-    AcceleratorConnector,
 )
-from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
-from lightning.pytorch.trainer.connectors.checkpoint_connector import CheckpointConnector
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
+from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
+from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
-from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
@@ -388,9 +388,9 @@ class Trainer:
                 num_sanity_val_steps = 2
 
         # init connectors
-        self._data_connector = DataConnector(self)
+        self._data_connector = _DataConnector(self)
 
-        self._accelerator_connector = AcceleratorConnector(
+        self._accelerator_connector = _AcceleratorConnector(
             devices=devices,
             accelerator=accelerator,
             strategy=strategy,
@@ -402,10 +402,10 @@ class Trainer:
             precision=precision,
             plugins=plugins,
         )
-        self._logger_connector = LoggerConnector(self)
-        self._callback_connector = CallbackConnector(self)
-        self._checkpoint_connector = CheckpointConnector(self)
-        self._signal_connector = SignalConnector(self)
+        self._logger_connector = _LoggerConnector(self)
+        self._callback_connector = _CallbackConnector(self)
+        self._checkpoint_connector = _CheckpointConnector(self)
+        self._signal_connector = _SignalConnector(self)
 
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
@@ -861,7 +861,7 @@ class Trainer:
         self._callback_connector._attach_model_callbacks()
         self._callback_connector._attach_model_logging_functions()
 
-        verify_loop_configurations(self)
+        _verify_loop_configurations(self)
 
         # hook
         log.debug(f"{self.__class__.__name__}: preparing data")
@@ -965,43 +965,34 @@ class Trainer:
         self._signal_connector.teardown()
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+        # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
 
         if self.evaluating:
-            return self._run_evaluate()
+            with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
+                eval_loop_results = self._evaluation_loop.run()
+            # remove the tensors from the eval results
+            return convert_tensors_to_scalars(eval_loop_results)
+
         if self.predicting:
             return self.predict_loop.run()
-        self._run_train()
 
-    def _pre_training_routine(self) -> None:
-        # wait for all to join if on distributed
-        self.strategy.barrier("setup_training")
+        if self.training:
+            self._signal_connector.register_signal_handlers()
 
-        # register signals
-        self._signal_connector.register_signal_handlers()
+            with isolate_rng():
+                self._run_sanity_check()
 
-    def _run_train(self) -> None:
-        self._pre_training_routine()
+            # enable train mode
+            assert self.model is not None
+            self.model.train()
+            torch.set_grad_enabled(True)
 
-        with isolate_rng():
-            self._run_sanity_check()
+            with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+                self.fit_loop.run()
+            return None
 
-        # enable train mode
-        assert self.model is not None
-        self.model.train()
-        torch.set_grad_enabled(True)
-
-        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
-            self.fit_loop.run()
-
-    def _run_evaluate(self) -> _EVALUATE_OUTPUT:
-        assert self.evaluating
-
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._evaluation_loop.run()
-
-        # remove the tensors from the eval results
-        return convert_tensors_to_scalars(eval_loop_results)
+        raise RuntimeError(f"Unexpected state {self.state}")
 
     def _run_sanity_check(self) -> None:
         val_loop = self.fit_loop.epoch_loop.val_loop

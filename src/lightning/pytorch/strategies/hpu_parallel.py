@@ -38,7 +38,10 @@ log = logging.getLogger(__name__)
 
 
 class HPUParallelStrategy(DDPStrategy):
-    """Strategy for distributed training on multiple HPU devices."""
+    """Strategy for distributed training on multiple HPU devices.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     strategy_name = "hpu_parallel"
 

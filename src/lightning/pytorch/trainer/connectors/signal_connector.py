@@ -22,7 +22,7 @@ _HANDLER = Union[Callable[[_SIGNUM, FrameType], Any], int, signal.Handlers, None
 log = logging.getLogger(__name__)
 
 
-class HandlersCompose:
+class _HandlersCompose:
     def __init__(self, signal_handlers: Union[List[_HANDLER], _HANDLER]) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
@@ -36,7 +36,7 @@ class HandlersCompose:
                 signal_handler(signum, frame)
 
 
-class SignalConnector:
+class _SignalConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.received_sigterm = False
         self.trainer = trainer
@@ -60,12 +60,12 @@ class SignalConnector:
             sigusr = environment.requeue_signal if isinstance(environment, SLURMEnvironment) else signal.SIGUSR1
             assert sigusr is not None
             if sigusr_handlers and not self._has_already_handler(sigusr):
-                self._register_signal(sigusr, HandlersCompose(sigusr_handlers))
+                self._register_signal(sigusr, _HandlersCompose(sigusr_handlers))
 
             # we have our own handler, but include existing ones too
             if self._has_already_handler(signal.SIGTERM):
                 sigterm_handlers.append(signal.getsignal(signal.SIGTERM))
-            self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
+            self._register_signal(signal.SIGTERM, _HandlersCompose(sigterm_handlers))
 
     def _slurm_sigusr_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
         rank_zero_info(f"Handling auto-requeue signal: {signum}")
@@ -119,7 +119,7 @@ class SignalConnector:
         log.info(f"Bypassing SIGTERM: {signum}")
 
     def teardown(self) -> None:
-        """Restores the signals that were previously configured before :class:`SignalConnector` replaced them."""
+        """Restores the signals that were previously configured before :class:`_SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
             if handler is not None:
                 self._register_signal(signum, handler)
@@ -128,7 +128,7 @@ class SignalConnector:
     @staticmethod
     def _get_current_signal_handlers() -> Dict[_SIGNUM, _HANDLER]:
         """Collects the currently assigned signal handlers."""
-        valid_signals = SignalConnector._valid_signals()
+        valid_signals = _SignalConnector._valid_signals()
         if not _IS_WINDOWS:
             # SIGKILL and SIGSTOP are not allowed to be modified by the user
             valid_signals -= {signal.SIGKILL, signal.SIGSTOP}

@@ -18,6 +18,11 @@ else:
 
 
 class TorchCollective(Collective):
+    """Collective operations using `torch.distributed <https://pytorch.org/docs/stable/distributed.html>`__.
+
+    .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
+    """
+
     manages_default_group = False
 
     def __init__(self) -> None:
