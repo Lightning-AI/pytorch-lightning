@@ -228,7 +228,6 @@ class ModelSummary:
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
-
     @property
     def total_parameters(self) -> int:
         return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
