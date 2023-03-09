@@ -1970,6 +1970,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         trainer.state.fn = "test"
         fn = trainer.test_loop.setup_data
     else:
+        trainer.state.fn = "predict"
         fn = trainer.predict_loop.setup_data
 
     # with no limit, the attribute is None

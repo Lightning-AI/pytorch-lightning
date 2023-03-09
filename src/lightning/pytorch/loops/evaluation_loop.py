@@ -28,10 +28,17 @@ from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
+from lightning.pytorch.trainer.connectors.data_connector import (
+    _DataLoaderSource,
+    _parse_num_batches,
+    _process_dataloader,
+    _request_dataloader,
+    _resolve_overfit_batches,
+)
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 
@@ -115,8 +122,9 @@ class _EvaluationLoop(_Loop):
 
     def setup_data(self) -> None:
         trainer = self.trainer
+        trainer_fn = trainer.state.fn
 
-        if self._combined_loader is not None and trainer.state.fn == "fit" and not self._should_reload_val_dl:
+        if self._combined_loader is not None and trainer_fn == "fit" and not self._should_reload_val_dl:
             return
 
         source = self._data_source
@@ -128,7 +136,7 @@ class _EvaluationLoop(_Loop):
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         # it should not reload again if it has already reloaded during sanity_check
-        if trainer.state.fn == "fit" and (
+        if trainer_fn == "fit" and (
             (trainer.sanity_checking and trainer.fit_loop.epoch_loop._should_check_val_epoch())
             or not trainer.sanity_checking
         ):
@@ -136,12 +144,34 @@ class _EvaluationLoop(_Loop):
 
         stage = trainer.state.stage
         assert stage is not None
-        self._max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
 
-        if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
-            for dl in combined_loader.flattened:
-                # some users want validation shuffling based on the training progress
-                _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
+        dataloaders = _request_dataloader(source)
+        trainer.strategy.barrier(f"{stage.dataloader_prefix}_dataloader()")
+
+        if not isinstance(dataloaders, CombinedLoader):
+            combined_loader = CombinedLoader(dataloaders, "sequential")
+        else:
+            combined_loader = dataloaders
+
+        if trainer_fn == "fit" and trainer.overfit_batches > 0:
+            _resolve_overfit_batches(combined_loader, stage)
+
+        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+
+        dataloaders = []
+        self._max_batches = []
+        for dl in combined_loader.flattened:
+            dl = _process_dataloader(trainer, dl)
+            dataloaders.append(dl)
+
+            # determine number of batches
+            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+            limit_batches = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
+            num_batches = _parse_num_batches(stage, length, limit_batches)
+            self._max_batches.append(num_batches)
+        combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
 
         # this depends on the data used, so reset it too
