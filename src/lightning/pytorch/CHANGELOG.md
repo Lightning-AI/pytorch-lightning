@@ -62,6 +62,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `DDPStrategy(start_method=...)` argument, defaulting to 'popen' ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
+
+- The Trainer's signal handlers are now registered for `trainer.{validate,test,predict}` ([#17017](https://github.com/Lightning-AI/lightning/pull/17017))
+
 ### Changed
 
 
