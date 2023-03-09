@@ -31,6 +31,8 @@ warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
+NON_LAYER_PARAMS_NAME = "other params"
+NOT_APPLICABLE = "n/a"
 
 
 class LayerSummary:
@@ -226,6 +228,7 @@ class ModelSummary:
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
+
     @property
     def total_parameters(self) -> int:
         return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
@@ -235,6 +238,10 @@ class ModelSummary:
         return sum(
             p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
         )
+
+    @property
+    def total_non_layer_params(self) -> int:
+        return self.total_parameters - sum(self.param_nums)
 
     @property
     def model_size(self) -> float:
@@ -293,7 +300,21 @@ class ModelSummary:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
+        total_non_layer_params = self.total_non_layer_params
+        if total_non_layer_params > 0:
+            self._add_non_layer_params_to_summary(arrays, total_non_layer_params)
+
         return arrays
+
+    def _add_non_layer_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_non_layer_params: int):
+        """Add summary of params not associated with module or layer to model summary."""
+        layer_summaries = OrderedDict(arrays)
+        layer_summaries[" "].append(str(len(self._layer_summary) + 1))
+        layer_summaries["Name"].append(NON_LAYER_PARAMS_NAME)
+        layer_summaries["Type"].append(NOT_APPLICABLE)
+        layer_summaries["Params"].append(get_human_readable_count(total_non_layer_params))
+        layer_summaries["In sizes"].append(NOT_APPLICABLE)
+        layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 
     def __str__(self) -> str:
         arrays = self._get_summary_data()
