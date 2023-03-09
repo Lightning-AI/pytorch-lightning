@@ -31,7 +31,7 @@ warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
-NON_LAYER_PARAMS_NAME = "other params"
+LEFTOVER_PARAMS_NAME = "other params"
 NOT_APPLICABLE = "n/a"
 
 
@@ -242,8 +242,8 @@ class ModelSummary:
         )
 
     @property
-    def total_non_layer_params(self) -> int:
-        return self.total_parameters - sum(self.param_nums)
+    def total_layer_params(self) -> int:
+        return sum(self.param_nums)
 
     @property
     def model_size(self) -> float:
@@ -302,19 +302,19 @@ class ModelSummary:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
-        total_non_layer_params = self.total_non_layer_params
-        if total_non_layer_params > 0:
-            self._add_non_layer_params_to_summary(arrays, total_non_layer_params)
+        total_leftover_params = self.total_parameters - self.total_layer_params
+        if total_leftover_params > 0:
+            self._add_leftover_params_to_summary(arrays, total_leftover_params)
 
         return arrays
 
-    def _add_non_layer_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_non_layer_params: int):
+    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int):
         """Add summary of params not associated with module or layer to model summary."""
-        layer_summaries = OrderedDict(arrays)
+        layer_summaries = dict(arrays)
         layer_summaries[" "].append(str(len(self._layer_summary) + 1))
-        layer_summaries["Name"].append(NON_LAYER_PARAMS_NAME)
+        layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
         layer_summaries["Type"].append(NOT_APPLICABLE)
-        layer_summaries["Params"].append(get_human_readable_count(total_non_layer_params))
+        layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
         layer_summaries["In sizes"].append(NOT_APPLICABLE)
         layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 

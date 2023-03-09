@@ -22,7 +22,7 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import (
     ModelSummary,
-    NON_LAYER_PARAMS_NAME,
+    LEFTOVER_PARAMS_NAME,
     NOT_APPLICABLE,
     summarize,
     UNKNOWN_SIZE,
@@ -383,7 +383,7 @@ def test_summary_data_output(example_input):
 def test_summary_data_with_non_layer_params():
     summary = summarize(NonLayerParamsModel())
     summary_data = OrderedDict(summary._get_summary_data())
-    assert summary_data["Name"][-1] == NON_LAYER_PARAMS_NAME
+    assert summary_data["Name"][-1] == LEFTOVER_PARAMS_NAME
     assert summary_data["Type"][-1] == NOT_APPLICABLE
     assert int(summary_data["Params"][-1]) == 4
     assert summary_data["In sizes"][-1] == NOT_APPLICABLE
@@ -391,4 +391,4 @@ def test_summary_data_with_non_layer_params():
 
     summary = summarize(PreCalculatedModel())
     summary_data = OrderedDict(summary._get_summary_data())
-    assert summary_data["Name"][-1] != NON_LAYER_PARAMS_NAME
+    assert summary_data["Name"][-1] != LEFTOVER_PARAMS_NAME
