@@ -37,15 +37,18 @@ For stable APIs, all of the following are true:
 Experimental API
 ----------------
 
-Experimental APIs are labelled as experimental in their documentation or docstrings and are considered unstable and are discouraged from use in production.
+Experimental APIs are labelled as experimental in their documentation or docstrings.
 For experimental features, any of the following may be true:
 
-- The feature has unstable dependencies.
+- The feature uses dependencies that are under active development and may change outside our control.
 - The API may change without notice in future versions.
 - The performance of the feature has not been verified.
-- The docs for this feature are under active development.
+- The feature has not been battle tested by the core team in production scenarios.
+- The feature is under active development.
 
-We may still add deprecation warnings for some experimental API changes, but this is not guaranteed.
+While we may still issue deprecation warnings for experimental API changes, this is not guaranteed.
+Therefore, it is important to be cautious when using experimental features and be prepared to modify your code if the
+API changes in a future release. In this case, you might want to pin your dependencies to avoid unexpected issues.
 
 API Evolution
 *************
