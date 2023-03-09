@@ -26,5 +26,3 @@ The Pytorch Lightning evolved over time so to keep track, let us share brief ver
        `1.8.4 <https://pytorch-lightning.readthedocs.io/en/1.9.4>`_,
        `1.8.5 <https://pytorch-lightning.readthedocs.io/en/1.9.5>`_,
        `1.8.6 <https://pytorch-lightning.readthedocs.io/en/1.9.6>`_
-
-
