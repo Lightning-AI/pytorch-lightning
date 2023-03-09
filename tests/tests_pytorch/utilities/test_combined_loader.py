@@ -25,6 +25,7 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import (
     _MaxSize,
     _MaxSizeCycle,
@@ -399,7 +400,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.state.fn = "fit"
-    trainer.state.stage = "train"
+    trainer.state.stage = RunningStage.TRAINING
     trainer.fit_loop.setup_data()
 
     samplers_flattened = tree_flatten(combined_loader.sampler)[0]
@@ -416,7 +417,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
 
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
 @pytest.mark.parametrize("use_distributed_sampler", (False, True))
-def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distributed_sampler):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerator, use_distributed_sampler):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
     trainer = Trainer(
@@ -429,7 +430,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
     )
     trainer.strategy.connect(model)
     trainer.state.fn = "fit"
-    trainer.state.stage = "train"
+    trainer.state.stage = RunningStage.TRAINING
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
@@ -448,7 +449,16 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
         assert len(combined_loader) == length
 
         trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
-        trainer.fit_loop.setup_data(shuffle=False)
+
+        original_process_dataloader = trainer._data_connector._prepare_dataloader
+
+        def non_shuffle_process_dataloader(dl, shuffle, mode):
+            # avoid shuffling
+            return original_process_dataloader(dl, False, mode)
+
+        monkeypatch.setattr(trainer._data_connector, "_prepare_dataloader", non_shuffle_process_dataloader)
+        trainer.fit_loop.setup_data()
+        monkeypatch.undo()
 
         assert len(combined_loader) == length // 2 if use_distributed_sampler else length
         if use_distributed_sampler:
@@ -514,7 +524,8 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
         if use_distributed_sampler
         else expected_length_before_ddp
     )
-    trainer.state.stage = "train"
+    trainer.state.fn = "fit"
+    trainer.state.stage = RunningStage.TRAINING
     trainer.fit_loop.setup_data()
     assert trainer.train_dataloader is not None
     assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)
