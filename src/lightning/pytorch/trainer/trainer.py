@@ -978,7 +978,6 @@ class Trainer:
             return self.predict_loop.run()
 
         if self.training:
-            # register signals
             self._signal_connector.register_signal_handlers()
 
             with isolate_rng():
@@ -990,7 +989,9 @@ class Trainer:
             torch.set_grad_enabled(True)
 
             with torch.autograd.set_detect_anomaly(self._detect_anomaly):
-                self.fit_loop.run()
+                return self.fit_loop.run()
+
+        raise RuntimeError(f"Unexpected state {self.state}")
 
     def _run_sanity_check(self) -> None:
         val_loop = self.fit_loop.epoch_loop.val_loop
