@@ -22,7 +22,7 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
-from lightning.pytorch.loops.progress import Progress
+from lightning.pytorch.loops.progress import _Progress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
@@ -49,7 +49,7 @@ class _PredictionLoop(_Loop):
         # dataloaders x batches x samples. used by PredictionWriter
         self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
-        self.batch_progress = Progress()  # across dataloaders
+        self.batch_progress = _Progress()  # across dataloaders
         self.max_batches: List[Union[int, float]] = []
 
         self._warning_cache = WarningCache()

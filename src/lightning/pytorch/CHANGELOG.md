@@ -101,6 +101,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Renamed `TQDMProgressBar.main_progress_bar` to `TQDMProgressBar.train_progress_bar` ([#16695](https://github.com/Lightning-AI/lightning/pull/16695))
 
+- Marked the progress tracking classes as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
+
+- Marked the `lightning.pytorch.trainer.configuration_validator.verify_loop_configurations` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
+
+- Marked the `lightning.pytorch.utiltiies.distirbuted.register_ddp_comm_hook` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
+
 - Marked `lightning.pytorch.utilities.supporters.CombinedDataset` as protected ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 
 - Marked the `{Accelerator,Signal,Callback,Checkpoint,Data,Logger}Connector` classes as protected ([#17008](https://github.com/Lightning-AI/lightning/pull/17008))

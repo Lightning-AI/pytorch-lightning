@@ -25,7 +25,7 @@ from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
-from lightning.pytorch.loops.progress import BaseProgress
+from lightning.pytorch.loops.progress import _BaseProgress
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import Strategy
 from lightning.pytorch.trainer.states import RunningStage
@@ -119,7 +119,7 @@ def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
 
 def _reset_progress(loop: _Loop) -> None:
     for v in vars(loop).values():
-        if isinstance(v, BaseProgress):
+        if isinstance(v, _BaseProgress):
             v.reset()
         elif isinstance(v, _Loop):
             _reset_progress(v)

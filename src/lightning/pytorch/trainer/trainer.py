@@ -49,7 +49,7 @@ from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
-from lightning.pytorch.trainer.configuration_validator import verify_loop_configurations
+from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
     _AcceleratorConnector,
     _LITERAL_WARN,
@@ -861,7 +861,7 @@ class Trainer:
         self._callback_connector._attach_model_callbacks()
         self._callback_connector._attach_model_logging_functions()
 
-        verify_loop_configurations(self)
+        _verify_loop_configurations(self)
 
         # hook
         log.debug(f"{self.__class__.__name__}: preparing data")
