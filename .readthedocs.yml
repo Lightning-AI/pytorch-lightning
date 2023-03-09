@@ -30,6 +30,7 @@ build:
   tools:
     python: "3.9"
   commands:
+    - pwd ; ls -lh ; ls -lh
     - pip install -r requirements/pytorch/docs.txt
     - pwd ; ls -lh ; ls -lh ./docs/source-redirect
     - cd ./docs/source-redirect ; make html --jobs 2
