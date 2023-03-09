@@ -30,4 +30,4 @@ build:
     python: "3.9"
   commands:
     - ls -lh .
-    - mkdir _readthedocs
+    - mkdir -p _readthedocs/html
