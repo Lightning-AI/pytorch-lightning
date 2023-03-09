@@ -1602,8 +1602,7 @@ class TestCloudspaceDispatch:
         ],
     )
     def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, monkeypatch):
-        """Tests that the cloudspace_dispatch method prepares environment sync files if they exist and calls the
-        expected API endpoints."""
+        """Tests that the cloudspace_dispatch method calls the expected API endpoints."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
             username="tester",
