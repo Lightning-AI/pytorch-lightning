@@ -136,10 +136,9 @@ class HPUParallelStrategy(DDPStrategy):
         os.environ.pop("HCCL_DISTRIBUTED_BACKEND", None)
 
 
-# type: ignore
 # The code underneath is taken from PyTorch `torch/distributed/distributed_c10d.py`
 # the distributed backend and tensor type updates for habana backend is done here before broadcast
-def _hpu_broadcast_object_list(object_list, src=0, group=None, device=None):
+def _hpu_broadcast_object_list(object_list, src=0, group=None, device=None):  # type: ignore
     from torch.distributed import _rank_not_in_group, Backend, broadcast, get_backend, get_rank
     from torch.distributed.distributed_c10d import _object_to_tensor, _tensor_to_object
 
