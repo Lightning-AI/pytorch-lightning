@@ -43,7 +43,10 @@ else:
 
 
 class IPUStrategy(ParallelStrategy):
-    """Plugin for training on IPU devices."""
+    """Plugin for training on IPU devices.
+
+    .. warning::  This is an experimental feature.
+    """
 
     strategy_name = "ipu_strategy"
 
