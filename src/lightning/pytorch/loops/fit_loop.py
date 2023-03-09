@@ -189,9 +189,6 @@ class _FitLoop(_Loop):
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
-        self.trainer.model.train()
-        torch.set_grad_enabled(True)
-
         self.setup_data()
         if self.skip:
             return
@@ -283,6 +280,10 @@ class _FitLoop(_Loop):
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
+        assert self.trainer.model is not None
+        self.trainer.model.train()
+        torch.set_grad_enabled(True)
+
         if self.restarting:
             self.epoch_progress.reset_on_restart()
 
