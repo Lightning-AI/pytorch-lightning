@@ -351,7 +351,8 @@ class _ResultCollection(dict):
         logger: bool = True,
         on_step: bool = False,
         on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
+        # https://github.com/pytorch/pytorch/issues/96197
+        reduce_fx: Callable = "mean" if _TORCH_GREATER_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
