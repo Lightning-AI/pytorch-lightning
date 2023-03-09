@@ -1,5 +1,3 @@
-:orphan:
-
 ################################
 Save memory with mixed precision
 ################################
@@ -15,7 +13,7 @@ Mixed precision training delivers significant computational speedup by conductin
 Switching to mixed precision has resulted in considerable training speedups since the introduction of Tensor Cores in the Volta and Turing architectures.
 It combines FP32 and lower-bit floating points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation.
 It accomplishes this by recognizing the steps that require complete accuracy and employing a 32-bit floating point for those steps only while using a 16-bit floating point for the rest.
-Compared to complete precision training, mixed precision training delivers all these benefits while ensuring no task-specific accuracy is lost [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
+Compared to complete precision training, mixed precision training delivers all these benefits while ensuring no task-specific accuracy is lost `[1] <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_.
 
 This is how you select the precision in Fabric:
 
@@ -108,7 +106,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 
 .. note::
 
-    BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
+    BFloat16 may not provide significant speedups or memory improvements, offering better numerical stability.
     For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
 
 

@@ -1,0 +1,18 @@
+mypy==0.982
+-f https://download.pytorch.org/whl/test/cpu/torch_test.html --pre
+torch==2.0.0
+
+types-Markdown
+types-PyYAML
+types-bleach
+types-cachetools
+types-croniter
+types-protobuf
+types-python-dateutil
+types-redis
+types-requests
+types-setuptools
+types-six
+types-toml
+types-tzlocal
+types-ujson

@@ -12,8 +12,7 @@ class Collective(ABC):
 
     Supports communications between multiple processes and multiple nodes. A collective owns a group.
 
-    .. warning::
-        This API is experimental and subject to change
+    .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
     """
 
     def __init__(self) -> None:
@@ -70,11 +69,11 @@ class Collective(ABC):
         ...
 
     @abstractmethod
-    def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
+    def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None:
         ...
 
     @abstractmethod
-    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
+    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
         ...
 
     @abstractmethod

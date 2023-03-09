@@ -1,16 +1,17 @@
-name: Check Docs
+name: Build Docs
 # https://github.com/marketplace/actions/sphinx-build
 
 on:
   push:
     branches: ["master", "release/*"]
+    tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
   pull_request_target:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
-      - ".github/workflows/docs-checks.yml"
+      - ".github/workflows/docs-build.yml"
       - "requirements/**"
       - "docs/**"
       - "src/**"
@@ -30,6 +31,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  PYPI_CACHE: "_pip-wheels"
 
 jobs:
   make-doctest:
@@ -56,17 +58,16 @@ jobs:
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache pip
-        uses: actions/cache@v3
+      - name: pip wheels cache
+        uses: actions/cache/restore@v3
         with:
-          path: ~/.cache/pip
-          key: docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: docs-test-${{ matrix.pkg-name }}-
+          path: ${{ env.PYPI_CACHE }}
+          key: pypi_wheels
 
-      - name: Install this package
+      - name: Install package
         run: |
+          mkdir -p $PYPI_CACHE
+          ls -lh $PYPI_CACHE
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
 
@@ -77,6 +78,7 @@ jobs:
         run: |
           make doctest
           make coverage
+
 
   make-html:
     runs-on: ubuntu-latest
@@ -102,17 +104,16 @@ jobs:
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache pip
-        uses: actions/cache@v3
+      - name: pip wheels cache
+        uses: actions/cache/restore@v3
         with:
-          path: ~/.cache/pip
-          key: docs-make-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
-          restore-keys: docs-make-
+          path: ${{ env.PYPI_CACHE }}
+          key: pypi_wheels
 
       - name: Install package & dependencies
         run: |
+          mkdir -p $PYPI_CACHE
+          ls -lh $PYPI_CACHE
           pip --version
           pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
           pip list
@@ -127,8 +128,53 @@ jobs:
         run: make linkcheck
         continue-on-error: true
 
+      - name: Keep artifact
+        id: keep-artifact
+        run: python -c "print('DAYS=' + str(7 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
+          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
+
+
+  deploy-docs:
+    needs: [make-doctest, make-html]
+    if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg-name: ["app", "fabric", "pytorch"]
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
+          path: docs/build/html/
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCS_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCS_PROJECT }}
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
+        if: startsWith(github.ref, 'refs/heads/release/')
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/stable
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/${{ matrix.pkg-name }}/latest to GCS 🪣
+        if: github.ref == 'refs/heads/master'
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}"

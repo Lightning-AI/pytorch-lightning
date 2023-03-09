@@ -1,5 +1,6 @@
 import logging
 import os
+import pathlib
 import re
 import sys
 from copy import copy
@@ -1592,7 +1593,15 @@ class TestOpen:
 
 
 class TestCloudspaceDispatch:
-    def test_cloudspace_dispatch(self, monkeypatch):
+    @mock.patch.object(pathlib.Path, "exists")
+    @pytest.mark.parametrize(
+        "custom_env_sync_path_value",
+        [
+            None,
+            Path("/tmp/sys-customizations-sync"),
+        ],
+    )
+    def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, monkeypatch):
         """Tests that the cloudspace_dispatch method calls the expected API endpoints."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
@@ -1617,12 +1626,17 @@ class TestCloudspaceDispatch:
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        mock_local_source = mock.MagicMock()
+        mock_repo = mock.MagicMock()
+        mock_local_source = mock.MagicMock(return_value=mock_repo)
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock_local_source)
+        custom_env_sync_root.return_value = custom_env_sync_path_value
 
         cloud_runtime = cloud.CloudRuntime(app=mock.MagicMock(), entrypoint=Path("."))
 
         cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+
+        if custom_env_sync_path_value is not None:
+            mock_repo.prepare_sys_customizations_sync.assert_called_once_with(custom_env_sync_path_value)
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
             project_id="project_id",
@@ -1766,6 +1780,21 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
     # Cleanup PATH to prevent conflict with other tests
     sys.path = path
     os.remove(app_file)
+
+
+def test_load_app_from_file():
+    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
+
+    app = CloudRuntime.load_app_from_file(
+        os.path.join(test_script_dir, "app_with_env.py"),
+    )
+    assert app.works[0].cloud_compute.name == "default"
+
+    app = CloudRuntime.load_app_from_file(
+        os.path.join(test_script_dir, "app_with_env.py"),
+        env_vars={"COMPUTE_NAME": "foo"},
+    )
+    assert app.works[0].cloud_compute.name == "foo"
 
 
 @pytest.mark.parametrize(

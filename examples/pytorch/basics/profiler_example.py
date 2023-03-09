@@ -22,7 +22,6 @@ visualized in 2 ways:
     2. tensorboard --logdir={FOLDER}
 """
 
-import sys
 from os import path
 
 import torch
@@ -34,15 +33,6 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
-DEFAULT_CMD_LINE = (
-    "fit",
-    "--trainer.max_epochs=1",
-    "--trainer.limit_train_batches=15",
-    "--trainer.limit_val_batches=15",
-    "--trainer.profiler=pytorch",
-    "--trainer.accelerator=gpu",
-    f"--trainer.devices={int(torch.cuda.is_available())}",
-)
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
 
@@ -102,15 +92,20 @@ class CIFAR10DataModule(LightningDataModule):
 
 
 def cli_main():
-    if len(sys.argv) == 1:
-        sys.argv += DEFAULT_CMD_LINE
-
-    LightningCLI(
+    cli = LightningCLI(
         ModelToProfile,
         CIFAR10DataModule,
         save_config_kwargs={"overwrite": True},
-        trainer_defaults={"profiler": PyTorchProfiler()},
+        trainer_defaults={
+            "profiler": PyTorchProfiler(),
+            "max_epochs": 1,
+            "limit_train_batches": 15,
+            "limit_val_batches": 15,
+            "accelerator": "gpu",
+        },
+        run=False,
     )
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
 
 if __name__ == "__main__":

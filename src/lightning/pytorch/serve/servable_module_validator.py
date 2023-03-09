@@ -26,9 +26,7 @@ _logger = logging.getLogger(__name__)
 class ServableModuleValidator(Callback):
     """The ServableModuleValidator validates to validate a model correctly implement the ServableModule API.
 
-    .. warning::
-
-        This is currently an experimental feature and API changes are to be expected.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Arguments:
         optimization: The format in which the model should be tested while being served.

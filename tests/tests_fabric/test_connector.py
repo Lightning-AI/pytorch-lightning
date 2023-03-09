@@ -22,8 +22,6 @@ import pytest
 import torch
 import torch.distributed
 from lightning_utilities.test.warning import no_warning_call
-from tests_fabric.conftest import mock_tpu_available
-from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
 from lightning.fabric import Fabric
@@ -54,13 +52,9 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-
-
-def test_accelerator_choice_cpu():
-    connector = _Connector()
-    assert isinstance(connector.accelerator, CPUAccelerator)
-    assert isinstance(connector.strategy, SingleDeviceStrategy)
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from tests_fabric.conftest import mock_tpu_available
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(tpu=True, standalone=True)
@@ -262,13 +256,6 @@ def test_interactive_compatible_dp_strategy_gpu(_, __, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
-    monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", True)
-    connector = _Connector(accelerator="tpu")
-    assert connector.strategy.launcher.is_interactive_compatible
-
-
-@RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", True)
     connector = _Connector(strategy="ddp_fork", accelerator="cpu")
@@ -383,7 +370,7 @@ def test_set_devices_if_none_cpu():
 @RunIf(mps=False)
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        connector = _Connector(strategy="dp", devices=2)
+        connector = _Connector(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(connector.strategy, DDPStrategy)
 
 
@@ -497,9 +484,9 @@ def test_strategy_choice_ddp_spawn_cpu():
 @RunIf(skip_windows=True)
 @mock.patch("lightning.fabric.connector._IS_INTERACTIVE", True)
 def test_strategy_choice_ddp_fork_in_interactive():
-    """Test that when accelerator and strategy are unspecified, the connector chooses DDP Fork in interactive
-    environments by default."""
-    connector = _Connector(devices=2)
+    """Test that when strategy is unspecified, the connector chooses DDP Fork in interactive environments by
+    default."""
+    connector = _Connector(accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
@@ -670,24 +657,6 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(strategy=strategy, devices=8)
 
 
-@mock.patch("lightning.fabric.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
-@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_devices_auto_choice_cpu(tpu_available, *_):
-    connector = _Connector(accelerator="auto", devices="auto")
-    assert isinstance(connector.accelerator, CPUAccelerator)
-    assert isinstance(connector.strategy, SingleDeviceStrategy)
-    assert connector.strategy.root_device == torch.device("cpu")
-
-
-@RunIf(mps=False)
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_devices_auto_choice_gpu(*_):
-    connector = _Connector(accelerator="auto", devices="auto")
-    assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert len(connector._parallel_devices) == 2
-
-
 @RunIf(mps=True)
 def test_devices_auto_choice_mps():
     connector = _Connector(accelerator="auto", devices="auto")
@@ -782,7 +751,7 @@ def test_precision_selection_16_on_cpu_warns():
         UserWarning,
         match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
     ):
-        _Connector(precision="16-mixed")
+        _Connector(accelerator="cpu", precision="16-mixed")
 
 
 class MyAMP(MixedPrecision):
@@ -800,6 +769,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     if is_custom_plugin:
         plugin = plugin_cls("16-mixed", "cpu")
     connector = _Connector(
+        accelerator="cpu",
         precision="16-mixed",
         devices=devices,
         strategy=strategy,
@@ -849,7 +819,7 @@ def test_accelerator_strategy_from_environment(accelerator, strategy, expected_a
         env_vars["LT_STRATEGY"] = strategy
 
     with mock.patch.dict(os.environ, env_vars):
-        connector = _Connector()
+        connector = _Connector(accelerator="cpu" if accelerator is None else "auto")
         assert isinstance(connector.accelerator, expected_accelerator)
         assert isinstance(connector.strategy, expected_strategy)
 
@@ -893,7 +863,7 @@ def test_arguments_from_environment_collision():
 def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
-        _Connector(strategy="fsdp")
+        _Connector(accelerator="cpu", strategy="fsdp")
 
 
 def test_connector_defaults_match_fabric_defaults():
@@ -911,12 +881,22 @@ def test_connector_defaults_match_fabric_defaults():
         assert connector_default == fabric_defaults[name]
 
 
-def test_connector_auto_selection(monkeypatch):
+@pytest.mark.parametrize("is_interactive", (False, True))
+def test_connector_auto_selection(monkeypatch, is_interactive):
     no_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
     single_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
     multi_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=4)
     no_mps = mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
     single_mps = mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
+
+    def _mock_interactive():
+        monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", is_interactive)
+        monkeypatch.setattr(lightning.fabric.connector, "_IS_INTERACTIVE", is_interactive)
+        if _IS_WINDOWS:
+            # simulate fork support on windows
+            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
+    _mock_interactive()
 
     # CPU
     with no_cuda, no_mps, monkeypatch.context():
@@ -941,6 +921,9 @@ def test_connector_auto_selection(monkeypatch):
     assert isinstance(connector.accelerator, CUDAAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert connector._devices_flag == list(range(4))
+    assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+    assert connector.strategy._start_method == "fork" if is_interactive else "popen"
+    assert connector.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():
@@ -967,6 +950,7 @@ def test_connector_auto_selection(monkeypatch):
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
+    _mock_interactive()
 
     # Multi TPU
     with no_cuda, no_mps, monkeypatch.context():
@@ -975,6 +959,9 @@ def test_connector_auto_selection(monkeypatch):
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
+    assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+    assert connector.strategy.launcher._start_method == "fork"
+    assert connector.strategy.launcher.is_interactive_compatible
 
     # TPU and CUDA: prefers TPU
     with multi_cuda, no_mps, monkeypatch.context():
@@ -983,3 +970,6 @@ def test_connector_auto_selection(monkeypatch):
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
+    assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+    assert connector.strategy.launcher._start_method == "fork"
+    assert connector.strategy.launcher.is_interactive_compatible

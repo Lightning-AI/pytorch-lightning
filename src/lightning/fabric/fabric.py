@@ -67,7 +67,7 @@ class Fabric:
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
-        precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
+        precision: Double precision (``"64"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
             or bfloat16 precision AMP (``"bf16-mixed"``).
         plugins: One or several custom plugins
         callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
@@ -372,6 +372,19 @@ class Fabric:
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
     ) -> Optional[torch.Tensor]:
+        """Clip the gradients of the model to a given max value or max norm.
+
+        Args:
+            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
+            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
+                optimizer is referencing.
+            clip_val: If passed, gradients will be clipped to this value.
+            max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
+                no larger than the given value.
+            norm_type: The type of norm if `max_norm` was passed. Can be ``'inf'`` for infinity norm.
+                Default is the 2-norm.
+            error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
+        """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
                 "Only one of `clip_val` or `max_norm` can be set as this specifies the underlying clipping algorithm!"
@@ -595,6 +608,24 @@ class Fabric:
         return self._strategy.load_checkpoint(path=path, state=state)
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+        """Launch and initialize all the processes needed for distributed execution.
+
+        Args:
+            function: Optional function to launch when using a spawn/fork-based strategy, for example, when using the
+                XLA strategy (``accelerator="tpu"``). The function must accept at least one argument, to which
+                the Fabric object itself will be passed.
+            *args: Optional positional arguments to be passed to the function.
+            **kwargs: Optional keyword arguments to be passed to the function.
+
+        Returns:
+            Returns the output of the function that ran in worker process with rank 0.
+
+        The ``launch()`` method should only be used if you intend to specify accelerator, devices, and so on in
+        the code (programmatically). If you are launching with the Lightning CLI, ``lightning run model ...``, remove
+        ``launch()`` from your code.
+
+        ``launch()`` is a no-op when called multiple times and no function is passed in.
+        """
         if _is_using_cli():
             raise RuntimeError(
                 "This script was launched through the CLI, and processes have already been created. Calling "
@@ -678,7 +709,7 @@ class Fabric:
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
         """Helper function to seed everything without explicitly importing Lightning.
 
-        See :func:`lightning.pytorch.seed_everything` for more details.
+        See :func:`lightning.fabric.utilities.seed.seed_everything` for more details.
         """
         if workers is None:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new

@@ -92,7 +92,7 @@ def extract_batch_size(batch: BType) -> int:
 def has_len_all_ranks(
     dataloader: object,
     strategy: "pl.strategies.Strategy",
-    model: Union["pl.LightningModule", "pl.LightningDataModule"],
+    allow_zero_length_dataloader_with_multiple_devices: bool = False,
 ) -> TypeGuard[Sized]:
     """Checks if a given object has ``__len__`` method implemented on all aranks."""
     local_length = sized_len(dataloader)
@@ -113,7 +113,7 @@ def has_len_all_ranks(
             raise RuntimeError(
                 rank_prefixed_message(f"The `{dataloader_cls_name}` does not define a length.", strategy.global_rank)
             )
-        if not model.allow_zero_length_dataloader_with_multiple_devices:
+        if not allow_zero_length_dataloader_with_multiple_devices:
             raise RuntimeError(
                 f"`{dataloader_cls_name}` within local rank has zero length."
                 " Please make sure that it returns at least 1 batch."
