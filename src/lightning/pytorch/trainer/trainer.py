@@ -51,17 +51,17 @@ from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
 from lightning.pytorch.trainer.configuration_validator import verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
+    _AcceleratorConnector,
     _LITERAL_WARN,
     _PRECISION_INPUT,
     _PRECISION_INPUT_STR,
-    AcceleratorConnector,
 )
-from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
-from lightning.pytorch.trainer.connectors.checkpoint_connector import CheckpointConnector
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
+from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
+from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
-from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
@@ -388,9 +388,9 @@ class Trainer:
                 num_sanity_val_steps = 2
 
         # init connectors
-        self._data_connector = DataConnector(self)
+        self._data_connector = _DataConnector(self)
 
-        self._accelerator_connector = AcceleratorConnector(
+        self._accelerator_connector = _AcceleratorConnector(
             devices=devices,
             accelerator=accelerator,
             strategy=strategy,
@@ -402,10 +402,10 @@ class Trainer:
             precision=precision,
             plugins=plugins,
         )
-        self._logger_connector = LoggerConnector(self)
-        self._callback_connector = CallbackConnector(self)
-        self._checkpoint_connector = CheckpointConnector(self)
-        self._signal_connector = SignalConnector(self)
+        self._logger_connector = _LoggerConnector(self)
+        self._callback_connector = _CallbackConnector(self)
+        self._checkpoint_connector = _CheckpointConnector(self)
+        self._signal_connector = _SignalConnector(self)
 
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
