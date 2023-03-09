@@ -88,7 +88,7 @@ Fabric ships directly with Lightning. Install it with
 
     pip install lightning
 
-For alternative ways to install, read the `installation guide <https://pytorch-lightning.readthedocs.io/en/stable/starter/installation.html>`_.
+For alternative ways to install, read the :doc:`installation guide <fundamentals/installation>`.
 
 ----
 
@@ -263,13 +263,19 @@ Advanced Topics
 
     <div style="display:none">
 
-
 .. toctree::
     :maxdepth: 1
     :name: start
+    :caption: Get Started
+
+    Fabric in 5 minutes <fundamentals/convert>
+    Installation <fundamentals/installation>
+
+.. toctree::
+    :maxdepth: 1
+    :name: fundamentals
     :caption: Fundamentals
 
-    Getting Started <fundamentals/convert>
     Accelerators <fundamentals/accelerators>
     Code Structure <fundamentals/code_structure>
     Launch Distributed Training <fundamentals/launch>
