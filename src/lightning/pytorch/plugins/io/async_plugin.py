@@ -22,9 +22,7 @@ from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 class AsyncCheckpointIO(_WrappingCheckpointIO):
     """``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 
-    .. warning::
-
-        This is currently an experimental plugin/feature and API changes are to be expected.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
