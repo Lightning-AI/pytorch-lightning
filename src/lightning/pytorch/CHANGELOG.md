@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added "sequential" mode support to `CombinedLoader` to consume multiple iterables in sequence ([#16743](https://github.com/Lightning-AI/lightning/pull/16743), [#16784](https://github.com/Lightning-AI/lightning/pull/16784))
 
 
+- Added "max_size" mode support to `CombinedLoader` to consume multiple iterables entirely without cycling ([#16939](https://github.com/Lightning-AI/lightning/pull/16939)
+
+
 - Added a `Trainer(barebones=True)` argument where all features that may impact raw speed are disabled ([#16854](https://github.com/Lightning-AI/lightning/pull/16854))
 
 
@@ -145,6 +148,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - The `NeptuneLogger` now requires `neptune>=1.0.0` ([#16888](https://github.com/Lightning-AI/lightning/pull/16888))
+
+
+- Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
+
+
+- The `ServableModule` is now an abstract interface ([#17000](https://github.com/Lightning-AI/lightning/pull/17000))
 
 
 ### Deprecated
@@ -394,10 +403,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
 
 
+- Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16999](https://github.com/Lightning-AI/lightning/pull/16999))
+
+
+- Removed the unused `lightning.pytorch.utilities.memory.get_model_size_mb` function ([#17001](https://github.com/Lightning-AI/lightning/pull/17001))
+
 
 ### Fixed
 
 - Fixed an issue where `DistributedSampler.set_epoch` wasn't getting called during `trainer.predict` ([#16785](https://github.com/Lightning-AI/lightning/pull/16785), [#16826](https://github.com/Lightning-AI/lightning/pull/16826))
+
+
+- Fixed an issue with comparing torch versions when using a version of torch built from source ([#16657](https://github.com/Lightning-AI/lightning/pull/16657))
 
 
 ## [1.9.4] - 2023-03-01

@@ -61,6 +61,7 @@ src/pytorch_lightning/
 !src/*/MANIFEST.in
 !src/*/py.typed
 !src/*/README.md
+!src/*/*.info
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -189,6 +190,10 @@ data/
 .shared
 .lightning
 node_modules/
+
+# examples
+**/events.out.tfevents.*
+examples/**/*.png
 
 # instalation artifacts
 requirements/base.txt

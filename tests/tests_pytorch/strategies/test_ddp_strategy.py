@@ -22,7 +22,6 @@ from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
@@ -39,8 +38,6 @@ class BoringModelGPU(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-# TODO: https://github.com/pytorch/pytorch/issues/95668
-@pytest.mark.xfail(condition=_TORCH_GREATER_EQUAL_2_0, raises=AssertionError, reason="cuBLAS issue")
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(

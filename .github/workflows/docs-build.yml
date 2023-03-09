@@ -1,9 +1,10 @@
-name: Check Docs
+name: Build Docs
 # https://github.com/marketplace/actions/sphinx-build
 
 on:
   push:
     branches: ["master", "release/*"]
+    tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
   pull_request_target:
@@ -127,11 +128,16 @@ jobs:
         run: make linkcheck
         continue-on-error: true
 
+      - name: Keep artifact
+        id: keep-artifact
+        run: python -c "print('DAYS=' + str(7 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
+          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
 
   deploy-docs:
@@ -159,11 +165,16 @@ jobs:
           project_id: ${{ secrets.GCS_PROJECT }}
 
       # Uploading docs to GCS, so they can be served on lightning.ai
-      - name: Upload docs/stable to GCS 🪣
+      - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
         if: startsWith(github.ref, 'refs/heads/release/')
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
-      - name: Upload docs/latest to GCS 🪣
+      - name: Upload docs/${{ matrix.pkg-name }}/latest to GCS 🪣
         if: github.ref == 'refs/heads/master'
         run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}"

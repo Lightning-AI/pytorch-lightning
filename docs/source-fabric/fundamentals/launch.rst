@@ -15,7 +15,7 @@ To run your code distributed across many devices and many machines, you need to 
 Simple Launch
 *************
 
-You can configure and launch processes on your machine directly with Fabric's :meth:`~lightning_fabric.fabric.Fabric.launch` method:
+You can configure and launch processes on your machine directly with Fabric's :meth:`~lightning.fabric.fabric.Fabric.launch` method:
 
 .. code-block:: python
 

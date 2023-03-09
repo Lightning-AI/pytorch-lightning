@@ -142,7 +142,7 @@ class LightningWork:
             "_cloud_compute",
             "_display_name",
         }
-        self._parallel = parallel
+        self._parallel: bool = parallel
         self._host: str = host
         self._port: Optional[int] = port
         self._url: str = ""
@@ -150,8 +150,8 @@ class LightningWork:
         self._internal_ip: str = ""
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
-        self._name = ""
-        self._display_name = ""
+        self._name: str = ""
+        self._display_name: str = ""
         # The ``self._calls`` is used to track whether the run
         # method with a given set of input arguments has already been called.
         # Example of its usage:
@@ -166,13 +166,13 @@ class LightningWork:
         #    },
         #    ...
         # }
-        self._calls = {CacheCallsKeys.LATEST_CALL_HASH: None}
-        self._changes = {}
+        self._calls: dict = {CacheCallsKeys.LATEST_CALL_HASH: None}
+        self._changes: dict = {}
         self._raise_exception = raise_exception
-        self._paths = {}
+        self._paths: dict = {}
         self._request_queue: Optional[BaseQueue] = None
         self._response_queue: Optional[BaseQueue] = None
-        self._restarting = False
+        self._restarting: bool = False
         self._start_with_flow = start_with_flow
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
@@ -212,7 +212,7 @@ class LightningWork:
         """
         return self._internal_ip
 
-    def _on_init_end(self):
+    def _on_init_end(self) -> None:
         self._local_build_config.on_work_init(self)
         self._cloud_build_config.on_work_init(self, self._cloud_compute)
 
@@ -226,12 +226,12 @@ class LightningWork:
         return name in LightningWork._INTERNAL_STATE_VARS or not name.startswith("_")
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Returns the name of the LightningWork."""
         return self._name
 
     @property
-    def display_name(self):
+    def display_name(self) -> str:
         """Returns the display name of the LightningWork in the cloud.
 
         The display name needs to set before the run method of the work is called.
@@ -239,7 +239,7 @@ class LightningWork:
         return self._display_name
 
     @display_name.setter
-    def display_name(self, display_name: str):
+    def display_name(self, display_name: str) -> None:
         """Sets the display name of the LightningWork in the cloud."""
         if not self.has_started:
             self._display_name = display_name
@@ -440,7 +440,7 @@ class LightningWork:
 
             elif isinstance(value, Path):
                 value._attach_work(work=self)
-                value._attach_queues(self._request_queue, self._response_queue)
+                value._attach_queues(self._request_queue, self._response_queue)  # type: ignore[arg-type]
                 value._name = name
                 # In the init context, the full name of the Flow and Work is not known, i.e., we can't serialize
                 # the path without losing the information of origin and consumer. Hence, we delay the serialization
@@ -480,7 +480,7 @@ class LightningWork:
 
         super().__setattr__(name, value)
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str) -> Any:
         try:
             attr = object.__getattribute__(self, name)
         except AttributeError as e:
@@ -497,15 +497,15 @@ class LightningWork:
                 return self._wrap_run_for_caching(attr)
         return attr
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         if item in self.__dict__.get("_paths", {}) and not _is_init_context(self):
             path = Path.from_dict(self._paths[item])
             path._attach_work(work=self)
-            path._attach_queues(self._request_queue, self._response_queue)
+            path._attach_queues(self._request_queue, self._response_queue)  # type: ignore[arg-type]
             return path
         return self.__getattribute__(item)
 
-    def _call_hash(self, fn, args, kwargs) -> str:
+    def _call_hash(self, fn: Callable, args: Any, kwargs: Any) -> str:
         hash_args = args[1:] if len(args) > 0 and args[0] == self else args
         call_obj = {"args": hash_args, "kwargs": kwargs}
         # Note: Generate a hash as 167fe2e.
@@ -513,9 +513,9 @@ class LightningWork:
         # and to minimize hidden state size.
         return str(DeepHash(call_obj)[call_obj])[:7]
 
-    def _wrap_run_for_caching(self, fn):
+    def _wrap_run_for_caching(self, fn: Callable) -> Callable:
         @wraps(fn)
-        def new_fn(*args: Any, **kwargs: Any):
+        def new_fn(*args: Any, **kwargs: Any) -> Any:
             call_hash = self._call_hash(fn, args, kwargs)
 
             entered = call_hash in self._calls
@@ -536,11 +536,11 @@ class LightningWork:
         return new_fn
 
     @property
-    def changes(self):
+    def changes(self) -> dict:
         return self._changes.copy()
 
     @property
-    def state(self):
+    def state(self) -> dict:
         """Returns the current state of this LightningWork."""
         return {
             "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
@@ -550,11 +550,11 @@ class LightningWork:
         }
 
     @property
-    def state_vars(self):
+    def state_vars(self) -> dict:
         return {"vars": _sanitize_state({el: getattr(self, el) for el in self._state})}
 
     @property
-    def state_with_changes(self):
+    def state_with_changes(self) -> dict:
         return {
             "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
             # this may have the challenge that ret cannot be pickled, we'll need to handle this
@@ -562,7 +562,7 @@ class LightningWork:
             "changes": self.changes,
         }
 
-    def set_state(self, provided_state):
+    def set_state(self, provided_state: dict) -> None:
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
@@ -579,7 +579,7 @@ class LightningWork:
         self._calls = provided_state["calls"]
 
     @staticmethod
-    def _cleanup_calls(calls: Dict[str, Any]):
+    def _cleanup_calls(calls: Dict[str, Any]) -> None:
         # 1: Collect all the in_progress call hashes
         in_progress_call_hash = [k for k in list(calls) if k not in (CacheCallsKeys.LATEST_CALL_HASH)]
 
@@ -604,7 +604,7 @@ class LightningWork:
                         final_statuses.append(status)
                 calls[call_hash]["statuses"] = final_statuses
 
-    def start(self):
+    def start(self) -> None:
         """Starts LightingWork component via L.CloudCompute."""
         if self.status.stage == WorkStageStatus.STOPPED:
             raise Exception("A work can be started only once for now.")
@@ -612,14 +612,14 @@ class LightningWork:
         # This enables to start the run method with a phony input and exit.
         self.run(Action(method="start"))
 
-    def run(self, *args: Any, **kwargs: Any):
+    def run(self, *args: Any, **kwargs: Any) -> None:
         """Override to add your own logic.
 
         Raises:
             LightningPlatformException: If resource exceeds platform quotas or other constraints.
         """
 
-    def on_exception(self, exception: BaseException):
+    def on_exception(self, exception: BaseException) -> None:
         """Override to customize how to handle exception in the run method."""
         if self._raise_exception:
             raise exception
@@ -638,14 +638,14 @@ class LightningWork:
         status = {**timeout_statuses[-1], "timestamp": statuses[0]["timestamp"]}
         return WorkStatus(**status, count=len(timeout_statuses))
 
-    def on_exit(self):
+    def on_exit(self) -> None:
         """Override this hook to add your logic when the work is exiting.
 
         Note: This hook is not guaranteed to be called when running in the cloud.
         """
         pass
 
-    def stop(self):
+    def stop(self) -> None:
         """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
 
         This can only be called from a ``LightningFlow``.
@@ -658,9 +658,9 @@ class LightningWork:
         stop_status = make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
         self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
-        self._backend.stop_work(app, self)
+        self._backend.stop_work(app, self)  # type: ignore[arg-type]
 
-    def delete(self):
+    def delete(self) -> None:
         """Delete LightingWork component and shuts down hardware provisioned via L.CloudCompute.
 
         Locally, the work.delete() behaves as work.stop().
@@ -680,14 +680,14 @@ class LightningWork:
                 " first and then call it in your Flow."
             )
 
-    def _register_cloud_compute(self):
+    def _register_cloud_compute(self) -> None:
         internal_id = self.cloud_compute.id
         assert internal_id
         if internal_id not in _CLOUD_COMPUTE_STORE:
             _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
         _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)
 
-    def apply_flow_delta(self, delta: Delta):
+    def apply_flow_delta(self, delta: Delta) -> None:
         """Override to customize how the flow should update the work state."""
         # TODO: Add support for thread safe locking over JSON Serializable objects.
         if any(k not in ["values_changed", "type_changed"] for k in delta.to_dict()):

@@ -88,6 +88,26 @@ Optionally, explore other strategies too:
 ----
 
 
+****************
+Interactive Mode
+****************
+
+You can also let SLURM schedule a machine for you and then log in to the machine to run scripts manually.
+This is useful for development and debugging.
+If you set the job name to *bash* or *interactive*, and then log in and run scripts, Lightning's SLURM auto-detection will get bypassed and it can launch processes normally:
+
+.. code-block:: bash
+
+    # make sure to set `--job-name "interactive"`
+    srun --account <your-account> --pty bash --job-name "interactive" ...
+
+    # now run scripts normally
+    python train.py ...
+
+
+----
+
+
 ***************
 Troubleshooting
 ***************

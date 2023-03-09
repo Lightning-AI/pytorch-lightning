@@ -844,6 +844,13 @@ class Trainer:
             self.fit_loop.min_epochs = min_epochs
             self.fit_loop.max_epochs = max_epochs
 
+        if self.barebones:
+            # no progress bar in barebones can make it look like the Trainer hung
+            rank_zero_info(
+                "`Trainer(barebones=True)` started running. The progress bar is disabled so you might want to"
+                " manually print the progress in your model."
+            )
+
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -1565,10 +1572,11 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            stage = self.state.stage
+            state = self.state
+            self.state.fn = TrainerFn.FITTING
             self.training = True
             self.fit_loop.setup_data()
-            self.state.stage = stage
+            self.state = state
 
         total_batches = self.num_training_batches
 
