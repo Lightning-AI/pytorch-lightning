@@ -1,7 +1,7 @@
 Past PyTorch Lightning versions
 ===============================
 
-Pytorch Lightning evolved over time. Here's the full history of PyTorch Lightning versions with links to the respective docs.
+PyTorch Lightning evolved over time. Here's the complete history of versions with links to their respective docs.
 
 
 .. list-table:: Past versions
