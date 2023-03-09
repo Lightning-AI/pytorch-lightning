@@ -15,7 +15,6 @@ import multiprocessing
 import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
-from weakref import proxy
 
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -119,21 +118,8 @@ class DataConnector:
         )
         self.attach_datamodule(model, datamodule=datamodule)
 
-        trainer = self.trainer
-        fn = trainer.state.fn
-        # Validate that the required data sources are available
-        if fn == TrainerFn.FITTING:
-            _check_dataloader_none(train_dataloaders, trainer.fit_loop._data_source, fn)
-            # TODO(carmocca): fit's validation dataloaders should be checked too
-        elif fn == TrainerFn.VALIDATING:
-            _check_dataloader_none(val_dataloaders, trainer.validate_loop._data_source, fn)
-        elif fn == TrainerFn.TESTING:
-            _check_dataloader_none(test_dataloaders, trainer.test_loop._data_source, fn)
-        elif fn == TrainerFn.PREDICTING:
-            _check_dataloader_none(predict_dataloaders, trainer.predict_loop._data_source, fn)
-
         # Attach the trainer to the LightningModule
-        model.trainer = proxy(trainer)
+        model.trainer = self.trainer
 
     def attach_dataloaders(
         self,
@@ -265,7 +251,9 @@ def _get_distributed_sampler(
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
-    all_have_sequential_sampler = all(isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened)
+    all_have_sequential_sampler = all(
+        isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened if hasattr(dl, "sampler")
+    )
     if all_have_sequential_sampler:
         return
     rank_zero_warn(
@@ -273,7 +261,8 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
         f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
     )
     updated = [
-        _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) for dl in combined_loader.flattened
+        _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) if hasattr(dl, "dataset") else dl
+        for dl in combined_loader.flattened
     ]
     combined_loader.flattened = updated
 
@@ -304,11 +293,9 @@ class _DataLoaderSource:
         """
         if isinstance(self.instance, pl.LightningModule):
             return call._call_lightning_module_hook(self.instance.trainer, self.name, pl_module=self.instance)
-
         if isinstance(self.instance, pl.LightningDataModule):
-            method = getattr(self.instance, self.name)
-            return method()
-
+            assert self.instance.trainer is not None
+            return call._call_lightning_datamodule_hook(self.instance.trainer, self.name)
         assert self.instance is not None
         return self.instance
 
@@ -317,7 +304,7 @@ class _DataLoaderSource:
 
         If the source is a module it checks that the method with given :attr:`name` is overridden.
         """
-        return not self.is_module() or is_overridden(self.name, self.instance)
+        return not (self.is_module() and not is_overridden(self.name, self.instance))
 
     def is_module(self) -> bool:
         """Returns whether the DataLoader source is a LightningModule or a LightningDataModule.
@@ -387,18 +374,30 @@ class _DataHookSelector:
         return self.model
 
 
-def _check_dataloader_none(
-    dataloader: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]],
-    dataloader_source: _DataLoaderSource,
+def _check_dataloader_iterable(
+    dataloader: object,
+    source: _DataLoaderSource,
     trainer_fn: TrainerFn,
 ) -> None:
-    # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
-    prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
-    if dataloader is None and not dataloader_source.is_defined():
-        raise ValueError(
-            f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
-            f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
-            f" `def {dataloader_source.name}(self):` in your LightningModule/LightningDataModule."
+    try:
+        iter(dataloader)  # type: ignore[call-overload]
+    except TypeError:
+        # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
+        prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
+        if source.is_module():
+            if not is_overridden(source.name, source.instance):
+                raise TypeError(
+                    f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
+                    f" Found {dataloader}."
+                    f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
+                    f" `def {source.name}(self):` in your LightningModule/LightningDataModule."
+                )
+            raise TypeError(
+                f"An invalid dataloader was returned from `{type(source.instance).__name__}.{source.name}()`."
+                f" Found {dataloader}."
+            )
+        raise TypeError(
+            f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`. Found {dataloader}."
         )
 
 
