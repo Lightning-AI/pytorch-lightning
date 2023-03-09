@@ -20,7 +20,7 @@ from lightning.fabric.utilities.types import _PATH
 class CheckpointIO(ABC):
     """Interface to save/load checkpoints as they are saved through the ``Strategy``.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIO`` but may
     require particular handling depending on the plugin.

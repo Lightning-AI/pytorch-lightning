@@ -6,7 +6,7 @@ Accelerator: HPU training
 =========================
 **Audience:** Gaudi chip users looking to save memory and scale models with mixed-precision training.
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 ----
 

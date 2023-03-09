@@ -6,7 +6,7 @@ Accelerator: IPU training
 =========================
 **Audience:** IPU users looking to increase performance via mixed precision and analysis tools.
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 ----
 

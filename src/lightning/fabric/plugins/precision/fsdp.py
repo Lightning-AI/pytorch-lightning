@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class FSDPPrecision(MixedPrecision):
     """AMP for Fully Sharded Data Parallel training.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
     """
 
     def __init__(

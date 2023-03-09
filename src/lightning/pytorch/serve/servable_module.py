@@ -9,7 +9,7 @@ class ServableModule(ABC, torch.nn.Module):
 
     """The ServableModule provides a simple API to make your model servable.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Here is an example of how to use the ``ServableModule`` module.
 

@@ -17,7 +17,7 @@ We provide ``Checkpoint`` class, for easier subclassing. Users may want to subcl
 Customize Checkpointing
 ***********************
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
 that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint`
@@ -101,7 +101,7 @@ Custom Checkpoint IO Plugin
 Asynchronous Checkpointing
 **************************
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 To enable saving the checkpoints asynchronously without blocking your training, you can configure
 :class:`~lightning.pytorch.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.

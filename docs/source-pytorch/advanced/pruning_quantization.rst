@@ -10,7 +10,7 @@ Pruning and Quantization are techniques to compress model size for deployment, a
 Pruning
 *******
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 Pruning is a technique which focuses on eliminating some of the model weights to reduce the model size and decrease inference requirements.
 

@@ -74,7 +74,7 @@ log = logging.getLogger(__name__)
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain

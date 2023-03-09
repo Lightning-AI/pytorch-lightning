@@ -30,7 +30,7 @@ class LearningRateFinder(Callback):
     """The ``LearningRateFinder`` callback enables the user to do a range test of good initial learning rates, to
     reduce the amount of guesswork in picking a good starting learning rate.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Args:
         min_lr: Minimum learning rate to investigate

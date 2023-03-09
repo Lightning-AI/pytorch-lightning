@@ -33,7 +33,7 @@ _PRECISION_INPUT = Literal["32-true", "16-mixed"]
 class IPUPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for IPU integration.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Raises:
         ValueError:

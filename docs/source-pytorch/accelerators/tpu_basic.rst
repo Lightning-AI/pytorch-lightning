@@ -4,7 +4,7 @@ TPU training (Basic)
 ====================
 **Audience:** Users looking to train on single or multiple TPU cores.
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 ----
 

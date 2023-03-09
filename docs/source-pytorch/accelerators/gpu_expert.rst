@@ -6,7 +6,7 @@ GPU training (Expert)
 =====================
 **Audience:** Experts creating new scaling techniques such as Deepspeed or FSDP
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 ----
 

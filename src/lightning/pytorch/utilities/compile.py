@@ -23,7 +23,7 @@ from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDevice
 def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
     """Returns an instance LightningModule from the output of ``torch.compile``.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
     passed in as an argument, but doesn't inherit from it. This means that the output of ``torch.compile`` behaves
@@ -71,7 +71,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
 def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
     """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
 
-    .. warning::  This is an experimental feature.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
     returned by ``from_compiled``.

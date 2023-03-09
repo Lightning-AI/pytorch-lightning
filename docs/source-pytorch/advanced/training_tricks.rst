@@ -178,7 +178,7 @@ The algorithm in short works by:
 Customizing Batch Size Finder
 =============================
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 1. You can also customize the :class:`~lightning.pytorch.callbacks.batch_size_finder.BatchSizeFinder` callback to run
    at different epochs. This feature is useful while fine-tuning models since you can't always use the same batch size after
@@ -346,7 +346,7 @@ This is the point returned py ``lr_finder.suggestion()``.
 Customizing Learning Rate Finder
 ================================
 
-.. warning::  This is an experimental feature.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 You can also customize the :class:`~lightning.pytorch.callbacks.lr_finder.LearningRateFinder` callback to run at different epochs. This feature is useful while fine-tuning models.
 

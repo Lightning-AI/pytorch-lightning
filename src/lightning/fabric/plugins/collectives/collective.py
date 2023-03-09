@@ -12,7 +12,7 @@ class Collective(ABC):
 
     Supports communications between multiple processes and multiple nodes. A collective owns a group.
 
-    .. warning:: This is an experimental feature which is still in development.
+    .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
     """
 
     def __init__(self) -> None:
