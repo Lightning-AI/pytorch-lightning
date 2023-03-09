@@ -20,6 +20,7 @@ from lightning_cloud.openapi import (
     V1CloudSpace,
     V1ClusterSpec,
     V1ClusterType,
+    V1DataConnectionMount,
     V1DependencyFileInfo,
     V1Drive,
     V1DriveSpec,
@@ -1601,17 +1602,18 @@ class TestOpen:
 class TestCloudspaceDispatch:
     @mock.patch.object(pathlib.Path, "exists")
     @pytest.mark.parametrize(
-        "custom_env_sync_path_value",
+        "custom_env_sync_path_value, cloudspace",
         [
-            None,
-            Path("/tmp/sys-customizations-sync"),
+            [None, V1CloudSpace(id="test_id")],
+            [Path("/tmp/sys-customizations-sync"), V1CloudSpace(id="test_id")],
+            [
+                Path("/tmp/sys-customizations-sync"),
+                V1CloudSpace(id="test_id", data_connection_mounts=[V1DataConnectionMount(id="test")]),
+            ],
         ],
     )
-    def test_cloudspace_dispatch_custom_environment_sync(
-        self, custom_env_sync_root, custom_env_sync_path_value, monkeypatch
-    ):
-        """Tests that the cloudspace_dispatch method prepares environment sync files if they exist and calls the
-        expected API endpoints."""
+    def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, cloudspace, monkeypatch):
+        """Tests that the cloudspace_dispatch method calls the expected API endpoints."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
             username="tester",
@@ -1631,6 +1633,7 @@ class TestCloudspaceDispatch:
         )
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([cluster])
         mock_client.cluster_service_get_cluster.return_value = cluster
+        mock_client.cloud_space_service_get_cloud_space.return_value = cloudspace
 
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -1640,9 +1643,16 @@ class TestCloudspaceDispatch:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock_local_source)
         custom_env_sync_root.return_value = custom_env_sync_path_value
 
-        cloud_runtime = cloud.CloudRuntime(app=mock.MagicMock(), entrypoint=Path("."))
+        mock_app = mock.MagicMock()
+        mock_app.works = [mock.MagicMock()]
+        cloud_runtime = cloud.CloudRuntime(app=mock_app, entrypoint=Path("."))
 
         cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+
+        mock_client.cloud_space_service_get_cloud_space.assert_called_once_with(
+            project_id="project_id",
+            id="cloudspace_id",
+        )
 
         if custom_env_sync_path_value is not None:
             mock_repo.prepare_sys_customizations_sync.assert_called_once_with(custom_env_sync_path_value)
@@ -1652,6 +1662,14 @@ class TestCloudspaceDispatch:
             cloudspace_id="cloudspace_id",
             body=mock.ANY,
         )
+
+        assert (
+            mock_client.cloud_space_service_create_lightning_run.call_args.kwargs["body"]
+            .works[0]
+            .spec.data_connection_mounts
+            == cloudspace.data_connection_mounts
+        )
+
         mock_client.cloud_space_service_create_lightning_run_instance.assert_called_once_with(
             project_id="project_id", cloudspace_id="cloudspace_id", id="run_id", body=mock.ANY
         )
