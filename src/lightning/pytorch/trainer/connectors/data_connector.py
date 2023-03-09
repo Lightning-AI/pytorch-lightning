@@ -304,7 +304,7 @@ class _DataLoaderSource:
 
         If the source is a module it checks that the method with given :attr:`name` is overridden.
         """
-        return not (self.is_module() and not is_overridden(self.name, self.instance))
+        return not self.is_module() or is_overridden(self.name, self.instance)
 
     def is_module(self) -> bool:
         """Returns whether the DataLoader source is a LightningModule or a LightningDataModule.
