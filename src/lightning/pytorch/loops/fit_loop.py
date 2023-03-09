@@ -14,6 +14,8 @@
 import logging
 from typing import Optional, Union
 
+import torch
+
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.loops import _Loop
@@ -187,6 +189,9 @@ class _FitLoop(_Loop):
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
+        self.trainer.model.train()
+        torch.set_grad_enabled(True)
+
         self.setup_data()
         if self.skip:
             return

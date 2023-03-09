@@ -643,6 +643,8 @@ class Trainer:
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=ckpt_path)
+        # remove the tensors from the validation results
+        results = convert_tensors_to_scalars(results)
 
         assert self.state.stopped
         self.validating = False
@@ -734,6 +736,8 @@ class Trainer:
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=ckpt_path)
+        # remove the tensors from the test results
+        results = convert_tensors_to_scalars(results)
 
         assert self.state.stopped
         self.testing = False
@@ -868,7 +872,7 @@ class Trainer:
         self._data_connector.prepare_data()
 
         # ----------------------------
-        # SET UP TRAINING
+        # SET UP THE TRAINER
         # ----------------------------
         log.debug(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
@@ -884,30 +888,6 @@ class Trainer:
         log.debug(f"{self.__class__.__name__}: configuring sharded model")
         call._call_configure_sharded_model(self)  # allow user to setup in model sharded environment
 
-        # ----------------------------
-        # INSPECT THE CORE LOOPS
-        # ----------------------------
-        rf"""
-             Lightning internal flow looks like this:
-        {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
-                                |                             ||
-                         spawn processes                      ||
-                 {self.strategy.setup_environment}            ||
-                                |                             ||
-                        setup accelerator                     ||
-                           and strategy                       ||  LIGHTNING
-                                |                             ||
-                        {self._run_stage}                     ||  FLOW
-                                |                             ||
-                              loops                           ||  DIRECTION
-                                |                             ||
-                             results                          \/
-        This is used to guide readers to the core loops: train, test, predict.
-        """
-
-        # ----------------------------
-        # TRAIN
-        # ----------------------------
         # reset logger connector
         self._logger_connector.reset_results()
         self._logger_connector.reset_metrics()
@@ -932,15 +912,19 @@ class Trainer:
 
         self._checkpoint_connector.resume_end()
 
-        results = self._run_stage()
+        self._signal_connector.register_signal_handlers()
 
-        log.debug(f"{self.__class__.__name__}: trainer tearing down")
-        self._teardown()
+        # ----------------------------
+        # RUN THE TRAINER
+        # ----------------------------
+        results = self._run_stage()
 
         # ----------------------------
         # POST-Training CLEAN UP
         # ----------------------------
-        # hook
+        log.debug(f"{self.__class__.__name__}: trainer tearing down")
+        self._teardown()
+
         if self.state.fn == TrainerFn.FITTING:
             call._call_callback_hooks(self, "on_fit_end")
             call._call_lightning_module_hook(self, "on_fit_end")
@@ -965,33 +949,16 @@ class Trainer:
         self._signal_connector.teardown()
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
-        # wait for all to join if on distributed
-        self.strategy.barrier("run-stage")
-
         if self.evaluating:
-            with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-                eval_loop_results = self._evaluation_loop.run()
-            # remove the tensors from the eval results
-            return convert_tensors_to_scalars(eval_loop_results)
-
+            return self._evaluation_loop.run()
         if self.predicting:
             return self.predict_loop.run()
-
         if self.training:
-            self._signal_connector.register_signal_handlers()
-
             with isolate_rng():
                 self._run_sanity_check()
-
-            # enable train mode
-            assert self.model is not None
-            self.model.train()
-            torch.set_grad_enabled(True)
-
             with torch.autograd.set_detect_anomaly(self._detect_anomaly):
                 self.fit_loop.run()
             return None
-
         raise RuntimeError(f"Unexpected state {self.state}")
 
     def _run_sanity_check(self) -> None:
