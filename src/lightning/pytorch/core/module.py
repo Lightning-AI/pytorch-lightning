@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
     Generator,
     IO,
@@ -1447,7 +1448,7 @@ class LightningModule(
         hparams_file: Optional[_PATH] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
+    ) -> Self:
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -1519,7 +1520,7 @@ class LightningModule(
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        return _load_from_checkpoint(
+        loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
             map_location,
@@ -1527,6 +1528,7 @@ class LightningModule(
             strict,
             **kwargs,
         )
+        return cast(Self, loaded)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
