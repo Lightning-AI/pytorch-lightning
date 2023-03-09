@@ -55,9 +55,11 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     }
 
     orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-    if not _TORCH_GREATER_EQUAL_2_1:
-        orig_module.forward._torchdynamo_inline = orig_module.forward  # https://github.com/pytorch/pytorch/issues/95630
+    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
+        orig_module.forward._torchdynamo_inline = orig_module.forward
     orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
+    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
+        orig_module.training_step._torchdynamo_inline = orig_module.training_step
     orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
     orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
     orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
