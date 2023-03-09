@@ -965,43 +965,34 @@ class Trainer:
         self._signal_connector.teardown()
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+        # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
 
         if self.evaluating:
-            return self._run_evaluate()
+            with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
+                eval_loop_results = self._evaluation_loop.run()
+            # remove the tensors from the eval results
+            return convert_tensors_to_scalars(eval_loop_results)
+
         if self.predicting:
             return self.predict_loop.run()
-        self._run_train()
 
-    def _pre_training_routine(self) -> None:
-        # wait for all to join if on distributed
-        self.strategy.barrier("setup_training")
+        if self.training:
+            self._signal_connector.register_signal_handlers()
 
-        # register signals
-        self._signal_connector.register_signal_handlers()
+            with isolate_rng():
+                self._run_sanity_check()
 
-    def _run_train(self) -> None:
-        self._pre_training_routine()
+            # enable train mode
+            assert self.model is not None
+            self.model.train()
+            torch.set_grad_enabled(True)
 
-        with isolate_rng():
-            self._run_sanity_check()
+            with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+                self.fit_loop.run()
+            return None
 
-        # enable train mode
-        assert self.model is not None
-        self.model.train()
-        torch.set_grad_enabled(True)
-
-        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
-            self.fit_loop.run()
-
-    def _run_evaluate(self) -> _EVALUATE_OUTPUT:
-        assert self.evaluating
-
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._evaluation_loop.run()
-
-        # remove the tensors from the eval results
-        return convert_tensors_to_scalars(eval_loop_results)
+        raise RuntimeError(f"Unexpected state {self.state}")
 
     def _run_sanity_check(self) -> None:
         val_loop = self.fit_loop.epoch_loop.val_loop

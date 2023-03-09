@@ -476,7 +476,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
         dict(name="Callback.on_sanity_check_end", args=(trainer, model)),
-        # duplicate `train` because `_run_train` calls it again in case validation wasn't run
+        # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
         dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
