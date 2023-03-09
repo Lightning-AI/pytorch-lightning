@@ -1601,9 +1601,7 @@ class TestCloudspaceDispatch:
             Path("/tmp/sys-customizations-sync"),
         ],
     )
-    def test_cloudspace_dispatch(
-        self, custom_env_sync_root, custom_env_sync_path_value, monkeypatch
-    ):
+    def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, monkeypatch):
         """Tests that the cloudspace_dispatch method prepares environment sync files if they exist and calls the
         expected API endpoints."""
         mock_client = mock.MagicMock()
