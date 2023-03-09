@@ -674,6 +674,7 @@ class TestAppCreationClient:
                                 preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            data_connection_mounts=[],
                         ),
                     )
                 ]
@@ -875,6 +876,7 @@ class TestAppCreationClient:
                                 preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            data_connection_mounts=[],
                         ),
                     )
                 ],
@@ -994,6 +996,7 @@ class TestAppCreationClient:
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             cluster_id=mock.ANY,
+                            data_connection_mounts=[],
                         ),
                     )
                 ],
@@ -1166,6 +1169,7 @@ class TestAppCreationClient:
                                 preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            data_connection_mounts=[],
                         ),
                     )
                 ],
@@ -1206,6 +1210,7 @@ class TestAppCreationClient:
                                 preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            data_connection_mounts=[],
                         ),
                     )
                 ],
@@ -1384,6 +1389,7 @@ class TestAppCreationClient:
                                 preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            data_connection_mounts=[],
                         ),
                     )
                 ],

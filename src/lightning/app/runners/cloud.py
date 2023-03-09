@@ -743,7 +743,7 @@ class CloudRuntime(Runtime):
                 )
         return mounts
 
-    def _get_works(self, cloudspace: Optional[V1CloudSpace]) -> List[V1Work]:
+    def _get_works(self, cloudspace: Optional[V1CloudSpace] = None) -> List[V1Work]:
         """Get the list of work specs from the app."""
         works: List[V1Work] = []
         for work in self.app.works:
