@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** Users looking to customize IPU training for massive models.
 
+.. warning::  This is an experimental feature.
+
 ----
 
 Advanced IPU options

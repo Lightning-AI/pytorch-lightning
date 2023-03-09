@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** Users looking to save money and run large models faster using single or multiple IPU devices.
 
+.. warning::  This is an experimental feature.
+
 ----
 
 What is an IPU?
@@ -18,8 +20,6 @@ IPUs operate in a different way to conventional accelerators such as CPU/GPUs. I
 IPUs are used to build IPU-PODs, rack-based systems of IPU-Machines for larger workloads. See the `IPU Architecture <https://www.graphcore.ai/products/ipu>`__ for more information.
 
 See the `Graphcore Glossary <https://docs.graphcore.ai/projects/graphcore-glossary/>`__ for the definitions of other IPU-specific terminology.
-
-.. warning::  This is an experimental feature.
 
 ----
 

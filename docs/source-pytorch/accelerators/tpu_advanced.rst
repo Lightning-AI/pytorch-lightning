@@ -4,6 +4,8 @@ TPU training (Advanced)
 =======================
 **Audience:** Users looking to apply advanced performance techniques to TPU training.
 
+.. warning::  This is an experimental feature.
+
 ----
 
 Weight Sharing/Tying

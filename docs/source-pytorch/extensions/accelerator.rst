@@ -29,6 +29,8 @@ hardware and distributed training or clusters.
 Create a Custom Accelerator
 ---------------------------
 
+.. warning::  This is an experimental feature.
+
 Here is how you create a new Accelerator.
 Let's pretend we want to integrate the fictional XPU accelerator and we have access to its hardware through a library
 ``xpulib``.

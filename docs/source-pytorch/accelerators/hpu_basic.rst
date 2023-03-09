@@ -6,6 +6,8 @@ Accelerator: HPU training
 =========================
 **Audience:** Users looking to save money and run large models faster using single or multiple Gaudi devices.
 
+.. warning::  This is an experimental feature.
+
 ----
 
 What is an HPU?

@@ -4,6 +4,8 @@ TPU training (Intermediate)
 ===========================
 **Audience:** Users looking to use cloud TPUs.
 
+.. warning::  This is an experimental feature.
+
 ----
 
 DistributedSamplers

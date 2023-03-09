@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** IPU users looking to increase performance via mixed precision and analysis tools.
 
+.. warning::  This is an experimental feature.
+
 ----
 
 Mixed precision & 16 bit precision
