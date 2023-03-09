@@ -144,9 +144,9 @@ class ModelSummary:
     intermediate input- and output shapes of all layers. Supported are tensors and
     nested lists and tuples of tensors. All other types of inputs will be skipped and show as `?`
     in the summary table. The summary will also display `?` for layers not used in the forward pass.
-    If there are parameters not associated with any layers or modules, the count of those parameters 
-    will be displayed in the table under `other params`. The summary will display `n/a` for module type, 
-    in size, and out size.  
+    If there are parameters not associated with any layers or modules, the count of those parameters
+    will be displayed in the table under `other params`. The summary will display `n/a` for module type,
+    in size, and out size.
 
     Example::
 
