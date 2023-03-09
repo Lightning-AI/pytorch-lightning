@@ -3,6 +3,13 @@ Accelerate your code with Fabric
 ################################
 
 
+.. raw:: html
+
+    <center>
+        <video width="100%" max-width="500px" src="accelerators.mp4", type="video/mp4" autoplay loop muted></video>
+    </center>
+
+
 ***************************
 Set accelerator and devices
 ***************************
