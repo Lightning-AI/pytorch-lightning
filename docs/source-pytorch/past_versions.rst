@@ -18,8 +18,8 @@ Pytorch Lightning evolved over time. Here's the full history of PyTorch Lightnin
        `1.9.1 <https://pytorch-lightning.readthedocs.io/en/1.9.1>`_,
        `1.9.2 <https://pytorch-lightning.readthedocs.io/en/1.9.2>`_,
        `1.9.3 <https://pytorch-lightning.readthedocs.io/en/1.9.3>`_
-   * - `1.8 <https://github.com/Lightning-AI/lightning/releases/tag/1.8.0>`_
 
+   * - `1.8 <https://github.com/Lightning-AI/lightning/releases/tag/1.8.0>`_
      - `Colossal-AI Strategy, Commands and Secrets for Apps, FSDP Improvements and More! <https://pytorch-lightning.readthedocs.io/en/1.8.6>`_
      - `1.8.0 <https://pytorch-lightning.readthedocs.io/en/1.8.0>`_,
        `1.8.1 <https://pytorch-lightning.readthedocs.io/en/1.8.1>`_,
