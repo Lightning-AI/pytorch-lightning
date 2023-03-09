@@ -44,7 +44,7 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _Su
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.distributed import register_ddp_comm_hook
+from lightning.pytorch.utilities.distributed import _register_ddp_comm_hook
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
@@ -204,7 +204,7 @@ class DDPStrategy(ParallelStrategy):
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if self.root_device.type == "cuda":
             assert isinstance(self.model, DistributedDataParallel)
-            register_ddp_comm_hook(
+            _register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
                 ddp_comm_hook=self._ddp_comm_hook,
