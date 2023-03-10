@@ -2,6 +2,11 @@
 Save memory with mixed precision
 ################################
 
+.. raw:: html
+
+    <center>
+        <video width="100%" max-width="500px" src="precision.mp4", type="video/mp4" autoplay loop muted></video>
+    </center>
 
 ************************
 What is Mixed Precision?
