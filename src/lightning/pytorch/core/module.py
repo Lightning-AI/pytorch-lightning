@@ -37,7 +37,7 @@ from typing import (
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache, compare_version
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -1567,7 +1567,8 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_13:
+        if  compare_version("torch", operator.ge, "1.13.0", use_base_version=True):
+            # See https://github.com/Lightning-AI/lightning/issues/16644 for why a base-version check is used here
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy
