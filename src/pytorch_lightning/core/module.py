@@ -512,7 +512,7 @@ class LightningModule(
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and _distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
+            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,  # type: ignore[truthy-function]
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -754,7 +754,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:  # type: ignore[empty-body]
         """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
@@ -2082,11 +2082,11 @@ class LightningModule(
             "original_predict_step": orig_module.predict_step,
         }
 
-        orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
-        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
-        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
-        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
+        orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[method-assign]
+        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[method-assign]
+        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[method-assign]
+        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[method-assign]
+        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[method-assign]
         return orig_module
 
     @classmethod
@@ -2116,11 +2116,11 @@ class LightningModule(
         else:
             raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
 
-        model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment,index]
-        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment,index]
-        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment,index]
-        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment,index]
-        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment,index]
+        model.forward = model._compiler_ctx["original_forward"]  # type: ignore[method-assign,index]
+        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[method-assign,index]
+        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[method-assign,index]
+        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[method-assign,index]
+        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[method-assign,index]
         model._compiler_ctx = None
 
         return model  # type: ignore[return-value]

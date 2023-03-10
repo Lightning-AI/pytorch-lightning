@@ -153,7 +153,7 @@ class Loop(ABC, Generic[T]):
         # connect to self
         self.connect(**new_loops)
 
-    def on_skip(self) -> T:
+    def on_skip(self) -> T:  # type: ignore[empty-body]
         """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
         Returns:
@@ -248,7 +248,7 @@ class Loop(ABC, Generic[T]):
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""
 
-    def on_run_end(self) -> T:
+    def on_run_end(self) -> T:  # type: ignore[empty-body]
         """Hook to be called at the end of the run.
 
         Its return argument is returned from :attr:`run`.

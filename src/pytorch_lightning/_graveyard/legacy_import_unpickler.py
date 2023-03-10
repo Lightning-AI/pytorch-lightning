@@ -34,13 +34,13 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
 # https://github.com/Lightning-AI/metrics/blob/v0.7.3/torchmetrics/metric.py#L96
 try:
     if hasattr(torchmetrics.utilities.imports, "_compare_version"):
-        torchmetrics.utilities.imports._compare_version = compare_version  # type: ignore
+        torchmetrics.utilities.imports._compare_version = compare_version  # type: ignore[assignment]
 except AttributeError:
     pass
 
 try:
     if hasattr(torchmetrics.metric, "_compare_version"):
-        torchmetrics.metric._compare_version = compare_version  # type: ignore
+        torchmetrics.metric._compare_version = compare_version
 except AttributeError:
     pass
 pickle.Unpickler = RedirectingUnpickler  # type: ignore

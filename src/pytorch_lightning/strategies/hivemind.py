@@ -294,7 +294,9 @@ class HivemindStrategy(Strategy):
 
         if self._optimizer_zero_grad_original is not None and self.lightning_module is not None:
             # re-enable `optimizer_zero_grad`
-            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
+            self.lightning_module.optimizer_zero_grad = (  # type: ignore[method-assign]
+                self._optimizer_zero_grad_original
+            )
 
         if self._opt:
             self._opt.shutdown()
