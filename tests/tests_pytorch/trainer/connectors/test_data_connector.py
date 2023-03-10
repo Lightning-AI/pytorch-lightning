@@ -630,9 +630,16 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
         ("predict", "dataloaders", RunningStage.PREDICTING),
     ],
 )
-@pytest.mark.parametrize("dataloader", [object(), [1, object()]])
+@pytest.mark.parametrize("dataloader", [None, object(), [1, object()]])
 def test_non_iterables_raise(tmp_path, trainer_fn_name, dataloader_name, stage, dataloader):
     model = BoringModel()
+
+    # Pretend that these methods are not implemented
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+    model.predict_dataloader = None
+
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
     trainer_fn = getattr(trainer, trainer_fn_name)
 

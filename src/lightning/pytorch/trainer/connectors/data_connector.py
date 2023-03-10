@@ -384,20 +384,21 @@ def _check_dataloader_iterable(
     except TypeError:
         # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
         prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
-        if source.is_module():
-            if not is_overridden(source.name, source.instance):
-                raise TypeError(
-                    f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
-                    f" Found {dataloader}."
-                    f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
-                    f" `def {source.name}(self):` in your LightningModule/LightningDataModule."
-                )
+        if not source.is_module():
             raise TypeError(
-                f"An invalid dataloader was returned from `{type(source.instance).__name__}.{source.name}()`."
+                f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
                 f" Found {dataloader}."
             )
+        if not is_overridden(source.name, source.instance):
+            raise TypeError(
+                f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
+                f" Found {dataloader}."
+                f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
+                f" `def {source.name}(self):` in your LightningModule/LightningDataModule."
+            )
         raise TypeError(
-            f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`. Found {dataloader}."
+            f"An invalid dataloader was returned from `{type(source.instance).__name__}.{source.name}()`."
+            f" Found {dataloader}."
         )
 
 
