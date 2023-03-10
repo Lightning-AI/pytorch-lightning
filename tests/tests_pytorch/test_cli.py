@@ -627,7 +627,7 @@ def test_cli_no_need_configure_optimizers(cleandir):
     from lightning.pytorch.trainer.configuration_validator import __verify_train_val_loop_configuration
 
     with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
-        "lightning.pytorch.Trainer._run_train"
+        "lightning.pytorch.Trainer._run_stage"
     ) as run, mock.patch(
         "lightning.pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
         wraps=__verify_train_val_loop_configuration,

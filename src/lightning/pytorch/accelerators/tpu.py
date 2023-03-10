@@ -22,7 +22,10 @@ from lightning.pytorch.accelerators.accelerator import Accelerator
 
 
 class TPUAccelerator(Accelerator):
-    """Accelerator for TPU devices."""
+    """Accelerator for TPU devices.
+
+    .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not _XLA_AVAILABLE:
