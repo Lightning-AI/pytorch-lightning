@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `num_nodes` not being set for `DDPFullyShardedNativeStrategy` ([#17160](https://github.com/Lightning-AI/lightning/pull/17160))
 
 
+- The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
+
+
 ## [1.9.4] - 2023-03-01
 
 ### Added

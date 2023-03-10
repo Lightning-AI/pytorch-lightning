@@ -22,6 +22,7 @@ from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning_fabric.accelerators.cuda import num_cuda_devices
+from pytorch_lightning.accelerators.cpu import _PSUTIL_AVAILABLE
 from pytorch_lightning.accelerators.hpu import _HPU_AVAILABLE
 from pytorch_lightning.accelerators.ipu import _IPU_AVAILABLE
 from pytorch_lightning.accelerators.mps import MPSAccelerator
@@ -37,7 +38,6 @@ from pytorch_lightning.utilities.imports import (
     _HIVEMIND_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _ONNX_AVAILABLE,
-    _PSUTIL_AVAILABLE,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_QUANTIZE_AVAILABLE,
 )

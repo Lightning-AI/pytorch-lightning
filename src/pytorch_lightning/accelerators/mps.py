@@ -19,8 +19,8 @@ from lightning_fabric.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
 from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 
 
 class MPSAccelerator(Accelerator):
@@ -84,8 +84,7 @@ _SWAP_PERCENT = "M1_swap_percent"
 def get_device_stats() -> Dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
-            "Fetching M1 device stats requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
+            f"Fetching MPS device stats requires `psutil` to be installed. {str(_PSUTIL_AVAILABLE)}"
         )
     import psutil
 
