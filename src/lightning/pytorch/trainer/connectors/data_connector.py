@@ -43,7 +43,7 @@ from lightning.pytorch.utilities.warnings import PossibleUserWarning
 warning_cache = WarningCache()
 
 
-class DataConnector:
+class _DataConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
         self._datahook_selector: Optional[_DataHookSelector] = None

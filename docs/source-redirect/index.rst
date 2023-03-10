@@ -1,5 +1,2 @@
-.. raw:: html
-
-    <script type="text/javascript">
-        window.location.replace('https://lightning.ai/docs/pytorch/latest/');
-    </script>
+.. meta::
+   :http-equiv=Refresh: 0; url='https://lightning.ai/docs/pytorch/'
