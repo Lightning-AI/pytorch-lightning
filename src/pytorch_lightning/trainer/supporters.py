@@ -142,7 +142,9 @@ class SharedCycleIteratorState:
 class CycleIterator:
     """Iterator for restarting a dataloader if it runs out of samples."""
 
-    def __init__(self, loader: Any, length: Optional[Union[int, float]] = None, state: SharedCycleIteratorState = None):
+    def __init__(
+        self, loader: Any, length: Optional[Union[int, float]] = None, state: Optional[SharedCycleIteratorState] = None
+    ):
         """
         Args:
             loader: the loader to restart for cyclic (and optionally infinite) sampling
@@ -495,7 +497,7 @@ class CombinedLoader:
         def __getstate__patch__(*_: Any) -> Dict:
             return {}
 
-        _BaseDataLoaderIter.__getstate__ = __getstate__patch__  # type: ignore[assignment]
+        _BaseDataLoaderIter.__getstate__ = __getstate__patch__  # type: ignore[method-assign]
         iterator = CombinedLoaderIterator(self.loaders)
         # handle fault tolerant restart logic.
         self.on_restart(iterator)

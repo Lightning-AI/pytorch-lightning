@@ -392,7 +392,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
                 next(iter_dataloader._worker_queue_idx_cycle)
 
         # we can finally call reset and apply prefetching.
-        iter_dataloader._reset = iter_dataloader._original_reset  # type: ignore[assignment]
+        iter_dataloader._reset = iter_dataloader._original_reset  # type: ignore[method-assign]
         iter_dataloader._reset(dataloader, first_iter=True)
     # return the iterator
     return iter_dataloader
@@ -723,7 +723,7 @@ def _patch_dataloader_get_iterators() -> None:
         return
     if not hasattr(DataLoader, "_ori_get_iterator"):
         DataLoader._ori_get_iterator = DataLoader._get_iterator
-    DataLoader._get_iterator = _get_iterator  # type: ignore[assignment]
+    DataLoader._get_iterator = _get_iterator  # type: ignore[method-assign]
 
 
 def _teardown_dataloader_get_iterators() -> None:
@@ -731,7 +731,7 @@ def _teardown_dataloader_get_iterators() -> None:
     # cleanup the get_iterator replacement in case of Fault-tolerance.
     get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
     if get_iterator:
-        DataLoader._get_iterator = get_iterator  # type: ignore[assignment]
+        DataLoader._get_iterator = get_iterator  # type: ignore[method-assign]
         del DataLoader._ori_get_iterator
 
 

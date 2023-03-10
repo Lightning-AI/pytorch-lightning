@@ -40,8 +40,7 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn, WarningCache
 
-# might be supported in later releases, see https://github.com/python/mypy/pull/13297
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore[misc]
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 warning_cache = WarningCache()
 
@@ -59,7 +58,7 @@ def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
         for sample in batch:
             yield from _extract_batch_size(sample)
     elif is_dataclass_instance(batch):
-        for field in fields(batch):
+        for field in fields(batch):  # type: ignore[arg-type]
             yield from _extract_batch_size(getattr(batch, field.name))
     else:
         yield None

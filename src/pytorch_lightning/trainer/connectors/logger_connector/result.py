@@ -201,7 +201,7 @@ class _Metadata:
         return meta
 
 
-class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, _DeviceDtypeModuleMixin):  # type: ignore[misc]  # torchmetrics methods should return Self
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:

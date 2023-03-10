@@ -239,7 +239,7 @@ class QuantizationAwareTraining(Callback):
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
         self.__module_forward = model.forward
-        model.forward = wrap_qat_forward_context(  # type: ignore [assignment]
+        model.forward = wrap_qat_forward_context(  # type: ignore[method-assign]
             quant_cb=self, model=model, func=model.forward, trigger_condition=self._collect_quantization
         )
 
@@ -254,7 +254,7 @@ class QuantizationAwareTraining(Callback):
                 )
 
         elif isinstance(self._qconfig, QConfig):
-            model.qconfig = self._qconfig  # type: ignore [assignment]
+            model.qconfig = self._qconfig  # type: ignore[assignment]
 
         if self._check_feasible_fuse(model):
             fuse_modules(model, self._modules_to_fuse, inplace=True)
@@ -274,7 +274,7 @@ class QuantizationAwareTraining(Callback):
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:
-            pl_module.forward = self.__module_forward  # type: ignore [assignment]
+            pl_module.forward = self.__module_forward  # type: ignore[method-assign]
             return
         pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
@@ -284,12 +284,12 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.convert(pl_module, inplace=True)
         # check we shall preserve wrapper
         if self._input_compatible:
-            pl_module.forward = wrap_quantize_forward_context(  # type: ignore [assignment]
+            pl_module.forward = wrap_quantize_forward_context(  # type: ignore[method-assign]
                 model=pl_module,
                 func=self.__module_forward,
             )
         else:
-            pl_module.forward = self.__module_forward  # type: ignore [assignment]
+            pl_module.forward = self.__module_forward  # type: ignore[method-assign]
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "train" in self._observer_disabled_stages:
