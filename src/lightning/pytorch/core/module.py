@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
+import operator
 
 import logging
 import numbers
