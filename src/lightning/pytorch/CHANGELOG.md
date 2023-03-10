@@ -62,6 +62,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `DDPStrategy(start_method=...)` argument, defaulting to 'popen' ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
+
+- Added checks for whether the iterables used by the loops are valid ([#17007](https://github.com/Lightning-AI/lightning/pull/17007))
+
 ### Changed
 
 
@@ -417,6 +420,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
 
+- Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16974](https://github.com/Lightning-AI/lightning/pull/16974))
 
 - Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16999](https://github.com/Lightning-AI/lightning/pull/16999))
 

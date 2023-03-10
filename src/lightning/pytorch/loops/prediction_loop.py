@@ -28,12 +28,13 @@ from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import (
+    _check_dataloader_iterable,
     _DataLoaderSource,
     _parse_num_batches,
     _process_dataloader,
     _request_dataloader,
 )
-from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -118,11 +119,11 @@ class _PredictionLoop(_Loop):
 
     def setup_data(self) -> None:
         trainer = self.trainer
-        source = self._data_source
-        # a dfault `predict_step` exists in the LightningModule, so no need to check if it's overridden
-        if not source.is_defined() or trainer.limit_predict_batches == 0:
+        # a default `predict_step` exists in the LightningModule, so no need to check if it's overridden
+        if trainer.limit_predict_batches == 0:
             return
 
+        source = self._data_source
         dataloaders = _request_dataloader(source)
         trainer.strategy.barrier("predict_dataloader()")
 
@@ -135,10 +136,12 @@ class _PredictionLoop(_Loop):
         if trainer.datamodule is not None:
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
 
+        trainer_fn = TrainerFn.PREDICTING
         stage = RunningStage.PREDICTING
         dataloaders = []
         self.max_batches = []
         for dl in combined_loader.flattened:
+            _check_dataloader_iterable(dl, source, trainer_fn)
             dl = _process_dataloader(trainer, dl)
             dataloaders.append(dl)
 

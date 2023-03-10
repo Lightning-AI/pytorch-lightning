@@ -78,6 +78,7 @@ class Fabric:
 
     def __init__(
         self,
+        *,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",

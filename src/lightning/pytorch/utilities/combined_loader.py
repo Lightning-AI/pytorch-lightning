@@ -31,7 +31,7 @@ class _ModeIterator(Iterator[_T]):
     def __next__(self) -> _T:
         raise NotImplementedError
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         self.iterators = [iter(iterable) for iterable in self.iterables]
         return self
 
@@ -59,7 +59,7 @@ class _MaxSizeCycle(_ModeIterator[List]):
                 out[i] = next(self.iterators[i])
         return out
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         super().__iter__()
         self._consumed = [False] * len(self.iterables)
         return self
@@ -117,7 +117,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
             self._use_next_iterator()
             return self.__next__()
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         super().__iter__()
         self._iterator_idx = 0
         self._idx = 0
@@ -263,7 +263,7 @@ class CombinedLoader(Iterable):
             return out
         return tree_unflatten(out, self._spec)
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         cls = _supported_modes[self._mode]["iterator"]
         iterator = cls(self.flattened)
         iter(iterator)
