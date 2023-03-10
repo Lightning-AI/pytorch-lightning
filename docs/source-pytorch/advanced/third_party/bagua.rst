@@ -1,8 +1,6 @@
-:orphan:
-
-###########
+#####
 Bagua
-###########
+#####
 
 The `Bagua strategy <https://github.com/Lightning-AI/lightning-Bagua>`_ speeds up PyTorch training from a single node to large scale.
 Bagua is a deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
