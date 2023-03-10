@@ -114,7 +114,7 @@ def test_rich_progress_bar_custom_theme(tmpdir):
         theme = RichProgressBarTheme()
 
         progress_bar = RichProgressBar(theme=theme)
-        progress_bar.on_train_start(Trainer(tmpdir), BoringModel())
+        progress_bar.on_train_start(Trainer(default_root_dir=tmpdir), BoringModel())
 
         assert progress_bar.theme == theme
         args, kwargs = mocks["CustomBarColumn"].call_args
