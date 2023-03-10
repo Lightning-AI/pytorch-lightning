@@ -155,6 +155,7 @@ Current Lightning Users
 
    starter/introduction
    starter/installation
+   upgrade/migration_guide
 
 
 .. toctree::

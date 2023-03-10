@@ -1,0 +1,3 @@
+- If you used ``seed_everything_default=None`` in ``LightningCLI`` → set `seed_everything_default=False` instead `12804 <https://github.com/Lightning-AI/lightning/issues/12804>`_
+- If you used ``Trainer.reset_train_val_dataloaders()`` → call ``Trainer.reset_train_dataloaders()`` and ``Trainer.reset_val_dataloaders()`` separately [`#12184 <https://github.com/Lightning-AI/lightning/pull/12184>`_]
+- If you imported ``pytorch_lightning.core.lightning`` → import ``pytorch_lightning.core.module`` instead [`#12740 <https://github.com/Lightning-AI/lightning/pull/12740>`_]

@@ -1,0 +1,17 @@
+Upgrade from 1.9 to the 2.0
+###########################
+
+Regular User
+************
+
+.. include:: xuser/regular_1_9.rst
+
+Advanced User
+*************
+
+.. include:: xuser/advanced_1_9.rst
+
+Developer
+*********
+
+.. include:: developer/dev_1_9.rst
