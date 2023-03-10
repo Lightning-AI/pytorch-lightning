@@ -18,6 +18,7 @@ from lightning_cloud.openapi import (
     ProjectIdProjectclustersbindingsBody,
     V1BuildSpec,
     V1CloudSpace,
+    V1CloudSpaceInstanceConfig,
     V1ClusterSpec,
     V1ClusterType,
     V1DataConnectionMount,
@@ -1604,11 +1605,17 @@ class TestCloudspaceDispatch:
     @pytest.mark.parametrize(
         "custom_env_sync_path_value, cloudspace",
         [
-            [None, V1CloudSpace(id="test_id")],
-            [Path("/tmp/sys-customizations-sync"), V1CloudSpace(id="test_id")],
+            [None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())],
             [
                 Path("/tmp/sys-customizations-sync"),
-                V1CloudSpace(id="test_id", data_connection_mounts=[V1DataConnectionMount(id="test")]),
+                V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig()),
+            ],
+            [
+                Path("/tmp/sys-customizations-sync"),
+                V1CloudSpace(
+                    id="test_id",
+                    code_config=V1CloudSpaceInstanceConfig(data_connection_mounts=[V1DataConnectionMount(id="test")]),
+                ),
             ],
         ],
     )
@@ -1667,7 +1674,7 @@ class TestCloudspaceDispatch:
             mock_client.cloud_space_service_create_lightning_run.call_args.kwargs["body"]
             .works[0]
             .spec.data_connection_mounts
-            == cloudspace.data_connection_mounts
+            == cloudspace.code_config.data_connection_mounts
         )
 
         mock_client.cloud_space_service_create_lightning_run_instance.assert_called_once_with(

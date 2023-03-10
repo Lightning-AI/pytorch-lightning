@@ -770,8 +770,8 @@ class CloudRuntime(Runtime):
             mounts = self._get_mounts(work)
 
             data_connection_mounts: list[V1DataConnectionMount] = []
-            if cloudspace is not None:
-                data_connection_mounts = cloudspace.data_connection_mounts
+            if cloudspace is not None and cloudspace.code_config is not None:
+                data_connection_mounts = cloudspace.code_config.data_connection_mounts
 
             random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
             work_spec = V1LightningworkSpec(
