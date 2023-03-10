@@ -18,7 +18,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
-from lightning.pytorch.loops.progress import Progress
+from lightning.pytorch.loops.progress import _Progress
 from lightning.pytorch.loops.training_epoch_loop import _TrainingEpochLoop
 from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher
 from lightning.pytorch.trainer import call
@@ -84,7 +84,7 @@ class _FitLoop(_Loop):
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop = _TrainingEpochLoop(trainer)
-        self.epoch_progress = Progress()
+        self.epoch_progress = _Progress()
         self.max_batches: Union[int, float] = float("inf")
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")

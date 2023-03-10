@@ -53,7 +53,7 @@ from lightning.pytorch.strategies import (
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
-from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
+from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
@@ -65,7 +65,7 @@ from tests_pytorch.helpers.runif import RunIf
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_choice_tpu(accelerator, devices):
-    connector = AcceleratorConnector(accelerator=accelerator, devices=devices)
+    connector = _AcceleratorConnector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
     if devices == "auto" or (isinstance(devices, int) and devices > 1):
         assert isinstance(connector.strategy, XLAStrategy)
@@ -83,7 +83,7 @@ def test_accelerator_invalid_choice():
 @pytest.mark.parametrize("invalid_strategy", ["cocofruit", object()])
 def test_invalid_strategy_choice(invalid_strategy):
     with pytest.raises(ValueError, match="You selected an invalid strategy name:"):
-        AcceleratorConnector(strategy=invalid_strategy)
+        _AcceleratorConnector(strategy=invalid_strategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
@@ -627,9 +627,9 @@ def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
     torch.backends.cudnn.benchmark = cudnn_benchmark
     if benchmark_ and deterministic:
         with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
-            AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
+            _AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
     else:
-        AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
+        _AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
     expected = cudnn_benchmark if expected is None else expected
     assert torch.backends.cudnn.benchmark == expected
 
@@ -768,7 +768,7 @@ def test_connector_defaults_match_trainer_defaults():
         return {k: v.default for k, v in init_signature.parameters.items()}
 
     trainer_defaults = get_defaults(Trainer)
-    connector_defaults = get_defaults(AcceleratorConnector)
+    connector_defaults = get_defaults(_AcceleratorConnector)
 
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
@@ -858,7 +858,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
         mock_hpu_available(monkeypatch, False)
-        connector = AcceleratorConnector()
+        connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
     assert connector._devices_flag == [0]
@@ -873,7 +873,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         # TPUAccelerator.auto_device_count always returns 8, but in case this changes in the future...
         monkeypatch.setattr(lightning.pytorch.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
         monkeypatch.setattr(torch, "device", Mock())
-        connector = AcceleratorConnector()
+        connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, SingleTPUStrategy)
     assert connector._devices_flag == 1
@@ -889,7 +889,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         _mock_tpu_available(True)
         mock_ipu_available(monkeypatch, False)
         mock_hpu_available(monkeypatch, False)
-        connector = AcceleratorConnector()
+        connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
@@ -904,7 +904,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, True)
         mock_hpu_available(monkeypatch, False)
-        connector = AcceleratorConnector()
+        connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, IPUAccelerator)
     assert isinstance(connector.strategy, IPUStrategy)
     assert connector._devices_flag == 4
@@ -919,7 +919,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_ipu_available(monkeypatch, False)
         mock_hpu_available(monkeypatch, True)
         monkeypatch.setattr(lightning.pytorch.accelerators.hpu.HPUAccelerator, "auto_device_count", lambda *_: 1)
-        connector = AcceleratorConnector()
+        connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, HPUAccelerator)
     assert isinstance(connector.strategy, SingleHPUStrategy)
     assert connector._devices_flag == 1
@@ -935,7 +935,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
             mock_tpu_available(monkeypatch, False)
             mock_ipu_available(monkeypatch, False)
             mock_hpu_available(monkeypatch, True)
-            connector = AcceleratorConnector()
+            connector = _AcceleratorConnector()
         assert isinstance(connector.accelerator, HPUAccelerator)
         assert isinstance(connector.strategy, HPUParallelStrategy)
         assert connector._devices_flag == 8
@@ -950,7 +950,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         _mock_tpu_available(True)
         mock_ipu_available(monkeypatch, False)
         mock_hpu_available(monkeypatch, False)
-        connector = AcceleratorConnector()
+        connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8

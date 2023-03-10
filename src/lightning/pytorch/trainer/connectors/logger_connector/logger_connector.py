@@ -28,7 +28,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import _METRIC
 warning_cache = WarningCache()
 
 
-class LoggerConnector:
+class _LoggerConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
         self._progress_bar_metrics: _PBAR_DICT = {}

@@ -18,6 +18,11 @@ else:
 
 
 class TorchCollective(Collective):
+    """Collective operations using `torch.distributed <https://pytorch.org/docs/stable/distributed.html>`__.
+
+    .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
+    """
+
     manages_default_group = False
 
     def __init__(self) -> None:
@@ -106,9 +111,7 @@ class TorchCollective(Collective):
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
-    def setup(
-        self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any
-    ) -> Self:  # type: ignore[valid-type]
+    def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:
         if self.is_initialized():
             return self
         # maybe set addr
@@ -134,7 +137,7 @@ class TorchCollective(Collective):
             os.environ.pop("MASTER_PORT", None)
         return self
 
-    def teardown(self) -> Self:  # type: ignore[valid-type]
+    def teardown(self) -> Self:
         non_group_member = self.group == dist.GroupMember.NON_GROUP_MEMBER
         super().teardown()  # will destroy its own group
         # try to destroy the default group. this should only be done by a group member to avoid race conditions,

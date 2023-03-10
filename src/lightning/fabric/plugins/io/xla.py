@@ -24,7 +24,10 @@ from lightning.fabric.utilities.types import _PATH
 
 
 class XLACheckpointIO(TorchCheckpointIO):
-    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies."""
+    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not _XLA_AVAILABLE:

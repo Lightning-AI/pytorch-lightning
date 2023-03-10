@@ -289,8 +289,6 @@ class LightningCLI:
 
         For more info, read :ref:`the CLI docs <lightning-cli>`.
 
-        .. warning:: ``LightningCLI`` is in beta and subject to change.
-
         Args:
             model_class: An optional :class:`~lightning.pytorch.core.module.LightningModule` class to train on or a
                 callable which returns a :class:`~lightning.pytorch.core.module.LightningModule` instance when

@@ -382,6 +382,6 @@ PyTorch Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ec
 
 If you have any questions please:
 
-1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
+1. [Read the docs](https://lightning.ai/docs/pytorch/latest).
 1. [Search through existing Discussions](https://github.com/Lightning-AI/lightning/discussions), or [add a new question](https://github.com/Lightning-AI/lightning/discussions/new)
 1. [Join our Slack community](https://www.pytorchlightning.ai/community).
