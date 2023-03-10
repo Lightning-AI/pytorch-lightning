@@ -347,9 +347,9 @@ class IPUStrategy(ParallelStrategy):
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
-    def root_device(self) -> torch.device:  # type: ignore[empty-body]
-        # TODO: this should return `self.parallel_devices[self.local_rank]`
-        pass
+    def root_device(self) -> torch.device:
+        assert self.parallel_devices is not None
+        return self.parallel_devices[self.local_rank]
 
     def model_to_device(self) -> None:
         pass

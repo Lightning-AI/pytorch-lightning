@@ -15,6 +15,7 @@
 import logging
 import os
 from unittest import mock
+from unittest.mock import PropertyMock
 
 import pytest
 import torch
@@ -162,12 +163,15 @@ def test_num_stepping_batches_with_tpu_multi():
 @mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_num_stepping_batches_with_ipu(mock_ipu_acc_avail, monkeypatch):
     """Test stepping batches with IPU training which acts like DP."""
+    model = BoringModel()
     import lightning.pytorch.strategies.ipu as ipu
 
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    trainer = Trainer(accelerator="ipu", devices=2, max_epochs=1)
-    model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
-    assert isinstance(trainer.strategy, IPUStrategy)
-    assert trainer.estimated_stepping_batches == 64
+    ipu_root_device = PropertyMock()
+    ipu_root_device.return_value = torch.device("cpu")
+    with mock.patch("lightning.pytorch.strategies.ipu.IPUStrategy.root_device", ipu_root_device):
+        trainer = Trainer(accelerator="ipu", devices=2, max_epochs=1)
+        trainer._data_connector.attach_data(model)
+        trainer.strategy.connect(model)
+        assert isinstance(trainer.strategy, IPUStrategy)
+        assert trainer.estimated_stepping_batches == 64
