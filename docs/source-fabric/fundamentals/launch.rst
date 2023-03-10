@@ -56,6 +56,12 @@ You can learn more about it :ref:`here <Fabric in Notebooks>`.
 Launch with the CLI
 *******************
 
+.. raw:: html
+
+    <center>
+        <video width="100%" max-width="500px" src="launch-cli.mp4", type="video/mp4" autoplay loop muted></video>
+    </center>
+
 An alternative way to launch your Python script in multiple processes is to use the dedicated command line interface (CLI):
 
 .. code-block:: bash
