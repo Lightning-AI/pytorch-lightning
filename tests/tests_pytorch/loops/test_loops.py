@@ -25,7 +25,7 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.progress import BaseProgress
+from lightning.pytorch.loops.progress import _BaseProgress
 
 
 def test_restarting_loops_recursive():
@@ -112,7 +112,7 @@ def test_loop_restore():
 
 def test_loop_hierarchy():
     @dataclass
-    class SimpleProgress(BaseProgress):
+    class SimpleProgress(_BaseProgress):
         increment: int = 0
 
     class Simple(_Loop):

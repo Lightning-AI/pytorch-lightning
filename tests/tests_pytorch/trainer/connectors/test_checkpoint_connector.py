@@ -88,7 +88,7 @@ def test_hpc_restore_attempt(_, tmpdir):
 
 
 def test_hpc_max_ckpt_version(tmpdir):
-    """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
+    """Test that the _CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
     trainer.fit(model)
@@ -106,7 +106,7 @@ def test_hpc_max_ckpt_version(tmpdir):
 
 
 def test_ckpt_for_fsspec():
-    """Test that the CheckpointConnector is able to write to fsspec file systems."""
+    """Test that the _CheckpointConnector is able to write to fsspec file systems."""
 
     model = BoringModel()
     # hardcoding dir since `tmpdir` can be windows path

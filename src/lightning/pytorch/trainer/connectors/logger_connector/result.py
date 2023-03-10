@@ -181,7 +181,7 @@ class _Metadata:
         return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
-class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, _DeviceDtypeModuleMixin):  # type: ignore[misc]  # torchmetrics methods should return Self
     """Wraps the value provided to `:meth:`~lightning.pytorch.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:

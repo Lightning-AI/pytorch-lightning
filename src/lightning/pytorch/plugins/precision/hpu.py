@@ -28,6 +28,8 @@ _PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
 class HPUPrecisionPlugin(PrecisionPlugin):
     """Plugin that enables bfloat/half support on HPUs.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Args:
         precision: The precision to use.
         opt_level: Choose optimization level for hmp.

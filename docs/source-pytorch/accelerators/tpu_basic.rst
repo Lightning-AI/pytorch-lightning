@@ -4,6 +4,8 @@ TPU training (Basic)
 ====================
 **Audience:** Users looking to train on single or multiple TPU cores.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 .. raw:: html
@@ -112,7 +114,6 @@ There are cases in which training on TPUs is slower when compared with GPUs, for
 - Limited resources when using TPU's with PyTorch `Link <https://github.com/pytorch/xla/issues/2054#issuecomment-627367729>`_
 - XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
 - Some tensor ops are not fully supported on TPU, or not supported at all. These operations will be performed on CPU (context switch).
-- PyTorch integration is still experimental. Some performance bottlenecks may simply be the result of unfinished implementation.
 
 The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats>`_
 has more detailed information on how PyTorch code can be optimized for TPU. In particular, the

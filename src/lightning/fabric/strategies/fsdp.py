@@ -41,12 +41,7 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import (
-        BackwardPrefetch,
-        CPUOffload,
-        FullyShardedDataParallel,
-        MixedPrecision,
-    )
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
@@ -54,37 +49,28 @@ _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 class FSDPStrategy(ParallelStrategy, _Sharded):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can
-        bring breaking changes and new features with the next release of PyTorch.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
     at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
     to ZeRO-Stage 3.
 
-    For more information `check out <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
+    For more information check out
+    `this blogpost <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
 
     Defaults have been set and options have been exposed, but may require configuration
     based on your level of memory/speed efficiency. We suggest having a look at
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
-            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
-            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default: no offloading
-        backward_prefetch: This is an experimental feature that is subject to change in the near future. It allows
-            users to enable two different backward prefetching algorithms to help backward communication and
-            computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-        mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision="16-mixed"`` or
-            BF16 if ``precision="bf16-mixed"`` unless a config is passed in.
-            This is only available in PyTorch 1.12 and later.
+        cpu_offload: See ``cpu_offload`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+        mixed_precision: See ``mixed_precision`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
         activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
-        \**kwargs: Optional keyword arguments passed to the FSDP context manager which will configure the FSDP class
-            when wrapping modules.
+        \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
     """
 
     def __init__(
@@ -97,7 +83,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
-        backward_prefetch: Optional["BackwardPrefetch"] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         **kwargs: Any,
@@ -126,7 +111,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         )
 
         self.cpu_offload = _init_cpu_offload(cpu_offload)
-        self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
 
     @property
@@ -192,7 +176,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         wrapped_module = FullyShardedDataParallel(
             module=module,
             cpu_offload=self.cpu_offload,
-            backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
             **self._ddp_kwargs,
@@ -239,7 +222,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
-            backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
             **self._ddp_kwargs,
