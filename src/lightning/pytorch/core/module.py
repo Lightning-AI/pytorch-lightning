@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
-import operator
-
 import logging
 import numbers
+import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -52,11 +51,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available
-from lightning.fabric.utilities.imports import (
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
