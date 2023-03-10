@@ -169,6 +169,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `ServableModule` is now an abstract interface ([#17000](https://github.com/Lightning-AI/lightning/pull/17000))
 
 
+- The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
+
 ### Deprecated
 
 -
