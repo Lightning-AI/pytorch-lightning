@@ -113,7 +113,7 @@ There are powerful third-party strategies that integrate well with Lightning but
    * - Name
      - Package
      - Description
-   * - colossalai
+   * - ColossalAI
      - `Lightning-AI/lightning-colossalai <https://github.com/Lightning-AI/lightning-colossalai>`_
      - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
    * - Bagua
