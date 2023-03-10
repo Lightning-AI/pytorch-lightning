@@ -29,7 +29,7 @@ This will install both the `bagua <https://pypi.org/project/bagua/>`_ package as
 
 .. code-block:: python
 
-    trainer = Trainer(strategy="bagua", accelerator="gpu",  devices=...)
+    trainer = Trainer(strategy="bagua", accelerator="gpu", devices=...)
 
 
 You can tune several settings by instantiating the strategy objects and pass options in:
