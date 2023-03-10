@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -146,7 +146,7 @@ class XLAStrategy(DDPStrategy):
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
-    def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
+    def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 

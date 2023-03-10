@@ -23,6 +23,8 @@ from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDevice
 def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
     """Returns an instance LightningModule from the output of ``torch.compile``.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
     passed in as an argument, but doesn't inherit from it. This means that the output of ``torch.compile`` behaves
     like a LightningModule, but it doesn't inherit from it (i.e. `isinstance` will fail).
@@ -55,9 +57,11 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     }
 
     orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-    if not _TORCH_GREATER_EQUAL_2_1:
-        orig_module.forward._torchdynamo_inline = orig_module.forward  # https://github.com/pytorch/pytorch/issues/95630
+    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
+        orig_module.forward._torchdynamo_inline = orig_module.forward
     orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
+    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
+        orig_module.training_step._torchdynamo_inline = orig_module.training_step
     orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
     orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
     orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
@@ -66,6 +70,8 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
 
 def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
     """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
     returned by ``from_compiled``.

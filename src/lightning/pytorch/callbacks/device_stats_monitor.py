@@ -21,10 +21,9 @@ Monitors and logs device stats during training.
 from typing import Any, Dict, Optional
 
 import lightning.pytorch as pl
+from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PSUTIL_AVAILABLE
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
@@ -36,14 +35,14 @@ class DeviceStatsMonitor(Callback):
 
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
-            It will raise a warning if ``psutil`` is not installed till v1.9.0.
-            If ``True``, it will log CPU stats regardless of the accelerator, and it will
-            raise an exception if ``psutil`` is not installed.
+            If ``True``, it will log CPU stats regardless of the accelerator.
             If ``False``, it will not log CPU stats regardless of the accelerator.
 
     Raises:
         MisconfigurationException:
             If ``Trainer`` has no logger.
+        ModuleNotFoundError:
+            If ``psutil`` is not installed and CPU stats are monitored.
 
     Example:
         >>> from lightning.pytorch import Trainer
@@ -70,13 +69,9 @@ class DeviceStatsMonitor(Callback):
         # warn in setup to warn once
         device = trainer.strategy.root_device
         if self._cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
-            # TODO: raise an exception from v1.9
-            rank_zero_warn(
-                "`DeviceStatsMonitor` will not log CPU stats as `psutil` is not installed."
-                " To install `psutil`, run `pip install psutil`."
-                " It will raise an exception if `psutil` is not installed post v1.9.0."
+            raise ModuleNotFoundError(
+                f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
-            self._cpu_stats = False
 
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:

@@ -106,7 +106,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 
 .. note::
 
-    BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
+    BFloat16 may not provide significant speedups or memory improvements, offering better numerical stability.
     For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
 
 
