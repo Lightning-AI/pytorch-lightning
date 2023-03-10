@@ -6,27 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [UnReleased] - 2023-MM-DD
+## [0.8.0] - 2023-03-10
 
 ### Added
 
 - Added requirements parser ([#107](https://github.com/Lightning-AI/utilities/pull/107))
-
-
 - Added workflow for checking markdown links ([#81](https://github.com/Lightning-AI/utilities/pull/81))
-
-
--
-
-
-### Changed
-
--
-
-
-### Fixed
-
--
 
 
 ## [0.7.1] - 2023-02-23
