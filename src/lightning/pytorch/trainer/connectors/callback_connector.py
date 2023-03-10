@@ -40,7 +40,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info
 _log = logging.getLogger(__name__)
 
 
-class CallbackConnector:
+class _CallbackConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
 
@@ -181,7 +181,7 @@ class CallbackConnector:
         # remove all callbacks with a type that occurs in model callbacks
         all_callbacks = [c for c in trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
-        all_callbacks = CallbackConnector._reorder_callbacks(all_callbacks)
+        all_callbacks = _CallbackConnector._reorder_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
         trainer.callbacks = all_callbacks
 
