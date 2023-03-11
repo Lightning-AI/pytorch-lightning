@@ -1844,6 +1844,7 @@ def test_load_app_from_file():
                             "commands": [],
                             "pythonDependencies": {"packageManager": "PACKAGE_MANAGER_PIP", "packages": ""},
                         },
+                        "dataConnectionMounts": [],
                         "drives": [],
                         "networkConfig": [{"name": "*", "port": "*"}],
                         "userRequestedComputeConfig": {
@@ -1867,6 +1868,7 @@ def test_load_app_from_file():
                             "commands": [],
                             "python_dependencies": {"package_manager": "PACKAGE_MANAGER_PIP", "packages": ""},
                         },
+                        "data_connection_mounts": [],
                         "drives": [],
                         "network_config": [{"name": "*", "port": "*"}],
                         "user_requested_compute_config": {
