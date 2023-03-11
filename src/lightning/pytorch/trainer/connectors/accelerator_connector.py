@@ -68,7 +68,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE, _LIGHTNING_HOROVOD_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -650,3 +650,10 @@ def _register_external_accelerators_and_strategies() -> None:
         # TODO: Prevent registering multiple times
         if "colossalai" not in StrategyRegistry:
             ColossalAIStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_HOROVOD_AVAILABLE:
+        from lightning_horovod import HorovodStrategy
+
+        # TODO: Prevent registering multiple times
+        if "horovod" not in StrategyRegistry:
+            HorovodStrategy.register_strategies(StrategyRegistry)

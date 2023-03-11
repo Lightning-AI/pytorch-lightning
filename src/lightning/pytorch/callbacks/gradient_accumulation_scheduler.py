@@ -25,7 +25,7 @@ from typing import Any, Dict
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE, _LIGHTNING_HOROVOD_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
@@ -130,6 +130,11 @@ class GradientAccumulationScheduler(Callback):
             from lightning_colossalai import ColossalAIStrategy
 
             unsupported_strategies.append(ColossalAIStrategy)
+
+        if _LIGHTNING_HOROVOD_AVAILABLE:
+            from lightning_horovod import HorovodStrategy
+
+            unsupported_strategies.append(HorovodStrategy)
 
         if isinstance(trainer.accelerator, unsupported_accelerators):
             raise RuntimeError(
