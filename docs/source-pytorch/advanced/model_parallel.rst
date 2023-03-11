@@ -57,8 +57,10 @@ Cutting-edge and third-party Strategies
 =======================================
 
 Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
+
 If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
 
+Another enabler for training script to be used for single-GPU, multi-GPU, and multi-node training, check out the :doc:`Horovod Strategy <./third_party/horovod>` integration.
 
 ----
 
