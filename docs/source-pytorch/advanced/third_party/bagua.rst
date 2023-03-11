@@ -7,9 +7,13 @@ Bagua is a deep learning training acceleration framework for PyTorch, with advan
 Bagua currently supports:
 
 - **Advanced Distributed Training Algorithms**: Users can extend the training on a single GPU to multi-GPUs (may across multiple machines) by simply adding a few lines of code (optionally in `elastic mode <https://tutorials.baguasys.com/elastic-training/>`_). One prominent feature of Bagua is to provide a flexible system abstraction that supports state-of-the-art system relaxation techniques of distributed training. So far, Bagua has integrated communication primitives including
+
   - Centralized Synchronous Communication (e.g. `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_)
+
   - Decentralized Synchronous Communication (e.g. `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_)
+
   - Low Precision Communication (e.g. `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_)
+
   - Asynchronous Communication (e.g. `Async Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_)
 - `Cached Dataset <https://tutorials.baguasys.com/more-optimizations/cached-dataset>`_: When samples in a dataset need tedious preprocessing, or reading the dataset itself is slow, they could become a major bottleneck of the whole training process. Bagua provides cached dataset to speedup this process by caching data samples in memory, so that reading these samples after the first time can be much faster.
 - `TCP Communication Acceleration (Bagua-Net) <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_: Bagua-Net is a low level communication acceleration feature provided by Bagua. It can greatly improve the throughput of AllReduce on TCP network. You can enable Bagua-Net optimization on any distributed training job that uses NCCL to do GPU communication (this includes PyTorch-DDP, Horovod, DeepSpeed, and more).
