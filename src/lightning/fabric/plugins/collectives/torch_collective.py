@@ -28,9 +28,7 @@ class TorchCollective(Collective):
     @property
     def group(self) -> CollectibleGroup:
         if self._group is None:
-            from torch.distributed import GroupMember
-
-            self._group = GroupMember.WORLD
+            self._group = dist.GroupMember.WORLD
         return super().group
 
     @property
@@ -152,7 +150,7 @@ class TorchCollective(Collective):
             and TorchCollective.manages_default_group
             and (default_group := dist.GroupMember.WORLD) is not None  # not destroyed already
             and len(dist.distributed_c10d._pg_map) == 1  # only the default group is left
-        ):  # only the default group is left:
+        ):
             self.destroy_group(default_group)
             TorchCollective.manages_default_group = False
         elif TorchCollective.manages_default_group and dist.GroupMember.WORLD is None:

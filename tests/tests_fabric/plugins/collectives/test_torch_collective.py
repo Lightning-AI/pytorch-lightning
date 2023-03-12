@@ -239,14 +239,6 @@ def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
 
-@skip_distributed_unavailable
-@pytest.mark.parametrize("n", (1, 2))
-@RunIf(skip_windows=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
-def test_collectives_distributed_default_pg(n):
-    collective_launch(partial(_test_distributed_collectives_fn, create_group=False), [torch.device("cpu")] * n)
-
-
 def _test_distributed_collectives_cuda_fn(strategy, collective, create_group=True):
     if create_group:
         collective.create_group()
@@ -261,12 +253,6 @@ def _test_distributed_collectives_cuda_fn(strategy, collective, create_group=Tru
 @RunIf(min_cuda_gpus=1, min_torch="1.13")
 def test_collectives_distributed_cuda():
     collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
-
-
-@skip_distributed_unavailable
-@RunIf(min_cuda_gpus=1, min_torch="1.13")
-def test_collectives_distributed_cuda_default_pg():
-    collective_launch(partial(_test_distributed_collectives_cuda_fn, create_group=False), [torch.device("cuda")])
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
@@ -292,10 +278,11 @@ def test_two_groups():
 def _test_default_process_group(strategy, *collectives):
     for collective in collectives:
         assert collective.group == torch.distributed.group.WORLD
-    tensor = torch.tensor(strategy.global_rank)
-    for i, collective in enumerate(collectives):
-        tensor = collective.all_reduce(tensor)
-        assert tensor == strategy.world_size ** (i + 1)
+    world_size = strategy.world_size
+    for c in collectives:
+        tensor = torch.tensor(world_size)
+        r = c.all_reduce(tensor)
+        assert world_size**2 == r
 
 
 @skip_distributed_unavailable
@@ -303,3 +290,20 @@ def _test_default_process_group(strategy, *collectives):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_default_process_group():
     collective_launch(_test_default_process_group, [torch.device("cpu")] * 3, num_groups=2)
+
+
+@skip_distributed_unavailable
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_collective_manages_default_group():
+    collective = TorchCollective()
+    with mock.patch("torch.distributed.init_process_group"):
+        collective.setup(main_address="foo", main_port=123)
+
+    assert TorchCollective.manages_default_group
+
+    with mock.patch("torch.distributed.GroupMember.WORLD"), mock.patch.dict(
+        "torch.distributed.distributed_c10d._pg_map", {collective.group: ("", None)}
+    ):  # `dist.destroy_process_group` is called with the mocked `WORLD` pg
+        collective.teardown()
+
+    assert not TorchCollective.manages_default_group
