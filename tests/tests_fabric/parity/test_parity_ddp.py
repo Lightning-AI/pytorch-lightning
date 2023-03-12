@@ -125,7 +125,6 @@ def train_fabric_ddp(fabric):
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-@pytest.mark.flaky(reruns=3)
 @RunIf(standalone=True)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
@@ -148,6 +147,9 @@ def test_parity_ddp(accelerator, devices, tolerance):
     fabric.barrier()
     cuda_reset()
     torch.distributed.destroy_process_group()
+    # sleep for a bit to avoid race conditions, since the very first call in `train_torch_ddp`
+    # is initializing a new process group
+    time.sleep(3)
 
     # Train with raw PyTorch
     state_dict_torch, timings_torch, memory_torch = train_torch_ddp(

@@ -80,7 +80,6 @@ core
     LightningModule
     ~mixins.HyperparametersMixin
     ~optimizer.LightningOptimizer
-    ~saving.ModelIO
 
 
 loggers
