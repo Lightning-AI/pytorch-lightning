@@ -174,6 +174,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
 
+
+- The Trainer no longer accepts positional arguments to ([#17022](https://github.com/Lightning-AI/lightning/pull/17022))
+
+
 ### Deprecated
 
 -
