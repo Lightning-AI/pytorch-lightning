@@ -455,8 +455,8 @@ class Fabric:
         """Wait for all processes to enter this call.
 
         Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
-        will cause your program to slow down.
-        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
+        will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
+        cause your program to stall forever.
         """
         self._strategy.barrier(name=name)
 
