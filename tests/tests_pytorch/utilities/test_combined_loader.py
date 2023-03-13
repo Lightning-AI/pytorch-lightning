@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Sequence
+from typing import Any, NamedTuple, Sequence
 
 import pytest
 import torch
@@ -25,7 +25,9 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import (
+    _MaxSize,
     _MaxSizeCycle,
     _MinSize,
     _Sequential,
@@ -73,7 +75,7 @@ def test_combined_dataset_no_length():
         cl._dataset_length()
 
 
-def test_combined_loader_modes():
+def test_combined_loader_modes_for_dict():
     """Test `CombinedLoaderIterator` given mapping iterables."""
     iterables = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -105,6 +107,19 @@ def test_combined_loader_modes():
     assert idx == max_len - 1
     assert idx == len(combined_loader) - 1
 
+    # max_size with dict
+    combined_loader = CombinedLoader(iterables, "max_size")
+    assert len(combined_loader) == max_len
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(combined_loader._iterator, _MaxSize)
+        assert isinstance(item, dict)
+        assert list(item) == ["a", "b"]
+        are_nones = [x is None for x in item.values()]
+        should_be_nones = [idx >= length for length in lengths]
+        assert are_nones == should_be_nones
+    assert idx == max_len - 1
+    assert idx == len(combined_loader) - 1
+
     # sequential with dict
     sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
@@ -119,9 +134,17 @@ def test_combined_loader_modes():
     assert total_idx == len(combined_loader) - 1
     assert dataloader_idx == len(iterables) - 1
 
-    iterables = list(iterables.values())
+
+def test_combined_loader_modes_for_list():
+    """Test `CombinedLoaderIterator` given list of iterables."""
+    iterables = [
+        torch.utils.data.DataLoader(range(10), batch_size=4),
+        torch.utils.data.DataLoader(range(20), batch_size=5),
+    ]
+    lengths = [len(v) for v in iterables]
 
     # min_size with list
+    min_len = min(lengths)
     combined_loader = CombinedLoader(iterables, "min_size")
     assert len(combined_loader) == min_len
     for idx, item in enumerate(combined_loader):
@@ -132,6 +155,7 @@ def test_combined_loader_modes():
     assert idx == len(combined_loader) - 1
 
     # max_size_cycle with list
+    max_len = max(lengths)
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
     assert len(combined_loader) == max_len
     for idx, item in enumerate(combined_loader):
@@ -141,7 +165,81 @@ def test_combined_loader_modes():
     assert idx == max_len - 1
     assert idx == len(combined_loader) - 1
 
+    # max_size with list
+    combined_loader = CombinedLoader(iterables, "max_size")
+    assert len(combined_loader) == max_len
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(combined_loader._iterator, _MaxSize)
+        assert isinstance(item, list)
+        assert len(item) == 2
+        are_nones = [x is None for x in item]
+        should_be_nones = [idx >= length for length in lengths]
+        assert are_nones == should_be_nones
+
+    assert idx == max_len - 1
+    assert idx == len(combined_loader) - 1
+
     # sequential with list
+    sum_len = sum(lengths)
+    combined_loader = CombinedLoader(iterables, "sequential")
+    assert combined_loader._iterator is None
+    assert len(combined_loader) == sum_len
+    for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
+        assert isinstance(combined_loader._iterator, _Sequential)
+        assert isinstance(batch_idx, int)
+        assert isinstance(item, Tensor)
+    assert idx == lengths[-1] - 1
+    assert total_idx == sum_len - 1
+    assert total_idx == len(combined_loader) - 1
+    assert dataloader_idx == len(iterables) - 1
+
+
+def test_combined_loader_modes_for_namedtuple():
+    """Test `CombinedLoaderIterator` given a namedtuple of iterables."""
+
+    class IterablesNamedTuple(NamedTuple):
+        a: Any
+        b: Any
+
+    iterables = IterablesNamedTuple(
+        a=torch.utils.data.DataLoader(range(10), batch_size=4), b=torch.utils.data.DataLoader(range(20), batch_size=5)
+    )
+    lengths = [len(v) for v in iterables]
+
+    # min_size with namedtuple
+    min_len = min(lengths)
+    combined_loader = CombinedLoader(iterables, "min_size")
+    assert len(combined_loader) == min_len
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(combined_loader._iterator, _MinSize)
+        assert isinstance(item, IterablesNamedTuple)
+    assert idx == min_len - 1
+    assert idx == len(combined_loader) - 1
+
+    # max_size_cycle with namedtuple
+    max_len = max(lengths)
+    combined_loader = CombinedLoader(iterables, "max_size_cycle")
+    assert len(combined_loader) == max_len
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(combined_loader._iterator, _MaxSizeCycle)
+        assert isinstance(item, IterablesNamedTuple)
+    assert idx == max_len - 1
+    assert idx == len(combined_loader) - 1
+
+    # max_size with namedtuple
+    combined_loader = CombinedLoader(iterables, "max_size")
+    assert len(combined_loader) == max_len
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(combined_loader._iterator, _MaxSize)
+        assert isinstance(item, IterablesNamedTuple)
+        are_nones = [x is None for x in item]
+        should_be_nones = [idx >= length for length in lengths]
+        assert are_nones == should_be_nones
+    assert idx == max_len - 1
+    assert idx == len(combined_loader) - 1
+
+    # sequential with namedtuple
+    sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
     assert combined_loader._iterator is None
     assert len(combined_loader) == sum_len
@@ -173,7 +271,7 @@ class TestIterableDataset(IterableDataset):
         return next(self.sampler_iter)
 
 
-@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "sequential"])
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
 @pytest.mark.parametrize("use_multiple_dataloaders", [False, True])
 def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloaders):
     """Test `CombinedLoader` of mode 'min_size' given sequence iterables."""
@@ -199,7 +297,7 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
         assert all(combined_loader._iterator._consumed) == (not has_break)
     expected = 5
     if use_multiple_dataloaders:
-        if mode == "max_size_cycle":
+        if mode in ["max_size_cycle", "max_size"]:
             expected = 10
         elif mode == "sequential":
             expected = 15
@@ -302,7 +400,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.state.fn = "fit"
-    trainer.state.stage = "train"
+    trainer.state.stage = RunningStage.TRAINING
     trainer.fit_loop.setup_data()
 
     samplers_flattened = tree_flatten(combined_loader.sampler)[0]
@@ -319,7 +417,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
 
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
 @pytest.mark.parametrize("use_distributed_sampler", (False, True))
-def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distributed_sampler):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerator, use_distributed_sampler):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
     trainer = Trainer(
@@ -332,7 +430,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
     )
     trainer.strategy.connect(model)
     trainer.state.fn = "fit"
-    trainer.state.stage = "train"
+    trainer.state.stage = RunningStage.TRAINING
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
@@ -351,7 +449,16 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
         assert len(combined_loader) == length
 
         trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
-        trainer.fit_loop.setup_data(shuffle=False)
+
+        original_process_dataloader = trainer._data_connector._prepare_dataloader
+
+        def non_shuffle_process_dataloader(dl, shuffle, mode):
+            # avoid shuffling
+            return original_process_dataloader(dl, False, mode)
+
+        monkeypatch.setattr(trainer._data_connector, "_prepare_dataloader", non_shuffle_process_dataloader)
+        trainer.fit_loop.setup_data()
+        monkeypatch.undo()
 
         assert len(combined_loader) == length // 2 if use_distributed_sampler else length
         if use_distributed_sampler:
@@ -388,7 +495,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
 
 
 @pytest.mark.parametrize("use_distributed_sampler", (False, True))
-@pytest.mark.parametrize("mode", ("min_size", "max_size_cycle", "sequential"))
+@pytest.mark.parametrize("mode", ("min_size", "max_size_cycle", "max_size", "sequential"))
 def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode, mps_count_0):
     """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
     samplers."""
@@ -417,7 +524,8 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
         if use_distributed_sampler
         else expected_length_before_ddp
     )
-    trainer.state.stage = "train"
+    trainer.state.fn = "fit"
+    trainer.state.stage = RunningStage.TRAINING
     trainer.fit_loop.setup_data()
     assert trainer.train_dataloader is not None
     assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)

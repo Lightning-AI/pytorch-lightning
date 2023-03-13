@@ -25,7 +25,7 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.progress import BaseProgress
+from lightning.pytorch.loops.progress import _BaseProgress
 
 
 def test_restarting_loops_recursive():
@@ -112,7 +112,7 @@ def test_loop_restore():
 
 def test_loop_hierarchy():
     @dataclass
-    class SimpleProgress(BaseProgress):
+    class SimpleProgress(_BaseProgress):
         increment: int = 0
 
     class Simple(_Loop):
@@ -762,30 +762,6 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
 
-    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
-        def __init__(self, *args, dataloader, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.dataloader = dataloader
-
-        def _shutdown_workers(self):
-            self.dataloader.count_shutdown_workers += 1
-            super()._shutdown_workers()
-
-    class TestDataLoader(DataLoader):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.count_shutdown_workers = 0
-
-        def _get_iterator(self):
-            if self.num_workers == 0:
-                return super()._get_iterator()
-            else:
-                self.check_worker_number_rationality()
-                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
-
-    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
-    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
-
     class TestCallback(Callback):
         def on_train_epoch_end(self, trainer, *_):
             if trainer.current_epoch == 1:
@@ -800,7 +776,35 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         limit_val_batches=2,
         max_epochs=max_epochs,
         callbacks=TestCallback() if should_fail else None,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
     )
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def __init__(self, *args, dataloader, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dataloader = dataloader
+
+        def _shutdown_workers(self):
+            self.dataloader.shutdown_workers_epochs.append(trainer.current_epoch)
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.shutdown_workers_epochs = []
+
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
     if should_fail:
         with pytest.raises(CustomException):
@@ -808,7 +812,52 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     else:
         trainer.fit(model, train_dataloader, val_dataloader)
 
-    assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
-    # on sanity checking end, the workers are being deleted too.
-    expected = 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
-    assert val_dataloader.count_shutdown_workers == expected
+    if persistent_workers:
+        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+    elif should_fail:
+        expected = [
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            # teardown
+            1,
+        ]
+    else:
+        expected = [
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            2,
+            # teardown
+            3,
+        ]
+    assert train_dataloader.shutdown_workers_epochs == expected
+
+    if persistent_workers:
+        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+    elif should_fail:
+        expected = [
+            # sanity check
+            0,
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            # teardown
+            1,
+        ]
+    else:
+        expected = [
+            # sanity check
+            0,
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            2,
+            # teardown
+            3,
+        ]
+    assert val_dataloader.shutdown_workers_epochs == expected

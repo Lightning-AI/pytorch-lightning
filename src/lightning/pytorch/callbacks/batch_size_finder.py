@@ -34,6 +34,8 @@ class BatchSizeFinder(Callback):
     ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial``
     times for each batch size until one of the batch sizes generates an OOM error.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Args:
         mode: search strategy to update the batch size:
 

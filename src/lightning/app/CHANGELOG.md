@@ -9,12 +9,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `--zip` option to the `lightning cp` command to copy content from the Cloud Platform Filesystem as a zipfile
 
 
 ### Changed
 
--
+- Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
+
 
 
 ### Deprecated
@@ -26,11 +27,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
 
-- Removed implicit ui testing with `testing.run_app_in_cloud` in favor of headless login and app selection ([#16741](https://github.com/Lightning-AI/lightning/pull/16741))
-
 ### Fixed
 
 -
+
+
+## [1.9.4] - 2023-03-01
+
+### Removed
+
+- Removed implicit ui testing with `testing.run_app_in_cloud` in favor of headless login and app selection ([#16741](https://github.com/Lightning-AI/lightning/pull/16741))
 
 
 ## [1.9.3] - 2023-02-21

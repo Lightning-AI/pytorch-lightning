@@ -1082,6 +1082,9 @@ for more information.
 
 
     def fit_loop():
+        model.train()
+        torch.set_grad_enabled(True)
+
         on_train_epoch_start()
 
         for batch in train_dataloader():
