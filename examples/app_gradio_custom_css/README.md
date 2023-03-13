@@ -20,3 +20,17 @@ class AnimeGANv2UI(ServeGradio):
         super().__init__(css=self.css)
         self.ready = False
 ```
+
+You can also pass path to css file like this:
+
+```
+class AnimeGANv2UI(ServeGradio):
+    inputs = gr.inputs.Image(type="pil")
+    outputs = gr.outputs.Image(type="pil")
+    ...
+    css="styles.css"
+
+    def __init__(self):
+        super().__init__(css=self.css)
+        self.ready = False
+```
