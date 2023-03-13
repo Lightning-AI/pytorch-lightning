@@ -456,11 +456,14 @@ class Fabric:
 
         Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
         will cause your program to slow down.
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
         """
         self._strategy.barrier(name=name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Send a tensor from one process to all others.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             obj: The object to broadcast to all other members. Any serializable object is supported, but it is
@@ -476,6 +479,8 @@ class Fabric:
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Gather tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -497,6 +502,8 @@ class Fabric:
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
