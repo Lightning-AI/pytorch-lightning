@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
     Generator,
     IO,
@@ -50,7 +51,12 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import (
+    _IS_WINDOWS,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -63,7 +69,7 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
@@ -205,8 +211,9 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-            trainer = weakref.proxy(trainer)
+        if not _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/95857
+            if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+                trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -1446,7 +1453,7 @@ class LightningModule(
         hparams_file: Optional[_PATH] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
+    ) -> Self:
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -1518,7 +1525,7 @@ class LightningModule(
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        return _load_from_checkpoint(
+        loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
             map_location,
@@ -1526,6 +1533,7 @@ class LightningModule(
             strict,
             **kwargs,
         )
+        return cast(Self, loaded)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:

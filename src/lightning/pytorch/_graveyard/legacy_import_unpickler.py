@@ -40,7 +40,7 @@ except AttributeError:
 
 try:
     if hasattr(torchmetrics.metric, "_compare_version"):
-        torchmetrics.metric._compare_version = compare_version  # type: ignore
+        torchmetrics.metric._compare_version = compare_version
 except AttributeError:
     pass
 pickle.Unpickler = RedirectingUnpickler  # type: ignore

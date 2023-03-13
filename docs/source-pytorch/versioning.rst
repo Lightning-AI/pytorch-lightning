@@ -24,18 +24,6 @@ API Stability
 In Lightning, all public APIs are considered stable unless explicitly marked as experimental in their documentation or docstrings.
 Modules, functions, classes, and methods that are protected (have a leading underscore, see https://peps.python.org/pep-0008/ for more information) may be changed or removed at any time.
 
-Experimental API
-----------------
-
-Experimental APIs are labelled as experimental in their documentation or docstrings and are considered unstable and are discouraged from use in production.
-
-For experimental features, any of the following may be true:
-
-- The feature has unstable dependencies.
-- The API may change without notice in future versions.
-- The performance of the feature has not been verified.
-- The docs for this feature are under active development.
-
 Stable API
 ----------
 
@@ -44,7 +32,23 @@ Everything not specifically labelled as experimental is stable.
 For stable APIs, all of the following are true:
 
 - The API is not expected to change.
-- If anything does change, we show a deprecation warning before applying the breaking change following the policy described below.
+- If anything does change, we show a deprecation warning before applying the breaking change following the policy described in the "API Evolution" section below.
+
+Experimental API
+----------------
+
+Experimental APIs are labelled as experimental in their documentation or docstrings.
+For experimental features, any of the following may be true:
+
+- The feature uses dependencies that are under active development and may change outside our control.
+- The API may change without notice in future versions.
+- The performance of the feature has not been verified.
+- The feature has not been battle tested by the core team in production scenarios.
+- The feature is under active development.
+
+While we may still issue deprecation warnings for experimental API changes, this is not guaranteed.
+Therefore, it is important to be cautious when using experimental features and be prepared to modify your code if the
+API changes in a future release. In this case, you might want to pin your dependencies to avoid unexpected issues.
 
 API Evolution
 *************
@@ -79,37 +83,37 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
      - Python
    * - 2.0
      - 2.0
-     - 2.0 (official first release)
+     - 2.0 (GA)
      - ≥1.11, ≤2.0
      - ≥0.7.0
      - ≥3.8, ≤3.10
    * - 1.9
      - 1.9
-     - 1.9 (pre-relase)
+     - 1.9 (experimental)
      - ≥1.10, ≤1.13
      - ≥0.7.0
      - ≥3.7, ≤3.10
-   * - 1.8*²
+   * - 1.8**
      - 1.8
-     - n/a*³
+     - n/a***
      - ≥1.10, ≤1.13
      - ≥0.7.0
      - ≥3.7, ≤3.10
    * - n/a
      - 1.7
-     - n/a*³
+     - n/a***
      - ≥1.9, ≤1.12
      - ≥0.7.0
      - ≥3.7, ≤3.10
    * - n/a
      - 1.6
-     - n/a*³
+     - n/a***
      - ≥1.8, ≤1.11
      - ≥0.4.1
      - ≥3.7, ≤3.9
    * - n/a
      - 1.5
-     - n/a*³
+     - n/a***
      - ≥1.7, ≤1.10
      - ≥0.4.1
      - ≥3.6, ≤3.9
@@ -129,23 +133,23 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
      - 1.2
      - n/a
      - ≥1.4, ≤1.8
-     - n/a*¹
+     - n/a*
      - ≥3.6, ≤3.8
    * - n/a
      - 1.1
      - n/a
      - ≥1.3, ≤1.8
-     - n/a*¹
+     - n/a*
      - ≥3.6, ≤3.8
    * - n/a
      - 1.0
      - n/a
      - ≥1.3, ≤1.7
-     - n/a*¹
+     - n/a*
      - ≥3.6, ≤3.8
 
-\*¹ ``torchmetrics`` was part of ``pytorch_lightning`` at the time and was decoupled to a separate package in v1.3.
+\* ``torchmetrics`` was part of ``pytorch_lightning`` at the time and was decoupled to a separate package in v1.3.
 
-\*² The joint ``lightning`` package was first published in version 1.8
+\*\* The joint ``lightning`` package was first published in version 1.8
 
-\*³ Fabric is the evolution of ``LightningLite`` which was released inside ``pytorch_lightning`` 1.5 and was decoupled to a separate package in v1.9
+\*\*\* Fabric is the evolution of ``LightningLite`` which was released inside ``pytorch_lightning`` 1.5 and was decoupled to a separate package in v1.9

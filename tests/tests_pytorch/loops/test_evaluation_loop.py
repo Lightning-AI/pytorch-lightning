@@ -87,7 +87,7 @@ def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
 
 
 @mock.patch(
-    "lightning.pytorch.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
+    "lightning.pytorch.trainer.connectors.logger_connector.logger_connector._LoggerConnector.log_eval_end_metrics"
 )
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""

@@ -31,7 +31,7 @@ from lightning.pytorch.callbacks import (
 )
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
@@ -58,7 +58,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model = LightningModule()
     model.configure_callbacks = lambda: []
     trainer.strategy._lightning_module = model
-    cb_connector = CallbackConnector(trainer)
+    cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         progress_bar,
@@ -73,7 +73,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
     trainer.strategy._lightning_module = model
-    cb_connector = CallbackConnector(trainer)
+    cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         progress_bar,
@@ -90,7 +90,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model.configure_callbacks = lambda: [checkpoint2, early_stopping, batch_size_finder, model_summary, checkpoint1]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor])
     trainer.strategy._lightning_module = model
-    cb_connector = CallbackConnector(trainer)
+    cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         batch_size_finder,
@@ -172,7 +172,7 @@ def test_attach_model_callbacks():
             callbacks=trainer_callbacks,
         )
         trainer.strategy._lightning_module = model
-        cb_connector = CallbackConnector(trainer)
+        cb_connector = _CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
         return trainer
 
@@ -231,7 +231,7 @@ def test_attach_model_callbacks_override_info(caplog):
         enable_checkpointing=False, callbacks=[EarlyStopping(monitor="foo"), LearningRateMonitor(), TQDMProgressBar()]
     )
     trainer.strategy._lightning_module = model
-    cb_connector = CallbackConnector(trainer)
+    cb_connector = _CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
         cb_connector._attach_model_callbacks()
 

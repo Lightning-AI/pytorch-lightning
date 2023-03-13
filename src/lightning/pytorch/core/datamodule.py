@@ -13,7 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from typing import Any, Dict, IO, Mapping, Optional, Sequence, Union
+from typing import Any, cast, Dict, IO, Mapping, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
@@ -138,13 +138,13 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         datamodule = cls(**datamodule_kwargs, **special_kwargs)
         if train_dataset is not None:
-            datamodule.train_dataloader = train_dataloader  # type: ignore[assignment]
+            datamodule.train_dataloader = train_dataloader  # type: ignore[method-assign]
         if val_dataset is not None:
-            datamodule.val_dataloader = val_dataloader  # type: ignore[assignment]
+            datamodule.val_dataloader = val_dataloader  # type: ignore[method-assign]
         if test_dataset is not None:
-            datamodule.test_dataloader = test_dataloader  # type: ignore[assignment]
+            datamodule.test_dataloader = test_dataloader  # type: ignore[method-assign]
         if predict_dataset is not None:
-            datamodule.predict_dataloader = predict_dataloader  # type: ignore[assignment]
+            datamodule.predict_dataloader = predict_dataloader  # type: ignore[method-assign]
         return datamodule
 
     def state_dict(self) -> Dict[str, Any]:
@@ -169,7 +169,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
+    ) -> Self:
         r"""
         Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
@@ -223,7 +223,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             )
 
         """
-        return _load_from_checkpoint(
+        loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
             map_location=None,
@@ -231,3 +231,4 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             strict=None,
             **kwargs,
         )
+        return cast(Self, loaded)

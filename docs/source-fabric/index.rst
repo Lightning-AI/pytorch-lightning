@@ -57,6 +57,16 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
 Why Fabric?
 ***********
 
+|
+|
+
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/PyTorch-to-Fabric-Spectrum-2.svg
+   :alt: Fabric spans across a large spectrum - from raw PyTorch all the way to high-level PyTorch Lightning
+   :width: 100%
+
+|
+|
+
 Fabric differentiates itself from a fully-fledged trainer like Lightning's `Trainer <https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html>`_ in these key aspects:
 
 **Fast to implement**
@@ -88,7 +98,7 @@ Fabric ships directly with Lightning. Install it with
 
     pip install lightning
 
-For alternative ways to install, read the `installation guide <https://pytorch-lightning.readthedocs.io/en/stable/starter/installation.html>`_.
+For alternative ways to install, read the :doc:`installation guide <fundamentals/installation>`.
 
 ----
 
@@ -263,13 +273,19 @@ Advanced Topics
 
     <div style="display:none">
 
-
 .. toctree::
     :maxdepth: 1
     :name: start
+    :caption: Get Started
+
+    Fabric in 5 minutes <fundamentals/convert>
+    Installation <fundamentals/installation>
+
+.. toctree::
+    :maxdepth: 1
+    :name: fundamentals
     :caption: Fundamentals
 
-    Getting Started <fundamentals/convert>
     Accelerators <fundamentals/accelerators>
     Code Structure <fundamentals/code_structure>
     Launch Distributed Training <fundamentals/launch>
