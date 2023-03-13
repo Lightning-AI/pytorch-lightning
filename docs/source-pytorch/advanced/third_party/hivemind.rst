@@ -16,7 +16,7 @@ To use Collaborative Training, you need to first this extension.
 
 .. code-block:: bash
 
-    pip install lightning-Hivemind
+    pip install lightning-hivemind
 
 This will install both the `hivemind <https://pypi.org/project/hivemind/>`_ package as well as the ``HivemindStrategy`` for the Lightning Trainer:
 
