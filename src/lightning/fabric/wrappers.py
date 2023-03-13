@@ -201,7 +201,6 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
 
 
-
 def is_wrapped(module: Union[Any, _FabricModule, _FabricOptimizer, _FabricDataLoader]) -> bool:
     """Method to check if nn.Module is already wrapped as a  _FabricModule, _FabricOptimizer, _FabricDataLoader
     Args:

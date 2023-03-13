@@ -798,5 +798,6 @@ class Fabric:
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
 
+
 def _do_nothing(*_: Any) -> None:
     pass
