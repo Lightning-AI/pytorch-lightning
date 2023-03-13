@@ -949,6 +949,9 @@ class Trainer:
         self._signal_connector.teardown()
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+        # wait for all to join if on distributed
+        self.strategy.barrier("run-stage")
+
         if self.evaluating:
             return self._evaluation_loop.run()
         if self.predicting:
