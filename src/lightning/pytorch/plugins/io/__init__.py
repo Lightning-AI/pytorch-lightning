@@ -14,4 +14,9 @@
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 
-__all__ = ["AsyncCheckpointIO", "CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO",]
+__all__ = [
+    "AsyncCheckpointIO",
+    "CheckpointIO",
+    "TorchCheckpointIO",
+    "XLACheckpointIO",
+]

@@ -416,9 +416,11 @@ class _AcceleratorConnector:
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
             if not _LIGHTNING_HABANA_AVAILABLE:
-                raise NotImplementedError("You have asked for HPU but you miss install related integration."
-                                          " Please run `pip install lightning-habana` or see for further instructions"
-                                          " in https://github.com/Lightning-AI/lightning-Habana/.")
+                raise NotImplementedError(
+                    "You have asked for HPU but you miss install related integration."
+                    " Please run `pip install lightning-habana` or see for further instructions"
+                    " in https://github.com/Lightning-AI/lightning-Habana/."
+                )
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 from lightning_habana import StrategyParallelHPU
 
@@ -490,6 +492,7 @@ class _AcceleratorConnector:
 
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import AcceleratorHPU, PrecisionHPU
+
             if isinstance(self.accelerator, AcceleratorHPU):
                 return PrecisionHPU(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
@@ -554,6 +557,7 @@ class _AcceleratorConnector:
                 )
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import AcceleratorHPU
+
             if isinstance(self.accelerator, AcceleratorHPU):
                 if self._precision_flag not in ("16-mixed", "bf16-mixed", "32-true"):
                     raise MisconfigurationException(
@@ -604,7 +608,8 @@ class _AcceleratorConnector:
             )
 
         if _LIGHTNING_HABANA_AVAILABLE:
-            from lightning_habana import AcceleratorHPU, StrategySingleHPU, StrategyParallelHPU
+            from lightning_habana import AcceleratorHPU, StrategyParallelHPU, StrategySingleHPU
+
             if isinstance(self.accelerator, AcceleratorHPU) and not isinstance(
                 self.strategy, (StrategySingleHPU, StrategyParallelHPU)
             ):
@@ -627,8 +632,7 @@ class _AcceleratorConnector:
             XLAStrategy,
         )
         if _LIGHTNING_HABANA_AVAILABLE:
-            distributed_strategy = distributed_strategy + (
-            StrategyParallelHPU,)
+            distributed_strategy = distributed_strategy + (StrategyParallelHPU,)
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed

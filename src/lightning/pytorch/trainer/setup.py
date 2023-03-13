@@ -21,7 +21,7 @@ from lightning.pytorch.accelerators import (
     CUDAAccelerator,
     IPUAccelerator,
     MPSAccelerator,
-    TPUAccelerator,
+    TPUAccelerator
 )
 from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
@@ -35,8 +35,8 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.imports import _LIGHTNING_HABANA_AVAILABLE
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
 def _init_debugging_flags(
