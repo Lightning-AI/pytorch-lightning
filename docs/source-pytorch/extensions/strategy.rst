@@ -116,6 +116,9 @@ There are powerful third-party strategies that integrate well with Lightning but
    * - colossalai
      - `Lightning-AI/lightning-colossalai <https://github.com/Lightning-AI/lightning-colossalai>`_
      - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
+   * - hivemind
+     - `Lightning-AI/lightning-hivemind <https://github.com/Lightning-AI/lightning-hivemind>`_
+     - Hivemind is a PyTorch library for decentralized deep learning across the Internet. Its intended usage is training one large model on hundreds of computers from different universities, companies, and volunteers. `Learn more. <https://github.com/learning-at-home/hivemind>`__
 
 
 ----
