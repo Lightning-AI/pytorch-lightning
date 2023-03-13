@@ -38,6 +38,7 @@ from lightning_cloud.openapi import (
     ProjectIdCloudspacesBody,
     V1BuildSpec,
     V1CloudSpace,
+    V1DataConnectionMount,
     V1DependencyFileInfo,
     V1Drive,
     V1DriveSpec,
@@ -222,6 +223,7 @@ class CloudRuntime(Runtime):
         project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
+        cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
         queue_server_type = self._resolve_queue_server_type()
 
         # If system customization files found, it will set their location path
@@ -239,7 +241,7 @@ class CloudRuntime(Runtime):
         # Spec creation
         flow_servers = self._get_flow_servers()
         network_configs = self._get_network_configs(flow_servers)
-        works = self._get_works()
+        works = self._get_works(cloudspace=cloudspace)
         run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
 
@@ -557,6 +559,15 @@ class CloudRuntime(Runtime):
             name = random_name
         return name
 
+    def _resolve_cloudspace(self, project_id: str, cloudspace_id: str) -> Optional[V1CloudSpace]:
+        """Returns a cloudspace by project_id and cloudspace_id, if exists."""
+        existing_cloudspace = self.backend.client.cloud_space_service_get_cloud_space(
+            project_id=project_id,
+            id=cloudspace_id,
+        )
+
+        return existing_cloudspace
+
     def _resolve_queue_server_type(self) -> V1QueueServerType:
         """Resolve the cloud queue type from the environment."""
         queue_server_type = V1QueueServerType.UNSPECIFIED
@@ -732,7 +743,7 @@ class CloudRuntime(Runtime):
                 )
         return mounts
 
-    def _get_works(self) -> List[V1Work]:
+    def _get_works(self, cloudspace: Optional[V1CloudSpace] = None) -> List[V1Work]:
         """Get the list of work specs from the app."""
         works: List[V1Work] = []
         for work in self.app.works:
@@ -758,12 +769,17 @@ class CloudRuntime(Runtime):
             drives = self._get_drives(work)
             mounts = self._get_mounts(work)
 
+            data_connection_mounts: list[V1DataConnectionMount] = []
+            if cloudspace is not None and cloudspace.code_config is not None:
+                data_connection_mounts = cloudspace.code_config.data_connection_mounts
+
             random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
             work_spec = V1LightningworkSpec(
                 build_spec=build_spec,
                 drives=drives + mounts,
                 user_requested_compute_config=user_compute_config,
                 network_config=[V1NetworkConfig(name=random_name, port=work.port)],
+                data_connection_mounts=data_connection_mounts,
             )
             works.append(V1Work(name=work.name, spec=work_spec))
 

@@ -14,6 +14,8 @@
 import logging
 from typing import Optional, Union
 
+import torch
+
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.loops import _Loop
@@ -284,6 +286,10 @@ class _FitLoop(_Loop):
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
+        assert self.trainer.model is not None
+        self.trainer.model.train()
+        torch.set_grad_enabled(True)
+
         if self.restarting:
             self.epoch_progress.reset_on_restart()
 
