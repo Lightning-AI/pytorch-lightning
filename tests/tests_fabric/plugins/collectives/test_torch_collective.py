@@ -207,9 +207,8 @@ def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
             c.teardown()
 
 
-def _test_distributed_collectives_fn(strategy, collective, create_group=True):
-    if create_group:
-        collective.create_group()
+def _test_distributed_collectives_fn(strategy, collective):
+    collective.create_group()
 
     # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
@@ -239,9 +238,8 @@ def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
 
-def _test_distributed_collectives_cuda_fn(strategy, collective, create_group=True):
-    if create_group:
-        collective.create_group()
+def _test_distributed_collectives_cuda_fn(strategy, collective):
+    collective.create_group()
 
     this = torch.tensor(1.5, device=strategy.root_device)
     premul_sum = torch.distributed._make_nccl_premul_sum(2.0)
@@ -297,7 +295,7 @@ def test_default_process_group():
 def test_collective_manages_default_group():
     collective = TorchCollective()
     with mock.patch("torch.distributed.init_process_group"):
-        collective.setup(main_address="foo", main_port=123)
+        collective.setup(main_address="foo", main_port="123")
 
     assert TorchCollective.manages_default_group
 
