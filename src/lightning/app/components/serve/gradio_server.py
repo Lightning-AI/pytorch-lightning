@@ -50,11 +50,12 @@ class ServeGradio(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, css=None, **kwargs: Any):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
         assert self.outputs
         self._model = None
+        self._css = css
 
         self.ready = False
 
@@ -87,7 +88,7 @@ class ServeGradio(LightningWork, abc.ABC):
             examples=self.examples,
             title=self.title,
             description=self.description,
-            css=css_file_path,
+            css=self._css or css_file_path,
         ).launch(
             server_name=self.host,
             server_port=self.port,

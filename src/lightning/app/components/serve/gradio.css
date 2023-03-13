@@ -1,6 +1,7 @@
 :root {
   --purple: rgb(121, 46, 229);
   --purple-darker: rgb(109, 30, 229);
+  --button-primary-border-color-base: rgb(121, 46, 229);
   --purple-gradient: linear-gradient(206.91deg, rgb(121, 46, 229) 16.83%, rgb(62, 171, 179) 144.59%);
   --color-accent-base: var(--purple);
   --color-border-highlight: var(--purple);
@@ -17,8 +18,8 @@
 }
 
 .gradio-container button.primary, .gradio-container button.plain {
-  background: var(--purple);
-  color: white;
+  background: var(--purple) !important;
+  color: white !important;
   font-size: 15;
 }
 
