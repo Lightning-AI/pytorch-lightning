@@ -16,76 +16,76 @@ from copy import deepcopy
 import pytest
 
 from lightning.pytorch.loops.progress import (
-    BaseProgress,
-    OptimizerProgress,
-    ProcessedTracker,
-    Progress,
-    ReadyCompletedTracker,
-    StartedTracker,
+    _BaseProgress,
+    _OptimizerProgress,
+    _ProcessedTracker,
+    _Progress,
+    _ReadyCompletedTracker,
+    _StartedTracker,
 )
 
 
 def test_tracker_reset():
-    p = StartedTracker(ready=1, started=2)
+    p = _StartedTracker(ready=1, started=2)
     p.reset()
-    assert p == StartedTracker()
+    assert p == _StartedTracker()
 
 
 def test_tracker_reset_on_restart():
-    t = StartedTracker(ready=3, started=3, completed=2)
+    t = _StartedTracker(ready=3, started=3, completed=2)
     t.reset_on_restart()
-    assert t == StartedTracker(ready=2, started=2, completed=2)
+    assert t == _StartedTracker(ready=2, started=2, completed=2)
 
-    t = ProcessedTracker(ready=4, started=4, processed=3, completed=2)
+    t = _ProcessedTracker(ready=4, started=4, processed=3, completed=2)
     t.reset_on_restart()
-    assert t == ProcessedTracker(ready=2, started=2, processed=2, completed=2)
+    assert t == _ProcessedTracker(ready=2, started=2, processed=2, completed=2)
 
 
 @pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
 def test_progress_increment(attr):
-    p = Progress()
+    p = _Progress()
     fn = getattr(p, f"increment_{attr}")
     fn()
-    expected = ProcessedTracker(**{attr: 1})
+    expected = _ProcessedTracker(**{attr: 1})
     assert p.total == expected
     assert p.current == expected
 
 
 def test_progress_from_defaults():
-    actual = Progress.from_defaults(StartedTracker, completed=5)
-    expected = Progress(total=StartedTracker(completed=5), current=StartedTracker(completed=5))
+    actual = _Progress.from_defaults(_StartedTracker, completed=5)
+    expected = _Progress(total=_StartedTracker(completed=5), current=_StartedTracker(completed=5))
     assert actual == expected
 
 
 def test_progress_increment_sequence():
     """Test sequence for incrementing."""
-    batch = Progress()
+    batch = _Progress()
 
     batch.increment_ready()
-    assert batch.total == ProcessedTracker(ready=1)
-    assert batch.current == ProcessedTracker(ready=1)
+    assert batch.total == _ProcessedTracker(ready=1)
+    assert batch.current == _ProcessedTracker(ready=1)
 
     batch.increment_started()
-    assert batch.total == ProcessedTracker(ready=1, started=1)
-    assert batch.current == ProcessedTracker(ready=1, started=1)
+    assert batch.total == _ProcessedTracker(ready=1, started=1)
+    assert batch.current == _ProcessedTracker(ready=1, started=1)
 
     batch.increment_processed()
-    assert batch.total == ProcessedTracker(ready=1, started=1, processed=1)
-    assert batch.current == ProcessedTracker(ready=1, started=1, processed=1)
+    assert batch.total == _ProcessedTracker(ready=1, started=1, processed=1)
+    assert batch.current == _ProcessedTracker(ready=1, started=1, processed=1)
 
     batch.increment_completed()
-    assert batch.total == ProcessedTracker(ready=1, started=1, processed=1, completed=1)
-    assert batch.current == ProcessedTracker(ready=1, started=1, processed=1, completed=1)
+    assert batch.total == _ProcessedTracker(ready=1, started=1, processed=1, completed=1)
+    assert batch.current == _ProcessedTracker(ready=1, started=1, processed=1, completed=1)
 
 
 def test_progress_raises():
     with pytest.raises(ValueError, match="instances should be of the same class"):
-        Progress(ReadyCompletedTracker(), ProcessedTracker())
+        _Progress(_ReadyCompletedTracker(), _ProcessedTracker())
 
-    p = Progress(ReadyCompletedTracker(), ReadyCompletedTracker())
-    with pytest.raises(TypeError, match="ReadyCompletedTracker` doesn't have a `started` attribute"):
+    p = _Progress(_ReadyCompletedTracker(), _ReadyCompletedTracker())
+    with pytest.raises(TypeError, match="_ReadyCompletedTracker` doesn't have a `started` attribute"):
         p.increment_started()
-    with pytest.raises(TypeError, match="ReadyCompletedTracker` doesn't have a `processed` attribute"):
+    with pytest.raises(TypeError, match="_ReadyCompletedTracker` doesn't have a `processed` attribute"):
         p.increment_processed()
 
 
@@ -94,8 +94,8 @@ def test_optimizer_progress_default_factory():
 
     If `default_factory` was not used, the default would be shared between instances.
     """
-    p1 = OptimizerProgress()
-    p2 = OptimizerProgress()
+    p1 = _OptimizerProgress()
+    p2 = _OptimizerProgress()
     p1.step.increment_completed()
     assert p1.step.total.completed == p1.step.current.completed
     assert p1.step.total.completed == 1
@@ -103,6 +103,6 @@ def test_optimizer_progress_default_factory():
 
 
 def test_deepcopy():
-    _ = deepcopy(BaseProgress())
-    _ = deepcopy(Progress())
-    _ = deepcopy(ProcessedTracker())
+    _ = deepcopy(_BaseProgress())
+    _ = deepcopy(_Progress())
+    _ = deepcopy(_ProcessedTracker())

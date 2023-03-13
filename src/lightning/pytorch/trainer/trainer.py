@@ -49,19 +49,19 @@ from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
-from lightning.pytorch.trainer.configuration_validator import verify_loop_configurations
+from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
+    _AcceleratorConnector,
     _LITERAL_WARN,
     _PRECISION_INPUT,
     _PRECISION_INPUT_STR,
-    AcceleratorConnector,
 )
-from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
-from lightning.pytorch.trainer.connectors.checkpoint_connector import CheckpointConnector
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
+from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
+from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
-from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
@@ -89,19 +89,15 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
-        enable_checkpointing: Optional[bool] = None,
-        callbacks: Optional[Union[List[Callback], Callback]] = None,
-        default_root_dir: Optional[_PATH] = None,
-        gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[str] = None,
-        num_nodes: int = 1,
+        *,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
-        enable_progress_bar: Optional[bool] = None,
-        overfit_batches: Union[int, float] = 0.0,
-        check_val_every_n_epoch: Optional[int] = 1,
+        num_nodes: int = 1,
+        precision: _PRECISION_INPUT = "32-true",
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        callbacks: Optional[Union[List[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: int = 1,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: int = -1,
@@ -111,23 +107,28 @@ class Trainer:
         limit_val_batches: Optional[Union[int, float]] = None,
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
+        overfit_batches: Union[int, float] = 0.0,
         val_check_interval: Optional[Union[int, float]] = None,
-        log_every_n_steps: Optional[int] = None,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        sync_batchnorm: bool = False,
-        precision: _PRECISION_INPUT = "32-true",
-        enable_model_summary: Optional[bool] = None,
+        check_val_every_n_epoch: Optional[int] = 1,
         num_sanity_val_steps: Optional[int] = None,
-        profiler: Optional[Union[Profiler, str]] = None,
-        benchmark: Optional[bool] = None,
+        log_every_n_steps: Optional[int] = None,
+        enable_checkpointing: Optional[bool] = None,
+        enable_progress_bar: Optional[bool] = None,
+        enable_model_summary: Optional[bool] = None,
+        accumulate_grad_batches: int = 1,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
-        reload_dataloaders_every_n_epochs: int = 0,
-        use_distributed_sampler: bool = True,
-        detect_anomaly: bool = False,
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        benchmark: Optional[bool] = None,
         inference_mode: bool = True,
+        use_distributed_sampler: bool = True,
+        profiler: Optional[Union[Profiler, str]] = None,
+        detect_anomaly: bool = False,
         barebones: bool = False,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        sync_batchnorm: bool = False,
+        reload_dataloaders_every_n_epochs: int = 0,
+        default_root_dir: Optional[_PATH] = None,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -388,9 +389,9 @@ class Trainer:
                 num_sanity_val_steps = 2
 
         # init connectors
-        self._data_connector = DataConnector(self)
+        self._data_connector = _DataConnector(self)
 
-        self._accelerator_connector = AcceleratorConnector(
+        self._accelerator_connector = _AcceleratorConnector(
             devices=devices,
             accelerator=accelerator,
             strategy=strategy,
@@ -402,10 +403,10 @@ class Trainer:
             precision=precision,
             plugins=plugins,
         )
-        self._logger_connector = LoggerConnector(self)
-        self._callback_connector = CallbackConnector(self)
-        self._checkpoint_connector = CheckpointConnector(self)
-        self._signal_connector = SignalConnector(self)
+        self._logger_connector = _LoggerConnector(self)
+        self._callback_connector = _CallbackConnector(self)
+        self._checkpoint_connector = _CheckpointConnector(self)
+        self._signal_connector = _SignalConnector(self)
 
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
@@ -865,7 +866,7 @@ class Trainer:
         self._callback_connector._attach_model_callbacks()
         self._callback_connector._attach_model_logging_functions()
 
-        verify_loop_configurations(self)
+        _verify_loop_configurations(self)
 
         # hook
         log.debug(f"{self.__class__.__name__}: preparing data")
