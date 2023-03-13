@@ -739,6 +739,8 @@ def test_gpu_accelerator_misconfiguration_exception(*_):
 
 
 def test_accelerator_specific_checkpoint_io(monkeypatch):
+    from lightning_habana import StrategyParallelHPU
+
     mock_hpu_available(monkeypatch)
     ckpt_plugin = TorchCheckpointIO()
     trainer = Trainer(accelerator="hpu", strategy=StrategyParallelHPU(), plugins=[ckpt_plugin])
@@ -794,6 +796,8 @@ def test_colossalai_external_strategy(monkeypatch):
 
 @pytest.mark.parametrize("is_interactive", (False, True))
 def test_connector_auto_selection(monkeypatch, is_interactive):
+    from lightning_habana import StrategyParallelHPU
+
     import lightning.fabric  # avoid breakage with standalone package
 
     def _mock_interactive():

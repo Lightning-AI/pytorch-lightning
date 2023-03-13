@@ -67,9 +67,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
-if _LIGHTNING_HABANA_AVAILABLE:
-    from lightning_habana import AcceleratorHPU
-
 log = logging.getLogger(__name__)
 
 _LITERAL_WARN = Literal["warn"]
@@ -352,6 +349,7 @@ class _AcceleratorConnector:
             return "ipu"
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import AcceleratorHPU
+
             if AcceleratorHPU.is_available():
                 return "hpu"
         if MPSAccelerator.is_available():
@@ -625,14 +623,16 @@ class _AcceleratorConnector:
         # Custom plugins should implement is_distributed property.
         if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
             return self.strategy.is_distributed
-        distributed_strategy = (
+        distributed_strategy = [
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
-        )
+        ]
         if _LIGHTNING_HABANA_AVAILABLE:
-            distributed_strategy = distributed_strategy + (StrategyParallelHPU,)
+            from lightning_habana import StrategyParallelHPU
+
+            distributed_strategy.append(StrategyParallelHPU)
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
