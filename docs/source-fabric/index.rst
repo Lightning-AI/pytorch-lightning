@@ -57,7 +57,17 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
 Why Fabric?
 ***********
 
-Fabric differentiates itself from a fully-fledged trainer like Lightning's `Trainer <https://lightning.ai/docs/pytorch/stable/common/trainer.html>`_ in these key aspects:
+|
+|
+
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/PyTorch-to-Fabric-Spectrum-2.svg
+   :alt: Fabric spans across a large spectrum - from raw PyTorch all the way to high-level PyTorch Lightning
+   :width: 100%
+
+|
+|
+
+Fabric differentiates itself from a fully-fledged trainer like Lightning's `Trainer <https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html>`_ in these key aspects:
 
 **Fast to implement**
 There is no need to restructure your code: Just change a few lines in the PyTorch script and you'll be able to leverage Fabric features.

@@ -62,6 +62,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `DDPStrategy(start_method=...)` argument, defaulting to 'popen' ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
+
+- The Trainer's signal handlers are now registered for `trainer.{validate,test,predict}` ([#17017](https://github.com/Lightning-AI/lightning/pull/17017))
+
+
+- Added checks for whether the iterables used by the loops are valid ([#17007](https://github.com/Lightning-AI/lightning/pull/17007))
+
 ### Changed
 
 
@@ -157,9 +163,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Merged the `DDPSpawnStrategy` into `DDPStrategy` ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
 
 
-- The `NeptuneLogger` now requires `neptune>=1.0.0` ([#16888](https://github.com/Lightning-AI/lightning/pull/16888))
-
-
 - Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
 
 
@@ -170,6 +173,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
+
+
+- The Trainer no longer accepts positional arguments to ([#17022](https://github.com/Lightning-AI/lightning/pull/17022))
+
 
 ### Deprecated
 

@@ -630,10 +630,9 @@ class LightningModule(
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
-        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
-        distributed processes.
+        r"""Gather tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
