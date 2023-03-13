@@ -343,10 +343,8 @@ class _FitLoop(_Loop):
 
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        if combined_loader._mode not in ("max_size_cycle", "min_size"):
-            raise ValueError(
-                f'`{type(self).__name__}` only supports the `CombinedLoader(mode="max_size_cycle" | "min_size")` modes.'
-            )
+        if combined_loader._mode == "sequential":
+            raise ValueError(f'`{type(self).__name__}` does not support the `CombinedLoader(mode="sequential")` mode.')
         assert self._data_fetcher is not None
         self._data_fetcher.setup(combined_loader)
         with self.trainer.profiler.profile("run_training_epoch"):
