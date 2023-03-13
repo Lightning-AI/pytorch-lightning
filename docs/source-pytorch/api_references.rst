@@ -42,7 +42,7 @@ callbacks
     ModelPruning
     ModelSummary
     OnExceptionCheckpoint
-    ProgressBarBase
+    ProgressBar
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging

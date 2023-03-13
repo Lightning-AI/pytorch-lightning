@@ -36,7 +36,7 @@ from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
+from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
@@ -1193,11 +1193,11 @@ class Trainer:
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        """An instance of :class:`~lightning.pytorch.callbacks.progress.base.ProgressBarBase` found in the
+    def progress_bar_callback(self) -> Optional[ProgressBar]:
+        """An instance of :class:`~lightning.pytorch.callbacks.progress.base.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
-            if isinstance(c, ProgressBarBase):
+            if isinstance(c, ProgressBar):
                 return c
         return None
 
