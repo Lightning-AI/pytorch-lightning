@@ -121,8 +121,6 @@ There are powerful third-party strategies that integrate well with Lightning but
      - Hivemind is a PyTorch library for decentralized deep learning across the Internet. Its intended usage is training one large model on hundreds of computers from different universities, companies, and volunteers. `Learn more. <https://github.com/learning-at-home/hivemind>`__
 
 
-training on unreliable mixed GPUs across the internet
-
 ----
 
 
