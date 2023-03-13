@@ -7,7 +7,7 @@ set -e
 
 PATH_HERE=$(cd $(dirname $0); pwd -P)
 PATH_ROOT=$PATH_HERE/..
-PATH_ENV=$PATH_HERE/vEnv-docs
+PATH_ENV=$PATH_HERE/venv-docs
 # export PACKAGE_NAME=app
 export FREEZE_REQUIREMENTS=1
 export PYTHONPATH=$(dirname $PATH_HERE)  # for `import tests_pytorch`
