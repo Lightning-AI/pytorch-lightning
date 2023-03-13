@@ -33,12 +33,12 @@ Complex data uses
    :tag: basic
 
 .. displayitem::
-   :header: Infinte or streaming datasets
+   :header: Streaming datasets
    :description: Using iterable-style datasets with Lightning
    :col_css: col-md-4
-   :button_link: infinite.html
+   :button_link: streaming.html
    :height: 150
-   :tag: basic
+   :tag: intermediate
 
 .. displayitem::
    :header: Faster DataLoaders
@@ -46,7 +46,7 @@ Complex data uses
    :col_css: col-md-4
    :button_link: alternatives.html
    :height: 150
-   :tag: basic
+   :tag: advanced
 
 .. raw:: html
 
