@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+import os.path
 from functools import partial
 from types import ModuleType
 from typing import Any, List, Optional
@@ -78,6 +79,7 @@ class ServeGradio(LightningWork, abc.ABC):
         fn = partial(self.predict, *args, **kwargs)
         fn.__name__ = self.predict.__name__
         self.ready = True
+        css_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gradio.css")
         gradio.Interface(
             fn=fn,
             inputs=self.inputs,
@@ -85,6 +87,7 @@ class ServeGradio(LightningWork, abc.ABC):
             examples=self.examples,
             title=self.title,
             description=self.description,
+            css=css_file_path,
         ).launch(
             server_name=self.host,
             server_port=self.port,
