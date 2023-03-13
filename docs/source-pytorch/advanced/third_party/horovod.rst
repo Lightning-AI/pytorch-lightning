@@ -18,17 +18,7 @@ You can install the Horovod integration by running
 
     pip install lightning-horovod
 
-This will install both the `Horovod <https://github.com/horovod/horovod#install>`_ package as well as the ``HorovodStrategy`` for the Lightning Trainer:
-
-.. code-block:: python
-
-    from lightning import Trainer
-    from lightning_horovod import HorovodStrategy
-
-    # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = Trainer(strategy="horovod", accelerator="gpu", devices=1)
-
-
+This will install both the `Horovod <https://github.com/horovod/horovod#install>`_ package as well as the ``HorovodStrategy`` for the Lightning Trainer.
 Horovod can be configured in the training script to run with any number of GPUs / processes as follows:
 
 .. code-block:: python
