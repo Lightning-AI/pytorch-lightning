@@ -1194,7 +1194,7 @@ class Trainer:
 
     @property
     def progress_bar_callback(self) -> Optional[ProgressBar]:
-        """An instance of :class:`~lightning.pytorch.callbacks.progress.base.ProgressBar` found in the
+        """An instance of :class:`~lightning.pytorch.callbacks.progress.progress_bar.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
             if isinstance(c, ProgressBar):

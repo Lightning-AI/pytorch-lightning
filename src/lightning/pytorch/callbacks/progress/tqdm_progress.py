@@ -28,7 +28,7 @@ else:
     from tqdm import tqdm as _tqdm
 
 import lightning.pytorch as pl
-from lightning.pytorch.callbacks.progress.base import ProgressBar
+from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
 
 _PAD_SIZE = 5
