@@ -636,7 +636,7 @@ class LightningModule(
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
-            group: the process group to gather results from. Defaults to all processes (world).
+            group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for the all_gather operation
 
         Return:
