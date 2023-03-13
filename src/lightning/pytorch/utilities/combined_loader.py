@@ -166,9 +166,6 @@ _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "max_size", "se
 class CombinedLoader(Iterable):
     """Combines different iterables under specific sampling modes.
 
-
-
-
     Args:
         iterables: the iterable or collection of iterables to sample from.
         mode: the mode to use. The following modes are supported:
