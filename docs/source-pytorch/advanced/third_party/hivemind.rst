@@ -7,7 +7,7 @@ Hivemind - training on unreliable mixed GPUs across the internet
 Collaborative Training tries to solve the need for top-tier multi-GPU servers by allowing you to train across unreliable machines,
 such as local machines or even preemptible cloud compute across the internet.
 
-Under the hood, we use `Hivemind <https://github.com/learning-at-home/hivemind>`_ which provides de-centralized training across the internet.
+Under the hood, we use `Hivemind <https://github.com/learning-at-home/hivemind>`__ which provides de-centralized training across the internet.
 
 .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -18,7 +18,7 @@ To use Collaborative Training, you need to first this extension.
 
     pip install lightning-hivemind
 
-This will install both the `hivemind <https://pypi.org/project/hivemind/>`_ package as well as the ``HivemindStrategy`` for the Lightning Trainer:
+This will install both the `Hivemind <https://pypi.org/project/hivemind/>`__ package as well as the ``HivemindStrategy`` for the Lightning Trainer:
 
 Reducing Communication By Overlapping Communication
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
