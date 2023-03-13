@@ -23,7 +23,7 @@ from lightning.pytorch.accelerators import (
     MPSAccelerator,
     TPUAccelerator,
 )
-from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
+from lightning.pytorch.utilities.imports import _HPU_AVAILABLE
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
@@ -168,7 +168,12 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
     rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-    num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
+    if _LIGHTNING_HABANA_AVAILABLE:
+        from lightning_habana import AcceleratorHPU
+
+        num_hpus = trainer.num_devices if isinstance(trainer.accelerator, AcceleratorHPU) else 0
+    else:
+        num_hpus = 0
     rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
     # TODO: Integrate MPS Accelerator here, once gpu maps to both
@@ -191,10 +196,14 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
             f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
         )
 
-    if _LIGHTNING_HABANA_AVAILABLE:
+
+    if _HPU_AVAILABLE:
+        if not _LIGHTNING_HABANA_AVAILABLE:
+            raise ModuleNotFoundError("You are running on HPU machine but you have not installed `lightning-habana` extension.")
+
         from lightning_habana import AcceleratorHPU
 
-        if _HPU_AVAILABLE and not isinstance(trainer.accelerator, AcceleratorHPU):
+        if not isinstance(trainer.accelerator, AcceleratorHPU):
             rank_zero_warn(
                 "HPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='hpu', devices={AcceleratorHPU.auto_device_count()})`."

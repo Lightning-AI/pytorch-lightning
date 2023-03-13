@@ -351,8 +351,8 @@ class _AcceleratorConnector:
         if IPUAccelerator.is_available():
             return "ipu"
         if _LIGHTNING_HABANA_AVAILABLE:
-            from lightning_habana import HPUAccelerator
-            if HPUAccelerator.is_available():
+            from lightning_habana import AcceleratorHPU
+            if AcceleratorHPU.is_available():
                 return "hpu"
         if MPSAccelerator.is_available():
             return "mps"
@@ -609,7 +609,7 @@ class _AcceleratorConnector:
                 self.strategy, (StrategySingleHPU, StrategyParallelHPU)
             ):
                 raise ValueError(
-                    "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
+                    "The `AcceleratorHPU` can only be used with a `StrategySingleHPU` or `StrategyParallelHPU`,"
                     f" found {self.strategy.__class__.__name__}."
                 )
 

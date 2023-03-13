@@ -38,3 +38,12 @@ if _POPTORCH_AVAILABLE:
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
+
+
+_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
+if _HABANA_FRAMEWORK_AVAILABLE:
+    from habana_frameworks.torch.utils.library_loader import is_habana_available
+
+    _HPU_AVAILABLE = is_habana_available()
+else:
+    _HPU_AVAILABLE = False
