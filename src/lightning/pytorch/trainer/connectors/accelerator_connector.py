@@ -34,7 +34,6 @@ from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.accelerators.hpu import HPUAccelerator
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
@@ -42,7 +41,6 @@ from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
-    HPUPrecisionPlugin,
     IPUPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
@@ -56,11 +54,9 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    HPUParallelStrategy,
     IPUStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-    SingleHPUStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
@@ -68,8 +64,11 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+
+if _LIGHTNING_HABANA_AVAILABLE:
+    from lightning_habana import AcceleratorHPU
 
 log = logging.getLogger(__name__)
 
@@ -351,8 +350,10 @@ class _AcceleratorConnector:
             return "tpu"
         if IPUAccelerator.is_available():
             return "ipu"
-        if HPUAccelerator.is_available():
-            return "hpu"
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import HPUAccelerator
+            if HPUAccelerator.is_available():
+                return "hpu"
         if MPSAccelerator.is_available():
             return "mps"
         if CUDAAccelerator.is_available():
@@ -414,10 +415,18 @@ class _AcceleratorConnector:
         if self._accelerator_flag == "ipu":
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
+            if not _LIGHTNING_HABANA_AVAILABLE:
+                raise NotImplementedError("You have asked for HPU but you miss install related integration."
+                                          " Please run `pip install lightning-habana` or see for further instructions"
+                                          " in https://github.com/Lightning-AI/lightning-Habana/.")
             if self._parallel_devices and len(self._parallel_devices) > 1:
-                return HPUParallelStrategy.strategy_name
+                from lightning_habana import StrategyParallelHPU
+
+                return StrategyParallelHPU.strategy_name
             else:
-                return SingleHPUStrategy(device=torch.device("hpu"))
+                from lightning_habana import StrategySingleHPU
+
+                return StrategySingleHPU(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
@@ -478,8 +487,11 @@ class _AcceleratorConnector:
 
         if isinstance(self.accelerator, IPUAccelerator):
             return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
-        if isinstance(self.accelerator, HPUAccelerator):
-            return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
+
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import AcceleratorHPU, PrecisionHPU
+            if isinstance(self.accelerator, AcceleratorHPU):
+                return PrecisionHPU(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == "32-true":
                 return TPUPrecisionPlugin()
@@ -540,11 +552,13 @@ class _AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
-        if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in ("16-mixed", "bf16-mixed", "32-true"):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
-                )
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import AcceleratorHPU
+            if isinstance(self.accelerator, AcceleratorHPU):
+                if self._precision_flag not in ("16-mixed", "bf16-mixed", "32-true"):
+                    raise MisconfigurationException(
+                        f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
+                    )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
@@ -589,13 +603,15 @@ class _AcceleratorConnector:
                 f" found {self.strategy.__class__.__name__}."
             )
 
-        if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
-            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
-        ):
-            raise ValueError(
-                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
-                f" found {self.strategy.__class__.__name__}."
-            )
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import AcceleratorHPU, StrategySingleHPU, StrategyParallelHPU
+            if isinstance(self.accelerator, AcceleratorHPU) and not isinstance(
+                self.strategy, (StrategySingleHPU, StrategyParallelHPU)
+            ):
+                raise ValueError(
+                    "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
+                    f" found {self.strategy.__class__.__name__}."
+                )
 
     @property
     def is_distributed(self) -> bool:
@@ -609,8 +625,10 @@ class _AcceleratorConnector:
             FSDPStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
-            HPUParallelStrategy,
         )
+        if _LIGHTNING_HABANA_AVAILABLE:
+            distributed_strategy = distributed_strategy + (
+            StrategyParallelHPU,)
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed

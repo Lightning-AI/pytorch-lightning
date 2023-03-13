@@ -18,6 +18,7 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning_habana
 import pytest
 import torch
 import torch.distributed
@@ -33,7 +34,7 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import HPUAccelerator, IPUAccelerator, TPUAccelerator
+from lightning.pytorch.accelerators import IPUAccelerator, TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -46,17 +47,19 @@ from lightning.pytorch.strategies import (
     FSDPStrategy,
     IPUStrategy,
     SingleDeviceStrategy,
-    SingleHPUStrategy,
     SingleTPUStrategy,
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
-from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_HABANA_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
+
+if _LIGHTNING_HABANA_AVAILABLE:
+    from lightning_habana import AcceleratorHPU, StrategySingleHPU
 
 
 @RunIf(tpu=True, standalone=True)
@@ -567,7 +570,7 @@ def test_unsupported_ipu_choice(monkeypatch):
 
 def mock_hpu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning.pytorch.accelerators.hpu, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.hpu.HPUAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning_habana.accelerator.AcceleratorHPU, "is_available", lambda: value)
     monkeypatch.setattr(lightning.pytorch.strategies.hpu_parallel, "_HPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.single_hpu, "_HPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.plugins.precision.hpu, "_HPU_AVAILABLE", value)
@@ -738,7 +741,7 @@ def test_gpu_accelerator_misconfiguration_exception(*_):
 def test_accelerator_specific_checkpoint_io(monkeypatch):
     mock_hpu_available(monkeypatch)
     ckpt_plugin = TorchCheckpointIO()
-    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
+    trainer = Trainer(accelerator="hpu", strategy=StrategyParallelHPU(), plugins=[ckpt_plugin])
     assert trainer.strategy.checkpoint_io is ckpt_plugin
 
 
@@ -918,10 +921,10 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
         mock_hpu_available(monkeypatch, True)
-        monkeypatch.setattr(lightning.pytorch.accelerators.hpu.HPUAccelerator, "auto_device_count", lambda *_: 1)
+        monkeypatch.setattr(lightning_habana.AcceleratorHPU, "auto_device_count", lambda *_: 1)
         connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, HPUAccelerator)
-    assert isinstance(connector.strategy, SingleHPUStrategy)
+    assert isinstance(connector.accelerator, AcceleratorHPU)
+    assert isinstance(connector.strategy, StrategySingleHPU)
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
@@ -936,8 +939,8 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
             mock_ipu_available(monkeypatch, False)
             mock_hpu_available(monkeypatch, True)
             connector = _AcceleratorConnector()
-        assert isinstance(connector.accelerator, HPUAccelerator)
-        assert isinstance(connector.strategy, HPUParallelStrategy)
+        assert isinstance(connector.accelerator, AcceleratorHPU)
+        assert isinstance(connector.strategy, StrategyParallelHPU)
         assert connector._devices_flag == 8
         assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
         assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)

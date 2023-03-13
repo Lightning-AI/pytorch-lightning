@@ -19,7 +19,6 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators import (
     CUDAAccelerator,
-    HPUAccelerator,
     IPUAccelerator,
     MPSAccelerator,
     TPUAccelerator,
@@ -37,6 +36,7 @@ from lightning.pytorch.profilers import (
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning.pytorch.utilities.imports import _LIGHTNING_HABANA_AVAILABLE
 
 
 def _init_debugging_flags(
@@ -191,11 +191,14 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
             f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
         )
 
-    if _HPU_AVAILABLE and not isinstance(trainer.accelerator, HPUAccelerator):
-        rank_zero_warn(
-            "HPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
-        )
+    if _LIGHTNING_HABANA_AVAILABLE:
+        from lightning_habana import AcceleratorHPU
+
+        if _HPU_AVAILABLE and not isinstance(trainer.accelerator, AcceleratorHPU):
+            rank_zero_warn(
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={AcceleratorHPU.auto_device_count()})`."
+            )
 
     if MPSAccelerator.is_available() and not isinstance(trainer.accelerator, MPSAccelerator):
         rank_zero_warn(
