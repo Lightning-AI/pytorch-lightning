@@ -166,19 +166,20 @@ _LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "max_size", "se
 class CombinedLoader(Iterable):
     """Combines different iterables under specific sampling modes.
 
-    The following modes are supported:
 
-    * ``min_size``: stops after the shortest iterable (the one with the lowest number of items) is done.
-    * ``max_size_cycle``: stops after the longest iterable (the one with most items) is done, while cycling through
-      the rest of the iterables.
-    * ``max_size``: stops after the longest iterable (the one with most items) is done, while returning None for the
-      exhausted iterables.
-    * ``sequential``: completely consumes ecah iterable sequentially, and returns a triplet
-      ``(data, idx, iterable_idx)``
+
 
     Args:
         iterables: the iterable or collection of iterables to sample from.
-        mode: the mode to use.
+        mode: the mode to use. The following modes are supported:
+
+            * ``min_size``: stops after the shortest iterable (the one with the lowest number of items) is done.
+            * ``max_size_cycle``: stops after the longest iterable (the one with most items) is done, while cycling through
+              the rest of the iterables.
+            * ``max_size``: stops after the longest iterable (the one with most items) is done, while returning None for the
+              exhausted iterables.
+            * ``sequential``: completely consumes ecah iterable sequentially, and returns a triplet
+              ``(data, idx, iterable_idx)``
 
     Examples:
         >>> from torch.utils.data import DataLoader
