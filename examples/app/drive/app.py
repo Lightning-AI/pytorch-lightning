@@ -22,7 +22,7 @@ class Work_2(L.LightningWork):
         super().__init__()
 
     def run(self, drive: Drive):
-        print(drive.list(""))  # Prints ["a.txt"]
+        print(drive.list("."))  # Prints ["a.txt"]
 
         print(os.path.exists("a.txt"))  # Prints False
 
