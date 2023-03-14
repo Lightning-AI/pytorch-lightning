@@ -1,4 +1,4 @@
-:orphan:
+.. include:: link_prs.rst
 
 Upgrade from 1.8 to the 2.0
 ###########################
@@ -6,17 +6,40 @@ Upgrade from 1.8 to the 2.0
 Regular User
 ************
 
+.. list-table:: Regular user
+   :widths: 40 45 5
+   :header-rows: 1
+
+   * - If
+     - Then
+     - Ref:
 .. include:: xuser/regular_1_8.rst
 .. include:: xuser/regular_1_9.rst
 
 Advanced User
 *************
 
+
+.. list-table:: Advanced User
+   :widths: 40 45 5
+   :header-rows: 1
+
+   * - If
+     - Then
+     - Ref:
 .. include:: xuser/advanced_1_8.rst
 .. include:: xuser/advanced_1_9.rst
 
 Developer
 *********
 
+
+.. list-table:: Developer
+   :widths: 40 45 5
+   :header-rows: 1
+
+   * - If
+     - Then
+     - Ref:
 .. include:: developer/dev_1_8.rst
 .. include:: developer/dev_1_9.rst
