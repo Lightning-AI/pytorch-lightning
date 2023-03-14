@@ -14,7 +14,7 @@
 from typing import Dict, Optional
 
 import lightning.pytorch as pl
-from lightning.pytorch.loops.progress import BaseProgress
+from lightning.pytorch.loops.progress import _BaseProgress
 
 
 class _Loop:
@@ -63,7 +63,7 @@ class _Loop:
 
         for k, v in self.__dict__.items():
             key = prefix + k
-            if isinstance(v, BaseProgress):
+            if isinstance(v, _BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, _Loop):
                 v.state_dict(destination, key + ".")
@@ -87,7 +87,7 @@ class _Loop:
             if key not in state_dict:
                 # compatibility with old checkpoints
                 continue
-            if isinstance(v, BaseProgress):
+            if isinstance(v, _BaseProgress):
                 v.load_state_dict(state_dict[key])
         if prefix + "state_dict" in state_dict:  # compatibility with old checkpoints
             self.on_load_checkpoint(state_dict[prefix + "state_dict"])

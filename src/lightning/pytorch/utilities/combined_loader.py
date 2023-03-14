@@ -31,7 +31,7 @@ class _ModeIterator(Iterator[_T]):
     def __next__(self) -> _T:
         raise NotImplementedError
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         self.iterators = [iter(iterable) for iterable in self.iterables]
         return self
 
@@ -59,7 +59,7 @@ class _MaxSizeCycle(_ModeIterator[List]):
                 out[i] = next(self.iterators[i])
         return out
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         super().__iter__()
         self._consumed = [False] * len(self.iterables)
         return self
@@ -117,7 +117,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
             self._use_next_iterator()
             return self.__next__()
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         super().__iter__()
         self._iterator_idx = 0
         self._idx = 0
@@ -133,6 +133,22 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._idx = 0
 
 
+class _MaxSize(_ModeIterator[List]):
+    def __next__(self) -> List:
+        n = len(self.iterators)
+        out = [None] * n
+        all_exhausted = True
+        for i in range(n):
+            try:
+                out[i] = next(self.iterators[i])
+                all_exhausted = False
+            except StopIteration:
+                pass
+        if all_exhausted:
+            raise StopIteration
+        return out
+
+
 class _CombinationMode(TypedDict):
     fn: Callable[[List[int]], int]
     iterator: Type[_ModeIterator]
@@ -141,10 +157,11 @@ class _CombinationMode(TypedDict):
 _supported_modes = {
     "min_size": _CombinationMode(fn=min, iterator=_MinSize),
     "max_size_cycle": _CombinationMode(fn=max, iterator=_MaxSizeCycle),
+    "max_size": _CombinationMode(fn=max, iterator=_MaxSize),
     "sequential": _CombinationMode(fn=sum, iterator=_Sequential),
 }
 
-_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "sequential"]
+_LITERAL_SUPPORTED_MODES = Literal["min_size", "max_size_cycle", "max_size", "sequential"]
 
 
 class CombinedLoader(Iterable):
@@ -157,6 +174,8 @@ class CombinedLoader(Iterable):
                 items) is done.
             * ``"max_size_cycle"`` which raises StopIteration after the longest iterable (the one with most items) is
                 done, while cycling through rest of the iterables.
+            * ``"max_size"`` which raises StopIteration after the longest iterable (the one with most items) is
+                done, while returning None for exhausted iterables.
             * ``"sequential"`` will consume ecah iterable sequentially, and returns a tuple with the associated index
                 from each iterable.
 
@@ -172,6 +191,14 @@ class CombinedLoader(Iterable):
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([10, 11, 12, 13, 14])}
+        >>> combined_loader = CombinedLoader(iterables, 'max_size')
+        >>> len(combined_loader)
+        3
+        >>> for batch in combined_loader:
+        ...     print(batch)
+        {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
+        {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
+        {'a': None, 'b': tensor([10, 11, 12, 13, 14])}
         >>> combined_loader = CombinedLoader(iterables, 'min_size')
         >>> len(combined_loader)
         2
@@ -236,7 +263,7 @@ class CombinedLoader(Iterable):
             return out
         return tree_unflatten(out, self._spec)
 
-    def __iter__(self) -> Self:  # type: ignore[valid-type]
+    def __iter__(self) -> Self:
         cls = _supported_modes[self._mode]["iterator"]
         iterator = cls(self.flattened)
         iter(iterator)
