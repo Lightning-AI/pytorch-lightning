@@ -21,7 +21,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -330,3 +330,26 @@ def test_fabric_optimizer_zero_grad_kwargs():
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
     fabric_optimizer.zero_grad(set_to_none=True)
     custom_zero_grad.assert_called_with(set_grads_to_None=True)
+
+
+def test_is_wrapped():
+    """Test that the `is_wrapped` utility recognizes when an object was wrapped by Fabric."""
+    assert not is_wrapped(None)
+
+    # _FabricModule
+    module = torch.nn.Linear(2, 2)
+    assert not is_wrapped(module)
+    wrapped = _FabricModule(module, Mock())
+    assert is_wrapped(wrapped)
+
+    # _FabricOptimizer
+    optimizer = torch.optim.Adam(module.parameters())
+    assert not is_wrapped(optimizer)
+    wrapped = _FabricOptimizer(optimizer, Mock())
+    assert is_wrapped(wrapped)
+
+    # _FabricDataLoader
+    dataloader = DataLoader([1, 2, 3])
+    assert not is_wrapped(dataloader)
+    wrapped = _FabricDataLoader(dataloader)
+    assert is_wrapped(wrapped)
