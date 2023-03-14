@@ -3,7 +3,7 @@
 Accessing DataLoaders
 =====================
 
-In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed
+In the case that you require access to the :class:`torch.utils.data.DataLoader` or :class:`torch.utils.data.Dataset` objects, DataLoaders for each step can be accessed
 via the trainer properties :meth:`~lightning.pytorch.trainer.trainer.Trainer.train_dataloader`,
 :meth:`~lightning.pytorch.trainer.trainer.Trainer.val_dataloaders`,
 :meth:`~lightning.pytorch.trainer.trainer.Trainer.test_dataloaders`, and
