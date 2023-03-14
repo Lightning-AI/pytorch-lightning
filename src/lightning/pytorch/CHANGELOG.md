@@ -70,6 +70,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Renamed `ProgressBarBase` to `ProgressBar` ([#17058](https://github.com/Lightning-AI/lightning/pull/17058))
+
 
 - The `Trainer` now chooses `accelerator="auto", strategy="auto", devices="auto"` as defaults ([#16847](https://github.com/Lightning-AI/lightning/pull/16847))
 
@@ -424,8 +426,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
 
-- Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16974](https://github.com/Lightning-AI/lightning/pull/16974))
-
 - Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16999](https://github.com/Lightning-AI/lightning/pull/16999))
 
 
@@ -435,6 +435,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an issue where `DistributedSampler.set_epoch` wasn't getting called during `trainer.predict` ([#16785](https://github.com/Lightning-AI/lightning/pull/16785), [#16826](https://github.com/Lightning-AI/lightning/pull/16826))
+
+- Fixed an issue with comparing torch versions when using a version of torch built from source ([#17030](https://github.com/Lightning-AI/lightning/pull/17030))
 
 
 ## [1.9.4] - 2023-03-01
