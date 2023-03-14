@@ -4,11 +4,14 @@ from functools import partial
 from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 
 import torch
-from lightning_utilities.core import apply_to_collection, is_overridden
+from lightning_utilities import apply_to_collection, is_overridden
 from tqdm import tqdm
 
 import lightning as L
-from lightning.fabric.fabric import _unwrap_objects, Accelerator, Fabric, Logger, Strategy
+from lightning.fabric.accelerators import Accelerator
+from lightning.fabric.loggers import Logger
+from lightning.fabric.strategies import Strategy
+from lightning.fabric.wrappers import _unwrap_objects
 
 
 class MyCustomTrainer:
@@ -82,7 +85,7 @@ class MyCustomTrainer:
             callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
         """
 
-        self.fabric = Fabric(
+        self.fabric = L.Fabric(
             accelerator=accelerator,
             strategy=strategy,
             devices=devices,
