@@ -182,12 +182,12 @@ Current Lightning Users
    :caption: API Reference
 
    api_references
-   upgrade/1_9
-   upgrade/1_8
-   upgrade/1_7
-   upgrade/1_6
-   upgrade/1_5
-   upgrade/1_4
+   upgrade/from_1_9
+   upgrade/from_1_8
+   upgrade/from_1_7
+   upgrade/from_1_6
+   upgrade/from_1_5
+   upgrade/from_1_4
 
 .. toctree::
    :maxdepth: 1

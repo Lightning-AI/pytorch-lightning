@@ -3,6 +3,7 @@ Past PyTorch Lightning versions
 
 PyTorch Lightning evolved over time. Here's the complete history of versions with links to their respective docs.
 
+TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/migration_guide>`.
 
 .. list-table:: Past versions
    :widths: 10 50 40
