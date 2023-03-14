@@ -1125,7 +1125,7 @@ class LightningModule(
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
         """
 
-        if self._fabric:
+        if self.fabric is not None:
             return self.fabric.clip_gradients(
                 self,
                 optimizer,
