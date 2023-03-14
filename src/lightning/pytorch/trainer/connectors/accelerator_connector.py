@@ -492,7 +492,7 @@ class _AcceleratorConnector:
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
 
             if isinstance(self.accelerator, HPUAccelerator):
-                return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
+                return HPUPrecisionPlugin(self._precision_flag)
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == "32-true":
                 return TPUPrecisionPlugin()
