@@ -424,9 +424,9 @@ class _AcceleratorConnector:
 
                 return HPUParallelStrategy.strategy_name
             else:
-                from lightning_habana import HPUSingleStrategy
+                from lightning_habana import SingleHPUStrategy
 
-                return HPUSingleStrategy(device=torch.device("hpu"))
+                return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
@@ -606,13 +606,13 @@ class _AcceleratorConnector:
             )
 
         if _LIGHTNING_HABANA_AVAILABLE:
-            from lightning_habana import HPUAccelerator, HPUParallelStrategy, HPUSingleStrategy
+            from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
             if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
-                self.strategy, (HPUSingleStrategy, HPUParallelStrategy)
+                self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
             ):
                 raise ValueError(
-                    "The `HPUAccelerator` can only be used with a `HPUSingleStrategy` or `HPUParallelStrategy`,"
+                    "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
                     f" found {self.strategy.__class__.__name__}."
                 )
 

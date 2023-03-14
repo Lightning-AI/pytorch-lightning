@@ -59,7 +59,7 @@ from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_ava
 from tests_pytorch.helpers.runif import RunIf
 
 if _LIGHTNING_HABANA_AVAILABLE:
-    from lightning_habana import HPUAccelerator, HPUSingleStrategy
+    from lightning_habana import HPUAccelerator, SingleHPUStrategy
 
 
 @RunIf(tpu=True, standalone=True)
@@ -928,7 +928,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         monkeypatch.setattr(lightning_habana.HPUAccelerator, "auto_device_count", lambda *_: 1)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, HPUAccelerator)
-    assert isinstance(connector.strategy, HPUSingleStrategy)
+    assert isinstance(connector.strategy, SingleHPUStrategy)
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
