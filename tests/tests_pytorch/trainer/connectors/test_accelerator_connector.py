@@ -59,7 +59,7 @@ from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_ava
 from tests_pytorch.helpers.runif import RunIf
 
 if _LIGHTNING_HABANA_AVAILABLE:
-    from lightning_habana import AcceleratorHPU, StrategySingleHPU
+    from lightning_habana import HPUAccelerator, HPUSingleStrategy
 
 
 @RunIf(tpu=True, standalone=True)
@@ -570,7 +570,7 @@ def test_unsupported_ipu_choice(monkeypatch):
 
 def mock_hpu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning.pytorch.accelerators.hpu, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning_habana.accelerator.AcceleratorHPU, "is_available", lambda: value)
+    monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.pytorch.strategies.hpu_parallel, "_HPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.single_hpu, "_HPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.plugins.precision.hpu, "_HPU_AVAILABLE", value)
@@ -739,11 +739,11 @@ def test_gpu_accelerator_misconfiguration_exception(*_):
 
 
 def test_accelerator_specific_checkpoint_io(monkeypatch):
-    from lightning_habana import StrategyParallelHPU
+    from lightning_habana import HPUParallelStrategy
 
     mock_hpu_available(monkeypatch)
     ckpt_plugin = TorchCheckpointIO()
-    trainer = Trainer(accelerator="hpu", strategy=StrategyParallelHPU(), plugins=[ckpt_plugin])
+    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
     assert trainer.strategy.checkpoint_io is ckpt_plugin
 
 
@@ -796,7 +796,7 @@ def test_colossalai_external_strategy(monkeypatch):
 
 @pytest.mark.parametrize("is_interactive", (False, True))
 def test_connector_auto_selection(monkeypatch, is_interactive):
-    from lightning_habana import StrategyParallelHPU
+    from lightning_habana import HPUParallelStrategy
 
     import lightning.fabric  # avoid breakage with standalone package
 
@@ -925,10 +925,10 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
         mock_hpu_available(monkeypatch, True)
-        monkeypatch.setattr(lightning_habana.AcceleratorHPU, "auto_device_count", lambda *_: 1)
+        monkeypatch.setattr(lightning_habana.HPUAccelerator, "auto_device_count", lambda *_: 1)
         connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, AcceleratorHPU)
-    assert isinstance(connector.strategy, StrategySingleHPU)
+    assert isinstance(connector.accelerator, HPUAccelerator)
+    assert isinstance(connector.strategy, HPUSingleStrategy)
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
@@ -943,8 +943,8 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
             mock_ipu_available(monkeypatch, False)
             mock_hpu_available(monkeypatch, True)
             connector = _AcceleratorConnector()
-        assert isinstance(connector.accelerator, AcceleratorHPU)
-        assert isinstance(connector.strategy, StrategyParallelHPU)
+        assert isinstance(connector.accelerator, HPUAccelerator)
+        assert isinstance(connector.strategy, HPUParallelStrategy)
         assert connector._devices_flag == 8
         assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
         assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)

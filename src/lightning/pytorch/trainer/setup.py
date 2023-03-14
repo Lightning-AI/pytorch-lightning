@@ -163,9 +163,9 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
     if _LIGHTNING_HABANA_AVAILABLE:
-        from lightning_habana import AcceleratorHPU
+        from lightning_habana import HPUAccelerator
 
-        num_hpus = trainer.num_devices if isinstance(trainer.accelerator, AcceleratorHPU) else 0
+        num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
     else:
         num_hpus = 0
     rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
@@ -193,15 +193,16 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     if _HPU_AVAILABLE:
         if not _LIGHTNING_HABANA_AVAILABLE:
             raise ModuleNotFoundError(
-                f"You are running on HPU machine but you have not installed `lightning-habana` extension. {str(_LIGHTNING_HABANA_AVAILABLE)}"
+                "You are running on HPU machine but you have not installed `lightning-habana`"
+                f" extension is  {str(_LIGHTNING_HABANA_AVAILABLE)}."
             )
 
-        from lightning_habana import AcceleratorHPU
+        from lightning_habana import HPUAccelerator
 
-        if not isinstance(trainer.accelerator, AcceleratorHPU):
+        if not isinstance(trainer.accelerator, HPUAccelerator):
             rank_zero_warn(
                 "HPU available but not used. Set `accelerator` and `devices` using"
-                f" `Trainer(accelerator='hpu', devices={AcceleratorHPU.auto_device_count()})`."
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
     if MPSAccelerator.is_available() and not isinstance(trainer.accelerator, MPSAccelerator):
