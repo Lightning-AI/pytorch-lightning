@@ -29,6 +29,7 @@ build:
   tools:
     python: "3.9"
   commands:
-    - ls -lh .
-    - git branch --show-current
+    - pwd ; ls -lh .
+    - git show
+    - printenv
     - mkdir -p _readthedocs/html
