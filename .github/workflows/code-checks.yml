@@ -45,7 +45,7 @@ jobs:
         FREEZE_REQUIREMENTS: 1
       run: |
         # todo: adjust requirements for both code-bases
-        pip install -e '.[extra,ui,cloud]' -r requirements/typing.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -e '.[extra,ui,cloud]' -r requirements/typing.txt
         pip list
 
     - name: Check typing
