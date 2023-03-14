@@ -908,13 +908,15 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
     # Single HPU
     if _LIGHTNING_HABANA_AVAILABLE:
+        import lightning_habana
+
         with monkeypatch.context():
             mock_cuda_count(monkeypatch, 0)
             mock_mps_count(monkeypatch, 0)
             mock_tpu_available(monkeypatch, False)
             mock_ipu_available(monkeypatch, False)
             mock_hpu_available(monkeypatch, True)
-            monkeypatch.setattr(lightning_habana.HPUAccelerator, "auto_device_count", lambda *_: 1)
+            monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "auto_device_count", lambda *_: 1)
             connector = _AcceleratorConnector()
         assert isinstance(connector.accelerator, HPUAccelerator)
         assert isinstance(connector.strategy, SingleHPUStrategy)

@@ -674,8 +674,12 @@ def _register_external_accelerators_and_strategies() -> None:
             ColossalAIStrategy.register_strategies(StrategyRegistry)
 
     if _LIGHTNING_HABANA_AVAILABLE:
-        from lightning_habana.accelerator import HPUAccelerator
+        from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
         # TODO: Prevent registering multiple times
         if "hpu" not in AcceleratorRegistry:
             HPUAccelerator.register_accelerators(AcceleratorRegistry)
+        if "hpu_parallel" not in StrategyRegistry:
+            HPUParallelStrategy.register_strategies(StrategyRegistry)
+        if "hpu_single" not in StrategyRegistry:
+            SingleHPUStrategy.register_strategies(StrategyRegistry)
