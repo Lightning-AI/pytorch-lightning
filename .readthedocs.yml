@@ -30,4 +30,5 @@ build:
     python: "3.9"
   commands:
     - ls -lh .
+    - git branch --show-current
     - mkdir -p _readthedocs/html
