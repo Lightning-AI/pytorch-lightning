@@ -61,7 +61,7 @@ repos:
           - flake8-simplify
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.254
+    rev: v0.0.255
     hooks:
       - id: ruff
         args: ["--fix"]
