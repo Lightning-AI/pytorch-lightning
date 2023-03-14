@@ -52,35 +52,25 @@ if _SHOULD_COPY_NOTEBOOKS:
         PATH_RAW_NB,
         PATH_HERE,
         "notebooks",
-        # TODO: Complete converting the missing items and add them back
         patterns=[
             ".",
-            "course_UvA-DL/01-introduction-to-pytorch",
-            "course_UvA-DL/02-activation-functions",
-            "course_UvA-DL/03-initialization-and-optimization",
-            "course_UvA-DL/04-inception-resnet-densenet",
-            "course_UvA-DL/05-transformers-and-MH-attention",
-            "course_UvA-DL/06-graph-neural-networks",
-            "course_UvA-DL/07-deep-energy-based-generative-models",
-            "course_UvA-DL/08-deep-autoencoders",
-            "course_UvA-DL/09-normalizing-flows",
-            "course_UvA-DL/10-autoregressive-image-modeling",
-            "course_UvA-DL/11-vision-transformer",
-            "course_UvA-DL/12-meta-learning",
-            # "course_UvA-DL/13-contrastive-learning",
-            # "lightning_examples/augmentation_kornia",
-            "lightning_examples/barlow-twins",
-            "lightning_examples/basic-gan",
-            "lightning_examples/cifar10-baseline",
-            "lightning_examples/datamodules",
-            # "lightning_examples/finetuning-scheduler",
-            "lightning_examples/mnist-hello-world",
-            "lightning_examples/mnist-tpu-training",
-            # "lightning_examples/reinforce-learning-DQN",
-            # "lightning_examples/text-transformers",
-            # "lightning_examples/warp-drive",
+            "course_UvA-DL",
+            "lightning_examples"
         ],
     )
+    # TODO: Complete converting the missing items and add them back
+    ignore = [
+        "course_UvA-DL/13-contrastive-learning",
+        "lightning_examples/augmentation_kornia",
+        "lightning_examples/finetuning-scheduler",
+        "lightning_examples/reinforce-learning-DQN",
+        "lightning_examples/text-transformers",
+        "lightning_examples/warp-drive",
+    ]
+    for file in ignore:
+        file = os.path.join(PATH_HERE, "notebooks", file)
+        if os.path.exists(file):
+            os.remove(file)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
