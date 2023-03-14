@@ -6,37 +6,23 @@ Upgrade from 1.9 to the 2.0
 Regular User
 ************
 
-.. list-table:: Regular user
-   :widths: 40 45 5
-   :header-rows: 1
+..  field-list-table::
+    :header-rows: 1
 
-   * - If
-     - Then
-     - Ref:
+    -   :Header1:   Header1
+        :Header2:   Header2
+
+    -   :Header1:   1
+        :Header2:   one
+
 .. include:: xuser/regular_1_9.rst
 
 Advanced User
 *************
 
-
-.. list-table:: Advanced User
-   :widths: 40 45 5
-   :header-rows: 1
-
-   * - If
-     - Then
-     - Ref:
 .. include:: xuser/advanced_1_9.rst
 
 Developer
 *********
 
-
-.. list-table:: Developer
-   :widths: 40 45 5
-   :header-rows: 1
-
-   * - If
-     - Then
-     - Ref:
 .. include:: developer/dev_1_9.rst

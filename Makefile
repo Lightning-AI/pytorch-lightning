@@ -48,7 +48,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/pytorch/docs.txt
-	cd docs/source-pytorch && $(MAKE) html
+	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:
 	git submodule update --init --recursive --remote
