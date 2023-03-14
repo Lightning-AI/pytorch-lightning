@@ -7,7 +7,6 @@ Installation
 ############
 
 
-----
 
 *****************************
 Apple Silicon (M1/M2/M3) Macs
