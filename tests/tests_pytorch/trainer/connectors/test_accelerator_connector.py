@@ -569,6 +569,7 @@ def test_unsupported_ipu_choice(monkeypatch):
 
 def mock_hpu_available(monkeypatch, value=True):
     import lightning_habana
+
     monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning_habana.accelerator, "_HPU_AVAILABLE", value)
     monkeypatch.setattr(lightning_habana.strategies.parallel, "_HPU_AVAILABLE", value)
