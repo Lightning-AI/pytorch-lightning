@@ -11,24 +11,16 @@
 Trainer
 =======
 
-Once you've organized your PyTorch code into a LightningModule,
-the Trainer automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.module.LightningModule`, the ``Trainer`` automates everything else.
 
-.. raw:: html
+The ``Trainer`` achieves the following:
 
-    <video width="100%" max-width="800px" controls autoplay
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
-
-|
-
-This abstraction achieves the following:
-
-1. You maintain control over all aspects via PyTorch code without an added abstraction.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.module.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-3. The trainer allows overriding any key part that you don't want automated.
+3. The trainer allows disabling any key part that you don't want automated.
 
 |
 
@@ -50,7 +42,8 @@ This is the basic use of the trainer:
 
 Under the hood
 --------------
-Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
+
+The Lightning ``Trainer`` does much more than just "training". Under the hood, it handles all loop details for you, some examples include:
 
 - Automatically enabling/disabling grads
 - Running the training, validation and test dataloaders
