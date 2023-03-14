@@ -52,6 +52,7 @@ if _SHOULD_COPY_NOTEBOOKS:
         PATH_RAW_NB,
         PATH_HERE,
         "notebooks",
+        # TODO: Complete converting the missing items and add them back
         patterns=[
             ".",
             "course_UvA-DL/01-introduction-to-pytorch",
@@ -66,12 +67,18 @@ if _SHOULD_COPY_NOTEBOOKS:
             "course_UvA-DL/10-autoregressive-image-modeling",
             "course_UvA-DL/11-vision-transformer",
             "course_UvA-DL/12-meta-learning",
+            # "course_UvA-DL/13-contrastive-learning",
+            # "lightning_examples/augmentation_kornia",
             "lightning_examples/barlow-twins",
             "lightning_examples/basic-gan",
             "lightning_examples/cifar10-baseline",
             "lightning_examples/datamodules",
+            # "lightning_examples/finetuning-scheduler",
             "lightning_examples/mnist-hello-world",
             "lightning_examples/mnist-tpu-training",
+            # "lightning_examples/reinforce-learning-DQN",
+            # "lightning_examples/text-transformers",
+            # "lightning_examples/warp-drive",
         ],
     )
 
