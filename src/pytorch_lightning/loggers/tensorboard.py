@@ -117,7 +117,10 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             **kwargs,
         )
         if log_graph and not _TENSORBOARD_AVAILABLE:
-            rank_zero_warn("You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.")
+            rank_zero_warn(
+                "You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.\n"
+                f"{str(_TENSORBOARD_AVAILABLE)}"
+            )
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
         self.hparams: Union[Dict[str, Any], Namespace] = {}
 
