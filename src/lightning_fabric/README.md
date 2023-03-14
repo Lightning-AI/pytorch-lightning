@@ -63,6 +63,7 @@ With just a few code changes, run any PyTorch model on any distributed hardware,
           optimizer.step()
           lr_scheduler.step()
 ```
+
 ______________________________________________________________________
 
 # Getting started
@@ -108,22 +109,22 @@ dataloader = fabric.setup_dataloaders(dataloader)
 - batch.to(device)
 ```
 
-4.  Replace `loss.backward()` by `fabric.backward(loss)`.
+4. Replace `loss.backward()` by `fabric.backward(loss)`.
 
 ```diff
 - loss.backward()
 + fabric.backward(loss)
 ```
 
-4.  Run the script from the terminal with
+4. Run the script from the terminal with
 
 ```bash
 lightning run model path/to/train.py
 ```
+
 or use the launch() method in a notebook. Learn more about [launching distributed training](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fundamentals/launch.html).
 
 ______________________________________________________________________
-
 
 # FAQ
 
@@ -147,7 +148,6 @@ Yes :) Fabric works with PyTorch LightningModules and Callbacks, so you can choo
 
 ______________________________________________________________________
 
-
 # Examples
 
 - GAN
@@ -157,7 +157,6 @@ ______________________________________________________________________
 - Active learning
 
 ______________________________________________________________________
-
 
 ## Asking for help
 
