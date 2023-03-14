@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, NamedTuple, Sequence
+from typing import Any, get_args, NamedTuple, Sequence
 
 import pytest
 import torch
@@ -27,11 +27,12 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import (
+    _LITERAL_SUPPORTED_MODES,
     _MaxSize,
     _MaxSizeCycle,
     _MinSize,
     _Sequential,
-    _supported_modes,
+    _SUPPORTED_MODES,
     CombinedLoader,
 )
 from tests_pytorch.helpers.runif import RunIf
@@ -517,7 +518,7 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
     )
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model=model, train_dataloaders=dataloader)
-    fn = _supported_modes[mode]["fn"]
+    fn = _SUPPORTED_MODES[mode]["fn"]
     expected_length_before_ddp = fn([n1, n2])
     expected_length_after_ddp = (
         math.ceil(expected_length_before_ddp / trainer.num_devices)
@@ -531,3 +532,7 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
     assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)
     assert trainer.fit_loop._combined_loader._mode == mode
     assert trainer.num_training_batches == expected_length_after_ddp
+
+
+def test_supported_modes():
+    assert set(_SUPPORTED_MODES) == set(get_args(_LITERAL_SUPPORTED_MODES))

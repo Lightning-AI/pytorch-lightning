@@ -20,7 +20,7 @@ import pytest
 from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ProgressBarBase, RichProgressBar
+from lightning.pytorch.callbacks import ProgressBar, RichProgressBar
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
@@ -31,7 +31,7 @@ from tests_pytorch.helpers.runif import RunIf
 def test_rich_progress_bar_callback():
     trainer = Trainer(callbacks=RichProgressBar())
 
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
 
     assert len(progress_bars) == 1
     assert isinstance(trainer.progress_bar_callback, RichProgressBar)

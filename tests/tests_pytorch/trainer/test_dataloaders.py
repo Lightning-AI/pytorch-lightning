@@ -840,7 +840,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
 
 @pytest.mark.parametrize(
     ["mode", "num_training_batches"],
-    [("min_size", 16), ("max_size_cycle", 64), ("sequential", 64 + 16 * 4)],
+    [("min_size", 16), ("max_size_cycle", 64), ("max_size", 64), ("sequential", 64 + 16 * 4)],
 )
 def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
     """Integration test for multiple train iterables."""
@@ -867,7 +867,7 @@ def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
 
     if mode == "sequential":
-        with pytest.raises(ValueError, match="FitLoop` only supports"):
+        with pytest.raises(ValueError, match="FitLoop` does not support"):
             trainer.fit(model)
     else:
         trainer.fit(model)
