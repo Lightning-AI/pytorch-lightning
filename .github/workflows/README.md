@@ -8,7 +8,6 @@
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
 | .azure-pipelines/ipu-tests.yml         | Run only IPU-specific tests.                                                                                                                                                | IPU           |
-| .azure-pipelines/hpu-tests.yml         | Run only HPU-specific tests.                                                                                                                                                | HPU           |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
 | .azure-pipelines/gpu-benchmark.yml     | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
 | .github/workflows/tpu-tests.yml        | Run only TPU-specific tests.                                                                                                                                                | TPU           |
@@ -18,7 +17,6 @@
   - GPU: 2 x NVIDIA RTX 3090
   - TPU: Google GKE TPUv3
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
-  - HPU: [Intel Habana Gaudi SYS-420GH-TNGR](https://www.supermicro.com/en/products/system/AI/4U/SYS-420GH-TNGR) which has 8 Gaudi accelerators
 
 - To check which versions of Python or PyTorch are used for testing in our CI, see the corresponding workflow files or checkgroup cofig file at [`.github/checkgroup.yml`](../checkgroup.yml).
 
