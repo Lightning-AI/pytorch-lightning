@@ -84,7 +84,7 @@ If you are deploying models built with Lightning in production and require few d
 
 .. code-block:: bash
 
-    pip install lightning"[pytorch]"
+    pip install lightning
 
 ^^^^^^^^^^^^^^^^^^^^^^
 Custom PyTorch Version

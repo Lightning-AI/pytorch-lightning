@@ -44,7 +44,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install 'lightning[pytorch]'
+    pip install 'lightning'
 
 .. raw:: html
 
