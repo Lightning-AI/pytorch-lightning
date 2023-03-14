@@ -64,7 +64,10 @@ class LocalSourceCodeDir:
     def files(self) -> List[str]:
         """Returns a set of files that are not ignored by .lightningignore."""
         if self._non_ignored_files is None:
-            self._non_ignored_files = _copytree(self.path, "", ignore_functions=self.ignore_functions, dry_run=True)
+            if self.package_source:
+                self._non_ignored_files = _copytree(self.path, "", ignore_functions=self.ignore_functions, dry_run=True)
+            else:
+                self._non_ignored_files = []
         return self._non_ignored_files
 
     @property
