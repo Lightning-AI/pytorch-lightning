@@ -19,17 +19,26 @@
 # Required
 version: 2
 
+submodules:
+  include: all
+  recursive: true
+
 # Build documentation in the docs/ directory with Sphinx
 # reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
+  configuration: docs/source-pytorch/conf.py
   fail_on_warning: true
 
 build:
   os: ubuntu-20.04
   tools:
     python: "3.9"
+  apt_packages:
+    - texlive-latex-extra
+    - dvipng
+    - texlive-pictures
   commands:
     - pwd ; ls -lh .
-    - git show
     - printenv
     - mkdir -p _readthedocs/html
+    - bash docs/rtfd-pytorch.sh
