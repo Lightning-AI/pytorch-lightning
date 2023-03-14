@@ -113,7 +113,7 @@ ______________________________________________________________________
 Simple installation from PyPI
 
 ```bash
-pip install pytorch-lightning
+pip install lightning
 ```
 
 <!-- following section will be skipped from PyPI description -->
@@ -125,7 +125,7 @@ pip install pytorch-lightning
 #### Install with optional dependencies
 
 ```bash
-pip install pytorch-lightning['extra']
+pip install lightning['extra']
 ```
 
 #### Conda
