@@ -117,6 +117,7 @@ jobs:
 
     - name: Install package & dependencies
       run: |
+        pip install -q pip -U
         pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
