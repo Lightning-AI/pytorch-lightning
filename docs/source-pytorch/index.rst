@@ -262,7 +262,7 @@ Current Lightning Users
    :caption: Hands-on Examples
    :glob:
 
-   notebooks/*
+   notebooks/**/*
 
 .. toctree::
    :maxdepth: 1
