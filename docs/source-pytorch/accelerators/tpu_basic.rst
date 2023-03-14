@@ -86,7 +86,7 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install pytorch-lightning
+        !pip install lightning
 
 6. Then set up your LightningModule as normal.
 
