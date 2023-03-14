@@ -125,7 +125,7 @@ jobs:
       if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="lightning.fabric,lightning.pytorch" --target_import="lightning_fabric,pytorch_lightning"
+          --source_import="lightning.fabric" --target_import="lightning_fabric"
 
     - name: Testing Warnings
       working-directory: tests/tests_fabric
