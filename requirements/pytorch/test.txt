@@ -20,4 +20,4 @@ tensorboard>=2.9.1, <2.12.0  # for `TensorBoardLogger`
 protobuf<=3.20.1 # strict  # an extra is updating protobuf, this pin prevents TensorBoard failure
 
 # validation HPU connectors
-lightning-habana>=0.1.0.dev4
+lightning-habana>=0.1.0rc0
