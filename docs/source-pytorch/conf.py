@@ -49,7 +49,17 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
     AssistantCLI.copy_notebooks(
-        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[
+            ".",
+            "course_UvA-DL",
+            "lightning_examples/augmentation_kornia",
+            "lightning_examples/barlow-twins",
+            "lightning_examples/basic-gan",
+            "lightning_examples/cifar10-baseline",
+            "lightning_examples/datamodules",
+            "lightning_examples/mnist-hello-world",
+            "lightning_examples/mnist-tpu-training",
+        ]
     )
 
 
