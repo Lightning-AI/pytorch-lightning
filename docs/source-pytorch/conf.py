@@ -52,11 +52,7 @@ if _SHOULD_COPY_NOTEBOOKS:
         PATH_RAW_NB,
         PATH_HERE,
         "notebooks",
-        patterns=[
-            ".",
-            "course_UvA-DL",
-            "lightning_examples"
-        ],
+        patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
     # TODO: Complete converting the missing items and add them back
     ignore = [
