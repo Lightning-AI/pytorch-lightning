@@ -201,7 +201,7 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
 
 
-def is_wrapped(obj: Union[Any, _FabricModule, _FabricOptimizer, _FabricDataLoader]) -> bool:
+def is_wrapped(obj: object) -> bool:
     """Checks if an object was set up by Fabric.
 
     A :class:`~torch.nn.Module` may be wrapped by a :class:`_FabricModule`, a :class:`~torch.optim.Optimizer`
