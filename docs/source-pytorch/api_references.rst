@@ -42,7 +42,7 @@ callbacks
     ModelPruning
     ModelSummary
     OnExceptionCheckpoint
-    ProgressBarBase
+    ProgressBar
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
@@ -80,7 +80,6 @@ core
     LightningModule
     ~mixins.HyperparametersMixin
     ~optimizer.LightningOptimizer
-    ~saving.ModelIO
 
 
 loggers
@@ -244,6 +243,7 @@ utilities
     :toctree: api
     :nosignatures:
 
+    combined_loader
     data
     deepspeed
     distributed

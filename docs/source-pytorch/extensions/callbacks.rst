@@ -7,24 +7,14 @@
 Callback
 ########
 
-.. raw:: html
-
-    <video width="100%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
-
-|
-
-A callback is a self-contained program that can be reused across projects.
+Callbacks allow you to add arbitrary self-contained programs to your training.
+At specific points during the flow of execution (hooks), the Callback interface allows you to design programs that encapsulate a full set of functionality.
+It de-couples functionality that does not need to be in the :doc:`lightning module <../common/lightning_module>` and can be shared across projects.
 
 Lightning has a callback system to execute them when needed. Callbacks should capture NON-ESSENTIAL
 logic that is NOT required for your :doc:`lightning module <../common/lightning_module>` to run.
 
-Here's the flow of how the callback hooks are executed:
-
-.. raw:: html
-
-    <video width="100%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+A complete list of Callback hooks can be found in :class:`~lightning.pytorch.callbacks.callback.Callback`.
 
 An overall Lightning system should have:
 
@@ -54,18 +44,7 @@ Example:
 We successfully extended functionality without polluting our super clean
 :doc:`lightning module <../common/lightning_module>` research code.
 
------------
-
-********
-Examples
-********
 You can do pretty much anything with callbacks.
-
-- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/callbacks/self_supervised.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/callbacks/vision.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/callbacks/variational.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/callbacks/vision.html#tensorboard-image-generator>`_.
-
 
 --------------
 
@@ -98,7 +77,7 @@ Lightning has a few built-in callbacks.
     ModelCheckpoint
     ModelPruning
     ModelSummary
-    ProgressBarBase
+    ProgressBar
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging

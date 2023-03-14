@@ -25,8 +25,6 @@ This class can then be shared and used anywhere:
 
 .. code-block:: python
 
-    from pl_bolts.datamodules import CIFAR10DataModule, ImagenetDataModule
-
     model = LitClassifier()
     trainer = Trainer()
 
@@ -56,8 +54,11 @@ Datamodules are for you if you ever asked the questions:
 *********************
 What is a DataModule?
 *********************
-A DataModule is simply a collection of a train_dataloader(s), val_dataloader(s), test_dataloader(s) and
-predict_dataloader(s) along with the matching transforms and data processing/downloads steps required.
+
+The :class:`~lightning.pytorch.core.datamodule.LightningDataModule`  is a convenient way to manage data in PyTorch Lightning.
+It encapsulates training, validation, testing, and prediction dataloaders, as well as any necessary steps for data processing,
+downloads, and transformations. By using a :class:`~lightning.pytorch.core.datamodule.LightningDataModule`, you can
+easily develop dataset-agnostic models, hot-swap different datasets, and share data splits and transformations across projects.
 
 Here's a simple PyTorch example:
 
@@ -411,7 +412,10 @@ the method runs on the correct devices).
     trainer.test(datamodule=dm)
 
 You can access the current used datamodule of a trainer via ``trainer.datamodule`` and the current used
-dataloaders via ``trainer.train_dataloader``, ``trainer.val_dataloaders`` and ``trainer.test_dataloaders``.
+dataloaders via the trainer properties :meth:`~lightning.pytorch.trainer.trainer.Trainer.train_dataloader`,
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.val_dataloaders`,
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.test_dataloaders`, and
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.predict_dataloaders`.
 
 
 ----------------

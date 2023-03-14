@@ -7,6 +7,11 @@ from lightning.fabric.utilities.types import CollectibleGroup
 
 
 class SingleDeviceCollective(Collective):
+    """Support for collective operations on a single device (no-op).
+
+    .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
+    """
+
     @property
     def rank(self) -> int:
         return 0

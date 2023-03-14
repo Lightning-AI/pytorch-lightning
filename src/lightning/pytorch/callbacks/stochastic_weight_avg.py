@@ -59,7 +59,7 @@ class StochasticWeightAveraging(Callback):
         For a SWA explanation, please take a look
         `here <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`_.
 
-        .. warning:: ``StochasticWeightAveraging`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 

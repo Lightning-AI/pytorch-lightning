@@ -44,7 +44,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install 'lightning'
 
 .. raw:: html
 
@@ -206,7 +206,7 @@ Current Lightning Users
    Train on single or multiple TPUs <accelerators/tpu>
    Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
-   Inject Custom Data Iterables <data/custom_data_iterables>
+   data/data
    model/own_your_loop
 
 .. toctree::
@@ -233,7 +233,6 @@ Current Lightning Users
    Lightning CLI <cli/lightning_cli>
    LightningDataModule <data/datamodule>
    LightningModule <common/lightning_module>
-   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize/loggers>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
@@ -277,6 +276,7 @@ Current Lightning Users
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
    versioning
+   past_versions
    generated/CHANGELOG.md
 
 .. raw:: html

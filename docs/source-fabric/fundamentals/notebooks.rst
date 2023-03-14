@@ -1,5 +1,3 @@
-:orphan:
-
 .. _Fabric in Notebooks:
 
 ###################
