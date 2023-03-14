@@ -219,7 +219,9 @@ class CloudRuntime(Runtime):
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
-        repo = self._resolve_repo(root)
+        # If the root will already be there, we don't need to upload and preserve the absolute entrypoint
+        absolute_entrypoint = root.is_relative_to("/content") or root.is_relative_to("/data")
+        repo = self._resolve_repo(root, default_ignore=False, package_source=not absolute_entrypoint)
         project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
@@ -242,16 +244,22 @@ class CloudRuntime(Runtime):
         flow_servers = self._get_flow_servers()
         network_configs = self._get_network_configs(flow_servers)
         works = self._get_works(cloudspace=cloudspace)
-        run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
+        run_body = self._get_run_body(
+            cluster_id,
+            flow_servers,
+            network_configs,
+            works,
+            False,
+            root,
+            True,
+            True,
+            absolute_entrypoint,
+        )
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
-
-        # If the system customization root is set, prepare files for environment synchronization
-        if sys_customizations_sync_root is not None:
-            repo.prepare_sys_customizations_sync(sys_customizations_sync_root)
 
         # API transactions
         run = self._api_create_run(project_id, cloudspace_id, run_body)
-        self._api_package_and_upload_repo(repo, run)
+        self._api_package_and_upload_repo(repo, run, sys_customizations_sync_root)
 
         run_instance = self._api_create_run_instance(
             cluster_id,
@@ -455,6 +463,8 @@ class CloudRuntime(Runtime):
         self,
         root: Path,
         ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
+        default_ignore: bool = True,
+        package_source: bool = True,
     ) -> LocalSourceCodeDir:
         """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir``
         object."""
@@ -471,7 +481,9 @@ class CloudRuntime(Runtime):
                 patterns = _parse_lightningignore(merged)
                 ignore_functions = [*ignore_functions, partial(_filter_ignored, root, patterns)]
 
-        return LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
+        return LocalSourceCodeDir(
+            path=root, ignore_functions=ignore_functions, default_ignore=default_ignore, package_source=package_source
+        )
 
     def _resolve_project(self, project_id: Optional[str] = None) -> V1Membership:
         """Determine the project to run on, choosing a default if multiple projects are found."""
@@ -794,12 +806,18 @@ class CloudRuntime(Runtime):
         no_cache: bool,
         root: Path,
         start_server: bool,
+        mount_cloudspace_content: bool = False,
+        absolute_entrypoint: bool = False,
     ) -> CloudspaceIdRunsBody:
         """Get the specification of the run creation request."""
-        # The entry point file needs to be relative to the root of the uploaded source file directory,
-        # because the backend will invoke the lightning commands relative said source directory
-        # TODO: we shouldn't set this if the entrypoint isn't a file but the backend gives an error if we don't
-        app_entrypoint_file = Path(self.entrypoint).absolute().relative_to(root)
+        if absolute_entrypoint:
+            # If the entrypoint will already exist in the cloud then we can choose to keep it as an absolute path.
+            app_entrypoint_file = Path(self.entrypoint).absolute()
+        else:
+            # The entry point file needs to be relative to the root of the uploaded source file directory,
+            # because the backend will invoke the lightning commands relative said source directory
+            # TODO: we shouldn't set this if the entrypoint isn't a file but the backend gives an error if we don't
+            app_entrypoint_file = Path(self.entrypoint).absolute().relative_to(root)
 
         run_body = CloudspaceIdRunsBody(
             cluster_id=cluster_id,
@@ -809,6 +827,7 @@ class CloudRuntime(Runtime):
             network_config=network_configs,
             works=works,
             local_source=True,
+            mount_cloudspace_content=mount_cloudspace_content,
         )
 
         if self.app is not None:
@@ -997,11 +1016,13 @@ class CloudRuntime(Runtime):
         )
 
     @staticmethod
-    def _api_package_and_upload_repo(repo: LocalSourceCodeDir, run: V1LightningRun) -> None:
+    def _api_package_and_upload_repo(
+        repo: LocalSourceCodeDir, run: V1LightningRun, sys_customizations_sync_root: Optional[Path]
+    ) -> None:
         """Package and upload the provided local source code directory to the provided run."""
         if run.source_upload_url == "":
             raise RuntimeError("The source upload url is empty.")
-        repo.package()
+        repo.package(sys_customizations_sync_root)
         repo.upload(url=run.source_upload_url)
 
     @staticmethod

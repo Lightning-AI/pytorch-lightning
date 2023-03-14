@@ -30,9 +30,16 @@ class LocalSourceCodeDir:
 
     cache_location: Path = Path.home() / ".lightning" / "cache" / "repositories"
 
-    def __init__(self, path: Path, ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None) -> None:
+    def __init__(
+        self,
+        path: Path,
+        ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
+        default_ignore: bool = True,
+        package_source: bool = True,
+    ) -> None:
         self.path = path
         self.ignore_functions = ignore_functions
+        self.package_source = package_source
 
         # cache checksum version
         self._version: Optional[str] = None
@@ -42,8 +49,8 @@ class LocalSourceCodeDir:
         if not self.cache_location.exists():
             self.cache_location.mkdir(parents=True, exist_ok=True)
 
-        # Create a default dotignore if it doesn't exist
-        if not (path / DOT_IGNORE_FILENAME).is_file():
+        # Create a default dotignore if requested and it doesn't exist
+        if default_ignore and not (path / DOT_IGNORE_FILENAME).is_file():
             with open(path / DOT_IGNORE_FILENAME, "w") as f:
                 f.write("venv/\n")
                 if (path / "bin" / "activate").is_file() or (path / "pyvenv.cfg").is_file():
@@ -78,12 +85,16 @@ class LocalSourceCodeDir:
         return self.cache_location / filename
 
     @contextmanager
-    def packaging_session(self) -> Path:
+    def packaging_session(self, sys_customizations_root: Optional[Path]) -> Path:
         """Creates a local directory with source code that is used for creating a local source-code package."""
         session_path = self.cache_location / "packaging_sessions" / self.version
         try:
             rmtree(session_path, ignore_errors=True)
-            _copytree(self.path, session_path, ignore_functions=self.ignore_functions)
+            if self.package_source:
+                _copytree(self.path, session_path, ignore_functions=self.ignore_functions)
+            if sys_customizations_root is not None:
+                path_to_sync = Path(session_path, SYS_CUSTOMIZATIONS_SYNC_PATH)
+                copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
             yield session_path
         finally:
             rmtree(session_path, ignore_errors=True)
@@ -95,20 +106,14 @@ class LocalSourceCodeDir:
             if package.is_file():
                 package.unlink()
 
-    def package(self) -> Path:
+    def package(self, sys_customizations_root: Optional[Path]) -> Path:
         """Packages local path using tar."""
         if self.package_path.exists():
             return self.package_path
         # create a packaging session if not available
-        with self.packaging_session() as session_path:
+        with self.packaging_session(sys_customizations_root) as session_path:
             _tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
         return self.package_path
-
-    def prepare_sys_customizations_sync(self, sys_customizations_root: Path) -> None:
-        """Prepares files for system environment customization setup by copying conda and system environment files
-        to an app files directory."""
-        path_to_sync = Path(self.path, SYS_CUSTOMIZATIONS_SYNC_PATH)
-        copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
 
     def upload(self, url: str) -> None:
         """Uploads package to URL, usually pre-signed URL.
