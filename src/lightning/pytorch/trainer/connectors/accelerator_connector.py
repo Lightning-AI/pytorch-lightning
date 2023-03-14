@@ -414,7 +414,7 @@ class _AcceleratorConnector:
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
             if not _LIGHTNING_HABANA_AVAILABLE:
-                raise NotImplementedError(
+                raise ImportError(
                     "You have asked for HPU but you miss install related integration."
                     " Please run `pip install lightning-habana` or see for further instructions"
                     " in https://github.com/Lightning-AI/lightning-Habana/."

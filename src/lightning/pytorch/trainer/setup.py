@@ -193,7 +193,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     if _HPU_AVAILABLE:
         if not _LIGHTNING_HABANA_AVAILABLE:
             raise ModuleNotFoundError(
-                "You are running on HPU machine but you have not installed `lightning-habana` extension."
+                f"You are running on HPU machine but you have not installed `lightning-habana` extension. {str(_LIGHTNING_HABANA_AVAILABLE)}"
             )
 
         from lightning_habana import AcceleratorHPU
