@@ -15,4 +15,5 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 
 
 def test_available_accelerators_in_registry():
-    assert AcceleratorRegistry.available_accelerators() == ["cpu", "cuda", "hpu", "ipu", "mps", "tpu"]
+    """Tests the accelerators available by default, not including external, third-party accelerators."""
+    assert AcceleratorRegistry.available_accelerators() == ["cpu", "cuda", "ipu", "mps", "tpu"]

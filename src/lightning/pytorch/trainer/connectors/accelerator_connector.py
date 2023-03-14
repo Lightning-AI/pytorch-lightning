@@ -672,3 +672,10 @@ def _register_external_accelerators_and_strategies() -> None:
         # TODO: Prevent registering multiple times
         if "colossalai" not in StrategyRegistry:
             ColossalAIStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_HABANA_AVAILABLE:
+        from lightning_habana.accelerator import HPUAccelerator
+
+        # TODO: Prevent registering multiple times
+        if "hpu" not in AcceleratorRegistry:
+            HPUAccelerator.register_accelerators(AcceleratorRegistry)

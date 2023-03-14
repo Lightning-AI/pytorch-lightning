@@ -18,7 +18,6 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning_habana
 import pytest
 import torch
 import torch.distributed
@@ -569,16 +568,16 @@ def test_unsupported_ipu_choice(monkeypatch):
 
 
 def mock_hpu_available(monkeypatch, value=True):
-    monkeypatch.setattr(lightning.pytorch.accelerators.hpu, "_HPU_AVAILABLE", value)
+    import lightning_habana
     monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.pytorch.strategies.hpu_parallel, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_hpu, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.hpu, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.accelerator, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.strategies.parallel, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.strategies.single, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.plugins.precision, "_HPU_AVAILABLE", value)
 
 
 def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
     mock_ipu_available(monkeypatch, False)
-    mock_hpu_available(monkeypatch, False)
     mock_xla_available(monkeypatch, False)
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
@@ -738,12 +737,9 @@ def test_gpu_accelerator_misconfiguration_exception(*_):
         Trainer(accelerator="gpu")
 
 
-def test_accelerator_specific_checkpoint_io(monkeypatch):
-    from lightning_habana import HPUParallelStrategy
-
-    mock_hpu_available(monkeypatch)
+def test_accelerator_specific_checkpoint_io():
     ckpt_plugin = TorchCheckpointIO()
-    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
+    trainer = Trainer(accelerator="cpu", strategy=DDPStrategy(), plugins=[ckpt_plugin])
     assert trainer.strategy.checkpoint_io is ckpt_plugin
 
 
@@ -796,8 +792,6 @@ def test_colossalai_external_strategy(monkeypatch):
 
 @pytest.mark.parametrize("is_interactive", (False, True))
 def test_connector_auto_selection(monkeypatch, is_interactive):
-    from lightning_habana import HPUParallelStrategy
-
     import lightning.fabric  # avoid breakage with standalone package
 
     def _mock_interactive():
@@ -822,7 +816,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         trainer = Trainer()
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
@@ -835,7 +828,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         trainer = Trainer()
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
@@ -848,7 +840,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         trainer = Trainer()
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
@@ -864,7 +855,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 1)
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
@@ -875,7 +865,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_cuda_count(monkeypatch, 0)
         mock_mps_count(monkeypatch, 0)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         _mock_tpu_available(True)
         # TPUAccelerator.auto_device_count always returns 8, but in case this changes in the future...
         monkeypatch.setattr(lightning.pytorch.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
@@ -895,7 +884,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
@@ -910,7 +898,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         mock_tpu_available(monkeypatch, False)
         mock_ipu_available(monkeypatch, True)
-        mock_hpu_available(monkeypatch, False)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, IPUAccelerator)
     assert isinstance(connector.strategy, IPUStrategy)
@@ -919,22 +906,25 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher is None
 
     # Single HPU
-    with monkeypatch.context():
-        mock_cuda_count(monkeypatch, 0)
-        mock_mps_count(monkeypatch, 0)
-        mock_tpu_available(monkeypatch, False)
-        mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, True)
-        monkeypatch.setattr(lightning_habana.HPUAccelerator, "auto_device_count", lambda *_: 1)
-        connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, HPUAccelerator)
-    assert isinstance(connector.strategy, SingleHPUStrategy)
-    assert connector._devices_flag == 1
+    if _LIGHTNING_HABANA_AVAILABLE:
+        with monkeypatch.context():
+            mock_cuda_count(monkeypatch, 0)
+            mock_mps_count(monkeypatch, 0)
+            mock_tpu_available(monkeypatch, False)
+            mock_ipu_available(monkeypatch, False)
+            mock_hpu_available(monkeypatch, True)
+            monkeypatch.setattr(lightning_habana.HPUAccelerator, "auto_device_count", lambda *_: 1)
+            connector = _AcceleratorConnector()
+        assert isinstance(connector.accelerator, HPUAccelerator)
+        assert isinstance(connector.strategy, SingleHPUStrategy)
+        assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     _mock_interactive()
 
-    if not is_interactive:  # HPU does not support interactive environments
+    if not is_interactive and _LIGHTNING_HABANA_AVAILABLE:  # HPU does not support interactive environments
+        from lightning_habana import HPUParallelStrategy
+
         # Multi HPU
         with monkeypatch.context():
             mock_cuda_count(monkeypatch, 0)
@@ -956,7 +946,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
         mock_ipu_available(monkeypatch, False)
-        mock_hpu_available(monkeypatch, False)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
