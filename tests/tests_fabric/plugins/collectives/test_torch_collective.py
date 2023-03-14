@@ -293,26 +293,16 @@ def test_default_process_group():
 @skip_distributed_unavailable
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_collective_manages_default_group():
-    def clear_pg_map(pg):
-        gm_mock.WORLD = None
-        torch.distributed.distributed_c10d._pg_map.clear()
-
     collective = TorchCollective()
     with mock.patch("torch.distributed.init_process_group"):
         collective.setup(main_address="foo", main_port="123")
 
     assert TorchCollective.manages_default_group
 
-    patcher = mock.patch("torch.distributed.GroupMember", spec=True)
-    gm_mock = patcher.start()
-
-    collctive_group = collective.group
-    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {gm_mock.WORLD: ("", None)}), mock.patch(
-        "torch.distributed.destroy_process_group", side_effect=clear_pg_map
-    ) as destroy_mock:
+    with mock.patch.object(collective, "_group") as mock_group, mock.patch.dict(
+        "torch.distributed.distributed_c10d._pg_map", {mock_group: ("", None)}
+    ), mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective.teardown()
-    destroy_mock.assert_called_once_with(collctive_group)
-
-    patcher.stop()
+    destroy_mock.assert_called_once_with(mock_group)
 
     assert not TorchCollective.manages_default_group
