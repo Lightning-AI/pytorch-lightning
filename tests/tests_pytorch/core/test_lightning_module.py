@@ -560,6 +560,7 @@ def test_fabric_log_dict():
     wrapped_module.log_dict({"nothing": 1}, logger=False)
     logger.log_metrics.assert_not_called()
 
+
 @pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm_fabric(algo):
 
