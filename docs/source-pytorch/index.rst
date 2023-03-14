@@ -256,16 +256,25 @@ Current Lightning Users
    Trainer <common/trainer>
    Torch distributed <clouds/cluster_intermediate_2>
 
+
+.. TODO: After all notebook tutorials have been updated, replace the list below with: `notebooks/**/*`
+   Some examples have been excluded because they are not yet updated to Lightning 2.0
+
 .. toctree::
    :maxdepth: 1
    :name: Hands-on Examples
    :caption: Hands-on Examples
    :glob:
 
-   notebooks/**/*
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
+   notebooks/course_UvA-DL/**/*
+   notebooks/lightning_examples/augmentation_kornia/augmentations.ipynb
+   notebooks/lightning_examples/barlow-twins/barlow_twins.ipynb
+   notebooks/lightning_examples/basic-gan/gan.ipynb
+   notebooks/lightning_examples/cifar10-baseline/baseline.ipynb
+   notebooks/lightning_examples/datamodules/datamodules.ipynb
+   notebooks/lightning_examples/mnist-hello-world/hello-world.ipynb
+   notebooks/lightning_examples/mnist-tpu-training/mnist-tpu.ipynb
+
 
 .. toctree::
    :maxdepth: 1
