@@ -42,7 +42,7 @@ callbacks
     ModelPruning
     ModelSummary
     OnExceptionCheckpoint
-    ProgressBarBase
+    ProgressBar
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
@@ -243,6 +243,7 @@ utilities
     :toctree: api
     :nosignatures:
 
+    combined_loader
     data
     deepspeed
     distributed

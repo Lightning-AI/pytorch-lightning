@@ -247,7 +247,6 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
         limit_test_batches=2,
         limit_predict_batches=2,
         callbacks=[ck],
-        inference_mode=not _TORCH_GREATER_EQUAL_2_0,  # TODO(carmocca): inference_mode raises RuntimeError
     )
     _run_multiple_stages(trainer, model)
 
