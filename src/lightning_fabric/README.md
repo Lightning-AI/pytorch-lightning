@@ -89,37 +89,37 @@ pip install -U lightning
 
 1. Create the `Fabric` object at the beginning of your training code.
 
-```
-import Lightning as L
+  ```
+      import Lightning as L
 
-fabric = L.Fabric()
-```
+      fabric = L.Fabric()
+  ```
 
 2. Call `setup()` on each model and optimizer pair and `setup_dataloaders()` on all your data loaders.
 
 ```
-model, optimizer = fabric.setup(model, optimizer)
-dataloader = fabric.setup_dataloaders(dataloader)
+    model, optimizer = fabric.setup(model, optimizer)
+    dataloader = fabric.setup_dataloaders(dataloader)
 ```
 
 3. Remove all `.to` and `.cuda` calls -> Fabric will take care of it.
 
 ```diff
-- model.to(device)
-- batch.to(device)
+    - model.to(device)
+    - batch.to(device)
 ```
 
 4. Replace `loss.backward()` by `fabric.backward(loss)`.
 
 ```diff
-- loss.backward()
-+ fabric.backward(loss)
+    - loss.backward()
+    + fabric.backward(loss)
 ```
 
 4. Run the script from the terminal with
 
 ```bash
-lightning run model path/to/train.py
+    lightning run model path/to/train.py
 ```
 
 or use the launch() method in a notebook. Learn more about [launching distributed training](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fundamentals/launch.html).
@@ -150,11 +150,10 @@ ______________________________________________________________________
 
 # Examples
 
-- GAN
-- Meta learning
-- Large language models
-- Reinforcement learning
-- Active learning
+- [GAN](https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/dcgan)
+- [Meta learning](https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/meta_learning)
+- [Reinforcement learning](https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/reinforcement_learning)
+- [K-Fold cross validation](https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/kfold_cv)
 
 ______________________________________________________________________
 
