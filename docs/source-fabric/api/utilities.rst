@@ -67,3 +67,22 @@ Avoid duplicated print statements in the logs in distributed training by using F
 
     fabric = Fabric(...)
     fabric.print("This message gets printed only in the main process. Much cleaner!")
+
+
+----
+
+
+is_wrapped
+==========
+
+You can test whether an object (:class:`~torch.nn.Module`, :class:`~torch.optim.Optimizer`, :class:`~torch.utils.data.DataLoader`) was already set up once by Fabric:
+
+.. code-block:: python
+
+    from lightning.fabric import is_wrapped
+
+    if not is_wrapped(model):
+        model = fabric.setup(model)
+
+    if not is_wrapped(train_dataloader):
+        train_dataloader = fabric.setup_dataloaders(train_dataloader)
