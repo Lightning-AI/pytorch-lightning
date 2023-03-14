@@ -332,7 +332,7 @@ With just a few code changes, run any PyTorch model on any distributed hardware,
           lr_scheduler.step()
 ```
 
-### [Read more about Fabric](src/fabric/README.md)
+### [Read more about Fabric](src/lightning_fabric/README.md)
 
 </details>
 
@@ -490,6 +490,6 @@ Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/
 
 If you have any questions please:
 
-1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
+1. [Read the docs](https://lightning.ai/docs).
 1. [Search through existing Discussions](https://github.com/Lightning-AI/lightning/discussions), or [add a new question](https://github.com/Lightning-AI/lightning/discussions/new)
 1. [Join our discord](https://discord.com/invite/tfXFetEZxv).
