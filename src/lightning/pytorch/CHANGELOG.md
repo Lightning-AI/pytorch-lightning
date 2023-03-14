@@ -70,6 +70,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Renamed `ProgressBarBase` to `ProgressBar` ([#17058](https://github.com/Lightning-AI/lightning/pull/17058))
+
 
 - The `Trainer` now chooses `accelerator="auto", strategy="auto", devices="auto"` as defaults ([#16847](https://github.com/Lightning-AI/lightning/pull/16847))
 

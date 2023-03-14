@@ -77,7 +77,7 @@ Lightning has a few built-in callbacks.
     ModelCheckpoint
     ModelPruning
     ModelSummary
-    ProgressBarBase
+    ProgressBar
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
