@@ -6,7 +6,6 @@
 Installation
 ############
 
-.. warning:: pip install pytorch-lightning has been deprecated and will stop being updated June 2023. Use *pip install lightning* instead.
 
 ----
 
