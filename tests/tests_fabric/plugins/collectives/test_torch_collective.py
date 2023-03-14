@@ -146,7 +146,7 @@ def test_convert_ops():
 def test_repeated_create_and_destroy():
     collective = TorchCollective()
     with mock.patch("torch.distributed.init_process_group"):
-        collective.setup(main_address="foo", main_port=123)
+        collective.setup(main_address="foo", main_port="123")
 
     assert not os.environ
 
@@ -157,7 +157,7 @@ def test_repeated_create_and_destroy():
     with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
         collective.create_group()
 
-    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {collective.group: None}), mock.patch(
+    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {collective.group: ("", None)}), mock.patch(
         "torch.distributed.destroy_process_group"
     ) as destroy_mock:
         collective.teardown()
@@ -293,15 +293,26 @@ def test_default_process_group():
 @skip_distributed_unavailable
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_collective_manages_default_group():
+    def clear_pg_map(pg):
+        gm_mock.WORLD = None
+        torch.distributed.distributed_c10d._pg_map.clear()
+
     collective = TorchCollective()
     with mock.patch("torch.distributed.init_process_group"):
         collective.setup(main_address="foo", main_port="123")
 
     assert TorchCollective.manages_default_group
 
-    with mock.patch("torch.distributed.GroupMember.WORLD"), mock.patch.dict(
-        "torch.distributed.distributed_c10d._pg_map", {collective.group: ("", None)}
-    ):  # `dist.destroy_process_group` is called with the mocked `WORLD` pg
+    patcher = mock.patch("torch.distributed.GroupMember", spec=True)
+    gm_mock = patcher.start()
+
+    collctive_group = collective.group
+    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {gm_mock.WORLD: ("", None)}), mock.patch(
+        "torch.distributed.destroy_process_group", side_effect=clear_pg_map
+    ) as destroy_mock:
         collective.teardown()
+    destroy_mock.assert_called_once_with(collctive_group)
+
+    patcher.stop()
 
     assert not TorchCollective.manages_default_group
