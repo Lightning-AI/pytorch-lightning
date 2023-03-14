@@ -28,7 +28,7 @@ os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] = "1"
 
 from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
-from lightning.fabric.wrappers import is_wrapped
+from lightning.fabric.wrappers import is_wrapped  # noqa: E402
 
 __all__ = ["Fabric", "seed_everything", "is_wrapped"]
 
