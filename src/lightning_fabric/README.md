@@ -122,7 +122,7 @@ pip install -U lightning
     lightning run model path/to/train.py
 ```
 
-or use the launch() method in a notebook. Learn more about [launching distributed training](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fundamentals/launch.html).
+or use the launch() method in a notebook. Learn more about [launching distributed training](https://lightning.ai/docs/fabric/stable/fundamentals/launch.html).
 
 ______________________________________________________________________
 
@@ -134,7 +134,7 @@ ______________________________________________________________________
 - **Maxmium control**- Write your own training and/or inference logic down to the individual optimizer calls. You aren’t forced to conform to a standardized epoch-based training loop like the one in Lightning Trainer. You can do flexible iteration based training, meta-learning, cross-validation and other types of optimization algorithms without digging into framework internals. This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors. Just remember: With great power comes a great responsibility.
 - **Maxmium flexibility**- You want to have full control over your entire training- in Fabric all features are opt-in, and it provides you with a tool box of primitives so you can build your own Trainer.
 
-## When to use the [Lightning Trainer](https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html)?
+## When to use the [Lightning Trainer](https://lightning.ai/docs/pytorch/stable/common/trainer.html)?
 
 - You want to have all the engineering boilerplate handled for you - dozens of features like checkpointing, logging and early stopping out of the box. Less hassle, less error prone, easy to try different techniques and features.
 - You want to have good defaults chosen for you - so you can have a better starting point.
@@ -142,7 +142,7 @@ ______________________________________________________________________
 
 ## Can I use Fabric with my LightningModule or Lightning Callback?
 
-Yes :) Fabric works with PyTorch LightningModules and Callbacks, so you can choose how to structure your code and reuse existing models and callbacks as you wish. Read more [here](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fundamentals/code_structure.html).
+Yes :) Fabric works with PyTorch LightningModules and Callbacks, so you can choose how to structure your code and reuse existing models and callbacks as you wish. Read more [here](https://lightning.ai/docs/fabric/stable/fundamentals/code_structure.html).
 
 <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="800px">
 
@@ -161,6 +161,6 @@ ______________________________________________________________________
 
 If you have any questions please:
 
-1. [Read the docs](https://pytorch-lightning.readthedocs.io/en/stable/fabric).
+1. [Read the docs](https://lightning.ai/docs/fabric).
 1. [Ask a question in our forum](https://lightning.ai/forums/).
 1. [Join our discord community](https://discord.com/invite/tfXFetEZxv).
