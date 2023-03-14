@@ -604,6 +604,7 @@ class ModelCheckpoint(Checkpoint):
                 os.path.normpath(p)
                 for p in self._fs.ls(ckpt_path, detail=False)
                 if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
+                and os.path.split(p)[1].endswith(self.FILE_EXTENSION)
             }
         return set()
 
