@@ -262,7 +262,8 @@ Current Lightning Users
    :caption: Hands-on Examples
    :glob:
 
-   notebooks/**/*
+   notebooks/course_UvA-DL/*
+   notebooks/lightning_examples/*
 
 .. toctree::
    :maxdepth: 1
