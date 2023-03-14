@@ -34,7 +34,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
 )
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import CombinedLoader
+from lightning.pytorch.utilities.combined_loader import _SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -343,9 +343,10 @@ class _FitLoop(_Loop):
 
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        if combined_loader._mode not in ("max_size_cycle", "min_size"):
+        if combined_loader._mode == "sequential":
             raise ValueError(
-                f'`{type(self).__name__}` only supports the `CombinedLoader(mode="max_size_cycle" | "min_size")` modes.'
+                f'`{type(self).__name__}` does not support the `CombinedLoader(mode="sequential")` mode.'
+                f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
         assert self._data_fetcher is not None
         self._data_fetcher.setup(combined_loader)

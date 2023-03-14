@@ -243,6 +243,7 @@ utilities
     :toctree: api
     :nosignatures:
 
+    combined_loader
     data
     deepspeed
     distributed
