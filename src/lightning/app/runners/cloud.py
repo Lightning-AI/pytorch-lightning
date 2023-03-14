@@ -220,7 +220,7 @@ class CloudRuntime(Runtime):
         # Resolution
         root = self._resolve_root()
         # If the root will already be there, we don't need to upload and preserve the absolute entrypoint
-        absolute_entrypoint = root.is_relative_to("/content") or root.is_relative_to("/data")
+        absolute_entrypoint = str(root).startswith("/content") or str(root).startswith("/data")
         repo = self._resolve_repo(root, default_ignore=False, package_source=not absolute_entrypoint)
         project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
