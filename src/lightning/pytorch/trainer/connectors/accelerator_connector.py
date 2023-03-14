@@ -633,7 +633,7 @@ class _AcceleratorConnector:
             from lightning_habana import HPUParallelStrategy
 
             distributed_strategy.append(HPUParallelStrategy)
-        is_distributed = isinstance(self.strategy, distributed_strategy)
+        is_distributed = isinstance(self.strategy, tuple(distributed_strategy))
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
