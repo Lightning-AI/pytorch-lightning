@@ -42,14 +42,14 @@ build:
     - mkdir -p _readthedocs
     - >
       pip install -U pip ;
-      if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ]
+      if [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ];
       then
           pip install -e . -q -r requirements/pytorch/docs.txt \
               -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
       fi ;
       pip list
     - >  # this need to be split so `sphinx-build` is picked from previous installation
-      if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ]
+      if [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ];
       then
           cd ./docs/source-pytorch ;
           PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
