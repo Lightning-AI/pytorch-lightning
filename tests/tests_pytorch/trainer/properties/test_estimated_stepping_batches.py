@@ -23,7 +23,6 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.strategies.ipu import IPUStrategy
-from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -47,8 +46,6 @@ def test_num_stepping_batches_raises_info_with_no_dataloaders_loaded(caplog):
     trainer.strategy.connect(model)
 
     # artificially setup the data
-    trainer.state.fn = TrainerFn.FITTING
-    trainer.training = True
     trainer.fit_loop.setup_data()
 
     with caplog.at_level(logging.INFO):

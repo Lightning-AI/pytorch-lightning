@@ -65,8 +65,6 @@ def test_eval_limit_batches(stage, mode, limit_batches):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
 
-    trainer.state.stage = stage
-    trainer.state.fn = stage.value
     trainer._active_loop.setup_data()
     if stage == RunningStage.VALIDATING:
         loader_num_batches = trainer.num_val_batches

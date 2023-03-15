@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -94,8 +94,6 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_datamodule(model, datamodule=dm)
 
-    trainer.state.stage = stage
-    trainer.state.fn = stage.value
     trainer._active_loop.setup_data()
 
     if stage == RunningStage.VALIDATING:
@@ -144,8 +142,6 @@ def test_overfit_batch_limits_train(overfit_batches):
     model.trainer = trainer
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model=model)
-    trainer.state.fn = TrainerFn.FITTING
-    trainer.training = True
     trainer.fit_loop.setup_data()
     expected_batches = (
         int(overfit_batches * full_train_samples) if isinstance(overfit_batches, float) else overfit_batches
@@ -170,8 +166,6 @@ def test_distributed_sampler_with_overfit_batches():
     model.trainer = trainer
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
-    trainer.state.fn = TrainerFn.FITTING
-    trainer.training = True
     trainer.fit_loop.setup_data()
     train_sampler = trainer.train_dataloader.sampler
     assert isinstance(train_sampler, DistributedSampler)
