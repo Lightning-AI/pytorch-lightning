@@ -68,7 +68,7 @@ class PopenPythonScript(LightningWork):
 
         In this example, the script will be launch with the :class:`~subprocess.Popen`.
 
-        .. literalinclude:: ../../../examples/app_components/python/component_popen.py
+        .. literalinclude:: ../../../../examples/app/components/python/component_popen.py
             :language: python
         """
         super().__init__(**kwargs)
