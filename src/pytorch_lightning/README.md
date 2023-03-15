@@ -28,7 +28,7 @@ ______________________________________________________________________
 [![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Lightning-AI/lightning)
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
-[![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/tfXFetEZxv)
+[![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
 
 <!--
@@ -384,4 +384,4 @@ If you have any questions please:
 
 1. [Read the docs](https://lightning.ai/docs/pytorch/latest).
 1. [Search through existing Discussions](https://github.com/Lightning-AI/lightning/discussions), or [add a new question](https://github.com/Lightning-AI/lightning/discussions/new)
-1. [Join our Discord community](https://discord.gg/tfXFetEZxv).
+1. [Join our Discord community](https://discord.gg/VptPCZkGNa).

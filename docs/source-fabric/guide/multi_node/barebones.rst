@@ -158,4 +158,4 @@ Launch your command by prepending ``NCCL_DEBUG=INFO`` to get more info.
 ----
 
 If you are sick of troubleshooting cluster problems, give :doc:`Lightning cloud <./cloud>` a try!
-For other questions, please don't hesitate to join the `Discord <https://discord.gg/tfXFetEZxv>`_.
+For other questions, please don't hesitate to join the `Discord <https://discord.gg/VptPCZkGNa>`_.

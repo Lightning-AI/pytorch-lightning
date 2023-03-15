@@ -133,4 +133,4 @@ The most likely reasons and how to fix it:
 
 
 If you are sick of troubleshooting SLURM settings, give :doc:`Lightning cloud <./cloud>` a try!
-For other questions, please don't hesitate to join the `Discord <https://discord.gg/tfXFetEZxv>`_.
+For other questions, please don't hesitate to join the `Discord <https://discord.gg/VptPCZkGNa>`_.

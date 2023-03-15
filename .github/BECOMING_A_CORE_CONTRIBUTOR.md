@@ -51,7 +51,7 @@ Lightning should reflect the broader community it serves. As such we should have
 
 ### Community
 
-We have an active [Discord](https://discord.gg/tfXFetEZxv) and [Slack](https://www.pytorchlightning.ai/community) community, where questions are asked daily.
+We have an active [Discord](https://discord.gg/VptPCZkGNa) and [Slack](https://www.pytorchlightning.ai/community) community, where questions are asked daily.
 This is a great way to show off your Lightning and PyTorch knowledge, and help out others.
 There's also [GitHub discussions](https://github.com/Lightning-AI/lightning/discussions).
 
