@@ -1,5 +1,6 @@
-Upgrade from 1.9 to the 2.0
-###########################
+:orphan:
+
+.. include:: link_refs.rst
 
 Regular User
 ************
