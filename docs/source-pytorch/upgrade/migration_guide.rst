@@ -1,7 +1,7 @@
 Guide how to upgrade to the 2.0 version
 #######################################
 
-IN the following section we will guide use how to update from almost any Lightning version to the 2.0 release.
+The following section will guide you through updating to the 2.0 release.
 
 Particular versions
 *******************

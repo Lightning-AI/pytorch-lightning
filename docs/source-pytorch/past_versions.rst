@@ -12,7 +12,7 @@ TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
    * - Version
      - Title
      - Bug-fix versions
-     - upgrade guide
+     - Upgrade guide
 
    * - `1.9 <https://github.com/Lightning-AI/lightning/releases/tag/1.9.0>`_
      - `Stability and additional improvements <https://pytorch-lightning.readthedocs.io/en/1.9.3>`_

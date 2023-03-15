@@ -182,7 +182,6 @@ Current Lightning Users
    :caption: API Reference
 
    api_references
-   upgrade/migration_guide
 
 .. toctree::
    :maxdepth: 1
