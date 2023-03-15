@@ -143,4 +143,4 @@ If you have any questions please:
 
 1. [Read the docs](https://lightning.ai/lightning-docs/).
 1. [Search through existing Discussions](https://github.com/Lightning-ai/lightning/discussions), or [add a new question](https://github.com/Lightning-ai/lightning/discussions/new)
-1. [Join our Slack community](https://www.pytorchlightning.ai/community).
+1. [Join our Discord community ](https://discord.gg/VptPCZkGNa).
