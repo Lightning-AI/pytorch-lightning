@@ -247,7 +247,10 @@ class _TrainingEpochLoop(loops._Loop):
         # -----------------------------------------
         should_check_val = self._should_check_val_fx()
         if should_check_val:
+            # this needs to be set so the correct `trainer._active_loop` is picked
+            self.trainer.validating = True
             self.val_loop.run()
+            self.trainer.training = True
 
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
