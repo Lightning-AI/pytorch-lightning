@@ -10,7 +10,6 @@
 Expert skills
 #############
 
-----
 
 .. raw:: html
 
