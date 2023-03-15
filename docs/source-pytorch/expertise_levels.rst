@@ -4,11 +4,6 @@ Level up
 ========
 Learn enough Lightning to match the level of expertise required by your research or job.
 
-.. join_slack::
-   :align: left
-   :margin: 30
-
-----
 
 Basic skills
 ------------
