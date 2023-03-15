@@ -18,6 +18,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for automatically calling `set_epoch` on the `dataloader.batch_sampler.sampler` ([#16841](https://github.com/Lightning-AI/lightning/pull/16841))
 
 
+- Added support for writing logs to remote file systems with the `CSVLogger` ([#16880](https://github.com/Lightning-AI/lightning/pull/16880))
+
+
+- Added support for frozen dataclasses in the optimizer state ([#16656](https://github.com/Lightning-AI/lightning/pull/16656))
+
+
+- Added `lightning.fabric.is_wrapped` to check whether a module, optimizer, or dataloader was already wrapped by Fabric ([#16953](https://github.com/Lightning-AI/lightning/pull/16953))
+
+
 ### Changed
 
 - Fabric now chooses `accelerator="auto", strategy="auto", devices="auto"` as defaults ([#16842](https://github.com/Lightning-AI/lightning/pull/16842))
@@ -67,11 +76,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed issue where the wrapped dataloader `iter()` would be called twice ([#16841](https://github.com/Lightning-AI/lightning/pull/16841))
 
+- Improved the error message for installing tensorboard or tensorboardx ([#17053](https://github.com/Lightning-AI/lightning/pull/17053))
+
+
+## [1.9.4] - 2023-03-01
+
+### Added
+
+- Added `Fabric(strategy="auto")` support ([#16916](https://github.com/Lightning-AI/lightning/pull/16916))
+
+### Fixed
+
 - Fixed edge cases in parsing device ids using NVML ([#16795](https://github.com/Lightning-AI/lightning/pull/16795))
-
-
 - Fixed DDP spawn hang on TPU Pods ([#16844](https://github.com/Lightning-AI/lightning/pull/16844))
-
 - Fixed an error when passing `find_usable_cuda_devices(num_devices=-1)` ([#16866](https://github.com/Lightning-AI/lightning/pull/16866))
 
 

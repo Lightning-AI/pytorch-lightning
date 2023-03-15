@@ -43,7 +43,10 @@ else:
 
 
 class IPUStrategy(ParallelStrategy):
-    """Plugin for training on IPU devices."""
+    """Plugin for training on IPU devices.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     strategy_name = "ipu_strategy"
 
@@ -284,7 +287,9 @@ class IPUStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         if self._optimizer_zero_grad_original is not None:
             # re-enable `optimizer_zero_grad`
-            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
+            self.lightning_module.optimizer_zero_grad = (  # type: ignore[method-assign]
+                self._optimizer_zero_grad_original
+            )
 
         for model in self.poptorch_models.values():
             model.destroy()
@@ -342,7 +347,8 @@ class IPUStrategy(ParallelStrategy):
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
-    def root_device(self) -> torch.device:
+    def root_device(self) -> torch.device:  # type: ignore[empty-body]
+        # TODO: this should return `self.parallel_devices[self.local_rank]`
         pass
 
     def model_to_device(self) -> None:

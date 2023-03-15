@@ -19,7 +19,7 @@ Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 .. raw:: html
 
     <video width="100%" max-width="800px" controls autoplay muted playsinline
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
+    src="https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.m4v"></video>
 
 |
 
@@ -81,7 +81,7 @@ For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 .. raw:: html
 
@@ -325,15 +325,6 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :image_height: 220px
    :height: 320
 
-.. displayitem::
-   :header: Lightning Fabric
-   :description: Full control over loop for migrating complex PyTorch projects.
-   :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
-   :button_link: ../fabric/fabric.html
-   :image_height: 220px
-   :height: 320
-
 .. raw:: html
 
         </div>
@@ -370,14 +361,6 @@ Depending on your use case, you might want to check one of these out next.
    :button_link: ../tutorials.html
    :height: 180
    :tag: basic
-
-.. displayitem::
-   :header: I need my raw PyTorch Loop
-   :description: Expert-level control for researchers working on the bleeding-edge
-   :col_css: col-md-3
-   :button_link: ../fabric/fabric.html
-   :height: 180
-   :tag: expert
 
 .. displayitem::
    :header: Deploy your model

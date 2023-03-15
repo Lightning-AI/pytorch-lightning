@@ -16,7 +16,7 @@ from typing import Type
 
 
 @dataclass
-class BaseProgress:
+class _BaseProgress:
     """Mixin that implements state-loading utilities for dataclasses."""
 
     def state_dict(self) -> dict:
@@ -26,7 +26,7 @@ class BaseProgress:
         self.__dict__.update(state_dict)
 
     @classmethod
-    def from_state_dict(cls, state_dict: dict) -> "BaseProgress":
+    def from_state_dict(cls, state_dict: dict) -> "_BaseProgress":
         obj = cls()
         obj.load_state_dict(state_dict)
         return obj
@@ -37,7 +37,7 @@ class BaseProgress:
 
 
 @dataclass
-class ReadyCompletedTracker(BaseProgress):
+class _ReadyCompletedTracker(_BaseProgress):
     """Track an event's progress.
 
     Args:
@@ -65,7 +65,7 @@ class ReadyCompletedTracker(BaseProgress):
 
 
 @dataclass
-class StartedTracker(ReadyCompletedTracker):
+class _StartedTracker(_ReadyCompletedTracker):
     """Track an event's progress.
 
     Args:
@@ -88,7 +88,7 @@ class StartedTracker(ReadyCompletedTracker):
 
 
 @dataclass
-class ProcessedTracker(StartedTracker):
+class _ProcessedTracker(_StartedTracker):
     """Track an event's progress.
 
     Args:
@@ -112,7 +112,7 @@ class ProcessedTracker(StartedTracker):
 
 
 @dataclass
-class Progress(BaseProgress):
+class _Progress(_BaseProgress):
     """Track aggregated and current progress.
 
     Args:
@@ -120,8 +120,8 @@ class Progress(BaseProgress):
         current: Intended to track the current progress of an event.
     """
 
-    total: ReadyCompletedTracker = field(default_factory=ProcessedTracker)
-    current: ReadyCompletedTracker = field(default_factory=ProcessedTracker)
+    total: _ReadyCompletedTracker = field(default_factory=_ProcessedTracker)
+    current: _ReadyCompletedTracker = field(default_factory=_ProcessedTracker)
 
     def __post_init__(self) -> None:
         if type(self.total) is not type(self.current):  # noqa: E721
@@ -132,13 +132,13 @@ class Progress(BaseProgress):
         self.current.ready += 1
 
     def increment_started(self) -> None:
-        if not isinstance(self.total, StartedTracker):
+        if not isinstance(self.total, _StartedTracker):
             raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `started` attribute")
         self.total.started += 1
         self.current.started += 1
 
     def increment_processed(self) -> None:
-        if not isinstance(self.total, ProcessedTracker):
+        if not isinstance(self.total, _ProcessedTracker):
             raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `processed` attribute")
         self.total.processed += 1
         self.current.processed += 1
@@ -148,7 +148,7 @@ class Progress(BaseProgress):
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, tracker_cls: Type[ReadyCompletedTracker], **kwargs: int) -> "Progress":
+    def from_defaults(cls, tracker_cls: Type[_ReadyCompletedTracker], **kwargs: int) -> "_Progress":
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
@@ -168,22 +168,7 @@ class Progress(BaseProgress):
 
 
 @dataclass
-class DataLoaderProgress(Progress):
-    """Tracks dataloader progress.
-
-    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
-
-    Args:
-        total: Tracks the total dataloader progress.
-        current: Tracks the current dataloader progress.
-    """
-
-    total: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
-    current: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
-
-
-@dataclass
-class BatchProgress(Progress):
+class _BatchProgress(_Progress):
     """Tracks batch progress.
 
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
@@ -210,7 +195,7 @@ class BatchProgress(Progress):
 
 
 @dataclass
-class SchedulerProgress(Progress):
+class _SchedulerProgress(_Progress):
     """Tracks scheduler progress.
 
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
@@ -220,12 +205,12 @@ class SchedulerProgress(Progress):
         current: Tracks the current scheduler progress.
     """
 
-    total: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
-    current: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
+    total: _ReadyCompletedTracker = field(default_factory=_ReadyCompletedTracker)
+    current: _ReadyCompletedTracker = field(default_factory=_ReadyCompletedTracker)
 
 
 @dataclass
-class OptimizerProgress(BaseProgress):
+class _OptimizerProgress(_BaseProgress):
     """Track optimizer progress.
 
     Args:
@@ -233,8 +218,8 @@ class OptimizerProgress(BaseProgress):
         zero_grad: Tracks ``optimizer.zero_grad`` calls.
     """
 
-    step: Progress = field(default_factory=lambda: Progress.from_defaults(ReadyCompletedTracker))
-    zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
+    step: _Progress = field(default_factory=lambda: _Progress.from_defaults(_ReadyCompletedTracker))
+    zero_grad: _Progress = field(default_factory=lambda: _Progress.from_defaults(_StartedTracker))
 
     def reset(self) -> None:
         self.step.reset()
@@ -254,14 +239,14 @@ class OptimizerProgress(BaseProgress):
 
 
 @dataclass
-class OptimizationProgress(BaseProgress):
+class _OptimizationProgress(_BaseProgress):
     """Track optimization progress.
 
     Args:
         optimizer: Tracks optimizer progress.
     """
 
-    optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
+    optimizer: _OptimizerProgress = field(default_factory=_OptimizerProgress)
 
     @property
     def optimizer_steps(self) -> int:

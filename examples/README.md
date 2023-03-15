@@ -13,7 +13,7 @@ ______________________________________________________________________
 
 ## Lightning Fabric Examples
 
-We show how to accelerate your PyTorch code with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html) with minimal code changes.
+We show how to accelerate your PyTorch code with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html) with minimal code changes.
 You stay in full control of the training loop.
 
 - [MNIST: Vanilla PyTorch vs. Fabric](fabric/image_classifier/README.md)
@@ -25,8 +25,8 @@ ______________________________________________________________________
 
 In this folder, we have 2 simple examples that showcase the power of the Lightning Trainer.
 
-- [Image Classifier](pl_basics/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
-- [Autoencoder](pl_basics/autoencoder.py)
+- [Image Classifier](pytorch/basics/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
+- [Autoencoder](pytorch/basics/autoencoder.py)
 
 ______________________________________________________________________
 

@@ -16,13 +16,13 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.models import BoringFabric
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
@@ -81,8 +81,23 @@ def _assert_save_equality(fabric, model, ckpt_path):
         assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
-def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
-    return unwrapped_params >= 2
+if _TORCH_GREATER_EQUAL_2_0:
+
+    def _custom_auto_wrap_policy(
+        module,
+        recurse,
+        nonwrapped_numel: int,
+    ) -> bool:
+        return nonwrapped_numel >= 2
+
+else:
+
+    def _custom_auto_wrap_policy(
+        module,
+        recurse,
+        unwrapped_params: int,
+    ) -> bool:
+        return unwrapped_params >= 2
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")
@@ -119,9 +134,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     fabric_model = fabric.setup_module(model, move_to_device=move_to_device)
     fabric_module_mock.assert_not_called()
 
-    assert list(param.device for param in model.parameters()) == []
     assert len(list(fabric_model.parameters())) == 1
-
     # the linear layer got sharded and each part is on the expected device
     assert next(fabric_model.parameters()).device == torch.device("cuda", fabric.local_rank)
     assert next(fabric_model.parameters()).numel() == 50

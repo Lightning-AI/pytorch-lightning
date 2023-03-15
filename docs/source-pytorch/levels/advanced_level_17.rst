@@ -23,14 +23,6 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :height: 150
    :tag: advanced
 
-.. displayitem::
-   :header: Use a Raw PyTorch Loop
-   :description: Migrate complex PyTorch projects to Lightning and push bleeding-edge research with the raw PyTorch loop.
-   :col_css: col-md-4
-   :button_link: ../fabric/fabric.html
-   :height: 150
-   :tag: advanced
-
 .. raw:: html
 
         </div>

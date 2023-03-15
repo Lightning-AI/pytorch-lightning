@@ -26,11 +26,11 @@ args="
   --optimizer=Adam
 "
 
-python "${dir_path}/pl_basics/backbone_image_classifier.py" ${args} "$@"
-python "${dir_path}/pl_basics/autoencoder.py" ${args} "$@"
+python "${dir_path}/pytorch/basics/backbone_image_classifier.py" ${args} "$@"
+python "${dir_path}/pytorch/basics/autoencoder.py" ${args} "$@"
 
 
 # test that a user can manually launch individual processes
 args="--trainer.devices 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python "${dir_path}/pl_basics/autoencoder.py" ${args} &
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python "${dir_path}/pl_basics/autoencoder.py" ${args}
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python "${dir_path}/pytorch/basics/autoencoder.py" ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python "${dir_path}/pytorch/basics/autoencoder.py" ${args}

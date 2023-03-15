@@ -14,13 +14,11 @@
 """Utilities related to memory."""
 
 import gc
-from io import BytesIO
 from typing import Any
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
-from torch.nn import Module
 
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
@@ -91,18 +89,3 @@ def garbage_collection_cuda() -> None:
         if not is_oom_error(exception):
             # Only handle OOM errors
             raise
-
-
-def get_model_size_mb(model: Module) -> float:
-    """Calculates the size of a Module in megabytes.
-
-    The computation includes everything in the :meth:`~torch.nn.Module.state_dict`,
-    i.e., by default the parameters and buffers.
-
-    Returns:
-        Number of megabytes in the parameters of the input module.
-    """
-    model_size = BytesIO()
-    torch.save(model.state_dict(), model_size)
-    size_mb = model_size.getbuffer().nbytes / 1e6
-    return size_mb

@@ -63,7 +63,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: bash
 
-        pip install neptune
+        pip install neptune-client
 
     or conda:
 
@@ -95,7 +95,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: python
 
-        from neptune.types import File
+        from neptune.new.types import File
         from lightning.pytorch import LightningModule
 
 
@@ -320,6 +320,7 @@ class NeptuneLogger(Logger):
         # check if user passed the client `Run`/`Handler` object
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
+
         # check if user passed redundant neptune.init_run arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
@@ -541,7 +542,7 @@ class NeptuneLogger(Logger):
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
-    def _dict_paths(cls, d: Dict[str, Any], path_in_build: str = None) -> Generator:
+    def _dict_paths(cls, d: Dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
         for k, v in d.items():
             path = f"{path_in_build}/{k}" if path_in_build is not None else k
             if not isinstance(v, dict):
