@@ -7,7 +7,7 @@
      - Ref
 
    * - Removed the legacy ``Trainer.get_deprecated_arg_names()``
-     - ...
+     -
      - #14415
 
    * - used the generic method ``Trainer.run_stage``
@@ -111,7 +111,7 @@
      - #12102
 
    * - used the  ``device_stats_monitor.prefix_metric_keys``
-     - ...
+     -
      - #11254
 
    * - used ``on_train_batch_end(outputs, ...)`` with 2d list with sizes (n_optimizers, tbptt_steps)

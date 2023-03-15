@@ -40,7 +40,7 @@
 
    * - used Trainer’s flag ``replace_sampler_ddp``
      - use  ``use_distributed_sample``; the sampler gets created not only for the DDP strategies
-     - ...
+     -
 
    * - relied on the ``on_tpu`` argument in ``LightningModule.optimizer_step`` hook
      - switch to manual optimization
@@ -144,7 +144,7 @@
 
    * - used the ``Trainer.loop`` and fetching classes
      - being marked as protected
-     - ...
+     -
 
    * - used ``opt_idx`` argument in ``BaseFinetuning.finetune_function``
      - use manual optimization
@@ -215,7 +215,7 @@
      - :doc:`Manual Optimization <../../model/manual_optimization>`
 
    * - used ``PL_INTER_BATCH_PARALLELISM`` environment flag
-     - ...
+     -
      - #16355
 
    * - used training integration with Horovod

@@ -39,5 +39,5 @@
      - #14424
 
    * - used Trainer’s property ``Trainer.weights_save_path`` is dropped
-     - ...
+     -
      - #14424

@@ -96,23 +96,23 @@
 
    * - used ``pl.utilities.finite_checks.print_nan_gradients`` function
      - it was removed
-     - ...
+     -
 
    * - used ``pl.utilities.finite_checks.detect_nan_parameters`` function
      - it was removed
-     - ...
+     -
 
    * - used ``pl.utilities.parsing.flatten_dict`` function
      - it was removed
-     - ...
+     -
 
    * - used ``pl.utilities.metrics.metrics_to_scalars`` function
      - it was removed
-     - ...
+     -
 
    * - used ``pl.utilities.memory.get_model_size_mb`` function
      - it was removed
-     - ...
+     -
 
    * - used ``pl.strategies.utils.on_colab_kaggle`` function
      - it was removed
