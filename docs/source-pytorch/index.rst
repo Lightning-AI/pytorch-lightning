@@ -16,10 +16,6 @@ Welcome to ⚡ PyTorch Lightning
       </div>
       <div class='col-md-6'>
 
-.. join_slack::
-   :align: center
-   :margin: 0
-
 .. raw:: html
 
       </div>
