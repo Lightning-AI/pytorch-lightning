@@ -40,10 +40,11 @@ build:
     - pwd ; ls -lh
     - mkdir -p _readthedocs/html
     - >
-      pip install -U pip &&
+      pip install -U pip ;
       pip install -e . -q -r requirements/pytorch/docs.txt \
-        -f "https://download.pytorch.org/whl/cpu/torch_stable.html" &&
+        -f "https://download.pytorch.org/whl/cpu/torch_stable.html" ;
       pip list
-    - cd ./docs/source-pytorch ; \
-      make html --jobs 2 ; \
+    - >
+      cd ./docs/source-pytorch ;
+      PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
       mv docs/build/html _readthedocs/html
