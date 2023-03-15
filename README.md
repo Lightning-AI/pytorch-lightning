@@ -9,7 +9,7 @@
 
 **The Deep Learning framework to train, deploy, and ship AI products Lightning fast.**
 
-**NEW- Ligthning 2.0 is featuring a clean and stable API!**
+**NEW- Lightning 2.0 is featuring a clean and stable API!!**
 
 ______________________________________________________________________
 
