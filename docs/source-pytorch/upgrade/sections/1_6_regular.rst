@@ -1,4 +1,4 @@
-.. list-table:: reg. user 1.7
+.. list-table:: reg. user 1.6
    :widths: 40 40 20
    :header-rows: 1
 
