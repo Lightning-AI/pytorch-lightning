@@ -69,7 +69,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: bash
 
-        conda install -c conda-forge neptune
+        conda install -c conda-forge neptune-client
 
     **Quickstart**
 
