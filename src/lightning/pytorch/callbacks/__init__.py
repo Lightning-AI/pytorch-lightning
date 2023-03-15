@@ -25,7 +25,7 @@ from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.callbacks.model_summary import ModelSummary
 from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
-from lightning.pytorch.callbacks.progress import ProgressBarBase, RichProgressBar, TQDMProgressBar
+from lightning.pytorch.callbacks.progress import ProgressBar, RichProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.pruning import ModelPruning
 from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
@@ -48,7 +48,7 @@ __all__ = [
     "ModelPruning",
     "ModelSummary",
     "OnExceptionCheckpoint",
-    "ProgressBarBase",
+    "ProgressBar",
     "RichModelSummary",
     "RichProgressBar",
     "StochasticWeightAveraging",
