@@ -10,9 +10,6 @@ Build and Train a Model
 
 **Goal:** We'll walk you through the creation of a model using PyTorch Lightning.
 
-.. join_slack::
-   :align: left
-
 ----
 
 *********************************
