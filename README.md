@@ -1,13 +1,7 @@
 <div align="center">
-<!-- following section will be skipped from PyPI description -->
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://pl-public-data.s3.amazonaws.com/assets_lightning/LightningDark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://pl-public-data.s3.amazonaws.com/assets_lightning/LightningLight.png">
-<!-- end skipping PyPI description -->
-    <img alt="Lightning" src="hhttps://pl-public-data.s3.amazonaws.com/assets_lightning/LightningDark.png" width="400" style="max-width: 100%;">
-<!-- following section will be skipped from PyPI description -->
-  </picture>
-<!-- end skipping PyPI description -->
+
+    <img alt="Lightning" src="hhttps://pl-public-data.s3.amazonaws.com/assets_lightning/LightningColor.png" width="400" style="max-width: 100%;">
+
   <br/>
   <br/>
 
