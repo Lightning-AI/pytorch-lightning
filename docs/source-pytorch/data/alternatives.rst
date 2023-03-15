@@ -1,16 +1,17 @@
+:orphan:
+
 .. _dataiters:
 
-##################################
-Injecting 3rd Party Data Iterables
-##################################
+Using 3rd Party Data Iterables
+==============================
 
 When training a model on a specific task, data loading and preprocessing might become a bottleneck.
 Lightning does not enforce a specific data loading approach nor does it try to control it.
-The only assumption Lightning makes is that the data is returned as an iterable of batches.
+The only assumption Lightning makes is that a valid iterable is provided.
 
 For PyTorch-based programs, these iterables are typically instances of :class:`~torch.utils.data.DataLoader`.
-
-However, Lightning also supports other data types such as plain list of batches, generators or other custom iterables.
+However, Lightning also supports other data types such as a list of batches, generators, or other custom iterables or
+collections of the former.
 
 .. code-block:: python
 
@@ -20,13 +21,24 @@ However, Lightning also supports other data types such as plain list of batches,
     trainer = Trainer()
     trainer.fit(model, data)
 
-Examples for custom iterables include `NVIDIA DALI <https://github.com/NVIDIA/DALI>`__ or `FFCV <https://github.com/libffcv/ffcv>`__ for computer vision.
-Both libraries offer support for custom data loading and preprocessing (also hardware accelerated) and can be used with Lightning.
+Below we showcase Lightning examples with packages that compete with the generic PyTorch DataLoader and might be
+faster depending on your use case. They might require custom data serialization, loading, and preprocessing that
+is often hardware accelerated.
 
+.. TODO(carmocca)
+    StreamingDataset
+    ^^^^^^^^^^^^^^^^
 
-For example, taking the example from FFCV's readme, we can use it with Lightning by just removing the hardcoded ``ToDevice(0)``
-as Lightning takes care of GPU placement. In case you want to use some data transformations on GPUs, change the
-``ToDevice(0)`` to ``ToDevice(self.trainer.local_rank)`` to correctly map to the desired GPU in your pipeline.
+    The `StreamingDataset <https://github.com/mosaicml/streaming>`__
+
+FFCV
+^^^^
+
+Taking the example from the `FFCV <https://github.com/libffcv/ffcv>`__ readme, we can use it with Lightning
+by just removing the hardcoded ``ToDevice(0)`` as Lightning takes care of GPU placement. In case you want to use some
+data transformations on GPUs, change the ``ToDevice(0)`` to ``ToDevice(self.trainer.local_rank)`` to correctly map to
+the desired GPU in your pipeline. When moving data to a specific device, you can always refer to
+``self.trainer.local_rank`` to get the accelerator used by the current process.
 
 .. code-block:: python
 
@@ -54,8 +66,15 @@ as Lightning takes care of GPU placement. In case you want to use some data tran
 
             return loader
 
-When moving data to a specific device, you can always refer to ``self.trainer.local_rank`` to get the accelerator
-used by the current process.
+
+.. TODO(carmocca)
+    WebDataset
+    ^^^^^^^^^^
+
+    The `WebDataset <https://webdataset.github.io/webdataset>`__
+
+NVIDIA DALI
+^^^^^^^^^^^
 
 By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can also leverage DALI's GPU decoding:
 
@@ -107,8 +126,8 @@ Lightning works with all kinds of custom data iterables as shown above. There ar
 be supported this way. These restrictions come from the fact that for their support,
 Lightning needs to know a lot on the internals of these iterables.
 
-- In a distributed multi-GPU setting (ddp),
-  Lightning automatically replaces the DataLoader's sampler with its distributed counterpart.
-  This makes sure that each GPU sees a different part of the dataset.
-  As sampling can be implemented in arbitrary ways with custom iterables,
-  there is no way for Lightning to know, how to replace the sampler.
+- In a distributed multi-GPU setting (ddp), Lightning wraps the DataLoader's sampler with a wrapper for distributed
+  support. This makes sure that each GPU sees a different part of the dataset. As sampling can be implemented in
+  arbitrary ways with custom iterables, Lightning might not be able to do this for you. If this is the case, you can use
+  the :paramref:`~lightning.pytorch.trainer.trainer.Trainer.use_distributed_sampler` argument to disable this logic and
+  set the distributed sampler yourself.
