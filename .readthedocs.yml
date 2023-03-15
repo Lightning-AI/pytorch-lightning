@@ -45,7 +45,7 @@ build:
       if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ]
       then
           pip install -e . -q -r requirements/pytorch/docs.txt \
-              -f "https://download.pytorch.org/whl/cpu/torch_stable.html" ;
+              -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
       fi ;
       pip list
     - >  # this need to be split so `sphinx-build` is picked from previous installation
@@ -55,7 +55,7 @@ build:
           PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
           cd ../.. ;
           ls -lh docs/build ;
-          mv docs/build/html _readthedocs/html ;
+          mv docs/build/html _readthedocs/html
       else
-          mkdir _readthedocs/html ;
+          mkdir _readthedocs/html
       fi
