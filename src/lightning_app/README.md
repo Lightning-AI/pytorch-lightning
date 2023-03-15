@@ -14,6 +14,11 @@ ______________________________________________________________________
   <a href="https://www.pytorchlightning.ai/community">Slack</a>
 </p>
 
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning_app)](https://pypi.org/project/lightning_app/)
+[![PyPI Status](https://badge.fury.io/py/lightning_app.svg)](https://badge.fury.io/py/lightning_app)
+[![PyPI Status](https://pepy.tech/badge/lightning_app)](https://pepy.tech/project/lightning_app)
+[![Conda](https://img.shields.io/conda/v/conda-forge/lightning_app?label=conda&color=success)](https://anaconda.org/conda-forge/lightning_app)
+
 ![readme-gif](https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lightning-gif-888777nslpiijdbcvctyvwhe.gif)
 
 </div>
@@ -138,4 +143,4 @@ If you have any questions please:
 
 1. [Read the docs](https://lightning.ai/lightning-docs/).
 1. [Search through existing Discussions](https://github.com/Lightning-ai/lightning/discussions), or [add a new question](https://github.com/Lightning-ai/lightning/discussions/new)
-1. [Join our Slack community](https://www.pytorchlightning.ai/community).
+1. [Join our Discord community ](https://discord.gg/VptPCZkGNa).

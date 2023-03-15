@@ -16,10 +16,6 @@ Welcome to ⚡ PyTorch Lightning
       </div>
       <div class='col-md-6'>
 
-.. join_slack::
-   :align: center
-   :margin: 0
-
 .. raw:: html
 
       </div>
@@ -155,6 +151,7 @@ Current Lightning Users
 
    starter/introduction
    starter/installation
+   upgrade/migration_guide
 
 
 .. toctree::
