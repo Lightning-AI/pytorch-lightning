@@ -362,23 +362,23 @@ Use components on their own, or compose them into full-stack AI apps with our ne
    ```bash
    # install lightning
    pip install lightning
-   
+
    lightning install app lightning/quick-start
    ```
 
-2. If everything was successful, move into the new directory:
+1. If everything was successful, move into the new directory:
 
    ```bash
    cd lightning-quick-start
    ```
 
-3. Run the app locally
+1. Run the app locally
 
    ```bash
    lightning run app app.py
    ```
 
-4. Alternatively, run it on the public Lightning Cloud to share your app!
+1. Alternatively, run it on the public Lightning Cloud to share your app!
 
    ```bash
    lightning run app app.py --cloud
