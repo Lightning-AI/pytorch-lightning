@@ -1,9 +1,9 @@
 <div align="center">
 
-    <img alt="Lightning" src="hhttps://pl-public-data.s3.amazonaws.com/assets_lightning/LightningColor.png" width="400" style="max-width: 100%;">
+<img alt="Lightning" src="hhttps://pl-public-data.s3.amazonaws.com/assets_lightning/LightningColor.png" width="400" style="max-width: 100%;">
 
-  <br/>
-  <br/>
+<br/>
+<br/>
 
 **The Deep Learning framework to train, deploy, and ship AI products Lightning fast.**
 
