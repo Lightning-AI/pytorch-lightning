@@ -1,4 +1,4 @@
-.. include:: link_prs.rst
+.. include:: link_refs.rst
 
 Upgrade from 1.7 to the 2.0
 ###########################

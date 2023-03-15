@@ -1,5 +1,3 @@
-.. include:: link_prs.rst
-
 Upgrade from 1.9 to the 2.0
 ###########################
 

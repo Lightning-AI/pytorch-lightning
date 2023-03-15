@@ -1,5 +1,3 @@
-.. _governance:
-
 Guide how to upgrade to the 2.0 version
 #######################################
 
