@@ -11,7 +11,7 @@
      - #16492
 
    * - Python 3.7
-     - upgrade to min Python 3.7
+     - upgrade to min Python 3.8
      - #16579
 
    * - used Trainer’s flag ``gpus``
