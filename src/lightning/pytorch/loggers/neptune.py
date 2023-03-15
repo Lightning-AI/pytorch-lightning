@@ -63,7 +63,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: bash
 
-        pip install neptune-client
+        pip install neptune
 
     or conda:
 
@@ -73,7 +73,7 @@ class NeptuneLogger(Logger):
 
     **Quickstart**
 
-    Pass NeptuneLogger instance to the Trainer to log metadata with Neptune:
+    Pass a NeptuneLogger instance to the Trainer to log metadata with Neptune:
 
     .. code-block:: python
 
@@ -84,7 +84,7 @@ class NeptuneLogger(Logger):
 
         neptune_logger = NeptuneLogger(
             api_key=neptune.ANONYMOUS_API_TOKEN,  # replace with your own
-            project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+            project="common/pytorch-lightning-integration",  # format "workspace-name/project-name"
             tags=["training", "resnet"],  # optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
@@ -95,7 +95,7 @@ class NeptuneLogger(Logger):
 
     .. code-block:: python
 
-        from neptune.new.types import File
+        from neptune.types import File
         from lightning.pytorch import LightningModule
 
 
@@ -112,15 +112,14 @@ class NeptuneLogger(Logger):
 
                 # generic recipe
                 metadata = ...
-                self.logger.experiment["your/metadata/structure"].append(metadata)
+                self.logger.experiment["your/metadata/structure"] = metadata
 
-    Note that syntax: ``self.logger.experiment["your/metadata/structure"].append(metadata)`` is specific to Neptune
-    and it extends logger capabilities. Specifically, it allows you to log various types of metadata
-    like scores, files, images, interactive visuals, CSVs, etc.
+    Note that the syntax ``self.logger.experiment["your/metadata/structure"].append(metadata)`` is specific to
+    Neptune and extends the logger capabilities. It lets you log various types of metadata, such as
+    scores, files, images, interactive visuals, and CSVs.
     Refer to the `Neptune docs <https://docs.neptune.ai/logging/methods>`_
-    for more detailed explanations.
-    You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneLogger
-    as these are also supported.
+    for details.
+    You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneLogger.
 
     **Log after fitting or testing is finished**
 
@@ -142,22 +141,22 @@ class NeptuneLogger(Logger):
 
         # generic recipe
         metadata = ...
-        neptune_logger.experiment["your/metadata/structure"].append(metadata)
+        neptune_logger.experiment["your/metadata/structure"] = metadata
 
     **Log model checkpoints**
 
     If you have :class:`~lightning.pytorch.callbacks.ModelCheckpoint` configured,
-    Neptune logger automatically logs model checkpoints.
-    Model weights will be uploaded to the: "model/checkpoints" namespace in the Neptune Run.
-    You can disable this option:
+    the Neptune logger automatically logs model checkpoints.
+    Model weights will be uploaded to the "model/checkpoints" namespace in the Neptune run.
+    You can disable this option with:
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(project="common/pytorch-lightning-integration", log_model_checkpoints=False)
+        neptune_logger = NeptuneLogger(log_model_checkpoints=False)
 
     **Pass additional parameters to the Neptune run**
 
-    You can also pass ``neptune_run_kwargs`` to specify the run in the greater detail, like ``tags`` or ``description``:
+    You can also pass ``neptune_run_kwargs`` to add details to the run, like ``tags`` or ``description``:
 
     .. testcode::
         :skipif: not _NEPTUNE_AVAILABLE
@@ -173,7 +172,7 @@ class NeptuneLogger(Logger):
         )
         trainer = Trainer(max_epochs=3, logger=neptune_logger)
 
-    Check `run documentation <https://docs.neptune.ai/api/run/>`_
+    Check `run documentation <https://docs.neptune.ai/api/neptune/#init_run>`_
     for more info about additional run parameters.
 
     **Details about Neptune run structure**
@@ -181,45 +180,43 @@ class NeptuneLogger(Logger):
     Runs can be viewed as nested dictionary-like structures that you can define in your code.
     Thanks to this you can easily organize your metadata in a way that is most convenient for you.
 
-    The hierarchical structure that you apply to your metadata will be reflected later in the UI.
+    The hierarchical structure that you apply to your metadata is reflected in the Neptune web app.
 
-    You can organize this way any type of metadata - images, parameters, metrics, model checkpoint, CSV files, etc.
-
-    See Also:
+    See also:
         - Read about
-          `what object you can log to Neptune <https://docs.neptune.ai/logging/what_you_can_log/>`_.
-        - Check `example run <https://app.neptune.ai/o/common/org/pytorch-lightning-integration/e/PTL-1/all>`_
+          `what objects you can log to Neptune <https://docs.neptune.ai/logging/what_you_can_log/>`_.
+        - Check out an `example run <https://app.neptune.ai/o/common/org/pytorch-lightning-integration/e/PTL-1/all>`_
           with multiple types of metadata logged.
-        - For more detailed info check
+        - For more detailed examples, see the
           `user guide <https://docs.neptune.ai/integrations/lightning/>`_.
 
     Args:
         api_key: Optional.
             Neptune API token, found on https://neptune.ai upon registration.
-            Read: `how to find and set Neptune API token <https://docs.neptune.ai/administration/security-and-privacy/
-            how-to-find-and-set-neptune-api-token>`_.
-            It is recommended to keep it in the `NEPTUNE_API_TOKEN`
-            environment variable and then you can drop ``api_key=None``.
+            You should save your token to the `NEPTUNE_API_TOKEN`
+            environment variable and leave the api_key argument out of your code.
+            Instructions: `Setting your API token <https://docs.neptune.ai/setup/setting_api_token/>`_.
         project: Optional.
-            Name of a project in a form of "my_workspace/my_project" for example "tom/mask-rcnn".
-            If ``None``, the value of `NEPTUNE_PROJECT` environment variable will be taken.
-            You need to create the project in https://neptune.ai first.
+            Name of a project in the form "workspace-name/project-name", for example "tom/mask-rcnn".
+            If ``None``, the value of `NEPTUNE_PROJECT` environment variable is used.
+            You need to create the project on https://neptune.ai first.
         name: Optional. Editable name of the run.
-            Run name appears in the "all metadata/sys" section in Neptune UI.
-        run: Optional. Default is ``None``. The Neptune ``Run`` object.
-            If specified, this `Run`` will be used for logging, instead of a new Run.
-            When run object is passed you can't specify other neptune properties.
+            The run name is displayed in the Neptune web app.
+        run: Optional. Default is ``None``. A Neptune ``Run`` object.
+            If specified, this existing run will be used for logging, instead of a new run being created.
+            You can also pass a namespace handler object; for example, ``run["test"]``, in which case all
+            metadata is logged under the "test" namespace inside the run.
         log_model_checkpoints: Optional. Default is ``True``. Log model checkpoint to Neptune.
             Works only if ``ModelCheckpoint`` is passed to the ``Trainer``.
         prefix: Optional. Default is ``"training"``. Root namespace for all metadata logging.
         \**neptune_run_kwargs: Additional arguments like ``tags``, ``description``, ``capture_stdout``, etc.
-            used when run is created.
+            used when a run is created.
 
     Raises:
         ModuleNotFoundError:
-            If required Neptune package is not installed.
+            If the required Neptune package is not installed.
         ValueError:
-            If argument passed to the logger's constructor is incorrect.
+            If an argument passed to the logger's constructor is incorrect.
     """
 
     LOGGER_JOIN_CHAR = "/"
@@ -358,14 +355,14 @@ class NeptuneLogger(Logger):
                     img = ...
                     self.logger.experiment["train/misclassified_images"].append(File.as_image(img))
 
-        Note that syntax: ``self.logger.experiment["your/metadata/structure"].append(metadata)``
-        is specific to Neptune and it extends logger capabilities.
-        Specifically, it allows you to log various types of metadata like scores, files,
-        images, interactive visuals, CSVs, etc. Refer to the
+        Note that the syntax ``self.logger.experiment["your/metadata/structure"].append(metadata)``
+        is specific to Neptune and extends the logger capabilities.
+        It lets you log various types of metadata, such as scores, files,
+        images, interactive visuals, and CSVs. Refer to the
         `Neptune docs <https://docs.neptune.ai/logging/methods>`_
         for more detailed explanations.
-        You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
-        with NeptuneLogger as these are also supported.
+        You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()``
+        with NeptuneLogger.
         """
         return self.run
 
@@ -383,9 +380,9 @@ class NeptuneLogger(Logger):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
         r"""
-        Log hyper-parameters to the run.
+        Log hyperparameters to the run.
 
-        Hyperparams will be logged under the "<prefix>/hyperparams" namespace.
+        Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
 
         Note:
 
@@ -406,7 +403,7 @@ class NeptuneLogger(Logger):
             PARAMS = {
                 "batch_size": 64,
                 "lr": 0.07,
-                "decay_factor": 0.97
+                "decay_factor": 0.97,
             }
 
             neptune_logger = NeptuneLogger(
