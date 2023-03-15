@@ -38,22 +38,8 @@ build:
     - dvipng
     - texlive-pictures
   commands:
-    - pwd ; ls -lh .
-    - printenv
-    - pwd ;
-      python --version ;
-      pip install -U pip ;
-      pip --version ;
-      ls -lh . ;
-      export PACKAGE_NAME=pytorch ;
-      pip install -e . -q -r requirements/pytorch/docs.txt -f "https://download.pytorch.org/whl/cpu/torch_stable.html";
-      pip list ;
-
-      cd ./docs/source-pytorch ;
-      ls -lh . ;
-      make html --jobs $(nproc) ;
-
-      cd .. ;
-      ls -lh ./build ;
-      mv build/html ../_readthedocs/html ;
-    - bash docs/rtfd-pytorch.sh
+    - PACKAGE_NAME=pytorch pip install -e . -r requirements/pytorch/docs.txt -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
+    - pwd ; ls -lh ; ls -lh ./docs/source-pytorch
+    - cd ./docs/source-pytorch ; make html --jobs 2
+    - ls -lh ./docs ; ls -lh ./docs/build
+    - mkdir _readthedocs ; mv docs/build/html _readthedocs/html
