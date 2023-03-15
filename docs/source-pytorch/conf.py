@@ -49,8 +49,24 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
     AssistantCLI.copy_notebooks(
-        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+        PATH_RAW_NB,
+        PATH_HERE,
+        "notebooks",
+        patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
+    # TODO: Complete converting the missing items and add them back
+    ignore = [
+        "course_UvA-DL/13-contrastive-learning",
+        "lightning_examples/augmentation_kornia",
+        "lightning_examples/finetuning-scheduler",
+        "lightning_examples/reinforce-learning-DQN",
+        "lightning_examples/text-transformers",
+        "lightning_examples/warp-drive",
+    ]
+    for file in ignore:
+        file = os.path.join(PATH_HERE, "notebooks", file)
+        if os.path.exists(file):
+            os.remove(file)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
