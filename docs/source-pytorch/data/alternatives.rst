@@ -36,6 +36,7 @@ This library uses a custom built class:`~torch.utils.data.IterableDataset`. The 
 via a regular class:`~torch.utils.data.DataLoader`. This means that support in the ``Trainer`` is seamless:
 
 .. code-block:: python
+
     import lightning as L
     from streaming import MDSWriter, StreamingDataset
 
