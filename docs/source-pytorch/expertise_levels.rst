@@ -4,7 +4,6 @@ Level up
 ========
 Learn enough Lightning to match the level of expertise required by your research or job.
 
-----
 
 Basic skills
 ------------

@@ -5,7 +5,6 @@ Expert skills
 
 Customize and extend Lightning for things like custom hardware or distributed strategies.
 
-----
 
 .. raw:: html
 

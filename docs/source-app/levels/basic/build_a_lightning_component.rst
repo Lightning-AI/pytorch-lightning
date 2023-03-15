@@ -6,7 +6,6 @@ Level 1: Package code in a lightning component
 
 **Goal:** In this guide you'll learn to develop `a Lightning component <https://lightning.ai/components>`_.
 
-----
 
 *********************************
 Why you need Lightning components

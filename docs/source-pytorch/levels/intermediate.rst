@@ -5,7 +5,6 @@ Intermediate skills
 
 Learn to scale up your models and enable collaborative model development at academic or industry research labs.
 
-----
 
 .. include:: ../links.rst
 

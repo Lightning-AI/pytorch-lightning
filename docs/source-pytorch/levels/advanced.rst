@@ -5,7 +5,6 @@ Advanced skills
 
 Configure all aspects of Lightning for advanced usecases.
 
-----
 
 .. raw:: html
 

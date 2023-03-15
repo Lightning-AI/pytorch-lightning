@@ -10,6 +10,5 @@ Start from an ML system template
 
 **Goal:** We'll walk you through the 4 key steps to run a Lightning App that trains and demos a model.
 
-----
 
 .. include:: go_beyond_training_content.rst

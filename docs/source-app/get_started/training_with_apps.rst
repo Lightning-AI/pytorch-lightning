@@ -10,7 +10,6 @@ Evolve a model into an ML system
 
 **Goal:** We'll walk you through the two key steps to build your first Lightning App from your existing PyTorch Lightning scripts.
 
-----
 
 *******************
 Training and beyond

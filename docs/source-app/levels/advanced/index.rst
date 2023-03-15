@@ -16,7 +16,6 @@ Advanced skills
 ###############
 Learn to build nested components with advanced functionality.
 
-----
 
 .. raw:: html
 

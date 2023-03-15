@@ -17,7 +17,6 @@ Intermediate skills
 ###################
 Learn to coordinate 2+ components into workflows which we call Lightning apps.
 
-----
 
 .. raw:: html
 
