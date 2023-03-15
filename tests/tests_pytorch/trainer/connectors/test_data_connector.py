@@ -537,9 +537,11 @@ def test_eval_distributed_sampler_warning(devices, warn_context):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
 
+    trainer.state.fn = TrainerFn.VALIDATING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.validate_loop.setup_data()
 
+    trainer.state.fn = TrainerFn.TESTING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.test_loop.setup_data()
 
