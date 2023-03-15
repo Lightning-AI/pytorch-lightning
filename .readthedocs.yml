@@ -43,7 +43,7 @@ build:
       pip install -U pip &&
       pip install -e . -q -r requirements/pytorch/docs.txt \
         -f "https://download.pytorch.org/whl/cpu/torch_stable.html" &&
-      pip list &&
-    - cd ./docs/source-pytorch && \
-      make html --jobs 2 && \
+      pip list
+    - cd ./docs/source-pytorch ; \
+      make html --jobs 2 ; \
       mv docs/build/html _readthedocs/html
