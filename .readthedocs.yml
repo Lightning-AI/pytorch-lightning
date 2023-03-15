@@ -41,7 +41,7 @@ build:
     - mkdir -p _readthedocs/html
     - >
       pip install -e . -r requirements/pytorch/docs.txt \
-        -f "https://download.pytorch.org/whl/cpu/torch_stable.html";
-      cd ./docs/source-pytorch;
-      make html --jobs 2;
+        -f "https://download.pytorch.org/whl/cpu/torch_stable.html" &&
+      cd ./docs/source-pytorch &&
+      make html --jobs 2 &&
       mv docs/build/html _readthedocs/html
