@@ -1231,26 +1231,38 @@ Properties
 callback_metrics
 ****************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.callback_metrics
-   :noindex:
+The metrics available to callbacks.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+
+..code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        self.log("a_val", 2.0)
+
+    callback_metrics = trainer.callback_metrics
+    assert callback_metrics["a_val"] == 2.0
 
 logged_metrics
 **************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.logged_metrics
-   :noindex:
+The metrics sent to the loggers.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
 
 progress_bar_metrics
 ********************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.progress_bar_metrics
-   :noindex:
+The metrics sent to the progress bar.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.current_epoch
-   :noindex:
+The current epoch, updated after the epoch end hooks are run.
 
 datamodule
 **********
@@ -1264,44 +1276,67 @@ The current datamodule, which is used by the trainer.
 is_last_batch
 *************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.is_last_batch
-   :noindex:
+Whether trainer is executing the last batch.
 
 global_step
 ***********
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.global_step
-   :noindex:
+The number of optimizer steps taken (does not reset each epoch).
+
+This includes multiple optimizers (if enabled).
 
 logger
 *******
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.logger
-   :noindex:
+The first :class:`~lightning.pytorch.loggers.logger.Logger` being used.
 
 loggers
 ********
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.loggers
-   :noindex:
+The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
+
+..code-block:: python
+
+    for logger in trainer.loggers:
+        logger.log_metrics({"foo": 1.0})
 
 log_dir
 *******
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.log_dir
-   :noindex:
+The directory for the current experiment. Use this to save images to, etc...
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        save_img(img, self.trainer.log_dir)
 
 is_global_zero
 **************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.is_global_zero
-   :noindex:
+Whether this process is the global zero in multi-node training.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        if self.trainer.is_global_zero:
+            print("in node 0, accelerator 0")
 
 estimated_stepping_batches
 **************************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.estimated_stepping_batches
-   :noindex:
+The estimated number of batches that will ``optimizer.step()`` during training.
+
+This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
+dataloader if hadn't been set up already.
+
+..code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        stepping_batches = self.trainer.estimated_stepping_batches
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
+        return [optimizer], [scheduler]
 
 state
 *****
@@ -1382,53 +1417,44 @@ both conditions are met. If any of these arguments is not set, it won't be consi
 num_training_batches
 ********************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.num_training_batches
-   :noindex:
+The number of training batches that will be used during ``trainer.fit()``.
 
 num_sanity_val_batches
 **********************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.num_sanity_val_batches
-   :noindex:
+The number of validation batches that will be used during the sanity-checking part of ``trainer.fit()``.
 
 num_val_batches
 ***************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.num_val_batches
-   :noindex:
+The number of validation batches that will be used during ``trainer.fit()`` or ``trainer.validate()``.
 
 num_test_batches
 ****************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.num_test_batches
-   :noindex:
+The number of test batches that will be used during ``trainer.test()``.
 
 num_predict_batches
 *******************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.num_predict_batches
-   :noindex:
+The number of prediction batches that will be used during ``trainer.predict()``.
 
 train_dataloader
 ****************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.train_dataloader
-   :noindex:
-
-test_dataloaders
-****************
-
-.. autoproperty:: lightning.pytorch.trainer.Trainer.test_dataloaders
-   :noindex:
+The training dataloader(s) used during ``trainer.fit()``.
 
 val_dataloaders
 ***************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.val_dataloaders
-   :noindex:
+The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``.
+
+test_dataloaders
+****************
+
+The test dataloader(s) used during ``trainer.test()``.
 
 predict_dataloaders
 *******************
 
-.. autoproperty:: lightning.pytorch.trainer.Trainer.predict_dataloaders
-   :noindex:
+The prediction dataloader(s) used during ``trainer.predict()``.
