@@ -8,7 +8,7 @@ body:
         Before you go any further. Is this really a **🐛 bug**?
 
         If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
-        or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
+        or ask a question on our [Community Discord](https://discord.gg/VptPCZkGNa).
 
   - type: textarea
     attributes:
