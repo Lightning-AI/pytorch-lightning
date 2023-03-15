@@ -26,7 +26,6 @@ submodules:
 # Build documentation in the docs/ directory with Sphinx
 # reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
-  configuration: docs/source-pytorch/conf.py
   fail_on_warning: true
 
 build:
@@ -38,8 +37,11 @@ build:
     - dvipng
     - texlive-pictures
   commands:
-    - pip install -e . -r requirements/pytorch/docs.txt -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
-    - pwd ; ls -lh ; ls -lh ./docs/source-pytorch
-    - cd ./docs/source-pytorch ; make html --jobs 2
-    - ls -lh ./docs ; ls -lh ./docs/build
-    - mkdir _readthedocs ; mv docs/build/html _readthedocs/html
+    - pwd ; ls -lh
+    - mkdir -p _readthedocs/html
+    - >
+      pip install -e . -r requirements/pytorch/docs.txt \
+        -f "https://download.pytorch.org/whl/cpu/torch_stable.html";
+      cd ./docs/source-pytorch;
+      make html --jobs 2;
+      mv docs/build/html _readthedocs/html
