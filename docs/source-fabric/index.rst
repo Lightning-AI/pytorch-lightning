@@ -69,7 +69,7 @@ Why Fabric?
 |
 |
 
-Fabric differentiates itself from a fully-fledged trainer like Lightning's `Trainer <https://lightning.ai/docs/pytorch/stable/common/>`_ in these key aspects:
+Fabric differentiates itself from a fully-fledged trainer like Lightning's `Trainer`_ in these key aspects:
 
 **Fast to implement**
 There is no need to restructure your code: Just change a few lines in the PyTorch script and you'll be able to leverage Fabric features.
