@@ -89,38 +89,38 @@ pip install -U lightning
 
 1. Create the `Fabric` object at the beginning of your training code.
 
-  ```
-      import Lightning as L
-
-      fabric = L.Fabric()
-  ```
+    ```
+    import Lightning as L
+    
+    fabric = L.Fabric()
+    ```
 
 2. Call `setup()` on each model and optimizer pair and `setup_dataloaders()` on all your data loaders.
 
-```
+    ```
     model, optimizer = fabric.setup(model, optimizer)
     dataloader = fabric.setup_dataloaders(dataloader)
-```
+    ```
 
 3. Remove all `.to` and `.cuda` calls -> Fabric will take care of it.
 
-```diff
+    ```diff
     - model.to(device)
     - batch.to(device)
-```
+    ```
 
 4. Replace `loss.backward()` by `fabric.backward(loss)`.
 
-```diff
+    ```diff
     - loss.backward()
     + fabric.backward(loss)
-```
+    ```
 
 4. Run the script from the terminal with
 
-```bash
+    ```bash
     lightning run model path/to/train.py
-```
+    ```
 
 or use the launch() method in a notebook. Learn more about [launching distributed training](https://lightning.ai/docs/fabric/stable/fundamentals/launch.html).
 

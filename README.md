@@ -359,30 +359,30 @@ Use components on their own, or compose them into full-stack AI apps with our ne
 
 1. Install a simple training and deployment app by typing:
 
-```bash
-# install lightning
-pip install lightning
-
-lightning install app lightning/quick-start
-```
+   ```bash
+   # install lightning
+   pip install lightning
+   
+   lightning install app lightning/quick-start
+   ```
 
 2. If everything was successful, move into the new directory:
 
-```bash
-cd lightning-quick-start
-```
+   ```bash
+   cd lightning-quick-start
+   ```
 
 3. Run the app locally
 
-```bash
-lightning run app app.py
-```
+   ```bash
+   lightning run app app.py
+   ```
 
 4. Alternatively, run it on the public Lightning Cloud to share your app!
 
-```bash
-lightning run app app.py --cloud
-```
+   ```bash
+   lightning run app app.py --cloud
+   ```
 
 Apps run the same on the cloud and locally on your choice of hardware.
 
