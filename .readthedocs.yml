@@ -43,7 +43,8 @@ build:
       pip install -U pip ;
       pip install -e . -q -r requirements/pytorch/docs.txt \
         -f "https://download.pytorch.org/whl/cpu/torch_stable.html" ;
-      pip list ;
+      pip list
+    - >  # this need to be split so `sphinx-build` is picked from previous installation
       cd ./docs/source-pytorch ;
       PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
       mv ../build/html ../../_readthedocs/html
