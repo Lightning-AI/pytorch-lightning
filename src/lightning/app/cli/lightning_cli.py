@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional
 
 import arrow
 import click
@@ -29,7 +29,7 @@ from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
 from lightning.app import __version__ as ver
-from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning.app.cli import cmd_init, cmd_install, cmd_react_ui_init
 from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
@@ -549,43 +549,6 @@ def init() -> None:
 @click.argument("name", type=str, required=False)
 def init_app(name: str) -> None:
     cmd_init.app(name)
-
-
-@init.command("pl-app")
-@click.argument("source", nargs=-1)
-@click.option(
-    "--name",
-    "-n",
-    type=str,
-    default="pl-app",
-    help="The name of the folder where the app code will be. Default: pl-app",
-)
-@click.option(
-    "--overwrite",
-    "-f",
-    is_flag=True,
-    default=False,
-    help="When set, overwrite the output directory without asking if it already exists.",
-)
-def init_pl_app(source: Union[Tuple[str], Tuple[str, str]], name: str, overwrite: bool = False) -> None:
-    """Create an app from your PyTorch Lightning source files."""
-    if len(source) == 1:
-        script_path = source[0]
-        source_dir = str(Path(script_path).resolve().parent)
-    elif len(source) == 2:
-        # enable type checking once https://github.com/python/mypy/issues/1178 is available
-        source_dir, script_path = source  # type: ignore
-    else:
-        click.echo(
-            f"Incorrect number of arguments. You passed ({', '.join(source)}) but only either one argument"
-            f" (script path) or two arguments (root dir, script path) are allowed. Examples:\n"
-            f"lightning init pl-app ./path/to/script.py\n"
-            f"lightning init pl-app ./code ./code/path/to/script.py",
-            err=True,
-        )
-        raise SystemExit(1)
-
-    cmd_pl_init.pl_app(source_dir=source_dir, script_path=script_path, name=name, overwrite=overwrite)
 
 
 @init.command("component")

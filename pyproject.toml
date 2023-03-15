@@ -86,7 +86,6 @@ exclude = [
     "src/lightning_fabric/__version__.py",
     "src/lightning/app/cli/app-template",
     "src/lightning/app/cli/component-template",
-    "src/lightning/app/cli/pl-app-template",
     "src/lightning/app/cli/react-ui-template",
 ]
 install_types = "True"

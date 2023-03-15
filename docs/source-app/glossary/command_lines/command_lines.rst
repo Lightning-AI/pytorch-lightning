@@ -31,7 +31,6 @@ As an example, Lightning provides a CLI to interact with your Lightning Apps and
     ├── init - Initializes a Lightning App and/or Component.
     │   ├── app
     │   ├── component
-    │   ├── pl-app - Creates an App from your PyTorch Lightning source files.
     │   └── react-ui - Creates a React UI to give a Lightning Component a React.js web UI
     ├── install - Installs a Lightning App and/or Component.
     │   ├── app
