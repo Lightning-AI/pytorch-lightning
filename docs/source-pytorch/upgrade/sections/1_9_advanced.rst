@@ -27,7 +27,7 @@
      - #16386
 
    * - used or derived from ``pl.overrides.distributed.LightningDistributedModule`` class
-     - use DDP instead 
+     - use DDP instead
      - #16386
 
    * - used Trainer’s init argument ``multiple_trainloader_mode``
