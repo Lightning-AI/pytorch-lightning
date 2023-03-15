@@ -560,3 +560,28 @@ def test_fabric_log_dict():
     logger.reset_mock()
     wrapped_module.log_dict({"nothing": 1}, logger=False)
     logger.log_metrics.assert_not_called()
+
+
+@pytest.mark.parametrize("algo", ["value", "norm"])
+def test_grad_clipping_lm_fabric(algo):
+
+    from lightning.pytorch.utilities import GradClipAlgorithmType
+
+    class DummyLM(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = nn.Linear(1, 1)
+
+    fabric = Fabric()
+    orig_model = DummyLM()
+    model = fabric.setup(orig_model)
+
+    fabric.clip_gradients = Mock()
+
+    optimizer = Mock()
+    model.clip_gradients(optimizer, gradient_clip_val=1e-3, gradient_clip_algorithm=GradClipAlgorithmType(algo))
+
+    if algo == "value":
+        fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=1e-3, max_norm=None)
+    else:
+        fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=None, max_norm=1e-3)

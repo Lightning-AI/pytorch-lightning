@@ -16,10 +16,6 @@ Welcome to ⚡ PyTorch Lightning
       </div>
       <div class='col-md-6'>
 
-.. join_slack::
-   :align: center
-   :margin: 0
-
 .. raw:: html
 
       </div>
@@ -44,7 +40,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install 'lightning'
 
 .. raw:: html
 
@@ -155,6 +151,7 @@ Current Lightning Users
 
    starter/introduction
    starter/installation
+   upgrade/migration_guide
 
 
 .. toctree::
@@ -206,7 +203,7 @@ Current Lightning Users
    Train on single or multiple TPUs <accelerators/tpu>
    Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
-   Inject Custom Data Iterables <data/custom_data_iterables>
+   data/data
    model/own_your_loop
 
 .. toctree::
@@ -233,7 +230,6 @@ Current Lightning Users
    Lightning CLI <cli/lightning_cli>
    LightningDataModule <data/datamodule>
    LightningModule <common/lightning_module>
-   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize/loggers>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
@@ -263,9 +259,6 @@ Current Lightning Users
    :glob:
 
    notebooks/**/*
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1

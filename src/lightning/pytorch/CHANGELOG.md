@@ -5,75 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-MM-DD
+## [2.0.0] - 2023-03-15
 
 ### Added
 
 - Added migration logic to warn about checkpoints with apex AMP state ([#16161](https://github.com/Lightning-AI/lightning/pull/16161))
-
-
 - Added the `Trainer.ckpt_path = ...` setter to statefully set the checkpoint path to load. This can act as a replacement for the removed `Trainer(resume_from_checkpoint=...)` flag ([#16187](https://github.com/Lightning-AI/lightning/pull/16187))
-
-
 - Added an argument `include_cuda` in `pytorch_lightning.utilities.seed.isolate_rng` to disable managing `torch.cuda`'s rng ([#16423](https://github.com/Lightning-AI/lightning/pull/16423))
-
-
 - Added `Tuner.lr_find(attr_name=...)` to specify custom learning rate attribute names ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
-
-
 - Added an `OnExceptionCheckpoint` callback to save a checkpoint on exception ([#16512](https://github.com/Lightning-AI/lightning/pull/16512))
-
-
 - Added support for running the `MLFlowLogger` with the `mlflow-skinny` package ([16513](https://github.com/Lightning-AI/lightning/pull/16513))
-
-
 - Added a `Trainer.received_sigterm` property to check whether a SIGTERM signal was received ([#16501](https://github.com/Lightning-AI/lightning/pull/16501))
-
-
 - Added support for cascading a SIGTERM signal to launched processes after the launching process (rank 0) receives it ([#16525](https://github.com/Lightning-AI/lightning/pull/16525))
-
-
 - Added a `kill` method to launchers to kill all launched processes ([#16525](https://github.com/Lightning-AI/lightning/pull/16525))
-
-
 - Added suffix option to DDP strategy names to enable `find_unused_parameters=True`, for example `strategy="ddp_find_unused_parameters_true"` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
-
-
 - Added a new method `Strategy.on_exception` to the strategy base interface ([#16646](https://github.com/Lightning-AI/lightning/pull/16646))
-
-
 - Added support for `predict_step(dataloader_iter, batch_index)` ([#16726](https://github.com/Lightning-AI/lightning/pull/16726))
-
-
 - Added support for arbitrary iterables as dataloaders ([#16726](https://github.com/Lightning-AI/lightning/pull/16726))
-
-
 - Added "sequential" mode support to `CombinedLoader` to consume multiple iterables in sequence ([#16743](https://github.com/Lightning-AI/lightning/pull/16743), [#16784](https://github.com/Lightning-AI/lightning/pull/16784))
-
-
 - Added "max_size" mode support to `CombinedLoader` to consume multiple iterables entirely without cycling ([#16939](https://github.com/Lightning-AI/lightning/pull/16939)
-
-
 - Added a `Trainer(barebones=True)` argument where all features that may impact raw speed are disabled ([#16854](https://github.com/Lightning-AI/lightning/pull/16854))
-
-
 - Added support for writing logs remote file systems on `CSVLoggers`. ([#16880](https://github.com/Lightning-AI/lightning/pull/16880))
-
-
 - Added `DDPStrategy(start_method=...)` argument, defaulting to 'popen' ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
-
-
-- The Trainer's signal handlers are now registered for `trainer.{validate,test,predict}` ([#17017](https://github.com/Lightning-AI/lightning/pull/17017))
-
-
 - Added checks for whether the iterables used by the loops are valid ([#17007](https://github.com/Lightning-AI/lightning/pull/17007))
 
 ### Changed
 
-
+- The Trainer's signal handlers are now registered for `trainer.{validate,test,predict}` ([#17017](https://github.com/Lightning-AI/lightning/pull/17017))
+- Renamed `ProgressBarBase` to `ProgressBar` ([#17058](https://github.com/Lightning-AI/lightning/pull/17058))
 - The `Trainer` now chooses `accelerator="auto", strategy="auto", devices="auto"` as defaults ([#16847](https://github.com/Lightning-AI/lightning/pull/16847))
-
-
 - "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
  * `strategy="fsdp_native"` is now `strategy="fsdp"`
  * `strategy="fsdp_native_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
@@ -81,118 +41,48 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  * `pytorch_lightning.plugins.precision.fsdp_native_native_amp.FullyShardedNativeNativeMixedPrecisionPlugin` is now `pytorch_lightning.plugins.precision.fsdp.FSDPMixedPrecisionPlugin`
  * `pytorch_lightning.plugins.precision.native_amp` is now `pytorch_lightning.plugins.precision.amp`
  * `NativeSyncBatchNorm` is now `TorchSyncBatchNorm`
-
-
 - Changed the default of `LearningRateFinder(update_attr=...)` and `Tuner.lr_find(update_attr=...)` to `True` ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
-
-
 - Renamed the `pl.utilities.exceptions.GracefulExitException` to `SIGTERMException` ([#16501](https://github.com/Lightning-AI/lightning/pull/16501))
-
-
 - The `Callback.on_train_epoch_end` hook now runs after the `LightningModule.on_train_epoch_end` hook for instances of `EarlyStopping` and `Checkpoint` callbacks ([#16567](https://github.com/Lightning-AI/lightning/pull/16567))
-
-
 - The `LightningModule.{un}toggle_optimizer` methods no longer accept a `optimizer_idx` argument to select the relevant optimizer. Instead, the optimizer object can be passed in directly ([#16560](https://github.com/Lightning-AI/lightning/pull/16560))
-
-
 - Manual optimization is now required for working with multiple optimizers ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
-
-
 - DDP's `find_unused_parameters` now defaults to `False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
-
-
 - The strategy selected by `accelerator="hpu"` now defaults to `find_unused_parameters=False` ([#16611](https://github.com/Lightning-AI/lightning/pull/16611))
-
 - The main progress bar displayed during training no longer includes the combined progress for validation ([#16695](https://github.com/Lightning-AI/lightning/pull/16695))
-
 - Renamed `TQDMProgressBar.main_progress_bar` to `TQDMProgressBar.train_progress_bar` ([#16695](https://github.com/Lightning-AI/lightning/pull/16695))
-
 - Marked the progress tracking classes as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
-
 - Marked the `lightning.pytorch.trainer.configuration_validator.verify_loop_configurations` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
-
 - Marked the `lightning.pytorch.utiltiies.distirbuted.register_ddp_comm_hook` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
-
 - Marked `lightning.pytorch.utilities.supporters.CombinedDataset` as protected ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
-
 - Marked the `{Accelerator,Signal,Callback,Checkpoint,Data,Logger}Connector` classes as protected ([#17008](https://github.com/Lightning-AI/lightning/pull/17008))
-
 - Marked the `lightning.pytorch.trainer.connectors.signal_connector.HandlersCompose` class as protected ([#17008](https://github.com/Lightning-AI/lightning/pull/17008))
-
 - Disabled strict loading in multiprocessing launcher ("ddp_spawn", etc.) when loading weights back into the main process ([#16365](https://github.com/Lightning-AI/lightning/pull/16365))
-
-
 - Renamed `CombinedLoader.loaders` to `CombinedLoader.iterables` ([#16743](https://github.com/Lightning-AI/lightning/pull/16743))
-
-
 - Renamed `Trainer(replace_sampler_ddp=...)` to `Trainer(use_distributed_sampler=...)` ([#16829](https://github.com/Lightning-AI/lightning/pull/16829))
-
-
 - Moved the `CombinedLoader` class from `lightning.pytorch.trainer.supporters` to `lightning.pytorch.combined_loader` ([#16819](https://github.com/Lightning-AI/lightning/pull/16819))
-
-
 - The top-level loops now own the data sources and combined dataloaders ([#16726](https://github.com/Lightning-AI/lightning/pull/16726))
-
-
 - The `trainer.*_dataloader` properties now return what the user returned in their `LightningModule.*_dataloader()` hook ([#16726](https://github.com/Lightning-AI/lightning/pull/16726), [#16800](https://github.com/Lightning-AI/lightning/pull/16800))
-
-
 - The `dataloader_idx` argument is now optional for the `on_{validation,test,predict}_batch_{start,end}` hooks. Remove it or default it to 0 if you don't use multiple dataloaders ([#16753](https://github.com/Lightning-AI/lightning/pull/16753))
-
-
 - Renamed `TPUSpawnStrategy` to `XLAStrategy` ([#16781](https://github.com/Lightning-AI/lightning/pull/16781))
-
 - Renamed `strategy='tpu_spawn'` to `strategy='xla'` and `strategy='tpu_spawn_debug'` to `strategy='xla_debug'` ([#16781](https://github.com/Lightning-AI/lightning/pull/16781))
-
-
 - Changed arguments for precision settings (from [64|32|16|bf16] to ["64-true"|"32-true"|"16-mixed"|"bf16-mixed"]) ([#16783](https://github.com/Lightning-AI/lightning/pull/16783))
-
-
 - When using multiple devices, the strategy now defaults to "ddp" instead of "ddp_spawn" when none is set ([#16780](https://github.com/Lightning-AI/lightning/pull/16780))
-
-
 - The selection `Trainer(strategy="ddp_spawn", ...)` no longer falls back to "ddp" when a cluster environment gets detected ([#16780](https://github.com/Lightning-AI/lightning/pull/16780))
-
-
 - Predict's custom BatchSampler that tracks the batch indices no longer consumes the entire batch sampler at the beginning ([#16826](https://github.com/Lightning-AI/lightning/pull/16826))
-
-
 - Gradient norm tracking with `track_grad_norm` no longer rounds the norms to 4 digits, but instead logs them at full resolution ([#16877](https://github.com/Lightning-AI/lightning/pull/16877))
-
-
 - Merged the `DDPSpawnStrategy` into `DDPStrategy` ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
-
-
+- The `NeptuneLogger` now requires `neptune>=1.0.0` ([#16888](https://github.com/Lightning-AI/lightning/pull/16888))
 - Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
-
-
 - Removed the `lightning.pytorch.overrides.torch_distributed.broadcast_object_list` function ([#17011](https://github.com/Lightning-AI/lightning/pull/17011))
-
-
 - The `ServableModule` is now an abstract interface ([#17000](https://github.com/Lightning-AI/lightning/pull/17000))
-
-
 - The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
-
-
 - The Trainer no longer accepts positional arguments to ([#17022](https://github.com/Lightning-AI/lightning/pull/17022))
-
-
-### Deprecated
-
--
 
 ### Removed
 
 - Removed support for PyTorch 1.10 ([#16492](https://github.com/Lightning-AI/lightning/pull/16492))
-
-
 - Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
-
-
 - Removed the `pytorch_lightning.lite` module in favor of `lightning_fabric` ([#15953](https://github.com/Lightning-AI/lightning/pull/15953))
-
-
 - `nvidia/apex` removal ([#16149](https://github.com/Lightning-AI/lightning/pull/16149))
   * Removed `pytorch_lightning.plugins.NativeMixedPrecisionPlugin` in favor of `pytorch_lightning.plugins.MixedPrecisionPlugin`
   * Removed the `LightningModule.optimizer_step(using_native_amp=...)` argument
@@ -202,48 +92,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `pytorch_lightning.plugins.ApexMixedPrecisionPlugin` class
   * Removed the `pytorch_lightning.utilities.enums.AMPType` enum
   * Removed the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
-
-
 - Removed `Trainer(strategy='horovod')` support ([#16150](https://github.com/Lightning-AI/lightning/pull/16150))
-
-
-- `FairScale` removal (in favor of PyTorch's FSDP implementation) ([#16400](https://github.com/PyTorchLightning/pytorch-lightning/pull/16400))
+- `FairScale` removal (in favor of PyTorch's FSDP implementation) ([#16400](https://github.com/Lightning-AI/lightning/pull/16400))
   * Removed the `pytorch_lightning.overrides.fairscale.LightningShardedDataParallel` class
   * Removed the `pytorch_lightning.plugins.precision.fully_sharded_native_amp.FullyShardedNativeMixedPrecisionPlugin` class
   * Removed the `pytorch_lightning.plugins.precision.sharded_native_amp.ShardedNativeMixedPrecisionPlugin` class
   * Removed the `pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy` (fsdp) class
   * Removed the `pytorch_lightning.strategies.sharded.DDPShardedStrategy` (ddp_sharded) class
   * Removed the `pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy` (ddp_sharded_spawn) class
-
-
 - Removed legacy device arguments in Trainer ([#16171](https://github.com/Lightning-AI/lightning/pull/16171))
   * Removed the `Trainer(gpus=...)` argument
   * Removed the `Trainer(tpu_cores=...)` argument
   * Removed the `Trainer(ipus=...)` argument
   * Removed the `Trainer(num_processes=...)` argument
-
-
 - Removed the deprecated `pytorch_lightning.utilities.AllGatherGrad` class ([#16360](https://github.com/Lightning-AI/lightning/pull/16360))
-
-
 - Removed the deprecated `resume_from_checkpoint` Trainer argument ([#16167](https://github.com/Lightning-AI/lightning/pull/16167))
-
-
 - Removed the deprecated `pytorch_lightning.profiler` module ([#16359](https://github.com/Lightning-AI/lightning/pull/16359))
-
-
 - Removed deadlock detection / process reconciliation (`PL_RECONCILE_PROCESS=1`) ([#16204](https://github.com/Lightning-AI/lightning/pull/16204))
-
-
 - Removed the `{training,validation,test}_epoch_end` hooks which would retain step outputs in memory. Alternative implementations are suggested by implementing their `on_*_epoch_end` hooks instead ([#16520](https://github.com/Lightning-AI/lightning/pull/16520))
-
-
 - Removed the `outputs` argument from the `on_predict_epoch_end` hook. You can access them via `trainer.predict_loop.predictions` ([#16655](https://github.com/Lightning-AI/lightning/pull/16655))
-
-
 - Removed support for the experimental `PL_FAULT_TOLERANT_TRAINING` environment flag ([#16516](https://github.com/Lightning-AI/lightning/pull/16516), [#16533](https://github.com/Lightning-AI/lightning/pull/16533))
-
-
 - Removed the deprecated `LightningCLI` arguments ([#16380](https://github.com/Lightning-AI/lightning/pull/16380))
   * `save_config_filename`
   * `save_config_overwrite`
@@ -251,11 +119,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * `description`
   * `env_prefix`
   * `env_parse`
-
-
 - Removed the deprecated `pl.strategies.utils.on_colab_kaggle` function ([#16437](https://github.com/Lightning-AI/lightning/pull/16437))
-
-
 - Removed the deprecated code in:
   * `pl.core.mixins` ([#16424](https://github.com/Lightning-AI/lightning/pull/16424))
   * `pl.utilities.distributed` ([#16390](https://github.com/Lightning-AI/lightning/pull/16390))
@@ -266,24 +130,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * `pl.utilities.optimizer` ([#16439](https://github.com/Lightning-AI/lightning/pull/16439))
   * `pl.utilities.seed` ([#16422](https://github.com/Lightning-AI/lightning/pull/16422))
   * `pl.utilities.cloud_io` ([#16438](https://github.com/Lightning-AI/lightning/pull/16438))
-
-
 - Removed the deprecated `Accelerator.setup_environment` method ([#16436](https://github.com/Lightning-AI/lightning/pull/16436))
-
-
 - Mark the `forward_module` argument as required ([#16386](https://github.com/Lightning-AI/lightning/pull/16386))
   * Removed the deprecated `pl_module` argument from the distributed module wrappers
   * Removed the deprecated `pytorch_lightning.overrides.base.unwrap_lightning_module` function
   * Removed the `pytorch_lightning.overrides.distributed.LightningDistributedModule` class
   * Removed the deprecated `pytorch_lightning.overrides.fairscale.unwrap_lightning_module_sharded` function
   * Removed the `pytorch_lightning.overrides.fairscale.LightningDistributedModule` class
-
-
 - Removed the deprecated automatic GPU selection ([#16184](https://github.com/Lightning-AI/lightning/pull/16184))
   * Removed the `Trainer(auto_select_gpus=...)` argument
   * Removed the `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` functions
-
-
 - Removed support for loop customization
   * Removed `Loop.replace()` ([#16361](https://github.com/Lightning-AI/lightning/pull/16361))
   * Removed `Loop.connect()` ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
@@ -291,17 +147,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the default `Loop.run()` implementation ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * The loop classes are now marked as protected ([#16445](https://github.com/Lightning-AI/lightning/pull/16445))
   * The fetching classes are now marked as protected ([#16664](https://github.com/Lightning-AI/lightning/pull/16664))
-
-
 - The `lightning.pytorch.overrides.distributed.IndexBatchSamplerWrapper` class is now marked as protected ([#16826](https://github.com/Lightning-AI/lightning/pull/16826))
-
-
 - Removed the `DataLoaderLoop`, `EvaluationEpochLoop`, and `PredictionEpochLoop` classes ([#16726](https://github.com/Lightning-AI/lightning/pull/16726))
-
-
 - Removed `trainer.reset_*_dataloader()` methods in favor of `Loop.setup_data()` for the top-level loops ([#16726](https://github.com/Lightning-AI/lightning/pull/16726))
-
-
 - Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
   * Removed the `LightningModule.truncated_bptt_steps` attribute
   * Removed the `LightningModule.tbptt_split_batch` hook
@@ -309,56 +157,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `pytorch_lightning.loops.batch.TrainingBatchLoop`
   * Removed the `FitLoop.split_idx` property
   * Removed the `LoggerConnector.on_train_split_start` method
-
-
 - Removed the experimental `PL_INTER_BATCH_PARALLELISM` environment flag ([#16355](https://github.com/Lightning-AI/lightning/pull/16355))
-
-
 - Removed the `Trainer(move_metrics_to_cpu=True)` argument ([#16358](https://github.com/Lightning-AI/lightning/pull/16358))
-
-
 - Removed the `LightningModule.precision` attribute ([#16203](https://github.com/Lightning-AI/lightning/pull/16203))
-
-
 - Removed the automatic addition of a moving average of the `training_step` loss in the progress bar. Use `self.log("loss", ..., prog_bar=True)` instead. ([#16192](https://github.com/Lightning-AI/lightning/issues/16192))
-
-
 - Removed support for passing a dictionary value to `self.log()` ([#16389](https://github.com/Lightning-AI/lightning/pull/16389))
-
-
 - Removed `Trainer.model` setter ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
-
-
 - Removed the argument `Trainer(multiple_trainloader_mode=...)`. You can use `CombinedLoader(..., mode=...)` directly now ([#16800](https://github.com/Lightning-AI/lightning/pull/16800))
-
-
 - Removed the unused `lightning.pytorch.utilities.finite_checks.print_nan_gradients` function ([#16682](https://github.com/Lightning-AI/lightning/pull/16682))
 - Removed the unused `lightning.pytorch.utilities.finite_checks.detect_nan_parameters` function ([#16682](https://github.com/Lightning-AI/lightning/pull/16682))
 - Removed the unused `lightning.pytorch.utilities.parsing.flatten_dict` function ([#16744](https://github.com/Lightning-AI/lightning/pull/16744))
 - Removed the unused `lightning.pytorch.utilities.metrics.metrics_to_scalars` function ([#16681](https://github.com/Lightning-AI/lightning/pull/16681))
 - Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
-
-
 - Tuner removal
   * Removed the deprecated `trainer.tuning` property ([#16379](https://github.com/Lightning-AI/lightning/pull/16379))
   * Removed the deprecated `TrainerFn.TUNING` and `RunningStage.TUNING` enums ([#16379](https://github.com/Lightning-AI/lightning/pull/16379))
   * Removed `Trainer.tune()` in favor of `Tuner(trainer).{lr_find,scale_batch_size}` ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
   * Removed `Trainer(auto_scale_batch_size=...)` in favor of `Tuner(trainer).scale_batch_size()` ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
   * Removed `Trainer(auto_lr_find=...)` in favor of `Tuner(trainer).lr_find()` ([#16462](https://github.com/Lightning-AI/lightning/pull/16462))
-
-
 - Removed the `on_tpu` argument from `LightningModule.optimizer_step` hook ([#16537](https://github.com/Lightning-AI/lightning/pull/16537))
-
-
 - Removed the `using_lbfgs` argument from `LightningModule.optimizer_step` hook ([#16538](https://github.com/Lightning-AI/lightning/pull/16538))
-
-
 - Removed the `Trainer.data_parallel` property. Use `isinstance(trainer.strategy, ParallelStrategy)` instead ([#16703](https://github.com/Lightning-AI/lightning/pull/16703))
-
-
 - Removed the `Trainer.prediction_writer_callbacks` property ([#16759](https://github.com/Lightning-AI/lightning/pull/16759))
-
-
 - Removed support for multiple optimizers in automatic optimization mode ([#16539](https://github.com/Lightning-AI/lightning/pull/16539))
   * Removed `opt_idx` argument from `BaseFinetuning.finetune_function` callback method
   * Removed `opt_idx` argument from `Callback.on_before_optimizer_step` callback method
@@ -374,67 +194,36 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed `optimizer_idx` argument from `PrecisionPlugin.{optimizer_step,backward}` and all of its overrides in subclasses
   * Removed `optimizer_idx` argument from `Strategy.{optimizer_step,backward}` and all of its overrides in subclasses
   * Removed `Trainer.optimizer_frequencies` attribute
-
-
 - Removed `Strategy.dispatch` ([#16618](https://github.com/Lightning-AI/lightning/pull/16618))
-
-
 - Removed `PrecisionPlugin.dispatch` ([#16618](https://github.com/Lightning-AI/lightning/pull/16618))
-
-
 - Removed legacy argparse utilities ([#16708](https://github.com/Lightning-AI/lightning/pull/16708))
   * Removed `LightningDataModule` methods: `add_argparse_args()`, `from_argparse_args()`, `parse_argparser()`, `get_init_arguments_and_types()`
   * Removed class methods from Trainer: `default_attributes()`, `from_argparse_args()`, `parse_argparser()`, `match_env_arguments()`, `add_argparse_args()`
   * Removed functions from `lightning.pytorch.utilities.argparse`: `from_argparse_args()`, `parse_argparser()`, `parse_env_variables()`, `get_init_arguments_and_types()`, `add_argparse_args()`
   * Removed functions from `lightning.pytorch.utilities.parsing`: `import str_to_bool()`, `str_to_bool_or_int()`, `str_to_bool_or_str()`
-
-
 - Removed support for passing a scheduling dictionary to `Trainer(accumulate_grad_batches=...)` ([#16729](https://github.com/Lightning-AI/lightning/pull/16729))
-
-
 - Removed support for `DataParallel` (`strategy='dp'`) and the `LightningParallelModule`-Wrapper, ([#16748](https://github.com/Lightning-AI/lightning/pull/16748))
-
-
 - Removed the unused `lightning.pytorch.utilities.supporters.{SharedCycleIteratorState,CombinedLoaderIterator}` classes ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
-
-
 - Removed `ProgressBarBase.{train_batch_idx,val_batch_idx,test_batch_idx,predict_batch_idx}` properties ([#16760](https://github.com/Lightning-AI/lightning/pull/16760))
-
-
 - Removed the `fit_loop.{min,max}_steps` setters ([#16803](https://github.com/Lightning-AI/lightning/pull/16803))
-
-
 - Removed the `Trainer(track_grad_norm=...)` argument ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
-
-
 - Removed the `LightningModule.log_grad_norm()` hook method ([#16745](https://github.com/Lightning-AI/lightning/pull/16745))
-
-
 - Removed the `QuantizationAwareTraining` callback ([#16750](https://github.com/Lightning-AI/lightning/pull/16750))
-
-
 - Removed the `ColossalAIStrategy` and `ColossalAIPrecisionPlugin` in favor of the new [lightning-colossalai](https://github.com/Lightning-AI/lightning-colossalai) package ([#16757](https://github.com/Lightning-AI/lightning/pull/16757), [#16778](https://github.com/Lightning-AI/lightning/pull/16778))
-
-
 - Removed the `training_step_end`, `validation_step_end`, and `test_step_end` hooks from the `LightningModule` in favor of the `*_batch_end` hooks ([#16791](https://github.com/Lightning-AI/lightning/pull/16791))
-
-
 - Removed the `lightning.pytorch.strategies.DDPSpawnStrategy` in favor of `DDPStrategy(start_method='spawn')` (merged both classes) ([#16809](https://github.com/Lightning-AI/lightning/pull/16809))
-
-
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
-
-- Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16974](https://github.com/Lightning-AI/lightning/pull/16974))
-
 - Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16999](https://github.com/Lightning-AI/lightning/pull/16999))
-
-
 - Removed the unused `lightning.pytorch.utilities.memory.get_model_size_mb` function ([#17001](https://github.com/Lightning-AI/lightning/pull/17001))
-
 
 ### Fixed
 
 - Fixed an issue where `DistributedSampler.set_epoch` wasn't getting called during `trainer.predict` ([#16785](https://github.com/Lightning-AI/lightning/pull/16785), [#16826](https://github.com/Lightning-AI/lightning/pull/16826))
+
+- Fixed an issue with comparing torch versions when using a version of torch built from source ([#17030](https://github.com/Lightning-AI/lightning/pull/17030))
+
+
+- Improved the error message for installing tensorboard or tensorboardx ([#17053](https://github.com/Lightning-AI/lightning/pull/17053))
 
 
 ## [1.9.4] - 2023-03-01
