@@ -4,8 +4,8 @@ contact_links:
     url: https://lightning.ai/forums
     about: Ask and answer Lightning related questions.
   - name: 💬 Chat with us
-    url: https://www.pytorchlightning.ai/community
-    about: Live chat with experts, engineers, and users in our Slack community.
+    url: https://discord.gg/VptPCZkGNa
+    about: Live chat with experts, engineers, and users in our Discord community.
   - name: 📖 Read the documentation
     url: https://lightning.ai/lightning-docs/
     about: Please consult the documentation before opening any issues!

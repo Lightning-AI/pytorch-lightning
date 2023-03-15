@@ -22,7 +22,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
-def verify_loop_configurations(trainer: "pl.Trainer") -> None:
+def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
     r"""
     Checks that the model is configured correctly before the run is started.
 

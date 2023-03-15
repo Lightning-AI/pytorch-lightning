@@ -11,24 +11,16 @@
 Trainer
 =======
 
-Once you've organized your PyTorch code into a LightningModule,
-the Trainer automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.module.LightningModule`, the ``Trainer`` automates everything else.
 
-.. raw:: html
+The ``Trainer`` achieves the following:
 
-    <video width="100%" max-width="800px" controls autoplay
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
-
-|
-
-This abstraction achieves the following:
-
-1. You maintain control over all aspects via PyTorch code without an added abstraction.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.module.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-3. The trainer allows overriding any key part that you don't want automated.
+3. The trainer allows disabling any key part that you don't want automated.
 
 |
 
@@ -50,7 +42,8 @@ This is the basic use of the trainer:
 
 Under the hood
 --------------
-Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
+
+The Lightning ``Trainer`` does much more than just "training". Under the hood, it handles all loop details for you, some examples include:
 
 - Automatically enabling/disabling grads
 - Running the training, validation and test dataloaders
@@ -239,14 +232,6 @@ Example::
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/accumulate_grad_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/accumulate_grad_batches.mp4"></video>
-
-|
-
 Accumulates gradients over k batches before stepping the optimizer.
 
 .. testcode::
@@ -316,23 +301,18 @@ Example::
 callbacks
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
-
-|
-
-Add a list of :class:`~lightning.pytorch.callbacks.callback.Callback`. Callbacks run sequentially in the order defined here
+This argument can be used to add a :class:`~lightning.pytorch.callbacks.callback.Callback` or a list of them.
+Callbacks run sequentially in the order defined here
 with the exception of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
 after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
 
+    # single callback
+    trainer = Trainer(callbacks=PrintCallback())
+
     # a list of callbacks
-    callbacks = [PrintCallback()]
-    trainer = Trainer(callbacks=callbacks)
+    trainer = Trainer(callbacks=[PrintCallback()])
 
 Example::
 
@@ -389,7 +369,7 @@ Default path for logs and weights when no logger or
 :class:`lightning.pytorch.callbacks.ModelCheckpoint` callback passed.  On
 certain clusters you might want to separate where logs and checkpoints are
 stored. If you don't then use this argument for convenience. Paths can be local
-paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
+paths or remote paths such as ``s3://bucket/path`` or ``hdfs://path/``. Credentials
 will need to be set up to use remote filepaths.
 
 .. testcode::
@@ -451,14 +431,6 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
 
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
-
-|
 
 By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
 Checkpoints capture the exact value of all parameters used by a model.
@@ -545,12 +517,10 @@ gradient_clip_val
 
 Gradient clipping value
 
-- 0 means don't clip.
-
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(gradient_clip_val=0.0)
+    trainer = Trainer(gradient_clip_val=None)
 
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
@@ -662,14 +632,6 @@ See Also:
 
 logger
 ^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/logger.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/logger.mp4"></video>
-
-|
 
 :doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
@@ -869,14 +831,6 @@ Useful for quickly debugging or trying to overfit on purpose.
 plugins
 ^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
-
-|
-
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
 - :ref:`Checkpoint IO <checkpointing_expert>`
@@ -906,14 +860,6 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 precision
 ^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/precision.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/precision.mp4"></video>
-
-|
 
 Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
 
