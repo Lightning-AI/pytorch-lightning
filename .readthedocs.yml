@@ -38,8 +38,12 @@ build:
     - texlive-pictures
   commands:
     - pwd ; ls -lh
-    - mkdir -p _readthedocs/html
+    - printenv
+    - mkdir -p _readthedocs
     - >
+      #if [ $ITEM == "item1" -o $ITEM == "item2" -o $ITEM == "item3" ]; then
+      #    echo In the list
+      #fi
       pip install -U pip ;
       pip install -e . -q -r requirements/pytorch/docs.txt \
         -f "https://download.pytorch.org/whl/cpu/torch_stable.html" ;
@@ -47,4 +51,5 @@ build:
     - >  # this need to be split so `sphinx-build` is picked from previous installation
       cd ./docs/source-pytorch ;
       PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
-      mv ../build/html ../../_readthedocs/html
+      cd ../.. ;
+      mv docs/build/html _readthedocs/html
