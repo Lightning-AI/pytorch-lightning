@@ -2,11 +2,11 @@
 
 pwd
 python --version
+pip install -U pip
 pip --version
 ls -lh .
 export PACKAGE_NAME=pytorch
-sudo pip install -q -r requirements/pytorch/docs.txt
-pip install -e . -q -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
+pip install -e . -q -r requirements/pytorch/docs.txt -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
 pip list
 
 cd ./docs/source-pytorch
