@@ -3,7 +3,6 @@
    :hidden:
 
    from_scratch
-   from_pytorch_lightning_script
 
 .. raw:: html
 
