@@ -47,7 +47,8 @@ build:
         pip install -e . -q -r requirements/pytorch/docs.txt \
             -f 'https://download.pytorch.org/whl/cpu/torch_stable.html'
       fi ;
-      pip list" > run.sh ; bash run.sh
+      pip list" > run.sh
+    - bash run.sh
     - >  # this need to be split so `sphinx-build` is picked from previous installation
       if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ];
       then
