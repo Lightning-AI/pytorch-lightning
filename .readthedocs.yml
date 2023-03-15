@@ -37,19 +37,23 @@ build:
     - dvipng
     - texlive-pictures
   commands:
-    - pwd ; ls -lh
     - printenv
+    - pwd ; ls -lh
     - mkdir -p _readthedocs
     - >
-      #if [ $ITEM == "item1" -o $ITEM == "item2" -o $ITEM == "item3" ]; then
-      #    echo In the list
-      #fi
       pip install -U pip ;
-      pip install -e . -q -r requirements/pytorch/docs.txt \
-        -f "https://download.pytorch.org/whl/cpu/torch_stable.html" ;
+      if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ]; then
+          pip install -e . -q -r requirements/pytorch/docs.txt \
+              -f "https://download.pytorch.org/whl/cpu/torch_stable.html" ;
+      fi ;
       pip list
     - >  # this need to be split so `sphinx-build` is picked from previous installation
-      cd ./docs/source-pytorch ;
-      PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
-      cd ../.. ;
-      mv docs/build/html _readthedocs/html
+      if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ]; then
+          cd ./docs/source-pytorch ;
+          PL_FAST_DOCS_DEV=1 make html --jobs 2 ;
+          cd ../.. ;
+          ls -lh docs/build ;
+          mv docs/build/html _readthedocs/html ;
+      else
+          mkdir _readthedocs/html ;
+      fi
