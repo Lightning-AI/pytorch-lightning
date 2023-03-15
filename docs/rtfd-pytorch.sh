@@ -1,6 +1,8 @@
 #!/bin/bash
 
 pwd
+python --version
+pip --version
 ls -lh .
 export PACKAGE_NAME=pytorch
 pip install -e . -r requirements/pytorch/docs.txt -f "https://download.pytorch.org/whl/cpu/torch_stable.html"
