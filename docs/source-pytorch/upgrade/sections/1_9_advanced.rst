@@ -39,7 +39,7 @@
      - #16745 #16745
 
    * - used Trainer’s flag ``replace_sampler_ddp``
-     - use  ``use_distributed_sample``; the sampler gets created not only for the DDP strategies
+     - use  ``use_distributed_sampler``; the sampler gets created not only for the DDP strategies
      -
 
    * - relied on the ``on_tpu`` argument in ``LightningModule.optimizer_step`` hook
