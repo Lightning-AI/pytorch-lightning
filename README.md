@@ -9,13 +9,13 @@
 
 **NEW- Lightning 2.0 is featuring a clean and stable API!!**
 
-______________________________________________________________________
+----
 
 <p align="center">
   <a href="https://www.lightning.ai/">Lightning.ai</a> •
-  <a href="src/pytorch_lightning/README.md">PyTorch Lightning</a> •
-  <a href="src/lightning_fabric/README.md">Fabric</a> •
-  <a href="src/lightning_app/README.md">Lightning Apps</a> •
+  <a href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a> •
+  <a href="https://lightning.ai/docs/fabric/stable/">Fabric</a> •
+  <a href="https://lightning.ai/docs/app/stable/">Lightning Apps</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#community">Community</a> •
   <a href="https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html">Contribute</a> •
@@ -40,14 +40,69 @@ ______________________________________________________________________
 
 </div>
 
+
 ## Install Lightning
+
+Simple installation from PyPI
 
 ```bash
 pip install lightning
 ```
-______________________________________________________________________
 
-## Train and deploy PyTorch with Lightning
+<!-- following section will be skipped from PyPI description -->
+
+<details>
+  <summary>Other installation options</summary>
+    <!-- following section will be skipped from PyPI description -->
+
+#### Install with optional dependencies
+
+```bash
+pip install lightning['extra']
+```
+
+#### Conda
+
+```bash
+conda install lightning -c conda-forge
+```
+
+#### Install stable version
+
+Install future release from the source
+
+```bash
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U
+```
+
+#### Install bleeding-edge
+
+Install nightly from the source (no guarantees)
+
+```bash
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip -U
+```
+
+or from testing PyPI
+
+```bash
+pip install -iU https://test.pypi.org/simple/ pytorch-lightning
+```
+
+</details>
+<!-- end skipping PyPI description -->
+
+----
+
+## Lightning has 3 core packages
+
+- [PyTorch Lightning: Train and deploy PyTorch at scale](#PyTorch Lightning: Train and deploy PyTorch at scale).
+- Lightning Fabric: Expert-level control over scale and training loop.   
+- Lightning Apps: Build AI products and ML workflows.   
+
+----
+
+## PyTorch Lightning: Train and deploy PyTorch at scale
 
 PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.    
 
@@ -66,7 +121,8 @@ import lightning as L
 # --------------------------------
 # Step 1: Define a LightningModule 
 # --------------------------------
-# A LightningModule (nn.Module subclass) defines a full *system* (ie: an LLM, difussion model, autoencoder, or simple image classifier).
+# A LightningModule (nn.Module subclass) defines a full *system* 
+# (ie: an LLM, difussion model, autoencoder, or simple image classifier).
 
 class LitAutoEncoder(L.LightningModule):
     def __init__(self):
@@ -112,6 +168,7 @@ Run the model on your terminal
 pip install torchvision
 python main.py
 ```
+----
 
 ## Advanced features
 
@@ -124,32 +181,39 @@ Here are some examples:
   </div>
 
 <details>
-    <summary>Highlighted feature code snippets</summary>
+  <summary>Train on 1000s of GPUs without code changes</summary>
 
 ```python
 # 8 GPUs
 # no code changes needed
-trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8)
+trainer = Trainer(accelerator="gpu", devices=8)
 
 # 256 GPUs
-trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8, num_nodes=32)
+trainer = Trainer(accelerator="gpu", devices=8, num_nodes=32)
 ```
+</details>
 
-<summary>Train on TPUs without code changes</summary>
+<details>
+  <summary>Train on other accelerators like TPUs without code changes</summary>
 
 ```python
 # no code changes needed
 trainer = Trainer(accelerator="tpu", devices=8)
 ```
+</details>
 
-<summary>16-bit precision</summary>
+<details>
+  <summary>16-bit precision</summary>
 
 ```python
 # no code changes needed
 trainer = Trainer(precision=16)
 ```
 
-<summary>Experiment managers</summary>
+</details>
+
+<details>
+  <summary>Experiment managers</summary>
 
 ```python
 from lightning import loggers
@@ -172,29 +236,39 @@ trainer = Trainer(logger=loggers.NeptuneLogger())
 # ... and dozens more
 ```
 
-<summary>EarlyStopping</summary>
+</details>
+
+<details>
+
+  <summary>Early Stopping</summary>
 
 ```python
 es = EarlyStopping(monitor="val_loss")
 trainer = Trainer(callbacks=[es])
 ```
+</details>
 
-<summary>Checkpointing</summary>
+<details>
+  <summary>Checkpointing</summary>
 
 ```python
 checkpointing = ModelCheckpoint(monitor="val_loss")
 trainer = Trainer(callbacks=[checkpointing])
 ```
+</details>
 
-<summary>Export to torchscript (JIT) (production use)</summary>
+<details>
+  <summary>Export to torchscript (JIT) (production use)</summary>
 
 ```python
 # torchscript
 autoencoder = LitAutoEncoder()
 torch.jit.save(autoencoder.to_torchscript(), "model.pt")
 ```
+</details>
 
-<summary>Export to ONNX (production use)</summary>
+<details>
+  <summary>Export to ONNX (production use)</summary>
 
 ```python
 # onnx
@@ -207,33 +281,7 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 
 </details>
 
-### Pro-level control of optimization (advanced users)
-
-For complex/professional level work, you have optional full control of the optimizers.
-
-```python
-class LitAutoEncoder(L.LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.automatic_optimization = False
-
-    def training_step(self, batch, batch_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
-        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
-
-        loss_a = ...
-        self.manual_backward(loss_a, opt_a)
-        opt_a.step()
-        opt_a.zero_grad()
-
-        loss_b = ...
-        self.manual_backward(loss_b, opt_b, retain_graph=True)
-        self.manual_backward(loss_b, opt_b)
-        opt_b.step()
-        opt_b.zero_grad()
-```
-
-______________________________________________________________________
+----
 
 ## Advantages over unstructured PyTorch
 
@@ -246,64 +294,20 @@ ______________________________________________________________________
 - [Tested rigorously with every new PR](https://github.com/Lightning-AI/lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
 - Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
 
-______________________________________________________________________
-
-## Examples
-
-###### Self-supervised Learning
-
-- [CPC transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#cpc-transforms)
-- [Moco v2 tranforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#moco-v2-transforms)
-- [SimCLR transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#simclr-transforms)
-
-###### Convolutional Architectures
-
-- [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/models/convolutional.html#gpt-2)
-- [UNet](https://lightning-bolts.readthedocs.io/en/stable/models/convolutional.html#unet)
-
-###### Reinforcement Learning
-
-- [DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#dqn-loss)
-- [Double DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#double-dqn-loss)
-- [Per DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#per-dqn-loss)
-
-###### GANs
-
-- [Basic GAN](https://lightning-bolts.readthedocs.io/en/stable/models/gans.html#basic-gan)
-- [DCGAN](https://lightning-bolts.readthedocs.io/en/stable/models/gans.html#dcgan)
-
-###### Classic ML
-
-- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#logistic-regression)
-- [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#linear-regression)
-
-______________________________________________________________________
-
-### [Read more about PyTorch Lightning](src/pytorch_lightning/README.md)
-
-</details>
-
-______________________________________________________________________
-
-## Scale PyTorch With Lightning Fabric
-
-Fabric allows you to scale any PyTorch model to distributed machines while maintianing full control over your training loop. Just add a few lines of code and run on any device!
-Use this library for complex tasks like reinforcement learning, active learning, and transformers without losing control over your training code.
+----
 
 <div align="center">
-    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
+    <a href="https://lightning.ai/docs/pytorch/stable/">Read the PyTorch Lightning docs</a>
 </div>
 
-<details>
-  <summary>Learn more about Fabric</summary>
+----
 
-With just a few code changes, run any PyTorch model on any distributed hardware, no boilerplate!
+## Lightning Fabric: Expert-level control over scale and training loop.
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
-- Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-- All the device logic boilerplate is handled for you
-- Designed with multi-billion parameter models in mind
-- Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more
+Run on any device with Fabric with expert-level PyTorch control for scaling foundation models or writing your own Trainer.
+
+Fabric is designed for the most complex models like foundation model scaling, LLMs, diffussion, transformers, reinforcement learning, active learning.
+
 
 ```diff
 + import lightning as L
@@ -336,13 +340,29 @@ With just a few code changes, run any PyTorch model on any distributed hardware,
           lr_scheduler.step()
 ```
 
-### [Read more about Fabric](src/lightning_fabric/README.md)
+## Fabric vs PyTorch vs PyTorch Lightning
 
-</details>
+In the spectrum from raw PyTorch to fully managed PyTorch Lightning, Fabric gives you full control over how much abstraction you want to add.
 
-______________________________________________________________________
+<div align="center">
+    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
+</div>
 
-## Build AI products with Lightning Apps
+## Key features
+
+- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
+- Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
+- All the device logic boilerplate is handled for you
+- Designed with multi-billion parameter models in mind
+- Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more
+
+----
+
+### [Read the Fabric docs](https://lightning.ai/docs/fabric/stable/)
+
+----
+
+## Lightning Apps: Build AI products and ML workflows
 
 Once you're done building models, publish a paper demo or build a full production end-to-end ML system with Lightning Apps. Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
 
@@ -398,7 +418,38 @@ lightning run app app.py --setup --cloud
 
 </details>
 
-______________________________________________________________________
+---- 
+
+## Examples
+
+###### Self-supervised Learning
+
+- [CPC transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#cpc-transforms)
+- [Moco v2 tranforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#moco-v2-transforms)
+- [SimCLR transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#simclr-transforms)
+
+###### Convolutional Architectures
+
+- [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/models/convolutional.html#gpt-2)
+- [UNet](https://lightning-bolts.readthedocs.io/en/stable/models/convolutional.html#unet)
+
+###### Reinforcement Learning
+
+- [DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#dqn-loss)
+- [Double DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#double-dqn-loss)
+- [Per DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#per-dqn-loss)
+
+###### GANs
+
+- [Basic GAN](https://lightning-bolts.readthedocs.io/en/stable/models/gans.html#basic-gan)
+- [DCGAN](https://lightning-bolts.readthedocs.io/en/stable/models/gans.html#dcgan)
+
+###### Classic ML
+
+- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#logistic-regression)
+- [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#linear-regression)
+
+----
 
 ## Continuous Integration
 
@@ -424,60 +475,7 @@ Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs 
 </center>
 </details>
 
-______________________________________________________________________
-
-## Install
-
-Simple installation from PyPI
-
-```bash
-pip install lightning
-```
-
-<!-- following section will be skipped from PyPI description -->
-
-<details>
-  <summary>Other installation options</summary>
-    <!-- following section will be skipped from PyPI description -->
-
-#### Install with optional dependencies
-
-```bash
-pip install lightning['extra']
-```
-
-#### Conda
-
-```bash
-conda install lightning -c conda-forge
-```
-
-#### Install stable version
-
-Install future release from the source
-
-```bash
-pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U
-```
-
-#### Install bleeding-edge
-
-Install nightly from the source (no guarantees)
-
-```bash
-pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip -U
-```
-
-or from testing PyPI
-
-```bash
-pip install -iU https://test.pypi.org/simple/ pytorch-lightning
-```
-
-</details>
-<!-- end skipping PyPI description -->
-
-______________________________________________________________________
+----
 
 ## Community
 
