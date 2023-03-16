@@ -39,35 +39,35 @@ ______________________________________________________________________
 -->
 
 </div>
+
+## Install Lightning
+
+```bash
+pip install lightning
+```
 ______________________________________________________________________
 
-## Train and deploy with PyTorch Lightning
+## Train and deploy PyTorch with Lightning
 
-PyTorch Lightning is just organized PyTorch- Lightning disentangles PyTorch code to decouple the science from the engineering.
+PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.    
+
 ![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
 
-<details>
-  <summary>How to use PyTorch Lightning</summary>
+----
 
-### Step 1: Add these imports
+### Hello simple model 
 
 ```python
+# main.py
+# ! pip install torchvision
+import os, torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, torch.nn.functional as F
 import lightning as L
 
-import os
-import torch
-from torch import nn
-import torch.nn.functional as F
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader, random_split
-from torchvision import transforms
-```
+# --------------------------------
+# Step 1: Define a LightningModule 
+# --------------------------------
+# A LightningModule (nn.Module subclass) defines a full *system* (ie: an LLM, difussion model, autoencoder, or simple image classifier).
 
-### Step 2: Define a LightningModule (nn.Module subclass)
-
-A LightningModule defines a full *system* (ie: a GAN, autoencoder, BERT or a simple Image Classifier).
-
-```python
 class LitAutoEncoder(L.LightningModule):
     def __init__(self):
         super().__init__()
@@ -92,19 +92,25 @@ class LitAutoEncoder(L.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
-```
 
-**Note: Training_step defines the training loop. Forward defines how the LightningModule behaves during inference/prediction.**
+# -------------------
+# Step 2: Define data
+# -------------------
+dataset = tv.datasets.MNIST(os.getcwd(), download=True, transform=tv.transforms.ToTensor())
+train, val = data.random_split(dataset, [55000, 5000])
 
-### Step 3: Train!
-
-```python
-dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-train, val = random_split(dataset, [55000, 5000])
-
+# -------------------
+# Step 3: Train
+# -------------------
 autoencoder = LitAutoEncoder()
 trainer = L.Trainer()
-trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
+trainer.fit(autoencoder, data.DataLoader(train), data.DataLoader(val))
+```
+
+Run the model on your terminal
+``` bash
+pip install torchvision
+python main.py
 ```
 
 ## Advanced features
