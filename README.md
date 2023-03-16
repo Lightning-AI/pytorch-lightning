@@ -344,7 +344,8 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 +model, optimizer = fabric.setup(model, optimizer)
 
  dataset = tv.datasets.CIFAR10("data", download=True,
-                               train=True, transform=tv.transforms.ToTensor())
+                               train=True,
+                               transform=tv.transforms.ToTensor())
  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 +dataloader = fabric.setup_dataloaders(dataloader)
 
@@ -377,7 +378,8 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 model, optimizer = fabric.setup(model, optimizer)
 
 dataset = tv.datasets.CIFAR10("data", download=True,
-                              train=True, transform=tv.transforms.ToTensor())
+                              train=True,
+                              transform=tv.transforms.ToTensor())
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 dataloader = fabric.setup_dataloaders(dataloader)
 
