@@ -320,7 +320,7 @@ ______________________________________________________________________
 
 Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
-Fabric is designed for the most complex models like foundation model scaling, LLMs, diffusion, transformers, reinforcement learning, active learning.
+Fabric is designed for the most complex models like foundation model scaling, LLMs, diffusion, transformers, reinforcement learning, active learning. Of any size.
 
 <table>
 <tr>
@@ -404,11 +404,87 @@ for epoch in range(num_epochs):
 
 ## Key features
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
-- Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-- All the device logic boilerplate is handled for you
-- Designed with multi-billion parameter models in mind
-- Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more
+<details>
+  <summary>Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training</summary>
+
+```python
+# Use your available hardware
+# no code changes needed
+fabric = Fabric()
+
+# Run on GPUs (CUDA or MPS)
+fabric = Fabric(accelerator="gpu")
+
+# 8 GPUs
+fabric = Fabric(accelerator="gpu", devices=8)
+
+# 256 GPUs, multi-node
+fabric = Fabric(accelerator="gpu", devices=8, num_nodes=32)
+
+# Run on TPUs
+fabric = Fabric(accelerator="tpu")
+```
+
+</details>
+
+<details>
+  <summary>Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box</summary>
+
+```python
+# Use state-of-the-art distributed training techniques
+fabric = Fabric(strategy="ddp")
+fabric = Fabric(strategy="deepspeed")
+fabric = Fabric(strategy="fsdp")
+
+# Switch the precision
+fabric = Fabric(precision="16-mixed")
+fabric = Fabric(precision="64")
+```
+
+</details>
+
+<details>
+  <summary>All the device logic boilerplate is handled for you</summary>
+
+```diff
+  # no more of this!
+- model.to(device)
+- batch.to(device)
+```
+
+</details>
+
+<details>
+  <summary>Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more</summary>
+
+```python
+import lightning as L
+
+
+class MyCustomTrainer:
+    def __init__(self, accelerator="auto", strategy="auto", devices="auto", precision="32-true"):
+        self.fabric = L.Fabric(accelerator=accelerator, strategy=strategy, devices=devices, precision=precision)
+
+    def fit(self, model, optimizer, dataloader, max_epochs):
+        self.fabric.launch()
+
+        model, optimizer = self.fabric.setup(model, optimizer)
+        dataloader = self.fabric.setup_dataloaders(dataloader)
+        model.train()
+
+        for epoch in range(max_epochs):
+            for batch in dataloader:
+                input, target = batch
+                optimizer.zero_grad()
+                output = model(input)
+                loss = loss_fn(output, target)
+                self.fabric.backward(loss)
+                optimizer.step()
+```
+
+You can find a more extensive example in our [examples](examples/fabric/build_your_own_trainer)
+
+</details>
 
 ______________________________________________________________________
 
