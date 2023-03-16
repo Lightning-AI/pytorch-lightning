@@ -310,7 +310,7 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 
 # Lightning Fabric: Expert control.
 
-Run on any device with Fabric with expert-level PyTorch control for scaling foundation models or writing your own Trainer.
+Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
 Fabric is designed for the most complex models like foundation model scaling, LLMs, diffussion, transformers, reinforcement learning, active learning.
 
