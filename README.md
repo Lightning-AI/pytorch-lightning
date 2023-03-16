@@ -320,7 +320,7 @@ ______________________________________________________________________
 
 Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
-Fabric is designed for the most complex models like foundation model scaling, LLMs, diffussion, transformers, reinforcement learning, active learning.
+Fabric is designed for the most complex models like foundation model scaling, LLMs, diffusion, transformers, reinforcement learning, active learning.
 
 <table>
 <tr>
@@ -332,36 +332,36 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 <sub>
 
 ```diff
-+import lightning as L
- import torch; import torchvision as tv
++ import lightning as L
+  import torch; import torchvision as tv
 
-+fabric = L.Fabric()
-+fabric.launch()
-+
- model = tv.models.resnet18()
- optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
--device = "cuda" if torch.cuda.is_available() else "cpu"
--model.to(device)
-+model, optimizer = fabric.setup(model, optimizer)
++ fabric = L.Fabric()
++ fabric.launch()
 
- dataset = tv.datasets.CIFAR10("data", download=True,
-                               train=True,
-                               transform=tv.transforms.ToTensor())
- dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
-+dataloader = fabric.setup_dataloaders(dataloader)
+  model = tv.models.resnet18()
+  optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+- device = "cuda" if torch.cuda.is_available() else "cpu"
+- model.to(device)
++ model, optimizer = fabric.setup(model, optimizer)
 
- model.train()
- num_epochs = 10
- for epoch in range(num_epochs):
-     for batch in dataloader:
-         inputs, labels = batch
--        inputs, labels = inputs.to(device), labels.to(device)
-         optimizer.zero_grad()
-         outputs = model(inputs)
-         loss = torch.nn.functional.cross_entropy(outputs, labels)
--        loss.backward()
-+        fabric.backward(loss)
-         optimizer.step()
+  dataset = tv.datasets.CIFAR10("data", download=True,
+                                train=True,
+                                transform=tv.transforms.ToTensor())
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
++ dataloader = fabric.setup_dataloaders(dataloader)
+
+  model.train()
+  num_epochs = 10
+  for epoch in range(num_epochs):
+      for batch in dataloader:
+          inputs, labels = batch
+-         inputs, labels = inputs.to(device), labels.to(device)
+          optimizer.zero_grad()
+          outputs = model(inputs)
+          loss = torch.nn.functional.cross_entropy(outputs, labels)
+-         loss.backward()
++         fabric.backward(loss)
+          optimizer.step()
 ```
 
 </sub>
