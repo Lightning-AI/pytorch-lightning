@@ -119,13 +119,13 @@ Next steps
     :button_link: accelerators.html
     :col_css: col-md-4
     :height: 150
-    :tag: intermediate
+    :tag: basic
 
 .. displayitem::
     :header: Build your own Trainer
     :description: Learn how to build a trainer tailored for you
     :col_css: col-md-4
-    :button_link: ../index.html#build-your-own-trainer
+    :button_link: ../levels/intermediate
     :height: 150
     :tag: intermediate
 
