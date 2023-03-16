@@ -329,6 +329,7 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 </tr>
 <tr>
 <td>
+<sub>
 
 ```diff
 +import lightning as L
@@ -363,8 +364,9 @@ Fabric is designed for the most complex models like foundation model scaling, LL
          optimizer.step()
 ```
 
-</td>
+</sub>
 <td>
+<sub>
 
 ```Python
 import lightning as L
@@ -395,6 +397,7 @@ for epoch in range(num_epochs):
         optimizer.step()
 ```
 
+</sub>
 </td>
 </tr>
 </table>
