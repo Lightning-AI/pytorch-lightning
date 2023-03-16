@@ -9,7 +9,7 @@
 
 **NEW- Lightning 2.0 is featuring a clean and stable API!!**
 
-----
+______________________________________________________________________
 
 <p align="center">
   <a href="https://www.lightning.ai/">Lightning.ai</a> •
@@ -39,7 +39,6 @@
 -->
 
 </div>
-
 
 ## Install Lightning
 
@@ -92,31 +91,31 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 </details>
 <!-- end skipping PyPI description -->
 
-----
+______________________________________________________________________
 
 ## Lightning has 3 core packages
 
-[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).   
-[Lightning Fabric: Expert control](#lightning-fabric-expert-control).   
-[Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).    
+[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).
+[Lightning Fabric: Expert control](#lightning-fabric-expert-control).
+[Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).
 
-Lightning gives you granular control over how much abstraction you want to add over PyTorch.   
+Lightning gives you granular control over how much abstraction you want to add over PyTorch.
 
 <div align="center">
     <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
 </div>
 
-----
+______________________________________________________________________
 
 # PyTorch Lightning: Train and Deploy PyTorch at Scale
 
-PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.    
+PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
 
 ![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
 
-----
+______________________________________________________________________
 
-### Hello simple model 
+### Hello simple model
 
 ```python
 # main.py
@@ -125,10 +124,11 @@ import os, torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, t
 import lightning as L
 
 # --------------------------------
-# Step 1: Define a LightningModule 
+# Step 1: Define a LightningModule
 # --------------------------------
-# A LightningModule (nn.Module subclass) defines a full *system* 
+# A LightningModule (nn.Module subclass) defines a full *system*
 # (ie: an LLM, difussion model, autoencoder, or simple image classifier).
+
 
 class LitAutoEncoder(L.LightningModule):
     def __init__(self):
@@ -155,6 +155,7 @@ class LitAutoEncoder(L.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
+
 # -------------------
 # Step 2: Define data
 # -------------------
@@ -170,11 +171,13 @@ trainer.fit(autoencoder, data.DataLoader(train), data.DataLoader(val))
 ```
 
 Run the model on your terminal
-``` bash
+
+```bash
 pip install torchvision
 python main.py
 ```
-----
+
+______________________________________________________________________
 
 ## Advanced features
 
@@ -197,6 +200,7 @@ trainer = Trainer(accelerator="gpu", devices=8)
 # 256 GPUs
 trainer = Trainer(accelerator="gpu", devices=8, num_nodes=32)
 ```
+
 </details>
 
 <details>
@@ -206,6 +210,7 @@ trainer = Trainer(accelerator="gpu", devices=8, num_nodes=32)
 # no code changes needed
 trainer = Trainer(accelerator="tpu", devices=8)
 ```
+
 </details>
 
 <details>
@@ -246,12 +251,13 @@ trainer = Trainer(logger=loggers.NeptuneLogger())
 
 <details>
 
-  <summary>Early Stopping</summary>
+<summary>Early Stopping</summary>
 
 ```python
 es = EarlyStopping(monitor="val_loss")
 trainer = Trainer(callbacks=[es])
 ```
+
 </details>
 
 <details>
@@ -261,6 +267,7 @@ trainer = Trainer(callbacks=[es])
 checkpointing = ModelCheckpoint(monitor="val_loss")
 trainer = Trainer(callbacks=[checkpointing])
 ```
+
 </details>
 
 <details>
@@ -271,6 +278,7 @@ trainer = Trainer(callbacks=[checkpointing])
 autoencoder = LitAutoEncoder()
 torch.jit.save(autoencoder.to_torchscript(), "model.pt")
 ```
+
 </details>
 
 <details>
@@ -287,7 +295,7 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 
 </details>
 
-----
+______________________________________________________________________
 
 ## Advantages over unstructured PyTorch
 
@@ -300,13 +308,13 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 - [Tested rigorously with every new PR](https://github.com/Lightning-AI/lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
 - Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
 
-----
+______________________________________________________________________
 
 <div align="center">
     <a href="https://lightning.ai/docs/pytorch/stable/">Read the PyTorch Lightning docs</a>
 </div>
 
-----
+______________________________________________________________________
 
 # Lightning Fabric: Expert control.
 
@@ -314,37 +322,80 @@ Run on any device at any scale with expert-level control over PyTorch training l
 
 Fabric is designed for the most complex models like foundation model scaling, LLMs, diffussion, transformers, reinforcement learning, active learning.
 
+<table>
+<tr>
+<th>What to change</th>
+<th>Resulting Fabric Code (copy me!)</th>
+</tr>
+<tr>
+<td>
 
 ```diff
-+ import lightning as L
-  import torch
-  import torch.nn as nn
-  from torch.utils.data import DataLoader, Dataset
-  class PyTorchModel(nn.Module):
-      ...
-  class PyTorchDataset(Dataset):
-      ...
-+ fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
-+ fabric.launch()
-- device = "cuda" if torch.cuda.is_available() else "cpu
-  model = PyTorchModel(...)
-  optimizer = torch.optim.SGD(model.parameters())
-+ model, optimizer = fabric.setup(model, optimizer)
-  dataloader = DataLoader(PyTorchDataset(...), ...)
-+ dataloader = fabric.setup_dataloaders(dataloader)
-  model.train()
-  for epoch in range(num_epochs):
-      for batch in dataloader:
-          input, target = batch
--         input, target = input.to(device), target.to(device)
-          optimizer.zero_grad()
-          output = model(input)
-          loss = loss_fn(output, target)
--         loss.backward()
-+         fabric.backward(loss)
-          optimizer.step()
-          lr_scheduler.step()
++import lightning as L
+ import torch; import torchvision as tv
+
++fabric = L.Fabric()
++fabric.launch()
++
+ model = tv.models.resnet18()
+ optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+-device = "cuda" if torch.cuda.is_available() else "cpu"
+-model.to(device)
++model, optimizer = fabric.setup(model, optimizer)
+
+ dataset = tv.datasets.CIFAR10("data", download=True,
+                               train=True, transform=tv.transforms.ToTensor())
+ dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
++dataloader = fabric.setup_dataloaders(dataloader)
+
+ model.train()
+ num_epochs = 10
+ for epoch in range(num_epochs):
+     for batch in dataloader:
+         inputs, labels = batch
+-        inputs, labels = inputs.to(device), labels.to(device)
+         optimizer.zero_grad()
+         outputs = model(inputs)
+         loss = torch.nn.functional.cross_entropy(outputs, labels)
+-        loss.backward()
++        fabric.backward(loss)
+         optimizer.step()
 ```
+
+</td>
+<td>
+
+```Python
+import lightning as L
+import torch; import torchvision as tv
+
+fabric = L.Fabric()
+fabric.launch()
+
+model = tv.models.resnet18()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+model, optimizer = fabric.setup(model, optimizer)
+
+dataset = tv.datasets.CIFAR10("data", download=True,
+                              train=True, transform=tv.transforms.ToTensor())
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
+dataloader = fabric.setup_dataloaders(dataloader)
+
+model.train()
+num_epochs = 10
+for epoch in range(num_epochs):
+    for batch in dataloader:
+        inputs, labels = batch
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = torch.nn.functional.cross_entropy(outputs, labels)
+        fabric.backward(loss)
+        optimizer.step()
+```
+
+</td>
+</tr>
+</table>
 
 ## Key features
 
@@ -354,13 +405,13 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 - Designed with multi-billion parameter models in mind
 - Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more
 
-----
+______________________________________________________________________
 
 <div align="center">
     <a href="https://lightning.ai/docs/fabric/stable/">Read the Lightning Fabric docs</a>
 </div>
 
-----
+______________________________________________________________________
 
 # Lightning Apps: Build AI products and ML workflows
 
@@ -376,23 +427,27 @@ Lightning Apps remove the cloud infrastructure boilerplate so you can focus on s
 # app.py
 import lightning as L
 
+
 class TrainComponent(L.LightningWork):
     def run(self, x):
-        print(f'train a model on {x}')
+        print(f"train a model on {x}")
+
 
 class AnalyzeComponent(L.LightningWork):
     def run(self, x):
-        print(f'analyze model on {x}')
+        print(f"analyze model on {x}")
+
 
 class WorkflowOrchestrator(L.LightningFlow):
     def __init__(self) -> None:
         super().__init__()
-        self.train = TrainComponent(cloud_compute=L.CloudCompute('cpu'))
-        self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute('gpu'))
+        self.train = TrainComponent(cloud_compute=L.CloudCompute("cpu"))
+        self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute("gpu"))
 
     def run(self):
         self.train.run("CPU machine 1")
         self.analyze.run("GPU machine 2")
+
 
 app = L.LightningApp(WorkflowOrchestrator())
 ```
@@ -407,13 +462,13 @@ lightning run app app.py --setup --cloud
 lightning run app app.py
 ```
 
-----
+______________________________________________________________________
 
 <div align="center">
     <a href="https://lightning.ai/docs/app/stable/">Read the Lightning Apps docs</a>
 </div>
 
----- 
+______________________________________________________________________
 
 ## Examples
 
@@ -444,7 +499,7 @@ lightning run app app.py
 - [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#logistic-regression)
 - [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#linear-regression)
 
-----
+______________________________________________________________________
 
 ## Continuous Integration
 
@@ -470,7 +525,7 @@ Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs 
 </center>
 </details>
 
-----
+______________________________________________________________________
 
 ## Community
 
