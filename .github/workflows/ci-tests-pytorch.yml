@@ -27,10 +27,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
-env:
-  PACKAGE_NAME: pytorch
-  FREEZE_REQUIREMENTS: 1
-
 defaults:
   run:
     shell: bash
@@ -70,7 +66,7 @@ jobs:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
-      FREEZE_REQUIREMENTS: 1
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE: "_pip-wheels"
     steps:
     - uses: actions/checkout@v3
