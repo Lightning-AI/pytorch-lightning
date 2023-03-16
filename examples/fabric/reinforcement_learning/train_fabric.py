@@ -25,7 +25,6 @@ from typing import Dict
 import gymnasium as gym
 import numpy as np
 import torch
-import torch.nn as nn
 import torchmetrics
 from src.agent import PPOLightningAgent
 from src.utils import linear_annealing, make_env, parse_args, test
@@ -58,7 +57,7 @@ def train(
             loss = agent.training_step({k: v[batch_idxes] for k, v in data.items()})
             optimizer.zero_grad(set_to_none=True)
             fabric.backward(loss)
-            nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
+            fabric.clip_gradients(agent, optimizer, args.max_grad_norm)
             optimizer.step()
         agent.on_train_epoch_end(global_step)
 
