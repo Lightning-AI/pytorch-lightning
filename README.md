@@ -96,13 +96,19 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 
 ## Lightning has 3 core packages
 
-- [PyTorch Lightning: Train and deploy PyTorch at scale](#PyTorch Lightning: Train and deploy PyTorch at scale).
-- Lightning Fabric: Expert-level control over scale and training loop.   
-- Lightning Apps: Build AI products and ML workflows.   
+[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).   
+[Lightning Fabric: Expert control](#lightning-fabric-expert-control).   
+[Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).    
+
+Lightning gives you granular control over how much abstraction you want to add over PyTorch.   
+
+<div align="center">
+    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
+</div>
 
 ----
 
-## PyTorch Lightning: Train and deploy PyTorch at scale
+# PyTorch Lightning: Train and Deploy PyTorch at Scale
 
 PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.    
 
@@ -302,7 +308,7 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 
 ----
 
-## Lightning Fabric: Expert-level control over scale and training loop.
+# Lightning Fabric: Expert control.
 
 Run on any device with Fabric with expert-level PyTorch control for scaling foundation models or writing your own Trainer.
 
@@ -340,14 +346,6 @@ Fabric is designed for the most complex models like foundation model scaling, LL
           lr_scheduler.step()
 ```
 
-## Fabric vs PyTorch vs PyTorch Lightning
-
-In the spectrum from raw PyTorch to fully managed PyTorch Lightning, Fabric gives you full control over how much abstraction you want to add.
-
-<div align="center">
-    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
-</div>
-
 ## Key features
 
 - Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
@@ -358,65 +356,62 @@ In the spectrum from raw PyTorch to fully managed PyTorch Lightning, Fabric give
 
 ----
 
-### [Read the Fabric docs](https://lightning.ai/docs/fabric/stable/)
+<div align="center">
+    <a href="https://lightning.ai/docs/fabric/stable/">Read the Lightning Fabric docs</a>
+</div>
 
 ----
 
-## Lightning Apps: Build AI products and ML workflows
+# Lightning Apps: Build AI products and ML workflows
 
-Once you're done building models, publish a paper demo or build a full production end-to-end ML system with Lightning Apps. Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
-
-[Browse available Lightning apps here](https://lightning.ai/)
+Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
 
 <div align="center">
     <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning-apps-teaser.png" width="80%">
 </div>
 
-<details>
-  <summary>Learn more about apps</summary>
+## Hello Lightning app world
 
-Build machine learning components that can plug into existing ML workflows. A Lightning component organizes arbitrary code to run on the cloud, manage its own infrastructure, cloud costs, networking, and more. Focus on component logic and not engineering.
+```python
+# app.py
+import lightning as L
 
-Use components on their own, or compose them into full-stack AI apps with our next-generation Lightning orchestrator. to package your code into Lightning components which can plug into your existing ML workflows.
+class TrainComponent(L.LightningWork):
+    def run(self, x):
+        print(f'train a model on {x}')
 
-## Run your first Lightning App
+class AnalyzeComponent(L.LightningWork):
+    def run(self, x):
+        print(f'analyze model on {x}')
 
-1. Install a simple training and deployment app by typing:
+class WorkflowOrchestrator(L.LightningFlow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.train = TrainComponent(cloud_compute=L.CloudCompute('cpu'))
+        self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute('gpu'))
 
-   ```bash
-   # install lightning
-   pip install lightning
+    def run(self):
+        self.train.run("CPU machine 1")
+        self.analyze.run("GPU machine 2")
 
-   lightning install app lightning/quick-start
-   ```
+app = L.LightningApp(WorkflowOrchestrator())
+```
 
-1. If everything was successful, move into the new directory:
+Run on the cloud or locally
 
-   ```bash
-   cd lightning-quick-start
-   ```
-
-1. Run the app locally
-
-   ```bash
-   lightning run app app.py
-   ```
-
-1. Alternatively, run it on the public Lightning Cloud to share your app!
-
-   ```bash
-   lightning run app app.py --cloud
-   ```
-
-Apps run the same on the cloud and locally on your choice of hardware.
-
-## run the app on the --cloud
-
+```bash
+# run on the cloud
 lightning run app app.py --setup --cloud
 
-### [Learn more about Lightning Apps](src/lightning_app/README.md)
+# run locally
+lightning run app app.py
+```
 
-</details>
+----
+
+<div align="center">
+    <a href="https://lightning.ai/docs/app/stable/">Read the Lightning Apps docs</a>
+</div>
 
 ---- 
 
