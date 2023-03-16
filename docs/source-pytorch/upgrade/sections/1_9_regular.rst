@@ -56,7 +56,7 @@
 
    * - used ``Tuner`` as part of ``Trainer`` in any form
      - move to a standalone ``Tuner`` object or use particular callbacks ``LearningRateFinder`` and ``BatchSizeFinder``
-     - https://lightning.ai/docs/pytorch/latest/advanced/training_tricks.html#batch-size-finder
+     - :ref:`batch_size_finder` :ref:`learning_rate_finder`
 
    * - used Trainer’s flag ``auto_scale_batch_size``
      - use ``BatchSizeFinder`` callback instead and the ``Trainer.tune()`` method was removed

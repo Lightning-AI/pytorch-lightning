@@ -40,13 +40,14 @@
 
    * - relied on ``pl.metrics``
      - now import separate package ``torchmetrics``
-     - https://torchmetrics.readthedocs.io/en/stable
+     - `torchmetrics`_
 
    * - accessed ``datamodule`` attribute of ``LightningModule``, that is ``model.datamodule``
      - now access ``Trainer.datamodule``, that is ``model.trainer.datamodule``
      - `PR7168`_
 
 
+.. _torchmetrics: https://torchmetrics.readthedocs.io/en/stable
 .. _pr7339: https://github.com/Lightning-AI/lightning/pull/7339
 .. _pr7323: https://github.com/Lightning-AI/lightning/pull/7323
 .. _pr7066: https://github.com/Lightning-AI/lightning/pull/7066

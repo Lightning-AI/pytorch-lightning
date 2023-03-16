@@ -80,7 +80,7 @@
 
    * - use the ``FairScale`` integration
      - consider using PyTorch's native FSDP implementation or outsourced implementation into own project
-     - https://github.com/Lightning-Sandbox/lightning-Fairscale
+     - `lightning-Fairscale`_
 
    * - used ``pl.overrides.fairscale.LightningShardedDataParallel``
      - use native FSDP instead
@@ -262,6 +262,7 @@
 .. _Fabric: https://lightning.ai/docs/fabric/
 .. _lightning-Horovod: https://github.com/Lightning-AI/lightning-Horovod
 .. _lightning-ColossalAI: https://lightning.ai/docs/pytorch/latest/advanced/third_party/colossalai.html
+.. _lightning-Fairscale: https://github.com/Lightning-Sandbox/lightning-Fairscale
 
 .. _pr15953: https://github.com/Lightning-AI/lightning/pull/15953
 .. _pr16748: https://github.com/Lightning-AI/lightning/pull/16748
