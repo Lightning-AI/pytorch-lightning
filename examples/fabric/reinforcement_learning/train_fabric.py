@@ -84,8 +84,10 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + rank, rank, args.capture_video, logger.log_dir, "train")
-            for _ in range(args.num_envs)
+            make_env(
+                args.env_id, args.seed + rank * args.num_envs + i, rank, args.capture_video, logger.log_dir, "train"
+            )
+            for i in range(args.num_envs)
         ]
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
@@ -157,8 +159,12 @@ def main(args: argparse.Namespace):
                         ep_len_avg(agent_final_info["episode"]["l"][0])
 
         # Sync the metrics
-        fabric.log("Rewards/rew_avg", rew_avg.compute(), global_step)
-        fabric.log("Game/ep_len_avg", ep_len_avg.compute(), global_step)
+        rew_avg_reduced = rew_avg.compute()
+        if not rew_avg_reduced.isnan():
+            fabric.log("Rewards/rew_avg", rew_avg_reduced, global_step)
+        ep_len_avg_reduced = ep_len_avg.compute()
+        if not ep_len_avg_reduced.isnan():
+            fabric.log("Game/ep_len_avg", ep_len_avg_reduced, global_step)
         rew_avg.reset()
         ep_len_avg.reset()
 

@@ -139,8 +139,15 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + global_rank, global_rank, args.capture_video, log_dir, "train")
-            for _ in range(args.num_envs)
+            make_env(
+                args.env_id,
+                args.seed + global_rank * args.num_envs + i,
+                global_rank,
+                args.capture_video,
+                logger.log_dir if global_rank == 0 else None,
+                "train",
+            )
+            for i in range(args.num_envs)
         ]
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
@@ -161,9 +168,9 @@ def main(args: argparse.Namespace):
     rewards = torch.zeros((args.num_steps, args.num_envs), device=device)
     dones = torch.zeros((args.num_steps, args.num_envs), device=device)
     values = torch.zeros((args.num_steps, args.num_envs), device=device)
-    local_rew = 0
-    local_ep_len = 0
-    local_num_episodes = 0
+    local_rew = 0.0
+    local_ep_len = 0.0
+    local_num_episodes = 0.0
 
     # Global variables
     global_step = 0
@@ -199,19 +206,19 @@ def main(args: argparse.Namespace):
             rewards[step] = torch.tensor(reward, device=device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
-            if global_rank == 0 and "final_info" in info:
+            if "final_info" in info:
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        if agent_id == 0:
+                        if global_rank == 0:
                             print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
                         local_num_episodes += 1
                         local_rew += agent_final_info["episode"]["r"][0]
                         local_ep_len += agent_final_info["episode"]["l"][0]
 
         # Sync the metrics
-        global_stats = torch.tensor([local_rew, local_ep_len, local_num_episodes], device=device)
+        global_stats = torch.tensor([local_rew, local_ep_len, local_num_episodes], device=device, dtype=torch.float32)
         distributed.reduce(global_stats, dst=0)
-        if global_rank == 0:
+        if global_rank == 0 and global_stats[2] != 0.0:
             logger.add_scalar("Rewards/rew_avg", global_stats[0] / global_stats[2], global_step)
             logger.add_scalar("Game/ep_len_avg", global_stats[1] / global_stats[2], global_step)
 
