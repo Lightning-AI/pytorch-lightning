@@ -55,7 +55,7 @@
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon @lantiga
-/README.md                           @williamfalcon @lantiga @edenlightning @borda
+/README.md                           @williamfalcon @lantiga
 /setup.py                            @williamfalcon @borda @carmocca
 /src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
 /src/lightning_app/__about__.py      @williamfalcon @lantiga @borda
