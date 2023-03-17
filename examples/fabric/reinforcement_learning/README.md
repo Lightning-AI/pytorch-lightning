@@ -80,7 +80,7 @@ lightning run model \
   --env-id LunarLander-v2 \
   --total-timesteps 500000 \
   --ortho-init \
-  --per-rank-num-envs 2 \
+  --num-envs 2 \
   --num-steps 2048 \
   --seed 1
 ```
