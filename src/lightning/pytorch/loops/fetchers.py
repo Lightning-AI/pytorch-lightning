@@ -175,10 +175,10 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
             raise StopIteration
         assert isinstance(self.iterator_wrapper, _DataFetcherWrapper)
         if self._is_sequential:
-            sequential_mode = self.combined_loader._iterator
-            assert isinstance(self.combined_loader._iterator, _Sequential)
-            batch_idx = sequential_mode._idx
-            dataloader_idx = sequential_mode._iterator_idx
+            mode = self.combined_loader._iterator
+            assert isinstance(mode, _Sequential)
+            batch_idx = mode._idx
+            dataloader_idx = mode._iterator_idx
             return self.iterator_wrapper, batch_idx, dataloader_idx
         return self.iterator_wrapper
 
