@@ -2,7 +2,7 @@
 # Usage:
 # 1. Generate docs with one or more specified versions:
 #    export PACKAGE_NAME=app
-#    bash docs/generate_docs_from_tags.sh 1.9.3 1.9.2 1.9.1 1.9.0
+#    bash docs/generate_docs_for_tags.sh 1.9.3 1.9.2 1.9.1 1.9.0
 set -e
 
 PATH_ROOT=$(cd $(dirname $0); pwd -P)
