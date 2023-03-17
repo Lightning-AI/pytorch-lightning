@@ -530,6 +530,7 @@ def test_warning_on_zero_len_dataloader():
         trainer.fit_loop.setup_data()
     assert trainer.num_training_batches == 0
 
+    trainer.state.fn = "validate"
     with pytest.warns(UserWarning, match="Total length of `DataLoader` across ranks is zero"):
         trainer.validate_loop.setup_data()
     assert trainer.num_val_batches == [0]

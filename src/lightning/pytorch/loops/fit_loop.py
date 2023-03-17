@@ -303,7 +303,9 @@ class _FitLoop(_Loop):
 
         # reload the evaluation dataloaders too for proper display in the progress bar
         if self.epoch_loop._should_check_val_epoch() and trainer.val_dataloaders is None:
+            trainer.validating = True
             self.epoch_loop.val_loop.setup_data()
+            trainer.training = True
 
         self._data_fetcher = _select_data_fetcher(trainer)
 
