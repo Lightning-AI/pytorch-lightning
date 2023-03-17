@@ -259,7 +259,7 @@ def trainer(
                 loss = agent.training_step({k: v[batch_idxes].to(device) for k, v in data.items()})
                 optimizer.zero_grad(set_to_none=True)
                 fabric.backward(loss)
-                fabric.clip_gradients(agent, optimizer, args.max_grad_norm)
+                fabric.clip_gradients(agent, optimizer, max_norm=args.max_grad_norm)
                 optimizer.step()
 
         # Sync metrics
