@@ -107,7 +107,7 @@ will spawn 3 processes, one is the Player and the others the Trainers, with the 
 lightning run model --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda
 ```
 
-will instead run only the Trainers on the GPU.  
+will instead run only the Trainers on the GPU.
 If one wants to run both the Player and the Trainers on the GPU, then both the flags `--cuda` and `--player-on-gpu` must be provided:
 
 ```bash
