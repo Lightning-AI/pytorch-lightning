@@ -31,7 +31,7 @@ function build_docs {
 	cd ../..
 
   mkdir -p $PATH_ROOT/docs-${PACKAGE_NAME}
-  mv docs/build/html $PATH_ROOT/docs-$P{ACKAGE_NAME}/$tag
+  mv docs/build/html $PATH_ROOT/docs-${PACKAGE_NAME}/$tag
 }
 
 # iterate over all arguments assuming that each argument is version
