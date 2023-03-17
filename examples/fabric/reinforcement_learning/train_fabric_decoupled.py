@@ -66,9 +66,16 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent
-    agent: PPOLightningAgent = PPOLightningAgent(envs, act_fun=args.activation_function, ortho_init=args.ortho_init).to(
-        device
-    )
+    agent: PPOLightningAgent = PPOLightningAgent(
+        envs,
+        act_fun=args.activation_function,
+        vf_coef=args.vf_coef,
+        ent_coef=args.ent_coef,
+        clip_coef=args.clip_coef,
+        clip_vloss=args.clip_vloss,
+        ortho_init=args.ortho_init,
+        normalize_advantages=args.normalize_advantages,
+    ).to(device)
     flattened_parameters = torch.empty_like(
         torch.nn.utils.convert_parameters.parameters_to_vector(agent.parameters()), device=device
     )
