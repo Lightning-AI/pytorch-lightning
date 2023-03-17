@@ -226,7 +226,7 @@ Train Epoch-level Operations
 ============================
 
 In the case that you need to make use of all the outputs from each :meth:`~lightning.pytorch.LightningModule.training_step`,
-override the :meth:`~lightning.pytorch.LightningModule.on_training_epoch_end` method.
+override the :meth:`~lightning.pytorch.LightningModule.on_train_epoch_end` method.
 
 .. code-block:: python
 

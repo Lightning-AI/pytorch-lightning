@@ -12,7 +12,7 @@ ______________________________________________________________________
   <a href="#getting-started">Getting started</a> •
   <a href="#faq">FAQ</a> •
   <a href="#asking-for-help">Help</a> •
-  <a href="https://www.pytorchlightning.ai/community">Slack</a>
+  <a href="https://discord.gg/VptPCZkGNa">Discord</a>
 </p>
 
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning_fabric)](https://pypi.org/project/lightning_fabric/)
