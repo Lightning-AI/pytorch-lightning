@@ -181,7 +181,7 @@ class TorchCollective(Collective):
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
         if group in dist.distributed_c10d._pg_map:
-            dist.destroy_process_group(group)
+            dist.destroy_process_group(group)  # type: ignore[arg-type]
 
     @classmethod
     def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
