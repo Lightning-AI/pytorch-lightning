@@ -118,23 +118,34 @@ For alternative ways to install, read the :doc:`installation guide <fundamentals
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Get started in steps
+    :maxdepth: 1
+    :caption: Get started in steps
 
-   Basic <levels/basic>
-   Intermediate <levels/intermediate>
-   Advanced <levels/advanced>
+    Basic <levels/basic>
+    Intermediate <levels/intermediate>
+    Advanced <levels/advanced>
 
 
 .. toctree::
     :maxdepth: 1
-    :name: api
     :caption: Core API Reference
 
     Fabric Arguments <api/fabric_args>
     Fabric Methods <api/fabric_methods>
-    Utilities <api/utilities>
-    Full API Reference <api_reference>
+
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Full API Reference
+
+    Accelerators <api/accelerators>
+    Collectives <api/collectives>
+    Environments <api/environments>
+    Fabric <api/fabric>
+    IO <api/io>
+    Loggers <api/loggers>
+    Precision <api/precision>
+    Strategies <api/strategies>
 
 
 .. toctree::
