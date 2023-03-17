@@ -37,7 +37,7 @@ Basic skills
     :tag: basic
 
 .. displayitem::
-    :header: Code Structure
+    :header: Style Guide
     :description: Best practices for setting up your training script with Fabric
     :button_link: ../fundamentals/code_structure.html
     :col_css: col-md-4

@@ -154,6 +154,9 @@ For alternative ways to install, read the :doc:`installation guide <fundamentals
     :caption: More
 
     Examples <examples/index>
+    Glossary <glossary/index>
+    How-tos <guide/index>
+    Style Guide <fundamentals/code_structure>
 
 
 .. raw:: html
