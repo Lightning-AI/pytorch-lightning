@@ -27,7 +27,6 @@ import numpy as np
 import torch
 from src.agent import PPOLightningAgent
 from src.utils import linear_annealing, make_env, parse_args, test
-from torch import optim
 from torch.utils.data import BatchSampler, DistributedSampler
 from torchmetrics import MeanMetric
 
