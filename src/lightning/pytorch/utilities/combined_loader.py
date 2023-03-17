@@ -40,9 +40,14 @@ class _ModeIterator(Iterator[_T]):
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
+
         # workaround an inconvenient `NotImplementedError`:
         # https://github.com/pytorch/pytorch/blob/v2.0.0/torch/utils/data/dataloader.py#L652-L658
-        state["iterators"] = [None if isinstance(i, _BaseDataLoaderIter) else i for i in self.iterators]
+        state["iterators"] = [
+            None if isinstance(iterator, _BaseDataLoaderIter) else iterator_state
+            for iterator, iterator_state in zip(self.iterators, state["iterators"])
+        ]
+
         return state
 
 

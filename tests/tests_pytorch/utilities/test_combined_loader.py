@@ -539,7 +539,7 @@ def test_supported_modes():
     assert set(_SUPPORTED_MODES) == set(get_args(_LITERAL_SUPPORTED_MODES))
 
 
-def test_combined_loader_can_be_pickled_with_dataloader():
+def test_combined_loader_can_be_pickled():
     dataloader = DataLoader([0, 1, 2, 3])
 
     # sanity check that and error would be raised. if this ever changes, the `CombinedLoader` should be updated
@@ -547,7 +547,12 @@ def test_combined_loader_can_be_pickled_with_dataloader():
     with pytest.raises(NotImplementedError, match="cannot be pickled"):
         pickle.dumps(iterator)
 
-    cl = CombinedLoader(dataloader)
+    numbers = list(range(10))
+    cl = CombinedLoader([dataloader, numbers])
     iter(cl)
+
+    iterator = cl._iterator
+    assert iterator.__getstate__() == {"iterables": [dataloader, numbers], "iterators": [None, iterator.iterators[1]]}
+
     # no error
     pickle.dumps(cl)
