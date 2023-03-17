@@ -51,9 +51,9 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning_app/
-src/lightning_fabric/
-src/pytorch_lightning/
+src/lightning_app/*
+src/lightning_fabric/*
+src/pytorch_lightning/*
 !src/*/__about__.py
 !src/*/__main__.py
 !src/*/__setup__.py
