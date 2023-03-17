@@ -1177,27 +1177,38 @@ Properties
 callback_metrics
 ****************
 
-The metrics available to callbacks. These are automatically set when you log via `self.log`
+The metrics available to callbacks.
 
-.. code-block:: python
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+
+..code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log("a_val", 2)
-
+        self.log("a_val", 2.0)
 
     callback_metrics = trainer.callback_metrics
-    assert callback_metrics["a_val"] == 2
+    assert callback_metrics["a_val"] == 2.0
+
+logged_metrics
+**************
+
+The metrics sent to the loggers.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+
+progress_bar_metrics
+********************
+
+The metrics sent to the progress bar.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************
 
-The number of epochs run.
-
-.. code-block:: python
-
-    if trainer.current_epoch >= 10:
-        ...
-
+The current epoch, updated after the epoch end hooks are run.
 
 datamodule
 **********
@@ -1211,64 +1222,33 @@ The current datamodule, which is used by the trainer.
 is_last_batch
 *************
 
-Whether trainer is executing last batch in the current epoch.
-
-.. code-block:: python
-
-    if trainer.is_last_batch:
-        ...
+Whether trainer is executing the last batch.
 
 global_step
 ***********
 
 The number of optimizer steps taken (does not reset each epoch).
+
 This includes multiple optimizers (if enabled).
-
-.. code-block:: python
-
-    if trainer.global_step >= 100:
-        ...
 
 logger
 *******
 
-The current logger being used. Here's an example using tensorboard
-
-.. code-block:: python
-
-    logger = trainer.logger
-    tensorboard = logger.experiment
-
+The first :class:`~lightning.pytorch.loggers.logger.Logger` being used.
 
 loggers
 ********
 
-The list of loggers currently being used by the Trainer.
+The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
 
-.. code-block:: python
+..code-block:: python
 
-    # List of Logger objects
-    loggers = trainer.loggers
-    for logger in loggers:
+    for logger in trainer.loggers:
         logger.log_metrics({"foo": 1.0})
-
-
-logged_metrics
-**************
-
-The metrics sent to the logger (visualizer).
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        self.log("a_val", 2, logger=True)
-
-
-    logged_metrics = trainer.logged_metrics
-    assert logged_metrics["a_val"] == 2
 
 log_dir
 *******
+
 The directory for the current experiment. Use this to save images to, etc...
 
 .. code-block:: python
@@ -1277,12 +1257,10 @@ The directory for the current experiment. Use this to save images to, etc...
         img = ...
         save_img(img, self.trainer.log_dir)
 
-
-
 is_global_zero
 **************
 
-Whether this process is the global zero in multi-node training
+Whether this process is the global zero in multi-node training.
 
 .. code-block:: python
 
@@ -1290,36 +1268,21 @@ Whether this process is the global zero in multi-node training
         if self.trainer.is_global_zero:
             print("in node 0, accelerator 0")
 
-progress_bar_metrics
-********************
-
-The metrics sent to the progress bar.
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        self.log("a_val", 2, prog_bar=True)
-
-
-    progress_bar_metrics = trainer.progress_bar_metrics
-    assert progress_bar_metrics["a_val"] == 2
-
-
-predict_dataloaders
-*******************
-
-The current predict dataloaders of the trainer.
-Note that property returns a list of predict dataloaders.
-
-.. code-block:: python
-
-    used_predict_dataloaders = trainer.predict_dataloaders
-
-
 estimated_stepping_batches
 **************************
 
-Check out :meth:`~lightning.pytorch.trainer.trainer.Trainer.estimated_stepping_batches`.
+The estimated number of batches that will ``optimizer.step()`` during training.
+
+This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
+dataloader if hadn't been set up already.
+
+..code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        stepping_batches = self.trainer.estimated_stepping_batches
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
+        return [optimizer], [scheduler]
 
 state
 *****
@@ -1397,35 +1360,47 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     trainer.fit(model)
 
 
+num_training_batches
+********************
+
+The number of training batches that will be used during ``trainer.fit()``.
+
+num_sanity_val_batches
+**********************
+
+The number of validation batches that will be used during the sanity-checking part of ``trainer.fit()``.
+
+num_val_batches
+***************
+
+The number of validation batches that will be used during ``trainer.fit()`` or ``trainer.validate()``.
+
+num_test_batches
+****************
+
+The number of test batches that will be used during ``trainer.test()``.
+
+num_predict_batches
+*******************
+
+The number of prediction batches that will be used during ``trainer.predict()``.
+
 train_dataloader
 ****************
 
-The current train dataloader of the trainer.
-
-.. code-block:: python
-
-    used_train_dataloader = trainer.train_dataloader
-
-
-test_dataloaders
-****************
-
-The current test dataloaders of the trainer.
-Note that property returns a list of test dataloaders.
-
-
-.. code-block:: python
-
-    used_test_dataloaders = trainer.test_dataloaders
+The training dataloader(s) used during ``trainer.fit()``.
 
 val_dataloaders
 ***************
 
+The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``.
 
-The current val dataloaders of the trainer.
-Note that property returns a list of val dataloaders.
+test_dataloaders
+****************
 
+The test dataloader(s) used during ``trainer.test()``.
 
-.. code-block:: python
+predict_dataloaders
+*******************
 
-    used_val_dataloaders = trainer.val_dataloaders
+The prediction dataloader(s) used during ``trainer.predict()``.
