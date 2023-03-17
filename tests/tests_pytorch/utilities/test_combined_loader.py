@@ -542,7 +542,7 @@ def test_supported_modes():
 def test_combined_loader_can_be_pickled():
     dataloader = DataLoader([0, 1, 2, 3])
 
-    # sanity check that and error would be raised. if this ever changes, the `CombinedLoader` should be updated
+    # sanity check that and error would be raised. if this ever changes, `_ModeIterator.__getstate__` should be updated
     iterator = iter(dataloader)
     with pytest.raises(NotImplementedError, match="cannot be pickled"):
         pickle.dumps(iterator)
