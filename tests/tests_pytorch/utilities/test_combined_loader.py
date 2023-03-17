@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+import pickle
 from typing import Any, get_args, NamedTuple, Sequence
 
 import pytest
@@ -536,3 +537,17 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
 
 def test_supported_modes():
     assert set(_SUPPORTED_MODES) == set(get_args(_LITERAL_SUPPORTED_MODES))
+
+
+def test_combined_loader_can_be_pickled_with_dataloader():
+    dataloader = DataLoader([0, 1, 2, 3])
+
+    # sanity check that and error would be raised. if this ever changes, the `CombinedLoader` should be updated
+    iterator = iter(dataloader)
+    with pytest.raises(NotImplementedError, match="cannot be pickled"):
+        pickle.dumps(iterator)
+
+    cl = CombinedLoader(dataloader)
+    iter(cl)
+    # no error
+    pickle.dumps(cl)
