@@ -20,14 +20,14 @@ function build_docs {
   python --version
   pip --version
 
-  pip install -q setuptools wheel python-multipart pyparsing
-	pip install -e . "torch" -q -r requirements/$PACKAGE_NAME/docs.txt \
+  pip install -q setuptools wheel python-multipart
+	pip install -e . -q -r requirements/$PACKAGE_NAME/docs.txt \
 	  -f ../pypi -f https://download.pytorch.org/whl/cpu/torch_stable.html
   pip list
 
 	cd docs/source-$PACKAGE_NAME
-	# make html --jobs $(nproc)
-	make html SPHINXOPTS="-W --keep-going" --jobs $(nproc)
+	make html --jobs $(nproc)
+	# make html SPHINXOPTS="-W --keep-going" --jobs $(nproc)
 	cd ../..
 
   mkdir -p $PATH_ROOT/docs-${PACKAGE_NAME}
@@ -45,7 +45,7 @@ do
   source $PATH_ENV/bin/activate
 
   cd $PATH_ROOT
-  git clone --single-branch --branch $tag --recurse-submodules \
+  git clone --single-branch --branch $tag --depth 1 --recurse-submodules \
     https://github.com/Lightning-AI/lightning.git
   cd lightning
 
