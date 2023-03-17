@@ -1,12 +1,14 @@
 #!/bin/bash
 # Usage:
 # 1. Generate docs with one or more specified versions:
-#    export PACKAGE_NAME=app
-#    bash docs/generate_docs_for_tags.sh 1.9.3 1.9.2 1.9.1 1.9.0
+#    $ export PACKAGE_NAME=app
+#    $ bash docs/generate_docs_for_tags.sh 1.9.3 1.9.2 1.9.1 1.9.0
+#    OR
+#    $ PACKAGE_NAME=pytorch bash docs/generate_docs_for_tags.sh 1.8.6 1.8.5 1.8.4 1.8.3 1.8.2 1.8.1 1.8.0
 set -e
 
 PATH_ROOT=~/Desktop/builds
-PATH_ENV=$PATH_ROOT/venv-docs
+PATH_ENV=$PATH_ROOT/venv-docs-$PACKAGE_NAME
 # export PACKAGE_NAME=app
 export FREEZE_REQUIREMENTS=1
 
@@ -18,8 +20,9 @@ function build_docs {
   python --version
   pip --version
 
-  pip install -q setuptools wheel python-multipart
-	pip install -e . -q -r requirements/$PACKAGE_NAME/docs.txt -f ../pypi -f https://download.pytorch.org/whl/cpu/torch_stable.html
+  pip install -q setuptools wheel python-multipart pyparsing
+	pip install -e . "torch" -q -r requirements/$PACKAGE_NAME/docs.txt \
+	  -f ../pypi -f https://download.pytorch.org/whl/cpu/torch_stable.html
   pip list
 
 	cd docs/source-$PACKAGE_NAME
@@ -27,8 +30,8 @@ function build_docs {
 	make html SPHINXOPTS="-W --keep-going" --jobs $(nproc)
 	cd ../..
 
-  mkdir -p $PATH_ROOT/docs-$PACKAGE_NAME
-  mv docs/build/html $PATH_ROOT/docs-$PACKAGE_NAME/$tag
+  mkdir -p $PATH_ROOT/docs-${PACKAGE_NAME}
+  mv docs/build/html $PATH_ROOT/docs-$P{ACKAGE_NAME}/$tag
 }
 
 # iterate over all arguments assuming that each argument is version
@@ -42,11 +45,11 @@ do
   source $PATH_ENV/bin/activate
 
   cd $PATH_ROOT
-  git clone --depth 1 --single-branch --branch $tag https://github.com/Lightning-AI/lightning.git
+  git clone --single-branch --branch $tag --recurse-submodules \
+    https://github.com/Lightning-AI/lightning.git
   cd lightning
-  git pull --recurse-submodules
 
-  build_docs > "$PATH_ROOT/building-$PACKAGE_NAME_${tag}.log"
+  build_docs > "$PATH_ROOT/building-${PACKAGE_NAME}_${tag}.log"
 
   cd ..
   rm -rf lightning
