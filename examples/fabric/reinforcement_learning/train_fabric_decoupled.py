@@ -27,7 +27,6 @@ import numpy as np
 import torch
 from src.agent import PPOLightningAgent
 from src.utils import linear_annealing, make_env, parse_args, test
-from torch import optim
 from torch.utils.data import BatchSampler, DistributedSampler
 from torchmetrics import MeanMetric
 
@@ -66,9 +65,16 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent
-    agent: PPOLightningAgent = PPOLightningAgent(envs, act_fun=args.activation_function, ortho_init=args.ortho_init).to(
-        device
-    )
+    agent: PPOLightningAgent = PPOLightningAgent(
+        envs,
+        act_fun=args.activation_function,
+        vf_coef=args.vf_coef,
+        ent_coef=args.ent_coef,
+        clip_coef=args.clip_coef,
+        clip_vloss=args.clip_vloss,
+        ortho_init=args.ortho_init,
+        normalize_advantages=args.normalize_advantages,
+    ).to(device)
     flattened_parameters = torch.empty_like(
         torch.nn.utils.convert_parameters.parameters_to_vector(agent.parameters()), device=device
     )
@@ -209,7 +215,7 @@ def trainer(
         normalize_advantages=args.normalize_advantages,
         process_group=optimization_pg,
     )
-    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
+    optimizer = agent.configure_optimizers(args.learning_rate)
     agent, optimizer = fabric.setup(agent, optimizer)
 
     # Send weights to rank-0, a.k.a. the player
@@ -259,7 +265,7 @@ def trainer(
                 loss = agent.training_step({k: v[batch_idxes].to(device) for k, v in data.items()})
                 optimizer.zero_grad(set_to_none=True)
                 fabric.backward(loss)
-                fabric.clip_gradients(agent, optimizer, args.max_grad_norm)
+                fabric.clip_gradients(agent, optimizer, max_norm=args.max_grad_norm)
                 optimizer.step()
 
         # Sync metrics
