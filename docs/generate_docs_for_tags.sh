@@ -26,8 +26,8 @@ function build_docs {
   pip list
 
 	cd docs/source-$PACKAGE_NAME
-	make html --jobs $(nproc)
-	# make html SPHINXOPTS="-W --keep-going" --jobs $(nproc)
+	make html --jobs=$(nproc)
+	# make html SPHINXOPTS="-W --keep-going" --jobs=$(nproc)
 	cd ../..
 
   mkdir -p $PATH_ROOT/docs-${PACKAGE_NAME}
