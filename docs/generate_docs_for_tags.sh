@@ -45,7 +45,7 @@ do
   cd lightning
   git pull --recurse-submodules
 
-  build_docs > "building-$PACKAGE_NAME_${tag}.log"
+  build_docs > "$PATH_ROOT/building-$PACKAGE_NAME_${tag}.log"
 
   cd ..
   rm -rf lightning
