@@ -216,7 +216,7 @@ def trainer(
         normalize_advantages=args.normalize_advantages,
         process_group=optimization_pg,
     )
-    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
+    optimizer = agent.configure_optimizers(args.learning_rate)
     agent, optimizer = fabric.setup(agent, optimizer)
 
     # Send weights to rank-0, a.k.a. the player
