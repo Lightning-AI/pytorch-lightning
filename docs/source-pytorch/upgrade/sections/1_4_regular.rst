@@ -7,7 +7,7 @@
      - Ref
 
    * - relied on the ``outputs`` in your  ``LightningModule.on_train_epoch_end`` or ``Callback.on_train_epoch_end`` hooks
-     - rely on either ``on_training_epoch_end`` or set outputs as attributes in your ``LightningModule`` instances and access them from the hook
+     - rely on either ``on_train_epoch_end`` or set outputs as attributes in your ``LightningModule`` instances and access them from the hook
      - `PR7339`_
 
    * - accessed ``Trainer.truncated_bptt_steps``

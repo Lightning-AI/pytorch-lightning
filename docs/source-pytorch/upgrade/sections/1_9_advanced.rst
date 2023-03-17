@@ -15,7 +15,7 @@
      - `PR16748`_
 
    * - implemented ``LightningModule.training_epoch_end`` hooks
-     - port your logic to  ``LightningModule.on_training_epoch_end`` hook
+     - port your logic to  ``LightningModule.on_train_epoch_end`` hook
      - `PR16520`_
 
    * - implemented ``LightningModule.validation_epoch_end`` hook
@@ -39,7 +39,7 @@
      - `PR16745`_ `PR16745`_
 
    * - used Trainer’s flag ``replace_sampler_ddp``
-     - use  ``use_distributed_sample``; the sampler gets created not only for the DDP strategies
+     - use  ``use_distributed_sampler``; the sampler gets created not only for the DDP strategies
      -
 
    * - relied on the ``on_tpu`` argument in ``LightningModule.optimizer_step`` hook
