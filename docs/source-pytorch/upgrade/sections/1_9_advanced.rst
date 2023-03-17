@@ -15,7 +15,7 @@
      - #16748
 
    * - implemented ``LightningModule.training_epoch_end`` hooks
-     - port your logic to  ``LightningModule.on_training_epoch_end`` hook
+     - port your logic to  ``LightningModule.on_train_epoch_end`` hook
      - #16520
 
    * - implemented ``LightningModule.validation_epoch_end`` hook
