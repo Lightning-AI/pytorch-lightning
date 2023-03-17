@@ -20,6 +20,7 @@ Run it with:
 import argparse
 import os
 import time
+from datetime import datetime
 from typing import Dict
 
 import gymnasium as gym
@@ -64,7 +65,9 @@ def train(
 
 def main(args: argparse.Namespace):
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
-    logger = TensorBoardLogger(root_dir=os.path.join("logs", "fabric_logs"), name=run_name)
+    logger = TensorBoardLogger(
+        root_dir=os.path.join("logs", "fabric_logs", datetime.today().strftime("%Y-%m-%d_%H-%M-%S")), name=run_name
+    )
 
     # Initialize Fabric
     fabric = Fabric(loggers=logger)

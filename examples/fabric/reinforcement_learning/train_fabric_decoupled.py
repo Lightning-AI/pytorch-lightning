@@ -20,6 +20,7 @@ Run it with:
 import argparse
 import os
 import time
+from datetime import datetime
 
 import gymnasium as gym
 import numpy as np
@@ -39,8 +40,11 @@ from lightning.fabric.strategies import DDPStrategy
 
 @torch.no_grad()
 def player(args, world_collective: TorchCollective, player_trainer_collective: TorchCollective):
-    run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
-    logger = TensorBoardLogger(root_dir=os.path.join("logs", "fabric_decoupled_logs"), name=run_name)
+    run_name = f"{args.env_id}_{args.exp_name}_{args.seed}"
+    logger = TensorBoardLogger(
+        root_dir=os.path.join("logs", "fabric_decoupled_logs", datetime.today().strftime("%Y-%m-%d_%H-%M-%S")),
+        name=run_name,
+    )
     log_dir = logger.log_dir
 
     # Initialize Fabric object

@@ -21,6 +21,7 @@ import argparse
 import os
 import random
 import time
+from datetime import datetime
 from typing import Dict
 
 import gymnasium as gym
@@ -126,7 +127,7 @@ def main(args: argparse.Namespace):
     logger = None
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
     if global_rank == 0:
-        log_dir = os.path.join("logs", "torch_logs", run_name)
+        log_dir = os.path.join("logs", "torch_logs", datetime.today().strftime("%Y-%m-%d_%H-%M-%S"), run_name)
         logger = SummaryWriter(log_dir=log_dir)
 
     # Log hyperparameters
@@ -207,7 +208,7 @@ def main(args: argparse.Namespace):
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
             if "final_info" in info:
-                for agent_id, agent_final_info in enumerate(info["final_info"]):
+                for agent_final_info in info["final_info"]:
                     if agent_final_info is not None and "episode" in agent_final_info:
                         if global_rank == 0:
                             print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
