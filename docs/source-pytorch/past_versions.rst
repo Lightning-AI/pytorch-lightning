@@ -35,15 +35,15 @@ TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
      - :doc:`from 1.8 to 2.0 <upgrade/from_1_8>`
 
    * - `1.7 <https://github.com/Lightning-AI/lightning/releases/tag/1.7.0>`_
-     - `Apple Silicon support, Native FSDP, Collaborative training, and multi-GPU support with Jupyter notebooks <https://pytorch-lightning.readthedocs.io/en/1.7.7>`_
-     - `1.7.0 <https://pytorch-lightning.readthedocs.io/en/1.7.0>`_,
-       `1.7.1 <https://pytorch-lightning.readthedocs.io/en/1.7.1>`_,
-       `1.7.2 <https://pytorch-lightning.readthedocs.io/en/1.7.2>`_,
-       `1.7.3 <https://pytorch-lightning.readthedocs.io/en/1.7.3>`_,
-       `1.7.4 <https://pytorch-lightning.readthedocs.io/en/1.7.4>`_,
-       `1.7.5 <https://pytorch-lightning.readthedocs.io/en/1.7.5>`_,
-       `1.7.6 <https://pytorch-lightning.readthedocs.io/en/1.7.6>`_,
-       `1.7.7 <https://pytorch-lightning.readthedocs.io/en/1.7.7>`_
+     - `Apple Silicon support, Native FSDP, Collaborative training, and multi-GPU support with Jupyter notebooks <https://lightning.ai/docs/pytorch/1.7.7>`_
+     - `1.7.0 <https://lightning.ai/docs/pytorch/1.7.0>`_,
+       `1.7.1 <https://lightning.ai/docs/pytorch/1.7.1>`_,
+       `1.7.2 <https://lightning.ai/docs/pytorch/1.7.2>`_,
+       `1.7.3 <https://lightning.ai/docs/pytorch/1.7.3>`_,
+       `1.7.4 <https://lightning.ai/docs/pytorch/1.7.4>`_,
+       `1.7.5 <https://lightning.ai/docs/pytorch/1.7.5>`_,
+       `1.7.6 <https://lightning.ai/docs/pytorch/1.7.6>`_,
+       `1.7.7 <https://lightning.ai/docs/pytorch/1.7.7>`_
      - :doc:`from 1.7 to 2.0 <upgrade/from_1_7>`
 
    * - `1.6 <https://github.com/Lightning-AI/lightning/releases/tag/1.6.0>`_
