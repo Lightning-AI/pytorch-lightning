@@ -15,22 +15,23 @@ TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
      - Upgrade guide
 
    * - `1.9 <https://github.com/Lightning-AI/lightning/releases/tag/1.9.0>`_
-     - `Stability and additional improvements <https://pytorch-lightning.readthedocs.io/en/1.9.3>`_
-     - `1.9.0 <https://pytorch-lightning.readthedocs.io/en/1.9.0>`_,
-       `1.9.1 <https://pytorch-lightning.readthedocs.io/en/1.9.1>`_,
-       `1.9.2 <https://pytorch-lightning.readthedocs.io/en/1.9.2>`_,
-       `1.9.3 <https://pytorch-lightning.readthedocs.io/en/1.9.3>`_
+     - `Stability and additional improvements <https://lightning.ai/docs/pytorch/1.9.3>`_
+     - `1.9.0 <https://lightning.ai/docs/pytorch/1.9.0>`_,
+       `1.9.1 <https://lightning.ai/docs/pytorch/1.9.1>`_,
+       `1.9.2 <https://lightning.ai/docs/pytorch/1.9.2>`_,
+       `1.9.3 <https://lightning.ai/docs/pytorch/1.9.3>`_,
+       `1.9.4 <https://lightning.ai/docs/pytorch/1.9.4>`_
      - :doc:`from 1.9 to 2.0 <upgrade/from_1_9>`
 
    * - `1.8 <https://github.com/Lightning-AI/lightning/releases/tag/1.8.0>`_
-     - `Colossal-AI Strategy, Commands and Secrets for Apps, FSDP Improvements and More! <https://pytorch-lightning.readthedocs.io/en/1.8.6>`_
-     - `1.8.0 <https://pytorch-lightning.readthedocs.io/en/1.8.0>`_,
-       `1.8.1 <https://pytorch-lightning.readthedocs.io/en/1.8.1>`_,
-       `1.8.2 <https://pytorch-lightning.readthedocs.io/en/1.8.2>`_,
-       `1.8.3 <https://pytorch-lightning.readthedocs.io/en/1.8.3>`_,
-       `1.8.4 <https://pytorch-lightning.readthedocs.io/en/1.8.4>`_,
-       `1.8.5 <https://pytorch-lightning.readthedocs.io/en/1.8.5>`_,
-       `1.8.6 <https://pytorch-lightning.readthedocs.io/en/1.8.6>`_
+     - `Colossal-AI Strategy, Commands and Secrets for Apps, FSDP Improvements and More! <https://lightning.ai/docs/pytorch/1.8.6>`_
+     - `1.8.0 <https://lightning.ai/docs/pytorch/1.8.0>`_,
+       `1.8.1 <https://lightning.ai/docs/pytorch/1.8.1>`_,
+       `1.8.2 <https://lightning.ai/docs/pytorch/1.8.2>`_,
+       `1.8.3 <https://lightning.ai/docs/pytorch/1.8.3>`_,
+       `1.8.4 <https://lightning.ai/docs/pytorch/1.8.4>`_,
+       `1.8.5 <https://lightning.ai/docs/pytorch/1.8.5>`_,
+       `1.8.6 <https://lightning.ai/docs/pytorch/1.8.6>`_
      - :doc:`from 1.8 to 2.0 <upgrade/from_1_8>`
 
    * - `1.7 <https://github.com/Lightning-AI/lightning/releases/tag/1.7.0>`_
