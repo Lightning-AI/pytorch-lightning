@@ -27,6 +27,8 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # ignoring Wills's wild changes
+        exclude: README.md
       - id: check-yaml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
@@ -43,8 +45,7 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
                 src/lightning/fabric/CHANGELOG.md|
-                src/lightning/pytorch/CHANGELOG.md|
-                README.md
+                src/lightning/pytorch/CHANGELOG.md
             )$
       - id: detect-private-key
 
@@ -94,7 +95,7 @@ repos:
       - id: mdformat
         additional_dependencies:
           - mdformat-gfm
-          #- mdformat-black
+          - mdformat-black
           - mdformat_frontmatter
         exclude: |
           (?x)^(
