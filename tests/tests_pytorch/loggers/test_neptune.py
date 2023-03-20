@@ -98,6 +98,8 @@ class TestNeptuneLogger(unittest.TestCase):
         with mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
             super().run(*args, **kwargs)
 
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
         created_run_mock = logger.run
@@ -112,6 +114,8 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
 
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_offline(self, neptune):
         logger = NeptuneLogger(mode="offline")
         created_run_mock = logger.run

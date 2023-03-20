@@ -34,20 +34,23 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = RequirementCache("neptune") or RequirementCache("neptune-client")
+# neptune is available with two names on PyPI : `neptune` and `neptune-client`
+_NEPTUNE_AVAILABLE = RequirementCache("neptune")
+_NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
-    try:  # >1.0 package structure
-        import neptune
-        from neptune import Run
-        from neptune.handler import Handler
-        from neptune.utils import stringify_unsupported
-    except ImportError:  # <1.0 package structure
-        import neptune.new as neptune
-        from neptune.new import Run
-        from neptune.new.handler import Handler
-        from neptune.new.utils import stringify_unsupported
+    # >1.0 package structure
+    import neptune
+    from neptune import Run
+    from neptune.handler import Handler
+    from neptune.utils import stringify_unsupported
+elif _NEPTUNE_CLIENT_AVAILABLE:
+    # <1.0 package structure
+    import neptune.new as neptune
+    from neptune.new import Run
+    from neptune.new.handler import Handler
+    from neptune.new.utils import stringify_unsupported
 else:
-    # needed for test mocks, and function signatures
+    # needed for tests, mocks and function signatures
     neptune, Run, Handler, stringify_unsupported = None, None, None, None
 
 log = logging.getLogger(__name__)
@@ -253,6 +256,7 @@ class NeptuneLogger(Logger):
 
             # make sure that we've log integration version for outside `Run` instances
             root_obj = self._run_instance
+            print(Handler)
             if isinstance(root_obj, Handler):
                 root_obj = root_obj.get_root_object()
 
@@ -261,6 +265,7 @@ class NeptuneLogger(Logger):
     def _retrieve_run_data(self) -> None:
         assert self._run_instance is not None
         root_obj = self._run_instance
+        print(Handler)
         if isinstance(root_obj, Handler):
             root_obj = root_obj.get_root_object()
 
