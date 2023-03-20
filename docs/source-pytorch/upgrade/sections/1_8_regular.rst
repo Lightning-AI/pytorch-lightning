@@ -8,12 +8,17 @@
 
    * - used ``seed_everything_default=None`` in ``LightningCLI``
      - set ``seed_everything_default=False`` instead
-     - #12804
+     - `PR12804`_
 
    * - used ``Trainer.reset_train_val_dataloaders()``
      - call ``Trainer.reset_train_dataloaders()`` and ``Trainer.reset_val_dataloaders()`` separately
-     - #12184
+     - `PR12184`_
 
    * - imported ``pl.core.lightning``
      - import ``pl.core.module`` instead
-     - #12740
+     - `PR12740`_
+
+
+.. _pr12804: https://github.com/Lightning-AI/lightning/pull/12804
+.. _pr12184: https://github.com/Lightning-AI/lightning/pull/12184
+.. _pr12740: https://github.com/Lightning-AI/lightning/pull/12740
