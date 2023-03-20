@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
-import operator
 import sys
 
 import torch
-from lightning_utilities.core.imports import compare_version, package_available, RequirementCache
+from lightning_utilities.core.imports import package_available, RequirementCache
 
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
