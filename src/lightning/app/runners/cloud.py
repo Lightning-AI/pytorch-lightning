@@ -258,9 +258,12 @@ class CloudRuntime(Runtime):
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
 
         # API transactions
+        logger.info(f"Creating cloudspace run. run_body: {run_body}")
         run = self._api_create_run(project_id, cloudspace_id, run_body)
+
         self._api_package_and_upload_repo(repo, run, sys_customizations_sync_root)
 
+        logger.info(f"Creating cloudspace run instance. name: {name}")
         run_instance = self._api_create_run_instance(
             cluster_id,
             project_id,
