@@ -30,12 +30,12 @@
 
 ## Code Quality
 
-| workflow file                        | action                                                                                    |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| .codecov.yml                         | Measure test coverage with [codecov.io](https://app.codecov.io/gh/Lightning-AI/lightning) |
-| .github/workflows/code-checks.yml    | Check Python typing with [MyPy](https://mypy.readthedocs.io/en/stable/).                  |
-| .github/workflows/ci-schema.yml      | Validate the syntax of workflow files.                                                    |
-| .github/workflows/check-md-links.yml | Validate links in markdown files.                                                         |
+| workflow file                           | action                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| .codecov.yml                            | Measure test coverage with [codecov.io](https://app.codecov.io/gh/Lightning-AI/lightning) |
+| .github/workflows/code-checks.yml       | Check Python typing with [MyPy](https://mypy.readthedocs.io/en/stable/).                  |
+| .github/workflows/ci-schema.yml         | Validate the syntax of workflow files.                                                    |
+| .github/workflows/ci-check-md-links.yml | Validate links in markdown files.                                                         |
 
 ## Others
 
