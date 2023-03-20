@@ -124,7 +124,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
@@ -1539,20 +1538,9 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
-    @contextmanager
-    def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
-        self._should_prevent_trainer_and_dataloaders_deepcopy = True
-        yield
-        self._should_prevent_trainer_and_dataloaders_deepcopy = False
-
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
-        if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["_trainer"] = None
-            state.pop("train_dataloader", None)
-            state.pop("val_dataloader", None)
-            state.pop("test_dataloader", None)
-            state.pop("predict_dataloader", None)
+        state["_trainer"] = None
         return state
 
     def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
