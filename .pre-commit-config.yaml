@@ -95,7 +95,7 @@ repos:
       - id: mdformat
         additional_dependencies:
           - mdformat-gfm
-          - mdformat-black
+          #- mdformat-black
           - mdformat_frontmatter
         exclude: |
           (?x)^(
