@@ -68,8 +68,7 @@ class _XLALauncher(_MultiProcessingLauncher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._start_method)
-        return_queue = context.SimpleQueue()
+        return_queue = mp.Manager().Queue()
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         process_context = xmp.spawn(

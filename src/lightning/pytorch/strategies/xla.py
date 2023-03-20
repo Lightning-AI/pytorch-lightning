@@ -106,9 +106,7 @@ class XLAStrategy(DDPStrategy):
             )
 
     def connect(self, model: "pl.LightningModule") -> None:
-        import torch_xla.distributed.xla_multiprocessing as xmp
-
-        self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
+        self.wrapped_model = _LightningModuleWrapperBase(model)
         return super().connect(model)
 
     def _configure_launcher(self) -> None:
@@ -143,6 +141,10 @@ class XLAStrategy(DDPStrategy):
     def is_distributed(self) -> bool:
         # HOST_WORLD_SIZE is not set outside the xmp.spawn process
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.experimental import pjrt
+        if pjrt.using_pjrt():
+            from multiprocessing import current_process
+            return current_process().name != 'MainProcess' and self.world_size != 1
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
@@ -211,13 +213,10 @@ class XLAStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         self._launched = True
-        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
