@@ -9,16 +9,22 @@
 
    * - called ``CheckpointConnector.hpc_load()``
      - just call ``CheckpointConnector.restore()``
-     - #7652
+     - `PR7652`_
 
    * - used ``TrainerModelHooksMixin``
      - now rely on the corresponding utility functions in ``pytorch_lightning.utilities.signature_utils``
-     - #7422
+     - `PR7422`_
 
    * - assigned the ``Trainer.train_loop`` property
      - now assign the equivalent ``Trainer.fit_loop`` property
-     - #8025
+     - `PR8025`_
 
    * - accessed ``LightningModule.loaded_optimizer_states_dict``
      - the property has been removed
-     - #8229
+     - `PR8229`_
+
+
+.. _pr7652: https://github.com/Lightning-AI/lightning/pull/7652
+.. _pr7422: https://github.com/Lightning-AI/lightning/pull/7422
+.. _pr8025: https://github.com/Lightning-AI/lightning/pull/8025
+.. _pr8229: https://github.com/Lightning-AI/lightning/pull/8229
