@@ -95,8 +95,10 @@ ______________________________________________________________________
 
 ## Lightning has 3 core packages
 
-[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).    
-[Lightning Fabric: Expert control](#lightning-fabric-expert-control).    
+[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).
+<br/>
+[Lightning Fabric: Expert control](#lightning-fabric-expert-control).
+<br/>
 [Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).
 
 Lightning gives you granular control over how much abstraction you want to add over PyTorch.
