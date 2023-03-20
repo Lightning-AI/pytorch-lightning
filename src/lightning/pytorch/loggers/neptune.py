@@ -256,7 +256,6 @@ class NeptuneLogger(Logger):
 
             # make sure that we've log integration version for outside `Run` instances
             root_obj = self._run_instance
-            print(Handler)
             if isinstance(root_obj, Handler):
                 root_obj = root_obj.get_root_object()
 
@@ -265,7 +264,6 @@ class NeptuneLogger(Logger):
     def _retrieve_run_data(self) -> None:
         assert self._run_instance is not None
         root_obj = self._run_instance
-        print(Handler)
         if isinstance(root_obj, Handler):
             root_obj = root_obj.get_root_object()
 
