@@ -440,7 +440,7 @@ subprojects:
 
   - id: "link-check"
     paths:
-      - ".github/workflows/md-check-links.yml"
+      - ".github/workflows/ci-check-md-links.yml"
       - ".github/workflows/markdown.links.config.json"
       - "**/*.md"
     checks:
