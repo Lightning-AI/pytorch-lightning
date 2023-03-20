@@ -43,7 +43,8 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
                 src/lightning/fabric/CHANGELOG.md|
-                src/lightning/pytorch/CHANGELOG.md
+                src/lightning/pytorch/CHANGELOG.md|
+                README.md
             )$
       - id: detect-private-key
 
@@ -99,7 +100,8 @@ repos:
           (?x)^(
               src/lightning/app/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
-              src/lightning/pytorch/CHANGELOG.md
+              src/lightning/pytorch/CHANGELOG.md|
+              README.md
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
