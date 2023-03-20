@@ -5,6 +5,10 @@ lightning.fabric.plugins.io
 ###########################
 
 
+.. warning::
+    This is an `experimental <https://lightning.ai/docs/pytorch/latest/versioning.html>`__ feature.
+
+
 IO
 ^^
 
