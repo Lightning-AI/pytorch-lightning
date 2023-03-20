@@ -14,7 +14,7 @@ on:
       - "src/lightning_app/*"
       - "tests/integrations_app/**"
       - "!tests/integrations_app/flagship/**"
-      - "examples/app_*/**"
+      - "examples/app/**"
       - "requirements/app/**"
       - "setup.py"
       - "!requirements/*/docs.txt"

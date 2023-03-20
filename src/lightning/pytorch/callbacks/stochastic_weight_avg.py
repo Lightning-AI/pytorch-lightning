@@ -59,7 +59,7 @@ class StochasticWeightAveraging(Callback):
         For a SWA explanation, please take a look
         `here <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`_.
 
-        .. warning:: ``StochasticWeightAveraging`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
@@ -347,7 +347,7 @@ class StochasticWeightAveraging(Callback):
         # Note that this relies on the callback state being restored before the scheduler state is
         # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
         # writing that is only True for deepspeed which is already not supported by SWA.
-        # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
+        # See https://github.com/Lightning-AI/lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
             trainer.lr_scheduler_configs.clear()

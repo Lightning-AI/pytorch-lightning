@@ -7,39 +7,28 @@
 LightningModule
 ###############
 
-A :class:`~LightningModule` organizes your PyTorch code into 6 sections:
+A :class:`~lightning.pytorch.core.module.LightningModule` organizes your PyTorch code into 6 sections:
 
-- Computations (init).
-- Train Loop (training_step)
-- Validation Loop (validation_step)
-- Test Loop (test_step)
-- Prediction Loop (predict_step)
-- Optimizers and LR Schedulers (configure_optimizers)
+- Initialization (``__init__`` and :meth:`~lightning.pytorch.core.hooks.ModelHooks.setup`).
+- Train Loop (:meth:`~lightning.pytorch.core.module.LightningModule.training_step`)
+- Validation Loop (:meth:`~lightning.pytorch.core.module.LightningModule.validation_step`)
+- Test Loop (:meth:`~lightning.pytorch.core.module.LightningModule.test_step`)
+- Prediction Loop (:meth:`~lightning.pytorch.core.module.LightningModule.predict_step`)
+- Optimizers and LR Schedulers (:meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`)
 
-|
-
-.. raw:: html
-
-    <video width="100%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_mod_vid.m4v"></video>
-
-|
-
-Notice a few things.
-
-1.  It is the SAME code.
-2.  The PyTorch code IS NOT abstracted - just organized.
-3.  All the other code that's not in the :class:`~LightningModule`
-    has been automated for you by the Trainer.
+When you convert to use Lightning, the code IS NOT abstracted - just organized.
+All the other code that's not in the :class:`~lightning.pytorch.core.module.LightningModule`
+has been automated for you by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
 |
 
     .. code-block:: python
 
-        net = Net()
+        net = MyLightningModuleNet()
         trainer = Trainer()
         trainer.fit(net)
 
-4.  There are no ``.cuda()`` or ``.to(device)`` calls required. Lightning does these for you.
+There are no ``.cuda()`` or ``.to(device)`` calls required. Lightning does these for you.
 
 |
 
@@ -57,7 +46,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.to(x)
 
-5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
+When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 
 |
 
@@ -72,7 +61,7 @@ Notice a few things.
         data = MNIST(...)
         DataLoader(data)
 
-6.  A :class:`~LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
+A :class:`~lightning.pytorch.core.module.LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
 
 |
 
@@ -135,19 +124,19 @@ The LightningModule has many convenience methods, but the core ones you need to 
 
    * - Name
      - Description
-   * - init
-     - Define computations here
-   * - forward
-     - Use for inference only (separate from training_step)
-   * - training_step
-     - the complete training loop
-   * - validation_step
-     - the complete validation loop
-   * - test_step
-     - the complete test loop
-   * - predict_step
-     - the complete prediction loop
-   * - configure_optimizers
+   * - ``__init__`` and :meth:`~lightning.pytorch.core.hooks.ModelHooks.setup`
+     - Define initialization here
+   * - :meth:`~lightning.pytorch.core.module.LightningModule.forward`
+     - To run data through your model only (separate from ``training_step``)
+   * - :meth:`~lightning.pytorch.core.module.LightningModule.training_step`
+     - the complete training step
+   * - :meth:`~lightning.pytorch.core.module.LightningModule.validation_step`
+     - the complete validation step
+   * - :meth:`~lightning.pytorch.core.module.LightningModule.test_step`
+     - the complete test step
+   * - :meth:`~lightning.pytorch.core.module.LightningModule.predict_step`
+     - the complete prediction step
+   * - :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`
      - define optimizers and LR schedulers
 
 ----------
@@ -237,7 +226,7 @@ Train Epoch-level Operations
 ============================
 
 In the case that you need to make use of all the outputs from each :meth:`~lightning.pytorch.LightningModule.training_step`,
-override the :meth:`~lightning.pytorch.LightningModule.on_training_epoch_end` method.
+override the :meth:`~lightning.pytorch.LightningModule.on_train_epoch_end` method.
 
 .. code-block:: python
 
@@ -1082,6 +1071,9 @@ for more information.
 
 
     def fit_loop():
+        model.train()
+        torch.set_grad_enabled(True)
+
         on_train_epoch_start()
 
         for batch in train_dataloader():
