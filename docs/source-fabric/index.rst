@@ -121,9 +121,9 @@ For alternative ways to install, read the :doc:`installation guide <fundamentals
     :maxdepth: 1
     :caption: Get started in steps
 
-    Basic <levels/basic>
-    Intermediate <levels/intermediate>
-    Advanced <levels/advanced>
+    Basic skills <levels/basic>
+    Intermediate skills <levels/intermediate>
+    Advanced skills <levels/advanced>
 
 
 .. toctree::
