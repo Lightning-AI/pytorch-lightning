@@ -216,7 +216,6 @@ class CloudRuntime(Runtime):
         Returns:
             The URL of the created job.
         """
-        logger.info(f"Lightning cloud URL: {os.environ.get()}")
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
@@ -810,7 +809,7 @@ class CloudRuntime(Runtime):
         no_cache: bool,
         root: Path,
         start_server: bool,
-        mount_cloudspace_content: bool = False,
+        should_mount_cloudspace_content: bool = False,
         absolute_entrypoint: bool = False,
     ) -> CloudspaceIdRunsBody:
         """Get the specification of the run creation request."""
@@ -831,7 +830,7 @@ class CloudRuntime(Runtime):
             network_config=network_configs,
             works=works,
             local_source=True,
-            mount_cloudspace_content=mount_cloudspace_content,
+            should_mount_cloudspace_content=should_mount_cloudspace_content,
         )
 
         if self.app is not None:
