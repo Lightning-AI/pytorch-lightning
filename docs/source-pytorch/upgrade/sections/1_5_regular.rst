@@ -8,32 +8,40 @@
 
    * - used ``trainer.fit(train_dataloaders=...)``
      - use ``trainer.fit(dataloaders=...)``
-     - #7431
+     - `PR7431`_
 
    * - used ``trainer.validate(val_dataloaders...)``
      - use  ``trainer.validate(dataloaders=...)``
-     - #7431
+     - `PR7431`_
 
    * - passed ``num_nodes``  to  ``DDPPlugin`` and ``DDPSpawnPlugin``
      - remove them since these parameters are now passed from the ``Trainer``
-     - #7026
+     - `PR7026`_
 
    * - passed ``sync_batchnorm`` to ``DDPPlugin`` and ``DDPSpawnPlugin``
      -  remove them since these parameters are now passed from the ``Trainer``
-     - #7026
+     - `PR7026`_
 
    * - didn’t provide a ``monitor`` argument to the ``EarlyStopping`` callback and just relied on the default value
      - pass  ``monitor`` as it is now a required argument
-     - #7907
+     - `PR7907`_
 
    * - used ``every_n_val_epochs`` in ``ModelCheckpoint``
      - change the argument to ``every_n_epochs``
-     - #8383
+     - `PR8383`_
 
    * - used Trainer’s flag ``reload_dataloaders_every_epoch``
      - use pass ``reload_dataloaders_every_n_epochs``
-     - #5043
+     - `PR5043`_
 
    * - used Trainer’s flag ``distributed_backend``
      - use ``strategy``
-     - #8575
+     - `PR8575`_
+
+
+.. _pr7431: https://github.com/Lightning-AI/lightning/pull/7431
+.. _pr7026: https://github.com/Lightning-AI/lightning/pull/7026
+.. _pr7907: https://github.com/Lightning-AI/lightning/pull/7907
+.. _pr8383: https://github.com/Lightning-AI/lightning/pull/8383
+.. _pr5043: https://github.com/Lightning-AI/lightning/pull/5043
+.. _pr8575: https://github.com/Lightning-AI/lightning/pull/8575
