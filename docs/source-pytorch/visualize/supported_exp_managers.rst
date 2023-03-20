@@ -68,7 +68,7 @@ To use `Neptune.ai <https://neptune.ai/>`_ first install the neptune package:
 
 .. code-block:: bash
 
-    pip install neptune
+    pip install neptune-client
 
 or with conda:
 
