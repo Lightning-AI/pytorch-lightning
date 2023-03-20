@@ -1,7 +1,5 @@
 :orphan:
 
-.. include:: link_refs.rst
-
 Upgrade from 1.8 to the 2.0
 ###########################
 
