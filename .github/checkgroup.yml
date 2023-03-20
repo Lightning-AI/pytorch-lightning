@@ -444,4 +444,4 @@ subprojects:
       - ".github/workflows/markdown.links.config.json"
       - "**/*.md"
     checks:
-      - "check-md-links"
+      - "check-md-links / markdown-link-check"
