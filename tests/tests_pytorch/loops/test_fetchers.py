@@ -22,7 +22,7 @@ from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
 from lightning.pytorch.profilers import SimpleProfiler
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
@@ -156,50 +156,6 @@ def get_cycles_per_ms() -> float:
 
 BATCH_SIZE = 32
 DATASET_LEN = 64
-EMB_SZ = 100
-EMB_DIM = 64
-
-
-class RandomIndicesDataset(Dataset):
-    def __getitem__(self, index):
-        return torch.randint(EMB_DIM, [BATCH_SIZE])
-
-    def __len__(self):
-        return 16
-
-
-class RecommenderModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.layer = None
-        self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
-        self.CYCLES_PER_MS = int(get_cycles_per_ms())
-
-    def forward(self, indices: Tensor):
-        result = self.local_embedding(indices)
-        return result
-
-    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        # emulate heavy routine
-        torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return batch
-
-    def training_step_end(self, training_step_output):
-        # emulate heavy routine
-        torch.cuda._sleep(self.CYCLES_PER_MS * 50)
-        return training_step_output
-
-    def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=0.1)
-
-    def train_dataloader(self):
-        return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-    def val_dataloader(self):
-        return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-    def test_dataloader(self):
-        return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])

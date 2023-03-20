@@ -21,6 +21,8 @@ class Accelerator(ABC):
     """The Accelerator base class.
 
     An Accelerator is meant to deal with one type of hardware.
+
+    .. warning::  Writing your own accelerator is an :ref:`experimental <versioning:Experimental API>` feature.
     """
 
     @abstractmethod

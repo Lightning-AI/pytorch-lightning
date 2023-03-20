@@ -12,23 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Iterable, Optional
+from typing import Optional, Union
 
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch.utils.data import DataLoader
+import torch
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.data import _auto_add_worker_init_fn
+from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.epoch import _TrainingEpochLoop
 from lightning.pytorch.loops.fetchers import _DataFetcher
-from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher, _set_sampler_epoch
+from lightning.pytorch.loops.progress import _Progress
+from lightning.pytorch.loops.training_epoch_loop import _TrainingEpochLoop
+from lightning.pytorch.loops.utilities import _is_max_limit_reached, _select_data_fetcher
 from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
+from lightning.pytorch.trainer.connectors.data_connector import (
+    _check_dataloader_iterable,
+    _DataLoaderSource,
+    _parse_num_batches,
+    _process_dataloader,
+    _request_dataloader,
+    _resolve_overfit_batches,
+)
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
-from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.utilities.combined_loader import _SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -81,11 +87,13 @@ class _FitLoop(_Loop):
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop = _TrainingEpochLoop(trainer)
-        self.epoch_progress = Progress()
+        self.epoch_progress = _Progress()
+        self.max_batches: Union[int, float] = float("inf")
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
+        self._last_train_dl_reload_epoch = float("-inf")
 
     @property
     def total_batch_idx(self) -> int:
@@ -102,26 +110,10 @@ class _FitLoop(_Loop):
         """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
-    @min_steps.setter
-    def min_steps(self, value: Optional[int]) -> None:
-        """Sets the minimum number of steps (forwards to epoch_loop)"""
-        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
-        self.epoch_loop.min_steps = value
-
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run."""
         return self.epoch_loop.max_steps
-
-    @max_steps.setter
-    def max_steps(self, value: int) -> None:
-        """Sets the maximum number of steps (forwards to epoch_loop)"""
-        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
-        if value < -1:
-            raise MisconfigurationException(
-                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
-            )
-        self.epoch_loop.max_steps = value
 
     @_Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
@@ -156,9 +148,15 @@ class _FitLoop(_Loop):
         return met_min_epochs and met_min_steps
 
     @property
+    def _should_reload_train_dl(self) -> bool:
+        """Check if train dataloader should be reloaded."""
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        return n_epochs and self.trainer.current_epoch - self._last_train_dl_reload_epoch >= n_epochs
+
+    @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
-        if self.trainer.num_training_batches == 0:
+        if self.max_batches == 0:
             rank_zero_info("`Trainer.fit` stopped: No training batches.")
             return True
 
@@ -187,8 +185,8 @@ class _FitLoop(_Loop):
     @property
     def skip(self) -> bool:
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
-        # since `trainer.num_training_batches` depends on the `train_dataloader` but that won't be called
-        # until `on_run_start`, we use `limit_train_batches` instead
+        # if `limit_train_batches == 0` then `setup_data` won't set the `self.max_batches` attribute (checked in `done`)
+        # so we cannot use it solely
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
@@ -209,82 +207,63 @@ class _FitLoop(_Loop):
         self.on_run_end()
 
     def setup_data(self) -> None:
-        trainer = self.trainer
-
-        if self._combined_loader is not None and not trainer._data_connector._should_reload_train_dl:
+        if self._combined_loader is not None and not self._should_reload_train_dl:
             return
 
-        source = self._data_source
+        trainer = self.trainer
         pl_module = trainer.lightning_module
-        if not source.is_defined() or trainer.limit_train_batches == 0 or not is_overridden("training_step", pl_module):
+        if trainer.limit_train_batches == 0 or not is_overridden("training_step", pl_module):
             return
 
         log.debug(f"{self.__class__.__name__}: resetting train dataloader")
 
-        train_dataloader = trainer._data_connector._request_dataloader()
-
-        if trainer.overfit_batches > 0:
-            train_dataloader = trainer._data_connector._resolve_overfit_batches(
-                train_dataloader, mode=RunningStage.TRAINING
-            )
-
-        # automatically add samplers
-        train_dataloader = apply_to_collection(
-            train_dataloader,
-            (DataLoader, CombinedLoader),
-            trainer._data_connector._prepare_dataloader,
-            mode=RunningStage.TRAINING,
-        )
-        train_dataloader = (
-            train_dataloader.iterables if isinstance(train_dataloader, CombinedLoader) else train_dataloader
-        )
-
-        apply_to_collection(train_dataloader, Iterable, trainer.strategy.process_dataloader)
-
-        # check the workers recursively
-        apply_to_collection(train_dataloader, DataLoader, trainer._data_connector._worker_check, "train_dataloader")
-
-        # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(train_dataloader, DataLoader, _auto_add_worker_init_fn, rank=trainer.global_rank)
+        source = self._data_source
+        train_dataloader = _request_dataloader(source)
+        trainer.strategy.barrier("train_dataloader()")
 
         if not isinstance(train_dataloader, CombinedLoader):
-            self._combined_loader = CombinedLoader(train_dataloader, trainer._data_connector.multiple_trainloader_mode)
+            combined_loader = CombinedLoader(train_dataloader, "max_size_cycle")
         else:
-            self._combined_loader = train_dataloader
+            combined_loader = train_dataloader
 
-        module = pl_module or trainer.datamodule
-        orig_train_batches = trainer.num_training_batches = (
-            len(self._combined_loader)
-            if has_len_all_ranks(self._combined_loader, trainer.strategy, module)
-            else float("inf")
-        )
-        if orig_train_batches == 0:
+        if trainer.overfit_batches > 0:
+            _resolve_overfit_batches(combined_loader, mode=RunningStage.TRAINING)
+
+        trainer_fn = TrainerFn.FITTING
+        dataloaders = []
+        for dl in combined_loader.flattened:
+            _check_dataloader_iterable(dl, source, trainer_fn)
+            dl = _process_dataloader(trainer, dl)
+            dataloaders.append(dl)
+        combined_loader.flattened = dataloaders
+        self._combined_loader = combined_loader
+
+        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+
+        has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
+        self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
+        if self.max_batches == 0:
             return
 
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        trainer._last_train_dl_reload_epoch = trainer.current_epoch
+        stage = RunningStage.TRAINING
+        self.max_batches = _parse_num_batches(stage, self.max_batches, trainer.limit_train_batches)
 
-        if isinstance(trainer.limit_train_batches, int):
-            trainer.num_training_batches = min(orig_train_batches, trainer.limit_train_batches)
-        elif trainer.num_training_batches != float("inf"):
-            trainer.num_training_batches = int(orig_train_batches * trainer.limit_train_batches)
-        elif trainer.limit_train_batches != 1.0:
-            raise MisconfigurationException(
-                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
-                "An int specifies `num_training_batches` to use."
-            )
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self._last_train_dl_reload_epoch = trainer.current_epoch
 
         if isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
-            if trainer.val_check_batch > trainer.num_training_batches and trainer.check_val_every_n_epoch is not None:
+            if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
                 raise ValueError(
                     f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
-                    f" to the number of the training batches ({trainer.num_training_batches})."
+                    f" to the number of the training batches ({self.max_batches})."
                     " If you want to disable validation set `limit_val_batches` to 0.0 instead."
                     " If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
                 )
         else:
-            if not has_len_all_ranks(self._combined_loader, trainer.strategy, module):
+            if not has_len_all_ranks_:
                 if trainer.val_check_interval == 1.0:
                     trainer.val_check_batch = float("inf")
                 else:
@@ -294,33 +273,23 @@ class _FitLoop(_Loop):
                         " checking validation every k training batches."
                     )
             else:
-                trainer.val_check_batch = int(trainer.num_training_batches * trainer.val_check_interval)
+                trainer.val_check_batch = int(self.max_batches * trainer.val_check_interval)
                 trainer.val_check_batch = max(1, trainer.val_check_batch)
 
-        if trainer.loggers and trainer.num_training_batches < trainer.log_every_n_steps:
+        if trainer.loggers and self.max_batches < trainer.log_every_n_steps:
             rank_zero_warn(
-                f"The number of training batches ({trainer.num_training_batches}) is smaller than the logging interval"
+                f"The number of training batches ({self.max_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
                 category=PossibleUserWarning,
             )
 
-        if (
-            trainer.num_training_batches == 0
-            and trainer.limit_train_batches > 0.0
-            and isinstance(trainer.limit_train_batches, float)
-            and orig_train_batches != float("inf")
-        ):
-            min_percentage = 1.0 / orig_train_batches
-            raise MisconfigurationException(
-                f"You requested to check {trainer.limit_train_batches} of the `train_dataloader` but"
-                f" {trainer.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
-                f" `limit_train_batches` argument. Try at least"
-                f" `limit_train_batches={min_percentage}`"
-            )
-
     def reset(self) -> None:
         """Resets the internal state of this loop."""
+        assert self.trainer.model is not None
+        self.trainer.model.train()
+        torch.set_grad_enabled(True)
+
         if self.restarting:
             self.epoch_progress.reset_on_restart()
 
@@ -356,7 +325,7 @@ class _FitLoop(_Loop):
 
         # update the epoch value for all samplers
         assert self._combined_loader is not None
-        for i, dl in enumerate(self._combined_loader._flattened):
+        for i, dl in enumerate(self._combined_loader.flattened):
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
         self.epoch_progress.increment_ready()
@@ -374,9 +343,10 @@ class _FitLoop(_Loop):
 
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        if combined_loader._mode not in ("max_size_cycle", "min_size"):
+        if combined_loader._mode == "sequential":
             raise ValueError(
-                f'`{type(self).__name__}` only supports the `CombinedLoader(mode="max_size_cycle" | "min_size")` modes.'
+                f'`{type(self).__name__}` does not support the `CombinedLoader(mode="sequential")` mode.'
+                f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
         assert self._data_fetcher is not None
         self._data_fetcher.setup(combined_loader)

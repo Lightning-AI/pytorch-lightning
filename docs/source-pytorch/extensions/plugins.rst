@@ -46,7 +46,7 @@ We provide precision plugins for you to benefit from numerical representations w
 
 The full list of built-in precision plugins is listed below.
 
-.. currentmodule:: pytorch_lightning.plugins.precision
+.. currentmodule:: lightning.pytorch.plugins.precision
 
 .. autosummary::
     :nosignatures:
@@ -73,12 +73,12 @@ More information regarding precision with Lightning can be found :ref:`here <pre
 CheckpointIO Plugins
 ********************
 
-As part of our commitment to extensibility, we have abstracted Lightning's checkpointing logic into the :class:`~pytorch_lightning.plugins.io.CheckpointIO` plugin.
+As part of our commitment to extensibility, we have abstracted Lightning's checkpointing logic into the :class:`~lightning.pytorch.plugins.io.CheckpointIO` plugin.
 With this, you have the ability to customize the checkpointing logic to match the needs of your infrastructure.
 
 Below is a list of built-in plugins for checkpointing.
 
-.. currentmodule:: pytorch_lightning.plugins.io
+.. currentmodule:: lightning.pytorch.plugins.io
 
 .. autosummary::
     :nosignatures:
@@ -103,7 +103,7 @@ Cluster Environments
 
 You can define the interface of your own cluster environment based on the requirements of your infrastructure.
 
-.. currentmodule:: pytorch_lightning.plugins.environments
+.. currentmodule:: lightning.pytorch.plugins.environments
 
 .. autosummary::
     :nosignatures:

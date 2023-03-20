@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.optimization.closure import AbstractClosure, OutputResult
-from lightning.pytorch.loops.progress import OptimizationProgress
+from lightning.pytorch.loops.progress import _OptimizationProgress
 from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -61,7 +61,6 @@ class ClosureResult(OutputResult):
         closure_loss, extra = None, {}
 
         if isinstance(training_step_output, dict):
-            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
             if closure_loss is None:
                 raise MisconfigurationException(
@@ -152,7 +151,7 @@ class _AutomaticOptimization(_Loop):
 
     def __init__(self, trainer: "pl.Trainer") -> None:
         super().__init__(trainer)
-        self.optim_progress: OptimizationProgress = OptimizationProgress()
+        self.optim_progress: _OptimizationProgress = _OptimizationProgress()
         self._skip_backward: bool = False
 
     def run(self, optimizer: Optimizer, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
@@ -308,10 +307,6 @@ class _AutomaticOptimization(_Loop):
         # manually capture logged metrics
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()
-
-        model_output = call._call_lightning_module_hook(trainer, "training_step_end", training_step_output)
-        strategy_output = call._call_strategy_hook(trainer, "training_step_end", training_step_output)
-        training_step_output = strategy_output if model_output is None else model_output
 
         result = self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)
         return result

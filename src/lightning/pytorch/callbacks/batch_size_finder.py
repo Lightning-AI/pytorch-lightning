@@ -34,6 +34,8 @@ class BatchSizeFinder(Callback):
     ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial``
     times for each batch size until one of the batch sizes generates an OOM error.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Args:
         mode: search strategy to update the batch size:
 
@@ -142,7 +144,7 @@ class BatchSizeFinder(Callback):
             loop.setup_data()
             combined_loader = loop._combined_loader
             assert combined_loader is not None
-            if len(combined_loader._flattened) > 1:
+            if len(combined_loader.flattened) > 1:
                 stage = trainer.state.stage
                 assert stage is not None
                 raise MisconfigurationException(

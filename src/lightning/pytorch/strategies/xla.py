@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -29,7 +29,7 @@ from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
@@ -43,7 +43,7 @@ else:
     MpDeviceLoader = None
 
 
-class XLAStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
@@ -92,6 +92,10 @@ class XLAStrategy(DDPSpawnStrategy):
         import torch_xla.core.xla_model as xm
 
         return xm.xla_device()
+
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
@@ -142,7 +146,7 @@ class XLAStrategy(DDPSpawnStrategy):
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
-    def process_dataloader(self, dataloader: Iterable) -> "MpDeviceLoader":
+    def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
@@ -210,6 +214,11 @@ class XLAStrategy(DDPSpawnStrategy):
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -225,27 +234,8 @@ class XLAStrategy(DDPSpawnStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def _pod_progress_bar_force_stdout(self) -> None:
-        # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the main worker doesn't work well with tqdm
-        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
-        # The print statement seems to force tqdm to flush stdout.
-        import torch_xla.core.xla_env_vars as xenv
-
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
-            print()
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -299,3 +289,13 @@ class XLAStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def _pod_progress_bar_force_stdout(self) -> None:
+        # Why is it required? The way `pytorch_xla.distributed` streams logs
+        # from different vms to the main worker doesn't work well with tqdm
+        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
+        # The print statement seems to force tqdm to flush stdout.
+        import torch_xla.core.xla_env_vars as xenv
+
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print()

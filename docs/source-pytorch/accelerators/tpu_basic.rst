@@ -4,6 +4,8 @@ TPU training (Basic)
 ====================
 **Audience:** Users looking to train on single or multiple TPU cores.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 .. raw:: html
@@ -32,36 +34,26 @@ some subset of those 2048 cores.
 
 ----
 
-Run on 1 TPU core
------------------
-Enable the following Trainer arguments to run on 1 TPU.
+Run on TPU cores
+----------------
 
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=1)
-
-----
-
-Run on multiple TPU cores
--------------------------
-For multiple TPU cores, change the value of the devices flag.
-
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-
-----
-
-Run on a specific TPU core
---------------------------
-
-To run on a specific core, specify the index of the TPU core.
+To run on different cores, modify the ``devices`` argument.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(accelerator="tpu", devices=[5])
+    # run on as many TPUs as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
 
-This example runs on the 5th core, not on five cores.
+    # run on one TPU core
+    trainer = Trainer(accelerator="tpu", devices=1)
+    # run on multiple TPU cores
+    trainer = Trainer(accelerator="tpu", devices=8)
+    # run on the 5th core
+    trainer = Trainer(accelerator="tpu", devices=[5])
+    # choose the number of cores automatically
+    trainer = Trainer(accelerator="tpu", devices="auto")
 
 ----
 
@@ -88,13 +80,13 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install cloud-tpu-client https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.12-cp39-cp39m-linux_x86_64.whl
+        !pip install cloud-tpu-client https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.13-cp38-cp38m-linux_x86_64.whl
 
 5. Once the above is done, install PyTorch Lightning.
 
    .. code-block::
 
-        !pip install pytorch-lightning
+        !pip install lightning
 
 6. Then set up your LightningModule as normal.
 
@@ -122,7 +114,6 @@ There are cases in which training on TPUs is slower when compared with GPUs, for
 - Limited resources when using TPU's with PyTorch `Link <https://github.com/pytorch/xla/issues/2054#issuecomment-627367729>`_
 - XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
 - Some tensor ops are not fully supported on TPU, or not supported at all. These operations will be performed on CPU (context switch).
-- PyTorch integration is still experimental. Some performance bottlenecks may simply be the result of unfinished implementation.
 
 The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats>`_
 has more detailed information on how PyTorch code can be optimized for TPU. In particular, the

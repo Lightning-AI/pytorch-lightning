@@ -6,6 +6,8 @@ Accelerator: HPU training
 =========================
 **Audience:** Users looking to save money and run large models faster using single or multiple Gaudi devices.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 What is an HPU?
@@ -25,25 +27,30 @@ For more information, check out `Gaudi Architecture <https://docs.habana.ai/en/l
 
 ----
 
-Run on 1 Gaudi
---------------
+Run on Gaudi
+------------
 
 To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``accelerator="hpu"`` parameter to the Trainer class.
 
 .. code-block:: python
 
+    # run on as many Gaudi devices as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
+
+    # run on one Gaudi device
     trainer = Trainer(accelerator="hpu", devices=1)
+    # run on multiple Gaudi devices
+    trainer = Trainer(accelerator="hpu", devices=8)
+    # choose the number of devices automatically
+    trainer = Trainer(accelerator="hpu", devices="auto")
 
-----
 
-Run on multiple Gaudis
-----------------------
-The ``devices=8`` and ``accelerator="hpu"`` parameters to the Trainer class enables the Habana accelerator for distributed training with 8 Gaudis.
-It uses :class:`~pytorch_lightning.strategies.hpu_parallel.HPUParallelStrategy` internally which is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
-
-.. code-block:: python
-
-    trainer = Trainer(devices=8, accelerator="hpu")
+The ``devices>1`` parameter with HPUs enables the Habana accelerator for distributed training.
+It uses :class:`~lightning.pytorch.strategies.hpu_parallel.HPUParallelStrategy` internally which is based on DDP
+strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and
+scale-out across multiple nodes.
 
 ----
 
@@ -78,19 +85,6 @@ On Node 2:
 
     MASTER_ADDR=<MASTER_ADDR> MASTER_PORT=<MASTER_PORT> NODE_RANK=1 WORLD_SIZE=16
         python -m some_model_trainer.py (--arg1 ... train script args...)
-
-----
-
-Select Gaudis automatically
----------------------------
-
-Lightning can automatically detect the number of Gaudi devices to run on. This setting is enabled by default if the devices argument is missing.
-
-.. code-block:: python
-
-    # equivalent
-    trainer = Trainer(accelerator="hpu")
-    trainer = Trainer(accelerator="hpu", devices="auto")
 
 ----
 

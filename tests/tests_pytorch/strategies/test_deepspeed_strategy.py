@@ -33,6 +33,7 @@ from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -498,7 +499,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     """Test to ensure that DeepSpeed loads from a single file checkpoint."""
     model = BoringModel()
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="cpu", devices=1)
     trainer.fit(model)
     trainer.save_checkpoint(checkpoint_path)
 
@@ -541,9 +542,10 @@ class ModelParallelClassificationModel(LightningModule):
         self.num_blocks = num_blocks
         self.prepare_data_per_node = True
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
-        self.test_acc = Accuracy()
+        metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
+        self.train_acc = metric.clone()
+        self.valid_acc = metric.clone()
+        self.test_acc = metric.clone()
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
@@ -712,6 +714,8 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         fast_dev_run=True,
         enable_progress_bar=False,
         enable_model_summary=False,
+        accelerator="cpu",
+        devices=1,
     )
     trainer.fit(model)
     trainer.save_checkpoint(checkpoint_path)

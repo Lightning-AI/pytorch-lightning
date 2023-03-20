@@ -18,6 +18,11 @@ else:
 
 
 class TorchCollective(Collective):
+    """Collective operations using `torch.distributed <https://pytorch.org/docs/stable/distributed.html>`__.
+
+    .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
+    """
+
     manages_default_group = False
 
     def __init__(self) -> None:
@@ -28,11 +33,11 @@ class TorchCollective(Collective):
     @property
     def rank(self) -> int:
         # local rank
-        return dist.get_rank(self.group)
+        return dist.get_rank(self.group)  # type: ignore[arg-type]
 
     @property
     def world_size(self) -> int:
-        return dist.get_world_size(self.group)
+        return dist.get_world_size(self.group)  # type: ignore[arg-type]
 
     def broadcast(self, tensor: Tensor, src: int) -> Tensor:
         dist.broadcast(tensor, src, group=self.group)
@@ -71,11 +76,11 @@ class TorchCollective(Collective):
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
 
-    def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
-        dist.send(tensor, dst, tag=tag, group=self.group)
+    def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None:
+        dist.send(tensor, dst, tag=tag, group=self.group)  # type: ignore[arg-type]
 
-    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
-        dist.recv(tensor, src, tag=tag, group=self.group)
+    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
+        dist.recv(tensor, src, tag=tag, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     def all_gather_object(self, object_list: List[Any], obj: Any) -> List[Any]:
@@ -106,9 +111,7 @@ class TorchCollective(Collective):
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
-    def setup(
-        self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any
-    ) -> Self:  # type: ignore[valid-type]
+    def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:
         if self.is_initialized():
             return self
         # maybe set addr
@@ -134,7 +137,7 @@ class TorchCollective(Collective):
             os.environ.pop("MASTER_PORT", None)
         return self
 
-    def teardown(self) -> Self:  # type: ignore[valid-type]
+    def teardown(self) -> Self:
         non_group_member = self.group == dist.GroupMember.NON_GROUP_MEMBER
         super().teardown()  # will destroy its own group
         # try to destroy the default group. this should only be done by a group member to avoid race conditions,
@@ -168,7 +171,7 @@ class TorchCollective(Collective):
     def destroy_group(cls, group: CollectibleGroup) -> None:
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
-        dist.destroy_process_group(group)
+        dist.destroy_process_group(group)  # type: ignore[arg-type]
 
     @classmethod
     def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:

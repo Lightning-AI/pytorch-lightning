@@ -272,7 +272,6 @@ class HookedModel(BoringModel):
                     dict(name="on_train_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_before_zero_grad", args=(trainer, model, ANY)),
                     dict(name="on_before_zero_grad", args=(ANY,)),
                     dict(name="optimizer_zero_grad", args=(current_epoch, i, ANY)),
@@ -337,7 +336,6 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY)),
                     dict(name="on_before_optimizer_step", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
-                    dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
                     dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                 ]
@@ -368,7 +366,6 @@ class HookedModel(BoringModel):
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name=f"{fn}_step", args=(ANY, i)),
-                    dict(name=f"{fn}_step_end", args=(outputs,)),
                     dict(name=f"Callback.on_{fn}_batch_end", args=(trainer, model, outputs, ANY, i)),
                     dict(name=f"on_{fn}_batch_end", args=(outputs, ANY, i)),
                 ]
@@ -388,7 +385,6 @@ class HookedModel(BoringModel):
                     dict(name="on_predict_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="predict_step", args=(ANY, i)),
-                    # TODO: `predict_step_end`
                     dict(name="Callback.on_predict_batch_end", args=(trainer, model, ANY, ANY, i)),
                     dict(name="on_predict_batch_end", args=(ANY, ANY, i)),
                 ]
@@ -480,9 +476,9 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
         dict(name="Callback.on_sanity_check_end", args=(trainer, model)),
-        # duplicate `train` because `_run_train` calls it again in case validation wasn't run
-        dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
+        # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
+        dict(name="train", args=(True,)),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
@@ -568,8 +564,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="configure_optimizers"),
         dict(name="Callback.on_fit_start", args=(trainer, model)),
         dict(name="on_fit_start"),
-        dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
+        dict(name="train", args=(True,)),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
@@ -646,8 +642,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="configure_optimizers"),
         dict(name="Callback.on_fit_start", args=(trainer, model)),
         dict(name="on_fit_start"),
-        dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
+        dict(name="train", args=(True,)),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
@@ -766,15 +762,17 @@ def test_hooks_with_different_argument_names(tmpdir):
             self.assert_args(x2, batch_nb2)
             return super().validation_step(x2, batch_nb2)
 
-        def test_step(self, x3, batch_nb3, dl_idx3):
+        # we don't support a different name for `dataloader_idx`
+        def test_step(self, x3, batch_nb3, dataloader_idx):
             self.assert_args(x3, batch_nb3)
-            assert isinstance(dl_idx3, int)
+            assert isinstance(dataloader_idx, int)
             return super().test_step(x3, batch_nb3)
 
-        def predict(self, x4, batch_nb4, dl_idx4):
+        # we don't support a different name for `dataloader_idx`
+        def predict_step(self, x4, batch_nb4, dataloader_idx):
             self.assert_args(x4, batch_nb4)
-            assert isinstance(dl_idx4, int)
-            return super().predict(x4, batch_nb4, dl_idx4)
+            assert isinstance(dataloader_idx, int)
+            return super().predict_step(x4, batch_nb4, dataloader_idx)
 
         def test_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
@@ -787,7 +785,6 @@ def test_hooks_with_different_argument_names(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     trainer.test(model)
 
     preds = trainer.predict(model)

@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -75,7 +75,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
         trainer.fit(model)
 
     assert isinstance(trainer.train_dataloader.sampler, SequentialSampler)
-    assert isinstance(trainer.val_dataloaders[0].sampler, SequentialSampler)
+    assert isinstance(trainer.val_dataloaders.sampler, SequentialSampler)
 
 
 @pytest.mark.parametrize(
@@ -106,10 +106,10 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
         )
     elif stage == RunningStage.TESTING:
         assert trainer.num_test_batches[0] == len(eval_loader)
-        assert isinstance(trainer.test_dataloaders[0].sampler, SequentialSampler)
+        assert isinstance(trainer.test_dataloaders.sampler, SequentialSampler)
     elif stage == RunningStage.PREDICTING:
         assert trainer.num_predict_batches[0] == len(eval_loader)
-        assert isinstance(trainer.predict_dataloaders[0].sampler, SequentialSampler)
+        assert isinstance(trainer.predict_dataloaders.sampler, SequentialSampler)
 
 
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
@@ -144,6 +144,7 @@ def test_overfit_batch_limits_train(overfit_batches):
     model.trainer = trainer
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model=model)
+    trainer.state.fn = TrainerFn.FITTING
     trainer.training = True
     trainer.fit_loop.setup_data()
     expected_batches = (
@@ -169,6 +170,7 @@ def test_distributed_sampler_with_overfit_batches():
     model.trainer = trainer
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
+    trainer.state.fn = TrainerFn.FITTING
     trainer.training = True
     trainer.fit_loop.setup_data()
     train_sampler = trainer.train_dataloader.sampler

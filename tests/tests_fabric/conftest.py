@@ -72,20 +72,37 @@ def teardown_process_group():
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
+    os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture
+def reset_cudnn_benchmark():
+    """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
+    yield
+    torch.backends.cudnn.benchmark = False
+
+
+def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    mock_xla_available(monkeypatch)
+
+
+def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    mock_xla_available(monkeypatch, value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
 
 
 @pytest.fixture(scope="function")
-def tpu_available(xla_available, monkeypatch) -> None:
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+def tpu_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    mock_tpu_available(monkeypatch)
 
 
 @pytest.fixture

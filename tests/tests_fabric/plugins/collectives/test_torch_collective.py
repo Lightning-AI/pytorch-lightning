@@ -6,7 +6,6 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.plugins.collectives import TorchCollective
@@ -14,6 +13,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():
     from torch.distributed import ReduceOp
@@ -230,6 +230,7 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 @skip_distributed_unavailable
 @pytest.mark.parametrize("n", (1, 2))
+@RunIf(skip_windows=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)

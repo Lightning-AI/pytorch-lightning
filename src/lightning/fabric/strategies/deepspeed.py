@@ -32,12 +32,20 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
-# check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
+_DEEPSPEED_AVAILABLE = (
+    # DeepSpeed fails under 0.8.2 with torch 2.0: https://github.com/microsoft/DeepSpeed/pull/2863
+    RequirementCache("deepspeed>=0.8.2")
+    or not _TORCH_GREATER_EQUAL_2_0
+    # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
+    # remove the packaging check when min version is >=0.8.1
+    and RequirementCache("deepspeed")
+    and RequirementCache("packaging>=20.0")
+)
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -97,7 +105,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         billion parameter models. `For more information: https://pytorch-
         lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
-        .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
@@ -486,6 +494,27 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             state[k] = client_state.pop(k)
         return client_state
 
+    def clip_gradients_norm(
+        self,
+        module: "deepspeed.DeepSpeedEngine",
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> torch.Tensor:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
+    def clip_gradients_value(
+        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
+    ) -> None:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
@@ -596,7 +625,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.config is None:
             raise ValueError(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
 
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)

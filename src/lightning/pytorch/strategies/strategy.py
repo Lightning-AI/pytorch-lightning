@@ -14,7 +14,7 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -395,16 +395,7 @@ class Strategy(ABC):
             assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def process_dataloader(self, dataloader: Iterable) -> Iterable:
+    def process_dataloader(self, dataloader: object) -> object:
         """Wraps the dataloader if necessary.
 
         Args:

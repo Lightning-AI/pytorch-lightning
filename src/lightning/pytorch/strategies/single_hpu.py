@@ -26,14 +26,16 @@ from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
-    """Strategy for training on single HPU device."""
+    """Strategy for training on single HPU device.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     strategy_name = "hpu_single"
 
@@ -97,16 +99,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         # Break lazy accumulation of graph after optimizer
         htcore.mark_step()
         return optimizer_output
-
-    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

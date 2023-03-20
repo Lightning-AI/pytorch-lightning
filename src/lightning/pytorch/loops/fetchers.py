@@ -17,7 +17,11 @@ from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.utilities.data import has_len
-from lightning.pytorch.trainer.supporters import _Sequential, _shutdown_workers_and_reset_iterator, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import (
+    _Sequential,
+    _shutdown_workers_and_reset_iterator,
+    CombinedLoader,
+)
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
