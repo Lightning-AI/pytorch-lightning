@@ -372,4 +372,4 @@ subprojects:
       - ".github/workflows/md-check-links.yml"
       - "**/*.md"
     checks:
-      - "markdown-link-check"
+      - "check-md-links / markdown-link-check"
