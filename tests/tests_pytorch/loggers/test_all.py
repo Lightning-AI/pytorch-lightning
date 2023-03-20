@@ -46,6 +46,8 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("lightning.pytorch.loggers.mlflow.Metric"),
     mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
+    mock.patch("lightning.pytorch.loggers.neptune.Run", new=mock.Mock),
+    mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock),
     mock.patch("lightning.pytorch.loggers.wandb.wandb"),
     mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock),
 )
