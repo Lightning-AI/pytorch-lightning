@@ -27,7 +27,7 @@ _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # u
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
-_RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
+_RICH_AVAILABLE = RequirementCache("rich>=12.3.0")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 
