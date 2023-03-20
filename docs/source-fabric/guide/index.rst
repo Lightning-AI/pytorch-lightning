@@ -22,7 +22,7 @@ Basics
     :tag: basic
 
 .. displayitem::
-    :header: Accelerators
+    :header: Scale your model with Accelerators
     :description: Take advantage of your hardware with a switch of a flag
     :button_link: ../fundamentals/accelerators.html
     :col_css: col-md-4
@@ -30,7 +30,7 @@ Basics
     :tag: basic
 
 .. displayitem::
-    :header: Style Guide
+    :header: Structure your Fabric code
     :description: Best practices for setting up your training script with Fabric
     :button_link: ../fundamentals/code_structure.html
     :col_css: col-md-4
@@ -38,7 +38,7 @@ Basics
     :tag: basic
 
 .. displayitem::
-    :header: Launch Distributed Training
+    :header: Launch distributed training
     :description: Launch a Python script on multiple devices and machines
     :button_link: ../fundamentals/launch.html
     :col_css: col-md-4
@@ -46,7 +46,7 @@ Basics
     :tag: basic
 
 .. displayitem::
-    :header: Fabric in Notebooks
+    :header: Launch Fabric in a notebook
     :description: Launch on multiple devices from within a Jupyter notebook
     :button_link: ../fundamentals/notebooks.html
     :col_css: col-md-4
@@ -54,7 +54,7 @@ Basics
     :tag: basic
 
 .. displayitem::
-    :header: Mixed Precision Training
+    :header: Improve performance with Mixed-Precision training
     :description: Save memory and speed up training using mixed precision
     :button_link: ../fundamentals/precision.html
     :col_css: col-md-4
@@ -78,7 +78,7 @@ Build your own Trainer
         <div class="row">
 
 .. displayitem::
-    :header: The LightningModule
+    :header: Organize your model code with with LightningModule
     :description: Organize your code in a LightningModule and use it with Fabric
     :button_link: lightning_module.html
     :col_css: col-md-4
@@ -86,7 +86,7 @@ Build your own Trainer
     :tag: intermediate
 
 .. displayitem::
-    :header: Callbacks
+    :header: Encapsulate code into Callbacks
     :description: Make use of the Callback system in Fabric
     :button_link: callbacks.html
     :col_css: col-md-4
@@ -94,7 +94,7 @@ Build your own Trainer
     :tag: intermediate
 
 .. displayitem::
-    :header: Logging
+    :header: Track and visualize experiments
     :description: Learn how Fabric helps you remove boilerplate code for tracking metrics with a logger
     :button_link: logging.html
     :col_css: col-md-4
@@ -102,7 +102,7 @@ Build your own Trainer
     :tag: intermediate
 
 .. displayitem::
-    :header: Checkpoints
+    :header: Save and load model progress
     :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
     :button_link: checkpoint.html
     :col_css: col-md-4
@@ -110,7 +110,7 @@ Build your own Trainer
     :tag: intermediate
 
 .. displayitem::
-    :header: Trainer Template
+    :header: Build your own Trainer
     :description: Take our Fabric Trainer template and customize it for your needs
     :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/build_your_own_trainer
     :col_css: col-md-4
@@ -134,7 +134,7 @@ Advanced Topics
         <div class="row">
 
 .. displayitem::
-    :header: Efficient Gradient Accumulation
+    :header: Use efficient gradient accumulation
     :description: Learn how to perform efficient gradient accumulation in distributed settings
     :button_link: ../advanced/gradient_accumulation.html
     :col_css: col-md-4
@@ -142,7 +142,7 @@ Advanced Topics
     :tag: advanced
 
 .. displayitem::
-    :header: Distributed Communication
+    :header: Distribute communication
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
     :button_link: ../advanced/distributed_communication.html
     :col_css: col-md-4
@@ -150,7 +150,7 @@ Advanced Topics
     :tag: advanced
 
 .. displayitem::
-    :header: Multiple Models and Optimizers
+    :header: Use multiple models and optimizers
     :description: See how flexible Fabric is to work with multiple models and optimizers!
     :button_link: ../advanced/multiple_setup.html
     :col_css: col-md-4
