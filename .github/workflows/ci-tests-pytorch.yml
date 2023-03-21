@@ -117,7 +117,7 @@ jobs:
     - name: Install package & dependencies
       run: |
         pip install -q pip -U
-        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
+        pip install .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -140,7 +140,7 @@ jobs:
         python requirements/pytorch/check-avail-extras.py
         python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
 
-    - name: Adjust tests/env. -> PL
+    - name: Adjust tests / env. -> PL
       if: ${{ matrix.pkg-name != 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
@@ -149,6 +149,9 @@ jobs:
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
         pip uninstall -y lightning
         pip list
+
+    - name: Prevent using raw source
+      run: rm -rf src/
 
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
