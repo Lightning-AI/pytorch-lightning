@@ -93,10 +93,6 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    @property
-    def local_rank(self) -> int:
-        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
-
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
         if not has_len(dataloader):
