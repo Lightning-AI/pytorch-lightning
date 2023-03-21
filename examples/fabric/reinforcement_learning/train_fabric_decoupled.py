@@ -25,8 +25,10 @@ from datetime import datetime
 import gymnasium as gym
 import numpy as np
 import torch
-from src.agent import PPOLightningAgent
-from src.utils import linear_annealing, make_env, parse_args, test
+from torch import Tensor
+
+from rl.agent import PPOLightningAgent
+from rl.utils import linear_annealing, make_env, parse_args, test
 from torch.utils.data import BatchSampler, DistributedSampler
 from torchmetrics import MeanMetric
 
@@ -107,7 +109,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     world_collective.broadcast(update_t, src=0)
 
     # Get the first environment observation and start the optimization
-    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0]).to(device)
+    next_obs = Tensor(envs.reset(seed=args.seed)[0]).to(device)
     next_done = torch.zeros(args.num_envs).to(device)
     for update in range(1, num_updates + 1):
         for step in range(0, args.num_steps):
@@ -125,7 +127,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = np.logical_or(done, truncated)
             rewards[step] = torch.tensor(reward).to(device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+            next_obs, next_done = Tensor(next_obs).to(device), Tensor(done).to(device)
 
             if "final_info" in info:
                 for agent_final_info in info["final_info"]:

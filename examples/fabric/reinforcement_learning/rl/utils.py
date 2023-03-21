@@ -6,10 +6,11 @@ from typing import Optional, TYPE_CHECKING, Union
 import gymnasium as gym
 import numpy as np
 import torch
+from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 
 if TYPE_CHECKING:
-    from src.agent import PPOAgent, PPOLightningAgent
+    from rl.agent import PPOAgent, PPOLightningAgent
 
 
 def parse_args():
@@ -156,7 +157,7 @@ def test(
     step = 0
     done = False
     cumulative_rew = 0
-    next_obs = torch.Tensor(env.reset(seed=args.seed)[0]).to(device)
+    next_obs = Tensor(env.reset(seed=args.seed)[0]).to(device)
     while not done:
         # Act greedly through the environment
         action = agent.get_greedy_action(next_obs)
@@ -165,7 +166,7 @@ def test(
         next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
         done = np.logical_or(done, truncated)
         cumulative_rew += reward
-        next_obs = torch.Tensor(next_obs).to(device)
+        next_obs = Tensor(next_obs).to(device)
         step += 1
     logger.add_scalar("Test/cumulative_reward", cumulative_rew, 0)
     env.close()

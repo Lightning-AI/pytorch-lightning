@@ -30,9 +30,11 @@ import torch
 import torch.distributed as distributed
 import torch.nn as nn
 import torch.optim as optim
-from src.agent import PPOAgent
-from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import linear_annealing, make_env, parse_args, test
+from torch import Tensor
+
+from rl.agent import PPOAgent
+from rl.loss import entropy_loss, policy_loss, value_loss
+from rl.utils import linear_annealing, make_env, parse_args, test
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
@@ -41,7 +43,7 @@ from torch.utils.tensorboard import SummaryWriter
 def train(
     agent: PPOAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, torch.Tensor],
+    data: Dict[str, Tensor],
     logger: SummaryWriter,
     global_step: int,
     args: argparse.Namespace,
@@ -180,7 +182,7 @@ def main(args: argparse.Namespace):
     num_updates = args.total_timesteps // single_global_step
 
     # Get the first environment observation and start the optimization
-    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0]).to(device)
+    next_obs = Tensor(envs.reset(seed=args.seed)[0]).to(device)
     next_done = torch.zeros(args.num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing
@@ -205,7 +207,7 @@ def main(args: argparse.Namespace):
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = np.logical_or(done, truncated)
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+            next_obs, next_done = Tensor(next_obs).to(device), Tensor(done).to(device)
 
             if "final_info" in info:
                 for agent_final_info in info["final_info"]:
