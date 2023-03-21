@@ -65,6 +65,8 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
 Validate a Model Is Servable
 ****************************
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 Production ML Engineers would argue that a model shouldn't be trained if it can't be deployed reliably and in a fully automated manner.
 
 In order to ease transition from training to production, PyTorch Lightning provides a way for you to validate a model can be served even before starting training.
@@ -73,4 +75,4 @@ In order to do so, your LightningModule needs to subclass the :class:`~lightning
 
 Below you can find an example of how the serving of a resnet18 can be validated.
 
-.. literalinclude:: ../../../examples/pl_servable_module/production.py
+.. literalinclude:: ../../../examples/pytorch/servable_module/production.py

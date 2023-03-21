@@ -83,7 +83,7 @@ class ModelPruning(Callback):
         To learn more about pruning with PyTorch, please take a look at
         `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
 
-        .. warning:: ``ModelPruning`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. code-block:: python
 

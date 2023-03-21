@@ -34,8 +34,7 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 
-# might be supported in later releases, see https://github.com/python/mypy/pull/13297
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore[misc]
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 warning_cache = WarningCache()
 
@@ -53,7 +52,7 @@ def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
         for sample in batch:
             yield from _extract_batch_size(sample)
     elif is_dataclass_instance(batch):
-        for field in fields(batch):
+        for field in fields(batch):  # type: ignore[arg-type]
             yield from _extract_batch_size(getattr(batch, field.name))
     else:
         yield None
@@ -92,7 +91,7 @@ def extract_batch_size(batch: BType) -> int:
 def has_len_all_ranks(
     dataloader: object,
     strategy: "pl.strategies.Strategy",
-    model: Union["pl.LightningModule", "pl.LightningDataModule"],
+    allow_zero_length_dataloader_with_multiple_devices: bool = False,
 ) -> TypeGuard[Sized]:
     """Checks if a given object has ``__len__`` method implemented on all aranks."""
     local_length = sized_len(dataloader)
@@ -113,7 +112,7 @@ def has_len_all_ranks(
             raise RuntimeError(
                 rank_prefixed_message(f"The `{dataloader_cls_name}` does not define a length.", strategy.global_rank)
             )
-        if not model.allow_zero_length_dataloader_with_multiple_devices:
+        if not allow_zero_length_dataloader_with_multiple_devices:
             raise RuntimeError(
                 f"`{dataloader_cls_name}` within local rank has zero length."
                 " Please make sure that it returns at least 1 batch."
