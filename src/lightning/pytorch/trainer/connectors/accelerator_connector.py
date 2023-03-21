@@ -64,7 +64,11 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_BAGUA_AVAILABLE, _LIGHTNING_COLOSSALAI_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
+from lightning.pytorch.utilities.imports import (
+    _LIGHTNING_BAGUA_AVAILABLE,
+    _LIGHTNING_COLOSSALAI_AVAILABLE,
+    _LIGHTNING_HABANA_AVAILABLE,
+)
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
