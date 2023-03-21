@@ -916,5 +916,10 @@ def test_connector_auto_selection(cuda_count_2, mps_count_0):
     pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
 ])
 def test_connector_sets_num_nodes(strategy, cuda_count_2):
-    trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    if strategy in ("fsdp", "ddp_sharded", "ddp_sharded_spawn"):
+        with pytest.deprecated_call(match="FairScale has been deprecated"):
+            trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    else:
+        trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+
     assert trainer.strategy.num_nodes == 2
