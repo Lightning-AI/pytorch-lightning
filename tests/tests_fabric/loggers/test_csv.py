@@ -33,10 +33,11 @@ def test_file_logger_automatic_versioning(tmpdir):
 def test_file_logger_automatic_versioning_relative_root_dir(tmpdir, monkeypatch):
     """Verify that automatic versioning works, when root_dir is given a relative path."""
     root_dir = tmpdir.mkdir("exp")
-    root_dir.mkdir("version_0")
-    root_dir.mkdir("version_1")
-    os.chdir(tmpdir)
-    logger = CSVLogger(root_dir="exp", name="exp")
+    logs_dir = root_dir.mkdir("logs")
+    logs_dir.mkdir("version_0")
+    logs_dir.mkdir("version_1")
+    monkeypatch.chdir(tmpdir)
+    logger = CSVLogger(root_dir="exp/logs", name="logs")
     assert logger.version == 2
 
 
