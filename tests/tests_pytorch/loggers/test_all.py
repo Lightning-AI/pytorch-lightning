@@ -45,6 +45,8 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.mlflow.Metric"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
+    mock.patch("pytorch_lightning.loggers.neptune.Run", new=mock.Mock),
+    mock.patch("pytorch_lightning.loggers.neptune.Handler", new=mock.Mock),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
     mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock),
 )
@@ -294,13 +296,13 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"), mock.patch(
         "pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True
-    ):
+    ), mock.patch("pytorch_lightning.loggers.neptune.Handler", new=mock.Mock):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
-        assert logger.experiment.__getitem__.call_count == 2
+        assert logger.experiment.__getitem__.call_count == 0
         logger.log_metrics({"test": 1.0}, step=0)
-        assert logger.experiment.__getitem__.call_count == 3
+        assert logger.experiment.__getitem__.call_count == 1
         logger.experiment.__getitem__.assert_called_with("tmp/test")
-        logger.experiment.__getitem__().log.assert_called_once_with(1.0)
+        logger.experiment.__getitem__().append.assert_called_once_with(1.0)
 
     # TensorBoard
     if _TENSORBOARD_AVAILABLE:
