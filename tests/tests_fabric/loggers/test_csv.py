@@ -26,7 +26,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
-    logger = CSVLogger(root_dir=root_dir, name="exp")
+    logger = CSVLogger(root_dir=tmpdir, name="exp")
     assert logger.version == 2
 
 
@@ -37,7 +37,7 @@ def test_file_logger_automatic_versioning_relative_root_dir(tmpdir, monkeypatch)
     logs_dir.mkdir("version_0")
     logs_dir.mkdir("version_1")
     monkeypatch.chdir(tmpdir)
-    logger = CSVLogger(root_dir="exp/logs", name="logs")
+    logger = CSVLogger(root_dir="exp", name="logs")
     assert logger.version == 2
 
 
@@ -47,7 +47,7 @@ def test_file_logger_manual_versioning(tmpdir):
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
     root_dir.mkdir("version_2")
-    logger = CSVLogger(root_dir=root_dir, name="exp", version=1)
+    logger = CSVLogger(root_dir=tmpdir, name="exp", version=1)
     assert logger.version == 1
 
 
