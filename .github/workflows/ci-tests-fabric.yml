@@ -18,13 +18,13 @@ on:
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-
-env:
-  FREEZE_REQUIREMENTS: 1
 
 defaults:
   run:
@@ -62,7 +62,7 @@ jobs:
     timeout-minutes: 25  # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
-      FREEZE_REQUIREMENTS: 1
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE: "_pip-wheels"
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"

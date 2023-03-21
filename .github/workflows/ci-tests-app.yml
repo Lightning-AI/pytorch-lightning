@@ -18,6 +18,9 @@ on:
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -47,7 +50,7 @@ jobs:
     timeout-minutes: 30
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
-      FREEZE_REQUIREMENTS: 1
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE: "_pip-wheels"
     steps:
     - uses: actions/checkout@v3
