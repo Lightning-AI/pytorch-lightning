@@ -67,7 +67,8 @@ class _DataFetcher(Iterator):
 
     def teardown(self) -> None:
         self.reset()
-        self.combined_loader.reset()
+        if self._combined_loader is not None:
+            self._combined_loader.reset()
         self.iterator = None
 
 
