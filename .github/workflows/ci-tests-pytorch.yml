@@ -20,14 +20,13 @@ on:
       - "!requirements/pytorch/docs.txt"
       - "!*.md"
       - "!**/*.md"
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-
-env:
-  PACKAGE_NAME: pytorch
-  FREEZE_REQUIREMENTS: 1
 
 defaults:
   run:
@@ -75,7 +74,7 @@ jobs:
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-      FREEZE_REQUIREMENTS: 1
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
     steps:
     - uses: actions/checkout@v3
 

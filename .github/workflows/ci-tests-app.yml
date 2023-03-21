@@ -17,6 +17,9 @@ on:
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -44,7 +47,7 @@ jobs:
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", requires: "latest"}
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
-      FREEZE_REQUIREMENTS: 1
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 30
 
