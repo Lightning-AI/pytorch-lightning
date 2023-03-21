@@ -147,6 +147,10 @@ jobs:
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
           --source_import="lightning.fabric,lightning.pytorch" \
           --target_import="lightning_fabric,pytorch_lightning"
+    - name: Adjust env. -> LAI
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
+      run: pip uninstall -y lightning
 
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
