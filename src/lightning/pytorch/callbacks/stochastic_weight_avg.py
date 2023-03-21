@@ -150,8 +150,7 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException("SWA does not currently support sharded models.")
 
         # copy the model before moving it to accelerator device.
-        with pl_module._prevent_trainer_and_dataloaders_deepcopy():
-            self._average_model = deepcopy(pl_module)
+        self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if len(trainer.optimizers) != 1:

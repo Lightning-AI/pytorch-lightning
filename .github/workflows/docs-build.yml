@@ -177,4 +177,4 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
         if: startsWith(github.ref, 'refs/tags/')
-        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}"
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}
