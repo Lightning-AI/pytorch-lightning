@@ -553,6 +553,8 @@ class DeepSpeedStrategy(DDPStrategy):
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
             inference_config.update({"fp16": self.config["fp16"]})
+        if "bf16" in self.config:
+            inference_config.update({"bf16": self.config["bf16"]})
         if self.zero_stage_3:
             inference_config.update(
                 {
