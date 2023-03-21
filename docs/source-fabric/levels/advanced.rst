@@ -17,7 +17,7 @@ Advanced skills
         <div class="row">
 
 .. displayitem::
-    :header: Efficient Gradient Accumulation
+    :header: Use efficient gradient accumulation
     :description: Learn how to perform efficient gradient accumulation in distributed settings
     :button_link: ../advanced/gradient_accumulation.html
     :col_css: col-md-4
@@ -25,7 +25,7 @@ Advanced skills
     :tag: advanced
 
 .. displayitem::
-    :header: Distributed Communication
+    :header: Distribute communication
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
     :button_link: ../advanced/distributed_communication.html
     :col_css: col-md-4
@@ -33,7 +33,7 @@ Advanced skills
     :tag: advanced
 
 .. displayitem::
-    :header: Multiple Models and Optimizers
+    :header: Use multiple models and optimizers
     :description: See how flexible Fabric is to work with multiple models and optimizers!
     :button_link: ../advanced/multiple_setup.html
     :col_css: col-md-4
