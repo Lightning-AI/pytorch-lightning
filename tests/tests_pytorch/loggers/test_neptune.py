@@ -50,6 +50,7 @@ def create_neptune_mock():
     return MagicMock(init_run=MagicMock(side_effect=create_run_mock))
 
 
+# Note: For testing purpose this mock `Run` will also be used to mock `Handler`.
 class Run:
     _project_name = "test-project"
 
@@ -76,6 +77,9 @@ class Run:
     def exists(self, value):
         return True
 
+    def get_root_object(self):
+        return self
+
 
 @pytest.fixture()
 def tmpdir_unittest_fixture(request, tmpdir):
@@ -94,6 +98,8 @@ class TestNeptuneLogger(unittest.TestCase):
         with mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
             super().run(*args, **kwargs)
 
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
         created_run_mock = logger.run
@@ -108,6 +114,8 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
 
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_offline(self, neptune):
         logger = NeptuneLogger(mode="offline")
         created_run_mock = logger.run
@@ -118,6 +126,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert logger._run_name == "offline-name"
 
     @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_online_with_custom_run(self, neptune):
         created_run = Run()
         logger = NeptuneLogger(run=created_run)
@@ -128,6 +137,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert neptune.init_run.call_count == 0
 
     @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
@@ -140,6 +150,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert unpickled.experiment is not None
 
     @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_online_with_wrong_kwargs(self, neptune):
         """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
         in init."""
@@ -225,8 +236,9 @@ class TestNeptuneLogger(unittest.TestCase):
 
         # then
         run_instance_mock.__getitem__.assert_any_call("training/some/key")
-        run_instance_mock.__getitem__.return_value.log.assert_has_calls([call(42)])
+        run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42)])
 
+    @patch("lightning.pytorch.loggers.neptune.stringify_unsupported", lambda x: x)
     def test_log_hyperparams(self, neptune):
         params = {"foo": "bar", "nested_foo": {"bar": 42}}
         test_variants = [
@@ -271,7 +283,7 @@ class TestNeptuneLogger(unittest.TestCase):
             assert run_instance_mock.__getitem__.call_count == 2
             run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
-            run_attr_mock.log.assert_has_calls([call(42), call(555)])
+            run_attr_mock.append.assert_has_calls([call(42), call(555)])
 
     def test_log_model_summary(self, neptune):
         model = BoringModel()

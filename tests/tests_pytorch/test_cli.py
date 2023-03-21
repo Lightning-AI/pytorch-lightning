@@ -1382,7 +1382,7 @@ def test_comet_logger_init_args():
     )
 
 
-@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
+@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune is required")
 def test_neptune_logger_init_args():
     _test_logger_init_args(
         "NeptuneLogger",
@@ -1390,7 +1390,7 @@ def test_neptune_logger_init_args():
             "name": "neptune",  # Resolve from NeptuneLogger.__init__
         },
         {
-            "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
+            "description": "neptune",  # Unsupported resolving from neptune.internal.init.run.init_run
         },
     )
 

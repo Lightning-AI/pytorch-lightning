@@ -93,7 +93,7 @@ def clean_import():
         ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
+            _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
             "lightning.pytorch.loggers.neptune",
         ),
         (
