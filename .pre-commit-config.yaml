@@ -27,6 +27,8 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # ignoring Wills's wild changes
+        exclude: README.md
       - id: check-yaml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
@@ -100,7 +102,8 @@ repos:
           (?x)^(
               src/pytorch_lightning/CHANGELOG.md|
               src/lightning_app/CHANGELOG.md|
-              src/lightning_fabric/CHANGELOG.md
+              src/lightning_fabric/CHANGELOG.md|
+              README.md
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
