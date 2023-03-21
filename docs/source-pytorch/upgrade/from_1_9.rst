@@ -1,7 +1,5 @@
 :orphan:
 
-.. include:: link_refs.rst
-
 Regular User
 ************
 
