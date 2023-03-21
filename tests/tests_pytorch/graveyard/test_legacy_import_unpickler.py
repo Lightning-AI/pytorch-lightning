@@ -15,8 +15,8 @@ from tests_pytorch.checkpointing.test_legacy_checkpoints import (
 )
 
 
-def _list_sys_modules(pattern: str) -> dict:
-    return {k: sys.modules[k] for k in sorted(sys.modules.keys()) if pattern in k}
+def _list_sys_modules(pattern: str) -> str:
+    return repr({k: sys.modules[k] for k in sorted(sys.modules.keys()) if pattern in k})
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
