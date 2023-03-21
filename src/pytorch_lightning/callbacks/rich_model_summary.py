@@ -14,10 +14,10 @@
 from typing import List, Tuple
 
 from pytorch_lightning.callbacks import ModelSummary
-from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.utilities.model_summary import get_human_readable_count
 
-if _RICH_AVAILABLE:
+if _RICH_AVAILABLE:  # type: ignore[has-type]
     from rich import get_console
     from rich.table import Table
 
