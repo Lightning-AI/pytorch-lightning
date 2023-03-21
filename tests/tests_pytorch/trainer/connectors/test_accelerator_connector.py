@@ -909,7 +909,7 @@ def test_connector_auto_selection(cuda_count_2, mps_count_0):
 @pytest.mark.parametrize("strategy", [
     "ddp",
     "ddp_spawn",
-    "fsdp_native",
+    pytest.param("fsdp_native", marks=RunIf(min_torch="1.12.0")),
     pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
     pytest.param("fsdp", marks=RunIf(fairscale=True)),
     pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
