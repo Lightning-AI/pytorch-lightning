@@ -4,6 +4,7 @@ default_language_version:
 ci:
   autofix_prs: true
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
+  autoupdate_schedule: monthly
   # submodules: true
 
 repos:
@@ -61,7 +62,7 @@ repos:
           - flake8-simplify
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.255
+    rev: v0.0.257
     hooks:
       - id: ruff
         args: ["--fix"]
