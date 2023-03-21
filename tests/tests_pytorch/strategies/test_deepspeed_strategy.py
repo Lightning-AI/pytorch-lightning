@@ -369,8 +369,7 @@ def test_deepspeed_inference_precision_during_inference(precision, tmpdir):
         accelerator="cuda",
         devices=1,
         callbacks=[TestCB()],
-        enable_progress_bar=False,
-        enable_model_summary=False,
+        barebones=True,
     )
     with pytest.raises(SystemExit):
         trainer.validate(model)
