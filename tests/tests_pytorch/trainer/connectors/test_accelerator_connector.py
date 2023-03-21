@@ -904,3 +904,17 @@ def test_connector_auto_selection(cuda_count_2, mps_count_0):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.num_devices == 2
+
+
+@pytest.mark.parametrize("strategy", [
+    "ddp",
+    "ddp_spawn",
+    "fsdp_native",
+    pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+    pytest.param("fsdp", marks=RunIf(fairscale=True)),
+    pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
+    pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
+])
+def test_connector_sets_num_nodes(strategy, cuda_count_2):
+    trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    assert trainer.strategy.num_nodes == 2
