@@ -30,11 +30,10 @@ import torch
 import torch.distributed as distributed
 import torch.nn as nn
 import torch.optim as optim
-from torch import Tensor
-
 from rl.agent import PPOAgent
 from rl.loss import entropy_loss, policy_loss, value_loss
 from rl.utils import linear_annealing, make_env, parse_args, test
+from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.tensorboard import SummaryWriter

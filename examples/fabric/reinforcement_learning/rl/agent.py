@@ -41,9 +41,7 @@ class PPOAgent(torch.nn.Module):
             layer_init(torch.nn.Linear(64, envs.single_action_space.n), std=0.01, ortho_init=ortho_init),
         )
 
-    def get_action(
-        self, x: Tensor, action: Tensor = None
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    def get_action(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor]:
         logits = self.actor(x)
         distribution = Categorical(logits=logits)
         if action is None:
@@ -58,16 +56,12 @@ class PPOAgent(torch.nn.Module):
     def get_value(self, x: Tensor) -> Tensor:
         return self.critic(x)
 
-    def get_action_and_value(
-        self, x: Tensor, action: Tensor = None
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def get_action_and_value(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         action, log_prob, entropy = self.get_action(x, action)
         value = self.get_value(x)
         return action, log_prob, entropy, value
 
-    def forward(
-        self, x: Tensor, action: Tensor = None
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         return self.get_action_and_value(x, action)
 
     @torch.no_grad()
@@ -145,9 +139,7 @@ class PPOLightningAgent(LightningModule):
         self.avg_value_loss = MeanMetric(**torchmetrics_kwargs)
         self.avg_ent_loss = MeanMetric(**torchmetrics_kwargs)
 
-    def get_action(
-        self, x: Tensor, action: Tensor = None
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    def get_action(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor]:
         logits = self.actor(x)
         distribution = Categorical(logits=logits)
         if action is None:
@@ -162,16 +154,12 @@ class PPOLightningAgent(LightningModule):
     def get_value(self, x: Tensor) -> Tensor:
         return self.critic(x)
 
-    def get_action_and_value(
-        self, x: Tensor, action: Tensor = None
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def get_action_and_value(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         action, log_prob, entropy = self.get_action(x, action)
         value = self.get_value(x)
         return action, log_prob, entropy, value
 
-    def forward(
-        self, x: Tensor, action: Tensor = None
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         return self.get_action_and_value(x, action)
 
     @torch.no_grad()

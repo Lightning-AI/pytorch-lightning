@@ -25,10 +25,9 @@ from datetime import datetime
 import gymnasium as gym
 import numpy as np
 import torch
-from torch import Tensor
-
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
+from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler
 from torchmetrics import MeanMetric
 

@@ -27,10 +27,9 @@ import gymnasium as gym
 import numpy as np
 import torch
 import torchmetrics
-from torch import Tensor
-
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
+from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler
 
 from lightning.fabric import Fabric
