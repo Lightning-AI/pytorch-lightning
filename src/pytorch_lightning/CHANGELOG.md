@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [unreleased] - 2023-XX-XX
+
+### Fixed
+
+- Fixed `num_nodes` not being set for `DDPFullyShardedNativeStrategy` ([#17160](https://github.com/Lightning-AI/lightning/pull/17160))
+
 
 ## [1.9.4] - 2023-03-01
 
