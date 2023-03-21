@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable
-from typing import Any, Callable, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
+from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict
 
 from lightning.fabric.utilities.data import sized_len
@@ -37,6 +37,18 @@ class _ModeIterator(Iterator[_T]):
 
     def reset(self) -> None:
         self.iterators = []
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+
+        # workaround an inconvenient `NotImplementedError`:
+        # https://github.com/pytorch/pytorch/blob/v2.0.0/torch/utils/data/dataloader.py#L652-L658
+        state["iterators"] = [
+            None if isinstance(iterator, _BaseDataLoaderIter) else iterator_state
+            for iterator, iterator_state in zip(self.iterators, state["iterators"])
+        ]
+
+        return state
 
 
 class _MaxSizeCycle(_ModeIterator[List]):
