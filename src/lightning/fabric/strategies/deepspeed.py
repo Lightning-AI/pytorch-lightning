@@ -105,7 +105,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         billion parameter models. `For more information: https://pytorch-
         lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
-        .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
@@ -625,7 +625,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.config is None:
             raise ValueError(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
 
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)

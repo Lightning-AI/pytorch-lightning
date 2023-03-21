@@ -68,7 +68,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_BAGUA_AVAILABLE, _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ log = logging.getLogger(__name__)
 _LITERAL_WARN = Literal["warn"]
 
 
-class AcceleratorConnector:
+class _AcceleratorConnector:
     def __init__(
         self,
         devices: Union[List[int], str, int] = "auto",
@@ -201,6 +201,9 @@ class AcceleratorConnector:
 
         if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
             raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
+
+        if strategy == "bagua" and not _LIGHTNING_BAGUA_AVAILABLE:
+            raise ModuleNotFoundError(str(_LIGHTNING_BAGUA_AVAILABLE))
 
         if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
@@ -408,6 +411,11 @@ class AcceleratorConnector:
         ):
             if env_type.detect():
                 return env_type()
+        if _LIGHTNING_BAGUA_AVAILABLE:
+            from lightning_bagua import BaguaEnvironment
+
+            if BaguaEnvironment.detect():
+                return BaguaEnvironment()
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
@@ -650,3 +658,10 @@ def _register_external_accelerators_and_strategies() -> None:
         # TODO: Prevent registering multiple times
         if "colossalai" not in StrategyRegistry:
             ColossalAIStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_BAGUA_AVAILABLE:
+        from lightning_bagua import BaguaStrategy
+
+        # TODO: Prevent registering multiple times
+        if "bagua" not in StrategyRegistry:
+            BaguaStrategy.register_strategies(StrategyRegistry)

@@ -10,7 +10,7 @@ def test_app_argparse_example():
     original_argv = sys.argv
 
     command_line = [
-        os.path.join(_PATH_EXAMPLES, "app_argparse", "app.py"),
+        os.path.join(_PATH_EXAMPLES, "argparse", "app.py"),
         "--app_args",
         "--use_gpu",
         "--without-server",

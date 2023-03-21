@@ -480,7 +480,7 @@ class LightningFlow:
             :header: Build your own DAG
             :description: Learn more DAG scheduling with examples.
             :col_css: col-md-4
-            :button_link: ../../../examples/app_dag/dag.html
+            :button_link: ../../../examples/app/dag/dag.html
             :height: 180
             :tag: Basic
 
