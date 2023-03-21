@@ -27,7 +27,7 @@ the following example.
             return self._generate_state_key(what=self.what)
 
         def _generate_state_key(self, **kwargs: Any) -> str:
-            return f"{self.__class__.__qualname__}{repr(kwargs)}"
+            return f"Counter[what={self.what}]"
 
         def on_train_epoch_end(self, *args, **kwargs):
             if self.what == "epochs":
