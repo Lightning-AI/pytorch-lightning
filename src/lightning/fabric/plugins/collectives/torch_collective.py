@@ -31,6 +31,12 @@ class TorchCollective(Collective):
         super().__init__()
 
     @property
+    def group(self) -> CollectibleGroup:
+        if self._group is None:
+            self._group = dist.GroupMember.WORLD
+        return super().group
+
+    @property
     def rank(self) -> int:
         # local rank
         return dist.get_rank(self.group)  # type: ignore[arg-type]
@@ -138,17 +144,20 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:
-        non_group_member = self.group == dist.GroupMember.NON_GROUP_MEMBER
+        group_member = self.group != dist.GroupMember.NON_GROUP_MEMBER
         super().teardown()  # will destroy its own group
         # try to destroy the default group. this should only be done by a group member to avoid race conditions,
         # and only if the class is managing it
-        if not non_group_member and TorchCollective.manages_default_group:
-            default_group = dist.GroupMember.WORLD
-            if default_group is not None:  # not destroyed already
-                group_map = dist.distributed_c10d._pg_map
-                if len(group_map) == 1 and default_group in group_map:  # only the default group is left
-                    self.destroy_group(default_group)
-                    TorchCollective.manages_default_group = False
+        if (
+            group_member
+            and TorchCollective.manages_default_group
+            and (default_group := dist.GroupMember.WORLD) is not None  # not destroyed already
+            and len(dist.distributed_c10d._pg_map) == 1  # only the default group is left
+        ):
+            self.destroy_group(default_group)
+            TorchCollective.manages_default_group = False
+        elif TorchCollective.manages_default_group and dist.GroupMember.WORLD is None:
+            TorchCollective.manages_default_group = False
         return self
 
     @classmethod
@@ -171,7 +180,8 @@ class TorchCollective(Collective):
     def destroy_group(cls, group: CollectibleGroup) -> None:
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
-        dist.destroy_process_group(group)  # type: ignore[arg-type]
+        if group in dist.distributed_c10d._pg_map:
+            dist.destroy_process_group(group)  # type: ignore[arg-type]
 
     @classmethod
     def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
