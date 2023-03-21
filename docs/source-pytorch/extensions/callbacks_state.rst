@@ -22,7 +22,7 @@ the following example.
             self.state = {"epochs": 0, "batches": 0}
 
         @property
-        def state_key(self):
+        def state_key(self) -> str:
             # note: we do not include `verbose` here on purpose
             return f"Counter[what={self.what}]"
 
