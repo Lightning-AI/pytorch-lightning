@@ -23,6 +23,7 @@ the following example.
 
         @property
         def state_key(self):
+            # note: we do not include `verbose` here on purpose
             return f"Counter[what={self.what}]"
 
         def on_train_epoch_end(self, *args, **kwargs):
