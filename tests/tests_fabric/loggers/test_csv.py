@@ -30,7 +30,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     assert logger.version == 2
 
 
-def test_file_logger_automatic_versioning_relative_root_dir(tmpdir):
+def test_file_logger_automatic_versioning_relative_root_dir(tmpdir, monkeypatch):
     """Verify that automatic versioning works, when root_dir is given a relative path."""
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
