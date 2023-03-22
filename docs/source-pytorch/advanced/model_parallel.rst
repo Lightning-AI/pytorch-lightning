@@ -60,6 +60,8 @@ Cutting-edge Lightning strategies are being developed by third-parties outside o
 
 If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
 
+Another integration is :doc:`Bagua Strategy <./third_party/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
+
 For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <./third_party/hivemind>` integration.
 
 ----
