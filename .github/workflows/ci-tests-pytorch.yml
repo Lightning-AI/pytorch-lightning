@@ -116,8 +116,7 @@ jobs:
     - name: Install package & dependencies
       run: |
         pip install -q pip -U
-        pip install .[extra,test] -U \
-          "pytest-timeout" -r requirements/pytorch/integrations.txt \
+        pip install .[extra,test] -U "pytest-timeout" \
           -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
