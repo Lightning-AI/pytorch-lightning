@@ -1,0 +1,2 @@
+lightning-colossalai>=0.1.0
+lightning-bagua>=0.1.0
