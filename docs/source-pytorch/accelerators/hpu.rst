@@ -25,6 +25,17 @@ For more information, check out `Gaudi Architecture <https://docs.habana.ai/en/l
 
 ----
 
+Install integration
+-------------------
+
+You can install this integration from PyPI or from `source <https://github.com/Lightning-AI/lightning-Habana>`_:
+
+.. code-block:: bash
+
+    pip install lightning-habana -U
+
+----
+
 Run on Gaudi
 ------------
 
