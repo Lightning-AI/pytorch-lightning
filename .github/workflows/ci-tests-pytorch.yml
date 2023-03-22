@@ -115,7 +115,10 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[extra,test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
+        pip install -q pip -U
+        pip install .[extra,test] -U \
+          "pytest-timeout" -r requirements/pytorch/integrations.txt \
+          -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -144,6 +147,9 @@ jobs:
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
           --source_import="lightning.fabric,lightning.pytorch" \
           --target_import="lightning_fabric,pytorch_lightning"
+
+    - name: Prevent using raw source
+      run: rm -rf src/
 
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
