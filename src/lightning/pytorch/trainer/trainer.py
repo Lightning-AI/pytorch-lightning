@@ -38,8 +38,7 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
-from lightning.pytorch.loggers import Logger
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.loggers import CSVLogger, Logger, TensorBoardLogger
 from lightning.pytorch.loggers.utilities import _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
@@ -1135,7 +1134,7 @@ class Trainer:
                 save_img(img, self.trainer.log_dir)
         """
         if len(self.loggers) > 0:
-            if not isinstance(self.loggers[0], TensorBoardLogger):
+            if not isinstance(self.loggers[0], (TensorBoardLogger, CSVLogger)):
                 dirpath = self.loggers[0].save_dir
             else:
                 dirpath = self.loggers[0].log_dir
