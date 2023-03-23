@@ -495,7 +495,7 @@ def start_server(
         else:
             logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
         if has_started_queue:
-            LightningUvicornServer.has_started_queue = has_started_queue  # type: ignore[assignment]
+            LightningUvicornServer.has_started_queue = has_started_queue
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.
             sys.modules["uvicorn.main"].Server = LightningUvicornServer
 
