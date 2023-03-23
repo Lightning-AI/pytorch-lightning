@@ -217,7 +217,7 @@ async def get_state(
         return state
 
 
-def _get_component_by_name(component_name: str, state: dict):  # type: ignore[no-untyped-def]
+def _get_component_by_name(component_name: str, state: dict) -> Union[LightningFlow, LightningWork]
     child = state
     for child_name in component_name.split(".")[1:]:
         try:
