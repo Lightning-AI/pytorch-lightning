@@ -1,7 +1,7 @@
 :orphan:
 
-Benchmark with vanilla PyTorch
-==============================
+Benchmark performance vs. vanilla PyTorch
+=========================================
 
 In this section we set grounds for comparison between vanilla PyTorch and PT Lightning for most common scenarios.
 
@@ -21,9 +21,8 @@ Learn more about reproducible benchmarking from the `PyTorch Reproducibility Gui
 
 ----
 
-**********
-Next steps
-**********
+Find performance bottlenecks
+=============================
 
 .. raw:: html
 
