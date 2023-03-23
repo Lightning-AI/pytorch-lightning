@@ -20,7 +20,7 @@ import warnings
 
 import pt_lightning_sphinx_theme
 
-import pytorch_lightning
+import lightning
 
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
@@ -49,8 +49,24 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
     AssistantCLI.copy_notebooks(
-        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+        PATH_RAW_NB,
+        PATH_HERE,
+        "notebooks",
+        patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
+    # TODO: Complete converting the missing items and add them back
+    ignore = [
+        "course_UvA-DL/13-contrastive-learning",
+        "lightning_examples/augmentation_kornia",
+        "lightning_examples/finetuning-scheduler",
+        "lightning_examples/reinforce-learning-DQN",
+        "lightning_examples/text-transformers",
+        "lightning_examples/warp-drive",
+    ]
+    for file in ignore:
+        file = os.path.join(PATH_HERE, "notebooks", file)
+        if os.path.exists(file):
+            os.remove(file)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -74,20 +90,20 @@ for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
     shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
-    os.path.join(PATH_ROOT, "src", "pytorch_lightning", "CHANGELOG.md"),
+    os.path.join(PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
     os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
 # -- Project information -----------------------------------------------------
 
 project = "PyTorch Lightning"
-copyright = pytorch_lightning.__copyright__
-author = pytorch_lightning.__author__
+copyright = lightning.__copyright__
+author = lightning.__author__
 
 # The short X.Y version
-version = pytorch_lightning.__version__
+version = lightning.__version__
 # The full version, including alpha/beta/rc tags
-release = pytorch_lightning.__version__
+release = lightning.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -162,7 +178,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -195,8 +211,8 @@ html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.g
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": "https://pytorchlightning.ai",
-    "canonical_url": pytorch_lightning.__about__.__docs_url__,
+    "pytorch_project": "https://lightning.ai",
+    "canonical_url": lightning.__docs_url__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -390,20 +406,18 @@ import sys
 from typing import Optional
 
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
-from pytorch_lightning.utilities import (
-    _TORCHVISION_AVAILABLE,
-)
-from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
-from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
-from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
-from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
+from lightning.pytorch.utilities import _TORCHVISION_AVAILABLE
+from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
+from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
+from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
+from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 

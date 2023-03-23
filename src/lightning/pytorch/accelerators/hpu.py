@@ -35,7 +35,10 @@ if _HPU_AVAILABLE:
 
 
 class HPUAccelerator(Accelerator):
-    """Accelerator for HPU devices."""
+    """Accelerator for HPU devices.
+
+    .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+    """
 
     def setup_device(self, device: torch.device) -> None:
         """

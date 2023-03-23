@@ -4,6 +4,8 @@ TPU training (Advanced)
 =======================
 **Audience:** Users looking to apply advanced performance techniques to TPU training.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 Weight Sharing/Tying
@@ -25,9 +27,9 @@ Example:
 
 .. code-block:: python
 
-    from pytorch_lightning.core.module import LightningModule
+    from lightning.pytorch.core.module import LightningModule
     from torch import nn
-    from pytorch_lightning.trainer.trainer import Trainer
+    from lightning.pytorch.trainer.trainer import Trainer
 
 
     class WeightSharingModule(LightningModule):

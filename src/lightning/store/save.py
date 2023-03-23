@@ -19,6 +19,7 @@ import os
 import shutil
 import tarfile
 from pathlib import Path, PurePath
+from typing import Any
 
 import requests
 import torch
@@ -59,7 +60,7 @@ def _save_checkpoint_from_path(name, path, tmpdir, stored: dict) -> dict:
     return stored
 
 
-def _save_model_weights(name, model_state_dict, tmpdir, stored, *args, **kwargs) -> dict:
+def _save_model_weights(name, model_state_dict, tmpdir, stored, *args: Any, **kwargs: Any) -> dict:
     # For now we assume that it's always going to be public
     weights_file_path = f"{tmpdir}/weights.pt"
     torch.save(model_state_dict, weights_file_path, *args, **kwargs)
@@ -67,7 +68,7 @@ def _save_model_weights(name, model_state_dict, tmpdir, stored, *args, **kwargs)
     return stored
 
 
-def _save_model(name, model, tmpdir, stored, *args, **kwargs) -> dict:
+def _save_model(name, model, tmpdir, stored, *args: Any, **kwargs: Any) -> dict:
     # For now we assume that it's always going to be public
     model_file_path = f"{tmpdir}/model"
     torch.save(model, model_file_path, *args, **kwargs)

@@ -35,7 +35,7 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.hpu import HPUAccelerator
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE, IPUAccelerator
+from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
@@ -53,7 +53,6 @@ from lightning.pytorch.plugins import (
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
@@ -67,9 +66,9 @@ from lightning.pytorch.strategies import (
     StrategyRegistry,
     XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_BAGUA_AVAILABLE, _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -77,18 +76,18 @@ log = logging.getLogger(__name__)
 _LITERAL_WARN = Literal["warn"]
 
 
-class AcceleratorConnector:
+class _AcceleratorConnector:
     def __init__(
         self,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         precision: _PRECISION_INPUT = "32-true",
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
@@ -102,8 +101,6 @@ class AcceleratorConnector:
             B. strategy flag could be :
                 1. strategy class
                 2. strategy str registered with StrategyRegistry
-                3. strategy str in _strategy_type enum which listed in each strategy as
-                   backend (registed these too, and _strategy_type could be deprecated)
 
             C. plugins flag could be:
                 1. List of str, which could contain:
@@ -120,7 +117,7 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
         """
-        self.replace_sampler_ddp = replace_sampler_ddp
+        self.use_distributed_sampler = use_distributed_sampler
         _set_torch_flags(deterministic=deterministic, benchmark=benchmark)
 
         # 1. Parsing flags
@@ -131,8 +128,8 @@ class AcceleratorConnector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        self._strategy_flag: Optional[Union[Strategy, str]] = None
-        self._accelerator_flag: Optional[Union[Accelerator, str]] = None
+        self._strategy_flag: Union[Strategy, str] = "auto"
+        self._accelerator_flag: Union[Accelerator, str] = "auto"
         self._precision_flag: _PRECISION_INPUT_STR = "32-true"
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
@@ -151,7 +148,7 @@ class AcceleratorConnector:
         self._set_accelerator_if_ipu_strategy_is_passed()
 
         # handle `auto`, `None` and `gpu`
-        if self._accelerator_flag == "auto" or self._accelerator_flag is None:
+        if self._accelerator_flag == "auto":
             self._accelerator_flag = self._choose_auto_accelerator()
         elif self._accelerator_flag == "gpu":
             self._accelerator_flag = self._choose_gpu_accelerator_backend()
@@ -163,7 +160,7 @@ class AcceleratorConnector:
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
 
         # 4. Instantiate Strategy - Part 1
-        if self._strategy_flag is None:
+        if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
@@ -177,8 +174,8 @@ class AcceleratorConnector:
 
     def _check_config_and_set_final_flags(
         self,
-        strategy: Optional[Union[str, Strategy]],
-        accelerator: Optional[Union[str, Accelerator]],
+        strategy: Union[str, Strategy],
+        accelerator: Union[str, Accelerator],
         precision: _PRECISION_INPUT,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         sync_batchnorm: bool,
@@ -200,29 +197,30 @@ class AcceleratorConnector:
         if isinstance(strategy, str):
             strategy = strategy.lower()
 
-        if strategy is not None:
-            self._strategy_flag = strategy
+        self._strategy_flag = strategy
 
         if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
             raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
 
-        if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+        if strategy == "bagua" and not _LIGHTNING_BAGUA_AVAILABLE:
+            raise ModuleNotFoundError(str(_LIGHTNING_BAGUA_AVAILABLE))
+
+        if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `lightning.pytorch.strategies.Strategy`."
-                " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
+                " Example choices: auto, ddp, ddp_spawn, deepspeed, ..."
                 " Find a complete list of options in our documentation at https://lightning.ai"
             )
 
         if (
-            accelerator is not None
-            and accelerator not in self._accelerator_types
+            accelerator not in self._accelerator_types
             and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
-                f" Available names are: {', '.join(self._accelerator_types)}."
+                f" Available names are: auto, {', '.join(self._accelerator_types)}."
             )
 
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
@@ -280,7 +278,7 @@ class AcceleratorConnector:
         # TODO: improve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
-                if self._accelerator_flag:
+                if self._accelerator_flag != "auto":
                     raise MisconfigurationException(
                         "accelerator set through both strategy class and accelerator flag, choose one"
                     )
@@ -327,7 +325,7 @@ class AcceleratorConnector:
 
     def _check_device_config_and_set_final_flags(
         self,
-        devices: Optional[Union[List[int], str, int]],
+        devices: Union[List[int], str, int],
         num_nodes: int,
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
@@ -344,12 +342,6 @@ class AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-        if self._devices_flag == "auto" and self._accelerator_flag is None:
-            raise MisconfigurationException(
-                f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu'|'mps')` for the devices mapping."
-            )
-
     def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
         # current logic only apply to object config
         # TODO this logic should apply to both str and object config
@@ -357,18 +349,17 @@ class AcceleratorConnector:
             self._accelerator_flag = "ipu"
 
     def _choose_auto_accelerator(self) -> str:
-        """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if self._accelerator_flag == "auto":
-            if TPUAccelerator.is_available():
-                return "tpu"
-            if _IPU_AVAILABLE:
-                return "ipu"
-            if HPUAccelerator.is_available():
-                return "hpu"
-            if MPSAccelerator.is_available():
-                return "mps"
-            if CUDAAccelerator.is_available():
-                return "cuda"
+        """Choose the accelerator type (str) based on availability."""
+        if TPUAccelerator.is_available():
+            return "tpu"
+        if IPUAccelerator.is_available():
+            return "ipu"
+        if HPUAccelerator.is_available():
+            return "hpu"
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
         return "cpu"
 
     @staticmethod
@@ -377,14 +368,12 @@ class AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
-
         raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
-            assert self._accelerator_flag is not None
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
         accelerator_cls = self.accelerator.__class__
 
@@ -407,7 +396,7 @@ class AcceleratorConnector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or self._devices_flag is None:
+        if self._devices_flag == "auto":
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
@@ -422,6 +411,11 @@ class AcceleratorConnector:
         ):
             if env_type.detect():
                 return env_type()
+        if _LIGHTNING_BAGUA_AVAILABLE:
+            from lightning_bagua import BaguaEnvironment
+
+            if BaguaEnvironment.detect():
+                return BaguaEnvironment()
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
@@ -439,7 +433,7 @@ class AcceleratorConnector:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
         if self._num_nodes_flag > 1:
-            return DDPStrategy.strategy_name
+            return "ddp"
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
@@ -586,9 +580,9 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
+                f" `Fabric(strategy='dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
@@ -621,7 +615,6 @@ class AcceleratorConnector:
         distributed_strategy = (
             DDPStrategy,
             FSDPStrategy,
-            DDPSpawnStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
             HPUParallelStrategy,
@@ -665,3 +658,10 @@ def _register_external_accelerators_and_strategies() -> None:
         # TODO: Prevent registering multiple times
         if "colossalai" not in StrategyRegistry:
             ColossalAIStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_BAGUA_AVAILABLE:
+        from lightning_bagua import BaguaStrategy
+
+        # TODO: Prevent registering multiple times
+        if "bagua" not in StrategyRegistry:
+            BaguaStrategy.register_strategies(StrategyRegistry)

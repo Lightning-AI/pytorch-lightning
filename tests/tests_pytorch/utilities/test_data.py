@@ -9,8 +9,8 @@ from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sequential
 
 from lightning.fabric.utilities.data import _replace_dunder_methods
 from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from lightning.pytorch.overrides.distributed import IndexBatchSamplerWrapper
+from lightning.pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
+from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
@@ -93,12 +93,11 @@ def test_extract_batch_size():
 
 def test_has_len_all_rank():
     trainer = Trainer(fast_dev_run=True)
-    model = BoringModel()
 
     with pytest.warns(UserWarning, match="Total length of `DataLoader` across ranks is zero."):
-        assert has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.strategy, model)
+        assert has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.strategy)
 
-    assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.strategy, model)
+    assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.strategy)
 
 
 def test_update_dataloader_typerror_custom_exception():
@@ -176,8 +175,8 @@ def test_custom_batch_sampler(predicting):
     batch_sampler = dataloader.batch_sampler
 
     if predicting:
-        assert isinstance(batch_sampler, IndexBatchSamplerWrapper)
-        batch_sampler = batch_sampler._sampler
+        assert isinstance(batch_sampler, _IndexBatchSamplerWrapper)
+        batch_sampler = batch_sampler._batch_sampler
 
     assert isinstance(batch_sampler, MyBatchSampler)
     assert batch_sampler.drop_last == (not predicting)

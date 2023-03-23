@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Iterable, Iterator, List, Sized, Union
+from typing import Any, cast, Dict, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 from torch import Tensor
@@ -41,7 +41,7 @@ def _find_tensors(
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
-        model.require_forward_param_sync = True  # type: ignore[assignment]
+        model.require_forward_param_sync = True
         # We'll return the output object verbatim since it is a freeform
         # object. We need to find any tensors in this object, though,
         # because we need to figure out which parameters were used during
@@ -52,7 +52,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
         reducer._rebuild_buckets()  # avoids "INTERNAL ASSERT FAILED" with `find_unused_parameters=False`
         reducer.prepare_for_backward(args)
     else:
-        model.require_forward_param_sync = False  # type: ignore[assignment]
+        model.require_forward_param_sync = False
 
 
 class UnrepeatedDistributedSampler(DistributedSampler):
@@ -108,34 +108,36 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
         return (self.dataset[index] for index in super().__iter__())
 
 
-class IndexBatchSamplerWrapper:
+class _IndexBatchSamplerWrapper(BatchSampler):
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
-    def __init__(self, sampler: BatchSampler) -> None:
+    def __init__(self, batch_sampler: BatchSampler) -> None:
+        # do not call super().__init__() on purpose
         self.seen_batch_indices: List[List[int]] = []
-        self._sampler = sampler
+
+        self.__dict__ = {
+            k: v
+            for k, v in batch_sampler.__dict__.items()
+            if k not in ("__next__", "__iter__", "__len__", "__getstate__")
+        }
+        self._batch_sampler = batch_sampler
+        self._iterator: Optional[Iterator[List[int]]] = None
+
+    def __next__(self) -> List[int]:
+        assert self._iterator is not None
+        batch = next(self._iterator)
+        self.seen_batch_indices.append(batch)
+        return batch
 
     def __iter__(self) -> Iterator[List[int]]:
         self.seen_batch_indices = []
-        for batch in self._sampler:
-            self.seen_batch_indices.append(batch)
-            yield batch
+        self._iterator = iter(self._batch_sampler)
+        return self
 
     def __len__(self) -> int:
-        return len(self._sampler)
+        return len(self._batch_sampler)
 
-    @property
-    def drop_last(self) -> bool:
-        return self._sampler.drop_last
-
-    @property
-    def batch_size(self) -> int:
-        return self._sampler.batch_size
-
-    @property
-    def sampler(self) -> Union[Sampler, Iterable]:
-        return self._sampler.sampler
-
-    def set_epoch(self, epoch: int) -> None:
-        if hasattr(self._sampler, "set_epoch"):
-            self._sampler.set_epoch(epoch)
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_iterator"] = None  # cannot pickle 'generator' object
+        return state

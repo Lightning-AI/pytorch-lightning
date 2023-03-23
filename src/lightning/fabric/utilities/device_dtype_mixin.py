@@ -46,14 +46,14 @@ class _DeviceDtypeModuleMixin(Module):
 
         return device
 
-    def to(self, *args: Any, **kwargs: Any) -> Self:  # type: ignore[valid-type]
+    def to(self, *args: Any, **kwargs: Any) -> Self:
         """See :meth:`torch.nn.Module.to`."""
         # this converts `str` device to `torch.device`
         device, dtype = torch._C._nn._parse_to(*args, **kwargs)[:2]
         self.__update_properties(device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:  # type: ignore[valid-type]
+    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU
         while being optimized.
@@ -72,27 +72,27 @@ class _DeviceDtypeModuleMixin(Module):
         self.__update_properties(device=device)
         return super().cuda(device=device)
 
-    def cpu(self) -> Self:  # type: ignore[valid-type]
+    def cpu(self) -> Self:
         """See :meth:`torch.nn.Module.cpu`."""
         self.__update_properties(device=torch.device("cpu"))
         return super().cpu()
 
-    def type(self, dst_type: Union[str, torch.dtype]) -> Self:  # type: ignore[valid-type]
+    def type(self, dst_type: Union[str, torch.dtype]) -> Self:
         """See :meth:`torch.nn.Module.type`."""
         self.__update_properties(dtype=dst_type)
         return super().type(dst_type=dst_type)
 
-    def float(self) -> Self:  # type: ignore[valid-type]
+    def float(self) -> Self:
         """See :meth:`torch.nn.Module.float`."""
         self.__update_properties(dtype=torch.float)
         return super().float()
 
-    def double(self) -> Self:  # type: ignore[valid-type]
+    def double(self) -> Self:
         """See :meth:`torch.nn.Module.double`."""
         self.__update_properties(dtype=torch.double)
         return super().double()
 
-    def half(self) -> Self:  # type: ignore[valid-type]
+    def half(self) -> Self:
         """See :meth:`torch.nn.Module.half`."""
         self.__update_properties(dtype=torch.half)
         return super().half()

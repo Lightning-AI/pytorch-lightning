@@ -67,7 +67,7 @@ class Fabric:
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
-        precision: Double precision (``"64-true"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
+        precision: Double precision (``"64"``), full precision (``"32"``), half precision AMP (``"16-mixed"``),
             or bfloat16 precision AMP (``"bf16-mixed"``).
         plugins: One or several custom plugins
         callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
@@ -78,9 +78,10 @@ class Fabric:
 
     def __init__(
         self,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        *,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
@@ -273,15 +274,16 @@ class Fabric:
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
-        self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+        self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, List[DataLoader]]:
         """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
         Args:
             *dataloaders: A single dataloader or a sequence of dataloaders.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
+                dataloader(s) for distributed training. If you have a custom sampler defined, set this argument
+                to ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
@@ -291,21 +293,24 @@ class Fabric:
         """
         self._validate_setup_dataloaders(dataloaders)
         dataloaders = [
-            self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
+            self._setup_dataloader(
+                dataloader, use_distributed_sampler=use_distributed_sampler, move_to_device=move_to_device
+            )
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
-        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+        self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
         """Set up a single dataloader for accelerated training.
 
         Args:
             dataloader: The dataloader to accelerate.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
+                dataloader for distributed training. If you have a custom sampler defined, set this argument to
+                ``False``.
             move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
@@ -314,7 +319,7 @@ class Fabric:
             The wrapped dataloader.
         """
         sampler = dataloader.sampler
-        if replace_sampler and self._requires_distributed_sampler(dataloader):
+        if use_distributed_sampler and self._requires_distributed_sampler(dataloader):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
@@ -358,6 +363,46 @@ class Fabric:
                 self._strategy._deepspeed_engine = module
 
         self._precision.backward(tensor, module, *args, **kwargs)
+
+    def clip_gradients(
+        self,
+        module: Union[torch.nn.Module, _FabricModule],
+        optimizer: Union[Optimizer, _FabricOptimizer],
+        clip_val: Optional[Union[float, int]] = None,
+        max_norm: Optional[Union[float, int]] = None,
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> Optional[torch.Tensor]:
+        """Clip the gradients of the model to a given max value or max norm.
+
+        Args:
+            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
+            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
+                optimizer is referencing.
+            clip_val: If passed, gradients will be clipped to this value.
+            max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
+                no larger than the given value.
+            norm_type: The type of norm if `max_norm` was passed. Can be ``'inf'`` for infinity norm.
+                Default is the 2-norm.
+            error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
+        """
+        if clip_val is not None and max_norm is not None:
+            raise ValueError(
+                "Only one of `clip_val` or `max_norm` can be set as this specifies the underlying clipping algorithm!"
+            )
+
+        if clip_val is not None:
+            self.strategy.clip_gradients_value(_unwrap_objects(module), _unwrap_objects(optimizer), clip_val=clip_val)
+            return None
+        elif max_norm is not None:
+            return self.strategy.clip_gradients_norm(
+                _unwrap_objects(module),
+                _unwrap_objects(optimizer),
+                max_norm=max_norm,
+                norm_type=norm_type,
+                error_if_nonfinite=error_if_nonfinite,
+            )
+        raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
 
     @contextmanager
     def autocast(self) -> Generator[None, None, None]:
@@ -410,12 +455,15 @@ class Fabric:
         """Wait for all processes to enter this call.
 
         Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
-        will cause your program to slow down.
+        will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
+        cause your program to stall forever.
         """
         self._strategy.barrier(name=name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Send a tensor from one process to all others.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             obj: The object to broadcast to all other members. Any serializable object is supported, but it is
@@ -431,6 +479,8 @@ class Fabric:
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Gather tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -452,6 +502,8 @@ class Fabric:
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -564,6 +616,24 @@ class Fabric:
         return self._strategy.load_checkpoint(path=path, state=state)
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+        """Launch and initialize all the processes needed for distributed execution.
+
+        Args:
+            function: Optional function to launch when using a spawn/fork-based strategy, for example, when using the
+                XLA strategy (``accelerator="tpu"``). The function must accept at least one argument, to which
+                the Fabric object itself will be passed.
+            *args: Optional positional arguments to be passed to the function.
+            **kwargs: Optional keyword arguments to be passed to the function.
+
+        Returns:
+            Returns the output of the function that ran in worker process with rank 0.
+
+        The ``launch()`` method should only be used if you intend to specify accelerator, devices, and so on in
+        the code (programmatically). If you are launching with the Lightning CLI, ``lightning run model ...``, remove
+        ``launch()`` from your code.
+
+        ``launch()`` is a no-op when called multiple times and no function is passed in.
+        """
         if _is_using_cli():
             raise RuntimeError(
                 "This script was launched through the CLI, and processes have already been created. Calling "
@@ -647,7 +717,7 @@ class Fabric:
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
         """Helper function to seed everything without explicitly importing Lightning.
 
-        See :func:`lightning.pytorch.seed_everything` for more details.
+        See :func:`lightning.fabric.utilities.seed.seed_everything` for more details.
         """
         if workers is None:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new

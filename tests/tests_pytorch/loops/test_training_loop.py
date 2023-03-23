@@ -139,15 +139,15 @@ def test_fit_loop_done_log_messages(caplog):
     fit_loop = _FitLoop(trainer, max_epochs=1)
 
     trainer.should_stop = False
-    trainer.num_training_batches = 5
+    fit_loop.max_batches = 5
     assert not fit_loop.done
     assert not caplog.messages
 
-    trainer.num_training_batches = 0
+    fit_loop.max_batches = 0
     assert fit_loop.done
     assert "No training batches" in caplog.text
     caplog.clear()
-    trainer.num_training_batches = 5
+    fit_loop.max_batches = 5
 
     epoch_loop = Mock()
     epoch_loop.global_step = 10
@@ -191,7 +191,7 @@ def test_should_stop_early_stopping_conditions_met(
 ):
     """Test that checks that debug message is logged when users sets `should_stop` and min conditions are met."""
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0, max_epochs=100)
-    trainer.num_training_batches = 10
+    trainer.fit_loop.max_batches = 10
     trainer.should_stop = True
     trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.optimizer.step.total.completed = (
         current_epoch * trainer.num_training_batches
