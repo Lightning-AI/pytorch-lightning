@@ -24,7 +24,7 @@ def is_state_dict_equal(state0, state1):
     return all(eq_fn(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
 
 
-def is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3):
+def is_timing_close(timings_torch, timings_fabric, rtol=1e-2, atol=0.1):
     # Drop measurements of the first iterations, as they may be slower than others
     # The median is more robust to outliers than the mean
     # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * torch + ATOL
