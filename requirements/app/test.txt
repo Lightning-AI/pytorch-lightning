@@ -11,5 +11,4 @@ trio<0.22.0
 pympler
 psutil
 setuptools<65.7.0
-sqlmodel
 requests-mock
