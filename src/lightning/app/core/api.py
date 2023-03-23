@@ -436,7 +436,7 @@ def register_global_routes() -> None:
 
 
 class LightningUvicornServer(uvicorn.Server):
-    has_started_queue: Optional[bool] = None
+    has_started_queue: Optional[Queue] = None
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
