@@ -48,7 +48,9 @@ from lightning.app.core.constants import (
     FRONTEND_DIR,
     get_cloud_queue_type,
 )
+from lightning.app.core.flow import LightningFlow
 from lightning.app.core.queues import QueuingSystem
+from lightning.app.core.work import LightningWork
 from lightning.app.storage import Drive
 from lightning.app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning.app.utilities.app_status import AppStatus
@@ -217,7 +219,7 @@ async def get_state(
         return state
 
 
-def _get_component_by_name(component_name: str, state: dict) -> Union[LightningFlow, LightningWork]
+def _get_component_by_name(component_name: str, state: dict) -> Union[LightningFlow, LightningWork]:
     child = state
     for child_name in component_name.split(".")[1:]:
         try:
@@ -434,7 +436,7 @@ def register_global_routes() -> None:
 
 
 class LightningUvicornServer(uvicorn.Server):
-    has_started_queue = None
+    has_started_queue: Optional[bool] = None
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
