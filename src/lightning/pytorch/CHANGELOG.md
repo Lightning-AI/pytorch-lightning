@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Pickling the `LightningModule` no longer pickles the `Trainer` ([#17133](https://github.com/Lightning-AI/lightning/pull/17133))
 
 
+- Change `Trainer.log_dir` to `logger.log_dir` when using `CSVLogger` ([#17174](https://github.com/Lightning-AI/lightning/pull/17174))
+
+
 ### Depercated
 
 -
