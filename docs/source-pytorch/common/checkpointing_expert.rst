@@ -17,10 +17,7 @@ We provide ``Checkpoint`` class, for easier subclassing. Users may want to subcl
 Customize Checkpointing
 ***********************
 
-.. warning::
-
-    The Checkpoint IO API is experimental and subject to change.
-
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
 that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint`
@@ -45,8 +42,6 @@ Built-in Checkpoint IO Plugins
        respectively, common for most use cases.
    * - :class:`~lightning.pytorch.plugins.io.XLACheckpointIO`
      - CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
-   * - :class:`~lightning.pytorch.plugins.io.HPUCheckpointIO`
-     - CheckpointIO to save checkpoints for HPU training strategies.
    * - :class:`~lightning.pytorch.plugins.io.AsyncCheckpointIO`
      - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 
@@ -104,9 +99,7 @@ Custom Checkpoint IO Plugin
 Asynchronous Checkpointing
 **************************
 
-.. warning::
-
-    This is currently an experimental plugin/feature and API changes are to be expected.
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 To enable saving the checkpoints asynchronously without blocking your training, you can configure
 :class:`~lightning.pytorch.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.

@@ -59,7 +59,7 @@ class StochasticWeightAveraging(Callback):
         For a SWA explanation, please take a look
         `here <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`_.
 
-        .. warning:: ``StochasticWeightAveraging`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
@@ -150,8 +150,7 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException("SWA does not currently support sharded models.")
 
         # copy the model before moving it to accelerator device.
-        with pl_module._prevent_trainer_and_dataloaders_deepcopy():
-            self._average_model = deepcopy(pl_module)
+        self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if len(trainer.optimizers) != 1:
@@ -347,7 +346,7 @@ class StochasticWeightAveraging(Callback):
         # Note that this relies on the callback state being restored before the scheduler state is
         # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
         # writing that is only True for deepspeed which is already not supported by SWA.
-        # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
+        # See https://github.com/Lightning-AI/lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
             trainer.lr_scheduler_configs.clear()

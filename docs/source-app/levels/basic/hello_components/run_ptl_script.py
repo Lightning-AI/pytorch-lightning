@@ -1,5 +1,5 @@
 # app.py
-# !curl https://raw.githubusercontent.com/Lightning-AI/lightning/master/examples/app_multi_node/pl_boring_script.py -o pl_boring_script.py
+# !curl https://raw.githubusercontent.com/Lightning-AI/lightning/master/examples/app/multi_node/pl_boring_script.py -o pl_boring_script.py
 import lightning as L
 from lightning.app.components.training import LightningTrainerScript
 

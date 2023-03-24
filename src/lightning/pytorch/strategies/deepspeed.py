@@ -119,7 +119,7 @@ class DeepSpeedStrategy(DDPStrategy):
         billion parameter models. `For more information: https://pytorch-
         lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
-        .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
@@ -544,6 +544,8 @@ class DeepSpeedStrategy(DDPStrategy):
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
             inference_config.update({"fp16": self.config["fp16"]})
+        if "bf16" in self.config:
+            inference_config.update({"bf16": self.config["bf16"]})
         if self.zero_stage_3:
             inference_config.update(
                 {
@@ -592,7 +594,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
@@ -760,7 +762,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
                 "If a single file is required after training, "
-                "see https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#"
+                "see https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#"
                 "deepspeed-zero-stage-3-single-file for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes

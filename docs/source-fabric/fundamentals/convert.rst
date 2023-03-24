@@ -92,6 +92,10 @@ All steps combined, this is how your code will change:
 That's it! You can now train on any device at any scale with a switch of a flag.
 Check out our before-and-after example for `image classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_ and many more :doc:`examples <../examples/index>` that use Fabric.
 
+
+----
+
+
 **********
 Next steps
 **********
@@ -115,13 +119,13 @@ Next steps
     :button_link: accelerators.html
     :col_css: col-md-4
     :height: 150
-    :tag: intermediate
+    :tag: basic
 
 .. displayitem::
     :header: Build your own Trainer
     :description: Learn how to build a trainer tailored for you
     :col_css: col-md-4
-    :button_link: ../index.html#build-your-own-trainer
+    :button_link: ../levels/intermediate
     :height: 150
     :tag: intermediate
 

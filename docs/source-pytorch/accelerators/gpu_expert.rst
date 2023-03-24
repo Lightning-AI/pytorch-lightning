@@ -6,6 +6,8 @@ GPU training (Expert)
 =====================
 **Audience:** Experts creating new scaling techniques such as Deepspeed or FSDP
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 Lightning enables experts focused on researching new ways of optimizing distributed training/inference strategies to create new strategies and plug them into Lightning.

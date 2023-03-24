@@ -23,6 +23,8 @@ from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDevice
 def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
     """Returns an instance LightningModule from the output of ``torch.compile``.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
     passed in as an argument, but doesn't inherit from it. This means that the output of ``torch.compile`` behaves
     like a LightningModule, but it doesn't inherit from it (i.e. `isinstance` will fail).
@@ -54,18 +56,22 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
         "original_predict_step": orig_module.predict_step,
     }
 
-    orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
-    if not _TORCH_GREATER_EQUAL_2_1:
-        orig_module.forward._torchdynamo_inline = orig_module.forward  # https://github.com/pytorch/pytorch/issues/95630
-    orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
-    orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
-    orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
-    orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
+    orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[method-assign]
+    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
+        orig_module.forward._torchdynamo_inline = orig_module.forward
+    orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[method-assign]
+    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
+        orig_module.training_step._torchdynamo_inline = orig_module.training_step
+    orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[method-assign]
+    orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[method-assign]
+    orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[method-assign]
     return orig_module
 
 
 def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
     """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
     returned by ``from_compiled``.
@@ -95,11 +101,11 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
 
     ctx = model._compiler_ctx
     if ctx is not None:
-        model.forward = ctx["original_forward"]  # type: ignore[assignment]
-        model.training_step = ctx["original_training_step"]  # type: ignore[assignment]
-        model.validation_step = ctx["original_validation_step"]  # type: ignore[assignment]
-        model.test_step = ctx["original_test_step"]  # type: ignore[assignment]
-        model.predict_step = ctx["original_predict_step"]  # type: ignore[assignment]
+        model.forward = ctx["original_forward"]  # type: ignore[method-assign]
+        model.training_step = ctx["original_training_step"]  # type: ignore[method-assign]
+        model.validation_step = ctx["original_validation_step"]  # type: ignore[method-assign]
+        model.test_step = ctx["original_test_step"]  # type: ignore[method-assign]
+        model.predict_step = ctx["original_predict_step"]  # type: ignore[method-assign]
         model._compiler_ctx = None
 
     return model

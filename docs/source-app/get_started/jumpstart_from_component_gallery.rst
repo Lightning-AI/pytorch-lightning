@@ -10,10 +10,6 @@ Anyone can build components for their own use case and promote them on the `Comp
 
 In return, you can benefit from the work of others and add new functionalities to your Apps with minimal effort.
 
-.. join_slack::
-   :align: left
-
-----
 
 *************
 User Workflow

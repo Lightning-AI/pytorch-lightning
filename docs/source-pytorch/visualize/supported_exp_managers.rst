@@ -74,17 +74,18 @@ or with conda:
 
 .. code-block:: bash
 
-    conda install -c conda-forge neptune-client
+    conda install -c conda-forge neptune
 
 Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
 
 .. testcode::
     :skipif: not _NEPTUNE_AVAILABLE
 
+    import neptune
     from lightning.pytorch.loggers import NeptuneLogger
 
     neptune_logger = NeptuneLogger(
-        api_key="ANONYMOUS",  # replace with your own
+        api_key=neptune.ANONYMOUS_API_TOKEN,  # replace with your own
         project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
     )
     trainer = Trainer(logger=neptune_logger)
@@ -96,7 +97,7 @@ Access the neptune logger from any function (except the LightningModule *init*) 
     class LitModel(LightningModule):
         def any_lightning_module_function_or_hook(self):
             neptune_logger = self.logger.experiment["your/metadata/structure"]
-            neptune_logger.log(metadata)
+            neptune_logger.append(metadata)
 
 Here's the full documentation for the :class:`~lightning.pytorch.loggers.NeptuneLogger`.
 
