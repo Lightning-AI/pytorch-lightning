@@ -36,7 +36,7 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
-        if p.name not in ("docs.txt", "devel.txt", "base.txt")
+        if p.name not in ("docs.txt", "devel.txt", "base.txt") and not p.parts[-2].startswith("_")
     }
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
