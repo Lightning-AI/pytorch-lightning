@@ -6,6 +6,8 @@ Accelerator: HPU training
 =========================
 **Audience:** Gaudi chip users looking to save memory and scale models with mixed-precision training.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 Enable Mixed Precision
@@ -45,7 +47,7 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
         accelerator="hpu",
         devices=1,
         # Optional Habana mixed precision params to be set
-        # Checkout `examples/pl_hpu/ops_bf16_mnist.txt` for the format
+        # Checkout `examples/pytorch/hpu/ops_bf16_mnist.txt` for the format
         plugins=[
             HPUPrecisionPlugin(
                 precision=16,

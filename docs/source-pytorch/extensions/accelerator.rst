@@ -29,6 +29,8 @@ hardware and distributed training or clusters.
 Create a Custom Accelerator
 ---------------------------
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 Here is how you create a new Accelerator.
 Let's pretend we want to integrate the fictional XPU accelerator and we have access to its hardware through a library
 ``xpulib``.
@@ -39,7 +41,7 @@ Let's pretend we want to integrate the fictional XPU accelerator and we have acc
 
 
     class XPUAccelerator(Accelerator):
-        """Experimental support for XPU, optimized for large-scale machine learning."""
+        """Support for a hypothetical XPU, optimized for large-scale machine learning."""
 
         @staticmethod
         def parse_devices(devices: Any) -> Any:

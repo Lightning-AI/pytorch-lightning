@@ -21,7 +21,7 @@ from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFe
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
-from lightning.pytorch.loops.progress import BatchProgress, SchedulerProgress
+from lightning.pytorch.loops.progress import _BatchProgress, _SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
@@ -63,8 +63,8 @@ class _TrainingEpochLoop(loops._Loop):
         self.min_steps = min_steps
         self.max_steps = max_steps
 
-        self.batch_progress = BatchProgress()
-        self.scheduler_progress = SchedulerProgress()
+        self.batch_progress = _BatchProgress()
+        self.scheduler_progress = _SchedulerProgress()
 
         self.automatic_optimization = _AutomaticOptimization(trainer)
         self.manual_optimization = _ManualOptimization(trainer)
