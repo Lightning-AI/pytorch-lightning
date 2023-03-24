@@ -8,7 +8,7 @@ If you are new to meta-learning, have a look at this short [introduction video](
 
 We show two code versions:
 The first one is implemented in raw PyTorch, but it contains quite a bit of boilerplate code for distributed training.
-The second one is using [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html) to accelerate and scale the model.
+The second one is using [Lightning Fabric](https://lightning.ai/docs/fabric) to accelerate and scale the model.
 
 Tip: You can easily inspect the difference between the two files with:
 

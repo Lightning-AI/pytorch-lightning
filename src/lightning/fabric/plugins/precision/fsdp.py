@@ -24,7 +24,10 @@ if TYPE_CHECKING:
 
 
 class FSDPPrecision(MixedPrecision):
-    """AMP for Fully Sharded Data Parallel training."""
+    """AMP for Fully Sharded Data Parallel training.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     def __init__(
         self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None

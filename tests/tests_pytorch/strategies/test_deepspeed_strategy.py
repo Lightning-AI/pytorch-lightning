@@ -33,6 +33,7 @@ from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -348,6 +349,32 @@ def test_deepspeed_custom_precision_params(tmpdir):
         trainer.fit(model)
 
 
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+@pytest.mark.parametrize("precision", ["fp16", "bf16"])
+def test_deepspeed_inference_precision_during_inference(precision, tmpdir):
+    """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains
+    these changes."""
+
+    class TestCB(Callback):
+        def on_validation_start(self, trainer, pl_module) -> None:
+            assert trainer.strategy.config[precision]
+            raise SystemExit()
+
+    model = BoringModel()
+    strategy = DeepSpeedStrategy(config={precision: {"enabled": True}})
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy=strategy,
+        accelerator="cuda",
+        devices=1,
+        callbacks=[TestCB()],
+        barebones=True,
+    )
+    with pytest.raises(SystemExit):
+        trainer.validate(model)
+
+
 @RunIf(deepspeed=True)
 def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     """Ensure if we modify the activation checkpointing parameters, the deepspeed config contains these changes."""
@@ -541,9 +568,10 @@ class ModelParallelClassificationModel(LightningModule):
         self.num_blocks = num_blocks
         self.prepare_data_per_node = True
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
-        self.test_acc = Accuracy()
+        metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
+        self.train_acc = metric.clone()
+        self.valid_acc = metric.clone()
+        self.test_acc = metric.clone()
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())

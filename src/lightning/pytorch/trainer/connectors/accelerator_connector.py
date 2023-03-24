@@ -53,7 +53,6 @@ from lightning.pytorch.plugins import (
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
@@ -67,9 +66,9 @@ from lightning.pytorch.strategies import (
     StrategyRegistry,
     XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_BAGUA_AVAILABLE, _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -77,7 +76,7 @@ log = logging.getLogger(__name__)
 _LITERAL_WARN = Literal["warn"]
 
 
-class AcceleratorConnector:
+class _AcceleratorConnector:
     def __init__(
         self,
         devices: Union[List[int], str, int] = "auto",
@@ -202,6 +201,9 @@ class AcceleratorConnector:
 
         if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
             raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
+
+        if strategy == "bagua" and not _LIGHTNING_BAGUA_AVAILABLE:
+            raise ModuleNotFoundError(str(_LIGHTNING_BAGUA_AVAILABLE))
 
         if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
@@ -409,6 +411,11 @@ class AcceleratorConnector:
         ):
             if env_type.detect():
                 return env_type()
+        if _LIGHTNING_BAGUA_AVAILABLE:
+            from lightning_bagua import BaguaEnvironment
+
+            if BaguaEnvironment.detect():
+                return BaguaEnvironment()
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
@@ -426,7 +433,7 @@ class AcceleratorConnector:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
         if self._num_nodes_flag > 1:
-            return DDPStrategy.strategy_name
+            return "ddp"
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
@@ -573,7 +580,7 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
                 f" `Fabric(strategy='dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
@@ -608,7 +615,6 @@ class AcceleratorConnector:
         distributed_strategy = (
             DDPStrategy,
             FSDPStrategy,
-            DDPSpawnStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
             HPUParallelStrategy,
@@ -652,3 +658,10 @@ def _register_external_accelerators_and_strategies() -> None:
         # TODO: Prevent registering multiple times
         if "colossalai" not in StrategyRegistry:
             ColossalAIStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_BAGUA_AVAILABLE:
+        from lightning_bagua import BaguaStrategy
+
+        # TODO: Prevent registering multiple times
+        if "bagua" not in StrategyRegistry:
+            BaguaStrategy.register_strategies(StrategyRegistry)

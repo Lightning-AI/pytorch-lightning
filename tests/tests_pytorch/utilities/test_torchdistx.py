@@ -88,5 +88,5 @@ def test_deferred_init_ddp_spawn(tmpdir):
         devices="1",
         strategy="ddp_spawn",
     )
-    with pytest.raises(NotImplementedError, match="DDPSpawnStrategy` strategy does not support.*torchdistx"):
+    with pytest.raises(NotImplementedError, match="DDPStrategy` strategy does not support.*torchdistx"):
         trainer.fit(model)

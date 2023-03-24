@@ -27,12 +27,3 @@ if TYPE_CHECKING:
 
 else:
     LightningEnum = StrEnum
-
-
-class _AcceleratorType(LightningEnum):
-    """Define Accelerator type by its nature."""
-
-    CPU = "CPU"
-    CUDA = "CUDA"
-    TPU = "TPU"
-    MPS = "MPS"

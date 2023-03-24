@@ -25,7 +25,10 @@ from lightning.fabric.utilities.device_parser import _check_data_type
 
 
 class TPUAccelerator(Accelerator):
-    """Accelerator for TPU devices."""
+    """Accelerator for TPU devices.
+
+    .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not _XLA_AVAILABLE:

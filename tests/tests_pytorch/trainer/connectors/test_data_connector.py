@@ -26,7 +26,6 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -138,7 +137,6 @@ class TestSpawnBoringModel(BoringModel):
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -370,6 +368,7 @@ def test_error_raised_with_float_limited_eval_batches():
     dl_size = len(model.val_dataloader())
     limit_val_batches = 1 / (dl_size + 2)
     trainer = Trainer(limit_val_batches=limit_val_batches)
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
     trainer.state.fn = TrainerFn.VALIDATING
     trainer.state.stage = RunningStage.VALIDATING
@@ -377,7 +376,7 @@ def test_error_raised_with_float_limited_eval_batches():
         MisconfigurationException,
         match=rf"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
-        trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
+        trainer.validate_loop.setup_data()
 
 
 @pytest.mark.parametrize(
@@ -406,12 +405,13 @@ def test_error_raised_with_float_limited_eval_batches():
 def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, warns):
     trainer = Trainer()
     model = BoringModel()
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
     context = pytest.warns if warns else no_warning_call
     trainer.state.fn = TrainerFn.VALIDATING
     trainer.state.stage = RunningStage.VALIDATING
-    with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
-        trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
+    with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test"):
+        trainer.validate_loop.setup_data()
 
 
 class NoDataLoaderModel(BoringModel):
@@ -614,8 +614,41 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
     datamodule.test_dataloader = None
     datamodule.predict_dataloader = None
 
-    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(TypeError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
 
-    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(TypeError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=None)
+
+
+@pytest.mark.parametrize(
+    "trainer_fn_name, dataloader_name, stage",
+    [
+        ("fit", "train_dataloaders", RunningStage.TRAINING),
+        ("validate", "dataloaders", RunningStage.VALIDATING),
+        ("test", "dataloaders", RunningStage.TESTING),
+        ("predict", "dataloaders", RunningStage.PREDICTING),
+    ],
+)
+@pytest.mark.parametrize("dataloader", [None, object(), [1, object()]])
+def test_non_iterables_raise(tmp_path, trainer_fn_name, dataloader_name, stage, dataloader):
+    model = BoringModel()
+
+    # Pretend that these methods are not implemented
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+    model.predict_dataloader = None
+
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
+    trainer_fn = getattr(trainer, trainer_fn_name)
+
+    with pytest.raises(
+        TypeError, match=rf"invalid dataloader was passed to `Trainer.{trainer_fn_name}\({dataloader_name}"
+    ):
+        trainer_fn(model, **{dataloader_name: dataloader})
+
+    dl_method = stage.dataloader_prefix + "_dataloader"
+    setattr(model, dl_method, lambda: dataloader)
+    with pytest.raises(TypeError, match=f"invalid dataloader was returned from `BoringModel.{dl_method}"):
+        trainer_fn(model)

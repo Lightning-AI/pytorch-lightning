@@ -12,11 +12,11 @@ Customize checkpointing behavior (intermediate)
 *****************************
 Modify checkpointing behavior
 *****************************
-For fine-grained control over checkpointing behavior, use the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` object
+For fine-grained control over checkpointing behavior, use the :class:`~lightning.pytorch.callbacks.ModelCheckpoint` object
 
 .. code-block:: python
 
-        from pytorch_lightning.callbacks import ModelCheckpoint
+        from lightning.pytorch.callbacks import ModelCheckpoint
 
         checkpoint_callback = ModelCheckpoint(dirpath="my/path/", save_top_k=2, monitor="val_loss")
         trainer = Trainer(callbacks=[checkpoint_callback])
@@ -40,7 +40,7 @@ Any value that has been logged via *self.log* in the LightningModule can be moni
 *****************************
 Save checkpoints by condition
 *****************************
-To save checkpoints based on a (*when/which/what/where*) condition (for example *when* the validation_loss is lower) modify the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` properties.
+To save checkpoints based on a (*when/which/what/where*) condition (for example *when* the validation_loss is lower) modify the :class:`~lightning.pytorch.callbacks.ModelCheckpoint` properties.
 
 When
 ====
@@ -61,7 +61,7 @@ Which
 
     .. testcode::
 
-        from pytorch_lightning.callbacks import ModelCheckpoint
+        from lightning.pytorch.callbacks import ModelCheckpoint
 
 
         # saves top-K checkpoints based on "val_loss" metric
@@ -89,7 +89,7 @@ Which
 
     .. testcode::
 
-        from pytorch_lightning.callbacks import ModelCheckpoint
+        from lightning.pytorch.callbacks import ModelCheckpoint
 
 
         class LitAutoEncoder(LightningModule):
@@ -120,13 +120,13 @@ What
 Where
 =====
 
-- By default, the ``ModelCheckpoint`` will save files into the ``Trainer.log_dir``. It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~pytorch_lightning.core.module.LightningModule.log`.
+- By default, the ``ModelCheckpoint`` will save files into the ``Trainer.log_dir``. It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~lightning.pytorch.core.module.LightningModule.log`.
 
 |
 
     .. testcode::
 
-        from pytorch_lightning.callbacks import ModelCheckpoint
+        from lightning.pytorch.callbacks import ModelCheckpoint
 
 
         # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
@@ -137,7 +137,7 @@ Where
 
 |
 
-The :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback is very robust and should cover 99% of the use-cases. If you find a use-case that is not configured yet, feel free to open an issue with a feature request on GitHub
+The :class:`~lightning.pytorch.callbacks.ModelCheckpoint` callback is very robust and should cover 99% of the use-cases. If you find a use-case that is not configured yet, feel free to open an issue with a feature request on GitHub
 and the Lightning Team will be happy to integrate/help integrate it.
 
 ----
@@ -146,8 +146,8 @@ and the Lightning Team will be happy to integrate/help integrate it.
 Save checkpoints manually
 *************************
 
-You can manually save checkpoints and restore your model from the checkpointed state using :meth:`~pytorch_lightning.trainer.trainer.Trainer.save_checkpoint`
-and :meth:`~pytorch_lightning.core.saving.ModelIO.load_from_checkpoint`.
+You can manually save checkpoints and restore your model from the checkpointed state using :meth:`~lightning.pytorch.trainer.trainer.Trainer.save_checkpoint`
+and :meth:`~lightning.pytorch.core.module.LightningModule.load_from_checkpoint`.
 
 .. code-block:: python
 
@@ -170,6 +170,6 @@ In distributed training cases where a model is running across many machines, Lig
     # Saves only on the main process
     trainer.save_checkpoint("example.ckpt")
 
-Not using :meth:`~pytorch_lightning.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behavior and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the Trainer's save functionality.
-If using custom saving functions cannot be avoided, we recommend using the :func:`~pytorch_lightning.utilities.rank_zero.rank_zero_only` decorator to ensure saving occurs only on the main process. Note that this will only work if all ranks hold the exact same state and won't work when using
+Not using :meth:`~lightning.pytorch.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behavior and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the Trainer's save functionality.
+If using custom saving functions cannot be avoided, we recommend using the :func:`~lightning.pytorch.utilities.rank_zero.rank_zero_only` decorator to ensure saving occurs only on the main process. Note that this will only work if all ranks hold the exact same state and won't work when using
 model parallel distributed strategies such as deepspeed or sharded training.

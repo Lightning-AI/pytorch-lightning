@@ -1,3 +1,16 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
@@ -6,18 +19,24 @@ from lightning_utilities import WarningCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities import move_data_to_device
-from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
-from lightning.pytorch.loops.progress import Progress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher
+from lightning.pytorch.loops.progress import _Progress
+from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
-from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.connectors.data_connector import (
+    _check_dataloader_iterable,
+    _DataLoaderSource,
+    _parse_num_batches,
+    _process_dataloader,
+    _request_dataloader,
+)
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
@@ -31,7 +50,7 @@ class _PredictionLoop(_Loop):
         # dataloaders x batches x samples. used by PredictionWriter
         self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
-        self.batch_progress = Progress()  # across dataloaders
+        self.batch_progress = _Progress()  # across dataloaders
         self.max_batches: List[Union[int, float]] = []
 
         self._warning_cache = WarningCache()
@@ -49,15 +68,15 @@ class _PredictionLoop(_Loop):
 
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
-        # `DDPSpawnStrategy` plugins and derivatives don't support return predictions.
-        is_ddp_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
-        if return_predictions and is_ddp_spawn:
+        # Strategies that spawn or fork don't support returning predictions
+        return_supported = not isinstance(self.trainer.strategy.launcher, _MultiProcessingLauncher)
+        if return_predictions and not return_supported:
             raise MisconfigurationException(
-                "`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. "
-                f"Found {return_predictions} with strategy {type(self.trainer.strategy)}."
+                "`return_predictions` should be set to `False` when using the strategies that spawn or fork."
+                f" Found {return_predictions} with strategy {type(self.trainer.strategy)}."
             )
-        # For non `DDPSpawnStrategy` plugin, the `return_predictions` is True by default unless user decide otherwise.
-        self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
+        # For strategies that support it, `return_predictions` is True by default unless user decide otherwise.
+        self._return_predictions = return_supported if return_predictions is None else return_predictions
 
     @property
     def predictions(self) -> List[Any]:
@@ -100,18 +119,37 @@ class _PredictionLoop(_Loop):
 
     def setup_data(self) -> None:
         trainer = self.trainer
-        source = self._data_source
-        pl_module = trainer.lightning_module
-        # a dfault `predict_step` exists in the LightningModule, so no need to check if it's overridden
-        if not source.is_defined() or trainer.limit_predict_batches == 0:
+        # a default `predict_step` exists in the LightningModule, so no need to check if it's overridden
+        if trainer.limit_predict_batches == 0:
             return
 
-        self.max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(
-            RunningStage.PREDICTING, model=pl_module
-        )
+        source = self._data_source
+        dataloaders = _request_dataloader(source)
+        trainer.strategy.barrier("predict_dataloader()")
+
+        if not isinstance(dataloaders, CombinedLoader):
+            combined_loader = CombinedLoader(dataloaders, "sequential")
+        else:
+            combined_loader = dataloaders
+
+        allow_zero_length = trainer.lightning_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+
+        trainer_fn = TrainerFn.PREDICTING
+        stage = RunningStage.PREDICTING
+        dataloaders = []
+        self.max_batches = []
         for dl in combined_loader.flattened:
-            # some users want prediction shuffling based on the training progress
-            _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
+            _check_dataloader_iterable(dl, source, trainer_fn)
+            dl = _process_dataloader(trainer, dl)
+            dataloaders.append(dl)
+
+            # determine number of batches
+            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+            num_batches = _parse_num_batches(stage, length, trainer.limit_predict_batches)
+            self.max_batches.append(num_batches)
+        combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
 
     def reset(self) -> None:
@@ -125,6 +163,8 @@ class _PredictionLoop(_Loop):
             )
         combined_loader = self._combined_loader
         assert combined_loader is not None
+        if combined_loader._mode != "sequential":
+            raise ValueError('`trainer.predict()` only supports the `CombinedLoader(mode="sequential")` mode.')
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -142,6 +182,8 @@ class _PredictionLoop(_Loop):
 
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
+        self._verify_dataloader_idx_requirement()
+
         trainer = self.trainer
         call._call_lightning_module_hook(trainer, "on_predict_model_eval")
         trainer.lightning_module.zero_grad()
@@ -290,3 +332,14 @@ class _PredictionLoop(_Loop):
         call._call_callback_hooks(trainer, "on_predict_end")
         call._call_lightning_module_hook(trainer, "on_predict_end")
         call._call_strategy_hook(trainer, "on_predict_end")
+
+    def _verify_dataloader_idx_requirement(self) -> None:
+        trainer = self.trainer
+        assert self._combined_loader is not None
+        assert trainer.state.stage is not None
+        _verify_dataloader_idx_requirement(
+            ("predict_step", "on_predict_batch_start", "on_predict_batch_end"),
+            self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
+            trainer.state.stage,
+            trainer.lightning_module,
+        )

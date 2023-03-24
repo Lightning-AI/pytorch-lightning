@@ -476,9 +476,9 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
         dict(name="Callback.on_sanity_check_end", args=(trainer, model)),
-        # duplicate `train` because `_run_train` calls it again in case validation wasn't run
-        dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
+        # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
+        dict(name="train", args=(True,)),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
@@ -564,8 +564,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="configure_optimizers"),
         dict(name="Callback.on_fit_start", args=(trainer, model)),
         dict(name="on_fit_start"),
-        dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
+        dict(name="train", args=(True,)),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
@@ -642,8 +642,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="configure_optimizers"),
         dict(name="Callback.on_fit_start", args=(trainer, model)),
         dict(name="on_fit_start"),
-        dict(name="train", args=(True,)),
         dict(name="train_dataloader"),
+        dict(name="train", args=(True,)),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
@@ -762,15 +762,17 @@ def test_hooks_with_different_argument_names(tmpdir):
             self.assert_args(x2, batch_nb2)
             return super().validation_step(x2, batch_nb2)
 
-        def test_step(self, x3, batch_nb3, dl_idx3):
+        # we don't support a different name for `dataloader_idx`
+        def test_step(self, x3, batch_nb3, dataloader_idx):
             self.assert_args(x3, batch_nb3)
-            assert isinstance(dl_idx3, int)
+            assert isinstance(dataloader_idx, int)
             return super().test_step(x3, batch_nb3)
 
-        def predict(self, x4, batch_nb4, dl_idx4):
+        # we don't support a different name for `dataloader_idx`
+        def predict_step(self, x4, batch_nb4, dataloader_idx):
             self.assert_args(x4, batch_nb4)
-            assert isinstance(dl_idx4, int)
-            return super().predict(x4, batch_nb4, dl_idx4)
+            assert isinstance(dataloader_idx, int)
+            return super().predict_step(x4, batch_nb4, dataloader_idx)
 
         def test_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
@@ -783,7 +785,6 @@ def test_hooks_with_different_argument_names(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
 
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     trainer.test(model)
 
     preds = trainer.predict(model)
