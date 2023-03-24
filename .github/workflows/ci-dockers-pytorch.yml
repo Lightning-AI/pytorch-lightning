@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_NIGHTLY: ${{ github.event_name == 'schedule' }}
+  PUSH_NIGHTLY: true  # fixme: ${{ github.event_name == 'schedule' }}
   PUSH_RELEASE: ${{ github.event_name == 'release' }}
 
 jobs:
@@ -145,7 +145,7 @@ jobs:
       matrix:
         include:
           # the config used in 'dockers/ci-runner-ipu/Dockerfile'
-          - {python_version: "3.9", pytorch_version: "1.13"}
+          - {python_version: "3.8", pytorch_version: "1.13"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
