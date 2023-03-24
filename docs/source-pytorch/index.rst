@@ -40,7 +40,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install 'lightning'
+    pip install lightning
 
 .. raw:: html
 
@@ -51,7 +51,7 @@ Conda users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 
@@ -60,7 +60,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.11 and above.
+You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 .. raw:: html
 
