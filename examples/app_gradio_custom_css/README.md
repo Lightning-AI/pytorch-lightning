@@ -2,7 +2,7 @@
 
 If you want to customize gradio component by yourself, you need to pass `css` argument to ServeGradio like this:
 
-```
+```py
 class AnimeGANv2UI(ServeGradio):
     inputs = gr.inputs.Image(type="pil")
     outputs = gr.outputs.Image(type="pil")
@@ -23,7 +23,7 @@ class AnimeGANv2UI(ServeGradio):
 
 You can also pass path to css file like this:
 
-```
+```py
 class AnimeGANv2UI(ServeGradio):
     inputs = gr.inputs.Image(type="pil")
     outputs = gr.outputs.Image(type="pil")
