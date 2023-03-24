@@ -12,16 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
-from torch.utils.data.dataloader import DataLoader
-
-from lightning.fabric.utilities.data import has_len
-from lightning.pytorch.utilities.combined_loader import (
-    _Sequential,
-    _shutdown_workers_and_reset_iterator,
-    CombinedLoader,
-)
+from lightning.fabric.utilities.data import sized_len
+from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
@@ -31,34 +25,34 @@ def _profile_nothing() -> None:
 
 class _DataFetcher(Iterator):
     def __init__(self) -> None:
-        self._dataloader: Optional[Iterable] = None
-        self.dataloader_iter: Optional[Iterator] = None
+        self._combined_loader: Optional[CombinedLoader] = None
+        self.iterator: Optional[Iterator] = None
         self.fetched: int = 0
         self.done: bool = False
         self._start_profiler = _profile_nothing
         self._stop_profiler = _profile_nothing
 
-    def setup(self, dataloader: Iterable) -> None:
-        self._dataloader = dataloader
-
     @property
-    def dataloader(self) -> Iterable:
-        if self._dataloader is None:
+    def combined_loader(self) -> CombinedLoader:
+        if self._combined_loader is None:
             raise MisconfigurationException(
-                f"`{self.__class__.__name__}` should have been `setup` with a dataloader iterable."
+                f"`{self.__class__.__name__}` should have been `setup` with a `CombinedLoader`."
             )
-        return self._dataloader
+        return self._combined_loader
+
+    def setup(self, combined_loader: CombinedLoader) -> None:
+        self._combined_loader = combined_loader
 
     def __iter__(self) -> "_DataFetcher":
         self.reset()
-        self.dataloader_iter = iter(self.dataloader)
+        self.iterator = iter(self.combined_loader)
         return self
 
     def __next__(self) -> Any:
         self._start_profiler()
-        assert self.dataloader_iter is not None
+        assert self.iterator is not None
         try:
-            data = next(self.dataloader_iter)
+            data = next(self.iterator)
         except StopIteration as e:
             self.done = True
             raise e
@@ -73,11 +67,9 @@ class _DataFetcher(Iterator):
 
     def teardown(self) -> None:
         self.reset()
-        if isinstance(self._dataloader, CombinedLoader):
-            self._dataloader.reset()
-        if isinstance(self._dataloader, DataLoader):
-            _shutdown_workers_and_reset_iterator(self._dataloader)
-        self.dataloader_iter = None
+        if self._combined_loader is not None:
+            self._combined_loader.reset()
+        self.iterator = None
 
 
 class _PrefetchDataFetcher(_DataFetcher):
@@ -94,19 +86,19 @@ class _PrefetchDataFetcher(_DataFetcher):
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
         self.batches: List[Any] = []
-        self._has_len = False
+        self._len: Optional[int] = None
 
-    def setup(self, dataloader: Iterable) -> None:
-        super().setup(dataloader)
-        self._has_len = has_len(dataloader)
+    def setup(self, combined_loader: CombinedLoader) -> None:
+        super().setup(combined_loader)
+        self._len = sized_len(combined_loader)
 
     def __iter__(self) -> "_PrefetchDataFetcher":
         super().__iter__()
-        if self._has_len:
+        if self._len is not None:
             # ignore pre-fetching, it's not necessary
             return self
         # prefetch batches to know when the iterator will be exhausted in advance
-        iterator = self.dataloader_iter
+        iterator = self.iterator
         assert iterator is not None
         for _ in range(self.prefetch_batches):
             try:
@@ -119,21 +111,21 @@ class _PrefetchDataFetcher(_DataFetcher):
         return self
 
     def __next__(self) -> Any:
-        assert self.dataloader_iter is not None
+        assert self.iterator is not None
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
             # consume one
             batch = self.batches.pop(0)
             try:
                 # refill the consumed batch
-                self._fetch_next_batch(self.dataloader_iter)
+                self._fetch_next_batch(self.iterator)
             except StopIteration:
                 # no more batches to fetch. we are done only if all pre-fetched batches were returned
                 self.done = not self.batches
         elif not self.done:
             # this will run only when no pre-fetching was done.
             try:
-                self._fetch_next_batch(self.dataloader_iter)
+                self._fetch_next_batch(self.iterator)
                 # consume the batch we just fetched
                 batch = self.batches.pop(0)
             except StopIteration as e:
@@ -151,11 +143,8 @@ class _PrefetchDataFetcher(_DataFetcher):
         finally:
             self._stop_profiler()
         self.fetched += 1
-        if self._has_len:
-            # when we don't prefetch but the dataloader is sized, we use the length for `done`
-            dataloader = self.dataloader
-            assert isinstance(dataloader, Sized)  # `_has_len` is True
-            self.done = self.fetched >= len(dataloader)
+        if self._len is not None:
+            self.done = self.fetched >= self._len
         self.batches.append(batch)
 
     def reset(self) -> None:
@@ -179,24 +168,24 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
 
     def __iter__(self) -> "_DataLoaderIterDataFetcher":
         super().__iter__()
-        self.iterator = iter(_DataFetcherWrapper(self))
+        self.iterator_wrapper = iter(_DataFetcherWrapper(self))
         return self
 
     def __next__(self) -> Union["_DataFetcherWrapper", Tuple["_DataFetcherWrapper", int, int]]:
         if self.done:
             raise StopIteration
-        assert isinstance(self.iterator, _DataFetcherWrapper)
+        assert isinstance(self.iterator_wrapper, _DataFetcherWrapper)
         if self._is_sequential:
-            sequential_mode = self.dataloader._iterator
-            assert isinstance(sequential_mode, _Sequential)
-            batch_idx = sequential_mode._idx
-            dataloader_idx = sequential_mode._iterator_idx
-            return self.iterator, batch_idx, dataloader_idx
-        return self.iterator
+            mode = self.combined_loader._iterator
+            assert isinstance(mode, _Sequential)
+            batch_idx = mode._idx
+            dataloader_idx = mode._iterator_idx
+            return self.iterator_wrapper, batch_idx, dataloader_idx
+        return self.iterator_wrapper
 
     @property
     def _is_sequential(self) -> bool:
-        return isinstance(self.dataloader, CombinedLoader) and self.dataloader._mode == "sequential"
+        return self.combined_loader._mode == "sequential"
 
 
 class _DataFetcherWrapper(Iterator):
