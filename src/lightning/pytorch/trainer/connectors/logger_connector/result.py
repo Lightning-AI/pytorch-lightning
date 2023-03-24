@@ -25,7 +25,7 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.memory import recursive_detach
@@ -112,7 +112,7 @@ class _Metadata:
     on_step: bool = False
     on_epoch: bool = True
     # https://github.com/pytorch/pytorch/issues/96197
-    reduce_fx: Callable = "mean" if _TORCH_GREATER_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
+    reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -352,7 +352,7 @@ class _ResultCollection(dict):
         on_step: bool = False,
         on_epoch: bool = True,
         # https://github.com/pytorch/pytorch/issues/96197
-        reduce_fx: Callable = "mean" if _TORCH_GREATER_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
+        reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
