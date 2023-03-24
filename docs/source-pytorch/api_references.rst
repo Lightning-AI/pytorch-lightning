@@ -13,7 +13,6 @@ accelerators
     Accelerator
     CPUAccelerator
     CUDAAccelerator
-    HPUAccelerator
     IPUAccelerator
     TPUAccelerator
 
@@ -115,7 +114,6 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
-    HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
@@ -153,7 +151,6 @@ io
 
     AsyncCheckpointIO
     CheckpointIO
-    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 
@@ -213,11 +210,9 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
-    HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
-    SingleHPUStrategy
     SingleTPUStrategy
     Strategy
     XLAStrategy
