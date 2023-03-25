@@ -239,7 +239,7 @@
      - `PR16791`_
 
    * - had any logic except reducing the DP outputs in  ``LightningModule.test_step_end`` hook
-     - port it to ``LightningModule.test_batch_end`` hook
+     - port it to ``LightningModule.on_test_batch_end`` hook
      - `PR16791`_
 
    * - used ``pl.strategies.DDPSpawnStrategy``
