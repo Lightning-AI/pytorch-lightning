@@ -76,7 +76,7 @@ class LightningApp:
         root: Union["LightningFlow", LightningWork],
         flow_cloud_compute: Optional["CloudCompute"] = None,
         log_level: str = "info",
-        info: frontend.AppInfo = None,
+        info: Optional[frontend.AppInfo] = None,
         root_path: str = "",
     ) -> None:
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end

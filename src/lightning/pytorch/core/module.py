@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
-
 import logging
 import numbers
+import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
     Generator,
     IO,
@@ -36,7 +37,7 @@ from typing import (
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -63,7 +64,7 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
@@ -123,7 +124,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
@@ -624,10 +624,9 @@ class LightningModule(
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
-        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
-        distributed processes.
+        r"""Gather tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -1119,6 +1118,16 @@ class LightningModule(
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
         """
+
+        if self.fabric is not None:
+            self.fabric.clip_gradients(
+                self,
+                optimizer,
+                clip_val=gradient_clip_val if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else None,
+                max_norm=None if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else gradient_clip_val,
+            )
+            return
+
         if gradient_clip_val is None:
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
@@ -1447,7 +1456,7 @@ class LightningModule(
         hparams_file: Optional[_PATH] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
+    ) -> Self:
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -1519,7 +1528,7 @@ class LightningModule(
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        return _load_from_checkpoint(
+        loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
             map_location,
@@ -1527,21 +1536,11 @@ class LightningModule(
             strict,
             **kwargs,
         )
-
-    @contextmanager
-    def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
-        self._should_prevent_trainer_and_dataloaders_deepcopy = True
-        yield
-        self._should_prevent_trainer_and_dataloaders_deepcopy = False
+        return cast(Self, loaded)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
-        if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["_trainer"] = None
-            state.pop("train_dataloader", None)
-            state.pop("val_dataloader", None)
-            state.pop("test_dataloader", None)
-            state.pop("predict_dataloader", None)
+        state["_trainer"] = None
         return state
 
     def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
@@ -1560,7 +1559,8 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_13:
+        if compare_version("torch", operator.ge, "1.13.0", use_base_version=True):
+            # See https://github.com/Lightning-AI/lightning/issues/16644 for why a base-version check is used here
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy

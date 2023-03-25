@@ -9,17 +9,12 @@ Lightning in 15 minutes
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
-.. join_slack::
-   :align: left
-   :margin: 20
-
-
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
 .. raw:: html
 
     <video width="100%" max-width="800px" controls autoplay muted playsinline
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
+    src="https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.m4v"></video>
 
 |
 
@@ -81,7 +76,7 @@ For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 .. raw:: html
 
@@ -92,7 +87,7 @@ For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 

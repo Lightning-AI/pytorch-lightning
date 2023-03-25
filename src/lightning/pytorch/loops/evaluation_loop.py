@@ -29,6 +29,7 @@ from lightning.pytorch.loops.progress import _BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.data_connector import (
+    _check_dataloader_iterable,
     _DataLoaderSource,
     _parse_num_batches,
     _process_dataloader,
@@ -123,15 +124,15 @@ class _EvaluationLoop(_Loop):
     def setup_data(self) -> None:
         trainer = self.trainer
         trainer_fn = trainer.state.fn
+        assert trainer_fn is not None
 
         if self._combined_loader is not None and trainer_fn == "fit" and not self._should_reload_val_dl:
             return
 
-        source = self._data_source
         pl_module = trainer.lightning_module
         limit_batches = trainer.limit_test_batches if trainer.testing else trainer.limit_val_batches
         hook_name = "test_step" if trainer.testing else "validation_step"
-        if not source.is_defined() or limit_batches == 0 or not is_overridden(hook_name, pl_module):
+        if limit_batches == 0 or not is_overridden(hook_name, pl_module):
             return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
@@ -145,6 +146,7 @@ class _EvaluationLoop(_Loop):
         stage = trainer.state.stage
         assert stage is not None
 
+        source = self._data_source
         dataloaders = _request_dataloader(source)
         trainer.strategy.barrier(f"{stage.dataloader_prefix}_dataloader()")
 
@@ -163,6 +165,7 @@ class _EvaluationLoop(_Loop):
         dataloaders = []
         self._max_batches = []
         for dl in combined_loader.flattened:
+            _check_dataloader_iterable(dl, source, trainer_fn)
             dl = _process_dataloader(trainer, dl)
             dataloaders.append(dl)
 
