@@ -116,7 +116,9 @@ jobs:
     - name: Install package & dependencies
       run: |
         pip install -q pip -U
-        pip install .[extra,test] -U "pytest-timeout" -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
+        pip install .[extra,test] -U \
+          "pytest-timeout" -r requirements/_integrations/accelerators.txt \
+          -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
