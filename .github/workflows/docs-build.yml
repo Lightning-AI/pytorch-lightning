@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -79,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/download-artifact@v3
         with:
