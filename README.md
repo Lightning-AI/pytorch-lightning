@@ -322,46 +322,171 @@ ______________________________________________________________________
 
 Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
-Fabric is designed for the most complex models like foundation model scaling, LLMs, diffussion, transformers, reinforcement learning, active learning.
+Fabric is designed for the most complex models like foundation model scaling, LLMs, diffusion, transformers, reinforcement learning, active learning. Of any size.
+
+<table>
+<tr>
+<th>What to change</th>
+<th>Resulting Fabric Code (copy me!)</th>
+</tr>
+<tr>
+<td>
+<sub>
 
 ```diff
 + import lightning as L
-  import torch
-  import torch.nn as nn
-  from torch.utils.data import DataLoader, Dataset
-  class PyTorchModel(nn.Module):
-      ...
-  class PyTorchDataset(Dataset):
-      ...
-+ fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
+  import torch; import torchvision as tv
+
++ fabric = L.Fabric()
 + fabric.launch()
-- device = "cuda" if torch.cuda.is_available() else "cpu
-  model = PyTorchModel(...)
-  optimizer = torch.optim.SGD(model.parameters())
+
+  model = tv.models.resnet18()
+  optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+- device = "cuda" if torch.cuda.is_available() else "cpu"
+- model.to(device)
 + model, optimizer = fabric.setup(model, optimizer)
-  dataloader = DataLoader(PyTorchDataset(...), ...)
+
+  dataset = tv.datasets.CIFAR10("data", download=True,
+                                train=True,
+                                transform=tv.transforms.ToTensor())
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 + dataloader = fabric.setup_dataloaders(dataloader)
+
   model.train()
+  num_epochs = 10
   for epoch in range(num_epochs):
       for batch in dataloader:
-          input, target = batch
--         input, target = input.to(device), target.to(device)
+          inputs, labels = batch
+-         inputs, labels = inputs.to(device), labels.to(device)
           optimizer.zero_grad()
-          output = model(input)
-          loss = loss_fn(output, target)
+          outputs = model(inputs)
+          loss = torch.nn.functional.cross_entropy(outputs, labels)
 -         loss.backward()
 +         fabric.backward(loss)
           optimizer.step()
-          lr_scheduler.step()
 ```
+
+</sub>
+<td>
+<sub>
+
+```Python
+import lightning as L
+import torch; import torchvision as tv
+
+fabric = L.Fabric()
+fabric.launch()
+
+model = tv.models.resnet18()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+model, optimizer = fabric.setup(model, optimizer)
+
+dataset = tv.datasets.CIFAR10("data", download=True,
+                              train=True,
+                              transform=tv.transforms.ToTensor())
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
+dataloader = fabric.setup_dataloaders(dataloader)
+
+model.train()
+num_epochs = 10
+for epoch in range(num_epochs):
+    for batch in dataloader:
+        inputs, labels = batch
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = torch.nn.functional.cross_entropy(outputs, labels)
+        fabric.backward(loss)
+        optimizer.step()
+```
+
+</sub>
+</td>
+</tr>
+</table>
 
 ## Key features
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
-- Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-- All the device logic boilerplate is handled for you
-- Designed with multi-billion parameter models in mind
-- Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more
+<details>
+  <summary>Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training</summary>
+
+```python
+# Use your available hardware
+# no code changes needed
+fabric = Fabric()
+
+# Run on GPUs (CUDA or MPS)
+fabric = Fabric(accelerator="gpu")
+
+# 8 GPUs
+fabric = Fabric(accelerator="gpu", devices=8)
+
+# 256 GPUs, multi-node
+fabric = Fabric(accelerator="gpu", devices=8, num_nodes=32)
+
+# Run on TPUs
+fabric = Fabric(accelerator="tpu")
+```
+
+</details>
+
+<details>
+  <summary>Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box</summary>
+
+```python
+# Use state-of-the-art distributed training techniques
+fabric = Fabric(strategy="ddp")
+fabric = Fabric(strategy="deepspeed")
+fabric = Fabric(strategy="fsdp")
+
+# Switch the precision
+fabric = Fabric(precision="16-mixed")
+fabric = Fabric(precision="64")
+```
+
+</details>
+
+<details>
+  <summary>All the device logic boilerplate is handled for you</summary>
+
+```diff
+  # no more of this!
+- model.to(device)
+- batch.to(device)
+```
+
+</details>
+
+<details>
+  <summary>Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more</summary>
+
+```python
+import lightning as L
+
+
+class MyCustomTrainer:
+    def __init__(self, accelerator="auto", strategy="auto", devices="auto", precision="32-true"):
+        self.fabric = L.Fabric(accelerator=accelerator, strategy=strategy, devices=devices, precision=precision)
+
+    def fit(self, model, optimizer, dataloader, max_epochs):
+        self.fabric.launch()
+
+        model, optimizer = self.fabric.setup(model, optimizer)
+        dataloader = self.fabric.setup_dataloaders(dataloader)
+        model.train()
+
+        for epoch in range(max_epochs):
+            for batch in dataloader:
+                input, target = batch
+                optimizer.zero_grad()
+                output = model(input)
+                loss = loss_fn(output, target)
+                self.fabric.backward(loss)
+                optimizer.step()
+```
+
+You can find a more extensive example in our [examples](examples/fabric/build_your_own_trainer)
+
+</details>
 
 ______________________________________________________________________
 
@@ -475,7 +600,6 @@ Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs 
 |        Linux py3.9 \[GPUs\]        |                                                                                                -                                                                                                | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=master) | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=master) | Soon |
 |        Linux py3.9 \[TPUs\]        |                                                                                                -                                                                                                |                     [![Test PyTorch - TPU](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml)                     |                                                                                                                                                                                                                                 | Soon |
 |        Linux py3.8 \[IPUs\]        |                                                                                                -                                                                                                |                                                                                                                -                                                                                                                | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(IPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=25&branchName=master) | Soon |
-|        Linux py3.8 \[HPUs\]        |                                                                                                -                                                                                                |                                                                                                                -                                                                                                                | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=master) | Soon |
 |  Linux (multiple Python versions)  | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | Soon |
 |   OSX (multiple Python versions)   | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | Soon |
 | Windows (multiple Python versions) | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | Soon |
@@ -490,7 +614,7 @@ ______________________________________________________________________
 The lightning community is maintained by
 
 - [10+ core contributors](https://lightning.ai/docs/pytorch/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
-- 590+ active community contributors.
+- 800+ community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html)
 
