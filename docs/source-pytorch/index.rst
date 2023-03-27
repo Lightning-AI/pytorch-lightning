@@ -237,7 +237,7 @@ Current Lightning Users
    Lightning Fabric <fabric/fabric>
    LightningDataModule <data/datamodule>
    LightningModule <common/lightning_module>
-   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
+   Lightning Transformers <https://lightning.ai/docs/pytorch/LTS/ecosystem/transformers.html>
    Log <visualize/loggers>
    Loops <extensions/loops>
    TPU <accelerators/tpu>

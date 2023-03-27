@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -54,12 +54,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: Install package
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f ${TORCH_URL}
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f ${TORCH_URL} -f pypi_pkgs/
           pip list
 
       - name: Test Documentation
@@ -78,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -92,13 +93,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: Install package & dependencies
         run: |
           pip --version
-          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f ${TORCH_URL}
+          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f ${TORCH_URL} -f pypi_pkgs/
           pip list
         shell: bash
 
@@ -130,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["app", "pytorch"]
     steps:
       - uses: actions/download-artifact@v3
         with:
