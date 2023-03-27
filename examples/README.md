@@ -1,7 +1,7 @@
 # Examples
 
 Our most robust examples showing all sorts of implementations
-can be found in our sister library [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html).
+can be found in our sister library [Lightning Bolts](https://lightning.ai/docs/pytorch/LTS/ecosystem/bolts.html).
 
 ______________________________________________________________________
 
@@ -33,7 +33,7 @@ ______________________________________________________________________
 ## Domain Examples
 
 This folder contains older examples. You should instead use the examples
-in [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html)
+in [Lightning Bolts](https://lightning.ai/docs/pytorch/LTS/ecosystem/bolts.html)
 for advanced use cases.
 
 ______________________________________________________________________

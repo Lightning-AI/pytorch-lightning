@@ -12,10 +12,10 @@ ______________________________________________________________________
   <a href="https://www.lightning.ai/">Lightning Gallery</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
+  <a href="https://lightning.ai/docs/pytorch/LTS/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/generated/CONTRIBUTING.html">Contribute</a> •
+  <a href="https://lightning.ai/docs/pytorch/LTS/generated/CONTRIBUTING.html">Contribute</a> •
   <a href="#license">License</a>
 </p>
 
@@ -28,7 +28,7 @@ ______________________________________________________________________
 [![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
 [![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://lightning.ai/docs/pytorch/LTS/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://www.pytorchlightning.ai/community)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
 
@@ -78,7 +78,7 @@ Lightning forces the following structure to your code which makes it reusable an
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
-[Get started in just 15 minutes](https://pytorch-lightning.readthedocs.io/en/latest/starter/introduction.html)
+[Get started in just 15 minutes](https://lightning.ai/docs/pytorch/LTS/starter/introduction.html)
 
 ______________________________________________________________________
 
@@ -221,7 +221,7 @@ trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 
 ## Advanced features
 
-Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#trainer-flags) designed for professional AI research at scale.
+Lightning has over [40+ advanced features](https://lightning.ai/docs/pytorch/LTS/common/trainer.html#trainer-flags) designed for professional AI research at scale.
 
 Here are some examples:
 
@@ -389,10 +389,10 @@ ______________________________________________________________________
 
 The lightning community is maintained by
 
-- [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- [10+ core contributors](https://lightning.ai/docs/pytorch/LTS/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 590+ active community contributors.
 
-Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://pytorch-lightning.readthedocs.io/en/stable/generated/CONTRIBUTING.html)
+Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://lightning.ai/docs/pytorch/LTS/generated/CONTRIBUTING.html)
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
