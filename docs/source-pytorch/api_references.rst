@@ -83,6 +83,8 @@ core
     ~saving.ModelIO
 
 
+.. _loggers-api-references:
+
 loggers
 -------
 
