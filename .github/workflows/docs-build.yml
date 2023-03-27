@@ -55,7 +55,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -66,9 +66,10 @@ jobs:
 
       - name: Install package
         run: |
-          mkdir -p $PYPI_CACHE
           ls -lh $PYPI_CACHE
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
+          mkdir -p pypi_pkgs
+          pip install .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f pypi_pkgs/ -f $PYPI_CACHE -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
@@ -101,7 +102,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -112,10 +113,11 @@ jobs:
 
       - name: Install package & dependencies
         run: |
-          mkdir -p $PYPI_CACHE
           ls -lh $PYPI_CACHE
+          mkdir -p pypi_pkgs
           pip --version
-          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
+          pip install . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f pypi_pkgs/ -f $PYPI_CACHE -f ${TORCH_URL}
           pip list
         shell: bash
 
@@ -123,7 +125,7 @@ jobs:
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
-      - name: Check External Links in Sphinx Documentation (Optional)
+      - name: Check External Links (Optional)
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make linkcheck
         continue-on-error: true
