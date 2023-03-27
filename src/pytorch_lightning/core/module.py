@@ -48,7 +48,11 @@ from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1, _ONNX_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _ONNX_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCHMETRICS_GREATER_EQUAL_0_9_1,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
