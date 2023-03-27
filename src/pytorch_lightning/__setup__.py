@@ -90,7 +90,7 @@ def _setup_args() -> Dict[str, Any]:
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
-            "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
+            "Documentation": "https://lightning.ai/docs/pytorch/latest/",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
         classifiers=[
