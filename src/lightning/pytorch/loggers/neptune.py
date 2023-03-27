@@ -35,8 +35,9 @@ from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 # neptune is available with two names on PyPI : `neptune` and `neptune-client`
-_NEPTUNE_AVAILABLE = RequirementCache("neptune")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
 _NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
+
 if _NEPTUNE_AVAILABLE:
     # >1.0 package structure
     import neptune

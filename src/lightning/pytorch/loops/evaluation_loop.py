@@ -37,7 +37,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _resolve_overfit_batches,
 )
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
-from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
@@ -51,7 +51,14 @@ if _RICH_AVAILABLE:
 class _EvaluationLoop(_Loop):
     """Top-level loop where validation/testing starts."""
 
-    def __init__(self, trainer: "pl.Trainer", verbose: bool = True, inference_mode: bool = True) -> None:
+    def __init__(
+        self,
+        trainer: "pl.Trainer",
+        trainer_fn: TrainerFn,
+        stage: RunningStage,
+        verbose: bool = True,
+        inference_mode: bool = True,
+    ) -> None:
         super().__init__(trainer)
         self.verbose = verbose
         self.inference_mode = inference_mode
@@ -61,7 +68,9 @@ class _EvaluationLoop(_Loop):
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
         self._has_run: bool = False
-        self._data_source = _DataLoaderSource(None, "")
+        self._trainer_fn = trainer_fn
+        self._stage = stage
+        self._data_source = _DataLoaderSource(None, f"{stage.dataloader_prefix}_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
@@ -123,9 +132,7 @@ class _EvaluationLoop(_Loop):
 
     def setup_data(self) -> None:
         trainer = self.trainer
-        trainer_fn = trainer.state.fn
-        assert trainer_fn is not None
-
+        trainer_fn = self._trainer_fn
         if self._combined_loader is not None and trainer_fn == "fit" and not self._should_reload_val_dl:
             return
 
@@ -143,9 +150,7 @@ class _EvaluationLoop(_Loop):
         ):
             self._last_val_dl_reload_epoch = trainer.current_epoch
 
-        stage = trainer.state.stage
-        assert stage is not None
-
+        stage = self._stage
         source = self._data_source
         dataloaders = _request_dataloader(source)
         trainer.strategy.barrier(f"{stage.dataloader_prefix}_dataloader()")
@@ -166,7 +171,7 @@ class _EvaluationLoop(_Loop):
         self._max_batches = []
         for dl in combined_loader.flattened:
             _check_dataloader_iterable(dl, source, trainer_fn)
-            dl = _process_dataloader(trainer, dl)
+            dl = _process_dataloader(trainer, trainer_fn, stage, dl)
             dataloaders.append(dl)
 
             # determine number of batches
@@ -261,8 +266,7 @@ class _EvaluationLoop(_Loop):
         self._on_evaluation_model_train()
 
         if self.verbose and self.trainer.is_global_zero:
-            assert self.trainer.state.stage is not None
-            self._print_results(logged_outputs, self.trainer.state.stage)
+            self._print_results(logged_outputs, self._stage)
 
         return logged_outputs
 
@@ -333,18 +337,12 @@ class _EvaluationLoop(_Loop):
         self._logged_outputs.append(trainer._logger_connector.update_eval_epoch_metrics())
 
     def _on_before_fetch(self) -> None:
-        stage = self.trainer.state.stage
-        assert stage is not None
-        stage = stage.dataloader_prefix
-        self.trainer.profiler.start(f"[{type(self).__name__}].{stage}_next")
+        self.trainer.profiler.start(f"[{type(self).__name__}].{self._stage.dataloader_prefix}_next")
 
     def _on_after_fetch(self) -> None:
-        stage = self.trainer.state.stage
-        assert stage is not None
-        stage = stage.dataloader_prefix
         # the dataloader_idx cannot be easily included here because it might be different from the index used on
         # profiler start, since the `__next__` call might use a different iterator
-        self.trainer.profiler.stop(f"[{type(self).__name__}].{stage}_next")
+        self.trainer.profiler.stop(f"[{type(self).__name__}].{self._stage.dataloader_prefix}_next")
 
     def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual evaluation step together with all the necessary bookkeeping and the hooks tied to it.
@@ -417,11 +415,10 @@ class _EvaluationLoop(_Loop):
         batch_start_hook = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
         batch_end_hook = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
         assert self._combined_loader is not None
-        assert trainer.state.stage is not None
         _verify_dataloader_idx_requirement(
             (step_hook, batch_start_hook, batch_end_hook),
             self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
-            trainer.state.stage,
+            self._stage,
             trainer.lightning_module,
         )
 

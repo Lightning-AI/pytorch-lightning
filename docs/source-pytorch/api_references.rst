@@ -81,6 +81,8 @@ core
     ~optimizer.LightningOptimizer
 
 
+.. _loggers-api-references:
+
 loggers
 -------
 

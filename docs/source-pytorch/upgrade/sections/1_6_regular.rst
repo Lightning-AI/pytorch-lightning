@@ -50,7 +50,7 @@
      - use the utility function ``pl.utilities.memory.get_model_size_mb(model)``
      - `PR8495`_
 
-   * - relied on the ``on_trai_dataloader()`` hooks in  ``LightningModule`` and ``LightningDataModule``
+   * - relied on the ``on_train_dataloader()`` hooks in  ``LightningModule`` and ``LightningDataModule``
      - use ``train_dataloader``
      - `PR9098`_
 
