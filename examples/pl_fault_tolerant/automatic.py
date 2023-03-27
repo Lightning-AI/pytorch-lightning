@@ -14,7 +14,7 @@
 
 """Here is an example of `Lightning Fault Tolerant Automatic`.
 
-Find the documentation: https://pytorch-lightning.readthedocs.io/en/stable/advanced/fault_tolerant_training.html
+Find the documentation: https://lightning.ai/docs/pytorch/LTS/advanced/fault_tolerant_training.html
 
 RUN WITHOUT FAILURE:
 
