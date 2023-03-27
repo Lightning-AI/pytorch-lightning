@@ -1877,10 +1877,13 @@ class LightningModule(
 
             >>> model = SimpleModel()
 
-            >>> import os, tempfile
+            >>> import os, tempfile, doctest
+            >>> doctest.ELLIPSIS_MARKER = '-etc-'
             >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
             ...     model.to_onnx(tmpfile.name, torch.randn((1, 64)), export_params=True)
             ...     is_file = os.path.isfile(tmpfile.name)
+            -etc-
+            >>> doctest.ELLIPSIS_MARKER = '...'
             >>> is_file
             True
         """
