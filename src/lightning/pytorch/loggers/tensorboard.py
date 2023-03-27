@@ -46,11 +46,14 @@ if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     r"""
-    Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+    Log to local or remote file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
     Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
+
+    This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed
+    and you don't have tensorflow (otherwise it will use tf.io.gfile instead of fsspec).
 
     Example:
 
