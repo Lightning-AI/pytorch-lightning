@@ -31,7 +31,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-  PYPI_CACHE: "_pip-wheels"
+  PYPI_CACHE_DIR: "_pip-wheels"
 
 jobs:
   make-doctest:
@@ -61,15 +61,16 @@ jobs:
       - name: pip wheels cache
         uses: actions/cache/restore@v3
         with:
-          path: ${{ env.PYPI_CACHE }}
+          path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
-      - name: Install package
+      - name: Install package & dependencies
         run: |
-          ls -lh $PYPI_CACHE
-          mkdir -p pypi_pkgs
+          mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
+          ls -lh $PYPI_CACHE_DIR
+          mkdir -p pypi_pkgs  # in case template is not pulled
           pip install .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f pypi_pkgs/ -f $PYPI_CACHE -f ${TORCH_URL}
+            -f pypi_pkgs/ -f $PYPI_CACHE_DIR -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
@@ -108,16 +109,17 @@ jobs:
       - name: pip wheels cache
         uses: actions/cache/restore@v3
         with:
-          path: ${{ env.PYPI_CACHE }}
+          path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
       - name: Install package & dependencies
         run: |
-          ls -lh $PYPI_CACHE
-          mkdir -p pypi_pkgs
+          mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
+          ls -lh $PYPI_CACHE_DIR
+          mkdir -p pypi_pkgs  # in case template is not pulled
           pip --version
           pip install . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f pypi_pkgs/ -f $PYPI_CACHE -f ${TORCH_URL}
+            -f pypi_pkgs/ -f $PYPI_CACHE_DIR -f ${TORCH_URL}
           pip list
         shell: bash
 
@@ -141,6 +143,14 @@ jobs:
           path: docs/build/html/
           retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
+      - name: Dump handy wheels
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        continue-on-error: true
+        uses: ./.github/actions/pip-wheels
+        with:
+          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
+          torch-url: ${{ env.TORCH_URL }}
+          cache-key: "pypi_wheels"
 
   deploy-docs:
     needs: [make-doctest, make-html]
