@@ -41,7 +41,7 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 #                           KFold Loop / Cross Validation Example                           #
 # This example demonstrates how to leverage Lightning Loop Customization introduced in v1.5 #
 # Learn more about the loop structure from the documentation:                               #
-# https://pytorch-lightning.readthedocs.io/en/stable/extensions/loops.html                  #
+# https://pytorch-lightning.readthedocs.io/en/LTS/extensions/loops.html                  #
 #############################################################################################
 
 
@@ -137,7 +137,7 @@ class EnsembleVotingModel(LightningModule):
 #                           Step 4 / 5: Implement the  KFoldLoop                            #
 # From Lightning v1.5, it is possible to implement your own loop. There is several steps    #
 # to do so which are described in detail within the documentation                           #
-# https://pytorch-lightning.readthedocs.io/en/stable/extensions/loops.html.                 #
+# https://pytorch-lightning.readthedocs.io/en/LTS/extensions/loops.html.                 #
 # Here, we will implement an outer fit_loop. It means we will implement subclass the        #
 # base Loop and wrap the current trainer `fit_loop`.                                        #
 #############################################################################################
