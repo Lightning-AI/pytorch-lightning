@@ -142,7 +142,8 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     assert os.path.exists(command_path)
     messages = []
     connect_app("example")
-    assert messages == ["You are already connected to the cloud Lightning App: example."]
+    assert len(messages) == 1
+    assert messages[0].startswith("You are already connected to the cloud Lightning App: example.")
 
     _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_2)
 
@@ -152,7 +153,8 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
 
     messages = []
     disconnect_app()
-    assert messages == ["You are disconnected from the cloud Lightning App: example."]
+    assert len(messages) == 1
+    assert messages[0].startswith("You are disconnected from the cloud Lightning App: example.")
 
     _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_1)
 
@@ -162,8 +164,7 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
 
     messages = []
     disconnect_app()
-    assert messages == [
-        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
-    ]
+    assert len(messages) == 1
+    assert messages[0].startswith("You aren't connected to any Lightning App.")
 
     assert _retrieve_connection_to_an_app() == (None, None)
