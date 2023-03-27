@@ -3,7 +3,6 @@
 
 numpy>=1.17.2, <1.24.2
 torch>=1.10.0, <=1.13.1
-onnx<1.14.0  # newer versions of PT does not have it build it any more
 tqdm>=4.57.0, <4.65.0
 PyYAML>=5.4, <=6.0
 fsspec[http]>2021.06.0, <2023.2.0

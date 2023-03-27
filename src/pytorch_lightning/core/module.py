@@ -48,7 +48,7 @@ from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1, _ONNX_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -65,6 +65,9 @@ log = logging.getLogger(__name__)
 MODULE_OPTIMIZERS = Union[
     Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]
 ]
+
+if not _ONNX_AVAILABLE:
+    __doctest_skip__ = ["LightningModule.to_onnx"]
 
 
 class LightningModule(
@@ -1875,16 +1878,11 @@ class LightningModule(
             ...     def forward(self, x):
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
+            >>> import os, tempfile
             >>> model = SimpleModel()
-
-            >>> import os, tempfile, doctest
-            >>> doctest.ELLIPSIS_MARKER = '-etc-'
             >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
             ...     model.to_onnx(tmpfile.name, torch.randn((1, 64)), export_params=True)
-            ...     is_file = os.path.isfile(tmpfile.name)
-            -etc-
-            >>> doctest.ELLIPSIS_MARKER = '...'
-            >>> is_file
+            ...     os.path.isfile(tmpfile.name)
             True
         """
         mode = self.training
