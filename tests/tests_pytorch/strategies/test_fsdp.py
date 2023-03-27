@@ -151,37 +151,6 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def custom_auto_wrap_policy(
-    module,
-    recurse,
-    unwrapped_params: int,
-    min_num_params: int = int(1e8),
-) -> bool:
-    return unwrapped_params >= 2
-
-
-def custom_auto_wrap_policy_2x(
-    module,
-    recurse,
-    nonwrapped_numel: int,
-) -> bool:
-    return nonwrapped_numel >= 2
-
-
-class CustomWrapPolicy(_FSDPPolicy):
-    """This is a wrapper around :func:`_module_wrap_policy`."""
-
-    def __init__(self, min_num_params: int):
-        self._policy: Callable = partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
-
-    @property
-    def policy(self):
-        return self._policy
-
-
-custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
-
-
 @RunIf(min_torch="1.12")
 def test_invalid_on_cpu(tmpdir):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
@@ -240,6 +209,20 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
+class CustomWrapPolicy(_FSDPPolicy):
+    """This is a wrapper around :func:`_module_wrap_policy`."""
+
+    def __init__(self, min_num_params: int):
+        self._policy: Callable = partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
+
+    @property
+    def policy(self):
+        return self._policy
+
+
+custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
+
+
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -263,27 +246,29 @@ else:
 @pytest.mark.parametrize(
     "model, strategy, strategy_cfg",
     [
-        (TestFSDPModel(), "fsdp", None),
+        pytest.param(TestFSDPModel(), "fsdp", None, id="manually_wrapped"),
         pytest.param(
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": custom_auto_wrap_policy},
             marks=RunIf(max_torch="2.0.0"),
+            id="autowrap_1x",
         ),
         pytest.param(
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
-            {"auto_wrap_policy": custom_auto_wrap_policy_2x},
+            {"auto_wrap_policy": custom_auto_wrap_policy},
             marks=RunIf(min_torch="2.0.0"),
+            id="autowrap_2x",
         ),
         pytest.param(
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": custom_fsdp_policy, "use_orig_params": True},
             marks=RunIf(min_torch="2.0.0"),
+            id="autowrap_use_orig_params",
         ),
     ],
-    ids=["manually_wrapped", "autowrap_1x", "autowrap_2x", "autowrap_use_orig_params"],
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""

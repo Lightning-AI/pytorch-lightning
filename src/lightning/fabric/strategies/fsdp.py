@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
-_FSDP_FLATTENED = "_fsdp_flattened"
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -349,6 +348,7 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
+    _FSDP_FLATTENED = "_fsdp_flattened"
     if _TORCH_GREATER_EQUAL_1_13:
         return any(getattr(param, _FSDP_FLATTENED, False) for param in optimizer.param_groups[0]["params"])
     else:
