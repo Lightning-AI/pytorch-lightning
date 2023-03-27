@@ -142,25 +142,25 @@ jobs:
         # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
         pip list
 
-    - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
-      run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-          pip uninstall -y horovod
-          # grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
-          # pip install --no-cache-dir -r requirements/pytorch/horovod.txt
-
-          # we hardcode the version for testing due to difficulties installing and compiling the package
-          pip install --no-cache-dir horovod==0.21.2
-        fi
-        horovodrun --check-build
-        python -c "import horovod.torch"
-        pip list
+    #- name: Reinstall Horovod if necessary
+    #  if: runner.os != 'windows'
+    #  env:
+    #    HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+    #    HOROVOD_WITHOUT_MXNET: 1
+    #    HOROVOD_WITHOUT_TENSORFLOW: 1
+    #  run: |
+    #    HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
+    #    if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+    #      pip uninstall -y horovod
+    #      # grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
+    #      # pip install --no-cache-dir -r requirements/pytorch/horovod.txt
+    #
+    #      # we hardcode the version for testing due to difficulties installing and compiling the package
+    #      pip install --no-cache-dir horovod==0.21.2
+    #    fi
+    #    horovodrun --check-build
+    #    python -c "import horovod.torch"
+    #    pip list
 
     - name: Cache datasets
       uses: actions/cache@v3
