@@ -77,7 +77,8 @@ def connect_app(app_name_or_id: str):
             if app_name_or_id == "localhost":
                 click.echo("You are connected to the local Lightning App.")
             else:
-                click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
+                click.echo(f"""You are already connected to the cloud Lightning App: {app_name_or_id}.
+                        If it isn't running, either restart it or reconnect to access the lightning cli""")
         else:
             disconnect_app()
             connect_app(app_name_or_id)
