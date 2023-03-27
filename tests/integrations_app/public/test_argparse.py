@@ -2,7 +2,6 @@ import os
 import sys
 
 from integrations_app.public import _PATH_EXAMPLES
-
 from lightning.app.testing.testing import application_testing
 from lightning.app.utilities.load_app import _patch_sys_argv
 
@@ -11,7 +10,7 @@ def test_app_argparse_example():
     original_argv = sys.argv
 
     command_line = [
-        os.path.join(_PATH_EXAMPLES, "app_argparse", "app.py"),
+        os.path.join(_PATH_EXAMPLES, "argparse", "app.py"),
         "--app_args",
         "--use_gpu",
         "--without-server",

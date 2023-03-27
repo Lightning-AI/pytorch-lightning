@@ -3,7 +3,7 @@
 This is an example of a GAN (Generative Adversarial Network) that learns to generate realistic images of faces.
 We show two code versions:
 The first one is implemented in raw PyTorch, but isn't easy to scale.
-The second one is using [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html) to accelerate and scale the model.
+The second one is using [Lightning Fabric](https://lightning.ai/docs/fabric) to accelerate and scale the model.
 
 Tip: You can easily inspect the difference between the two files with:
 

@@ -88,7 +88,7 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
+@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
 @mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
 def test_accelerator_tpu(_, accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
@@ -299,7 +299,7 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 def test_warning_if_tpus_not_used(tpu_available):
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
-        Trainer()
+        Trainer(accelerator="cpu")
 
 
 @RunIf(tpu=True, standalone=True)

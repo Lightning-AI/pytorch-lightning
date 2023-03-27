@@ -240,6 +240,25 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
+if _TORCH_GREATER_EQUAL_2_0:
+
+    def custom_auto_wrap_policy(
+        module,
+        recurse,
+        nonwrapped_numel: int,
+    ) -> bool:
+        return nonwrapped_numel >= 2
+
+else:
+
+    def custom_auto_wrap_policy(
+        module,
+        recurse,
+        unwrapped_params: int,
+    ) -> bool:
+        return unwrapped_params >= 2
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
     "model, strategy, strategy_cfg",

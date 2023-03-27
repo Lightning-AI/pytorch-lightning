@@ -94,20 +94,19 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_datamodule(model, datamodule=dm)
 
-    trainer.state.stage = stage
-    trainer.state.fn = stage.value
-    trainer._active_loop.setup_data()
-
     if stage == RunningStage.VALIDATING:
+        trainer.fit_loop.epoch_loop.val_loop.setup_data()
         assert (
             trainer.num_val_batches[0] == overfit_batches
             if isinstance(overfit_batches, int)
             else len(dm.val_dataloader()) * overfit_batches
         )
     elif stage == RunningStage.TESTING:
+        trainer.test_loop.setup_data()
         assert trainer.num_test_batches[0] == len(eval_loader)
         assert isinstance(trainer.test_dataloaders.sampler, SequentialSampler)
     elif stage == RunningStage.PREDICTING:
+        trainer.predict_loop.setup_data()
         assert trainer.num_predict_batches[0] == len(eval_loader)
         assert isinstance(trainer.predict_dataloaders.sampler, SequentialSampler)
 
@@ -144,7 +143,6 @@ def test_overfit_batch_limits_train(overfit_batches):
     model.trainer = trainer
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model=model)
-    trainer.training = True
     trainer.fit_loop.setup_data()
     expected_batches = (
         int(overfit_batches * full_train_samples) if isinstance(overfit_batches, float) else overfit_batches
@@ -169,7 +167,6 @@ def test_distributed_sampler_with_overfit_batches():
     model.trainer = trainer
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
-    trainer.training = True
     trainer.fit_loop.setup_data()
     train_sampler = trainer.train_dataloader.sampler
     assert isinstance(train_sampler, DistributedSampler)

@@ -13,6 +13,7 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -30,8 +31,9 @@ from lightning.fabric.plugins.environments import (
     TorchElasticEnvironment,
     XLAEnvironment,
 )
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.accelerators import IPUAccelerator, TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -39,38 +41,35 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.plugins import DoublePrecisionPlugin, LayerSync, PrecisionPlugin, TorchSyncBatchNorm
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.strategies import (
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
-from lightning.pytorch.trainer.connectors.accelerator_connector import _set_torch_flags, AcceleratorConnector
+from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
+from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_HABANA_AVAILABLE
+from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
-
-def test_accelerator_choice_cpu(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.strategy, SingleDeviceStrategy)
+if _LIGHTNING_HABANA_AVAILABLE:
+    from lightning_habana import HPUAccelerator, SingleHPUStrategy
 
 
 @RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
-    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+    ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_choice_tpu(accelerator, devices):
-    connector = AcceleratorConnector(accelerator=accelerator, devices=devices)
+    connector = _AcceleratorConnector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
-    if devices is None or (isinstance(devices, int) and devices > 1):
-        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
-        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
+    if devices == "auto" or (isinstance(devices, int) and devices > 1):
         assert isinstance(connector.strategy, XLAStrategy)
         assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
         assert isinstance(connector.cluster_environment, XLAEnvironment)
@@ -86,19 +85,13 @@ def test_accelerator_invalid_choice():
 @pytest.mark.parametrize("invalid_strategy", ["cocofruit", object()])
 def test_invalid_strategy_choice(invalid_strategy):
     with pytest.raises(ValueError, match="You selected an invalid strategy name:"):
-        AcceleratorConnector(strategy=invalid_strategy)
+        _AcceleratorConnector(strategy=invalid_strategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
 def test_strategy_choice_ddp_on_cpu(tmpdir):
     """Test that selecting DDPStrategy on CPU works."""
     _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class=DDPStrategy)
-
-
-@RunIf(skip_windows=True)
-def test_strategy_choice_ddp_spawn_on_cpu(tmpdir):
-    """Test that selecting DDPSpawnStrategy on CPU works."""
-    _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class=DDPSpawnStrategy)
 
 
 def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
@@ -232,14 +225,6 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
-def test_interactive_compatible_strategy_tpu(_, tpu_available, monkeypatch):
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
-    trainer = Trainer(accelerator="tpu")
-    assert trainer.strategy.launcher.is_interactive_compatible
-
-
-@RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="ddp_fork", accelerator="cpu")
@@ -251,7 +236,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     ["strategy", "strategy_class"],
     [
         ("ddp", DDPStrategy),
-        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -329,16 +314,16 @@ def test_set_devices_if_none_cpu():
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     (
-        ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
-        ("ddp_spawn_find_unused_parameters_true", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
+        ("ddp_spawn_find_unused_parameters_true", DDPStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_find_unused_parameters_true", DDPStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
-@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         Trainer(accelerator=accelerator, strategy=strategy)
@@ -350,8 +335,8 @@ def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mp
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
-        ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
@@ -361,17 +346,16 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_cpu_instance(strategy_class):
-    trainer = Trainer(strategy=strategy_class(), accelerator="cpu", devices=2)
-    assert isinstance(trainer.strategy, strategy_class)
+def test_strategy_choice_cpu_instance():
+    trainer = Trainer(strategy=DDPStrategy(), accelerator="cpu", devices=2)
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
-        ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
@@ -382,16 +366,14 @@ def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2, mps_cou
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_gpu_instance(strategy_class, cuda_count_2, mps_count_0):
-    trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, strategy_class)
+def test_strategy_choice_gpu_instance(cuda_count_2, mps_count_0):
+    trainer = Trainer(strategy=DDPStrategy(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
-@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_strategy_instance_gpu_passed(strategy_class, cuda_count_2, mps_count_0):
-    trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, strategy_class)
+def test_device_type_when_strategy_instance_gpu_passed(cuda_count_2, mps_count_0):
+    trainer = Trainer(strategy=DDPStrategy(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
@@ -405,7 +387,7 @@ def test_validate_precision_type(precision):
 def test_strategy_choice_ddp_spawn_cpu():
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
     assert trainer.strategy.launcher._start_method == "spawn"
 
@@ -413,11 +395,11 @@ def test_strategy_choice_ddp_spawn_cpu():
 @RunIf(skip_windows=True)
 @mock.patch("lightning.pytorch.trainer.connectors.accelerator_connector._IS_INTERACTIVE", True)
 def test_strategy_choice_ddp_fork_in_interactive():
-    """Test that when accelerator and strategy are unspecified, the connector chooses DDP Fork in interactive
-    environments by default."""
-    trainer = Trainer(devices=2)
+    """Test that when strategy is unspecified, the connector chooses DDP Fork in interactive environments by
+    default."""
+    trainer = Trainer(accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
     assert trainer.strategy.launcher._start_method == "fork"
 
@@ -426,12 +408,12 @@ def test_strategy_choice_ddp_fork_in_interactive():
 def test_strategy_choice_ddp_fork_cpu():
     trainer = Trainer(strategy="ddp_fork", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
     assert trainer.strategy.launcher._start_method == "fork"
 
 
-@pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPSpawnStrategy)])
+@pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPStrategy)])
 def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -440,7 +422,7 @@ def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_coun
 
 
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy])
+@pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_env):
     if strategy and not isinstance(strategy, str):
         strategy = strategy()
@@ -541,7 +523,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     },
 )
 @mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", [None, "ddp", DDPStrategy()])
+@pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -572,38 +554,36 @@ def test_unsupported_tpu_choice(tpu_available):
         Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
 
-@mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
-    import lightning.pytorch.accelerators.ipu as ipu_
-    import lightning.pytorch.strategies.ipu as ipu
+def mock_ipu_available(monkeypatch, value=True):
+    monkeypatch.setattr(lightning.pytorch.accelerators.ipu, "_IPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", value)
 
-    monkeypatch.setattr(ipu_, "_IPU_AVAILABLE", True)
-    monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
+
+def test_unsupported_ipu_choice(monkeypatch):
+    mock_ipu_available(monkeypatch)
     with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16-mixed'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16-mixed")
     with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64-true'\)` is not supported"):
         Trainer(accelerator="ipu", precision="64-true")
 
 
-@mock.patch("lightning.pytorch.accelerators.tpu._XLA_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.accelerators.ipu._IPU_AVAILABLE", return_value=False)
-@mock.patch("lightning.pytorch.accelerators.hpu._HPU_AVAILABLE", return_value=False)
-def test_devices_auto_choice_cpu(cuda_count_0, *_):
+def mock_hpu_available(monkeypatch, value=True):
+    try:
+        import lightning_habana
+    except ModuleNotFoundError:
+        return
+
+    monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning_habana.accelerator, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.strategies.parallel, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.strategies.single, "_HPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_habana.plugins.precision, "_HPU_AVAILABLE", value)
+
+
+def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
+    mock_ipu_available(monkeypatch, False)
+    mock_xla_available(monkeypatch, False)
     trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.num_devices == 1
-
-
-@RunIf(mps=False)
-def test_devices_auto_choice_gpu(cuda_count_2):
-    trainer = Trainer(accelerator="auto", devices="auto")
-    assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert trainer.num_devices == 2
-
-
-@RunIf(mps=True)
-def test_devices_auto_choice_mps():
-    trainer = Trainer(accelerator="auto", devices="auto")
-    assert isinstance(trainer.accelerator, MPSAccelerator)
     assert trainer.num_devices == 1
 
 
@@ -653,9 +633,9 @@ def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
     torch.backends.cudnn.benchmark = cudnn_benchmark
     if benchmark_ and deterministic:
         with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
-            AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
+            _AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
     else:
-        AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
+        _AcceleratorConnector(benchmark=benchmark_, deterministic=deterministic)
     expected = cudnn_benchmark if expected is None else expected
     assert torch.backends.cudnn.benchmark == expected
 
@@ -761,12 +741,9 @@ def test_gpu_accelerator_misconfiguration_exception(*_):
         Trainer(accelerator="gpu")
 
 
-@mock.patch("lightning.pytorch.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
-@mock.patch("lightning.pytorch.strategies.hpu_parallel._HPU_AVAILABLE", return_value=True)
-@mock.patch("lightning.pytorch.plugins.precision.hpu._HPU_AVAILABLE", return_value=True)
-def test_accelerator_specific_checkpoint_io(*_):
+def test_accelerator_specific_checkpoint_io():
     ckpt_plugin = TorchCheckpointIO()
-    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
+    trainer = Trainer(accelerator="cpu", strategy=DDPStrategy(), plugins=[ckpt_plugin])
     assert trainer.strategy.checkpoint_io is ckpt_plugin
 
 
@@ -796,7 +773,7 @@ def test_connector_defaults_match_trainer_defaults():
         return {k: v.default for k, v in init_signature.parameters.items()}
 
     trainer_defaults = get_defaults(Trainer)
-    connector_defaults = get_defaults(AcceleratorConnector)
+    connector_defaults = get_defaults(_AcceleratorConnector)
 
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
@@ -815,3 +792,184 @@ def test_colossalai_external_strategy(monkeypatch):
 
     trainer = Trainer(strategy="colossalai", precision="16-mixed")
     assert isinstance(trainer.strategy, ColossalAIStrategy)
+
+
+@RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
+@pytest.mark.skipif(not package_available("lightning_bagua"), reason="Requires Bagua Strategy")
+def test_bagua_external_strategy(monkeypatch):
+    with mock.patch(
+        "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_BAGUA_AVAILABLE", False
+    ), pytest.raises(ModuleNotFoundError):
+        Trainer(strategy="bagua")
+
+    from lightning_bagua import BaguaStrategy
+
+    trainer = Trainer(strategy="bagua")
+    assert isinstance(trainer.strategy, BaguaStrategy)
+
+
+@pytest.mark.parametrize("is_interactive", (False, True))
+def test_connector_auto_selection(monkeypatch, is_interactive):
+    import lightning.fabric  # avoid breakage with standalone package
+
+    def _mock_interactive():
+        monkeypatch.setattr(
+            lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive
+        )
+        if _IS_WINDOWS:
+            # simulate fork support on windows
+            monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
+    _mock_interactive()
+
+    def _mock_tpu_available(value):
+        mock_tpu_available(monkeypatch, value)
+        monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+        monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+        monkeypatch.setattr(lightning.fabric.plugins.environments.XLAEnvironment, "node_rank", lambda *_: 0)
+
+    # CPU
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 0)
+        mock_mps_count(monkeypatch, 0)
+        mock_tpu_available(monkeypatch, False)
+        mock_ipu_available(monkeypatch, False)
+        trainer = Trainer()
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.strategy, SingleDeviceStrategy)
+    assert trainer._accelerator_connector._devices_flag == 1
+    assert trainer.num_devices == 1
+
+    # single CUDA
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 1)
+        mock_mps_count(monkeypatch, 0)
+        mock_tpu_available(monkeypatch, False)
+        mock_ipu_available(monkeypatch, False)
+        trainer = Trainer()
+    assert isinstance(trainer.accelerator, CUDAAccelerator)
+    assert isinstance(trainer.strategy, SingleDeviceStrategy)
+    assert trainer._accelerator_connector._devices_flag == [0]
+    assert trainer.num_devices == 1
+
+    # multi CUDA
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 4)
+        mock_mps_count(monkeypatch, 0)
+        mock_tpu_available(monkeypatch, False)
+        mock_ipu_available(monkeypatch, False)
+        trainer = Trainer()
+    assert isinstance(trainer.accelerator, CUDAAccelerator)
+    assert isinstance(trainer.strategy, DDPStrategy)
+    assert trainer._accelerator_connector._devices_flag == list(range(4))
+    assert trainer.num_devices == 4
+    assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
+    assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
+    assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
+
+    # MPS (there's no distributed)
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 0)
+        mock_mps_count(monkeypatch, 1)
+        mock_tpu_available(monkeypatch, False)
+        mock_ipu_available(monkeypatch, False)
+        connector = _AcceleratorConnector()
+    assert isinstance(connector.accelerator, MPSAccelerator)
+    assert isinstance(connector.strategy, SingleDeviceStrategy)
+    assert connector._devices_flag == [0]
+
+    # single TPU
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 0)
+        mock_mps_count(monkeypatch, 0)
+        mock_ipu_available(monkeypatch, False)
+        _mock_tpu_available(True)
+        # TPUAccelerator.auto_device_count always returns 8, but in case this changes in the future...
+        monkeypatch.setattr(lightning.pytorch.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
+        monkeypatch.setattr(torch, "device", Mock())
+        connector = _AcceleratorConnector()
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, SingleTPUStrategy)
+    assert connector._devices_flag == 1
+
+    monkeypatch.undo()  # for some reason `.context()` is not working properly
+    assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
+    _mock_interactive()
+
+    # Multi TPU
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 0)
+        mock_mps_count(monkeypatch, 0)
+        _mock_tpu_available(True)
+        mock_ipu_available(monkeypatch, False)
+        connector = _AcceleratorConnector()
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, XLAStrategy)
+    assert connector._devices_flag == 8
+    assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+    assert connector.strategy._start_method == "fork"
+    assert connector.strategy.launcher.is_interactive_compatible
+
+    # Single/Multi IPU: strategy is the same
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 0)
+        mock_mps_count(monkeypatch, 0)
+        mock_tpu_available(monkeypatch, False)
+        mock_ipu_available(monkeypatch, True)
+        connector = _AcceleratorConnector()
+    assert isinstance(connector.accelerator, IPUAccelerator)
+    assert isinstance(connector.strategy, IPUStrategy)
+    assert connector._devices_flag == 4
+    assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+    assert connector.strategy.launcher is None
+
+    # Single HPU
+    if _LIGHTNING_HABANA_AVAILABLE:
+        import lightning_habana
+
+        with monkeypatch.context():
+            mock_cuda_count(monkeypatch, 0)
+            mock_mps_count(monkeypatch, 0)
+            mock_tpu_available(monkeypatch, False)
+            mock_ipu_available(monkeypatch, False)
+            mock_hpu_available(monkeypatch, True)
+            monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "auto_device_count", lambda *_: 1)
+            connector = _AcceleratorConnector()
+        assert isinstance(connector.accelerator, HPUAccelerator)
+        assert isinstance(connector.strategy, SingleHPUStrategy)
+        assert connector._devices_flag == 1
+
+    monkeypatch.undo()  # for some reason `.context()` is not working properly
+    _mock_interactive()
+
+    if not is_interactive and _LIGHTNING_HABANA_AVAILABLE:  # HPU does not support interactive environments
+        from lightning_habana import HPUParallelStrategy
+
+        # Multi HPU
+        with monkeypatch.context():
+            mock_cuda_count(monkeypatch, 0)
+            mock_mps_count(monkeypatch, 0)
+            mock_tpu_available(monkeypatch, False)
+            mock_ipu_available(monkeypatch, False)
+            mock_hpu_available(monkeypatch, True)
+            connector = _AcceleratorConnector()
+        assert isinstance(connector.accelerator, HPUAccelerator)
+        assert isinstance(connector.strategy, HPUParallelStrategy)
+        assert connector._devices_flag == 8
+        assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+        assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
+        assert not connector.strategy.launcher.is_interactive_compatible
+
+    # TPU and CUDA: prefers TPU
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 2)
+        mock_mps_count(monkeypatch, 0)
+        _mock_tpu_available(True)
+        mock_ipu_available(monkeypatch, False)
+        connector = _AcceleratorConnector()
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, XLAStrategy)
+    assert connector._devices_flag == 8
+    assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
+    assert connector.strategy._start_method == "fork"
+    assert connector.strategy.launcher.is_interactive_compatible

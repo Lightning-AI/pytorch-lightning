@@ -26,7 +26,7 @@ import lightning.fabric
 import lightning.pytorch
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
-from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -92,7 +92,7 @@ def restore_signal_handlers():
 
     This is a safety net for tests that don't run Trainer's teardown.
     """
-    valid_signals = SignalConnector._valid_signals()
+    valid_signals = _SignalConnector._valid_signals()
     if not _IS_WINDOWS:
         # SIGKILL and SIGSTOP are not allowed to be modified by the user
         valid_signals -= {signal.SIGKILL, signal.SIGSTOP}
@@ -171,24 +171,33 @@ def mps_count_4(monkeypatch):
     mock_mps_count(monkeypatch, 4)
 
 
+def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+
+
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    mock_xla_available(monkeypatch)
+
+
+def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    mock_xla_available(monkeypatch, value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
 
 
 @pytest.fixture(scope="function")
-def tpu_available(xla_available, monkeypatch) -> None:
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+def tpu_available(monkeypatch) -> None:
+    mock_tpu_available(monkeypatch)
 
 
 @pytest.fixture
@@ -307,19 +316,3 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     )
     for item in items:
         item.add_marker(deprecation_error)
-
-
-def pytest_addoption(parser):
-    parser.addoption("--hpus", action="store", type=int, default=1, help="Number of hpus 1-8")
-    parser.addoption(
-        "--hmp-bf16", action="store", type=str, default="./ops_bf16_mnist.txt", help="bf16 ops list file in hmp O1 mode"
-    )
-    parser.addoption(
-        "--hmp-fp32", action="store", type=str, default="./ops_fp32_mnist.txt", help="fp32 ops list file in hmp O1 mode"
-    )
-
-
-@pytest.fixture
-def hpus(request):
-    hpus = request.config.getoption("--hpus")
-    return hpus

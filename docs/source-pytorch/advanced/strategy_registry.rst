@@ -1,8 +1,6 @@
 Strategy Registry
 =================
 
-.. warning:: The Strategy Registry is experimental and subject to change.
-
 Lightning includes a registry that holds information about Training strategies and allows for the registration of new custom strategies.
 
 The Strategies are assigned strings that identify them, such as "ddp", "deepspeed_stage_2_offload", and so on.
@@ -25,7 +23,7 @@ Additionally, you can pass your custom registered training strategies to the ``s
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
+    from lightning.pytorch.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
 
 
     class CustomCheckpointIO(CheckpointIO):

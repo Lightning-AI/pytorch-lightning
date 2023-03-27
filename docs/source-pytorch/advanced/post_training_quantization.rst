@@ -68,7 +68,7 @@ Load the pretrained model with PyTorch Lightning:
 .. code-block:: python
 
     import torch
-    from pytorch_lightning import LightningModule
+    from lightning.pytorch import LightningModule
     from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
 
 
@@ -126,7 +126,7 @@ At last, the quantized model can be saved by:
 Hands-on Examples
 *****************
 
-Based on the `given example code <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
+Based on the `given example code <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
 
 .. code-block:: python
 

@@ -38,6 +38,7 @@ from lightning_cloud.openapi import (
     ProjectIdCloudspacesBody,
     V1BuildSpec,
     V1CloudSpace,
+    V1DataConnectionMount,
     V1DependencyFileInfo,
     V1Drive,
     V1DriveSpec,
@@ -80,6 +81,7 @@ from lightning.app.core.constants import (
     get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
+    SYS_CUSTOMIZATIONS_SYNC_ROOT,
 )
 from lightning.app.core.work import LightningWork
 from lightning.app.runners.backends.cloud import CloudBackend
@@ -196,7 +198,7 @@ class CloudRuntime(Runtime):
         cloudspace_id: str,
         name: str,
         cluster_id: str,
-    ):
+    ) -> str:
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
         such as the project and cluster IDs that are instead passed directly.
 
@@ -210,15 +212,22 @@ class CloudRuntime(Runtime):
             ApiException: If there was an issue in the backend.
             RuntimeError: If there are validation errors.
             ValueError: If there are validation errors.
+
+        Returns:
+            The URL of the created job.
         """
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
         repo = self._resolve_repo(root)
-        self._resolve_cloudspace(project_id, cloudspace_id)
+        project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
+        cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
         queue_server_type = self._resolve_queue_server_type()
+
+        # If system customization files found, it will set their location path
+        sys_customizations_sync_root = self._resolve_env_root()
 
         self.app._update_index_file()
 
@@ -232,15 +241,19 @@ class CloudRuntime(Runtime):
         # Spec creation
         flow_servers = self._get_flow_servers()
         network_configs = self._get_network_configs(flow_servers)
-        works = self._get_works()
+        works = self._get_works(cloudspace=cloudspace)
         run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
+
+        # If the system customization root is set, prepare files for environment synchronization
+        if sys_customizations_sync_root is not None:
+            repo.prepare_sys_customizations_sync(sys_customizations_sync_root)
 
         # API transactions
         run = self._api_create_run(project_id, cloudspace_id, run_body)
         self._api_package_and_upload_repo(repo, run)
 
-        self._api_create_run_instance(
+        run_instance = self._api_create_run_instance(
             cluster_id,
             project_id,
             name,
@@ -251,10 +264,12 @@ class CloudRuntime(Runtime):
             env_vars,
         )
 
+        return self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui")
+
     def dispatch(
         self,
         name: str = "",
-        cluster_id: str = None,
+        cluster_id: Optional[str] = None,
         open_ui: bool = True,
         no_cache: bool = False,
         **kwargs: Any,
@@ -367,6 +382,10 @@ class CloudRuntime(Runtime):
                 click.launch(
                     self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui", needs_credits)
                 )
+
+            if bool(int(os.getenv("LIGHTING_TESTING", "0"))):
+                print(f"APP_LOGS_URL: {self._get_app_url(project, run_instance, 'logs')}")
+
         except ApiException as e:
             logger.error(e.body)
             sys.exit(1)
@@ -375,14 +394,14 @@ class CloudRuntime(Runtime):
                 cleanup_handle()
 
     @classmethod
-    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+    def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
 
         # Pretend we are running in the cloud when loading the app locally
         os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
 
         try:
-            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True, env_vars=env_vars)
         except FileNotFoundError as e:
             raise e
         except Exception:
@@ -413,6 +432,13 @@ class CloudRuntime(Runtime):
         if root.is_file():
             root = root.parent
         return root
+
+    def _resolve_env_root(self) -> Optional[Path]:
+        """Determine whether the root of environment sync files exists."""
+        root = Path(SYS_CUSTOMIZATIONS_SYNC_ROOT)
+        if root.exists():
+            return root
+        return None
 
     def _resolve_open_ignore_functions(self) -> List[_IGNORE_FUNCTION]:
         """Used by the ``open`` method.
@@ -447,16 +473,9 @@ class CloudRuntime(Runtime):
 
         return LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
 
-    def _resolve_project(self) -> V1Membership:
+    def _resolve_project(self, project_id: Optional[str] = None) -> V1Membership:
         """Determine the project to run on, choosing a default if multiple projects are found."""
-        return _get_project(self.backend.client)
-
-    def _resolve_cloudspace(self, project_id: str, cloudspace_id: str) -> V1CloudSpace:
-        """Get a cloudspace by project / cloudspace ID."""
-        return self.backend.client.cloud_space_service_get_cloud_space(
-            project_id=project_id,
-            id=cloudspace_id,
-        )
+        return _get_project(self.backend.client, project_id=project_id)
 
     def _resolve_existing_cloudspaces(self, project_id: str, cloudspace_name: str) -> List[V1CloudSpace]:
         """Lists all the cloudspaces with a name matching the provided cloudspace name."""
@@ -539,6 +558,15 @@ class CloudRuntime(Runtime):
 
             name = random_name
         return name
+
+    def _resolve_cloudspace(self, project_id: str, cloudspace_id: str) -> Optional[V1CloudSpace]:
+        """Returns a cloudspace by project_id and cloudspace_id, if exists."""
+        existing_cloudspace = self.backend.client.cloud_space_service_get_cloud_space(
+            project_id=project_id,
+            id=cloudspace_id,
+        )
+
+        return existing_cloudspace
 
     def _resolve_queue_server_type(self) -> V1QueueServerType:
         """Resolve the cloud queue type from the environment."""
@@ -715,7 +743,7 @@ class CloudRuntime(Runtime):
                 )
         return mounts
 
-    def _get_works(self) -> List[V1Work]:
+    def _get_works(self, cloudspace: Optional[V1CloudSpace] = None) -> List[V1Work]:
         """Get the list of work specs from the app."""
         works: List[V1Work] = []
         for work in self.app.works:
@@ -741,12 +769,17 @@ class CloudRuntime(Runtime):
             drives = self._get_drives(work)
             mounts = self._get_mounts(work)
 
+            data_connection_mounts: list[V1DataConnectionMount] = []
+            if cloudspace is not None and cloudspace.code_config is not None:
+                data_connection_mounts = cloudspace.code_config.data_connection_mounts
+
             random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
             work_spec = V1LightningworkSpec(
                 build_spec=build_spec,
                 drives=drives + mounts,
                 user_requested_compute_config=user_compute_config,
                 network_config=[V1NetworkConfig(name=random_name, port=work.port)],
+                data_connection_mounts=data_connection_mounts,
             )
             works.append(V1Work(name=work.name, spec=work_spec))
 

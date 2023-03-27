@@ -46,7 +46,6 @@ def test_num_stepping_batches_raises_info_with_no_dataloaders_loaded(caplog):
     trainer.strategy.connect(model)
 
     # artificially setup the data
-    trainer.training = True
     trainer.fit_loop.setup_data()
 
     with caplog.at_level(logging.INFO):

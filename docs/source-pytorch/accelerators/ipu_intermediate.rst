@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** IPU users looking to increase performance via mixed precision and analysis tools.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 Mixed precision & 16 bit precision
@@ -20,7 +22,7 @@ set the precision flag.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     model = MyLightningModule()
     trainer = pl.Trainer(accelerator="ipu", devices=8, precision=16)
@@ -30,8 +32,8 @@ You can also use pure 16-bit training, where the weights are also in 16-bit prec
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    from pytorch_lightning.strategies import IPUStrategy
+    import lightning.pytorch as pl
+    from lightning.pytorch.strategies import IPUStrategy
 
     model = MyLightningModule()
     model = model.half()
@@ -53,8 +55,8 @@ Lightning supports dumping all reports to a directory to open using the tool.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    from pytorch_lightning.strategies import IPUStrategy
+    import lightning.pytorch as pl
+    from lightning.pytorch.strategies import IPUStrategy
 
     model = MyLightningModule()
     trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(autoreport_dir="report_dir/"))
