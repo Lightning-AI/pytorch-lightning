@@ -42,6 +42,8 @@ class ExperimentWriter(_FabricExperimentWriter):
     Currently, supports to log hyperparameters and metrics in YAML and CSV
     format, respectively.
 
+    This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
+
     Args:
         log_dir: Directory for the experiment logs
     """
