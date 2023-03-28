@@ -89,22 +89,23 @@ subprojects:
     checks:
       - "pytorch-lightning (HPUs)"
 
-  - id: "pytorch_lightning: Azure IPU"
-    paths:
-      - ".actions/**"
-      - ".azure/ipu-tests.yml"
-      - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
-      - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
-      - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
-      - "!requirements/docs.txt"
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "pytorch-lightning (IPUs)"
+  # TODO: this was not running for long time, so need to be fixed at first
+  #- id: "pytorch_lightning: Azure IPU"
+  #  paths:
+  #    - ".actions/**"
+  #    - ".azure/ipu-tests.yml"
+  #    - "requirements/fabric/**"
+  #    - "src/lightning_fabric/**"
+  #    - "requirements/pytorch/**"
+  #    - "src/pytorch_lightning/**"
+  #    - "tests/tests_pytorch/**"
+  #    - "pyproject.toml"  # includes pytest config
+  #    - "!requirements/docs.txt"
+  #    - "!requirements/*/docs.txt"
+  #    - "!*.md"
+  #    - "!**/*.md"
+  #  checks:
+  #    - "pytorch-lightning (IPUs)"
 
   # TODO: since this job has intermittent availability, it cannot be required
   #- id: "pytorch-lightning: TPU workflow"
