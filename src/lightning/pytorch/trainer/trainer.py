@@ -1413,7 +1413,7 @@ class Trainer:
         ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
         # re-compute the `min` in case this is called outside of the sanity-checking stage
-        sanity_val_steps = self.trainer.num_sanity_val_steps
+        sanity_val_steps = self.num_sanity_val_steps
         if isinstance(max_batches, list):
             return [min(sanity_val_steps, batches) for batches in max_batches]
         return min(sanity_val_steps, max_batches)
