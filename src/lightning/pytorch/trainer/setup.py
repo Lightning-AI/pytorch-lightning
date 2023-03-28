@@ -207,9 +207,3 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
                 "HPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
-
-    if MPSAccelerator.is_available() and not isinstance(trainer.accelerator, MPSAccelerator):
-        rank_zero_warn(
-            "MPS available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
-        )
