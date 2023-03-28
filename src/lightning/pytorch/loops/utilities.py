@@ -20,7 +20,7 @@ import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks.timer import Timer
