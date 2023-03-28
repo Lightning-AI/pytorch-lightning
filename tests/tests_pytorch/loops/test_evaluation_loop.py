@@ -461,7 +461,6 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
 def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn):
     iterables = {"a": [0, 1, 2], "b": {3, 4}}
     cl = CombinedLoader(iterables, mode)
-
     seen = []
 
     class MyModel(BoringModel):
