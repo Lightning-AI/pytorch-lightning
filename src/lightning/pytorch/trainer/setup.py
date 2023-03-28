@@ -170,11 +170,14 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         num_hpus = 0
     rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
-    # TODO: Integrate MPS Accelerator here, once gpu maps to both
-    if CUDAAccelerator.is_available() and not isinstance(trainer.accelerator, CUDAAccelerator):
+    if (
+        CUDAAccelerator.is_available()
+        and not isinstance(trainer.accelerator, CUDAAccelerator)
+        or MPSAccelerator.is_available()
+        and not isinstance(trainer.accelerator, MPSAccelerator)
+    ):
         rank_zero_warn(
-            "GPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
+            "GPU available but not used. Set `accelerator` using `Trainer(accelerator='gpu')`.",
             category=PossibleUserWarning,
         )
 
