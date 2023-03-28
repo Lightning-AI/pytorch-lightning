@@ -12,7 +12,7 @@ _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "pytorch_lightning")
 _PATH_REQUIREMENTS = os.path.join("requirements", "pytorch")
-_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
+_FREEZE_REQUIREMENTS = os.environ.get("FREEZE_REQUIREMENTS", "0").lower() in ("1", "true")
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:

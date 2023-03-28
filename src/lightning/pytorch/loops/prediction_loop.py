@@ -142,7 +142,7 @@ class _PredictionLoop(_Loop):
         self.max_batches = []
         for dl in combined_loader.flattened:
             _check_dataloader_iterable(dl, source, trainer_fn)
-            dl = _process_dataloader(trainer, dl)
+            dl = _process_dataloader(trainer, trainer_fn, stage, dl)
             dataloaders.append(dl)
 
             # determine number of batches
@@ -163,6 +163,8 @@ class _PredictionLoop(_Loop):
             )
         combined_loader = self._combined_loader
         assert combined_loader is not None
+        if combined_loader._mode != "sequential":
+            raise ValueError('`trainer.predict()` only supports the `CombinedLoader(mode="sequential")` mode.')
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -334,10 +336,9 @@ class _PredictionLoop(_Loop):
     def _verify_dataloader_idx_requirement(self) -> None:
         trainer = self.trainer
         assert self._combined_loader is not None
-        assert trainer.state.stage is not None
         _verify_dataloader_idx_requirement(
             ("predict_step", "on_predict_batch_start", "on_predict_batch_end"),
             self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
-            trainer.state.stage,
+            RunningStage.PREDICTING,
             trainer.lightning_module,
         )

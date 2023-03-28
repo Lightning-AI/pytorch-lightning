@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
-
 import logging
 import numbers
+import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -37,7 +37,7 @@ from typing import (
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -51,12 +51,7 @@ from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import _distributed_available
-from lightning.fabric.utilities.imports import (
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_13,
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -129,7 +124,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
@@ -1124,6 +1118,16 @@ class LightningModule(
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
         """
+
+        if self.fabric is not None:
+            self.fabric.clip_gradients(
+                self,
+                optimizer,
+                clip_val=gradient_clip_val if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else None,
+                max_norm=None if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else gradient_clip_val,
+            )
+            return
+
         if gradient_clip_val is None:
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
@@ -1534,20 +1538,9 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
-    @contextmanager
-    def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
-        self._should_prevent_trainer_and_dataloaders_deepcopy = True
-        yield
-        self._should_prevent_trainer_and_dataloaders_deepcopy = False
-
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
-        if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["_trainer"] = None
-            state.pop("train_dataloader", None)
-            state.pop("val_dataloader", None)
-            state.pop("test_dataloader", None)
-            state.pop("predict_dataloader", None)
+        state["_trainer"] = None
         return state
 
     def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
@@ -1566,7 +1559,8 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_13:
+        if compare_version("torch", operator.ge, "1.13.0", use_base_version=True):
+            # See https://github.com/Lightning-AI/lightning/issues/16644 for why a base-version check is used here
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy

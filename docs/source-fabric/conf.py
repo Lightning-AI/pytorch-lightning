@@ -262,7 +262,7 @@ epub_exclude_files = ["search.html"]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
-    "pytorch_lightning": ("https://pytorch-lightning.readthedocs.io/en/stable/", None),
+    "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
