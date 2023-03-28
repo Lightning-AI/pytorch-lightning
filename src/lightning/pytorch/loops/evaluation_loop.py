@@ -86,7 +86,7 @@ class _EvaluationLoop(_Loop):
 
     @property
     def max_batches(self) -> Union[int, float, List[Union[int, float]]]:
-        """In "sequential" mode, the max number of batches to run for each dataloader.
+        """In "sequential" mode, the max number of batches to run per dataloader.
 
         Otherwise, the max batches to run.
         """
@@ -248,7 +248,9 @@ class _EvaluationLoop(_Loop):
         iter(data_fetcher)  # creates the iterator inside the fetcher
         if isinstance(combined_loader._iterator, _Sequential):
             # set the per-dataloader limits
-            combined_loader._iterator.limits = self.max_batches
+            max_batches = self.max_batches
+            assert isinstance(max_batches, list)
+            combined_loader._iterator.limits = max_batches
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
