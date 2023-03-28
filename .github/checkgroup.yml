@@ -89,22 +89,23 @@ subprojects:
     checks:
       - "pytorch-lightning (HPUs)"
 
-  - id: "pytorch_lightning: Azure IPU"
-    paths:
-      - ".actions/**"
-      - ".azure/ipu-tests.yml"
-      - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
-      - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
-      - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
-      - "!requirements/docs.txt"
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "pytorch-lightning (IPUs)"
+  # TODO: this was not running for long time, so need to be fixed at first
+  #- id: "pytorch_lightning: Azure IPU"
+  #  paths:
+  #    - ".actions/**"
+  #    - ".azure/ipu-tests.yml"
+  #    - "requirements/fabric/**"
+  #    - "src/lightning_fabric/**"
+  #    - "requirements/pytorch/**"
+  #    - "src/pytorch_lightning/**"
+  #    - "tests/tests_pytorch/**"
+  #    - "pyproject.toml"  # includes pytest config
+  #    - "!requirements/docs.txt"
+  #    - "!requirements/*/docs.txt"
+  #    - "!*.md"
+  #    - "!**/*.md"
+  #  checks:
+  #    - "pytorch-lightning (IPUs)"
 
   # TODO: since this job has intermittent availability, it cannot be required
   #- id: "pytorch-lightning: TPU workflow"
@@ -130,7 +131,7 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "docs/source-pytorch/**"
       - ".actions/**"
-      - ".github/workflows/docs-checks.yml"
+      - ".github/workflows/docs-build.yml"
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
@@ -154,17 +155,17 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "build-cuda (3.9, 1.10, 11.3.1)"
-      - "build-cuda (3.9, 1.11, 11.3.1)"
-      - "build-cuda (3.9, 1.12, 11.6.1)"
-      - "build-cuda (3.9, 1.13, 11.7.1)"
+      - "build-cuda (3.8, 1.10, 11.3.1)"
+      - "build-cuda (3.8, 1.11, 11.3.1)"
+      - "build-cuda (3.8, 1.12, 11.3.1)"
+      - "build-cuda (3.8, 1.13, 11.6.1)"
       - "build-hpu (1.5.0, 1.11.0)"
       - "build-ipu (3.9, 1.10)"
       - "build-NGC"
-      - "build-pl (3.9, 1.10, 11.3.1)"
-      - "build-pl (3.9, 1.11, 11.3.1)"
-      - "build-pl (3.9, 1.12, 11.6.1)"
-      - "build-pl (3.9, 1.13, 11.7.1)"
+      - "build-pl (3.8, 1.10, 11.3.1)"
+      - "build-pl (3.8, 1.11, 11.3.1)"
+      - "build-pl (3.8, 1.12, 11.3.1)"
+      - "build-pl (3.8, 1.13, 11.6.1)"
       - "build-xla (3.7, 1.12)"
 
   # SECTION: lightning_fabric
@@ -293,7 +294,7 @@ subprojects:
       - ".actions/**"
       - "src/lightning_app/**"
       - "docs/source-app/**"
-      - ".github/workflows/docs-checks.yml"
+      - ".github/workflows/docs-build.yml"
       - "requirements/docs.txt"
       - "requirements/app/**"
       - "setup.py"

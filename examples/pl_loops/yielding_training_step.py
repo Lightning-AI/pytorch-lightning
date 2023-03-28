@@ -40,7 +40,7 @@ if _TORCHVISION_AVAILABLE:
 # code when dealing with multiple optimizers (automatic optimization).                      #
 #                                                                                           #
 # Learn more about the loop structure from the documentation:                               #
-# https://pytorch-lightning.readthedocs.io/en/stable/extensions/loops.html                  #
+# https://pytorch-lightning.readthedocs.io/en/LTS/extensions/loops.html                  #
 #############################################################################################
 
 

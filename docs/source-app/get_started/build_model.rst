@@ -27,7 +27,7 @@ Let's assume you already have a folder with those two files.
         train.py            # your own script to train your models
         requirements.txt    # your python requirements.
 
-If you don't, simply create a ``pl_project`` folder with those two files and add the following `PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/>`_ code  in the ``train.py`` file. This code trains a simple ``AutoEncoder`` on `MNIST Dataset <https://en.wikipedia.org/wiki/MNIST_database>`_.
+If you don't, simply create a ``pl_project`` folder with those two files and add the following `PyTorch Lightning <https://lightning.ai/docs/pytorch/LTS/>`_ code  in the ``train.py`` file. This code trains a simple ``AutoEncoder`` on `MNIST Dataset <https://en.wikipedia.org/wiki/MNIST_database>`_.
 
 .. literalinclude:: ../code_samples/convert_pl_to_app/train.py
 
@@ -42,7 +42,7 @@ Simply run the following commands in your terminal to install the requirements a
     pip install -r requirements.txt
     python train.py
 
-Get through `PyTorch Lightning Introduction <https://pytorch-lightning.readthedocs.io/en/stable/starter/introduction.html#step-1-define-lightningmodule>`_ to learn more.
+Get through `PyTorch Lightning Introduction <https://lightning.ai/docs/pytorch/LTS/starter/introduction.html#step-1-define-lightningmodule>`_ to learn more.
 
 ----
 
