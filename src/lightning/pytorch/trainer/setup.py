@@ -177,7 +177,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         and not isinstance(trainer.accelerator, MPSAccelerator)
     ):
         rank_zero_warn(
-            "GPU available but not used. Set `accelerator` using `Trainer(accelerator='gpu')`.",
+            "GPU available but not used. You can set it by doing `Trainer(accelerator='gpu')`.",
             category=PossibleUserWarning,
         )
 
