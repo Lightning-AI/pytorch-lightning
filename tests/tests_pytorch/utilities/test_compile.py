@@ -16,13 +16,13 @@ import sys
 import pytest
 import torch
 from lightning_utilities.core import module_available
+from tests_pytorch.conftest import mock_cuda_count
+from tests_pytorch.helpers.runif import RunIf
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
-from tests_pytorch.conftest import mock_cuda_count
-from tests_pytorch.helpers.runif import RunIf
 
 
 def skip_if_unsupported():
@@ -148,3 +148,21 @@ def test_trainer_compiled_model_that_logs(tmp_path):
     trainer.fit(compiled_model)
 
     assert set(trainer.callback_metrics) == {"loss"}
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(min_torch="2.0.0")
+def test_trainer_compiled_model_test(tmp_path):
+    skip_if_unsupported()
+
+    model = BoringModel()
+    compiled_model = torch.compile(model)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        fast_dev_run=True,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.test(compiled_model)
