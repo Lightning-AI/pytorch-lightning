@@ -182,16 +182,10 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         )
 
     if TPUAccelerator.is_available() and not isinstance(trainer.accelerator, TPUAccelerator):
-        rank_zero_warn(
-            "TPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
-        )
+        rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
     if _IPU_AVAILABLE and not isinstance(trainer.accelerator, IPUAccelerator):
-        rank_zero_warn(
-            "IPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
-        )
+        rank_zero_warn("IPU available but not used. You can set it by doing `Trainer(accelerator='ipu')`.")
 
     if _HPU_AVAILABLE:
         if not _LIGHTNING_HABANA_AVAILABLE:
@@ -203,7 +197,4 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         from lightning_habana import HPUAccelerator
 
         if not isinstance(trainer.accelerator, HPUAccelerator):
-            rank_zero_warn(
-                "HPU available but not used. Set `accelerator` and `devices` using"
-                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
-            )
+            rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")
