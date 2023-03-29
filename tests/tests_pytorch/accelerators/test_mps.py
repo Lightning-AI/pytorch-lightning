@@ -39,10 +39,9 @@ def test_mps_availability():
     assert MPSAccelerator.is_available()
 
 
-@RunIf(mps=True)
-def test_warning_if_mps_not_used():
-    with pytest.warns(UserWarning, match="MPS available but not used. Set `accelerator` and `devices`"):
-        Trainer()
+def test_warning_if_mps_not_used(mps_count_1):
+    with pytest.warns(UserWarning, match="GPU available but not used"):
+        Trainer(accelerator="cpu")
 
 
 @RunIf(mps=True)

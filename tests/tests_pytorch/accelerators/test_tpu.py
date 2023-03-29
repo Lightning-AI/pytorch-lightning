@@ -298,7 +298,7 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 
 def test_warning_if_tpus_not_used(tpu_available):
-    with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
+    with pytest.warns(UserWarning, match="TPU available but not used"):
         Trainer(accelerator="cpu")
 
 
