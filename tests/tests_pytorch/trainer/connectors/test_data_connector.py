@@ -370,8 +370,6 @@ def test_error_raised_with_float_limited_eval_batches():
     trainer = Trainer(limit_val_batches=limit_val_batches)
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
-    trainer.state.fn = TrainerFn.VALIDATING
-    trainer.state.stage = RunningStage.VALIDATING
     with pytest.raises(
         MisconfigurationException,
         match=rf"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
@@ -408,8 +406,6 @@ def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, wa
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
     context = pytest.warns if warns else no_warning_call
-    trainer.state.fn = TrainerFn.VALIDATING
-    trainer.state.stage = RunningStage.VALIDATING
     with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test"):
         trainer.validate_loop.setup_data()
 
@@ -542,12 +538,10 @@ def test_eval_distributed_sampler_warning(devices, warn_context):
     trainer._data_connector.attach_data(model)
 
     trainer.state.fn = TrainerFn.VALIDATING
-    trainer.state.stage = RunningStage.VALIDATING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.validate_loop.setup_data()
 
     trainer.state.fn = TrainerFn.TESTING
-    trainer.state.stage = RunningStage.TESTING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.test_loop.setup_data()
 
@@ -564,8 +558,6 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     model = CustomModel()
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
-    trainer.state.fn = TrainerFn.FITTING
-    trainer.state.stage = RunningStage.VALIDATING
     trainer.fit_loop.epoch_loop.val_loop.setup_data()
     assert trainer.val_dataloaders.sampler.shuffle == shuffle
 
