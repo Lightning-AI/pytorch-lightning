@@ -119,20 +119,12 @@ def test_process_dataloader_gets_called_as_expected(keyword, value, monkeypatch)
     monkeypatch.setattr(strategy, "process_dataloader", process_dataloader_mock)
 
     if "train" in keyword:
-        trainer.state.fn = "fit"
-        trainer.training = True
         fn = trainer.fit_loop.setup_data
     elif "val" in keyword:
-        trainer.state.fn = "validate"
-        trainer.validating = True
         fn = trainer.validate_loop.setup_data
     elif "test" in keyword:
-        trainer.state.fn = "test"
-        trainer.testing = True
         fn = trainer.test_loop.setup_data
     else:
-        trainer.state.fn = "predict"
-        trainer.predicting = True
         fn = trainer.predict_loop.setup_data
 
     trainer._data_connector.attach_dataloaders(model, **{keyword: value})
