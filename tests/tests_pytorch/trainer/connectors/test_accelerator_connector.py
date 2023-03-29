@@ -904,3 +904,25 @@ def test_connector_auto_selection(cuda_count_2, mps_count_0):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.num_devices == 2
+
+
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        "ddp",
+        "ddp_spawn",
+        pytest.param("fsdp_native", marks=RunIf(min_torch="1.12.0")),
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+        pytest.param("fsdp", marks=RunIf(fairscale=True)),
+        pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
+        pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
+    ],
+)
+def test_connector_sets_num_nodes(strategy, cuda_count_2):
+    if strategy in ("fsdp", "ddp_sharded", "ddp_sharded_spawn"):
+        with pytest.deprecated_call(match="FairScale has been deprecated"):
+            trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    else:
+        trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+
+    assert trainer.strategy.num_nodes == 2
