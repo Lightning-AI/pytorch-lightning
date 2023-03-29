@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators.tpu import TPUAccelerator
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_auto_device_count():

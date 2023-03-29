@@ -23,7 +23,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
@@ -105,14 +104,12 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward
         method."""
-        args, kwargs = apply_to_collection([args, kwargs], function=self._precision.convert_input, dtype=Tensor)
+        args, kwargs = self._precision.convert_input((args, kwargs))
 
         with self._precision.forward_context():
             output = self._forward_module(*args, **kwargs)
 
-        output = apply_to_collection(
-            output, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype()
-        )
+        output = self._precision.convert_output(output)
         return output
 
     @overload
@@ -202,3 +199,16 @@ def _unwrap_objects(collection: Any) -> Any:
         return obj
 
     return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
+
+
+def is_wrapped(obj: object) -> bool:
+    """Checks if an object was set up by Fabric.
+
+    A :class:`~torch.nn.Module` may be wrapped by a :class:`_FabricModule`, a :class:`~torch.optim.Optimizer`
+    may be wrapped by a :class:`_FabricOptimizer`, or a :class:`~torch.utils.data.DataLoader` may be wrapped by
+    :class:`_FabricDataLoader`.
+
+    Args:
+        obj: The object to test.
+    """
+    return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

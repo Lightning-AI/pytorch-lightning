@@ -1961,13 +1961,10 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
 
     trainer.state.stage = running_stage
     if running_stage == "train":
-        trainer.state.fn = "fit"
         fn = trainer.fit_loop.setup_data
     elif running_stage == "validate":
-        trainer.state.fn = "validate"
         fn = trainer.validate_loop.setup_data
     elif running_stage == "test":
-        trainer.state.fn = "test"
         fn = trainer.test_loop.setup_data
     else:
         fn = trainer.predict_loop.setup_data

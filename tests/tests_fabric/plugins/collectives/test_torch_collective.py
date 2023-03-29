@@ -6,7 +6,6 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.plugins.collectives import TorchCollective
@@ -14,6 +13,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():
     from torch.distributed import ReduceOp
@@ -146,7 +146,7 @@ def test_convert_ops():
 def test_repeated_create_and_destroy():
     collective = TorchCollective()
     with mock.patch("torch.distributed.init_process_group"):
-        collective.setup(main_address="foo", main_port=123)
+        collective.setup(main_address="foo", main_port="123")
 
     assert not os.environ
 
@@ -157,7 +157,9 @@ def test_repeated_create_and_destroy():
     with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
         collective.create_group()
 
-    with mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
+    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {collective.group: ("", None)}), mock.patch(
+        "torch.distributed.destroy_process_group"
+    ) as destroy_mock:
         collective.teardown()
     # this would be called twice if `init_process_group` wasn't patched. once for the group and once for the default
     # group
@@ -269,3 +271,38 @@ def _test_two_groups(strategy, left_collective, right_collective):
 @pytest.mark.skip(reason="TODO(carmocca): causing hangs in CI")
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
+
+
+def _test_default_process_group(strategy, *collectives):
+    for collective in collectives:
+        assert collective.group == torch.distributed.group.WORLD
+    world_size = strategy.world_size
+    for c in collectives:
+        tensor = torch.tensor(world_size)
+        r = c.all_reduce(tensor)
+        assert world_size**2 == r
+
+
+@skip_distributed_unavailable
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+def test_default_process_group():
+    collective_launch(_test_default_process_group, [torch.device("cpu")] * 3, num_groups=2)
+
+
+@skip_distributed_unavailable
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_collective_manages_default_group():
+    collective = TorchCollective()
+    with mock.patch("torch.distributed.init_process_group"):
+        collective.setup(main_address="foo", main_port="123")
+
+    assert TorchCollective.manages_default_group
+
+    with mock.patch.object(collective, "_group") as mock_group, mock.patch.dict(
+        "torch.distributed.distributed_c10d._pg_map", {mock_group: ("", None)}
+    ), mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
+        collective.teardown()
+    destroy_mock.assert_called_once_with(mock_group)
+
+    assert not TorchCollective.manages_default_group

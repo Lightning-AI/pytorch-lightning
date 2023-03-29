@@ -25,13 +25,21 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
-from lightning.pytorch.loops.progress import BatchProgress
+from lightning.pytorch.loops.progress import _BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
 from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.data_connector import _DataLoaderSource
+from lightning.pytorch.trainer.connectors.data_connector import (
+    _check_dataloader_iterable,
+    _DataLoaderSource,
+    _parse_num_batches,
+    _process_dataloader,
+    _request_dataloader,
+    _resolve_overfit_batches,
+)
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
-from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 
@@ -43,17 +51,26 @@ if _RICH_AVAILABLE:
 class _EvaluationLoop(_Loop):
     """Top-level loop where validation/testing starts."""
 
-    def __init__(self, trainer: "pl.Trainer", verbose: bool = True, inference_mode: bool = True) -> None:
+    def __init__(
+        self,
+        trainer: "pl.Trainer",
+        trainer_fn: TrainerFn,
+        stage: RunningStage,
+        verbose: bool = True,
+        inference_mode: bool = True,
+    ) -> None:
         super().__init__(trainer)
         self.verbose = verbose
         self.inference_mode = inference_mode
-        self.batch_progress = BatchProgress()  # across dataloaders
+        self.batch_progress = _BatchProgress()  # across dataloaders
         self._max_batches: List[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
         self._has_run: bool = False
-        self._data_source = _DataLoaderSource(None, "")
+        self._trainer_fn = trainer_fn
+        self._stage = stage
+        self._data_source = _DataLoaderSource(None, f"{stage.dataloader_prefix}_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
@@ -115,33 +132,54 @@ class _EvaluationLoop(_Loop):
 
     def setup_data(self) -> None:
         trainer = self.trainer
-
-        if self._combined_loader is not None and trainer.state.fn == "fit" and not self._should_reload_val_dl:
+        trainer_fn = self._trainer_fn
+        if self._combined_loader is not None and trainer_fn == "fit" and not self._should_reload_val_dl:
             return
 
-        source = self._data_source
         pl_module = trainer.lightning_module
         limit_batches = trainer.limit_test_batches if trainer.testing else trainer.limit_val_batches
         hook_name = "test_step" if trainer.testing else "validation_step"
-        if not source.is_defined() or limit_batches == 0 or not is_overridden(hook_name, pl_module):
+        if limit_batches == 0 or not is_overridden(hook_name, pl_module):
             return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         # it should not reload again if it has already reloaded during sanity_check
-        if trainer.state.fn == "fit" and (
+        if trainer_fn == "fit" and (
             (trainer.sanity_checking and trainer.fit_loop.epoch_loop._should_check_val_epoch())
             or not trainer.sanity_checking
         ):
             self._last_val_dl_reload_epoch = trainer.current_epoch
 
-        stage = trainer.state.stage
-        assert stage is not None
-        self._max_batches, combined_loader = trainer._data_connector._reset_eval_dataloader(stage, model=pl_module)
+        stage = self._stage
+        source = self._data_source
+        dataloaders = _request_dataloader(source)
+        trainer.strategy.barrier(f"{stage.dataloader_prefix}_dataloader()")
 
-        if trainer.state.fn != "fit":  # if we are fitting, we need to do this in the loop
-            for dl in combined_loader.flattened:
-                # some users want validation shuffling based on the training progress
-                _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
+        if not isinstance(dataloaders, CombinedLoader):
+            combined_loader = CombinedLoader(dataloaders, "sequential")
+        else:
+            combined_loader = dataloaders
+
+        if trainer_fn == "fit" and trainer.overfit_batches > 0:
+            _resolve_overfit_batches(combined_loader, stage)
+
+        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+
+        dataloaders = []
+        self._max_batches = []
+        for dl in combined_loader.flattened:
+            _check_dataloader_iterable(dl, source, trainer_fn)
+            dl = _process_dataloader(trainer, trainer_fn, stage, dl)
+            dataloaders.append(dl)
+
+            # determine number of batches
+            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+            limit_batches = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
+            num_batches = _parse_num_batches(stage, length, limit_batches)
+            self._max_batches.append(num_batches)
+        combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
 
         # this depends on the data used, so reset it too
@@ -228,8 +266,7 @@ class _EvaluationLoop(_Loop):
         self._on_evaluation_model_train()
 
         if self.verbose and self.trainer.is_global_zero:
-            assert self.trainer.state.stage is not None
-            self._print_results(logged_outputs, self.trainer.state.stage)
+            self._print_results(logged_outputs, self._stage)
 
         return logged_outputs
 
@@ -300,18 +337,12 @@ class _EvaluationLoop(_Loop):
         self._logged_outputs.append(trainer._logger_connector.update_eval_epoch_metrics())
 
     def _on_before_fetch(self) -> None:
-        stage = self.trainer.state.stage
-        assert stage is not None
-        stage = stage.dataloader_prefix
-        self.trainer.profiler.start(f"[{type(self).__name__}].{stage}_next")
+        self.trainer.profiler.start(f"[{type(self).__name__}].{self._stage.dataloader_prefix}_next")
 
     def _on_after_fetch(self) -> None:
-        stage = self.trainer.state.stage
-        assert stage is not None
-        stage = stage.dataloader_prefix
         # the dataloader_idx cannot be easily included here because it might be different from the index used on
         # profiler start, since the `__next__` call might use a different iterator
-        self.trainer.profiler.stop(f"[{type(self).__name__}].{stage}_next")
+        self.trainer.profiler.stop(f"[{type(self).__name__}].{self._stage.dataloader_prefix}_next")
 
     def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual evaluation step together with all the necessary bookkeeping and the hooks tied to it.
@@ -384,11 +415,10 @@ class _EvaluationLoop(_Loop):
         batch_start_hook = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
         batch_end_hook = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
         assert self._combined_loader is not None
-        assert trainer.state.stage is not None
         _verify_dataloader_idx_requirement(
             (step_hook, batch_start_hook, batch_end_hook),
             self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
-            trainer.state.stage,
+            self._stage,
             trainer.lightning_module,
         )
 

@@ -26,9 +26,15 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "pl_examples",
-    "pytorch_lightning",
+    "examples",
+    "lightning",
+    "lightning_app",
     "lightning_fabric",
+    "pytorch_lightning",
+    "integrations_app",
+    "tests_app",
+    "tests_cloud",
+    "tests_fabric",
     "tests_pytorch",
 ]
 profile = "black"
@@ -129,10 +135,6 @@ module = [
     "lightning.app.components.serve.types.type",
     "lightning.app.components.training",
     "lightning.app.core.api",
-    "lightning.app.core.app",
-    "lightning.app.core.flow",
-    "lightning.app.core.queues",
-    "lightning.app.core.work",
     "lightning.app.frontend.panel.app_state_comm",
     "lightning.app.frontend.panel.app_state_watcher",
     "lightning.app.frontend.panel.panel_frontend",

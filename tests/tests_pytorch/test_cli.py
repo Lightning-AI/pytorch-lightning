@@ -627,7 +627,7 @@ def test_cli_no_need_configure_optimizers(cleandir):
     from lightning.pytorch.trainer.configuration_validator import __verify_train_val_loop_configuration
 
     with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
-        "lightning.pytorch.Trainer._run_train"
+        "lightning.pytorch.Trainer._run_stage"
     ) as run, mock.patch(
         "lightning.pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
         wraps=__verify_train_val_loop_configuration,
@@ -1538,8 +1538,6 @@ def test_lightning_cli_with_args_given(args):
     assert cli.model.foo == 456
 
 
-def test_lightning_cli_args_and_sys_argv_exception():
-    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.raises(
-        ValueError, match="LightningCLI's args parameter "
-    ):
+def test_lightning_cli_args_and_sys_argv_warning():
+    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(Warning, match="LightningCLI's args parameter "):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])

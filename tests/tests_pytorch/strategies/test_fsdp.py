@@ -1,5 +1,6 @@
 import os
-from typing import Any, Dict, Optional
+from functools import partial
+from typing import Any, Callable, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -18,7 +19,14 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import wrap
+    from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy, wrap
+else:
+    size_based_auto_wrap_policy = object
+
+if _TORCH_GREATER_EQUAL_2_0:
+    from torch.distributed.fsdp.wrap import _FSDPPolicy
+else:
+    _FSDPPolicy = object
 
 
 class TestFSDPModel(BoringModel):
@@ -117,17 +125,18 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     _assert_save_equality(trainer, model_path, cls=model.__class__)
 
-    # Test entry point
-    trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
+    with torch.inference_mode():
+        # Test entry point
+        trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
 
-    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-    trainer.test(ckpt_path=model_path)
+        # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+        trainer.test(ckpt_path=model_path)
 
-    # Predict entry point
-    trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
+        # Predict entry point
+        trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
 
-    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-    trainer.predict(ckpt_path=model_path)
+        # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+        trainer.predict(ckpt_path=model_path)
 
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
@@ -200,6 +209,20 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
+class CustomWrapPolicy(_FSDPPolicy):
+    """This is a wrapper around :func:`_module_wrap_policy`."""
+
+    def __init__(self, min_num_params: int):
+        self._policy: Callable = partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
+
+    @property
+    def policy(self):
+        return self._policy
+
+
+custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
+
+
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -221,19 +244,40 @@ else:
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
-    "model, strategy",
+    "model, strategy, strategy_cfg",
     [
-        (TestFSDPModel(), "fsdp"),
-        (TestFSDPModelAutoWrapped(), FSDPStrategy),
+        pytest.param(TestFSDPModel(), "fsdp", None, id="manually_wrapped"),
+        pytest.param(
+            TestFSDPModelAutoWrapped(),
+            FSDPStrategy,
+            {"auto_wrap_policy": custom_auto_wrap_policy},
+            marks=RunIf(max_torch="2.0.0"),
+            id="autowrap_1x",
+        ),
+        pytest.param(
+            TestFSDPModelAutoWrapped(),
+            FSDPStrategy,
+            {"auto_wrap_policy": custom_auto_wrap_policy},
+            marks=RunIf(min_torch="2.0.0"),
+            id="autowrap_2x",
+        ),
+        pytest.param(
+            TestFSDPModelAutoWrapped(),
+            FSDPStrategy,
+            {"auto_wrap_policy": custom_fsdp_policy, "use_orig_params": True},
+            marks=RunIf(min_torch="2.0.0"),
+            id="autowrap_use_orig_params",
+        ),
     ],
 )
-def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
+def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     ck = ModelCheckpoint(save_last=True)
 
+    strategy_cfg = strategy_cfg or {}
     if not isinstance(strategy, str):
-        strategy = strategy(auto_wrap_policy=custom_auto_wrap_policy)
+        strategy = strategy(**strategy_cfg)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -247,7 +291,6 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
         limit_test_batches=2,
         limit_predict_batches=2,
         callbacks=[ck],
-        inference_mode=not _TORCH_GREATER_EQUAL_2_0,  # TODO(carmocca): inference_mode raises RuntimeError
     )
     _run_multiple_stages(trainer, model)
 
