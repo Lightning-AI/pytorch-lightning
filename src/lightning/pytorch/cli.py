@@ -243,7 +243,7 @@ class SaveConfigCallback(Callback):
                     f"{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting"
                     " results of a previous run. You can delete the previous config file,"
                     " set `LightningCLI(save_config_callback=None)` to disable config saving,"
-                    " or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file."
+                    ' or set `LightningCLI(save_config_kwargs={"overwrite": True})` to overwrite the config file.'
                 )
 
         # save the file on rank 0
@@ -594,7 +594,7 @@ class LightningCLI:
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
                 f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}. In this case the user "
                 "is expected to link the argument groups and implement `configure_optimizers`, see "
-                "https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_cli.html"
+                "https://lightning.ai/docs/pytorch/stable/common/lightning_cli.html"
                 "#optimizers-and-learning-rate-schedulers"
             )
 

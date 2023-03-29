@@ -248,7 +248,6 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
         strategy=ddp_strategy,
     )
     # test wrap the model if fitting
-    trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()

@@ -25,6 +25,7 @@ from lightning.pytorch.loops.progress import _BatchProgress, _SchedulerProgress
 from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -69,7 +70,9 @@ class _TrainingEpochLoop(loops._Loop):
         self.automatic_optimization = _AutomaticOptimization(trainer)
         self.manual_optimization = _ManualOptimization(trainer)
 
-        self.val_loop = loops._EvaluationLoop(trainer, verbose=False, inference_mode=False)
+        self.val_loop = loops._EvaluationLoop(
+            trainer, TrainerFn.FITTING, RunningStage.VALIDATING, verbose=False, inference_mode=False
+        )
 
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
@@ -244,6 +247,7 @@ class _TrainingEpochLoop(loops._Loop):
         # -----------------------------------------
         should_check_val = self._should_check_val_fx()
         if should_check_val:
+            # this needs to be set so the correct `trainer._active_loop` is picked
             self.trainer.validating = True
             self.val_loop.run()
             self.trainer.training = True
