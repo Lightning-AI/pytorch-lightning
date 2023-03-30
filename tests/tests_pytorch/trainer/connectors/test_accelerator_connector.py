@@ -725,7 +725,7 @@ def test_gpu_accelerator_backend_choice_cuda(cuda_count_1):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-def test_gpu_accelerator_backend_choice_mps(mps_count_1):
+def test_gpu_accelerator_backend_choice_mps(mps_count_1, cuda_count_0):
     trainer = Trainer(accelerator="gpu")
     assert trainer._accelerator_connector._accelerator_flag == "mps"
     assert isinstance(trainer.accelerator, MPSAccelerator)
@@ -805,6 +805,11 @@ def test_bagua_external_strategy(monkeypatch):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
+class DeviceMock(Mock):
+    def __instancecheck__(self, instance):
+        return True
+
+
 @pytest.mark.parametrize("is_interactive", (False, True))
 def test_connector_auto_selection(monkeypatch, is_interactive):
     import lightning.fabric  # avoid breakage with standalone package
@@ -872,10 +877,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
     assert connector._devices_flag == [0]
-
-    class DeviceMock(Mock):
-        def __instancecheck__(self, instance):
-            return True
 
     # single TPU
     with monkeypatch.context():

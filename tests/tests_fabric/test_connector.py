@@ -715,10 +715,16 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
+class DeviceMock(Mock):
+    def __instancecheck__(self, instance):
+        return True
+
+
 @RunIf(min_torch="1.12")
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("lightning.fabric.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
-def test_gpu_accelerator_backend_choice_mps(*_):
+@mock.patch("torch.device", DeviceMock)
+def test_gpu_accelerator_backend_choice_mps(*_: object) -> object:
     connector = _Connector(accelerator="gpu")
     assert connector._accelerator_flag == "mps"
     assert isinstance(connector.accelerator, MPSAccelerator)
@@ -930,10 +936,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
     assert connector._devices_flag == [0]
-
-    class DeviceMock(Mock):
-        def __instancecheck__(self, instance):
-            return True
 
     # single TPU
     with no_cuda, no_mps, monkeypatch.context():
