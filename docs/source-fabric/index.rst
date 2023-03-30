@@ -16,40 +16,36 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
 
 .. code-block:: diff
 
-      import torch
-      import torch.nn as nn
-      from torch.utils.data import DataLoader, Dataset
+    + import lightning as L
+      import torch; import torchvision as tv
 
-    + from lightning.fabric import Fabric
-
-      class PyTorchModel(nn.Module):
-          ...
-
-      class PyTorchDataset(Dataset):
-          ...
-
-    + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
+    + fabric = L.Fabric()
     + fabric.launch()
 
+      model = tv.models.resnet18()
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
     - device = "cuda" if torch.cuda.is_available() else "cpu"
-      model = PyTorchModel(...)
-      optimizer = torch.optim.SGD(model.parameters())
+    - model.to(device)
     + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(PyTorchDataset(...), ...)
-    + dataloader = fabric.setup_dataloaders(dataloader)
-      model.train()
 
+      dataset = tv.datasets.CIFAR10("data", download=True,
+                                    train=True,
+                                    transform=tv.transforms.ToTensor())
+      dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
+    + dataloader = fabric.setup_dataloaders(dataloader)
+
+      model.train()
+      num_epochs = 10
       for epoch in range(num_epochs):
           for batch in dataloader:
-              input, target = batch
-    -         input, target = input.to(device), target.to(device)
+              inputs, labels = batch
+    -         inputs, labels = inputs.to(device), labels.to(device)
               optimizer.zero_grad()
-              output = model(input)
-              loss = loss_fn(output, target)
+              outputs = model(inputs)
+              loss = torch.nn.functional.cross_entropy(outputs, labels)
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
-              lr_scheduler.step()
 
 
 ----
