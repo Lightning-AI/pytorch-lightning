@@ -1,47 +1,3 @@
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   extensions/accelerator
-   extensions/callbacks
-   common/checkpointing
-   clouds/cluster
-   common/checkpointing_advanced
-   common/console_logs
-   debug/debugging
-   common/early_stopping
-   visualize/experiment_managers
-   advanced/finetuning
-   accelerators/gpu
-   common/precision
-   accelerators/hpu
-   deploy/production_intermediate
-   accelerators/ipu
-   cli/lightning_cli
-   data/datamodule
-   common/lightning_module
-   visualize/loggers
-   accelerators/tpu
-   Metrics <https://torchmetrics.readthedocs.io/en/stable/>
-   model/build_model
-   advanced/model_parallel
-   extensions/plugins
-   common/progress_bar
-   deploy/production_advanced
-   deploy/production_basic
-   advanced/pretrained
-   tuning/profiler
-   advanced/pruning_quantization
-   common/remote_fs
-   extensions/strategy
-   advanced/strategy_registry
-   starter/style_guide
-   advanced/training_tricks
-   clouds/cluster_advanced
-   advanced/transfer_learning
-   common/trainer
-   clouds/cluster_intermediate_2
-
 ########
 Glossary
 ########
@@ -67,16 +23,16 @@ Glossary
 
 .. displayitem::
    :header: Checkpointing
-    :description: Save and load progress with checkpoints
-    :button_link: ../common/checkpointing.html
-    :col_css: col-md-12
-    :height: 100
+   :description: Save and load progress with checkpoints
+   :col_css: col-md-12
+   :button_link: ../common/checkpointing.html
+   :height: 100
 
 .. displayitem::
    :header: Cluster
    :description: Run on your own group of servers
    :col_css: col-md-12
-   :button_link: ../cloud/cluster.html
+   :button_link: ../clouds/cluster.html
    :height: 100
 
 .. displayitem::
@@ -194,6 +150,7 @@ Glossary
 .. displayitem::
    :header: Model
    :description: The set of parameters and structure needed for a system to make predictions
+   :col_css: col-md-12
    :button_link: ../model/build_model.html
    :height: 100
 
@@ -291,7 +248,8 @@ Glossary
 .. displayitem::
    :header: SWA
    :description: Stochastic Weight Averaging (SWA) can make your models generalize better
-   :col_css: col-md-12advanced/training_tricks.html#stochastic-weight-averaging
+   :col_css: col-md-12
+   :button_link: ../advanced/training_tricks.html#stochastic-weight-averaging
    :height: 100
 
 .. displayitem::
@@ -319,4 +277,5 @@ Glossary
    :header: Torch distributed
    :description: Setup for running on distributed environments
    :col_css: col-md-12
-   :button_link: ../clouds/cluster_intermediate_2
+   :button_link: ../clouds/cluster_intermediate_2.html
+   :height: 100
