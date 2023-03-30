@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["fabric", "pytorch"]
+        pkg-name: ["fabric"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:
@@ -85,6 +85,9 @@ jobs:
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
 
     - name: Deploy cluster
       run: |
