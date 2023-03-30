@@ -60,12 +60,13 @@ if _LIGHTNING_HABANA_AVAILABLE:
     from lightning_habana import HPUAccelerator, SingleHPUStrategy
 
 
-@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
-    ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 4), ("auto", 1), ("auto", 4)]
+    ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_accelerator_choice_tpu(accelerator, devices):
+@RunIf(min_python="3.9")  # mocking issue
+def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
     connector = _AcceleratorConnector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
     if devices == "auto" or (isinstance(devices, int) and devices > 1):

@@ -55,12 +55,13 @@ from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
 
-@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_accelerator_choice_tpu(accelerator, devices):
+@RunIf(min_python="3.9")  # mocking issue
+def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
     connector = _Connector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
     if devices == "auto" or (isinstance(devices, int) and devices > 1):
