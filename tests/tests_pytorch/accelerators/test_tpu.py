@@ -15,7 +15,7 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 import torch
@@ -30,6 +30,7 @@ from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACh
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
@@ -300,19 +301,22 @@ def test_warning_if_tpus_not_used(tpu_available):
         Trainer(accelerator="cpu")
 
 
-@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
     [
         (1, [0]),
-        (4, list(range(4))),
-        ("4", list(range(4))),
+        (8, list(range(8))),
+        ("8", list(range(8))),
         ([2], [2]),
         ("2,", [2]),
     ],
 )
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_trainer_config_device_ids(devices, expected_device_ids):
+@RunIf(min_python="3.9")  # mocking issue
+def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
+    mock = DeviceMock()
+    monkeypatch.setattr(torch, "device", mock)
+
     trainer = Trainer(accelerator="tpu", devices=devices)
-    assert trainer.device_ids == expected_device_ids
+    assert mock.mock_calls == [call("xla", i + 1) for i in expected_device_ids]
+    assert len(trainer.device_ids) == len(expected_device_ids)
     assert trainer.num_devices == len(expected_device_ids)
