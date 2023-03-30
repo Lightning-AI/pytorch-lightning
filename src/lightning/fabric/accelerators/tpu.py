@@ -62,6 +62,9 @@ class TPUAccelerator(Accelerator):
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
 
     @staticmethod
+    # XLA's multiprocessing will pop the TPU_NUM_DEVICES key, so we need to cache it
+    # https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/distributed/xla_multiprocessing.py#L280
+    @functools.lru_cache(maxsize=1)
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         import torch_xla.core.xla_env_vars as xenv

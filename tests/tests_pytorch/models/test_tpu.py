@@ -235,7 +235,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
-@pytest.mark.parametrize("devices", [[1, 8], "9, ", [9], [0], 2, 10])
+@pytest.mark.parametrize("devices", [[1, 8], "9, ", [9], [-1], 2, 10])
 def test_tpu_misconfiguration(devices, tpu_available):
     with pytest.raises(ValueError, match="`devices` can only be"):
         Trainer(accelerator="tpu", devices=devices)

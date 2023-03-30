@@ -931,11 +931,15 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy, SingleDeviceStrategy)
     assert connector._devices_flag == [0]
 
+    class DeviceMock(Mock):
+        def __instancecheck__(self, instance):
+            return True
+
     # single TPU
     with no_cuda, no_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, True)
         monkeypatch.setattr(lightning.fabric.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
-        monkeypatch.setattr(torch, "device", Mock())
+        monkeypatch.setattr(torch, "device", DeviceMock())
         connector = _Connector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, SingleTPUStrategy)
