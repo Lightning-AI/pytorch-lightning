@@ -165,7 +165,7 @@ Current Lightning Users
    levels/expert
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :name: pl_docs
    :caption: Core API
 
@@ -173,7 +173,7 @@ Current Lightning Users
    common/trainer
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :name: api
    :caption: Optional API
 
@@ -191,11 +191,11 @@ Current Lightning Users
 .. toctree::
    :maxdepth: 1
    :name: More
-   :caption: more
+   :caption: More
 
    Community <community/index>
    Glossary <glossary/index>
-   How-to <common/index>
+   How to <common/index>
 
 
 .. raw:: html
