@@ -55,6 +55,11 @@ from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
 
+class DeviceMock(Mock):
+    def __instancecheck__(self, instance):
+        return True
+
+
 @pytest.mark.parametrize(
     ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
@@ -714,11 +719,6 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     connector = _Connector(accelerator="gpu")
     assert connector._accelerator_flag == "cuda"
     assert isinstance(connector.accelerator, CUDAAccelerator)
-
-
-class DeviceMock(Mock):
-    def __instancecheck__(self, instance):
-        return True
 
 
 @RunIf(min_torch="1.12")

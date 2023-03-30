@@ -178,7 +178,7 @@ def _check_tpu_devices_valid(devices: object) -> None:
     ):
         return
     raise ValueError(
-        f"`devices` can only be 'auto', 1, {device_count} or [<0-{device_count - 1}>] for TPUs. Given {devices!r}"
+        f"`devices` can only be 'auto', 1, {device_count} or [<0-{device_count - 1}>] for TPUs. Got {devices!r}"
     )
 
 
