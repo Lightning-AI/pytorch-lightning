@@ -66,6 +66,9 @@ if _LIGHTNING_HABANA_AVAILABLE:
 @RunIf(min_python="3.9")  # mocking issue
 def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
+    if _IS_WINDOWS:
+        # simulate fork support on windows
+        monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
 
     connector = _AcceleratorConnector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)

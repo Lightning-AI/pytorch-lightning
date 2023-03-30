@@ -22,6 +22,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
@@ -315,6 +316,9 @@ def test_warning_if_tpus_not_used(tpu_available):
 def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
     mock = DeviceMock()
     monkeypatch.setattr(torch, "device", mock)
+    if _IS_WINDOWS:
+        # simulate fork support on windows
+        monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
 
     trainer = Trainer(accelerator="tpu", devices=devices)
     assert mock.mock_calls == [call("xla", i + 1) for i in expected_device_ids]
