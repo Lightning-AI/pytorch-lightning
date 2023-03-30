@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
-### Depercated
+### Deprecated
 
 -
 
@@ -30,6 +30,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 -
+
+
+## [2.0.1] - 2023-03-30
+
+No changes.
 
 
 ## [2.0.0] - 2023-03-15
