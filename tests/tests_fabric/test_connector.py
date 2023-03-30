@@ -884,6 +884,7 @@ def test_connector_defaults_match_fabric_defaults():
 
 
 @pytest.mark.parametrize("is_interactive", (False, True))
+@RunIf(min_python="3.9")  # mocking issue
 def test_connector_auto_selection(monkeypatch, is_interactive):
     no_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
     single_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)

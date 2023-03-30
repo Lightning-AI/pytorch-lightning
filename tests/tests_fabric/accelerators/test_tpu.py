@@ -21,7 +21,7 @@ from tests_fabric.helpers.runif import RunIf
 
 @RunIf(tpu=True)
 def test_auto_device_count():
-    assert TPUAccelerator.auto_device_count() == os.environ["TPU_NUM_DEVICES"]
+    assert TPUAccelerator.auto_device_count() == int(os.environ["TPU_NUM_DEVICES"])
 
 
 @RunIf(tpu=True)
