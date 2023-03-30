@@ -39,7 +39,10 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
     accelerator = TPUAccelerator()
-    strategy = XLAStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
+    strategy = XLAStrategy(
+        accelerator=accelerator,
+        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+    )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)

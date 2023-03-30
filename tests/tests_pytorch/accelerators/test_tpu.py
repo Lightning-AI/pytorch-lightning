@@ -54,7 +54,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto")
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -74,7 +74,7 @@ def test_resume_training_on_cpu(tmpdir):
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto", default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     out = trainer.test(model)
     assert len(out) == 1
@@ -89,14 +89,12 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
-def test_accelerator_tpu(_, accelerator, devices, tpu_available):
+def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
-    assert trainer.num_devices == 8
 
 
 @RunIf(tpu=True)
@@ -163,7 +161,7 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
     )
     trainer.fit(model)
 
@@ -185,7 +183,7 @@ def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
 
 @RunIf(tpu=True)
 def test_strategy_choice_tpu_strategy():
-    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices="auto")
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
@@ -198,7 +196,7 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
@@ -231,7 +229,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
     model = NestedModule()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
@@ -307,8 +305,8 @@ def test_warning_if_tpus_not_used(tpu_available):
     ["devices", "expected_device_ids"],
     [
         (1, [0]),
-        (8, list(range(8))),
-        ("8", list(range(8))),
+        (4, list(range(4))),
+        ("4", list(range(4))),
         ([2], [2]),
         ("2,", [2]),
     ],

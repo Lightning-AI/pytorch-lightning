@@ -13,7 +13,6 @@
 # limitations under the License
 import inspect
 import os
-import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -51,7 +50,6 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
@@ -318,9 +316,7 @@ def test_tpu_accelerator_can_not_run_on_system():
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
 def test_accelererator_invalid_type_devices(_, device_count):
-    with pytest.raises(
-        MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
-    ):
+    with pytest.raises(TypeError, match=r"must be an int, a string, a sequence of ints, but you"):
         _ = _Connector(accelerator="gpu", devices=device_count)
 
 
@@ -649,12 +645,12 @@ def test_unsupported_tpu_choice(_, tpu_available):
     # wrong precision plugin type
     strategy = XLAStrategy(accelerator=TPUAccelerator(), precision=Precision())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecision` plugin"):
-        _Connector(strategy=strategy, devices=8)
+        _Connector(strategy=strategy)
 
     # wrong strategy type
     strategy = DDPStrategy(accelerator=TPUAccelerator(), precision=TPUPrecision())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
-        _Connector(strategy=strategy, devices=8)
+        _Connector(strategy=strategy)
 
 
 @RunIf(mps=True)
@@ -938,10 +934,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     # single TPU
     with no_cuda, no_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, True)
-        # TPUAccelerator.auto_device_count always returns 8, but in case this changes in the future...
         monkeypatch.setattr(lightning.fabric.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
-        monkeypatch.setitem(sys.modules, "torch_xla", Mock())
-        monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
         monkeypatch.setattr(torch, "device", Mock())
         connector = _Connector()
     assert isinstance(connector.accelerator, TPUAccelerator)
@@ -949,7 +942,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
-    assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
     _mock_interactive()
 
     # Multi TPU
