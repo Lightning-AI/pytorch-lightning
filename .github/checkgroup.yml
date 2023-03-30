@@ -104,6 +104,15 @@ subprojects:
   #  checks:
   #    - "pytorch-lightning (IPUs)"
 
+  - id: "pytorch-lightning: TPU workflow"
+    paths:
+      # tpu CI availability is very limited, so we only require tpu tests
+      # to pass when their configurations are modified
+      - ".github/workflows/tpu-tests.yml"
+      - "dockers/base-xla/*"
+    checks:
+      - "test-on-tpus"
+
   - id: "fabric: Docs"
     paths:
       - "src/lightning/fabric/**"
