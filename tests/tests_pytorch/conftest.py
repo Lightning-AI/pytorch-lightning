@@ -77,6 +77,7 @@ def restore_env_variables():
         "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # leaked by tensorboardX
+        "TRITON_CACHE_DIR",  # leaked by torch.compile
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
         "GRPC_VERBOSITY",
