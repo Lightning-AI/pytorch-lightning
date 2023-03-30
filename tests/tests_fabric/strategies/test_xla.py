@@ -137,7 +137,8 @@ def tpu_all_gather_fn(strategy):
         tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
-        assert torch.equal(summed, torch.tensor(8.0))
+        device_count = strategy.accelerator.auto_device_count()
+        assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
         summed.backward()
         if sync_grads:
             assert torch.equal(tensor.grad, torch.tensor(1.0))
