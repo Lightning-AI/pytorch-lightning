@@ -3,25 +3,8 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request_target:
+  pull_request:  # TODO: set to target later
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
-    paths:
-      - ".actions/**"
-      - ".github/workflows/tpu-tests.yml"
-      - "dockers/base-xla/*"
-      - "requirements/fabric/**"
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "tests/tests_fabric/**"
-      - "requirements/pytorch/**"
-      - "src/lightning/pytorch/**"
-      - "src/pytorch_lightning/*"
-      - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -39,12 +22,12 @@ defaults:
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
-    if: github.event.pull_request.draft == false
+    # run only when merged to master or the PR title contains '[TPU]'
+    if: ${{ github.event.pull_request.merged == true || contains(github.event.pull_request.title, '[TPU]') }}
     env:
       PYTHON_VER: 3.8
     strategy:
-      fail-fast: true
-      max-parallel: 1  # run sequential
+      fail-fast: false
       matrix:
         # TODO: add also lightning
         pkg-name: ["fabric", "pytorch"]
