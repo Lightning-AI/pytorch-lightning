@@ -104,25 +104,6 @@ subprojects:
   #  checks:
   #    - "pytorch-lightning (IPUs)"
 
-  # TODO: since this job has intermittent availability, it cannot be required
-  #- id: "pytorch-lightning: TPU workflow"
-  #  paths:
-  #    - ".actions/**"
-  #    - ".github/workflows/tpu-tests.yml"
-  #    - "dockers/base-xla/*"
-  #    - "requirements/fabric/**"
-  #    - "src/lightning_fabric/**"
-  #    - "tests/tests_fabric/**"
-  #    - "requirements/pytorch/**"
-  #    - "src/pytorch_lightning/**"
-  #    - "tests/tests_pytorch/**"
-  #    - "pyproject.toml"  # includes pytest config
-  #    - "!requirements/*/docs.txt"
-  #    - "!*.md"
-  #    - "!**/*.md"
-  #  checks:
-  #    - "test-on-tpus"
-
   - id: "fabric: Docs"
     paths:
       - "src/lightning/fabric/**"
