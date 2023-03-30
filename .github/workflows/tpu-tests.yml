@@ -29,7 +29,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: add also lightning
         pkg-name: ["fabric", "pytorch"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
