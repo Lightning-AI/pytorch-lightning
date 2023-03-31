@@ -472,7 +472,7 @@ class CloudRuntime(Runtime):
         ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
         default_ignore: bool = True,
         package_source: bool = True,
-        sys_customizations_sync_root: Optional[Path] = None,
+        sys_customizations_root: Optional[Path] = None,
     ) -> LocalSourceCodeDir:
         """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir``
         object."""
@@ -494,7 +494,7 @@ class CloudRuntime(Runtime):
             ignore_functions=ignore_functions,
             default_ignore=default_ignore,
             package_source=package_source,
-            sys_customizations_sync_root=sys_customizations_sync_root,
+            sys_customizations_root=sys_customizations_root,
         )
 
     def _resolve_project(self, project_id: Optional[str] = None) -> V1Membership:
