@@ -1,7 +1,32 @@
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   evaluation
+   ../model/build_model
+   ../cli/lightning_cli
+   progress_bar
+   ../deploy/production
+   ../advanced/training_tricks
+   ../tuning/profiler
+   Manage experiments <../visualize/logging_intermediate>
+   Organize existing PyTorch into Lightning <../starter/converting>
+   ../clouds/cluster
+   Save and load model progress <checkpointing>
+   Save memory with half-precision <precision>
+   ../advanced/model_parallel
+   Train on single or multiple GPUs <../accelerators/gpu>
+   Train on single or multiple HPUs <../accelerators/hpu>
+   Train on single or multiple IPUs <../accelerators/ipu>
+   Train on single or multiple TPUs <../accelerators/tpu>
+   Train on MPS <../accelerators/mps>
+   Use a pretrained model <../advanced/pretrained>
+   ../data/data
+   ../model/own_your_loop
+
 #############
 How-to Guides
 #############
-
 
 .. raw:: html
 

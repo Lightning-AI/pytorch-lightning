@@ -1,14 +1,15 @@
-   .. toctree::
+
+.. toctree::
    :maxdepth: 1
    :hidden:
 
-   generated/CODE_OF_CONDUCT.md
-   generated/CONTRIBUTING.md
-   generated/BECOMING_A_CORE_CONTRIBUTOR.md
+   ../generated/CODE_OF_CONDUCT.md
+   ../generated/CONTRIBUTING.md
+   ../generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
    versioning
    past_versions
-   generated/CHANGELOG.md
+   ../generated/CHANGELOG.md
 
 #########
 Community
@@ -67,3 +68,8 @@ Community
    :col_css: col-md-12
    :button_link: ../generated/CHANGELOG.html
    :height: 100
+
+.. raw:: html
+
+        </div>
+    </div>

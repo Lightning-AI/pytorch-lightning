@@ -1,3 +1,48 @@
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   Accelerators <../extensions/accelerator>
+   Callback <../extensions/callbacks>
+   Checkpointing <../common/checkpointing>
+   Cluster <../clouds/cluster>
+   Cloud checkpoint <../common/checkpointing_advanced>
+   Console Logging <../common/console_logs>
+   Debugging <../debug/debugging>
+   Early stopping <../common/early_stopping>
+   Experiment manager (Logger) <../visualize/experiment_managers>
+   Finetuning <../advanced/finetuning>
+   GPU <../accelerators/gpu>
+   Half precision <../common/precision>
+   HPU <../accelerators/hpu>
+   Inference <../deploy/production_intermediate>
+   IPU <../accelerators/ipu>
+   Lightning CLI <../cli/lightning_cli>
+   LightningDataModule <../data/datamodule>
+   LightningModule <../common/lightning_module>
+   Log <../visualize/loggers>
+   TPU <../accelerators/tpu>
+   Metrics <https://torchmetrics.readthedocs.io/en/stable/>
+   Model <../model/build_model.rst>
+   Model Parallel <../advanced/model_parallel>
+   Plugins <../extensions/plugins>
+   Progress bar <../common/progress_bar>
+   Production <../deploy/production_advanced>
+   Predict <../deploy/production_basic>
+   Pretrained models <../advanced/pretrained>
+   Profiler <../tuning/profiler>
+   Pruning and Quantization <../advanced/pruning_quantization>
+   Remote filesystem and FSSPEC <../common/remote_fs>
+   Strategy <../extensions/strategy>
+   Strategy registry <../advanced/strategy_registry>
+   Style guide <../starter/style_guide>
+   SWA <../advanced/training_tricks>
+   SLURM <../clouds/cluster_advanced>
+   Transfer learning <../advanced/transfer_learning>
+   Trainer <../common/trainer>
+   Torch distributed <../clouds/cluster_intermediate_2>
+
 ########
 Glossary
 ########
@@ -279,3 +324,8 @@ Glossary
    :col_css: col-md-12
    :button_link: ../clouds/cluster_intermediate_2.html
    :height: 100
+
+.. raw:: html
+
+        </div>
+    </div>
