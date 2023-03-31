@@ -222,12 +222,12 @@ class CloudRuntime(Runtime):
         # If the root will already be there, we don't need to upload and preserve the absolute entrypoint
         absolute_entrypoint = str(root).startswith("/home/zeus") or str(root).startswith("/data")
         # If system customization files found, it will set their location path
-        sys_customizations_sync_root = self._resolve_env_root()
+        sys_customizations_root = self._resolve_env_root()
         repo = self._resolve_repo(
             root,
             default_ignore=False,
             package_source=not absolute_entrypoint,
-            sys_customizations_sync_root=sys_customizations_sync_root,
+            sys_customizations_root=sys_customizations_root,
         )
         project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
