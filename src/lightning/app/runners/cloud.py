@@ -221,15 +221,19 @@ class CloudRuntime(Runtime):
         root = self._resolve_root()
         # If the root will already be there, we don't need to upload and preserve the absolute entrypoint
         absolute_entrypoint = str(root).startswith("/home/zeus") or str(root).startswith("/data")
-        repo = self._resolve_repo(root, default_ignore=False, package_source=not absolute_entrypoint)
+        # If system customization files found, it will set their location path
+        sys_customizations_sync_root = self._resolve_env_root()
+        repo = self._resolve_repo(
+            root,
+            default_ignore=False,
+            package_source=not absolute_entrypoint,
+            sys_customizations_sync_root=sys_customizations_sync_root,
+        )
         project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
         cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
         queue_server_type = self._resolve_queue_server_type()
-
-        # If system customization files found, it will set their location path
-        sys_customizations_sync_root = self._resolve_env_root()
 
         self.app._update_index_file()
 
@@ -261,7 +265,7 @@ class CloudRuntime(Runtime):
         logger.info(f"Creating cloudspace run. run_body: {run_body}")
         run = self._api_create_run(project_id, cloudspace_id, run_body)
 
-        self._api_package_and_upload_repo(repo, run, sys_customizations_sync_root)
+        self._api_package_and_upload_repo(repo, run)
 
         logger.info(f"Creating cloudspace run instance. name: {name}")
         run_instance = self._api_create_run_instance(
@@ -468,6 +472,7 @@ class CloudRuntime(Runtime):
         ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
         default_ignore: bool = True,
         package_source: bool = True,
+        sys_customizations_sync_root: Optional[Path] = None,
     ) -> LocalSourceCodeDir:
         """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir``
         object."""
@@ -485,7 +490,11 @@ class CloudRuntime(Runtime):
                 ignore_functions = [*ignore_functions, partial(_filter_ignored, root, patterns)]
 
         return LocalSourceCodeDir(
-            path=root, ignore_functions=ignore_functions, default_ignore=default_ignore, package_source=package_source
+            path=root,
+            ignore_functions=ignore_functions,
+            default_ignore=default_ignore,
+            package_source=package_source,
+            sys_customizations_sync_root=sys_customizations_sync_root,
         )
 
     def _resolve_project(self, project_id: Optional[str] = None) -> V1Membership:
@@ -796,7 +805,7 @@ class CloudRuntime(Runtime):
                 network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 data_connection_mounts=data_connection_mounts,
             )
-            works.append(V1Work(name=work.name, spec=work_spec))
+            works.append(V1Work(name=work.name, display_name=work.display_name, spec=work_spec))
 
         return works
 
@@ -846,8 +855,9 @@ class CloudRuntime(Runtime):
         # we pass just the file name to the backend, so backend can find it in the relative path
         requirements_file = root / "requirements.txt"
         if requirements_file.is_file():
+            requirements_path = requirements_file if absolute_entrypoint else "requirements.txt"
             run_body.image_spec = Gridv1ImageSpec(
-                dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
+                dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path=requirements_path)
             )
             if not DISABLE_DEPENDENCY_CACHE and not no_cache:
                 # hash used for caching the dependencies
@@ -1020,12 +1030,13 @@ class CloudRuntime(Runtime):
 
     @staticmethod
     def _api_package_and_upload_repo(
-        repo: LocalSourceCodeDir, run: V1LightningRun, sys_customizations_sync_root: Optional[Path]
+        repo: LocalSourceCodeDir,
+        run: V1LightningRun,
     ) -> None:
         """Package and upload the provided local source code directory to the provided run."""
         if run.source_upload_url == "":
             raise RuntimeError("The source upload url is empty.")
-        repo.package(sys_customizations_sync_root)
+        repo.package()
         repo.upload(url=run.source_upload_url)
 
     @staticmethod

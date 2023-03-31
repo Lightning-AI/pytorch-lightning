@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import copytree, rmtree
@@ -20,7 +21,6 @@ from typing import List, Optional
 
 from lightning.app.core.constants import DOT_IGNORE_FILENAME, SYS_CUSTOMIZATIONS_SYNC_PATH
 from lightning.app.source_code.copytree import _copytree, _IGNORE_FUNCTION
-from lightning.app.source_code.hashing import _get_hash
 from lightning.app.source_code.tar import _tar_path
 from lightning.app.source_code.uploader import FileUploader
 
@@ -36,12 +36,14 @@ class LocalSourceCodeDir:
         ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
         default_ignore: bool = True,
         package_source: bool = True,
+        sys_customizations_root: Optional[Path] = None,
     ) -> None:
         self.path = path
         self.ignore_functions = ignore_functions
         self.package_source = package_source
+        self.sys_customizations_root = sys_customizations_root
 
-        # cache checksum version
+        # cache version
         self._version: Optional[str] = None
         self._non_ignored_files: Optional[List[str]] = None
 
@@ -77,8 +79,8 @@ class LocalSourceCodeDir:
         if self._version is not None:
             return self._version
 
-        # stores both version and a set with the files used to generate the checksum
-        self._version = _get_hash(files=self.files, algorithm="blake2")
+        # create a random version ID and store it
+        self._version = uuid.uuid4().hex
         return self._version
 
     @property
@@ -88,16 +90,16 @@ class LocalSourceCodeDir:
         return self.cache_location / filename
 
     @contextmanager
-    def packaging_session(self, sys_customizations_root: Optional[Path]) -> Path:
+    def packaging_session(self) -> Path:
         """Creates a local directory with source code that is used for creating a local source-code package."""
         session_path = self.cache_location / "packaging_sessions" / self.version
         try:
             rmtree(session_path, ignore_errors=True)
             if self.package_source:
                 _copytree(self.path, session_path, ignore_functions=self.ignore_functions)
-            if sys_customizations_root is not None:
+            if self.sys_customizations_root is not None:
                 path_to_sync = Path(session_path, SYS_CUSTOMIZATIONS_SYNC_PATH)
-                copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
+                copytree(self.sys_customizations_root, path_to_sync, dirs_exist_ok=True)
             yield session_path
         finally:
             rmtree(session_path, ignore_errors=True)
@@ -109,12 +111,12 @@ class LocalSourceCodeDir:
             if package.is_file():
                 package.unlink()
 
-    def package(self, sys_customizations_root: Optional[Path]) -> Path:
+    def package(self) -> Path:
         """Packages local path using tar."""
         if self.package_path.exists():
             return self.package_path
         # create a packaging session if not available
-        with self.packaging_session(sys_customizations_root) as session_path:
+        with self.packaging_session() as session_path:
             _tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
         return self.package_path
 
