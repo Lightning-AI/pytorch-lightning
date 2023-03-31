@@ -14,7 +14,7 @@ on:
       - "src/lightning_app/*"
       - "tests/integrations_app/**"
       - "!tests/integrations_app/flagship/**"
-      - "examples/app_*/**"
+      - "examples/app/**"
       - "requirements/app/**"
       - "setup.py"
       - "!requirements/*/docs.txt"
@@ -51,7 +51,7 @@ jobs:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: 1
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-      PYPI_CACHE: "_pip-wheels"
+      PYPI_CACHE_DIR: "_pip-wheels"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -69,20 +69,20 @@ jobs:
     - name: pip wheels cache
       uses: actions/cache/restore@v3
       with:
-        path: ${{ env.PYPI_CACHE }}
+        path: ${{ env.PYPI_CACHE_DIR }}
         key: pypi_wheels
 
     - name: Install Lightning package & dependencies
       run: |
         # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
-        pip install .[dev] -U -f ${TORCH_URL} -f ${PYPI_CACHE} --prefer-binary
+        pip install .[dev] -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
-        wheel-dir: ${{ env.PYPI_CACHE }}
+        wheel-dir: ${{ env.PYPI_CACHE_DIR }}
         torch-url: ${{ env.TORCH_URL }}
         cache-key: "pypi_wheels"
 

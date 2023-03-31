@@ -18,41 +18,41 @@ Role: All final decisions related to Lightning.
 
 Maintainers
 -----------
-- Jirka Borovec (`Borda <https://github.com/Borda>`_)
-- Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
-- Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
+- Jirka Borovec (`Borda <https://github.com/Borda>`_)
+- Justus Schock (`justusschock <https://github.com/justusschock>`_)
 
 
 Emeritus Maintainers
 --------------------
-- Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
+- Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
-- Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
+- Nicki Skafte (`SkafteNicki <https://github.com/SkafteNicki>`_)
+- Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 
 
 Alumni
 ------
-- Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
-- Tullie Murrell (`tullie <https://github.com/tullie>`_)
-- Nic Eggert (`neggert <https://github.com/neggert>`_)
-- Matthew Painter (`MattPainter01 <https://github.com/MattPainter01>`_) (Torchbearer founder)
-- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
-- Lezwon Castelino (`lezwon <https://github.com/lezwon>`_)
-- Jeff Ling (`jeffling <https://github.com/jeffling>`_)
-- Teddy Koker (`teddykoker <https://github.com/teddykoker>`_)
-- Nate Raw (`nateraw <https://github.com/nateraw>`_)
-- Peter Yu (`yukw777 <https://github.com/yukw777>`_)
-- Roger Shieh (`s-rog <https://github.com/s-rog>`_)
-- Sean Narenthiran (`SeanNaren <https://github.com/SeanNaren>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
-- Siyu Wang (`four4fish <https://github.com/four4fish>`_)
-- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
+- Jeff Ling (`jeffling <https://github.com/jeffling>`_)
+- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
+- Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
 - Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
+- Lezwon Castelino (`lezwon <https://github.com/lezwon>`_)
+- Matthew Painter (`MattPainter01 <https://github.com/MattPainter01>`_) (Torchbearer founder)
+- Nate Raw (`nateraw <https://github.com/nateraw>`_)
+- Nic Eggert (`neggert <https://github.com/neggert>`_)
 - Ota Jasek (`otaj <https://github.com/otaj>`_)
+- Peter Yu (`yukw777 <https://github.com/yukw777>`_)
+- Roger Shieh (`s-rog <https://github.com/s-rog>`_)
+- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
+- Sean Narenthiran (`SeanNaren <https://github.com/SeanNaren>`_)
+- Siyu Wang (`four4fish <https://github.com/four4fish>`_)
+- Teddy Koker (`teddykoker <https://github.com/teddykoker>`_)
+- Tullie Murrell (`tullie <https://github.com/tullie>`_)
 
 
 Project Management and Decision Making

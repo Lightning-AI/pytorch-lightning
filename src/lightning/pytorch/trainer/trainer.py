@@ -36,7 +36,7 @@ from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
+from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
@@ -155,7 +155,7 @@ class Trainer:
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
                 ``False`` will disable logging. If multiple loggers are provided, local files
-                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of he first logger.
+                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
 
             callbacks: Add a callback or list of callbacks.
@@ -410,8 +410,10 @@ class Trainer:
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
         self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop(self, inference_mode=inference_mode)
-        self.test_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.validate_loop = _EvaluationLoop(
+            self, TrainerFn.VALIDATING, RunningStage.VALIDATING, inference_mode=inference_mode
+        )
+        self.test_loop = _EvaluationLoop(self, TrainerFn.TESTING, RunningStage.TESTING, inference_mode=inference_mode)
         self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -500,17 +502,20 @@ class Trainer:
         Args:
             model: Model to fit.
 
-            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
+            train_dataloaders: An iterable or collection of iterables specifying training samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
-            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
+            val_dataloaders: An iterable or collection of iterables specifying validation samples.
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
                 If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
         """
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
@@ -573,8 +578,9 @@ class Trainer:
         Args:
             model: The model to validate.
 
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
-                or a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying validation samples.
+            dataloaders: An iterable or collection of iterables specifying validation samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -583,7 +589,10 @@ class Trainer:
 
             verbose: If True, prints the validation results.
 
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
@@ -666,8 +675,9 @@ class Trainer:
         Args:
             model: The model to test.
 
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
-                or a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying test samples.
+            dataloaders: An iterable or collection of iterables specifying test samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -676,7 +686,10 @@ class Trainer:
 
             verbose: If True, prints the test results.
 
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
@@ -760,10 +773,12 @@ class Trainer:
         Args:
             model: The model to predict with.
 
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
-                or a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying prediction samples.
+            dataloaders: An iterable or collection of iterables specifying predict samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
-            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
@@ -772,6 +787,8 @@ class Trainer:
                 If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -1193,11 +1210,11 @@ class Trainer:
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        """An instance of :class:`~lightning.pytorch.callbacks.progress.base.ProgressBarBase` found in the
+    def progress_bar_callback(self) -> Optional[ProgressBar]:
+        """An instance of :class:`~lightning.pytorch.callbacks.progress.progress_bar.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
-            if isinstance(c, ProgressBarBase):
+            if isinstance(c, ProgressBar):
                 return c
         return None
 
@@ -1360,13 +1377,13 @@ class Trainer:
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
-    def train_dataloader(self) -> TRAIN_DATALOADERS:
+    def train_dataloader(self) -> Optional[TRAIN_DATALOADERS]:
         """The training dataloader(s) used during ``trainer.fit()``."""
         if (combined_loader := self.fit_loop._combined_loader) is not None:
             return combined_loader.iterables
 
     @property
-    def val_dataloaders(self) -> EVAL_DATALOADERS:
+    def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``."""
         if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None:
             return combined_loader.iterables
@@ -1374,13 +1391,13 @@ class Trainer:
             return combined_loader.iterables
 
     @property
-    def test_dataloaders(self) -> EVAL_DATALOADERS:
+    def test_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The test dataloader(s) used during ``trainer.test()``."""
         if (combined_loader := self.test_loop._combined_loader) is not None:
             return combined_loader.iterables
 
     @property
-    def predict_dataloaders(self) -> EVAL_DATALOADERS:
+    def predict_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The prediction dataloader(s) used during ``trainer.predict()``."""
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
@@ -1533,11 +1550,7 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            state = self.state
-            self.state.fn = TrainerFn.FITTING
-            self.training = True
             self.fit_loop.setup_data()
-            self.state = state
 
         total_batches = self.num_training_batches
 

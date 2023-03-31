@@ -27,7 +27,7 @@ Here is a minimal example of the `setup.py` file for the package `my-package`:
     setup(
         name="my-package",
         version="0.0.1",
-        install_requires=["pytorch-lightning"],
+        install_requires=["lightning"],
         entry_points={
             "lightning.pytorch.callbacks_factory": [
                 # The format here must be [any name]=[module path]:[function name]
