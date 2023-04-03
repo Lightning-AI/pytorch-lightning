@@ -201,7 +201,7 @@ Glossary
 
 .. displayitem::
    :header: Model Parallelism
-   :description: A way to scale training that splits a model between multiple devices. 
+   :description: A way to scale training that splits a model between multiple devices.
    :col_css: col-md-12
    :button_link: ../advanced/model_parallel.html
    :height: 100

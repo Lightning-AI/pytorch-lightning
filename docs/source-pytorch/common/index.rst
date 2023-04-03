@@ -49,7 +49,7 @@ How-to Guides
 
 .. displayitem::
     :header: Configure hyperparameters from the CLI
-    :description: Make your experiments modular via command line interface 
+    :description: Make your experiments modular via command line interface
     :button_link: ../cli/lightning_cli.html
     :col_css: col-md-4
     :height: 180
