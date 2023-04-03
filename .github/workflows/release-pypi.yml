@@ -49,86 +49,6 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
 
-  release-version:
-    runs-on: ubuntu-20.04
-    outputs:
-      tag: ${{ steps.lai-package.outputs.version }}
-    steps:
-    - uses: actions/checkout@v3
-    - name: install Package
-      run: |
-        pip install . -f ${TORCH_URL}
-        pip list
-    - name: package Version
-      id: lai-package
-      run: python -c "import lightning ; print(f'version={lightning.__version__}')" >> $GITHUB_OUTPUT
-
-
-  signaling:
-    runs-on: ubuntu-20.04
-    needs: [release-version]
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-    env:
-      TAG: ${{ needs.release-version.outputs.tag }}
-    steps:
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.8
-    - uses: actions/checkout@v3
-      with:
-        repository: gridai/base-images
-        token: ${{ secrets.PAT_GHOST }}
-    - name: Update lightning version
-      run: |
-        import json, os
-        with open("versions.json") as fo:
-            vers = json.load(fo)
-        vers["lightning_version"] = os.getenv('TAG')
-        with open("versions.json", "w") as fw:
-            json.dump(vers, fw)
-      shell: python
-    - run: cat versions.json
-    - name: GIT commit & push
-      env:
-        BRANCH_NAME: "trigger/lightning-${{ env.TAG }}"
-      run: |
-        git config --global user.name "PL Ghost"
-        git config --global user.email pl-github@grid.ai
-        git checkout -b ${BRANCH_NAME}
-        git add versions.json
-        git status
-        git commit -m "bumping lightning version -> ${TAG}"
-        git push -u origin ${BRANCH_NAME} -f
-
-
-  waiting:
-    runs-on: ubuntu-20.04
-    needs: [release-version, signaling]
-    env:
-      TAG: ${{ needs.release-version.outputs.tag }}
-    timeout-minutes: 90
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.8
-    - run: pip install gitpython
-    - name: Delay releasing
-      run: |
-        import git, os, time
-        repo = git.Repo('.')
-        branch = f"origin/builds/{os.getenv('TAG')}"
-        while True:
-          remote_refs = [b.name for b in repo.remote().refs]
-          print([n for n in remote_refs if "builds" in n])
-          if branch in remote_refs:
-            break
-          time.sleep(60)
-          for remote in repo.remotes:
-            remote.fetch()
-      shell: python
-
-
   pre-publish-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
@@ -156,7 +76,7 @@ jobs:
 
   publish-packages:
     runs-on: ubuntu-20.04
-    needs: [build-packages, waiting]
+    needs: [build-packages]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
       matrix:
