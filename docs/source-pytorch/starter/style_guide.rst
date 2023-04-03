@@ -219,5 +219,5 @@ This is true for both academic and corporate settings where data cleaning and ad
 of iterating through ideas.
 
 - Checkout the live examples to get your hands dirty:
-- `Introduction to PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/mnist-hello-world.html>`_
-- `Introduction to DataModules <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/datamodules.html>`_
+- `Introduction to PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/mnist-hello-world.html>`_
+- `Introduction to DataModules <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/datamodules.html>`_

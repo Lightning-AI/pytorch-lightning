@@ -16,10 +16,6 @@ Welcome to ⚡ PyTorch Lightning
       </div>
       <div class='col-md-6'>
 
-.. join_slack::
-   :align: center
-   :margin: 0
-
 .. raw:: html
 
       </div>
@@ -44,7 +40,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install 'lightning'
+    pip install lightning
 
 .. raw:: html
 
@@ -55,7 +51,7 @@ Conda users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 
@@ -64,7 +60,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.11 and above.
+You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 .. raw:: html
 
@@ -155,6 +151,7 @@ Current Lightning Users
 
    starter/introduction
    starter/installation
+   upgrade/migration_guide
 
 
 .. toctree::
@@ -262,9 +259,6 @@ Current Lightning Users
    :glob:
 
    notebooks/**/*
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1

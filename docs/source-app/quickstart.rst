@@ -54,7 +54,6 @@ And that's it!
         GPU available: True (mps), used: False
         TPU available: False, using: 0 TPU cores
         IPU available: False, using: 0 IPUs
-        HPU available: False, using: 0 HPUs
 
           | Name    | Type     | Params | In sizes       | Out sizes
         ------------------------------------------------------------------

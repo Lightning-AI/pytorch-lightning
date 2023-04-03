@@ -25,11 +25,35 @@ Below we showcase Lightning examples with packages that compete with the generic
 faster depending on your use case. They might require custom data serialization, loading, and preprocessing that
 is often hardware accelerated.
 
-.. TODO(carmocca)
-    StreamingDataset
-    ^^^^^^^^^^^^^^^^
+StreamingDataset
+^^^^^^^^^^^^^^^^
 
-    The `StreamingDataset <https://github.com/mosaicml/streaming>`__
+As datasets grow in size and the number of nodes scales, loading training data can become a significant challenge.
+The `StreamingDataset <https://github.com/mosaicml/streaming>`__ can make training on large datasets from cloud storage
+as fast, cheap, and scalable as possible.
+
+This library uses a custom built class:`~torch.utils.data.IterableDataset`. The library recommends iterating through it
+via a regular class:`~torch.utils.data.DataLoader`. This means that support in the ``Trainer`` is seamless:
+
+.. code-block:: python
+
+    import lightning as L
+    from streaming import MDSWriter, StreamingDataset
+
+
+    class YourDataset(StreamingDataset):
+        ...
+
+
+    # you could do this in the `prepare_data` hook too
+    with MDSWriter(out="...", columns=...) as out:
+        out.write(...)
+
+    train_dataset = YourDataset()
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
+    model = ...
+    trainer = L.Trainer()
+    trainer.fit(model, train_dataloader)
 
 FFCV
 ^^^^
@@ -42,36 +66,47 @@ the desired GPU in your pipeline. When moving data to a specific device, you can
 
 .. code-block:: python
 
+    import lightning as L
     from ffcv.loader import Loader, OrderOption
     from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Cutout
     from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
 
+    # Random resized crop
+    decoder = RandomResizedCropRGBImageDecoder((224, 224))
+    # Data decoding and augmentation
+    image_pipeline = [decoder, Cutout(), ToTensor(), ToTorchImage()]
+    label_pipeline = [IntDecoder(), ToTensor()]
+    # Pipeline for each data field
+    pipelines = {"image": image_pipeline, "label": label_pipeline}
+    # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
+    train_dataloader = Loader(
+        write_path, batch_size=bs, num_workers=num_workers, order=OrderOption.RANDOM, pipelines=pipelines
+    )
 
-    class CustomClassifier(LitClassifier):
-        def train_dataloader(self):
-            # Random resized crop
-            decoder = RandomResizedCropRGBImageDecoder((224, 224))
+    model = ...
+    trainer = L.Trainer()
+    trainer.fit(model, train_dataloader)
 
-            # Data decoding and augmentation
-            image_pipeline = [decoder, Cutout(), ToTensor(), ToTorchImage()]
-            label_pipeline = [IntDecoder(), ToTensor()]
+WebDataset
+^^^^^^^^^^
 
-            # Pipeline for each data field
-            pipelines = {"image": image_pipeline, "label": label_pipeline}
+The `WebDataset <https://webdataset.github.io/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
+Datasets can be stored locally or in the cloud. ``WebDataset`` is just an instance of a standard IterableDataset.
+The webdataset library contains a small wrapper (``WebLoader``) that adds a fluid interface to the DataLoader (and is otherwise identical).
 
-            # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
-            loader = Loader(
-                write_path, batch_size=bs, num_workers=num_workers, order=OrderOption.RANDOM, pipelines=pipelines
-            )
+.. code-block:: python
 
-            return loader
+    import lightning as L
+    import webdataset as wds
 
+    dataset = wds.WebDataset(urls)
+    train_dataloader = wds.WebLoader(dataset)
 
-.. TODO(carmocca)
-    WebDataset
-    ^^^^^^^^^^
+    model = ...
+    trainer = L.Trainer()
+    trainer.fit(model, train_dataloader)
 
-    The `WebDataset <https://webdataset.github.io/webdataset>`__
+You can find a complete example `here <https://github.com/webdataset/webdataset-lightning>`__.
 
 NVIDIA DALI
 ^^^^^^^^^^^
@@ -80,44 +115,48 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
 
 .. code-block:: python
 
-        from nvidia.dali.pipeline import pipeline_def
-        import nvidia.dali.types as types
-        import nvidia.dali.fn as fn
-        from nvidia.dali.plugin.pytorch import DALIGenericIterator
-        import os
+    import lightning as L
+    from nvidia.dali.pipeline import pipeline_def
+    import nvidia.dali.types as types
+    import nvidia.dali.fn as fn
+    from nvidia.dali.plugin.pytorch import DALIGenericIterator
+    import os
+
+    # To run with different data, see documentation of nvidia.dali.fn.readers.file
+    # points to https://github.com/NVIDIA/DALI_extra
+    data_root_dir = os.environ["DALI_EXTRA_PATH"]
+    images_dir = os.path.join(data_root_dir, "db", "single", "jpeg")
 
 
-        class CustomLitClassifier(LitClassifier):
-            def train_dataloader(self):
-                # To run with different data, see documentation of nvidia.dali.fn.readers.file
-                # points to https://github.com/NVIDIA/DALI_extra
-                data_root_dir = os.environ["DALI_EXTRA_PATH"]
-                images_dir = os.path.join(data_root_dir, "db", "single", "jpeg")
+    @pipeline_def(num_threads=4, device_id=self.trainer.local_rank)
+    def get_dali_pipeline():
+        images, labels = fn.readers.file(file_root=images_dir, random_shuffle=True, name="Reader")
+        # decode data on the GPU
+        images = fn.decoders.image_random_crop(images, device="mixed", output_type=types.RGB)
+        # the rest of processing happens on the GPU as well
+        images = fn.resize(images, resize_x=256, resize_y=256)
+        images = fn.crop_mirror_normalize(
+            images,
+            crop_h=224,
+            crop_w=224,
+            mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+            std=[0.229 * 255, 0.224 * 255, 0.225 * 255],
+            mirror=fn.random.coin_flip(),
+        )
+        return images, labels
 
-                @pipeline_def(num_threads=4, device_id=self.trainer.local_rank)
-                def get_dali_pipeline():
-                    images, labels = fn.readers.file(file_root=images_dir, random_shuffle=True, name="Reader")
-                    # decode data on the GPU
-                    images = fn.decoders.image_random_crop(images, device="mixed", output_type=types.RGB)
-                    # the rest of processing happens on the GPU as well
-                    images = fn.resize(images, resize_x=256, resize_y=256)
-                    images = fn.crop_mirror_normalize(
-                        images,
-                        crop_h=224,
-                        crop_w=224,
-                        mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                        std=[0.229 * 255, 0.224 * 255, 0.225 * 255],
-                        mirror=fn.random.coin_flip(),
-                    )
-                    return images, labels
 
-                train_data = DALIGenericIterator(
-                    [get_dali_pipeline(batch_size=16)],
-                    ["data", "label"],
-                    reader_name="Reader",
-                )
+    train_dataloader = DALIGenericIterator(
+        [get_dali_pipeline(batch_size=16)],
+        ["data", "label"],
+        reader_name="Reader",
+    )
 
-                return train_data
+    model = ...
+    trainer = L.Trainer()
+    trainer.fit(model, train_dataloader)
+
+You can find a complete tutorial `here <https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/frameworks/pytorch/pytorch-lightning.html>`__.
 
 
 Limitations

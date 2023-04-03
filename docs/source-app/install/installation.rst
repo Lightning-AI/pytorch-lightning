@@ -19,7 +19,7 @@ Installation
 ************
 Troubleshoot
 ************
-If you encounter issues during installation join our community slack and share the output of the following command:
+If you encounter issues during installation join our community discord and share the output of the following command:
 
 .. code:: bash
 
