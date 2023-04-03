@@ -20,7 +20,7 @@ def find_latest(ver: str) -> Dict[str, str]:
     ver = re.search(r"([\.\d]+)", ver).groups()[0]
     # in case there remaining dot at the end - e.g "1.9.0.dev20210504"
     ver = ver[:-1] if ver[-1] == "." else ver
-    print(f"finding ecosystem versions for: {ver}")
+    print(f"\n\n\nfinding ecosystem versions for: {ver}")
 
     # find first match
     for option in VERSIONS:

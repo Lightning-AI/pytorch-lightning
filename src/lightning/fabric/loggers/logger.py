@@ -99,7 +99,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the _DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self) -> Union[Any, _DummyExperiment]:  # type: ignore[no-untyped-def]
+    def experiment(self: Logger) -> Union[Any, _DummyExperiment]:
         """
         Note:
             ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method
@@ -109,12 +109,9 @@ def rank_zero_experiment(fn: Callable) -> Callable:
             types that are specific to the custom logger. The return type here can be considered as
             ``Union[return type of logger.experiment, _DummyExperiment]``.
         """
-
-        @rank_zero_only
-        def get_experiment() -> Callable:
-            return fn(self)
-
-        return get_experiment() or _DummyExperiment()
+        if rank_zero_only.rank > 0:
+            return _DummyExperiment()
+        return fn(self)
 
     return experiment
 
