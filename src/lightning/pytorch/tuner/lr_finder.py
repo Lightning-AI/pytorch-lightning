@@ -197,7 +197,7 @@ class _LRFinder:
 
         # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
         #   incorrectly shifted by an offset
-        gradients = torch.diff(losses)
+        (gradients,) = torch.gradient(losses)  # Unpack the tuple
         min_grad = torch.argmin(gradients).item()
 
         self._optimal_idx = min_grad + skip_begin
