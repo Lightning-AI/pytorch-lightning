@@ -76,6 +76,7 @@ jobs:
   waiting:
     needs: [build-packages]
     runs-on: ubuntu-20.04
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - name: Delay releasing
       uses: juliangruber/sleep-action@v1
