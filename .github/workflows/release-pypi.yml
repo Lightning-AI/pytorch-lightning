@@ -73,10 +73,18 @@ jobs:
         pkg-folder: dist/${{ steps.folder.outputs.pkg }}
         pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
 
+  waiting:
+    needs: [build-packages]
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Delay releasing
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10m
 
   publish-packages:
     runs-on: ubuntu-20.04
-    needs: [build-packages]
+    needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
       matrix:
