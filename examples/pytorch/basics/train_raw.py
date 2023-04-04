@@ -122,6 +122,8 @@ def train():
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         model.zero_grad()
         output = model(data)
+        # print(output.shape)
+        # print(targets.shape)
         output = output.view(-1, ntokens)
         loss = criterion(output, targets)
         loss.backward()
