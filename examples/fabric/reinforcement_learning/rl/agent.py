@@ -23,7 +23,8 @@ class PPOAgent(torch.nn.Module):
             raise ValueError("Unrecognized activation function: `act_fun` must be either `relu` or `tanh`")
         self.critic = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64), ortho_init=ortho_init
+                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                ortho_init=ortho_init,
             ),
             act_fun,
             layer_init(torch.nn.Linear(64, 64), ortho_init=ortho_init),
@@ -32,7 +33,8 @@ class PPOAgent(torch.nn.Module):
         )
         self.actor = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64), ortho_init=ortho_init
+                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                ortho_init=ortho_init,
             ),
             act_fun,
             layer_init(torch.nn.Linear(64, 64), ortho_init=ortho_init),
@@ -118,7 +120,8 @@ class PPOLightningAgent(LightningModule):
         self.normalize_advantages = normalize_advantages
         self.critic = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64), ortho_init=ortho_init
+                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                ortho_init=ortho_init,
             ),
             act_fun,
             layer_init(torch.nn.Linear(64, 64), ortho_init=ortho_init),
@@ -127,7 +130,8 @@ class PPOLightningAgent(LightningModule):
         )
         self.actor = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64), ortho_init=ortho_init
+                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                ortho_init=ortho_init,
             ),
             act_fun,
             layer_init(torch.nn.Linear(64, 64), ortho_init=ortho_init),

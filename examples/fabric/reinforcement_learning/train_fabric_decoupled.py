@@ -23,7 +23,6 @@ import time
 from datetime import datetime
 
 import gymnasium as gym
-import numpy as np
 import torch
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test

@@ -118,7 +118,12 @@ def parse_args():
     return args
 
 
-def layer_init(layer: torch.nn.Module, std: float = torch.sqrt(Tensor([2])).item(), bias_const: float = 0.0, ortho_init: bool = True):
+def layer_init(
+    layer: torch.nn.Module,
+    std: float = torch.sqrt(Tensor([2])).item(),
+    bias_const: float = 0.0,
+    ortho_init: bool = True,
+):
     if ortho_init:
         torch.nn.init.orthogonal_(layer.weight, std)
         torch.nn.init.constant_(layer.bias, bias_const)
