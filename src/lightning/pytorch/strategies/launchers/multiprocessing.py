@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional
 
-import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
@@ -210,7 +209,6 @@ class _MultiProcessingLauncher(_Launcher):
 
     def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
         """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.
-        To avoid issues with memory sharing, we cast the data to numpy.
 
         Args:
             trainer: reference to the Trainer.
@@ -219,9 +217,7 @@ class _MultiProcessingLauncher(_Launcher):
             A dictionary with items to send back to the main process where :meth:`update_main_process_results` will
             process this output.
         """
-        callback_metrics: dict = apply_to_collection(
-            trainer.callback_metrics, Tensor, lambda x: x.cpu().numpy()
-        )  # send as numpy to avoid issues with memory sharing
+        callback_metrics: dict = apply_to_collection(trainer.callback_metrics, Tensor, lambda x: x.cpu())
         return {"callback_metrics": callback_metrics}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
@@ -235,7 +231,7 @@ class _MultiProcessingLauncher(_Launcher):
         """
         # NOTE: `get_extra_results` needs to be called before
         callback_metrics = extra["callback_metrics"]
-        trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
+        trainer.callback_metrics.update(callback_metrics)
 
     def kill(self, signum: _SIGNUM) -> None:
         for proc in self.procs:
