@@ -136,7 +136,6 @@ def test_deepspeed_auto_batch_size_config_select(dataset_cls, logging_batch_size
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_configure_optimizers():
     """Test that the deepspeed strategy with default initialization wraps the optimizer correctly."""
-
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
     class RunFabric(Fabric):
@@ -220,7 +219,6 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
 
 
 class ModelParallelClassification(BoringFabric):
-
     num_blocks = 5
 
     def get_model(self):

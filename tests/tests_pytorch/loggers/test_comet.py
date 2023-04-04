@@ -84,7 +84,6 @@ def test_comet_logger_no_api_key_given(comet):
 @patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_experiment_name(comet):
     """Test that Comet Logger experiment name works correctly."""
-
     api_key = "key"
     experiment_name = "My Name"
 
@@ -101,7 +100,6 @@ def test_comet_logger_experiment_name(comet):
 @patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_logger_manual_experiment_key(comet):
     """Test that Comet Logger respects manually set COMET_EXPERIMENT_KEY."""
-
     api_key = "key"
     experiment_key = "96346da91469407a85641afe5766b554"
 
@@ -163,7 +161,6 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
 @patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_name_default(comet):
     """Test that CometLogger.name don't create an Experiment and returns a default value."""
-
     api_key = "key"
 
     with patch("lightning.pytorch.loggers.comet.CometExperiment"):
@@ -176,7 +173,6 @@ def test_comet_name_default(comet):
 @patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_name_project_name(comet):
     """Test that CometLogger.name does not create an Experiment and returns project name if passed."""
-
     api_key = "key"
     project_name = "My Project Name"
 
@@ -190,7 +186,6 @@ def test_comet_name_project_name(comet):
 @patch("lightning.pytorch.loggers.comet.comet_ml")
 def test_comet_version_without_experiment(comet):
     """Test that CometLogger.version does not create an Experiment."""
-
     api_key = "key"
     experiment_name = "My Name"
     comet.generate_guid.return_value = "1234"

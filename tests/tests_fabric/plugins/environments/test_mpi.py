@@ -58,7 +58,6 @@ def test_detect(monkeypatch):
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes(monkeypatch):
     """Test the default attributes when no environment variables are set."""
-
     # pretend mpi4py is available
     monkeypatch.setattr(lightning.fabric.plugins.environments.mpi, "_MPI4PY_AVAILABLE", True)
     mpi4py_mock = MagicMock()

@@ -52,7 +52,6 @@ def test_all_gather_ddp_spawn():
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
-
         on_train_epoch_end_called = False
 
         def on_train_epoch_end(self):
@@ -108,7 +107,6 @@ def test_all_gather_collection(tmpdir):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_sync_grads(tmpdir):
     class TestModel(BoringModel):
-
         training_step_called = False
 
         def training_step(self, batch, batch_idx):

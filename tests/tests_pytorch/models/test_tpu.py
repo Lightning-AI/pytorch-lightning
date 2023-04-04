@@ -260,7 +260,6 @@ def test_accelerator_set_when_using_tpu(devices):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_if_test_works_with_checkpoint_false(tmpdir):
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
-
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(

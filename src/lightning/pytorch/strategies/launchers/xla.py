@@ -31,8 +31,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_debug
 
 
 class _XLALauncher(_MultiProcessingLauncher):
-    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
-    end.
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at
+    the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.

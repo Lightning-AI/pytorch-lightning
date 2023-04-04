@@ -71,7 +71,6 @@ def test_trainer_run_executor_arguments_choices(
     args_given: dict,
     args_expected: dict,
 ):
-
     if pl.accelerators.MPSAccelerator.is_available():
         args_expected.pop("accelerator", None)  # Cross platform tests -> MPS is tested separately
 

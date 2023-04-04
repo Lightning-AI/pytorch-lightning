@@ -29,7 +29,6 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 def test_file_logger_automatic_versioning(tmpdir):
     """Verify that automatic versioning works."""
-
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
@@ -41,7 +40,6 @@ def test_file_logger_automatic_versioning(tmpdir):
 
 def test_file_logger_manual_versioning(tmpdir):
     """Verify that manual versioning works."""
-
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
@@ -54,7 +52,6 @@ def test_file_logger_manual_versioning(tmpdir):
 
 def test_file_logger_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"

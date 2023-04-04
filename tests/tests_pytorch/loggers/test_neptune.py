@@ -217,6 +217,7 @@ class TestNeptuneLogger(unittest.TestCase):
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
     def test_neptune_log_metrics_on_trained_model(self, neptune):
         """Verify that trained models do log data."""
+
         # given
         class LoggingModel(BoringModel):
             def on_validation_epoch_end(self):

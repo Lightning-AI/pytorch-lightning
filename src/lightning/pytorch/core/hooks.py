@@ -625,9 +625,8 @@ class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning to restore your model.
-        If you saved something with :meth:`on_save_checkpoint` this is your chance to restore this.
+        r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this
+        is your chance to restore this.
 
         Args:
             checkpoint: Loaded checkpoint
@@ -644,9 +643,8 @@ class CheckpointHooks:
         """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning when saving a checkpoint to give you a chance to store anything
-        else you might want to save.
+        r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want
+        to save.
 
         Args:
             checkpoint: The full checkpoint dictionary before it gets dumped to a file.
@@ -662,5 +660,4 @@ class CheckpointHooks:
             Lightning saves all aspects of training (epoch, global step, etc...)
             including amp scaling.
             There is no need for you to store anything about training.
-
         """

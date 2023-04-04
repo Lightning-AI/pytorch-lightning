@@ -219,7 +219,6 @@ def test_tensorboard_with_symlink(log, tmpdir):
 
 def test_tensorboard_missing_folder_warning(tmpdir, caplog):
     """Verify that the logger throws a warning for invalid directory."""
-
     name = "fake_dir"
     logger = TensorBoardLogger(root_dir=tmpdir, name=name)
 

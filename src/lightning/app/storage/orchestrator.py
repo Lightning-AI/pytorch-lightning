@@ -176,7 +176,6 @@ class StorageOrchestrator(Thread):
         # It is possible to have multiple destination targeting
         # the same source concurrently.
         if work_name in self.waiting_for_response.values():
-
             # check if the current work has responses for file transfers to other works.
             copy_response_queue = self.copy_response_queues[work_name]
             try:

@@ -57,7 +57,6 @@ def test_error_with_multiple_optimizers(tmpdir):
 
 def test_model_reset_correctly(tmpdir):
     """Check that model weights are correctly reset after _lr_find()"""
-
     model = BoringModel()
     model.lr = 0.1
 
@@ -80,7 +79,6 @@ def test_model_reset_correctly(tmpdir):
 
 def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after lr_find()"""
-
     model = BoringModel()
     model.lr = 0.1
 
@@ -425,7 +423,6 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
 
 def test_lr_finder_callback_restarting(tmpdir):
     """Test that `LearningRateFinder` does not set restarting=True when loading checkpoint."""
-
     num_lr_steps = 100
 
     class MyBoringModel(BoringModel):

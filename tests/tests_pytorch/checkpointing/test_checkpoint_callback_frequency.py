@@ -35,7 +35,6 @@ def test_disabled_checkpointing(tmpdir):
     ["epochs", "val_check_interval", "expected"], [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)]
 )
 def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
-
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -323,7 +323,6 @@ def _delta_to_app_state_delta(root: "LightningFlow", component: "Component", del
 
             new_prefix = "root"
             for p, c in _walk_to_component(root, component):
-
                 if isinstance(c, lightning.app.core.LightningWork):
                     new_prefix += "['works']"
 

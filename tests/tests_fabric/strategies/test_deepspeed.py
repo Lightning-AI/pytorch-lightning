@@ -53,7 +53,6 @@ def test_deepspeed_only_compatible_with_cuda():
 @RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
-
     with pytest.raises(
         FileNotFoundError, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
@@ -99,7 +98,6 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_config_zero_offload(deepspeed_zero_config):
     """Test the various ways optimizer-offloading can be configured."""
-
     # default config
     strategy = DeepSpeedStrategy(config=deepspeed_zero_config)
     assert "offload_optimizer" not in strategy.config["zero_optimization"]

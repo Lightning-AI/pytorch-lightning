@@ -24,7 +24,6 @@ _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 
 class HyperparametersMixin:
-
     __jit_unused_properties__: List[str] = ["hparams", "hparams_initial"]
 
     def __init__(self) -> None:

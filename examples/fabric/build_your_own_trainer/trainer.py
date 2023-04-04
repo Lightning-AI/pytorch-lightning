@@ -290,7 +290,6 @@ class MyCustomTrainer:
         iterable = self.progbar_wrapper(val_loader, total=min(len(val_loader), limit_batches), desc="Validation")
 
         for batch_idx, batch in enumerate(iterable):
-
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
                 self.fabric.call("on_validation_epoch_end")
@@ -493,7 +492,6 @@ class MyCustomTrainer:
                     for _lr_cand in configure_optim_output
                 ]
             ):
-
                 # single scheduler in list
                 if len(configure_optim_output) == 1:
                     return None, self._parse_optimizers_schedulers(configure_optim_output[0])[1]

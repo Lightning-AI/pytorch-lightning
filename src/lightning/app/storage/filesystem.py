@@ -29,7 +29,6 @@ def _get_files(fs, src: Path, dst: Path, overwrite: bool = True):
 
 
 class FileSystem:
-
     """This filesystem enables to easily move files from and to the shared storage."""
 
     def __init__(self) -> None:

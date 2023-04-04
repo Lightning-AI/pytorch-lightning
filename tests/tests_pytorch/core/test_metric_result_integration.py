@@ -204,7 +204,6 @@ def my_sync_dist(x, *_, **__):
 
 def test_result_collection_restoration(tmpdir):
     """This test make sure metrics are properly reloaded on failure."""
-
     result = _ResultCollection(True, torch.device("cpu"))
     metric_a = DummyMetric()
     metric_b = DummyMetric()
@@ -221,11 +220,9 @@ def test_result_collection_restoration(tmpdir):
         current_fx_name = fx
 
     for epoch in range(2):
-
         cumulative_sum = 0
 
         for i in range(3):
-
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)

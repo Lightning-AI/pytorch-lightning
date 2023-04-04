@@ -19,10 +19,9 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBar(Callback):
-    r"""
-    The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback`
-    that keeps track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
-    You should implement your highly custom progress bars with this as the base class.
+    r"""The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback` that
+    keeps track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`. You should
+    implement your highly custom progress bars with this as the base class.
 
     Example::
 
@@ -43,7 +42,6 @@ class ProgressBar(Callback):
 
         bar = LitProgressBar()
         trainer = Trainer(callbacks=[bar])
-
     """
 
     def __init__(self) -> None:
@@ -160,9 +158,8 @@ class ProgressBar(Callback):
     def get_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
-        r"""
-        Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
-        Implement this to override the items displayed in the progress bar.
+        r"""Combines progress bar metrics collected from the trainer with standard metrics from
+        get_standard_metrics. Implement this to override the items displayed in the progress bar.
 
         Here is an example of how to override the defaults:
 
@@ -191,9 +188,8 @@ class ProgressBar(Callback):
 
 
 def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
-    r"""
-    Returns the standard metrics displayed in the progress bar.
-    Currently, it only includes the version of the experiment when using a logger.
+    r"""Returns the standard metrics displayed in the progress bar. Currently, it only includes the version of the
+    experiment when using a logger.
 
     .. code-block::
 

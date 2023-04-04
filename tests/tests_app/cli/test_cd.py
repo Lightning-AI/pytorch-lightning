@@ -12,7 +12,6 @@ from lightning.app.cli.commands.pwd import pwd
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cd(monkeypatch):
     """This test validates cd behaves as expected."""
-
     ls = mock.MagicMock()
     monkeypatch.setattr(cd, "ls", ls)
 

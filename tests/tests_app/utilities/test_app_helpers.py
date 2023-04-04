@@ -52,7 +52,6 @@ def test_is_overridden():
 
 
 def test_simple_app_store():
-
     store = InMemoryStateStore()
     user_id = "1234"
     store.add(user_id)

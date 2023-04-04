@@ -95,7 +95,6 @@ class MultiNode(LightningFlow):
 
         # 2. Loop over all node machines
         for node_rank in range(len(self.ws)):
-
             # 3. Run the user code in a distributed way !
             self.ws[node_rank].run(
                 main_address=self.ws[0].internal_ip,

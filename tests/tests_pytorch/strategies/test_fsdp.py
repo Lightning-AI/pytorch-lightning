@@ -184,7 +184,6 @@ def test_fsdp_custom_mixed_precision(tmpdir):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 def test_fsdp_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
-
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -272,7 +271,6 @@ else:
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
-
     ck = ModelCheckpoint(save_last=True)
 
     strategy_cfg = strategy_cfg or {}

@@ -46,7 +46,6 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 
 
 def test_lightning_client_retry_enabled():
-
     client = LightningClient()  # default: retry=True
     assert hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")
 

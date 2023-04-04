@@ -62,7 +62,6 @@ def connect_data(
         _error_and_exit("Data connection isn't supported on windows. Open an issue on Github.")
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
         live.stop()
 
         client = LightningClient(retry=False)
@@ -71,7 +70,6 @@ def connect_data(
         project_id = None
 
         for project in projects.memberships:
-
             if project.name == project_name:
                 project_id = project.project_id
                 break

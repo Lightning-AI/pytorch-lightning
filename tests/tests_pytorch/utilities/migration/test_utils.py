@@ -44,7 +44,6 @@ def test_patch_legacy_gpus_arg_default():
 
 def test_migrate_checkpoint(monkeypatch):
     """Test that the correct migration function gets executed given the current version of the checkpoint."""
-
     # A checkpoint that is older than any migration point in the index
     old_checkpoint = {"pytorch-lightning_version": "0.0.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
@@ -108,7 +107,6 @@ def test_migrate_checkpoint_too_new():
 
 def test_migrate_checkpoint_for_pl(caplog):
     """Test that the automatic migration in Lightning informs the user about how to make the upgrade permanent."""
-
     # simulate a very recent checkpoint, no migrations needed
     loaded_checkpoint = {"pytorch-lightning_version": pl.__version__, "global_step": 2, "epoch": 0}
     new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")

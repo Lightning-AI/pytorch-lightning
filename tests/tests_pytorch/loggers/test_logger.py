@@ -118,7 +118,6 @@ def test_multiple_loggers(tmpdir):
 
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
-
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 

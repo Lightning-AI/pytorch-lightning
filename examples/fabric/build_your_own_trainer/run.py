@@ -41,7 +41,6 @@ class MNISTModule(L.LightningModule):
         return {"loss": loss, "accuracy": accuracy_train}
 
     def configure_optimizers(self):
-
         optim = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optim, {
             "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="max", verbose=True),

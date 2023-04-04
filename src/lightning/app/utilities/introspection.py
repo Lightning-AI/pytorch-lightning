@@ -324,7 +324,6 @@ class Scanner:
                 continue
 
             for node in ast.walk(module):
-
                 if isinstance(node, ast.ImportFrom):
                     for import_from_cls in node.names:
                         classes.append(import_from_cls.name)

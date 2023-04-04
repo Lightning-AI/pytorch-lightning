@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-Finetuning Callback
-^^^^^^^^^^^^^^^^^^^^
-Freeze and unfreeze models for finetuning purposes
-"""
+r"""Finetuning Callback ^^^^^^^^^^^^^^^^^^^^ Freeze and unfreeze models for finetuning purposes."""
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
@@ -37,8 +33,7 @@ def multiplicative(epoch: int) -> float:
 
 
 class BaseFinetuning(Callback):
-    r"""
-    This class implements the base logic for writing your own Finetuning Callback.
+    r"""This class implements the base logic for writing your own Finetuning Callback.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -335,7 +330,6 @@ class BackboneFinetuning(BaseFinetuning):
         >>> multiplicative = lambda epoch: 1.5
         >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetuning])
-
     """
 
     def __init__(

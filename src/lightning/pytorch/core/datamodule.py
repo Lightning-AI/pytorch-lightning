@@ -76,8 +76,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         num_workers: int = 0,
         **datamodule_kwargs: Any,
     ) -> "LightningDataModule":
-        r"""
-        Create an instance from torch.utils.data.Dataset.
+        r"""Create an instance from torch.utils.data.Dataset.
 
         Args:
             train_dataset: Optional dataset to be used for train_dataloader()

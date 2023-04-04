@@ -30,8 +30,8 @@ class AbstractClosure(ABC, Generic[T]):
     """Abstract base class for optimizer closures in Lightning.
 
     Formally, a closure is binding variables from an external scope to a function that does a computation on these
-    variables without taking them explicitly as input. This has the benefit that a closure can be passed to an
-    object which later can call it like a function but without requiring to pass in any arguments.
+    variables without taking them explicitly as input. This has the benefit that a closure can be passed to an object
+    which later can call it like a function but without requiring to pass in any arguments.
 
     This class provides a simple abstraction making the instance of this class callable like a function while capturing
     the closure result and caching it.

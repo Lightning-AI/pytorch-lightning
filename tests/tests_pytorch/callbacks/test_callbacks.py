@@ -25,7 +25,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 def test_callbacks_configured_in_model(tmpdir):
     """Test the callback system with callbacks added through the model hook."""
-
     model_callback_mock = Mock(spec=Callback, model=Callback())
     trainer_callback_mock = Mock(spec=Callback, model=Callback())
 

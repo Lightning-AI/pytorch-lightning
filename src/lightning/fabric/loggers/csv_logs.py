@@ -30,8 +30,7 @@ log = logging.getLogger(__name__)
 
 
 class CSVLogger(Logger):
-    r"""
-    Log to the local file system in CSV format.
+    r"""Log to the local file system in CSV format.
 
     Logs are saved to ``os.path.join(root_dir, name, version)``.
 
@@ -170,8 +169,7 @@ class CSVLogger(Logger):
 
 
 class _ExperimentWriter:
-    r"""
-    Experiment writer for CSVLogger.
+    r"""Experiment writer for CSVLogger.
 
     Args:
         log_dir: Directory for the experiment logs

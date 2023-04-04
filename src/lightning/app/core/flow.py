@@ -36,7 +36,6 @@ if TYPE_CHECKING:
 
 
 class LightningFlow:
-
     _INTERNAL_STATE_VARS = {
         # Internal protected variables that are still part of the state (even though they are prefixed with "_")
         "_paths",
@@ -110,7 +109,6 @@ class LightningFlow:
             >>> assert flow.counter == 1
             >>> assert flow.state["vars"]["counter"] == 1
         """
-
         self._state: set = set()
         self._name: str = ""
         self._flows: set = set()
@@ -154,7 +152,6 @@ class LightningFlow:
             value = Path(value)
 
         if self._is_state_attribute(name):
-
             if hasattr(self, name):
                 if name in self._flows and value != getattr(self, name):
                     raise AttributeError(f"Cannot set attributes as the flow can't be changed once defined: {name}")

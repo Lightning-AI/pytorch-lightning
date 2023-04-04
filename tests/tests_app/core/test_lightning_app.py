@@ -36,7 +36,6 @@ logger = logging.getLogger()
 
 def test_lightning_app_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
-
     with pytest.raises(
         TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
     ):
@@ -447,7 +446,6 @@ class EmptyFlow(LightningFlow):
     ],
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
-
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
 
@@ -509,7 +507,6 @@ class SimpleFlow2(LightningFlow):
 
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
-
     app = LightningApp(SimpleFlow2())
     app.delta_queue = MultiProcessQueue("a", 0)
     assert app._has_updated
@@ -1108,7 +1105,6 @@ class FlowWrapper(LightningFlow):
 
 
 def test_cloud_compute_binding():
-
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
     assert cloud_compute._CLOUD_COMPUTE_STORE == {}
@@ -1169,7 +1165,6 @@ class FlowValue(LightningFlow):
 
 def test_lightning_flow_properties():
     """Validates setting properties to the LightningFlow properly calls property.fset."""
-
     flow = FlowValue()
     assert flow._value is None
     flow.run()
@@ -1182,6 +1177,5 @@ class SimpleWork2(LightningWork):
 
 
 def test_lightning_work_stopped():
-
     app = LightningApp(SimpleWork2())
     MultiProcessRuntime(app, start_server=False).dispatch()

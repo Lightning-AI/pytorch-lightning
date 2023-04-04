@@ -19,7 +19,6 @@ import tarfile
 
 def clean_tarfile(file_path: str, mode: str) -> None:
     """This utility removes all files extracted from a tarfile."""
-
     if not os.path.exists(file_path):
         return None
 

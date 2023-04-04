@@ -7,7 +7,6 @@ from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser("Server Parser")
     parser.add_argument("--filepath", type=str, help="Where to find the `filepath`")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host`")

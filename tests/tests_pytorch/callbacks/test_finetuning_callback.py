@@ -41,7 +41,6 @@ class TestBackboneFinetuningCallback(BackboneFinetuning):
 
 def test_finetuning_callback(tmpdir):
     """Test finetuning callbacks works as expected."""
-
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
@@ -76,7 +75,6 @@ def test_finetuning_callback(tmpdir):
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
     def finetune_function(self, pl_module, epoch: int, optimizer):
         """Called when the epoch begins."""
-
         if epoch == 0:
             self.unfreeze_and_add_param_group(
                 pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
@@ -85,7 +83,6 @@ class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
 
 def test_finetuning_callback_warning(tmpdir):
     """Test finetuning callbacks works as expected."""
-
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
@@ -124,7 +121,6 @@ def test_finetuning_callback_warning(tmpdir):
 
 def test_freeze_unfreeze_function(tmpdir):
     """Test freeze properly sets requires_grad on the modules."""
-
     seed_everything(42)
 
     class FreezeModel(LightningModule):
@@ -163,7 +159,6 @@ def test_freeze_unfreeze_function(tmpdir):
 
 def test_unfreeze_and_add_param_group_function(tmpdir):
     """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group."""
-
     seed_everything(42)
 
     class FreezeModel(LightningModule):

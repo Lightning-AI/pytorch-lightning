@@ -103,7 +103,6 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
@@ -131,7 +130,6 @@ def test_device_stats_monitor_tpu(tmpdir):
 
 def test_device_stats_monitor_no_logger(tmpdir):
     """Test DeviceStatsMonitor with no logger in Trainer."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
@@ -171,7 +169,6 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp
 
 def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     """Test that metrics are logged for all stages that is training, testing and validation."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
@@ -194,7 +191,6 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     trainer.fit(model)
 
     with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
-
         content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 
@@ -212,7 +208,6 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     trainer.test(model)
 
     with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
-
         content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 

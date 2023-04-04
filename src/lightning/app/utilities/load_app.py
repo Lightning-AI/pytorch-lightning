@@ -135,7 +135,6 @@ def load_app_from_file(
 
 def _new_module(name):
     """Create a new module with the given name."""
-
     return types.ModuleType(name)
 
 

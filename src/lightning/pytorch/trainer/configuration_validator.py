@@ -23,12 +23,10 @@ from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signatu
 
 
 def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
-    r"""
-    Checks that the model is configured correctly before the run is started.
+    r"""Checks that the model is configured correctly before the run is started.
 
     Args:
         trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
-
     """
     model = trainer.lightning_module
 

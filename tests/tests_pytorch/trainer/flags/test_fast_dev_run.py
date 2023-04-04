@@ -14,7 +14,6 @@ from lightning.pytorch.tuner.tuning import Tuner
 
 def test_skip_on_fast_dev_run_tuner(tmpdir):
     """Test that tuner algorithms are skipped if fast dev run is enabled."""
-
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
     model.batch_size = 8

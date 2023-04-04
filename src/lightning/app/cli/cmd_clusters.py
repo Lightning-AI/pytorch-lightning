@@ -366,7 +366,6 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         cluster: The cluster object
         elapsed: Seconds since we've started polling
     """
-
     cluster_id = cluster.id
     current_state = cluster.status.phase
     current_reason = cluster.status.reason

@@ -27,7 +27,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 def test_finetuning_with_ckpt_path(tmpdir):
     """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
-
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
     class ExtendedBoringModel(BoringModel):

@@ -24,7 +24,6 @@ from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, U
 @pytest.mark.parametrize("shuffle", [False, True])
 def test_unrepeated_distributed_sampler(shuffle):
     """Test each rank will receive a different number of elements."""
-
     seed_everything(42)
     world_size = 4
     samplers = []

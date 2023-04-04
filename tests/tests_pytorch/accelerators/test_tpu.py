@@ -103,7 +103,6 @@ def test_accelerator_tpu(_, accelerator, devices, tpu_available):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_manual_optimization_tpus(tmpdir):
     class ManualOptimizationModel(BoringModel):
-
         count = 0
         called = collections.defaultdict(int)
 
@@ -192,7 +191,6 @@ def test_strategy_choice_tpu_strategy():
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_auto_parameters_tying_tpus(tmpdir):
-
     model = WeightSharingModule()
     shared_params = find_shared_parameters(model)
 

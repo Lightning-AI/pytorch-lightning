@@ -9,7 +9,6 @@ from lightning.app.cli.lightning_cli import show
 @mock.patch("lightning.app.cli.commands.logs._get_project")
 def test_show_logs_errors(_, client):
     """Test that the CLI prints the errors for the show logs command."""
-
     runner = CliRunner()
 
     # Response prep
