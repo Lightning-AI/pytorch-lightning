@@ -20,7 +20,7 @@ from abc import ABC
 from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
-import numpy as np
+import torch
 
 from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
@@ -94,7 +94,7 @@ class DummyLogger(Logger):
 def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
-    default_func: Callable[[Sequence[float]], float] = np.mean,
+    default_func: Callable[[Sequence[float]], float] = torch.mean,
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
     function.
@@ -121,7 +121,7 @@ def merge_dicts(  # pragma: no cover
         >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1, 'd': {'d1': 2, 'd2': 3}}
         >>> d3 = {'a': 1.1, 'v': 2.3, 'd': {'d3': 3, 'd4': {'d5': 1}}}
         >>> dflt_func = min
-        >>> agg_funcs = {'a': np.mean, 'v': max, 'd': {'d1': sum}}
+        >>> agg_funcs = {'a': torch.mean, 'v': torch.max, 'd': {'d1': torch.sum}}
         >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
         {'a': 1.3,
          'b': 2.0,
@@ -129,16 +129,38 @@ def merge_dicts(  # pragma: no cover
          'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
          'v': 2.3}
     """
+    # If agg_key_funcs is not provided, initialize it as an empty dictionary
     agg_key_funcs = agg_key_funcs or {}
+
+    # Collect all unique keys from the input dictionaries
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
+
+    # Initialize the output dictionary using defaultdict
     d_out: Dict = defaultdict(dict)
+
+    # Iterate over all unique keys
     for k in keys:
+        # Get the aggregation function for the current key, if available
         fn = agg_key_funcs.get(k)
+
+        # Collect values associated with the current key from all input dictionaries
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
 
+        # Check if the values to aggregate are dictionaries
         if isinstance(values_to_agg[0], dict):
+            # Call the merge_dicts function recursively for nested dictionaries
             d_out[k] = merge_dicts(values_to_agg, fn, default_func)
-        else:
-            d_out[k] = (fn or default_func)(values_to_agg)
 
+        else:
+            # Convert values_to_agg to a tensor with float32 data type
+            values_to_agg_tensor = torch.tensor(values_to_agg, dtype=torch.float32)
+
+            # Apply the aggregation function (fn) or the default function (default_func) to the tensor
+            aggregated_value = (fn or default_func)(values_to_agg_tensor)
+
+            # Assign the aggregated value to the output dictionary
+            # The check is necessary because aggregation functions can return floats instead of tensors
+            d_out[k] = aggregated_value.item() if torch.is_tensor(aggregated_value) else aggregated_value
+
+    # Convert the defaultdict to a regular dictionary and return it
     return dict(d_out)
