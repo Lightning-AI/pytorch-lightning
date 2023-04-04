@@ -122,7 +122,7 @@ class EarlyStopping(Callback):
             raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
 
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
-        torch_inf = torch.tensor(float("inf"))
+        torch_inf = torch.tensor(torch.inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     @property
