@@ -441,7 +441,7 @@ class ModelCheckpoint(Checkpoint):
         self.filename = filename
 
     def __init_monitor_mode(self, mode: str) -> None:
-        torch_inf = torch.tensor(float("inf"))
+        torch_inf = torch.tensor(torch.inf)
         mode_dict = {"min": (torch_inf, "min"), "max": (-torch_inf, "max")}
 
         if mode not in mode_dict:
