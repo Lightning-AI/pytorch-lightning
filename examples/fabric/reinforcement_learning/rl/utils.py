@@ -4,7 +4,6 @@ from distutils.util import strtobool
 from typing import Optional, TYPE_CHECKING, Union
 
 import gymnasium as gym
-import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
@@ -119,7 +118,7 @@ def parse_args():
     return args
 
 
-def layer_init(layer: torch.nn.Module, std: float = np.sqrt(2), bias_const: float = 0.0, ortho_init: bool = True):
+def layer_init(layer: torch.nn.Module, std: float = torch.sqrt(Tensor([2])).item(), bias_const: float = 0.0, ortho_init: bool = True):
     if ortho_init:
         torch.nn.init.orthogonal_(layer.weight, std)
         torch.nn.init.constant_(layer.bias, bias_const)
@@ -163,8 +162,8 @@ def test(
         action = agent.get_greedy_action(next_obs)
 
         # Single environment step
-        next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
-        done = np.logical_or(done, truncated)
+        next_obs, reward, done, truncated, info = env.step(action.cpu().tolist())
+        done = done or truncated
         cumulative_rew += reward
         next_obs = Tensor(next_obs).to(device)
         step += 1
