@@ -34,7 +34,7 @@ repos:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.3.0
     hooks:
       - id: black
         name: Black code
@@ -62,7 +62,7 @@ repos:
           - flake8-simplify
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.257
+    rev: v0.0.260
     hooks:
       - id: ruff
         args: ["--fix"]
