@@ -7,7 +7,7 @@
    ../generated/CONTRIBUTING.md
    ../generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
-   versioning
+   ../versioning
    past_versions
    ../generated/CHANGELOG.md
 
@@ -52,7 +52,7 @@ Community
    :header: Versioning
    :description: PyTorch Lightning's versioning policy
    :col_css: col-md-12
-   :button_link: versioning.html
+   :button_link: ../versioning.html
    :height: 100
 
 .. displayitem::
