@@ -54,14 +54,14 @@ Glossary
 
 .. displayitem::
    :header: Accelerators
-   :description: Accelerators connect the Trainer to hardware to train faster.
+   :description: Accelerators connect the Trainer to hardware to train faster
    :col_css: col-md-12
    :button_link: ../extensions/accelerator.html
    :height: 100
 
 .. displayitem::
    :header: Callback
-   :description: Add self-contained extra functionality during training execution.
+   :description: Add self-contained extra functionality during training execution
    :col_css: col-md-12
    :button_link: ../extensions/callbacks.html
    :height: 100
@@ -306,7 +306,7 @@ Glossary
 
 .. displayitem::
    :header: Transfer learning
-   :description: Transferring information from one machine learning task to another
+   :description: Using pre-trained models to improve learning
    :col_css: col-md-12
    :button_link: ../advanced/transfer_learning.html
    :height: 100
