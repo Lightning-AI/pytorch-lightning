@@ -54,14 +54,14 @@ Glossary
 
 .. displayitem::
    :header: Accelerators
-   :description: Use accelerators to train faster.
+   :description: Accelerators connect the Trainer to hardware to train faster.
    :col_css: col-md-12
    :button_link: ../extensions/accelerator.html
    :height: 100
 
 .. displayitem::
    :header: Callback
-   :description: Add arbitrary self-contained programs
+   :description: Add self-contained extra functionality during training execution.
    :col_css: col-md-12
    :button_link: ../extensions/callbacks.html
    :height: 100
@@ -194,7 +194,7 @@ Glossary
 
 .. displayitem::
    :header: Model
-   :description: The set of parameters and structure needed for a system to make predictions
+   :description: The set of parameters and structure for a system to make predictions
    :col_css: col-md-12
    :button_link: ../model/build_model.html
    :height: 100
