@@ -19,7 +19,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-import numpy as np
+import torch
 
 from lightning.pytorch.profilers.profiler import Profiler
 
@@ -80,7 +80,13 @@ class SimpleProfiler(Profiler):
     def _make_report_extended(self) -> Tuple[_TABLE_DATA_EXTENDED, float, float]:
         total_duration = time.monotonic() - self.start_time
         report = [
-            (a, np.mean(d), len(d), np.sum(d), 100.0 * np.sum(d) / total_duration)
+            (
+                a,
+                torch.mean(torch.tensor(d)).item(),
+                len(d),
+                torch.sum(torch.tensor(d)).item(),
+                100.0 * torch.sum(torch.tensor(d)).item() / total_duration,
+            )
             for a, d in self.recorded_durations.items()
         ]
         report.sort(key=lambda x: x[4], reverse=True)
@@ -88,7 +94,10 @@ class SimpleProfiler(Profiler):
         return report, total_calls, total_duration
 
     def _make_report(self) -> _TABLE_DATA:
-        report = [(action, np.mean(d), np.sum(d)) for action, d in self.recorded_durations.items()]
+        report = [
+            (action, torch.mean(torch.tensor(d)).item(), torch.sum(torch.tensor(d)).item())
+            for action, d in self.recorded_durations.items()
+        ]
         report.sort(key=lambda x: x[1], reverse=True)
         return report
 
