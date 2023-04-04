@@ -182,10 +182,10 @@ class PPOLightningAgent(LightningModule):
         lastgaelam = 0
         for t in reversed(range(num_steps)):
             if t == num_steps - 1:
-                nextnonterminal = 1.0 - next_done
+                nextnonterminal = torch.logical_not(next_done)
                 nextvalues = next_value
             else:
-                nextnonterminal = 1.0 - dones[t + 1]
+                nextnonterminal = torch.logical_not(dones[t + 1])
                 nextvalues = values[t + 1]
             delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
             advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
