@@ -160,7 +160,7 @@ def merge_dicts(  # pragma: no cover
 
             # Assign the aggregated value to the output dictionary
             # The check is necessary because aggregation functions can return floats instead of tensors
-            d_out[k] = aggregated_value.item() if torch.is_tensor(aggregated_value) else aggregated_value
+            d_out[k] = round(aggregated_value, 2) if isinstance(aggregated_value, float) else aggregated_value
 
     # Convert the defaultdict to a regular dictionary and return it
     return dict(d_out)
