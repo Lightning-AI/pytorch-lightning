@@ -173,8 +173,8 @@ jobs:
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest . -v \
-          --timeout=${TEST_TIMEOUT} --durations=50 \
-          --reruns 3 --reruns-delay 1
+          # --reruns 3 --reruns-delay 1 \
+          --timeout=${TEST_TIMEOUT} --durations=50
 
     - name: Statistics
       if: success()
