@@ -78,7 +78,7 @@ All steps combined, this is how your code will change:
               input, target = batch
     -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              output = model(input)
+              output = model(input, target)
               loss = F.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)

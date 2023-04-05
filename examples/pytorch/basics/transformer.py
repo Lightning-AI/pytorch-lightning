@@ -13,27 +13,27 @@ class LanguageModel(L.LightningModule):
 
     def training_step(self, batch, batch_idx):
         input, target = batch
-        output = self.model(input)
+        output = self.model(input, target)
         loss = F.nll_loss(output, target.view(-1))
         self.log("train_loss", loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         input, target = batch
-        output = self.model(input)
+        output = self.model(input, target)
         loss = F.nll_loss(output, target.view(-1))
         self.log("val_loss", loss, prog_bar=True)
         return loss
 
     def test_step(self, batch, batch_idx):
         input, target = batch
-        output = self.model(input)
+        output = self.model(input, target)
         loss = F.nll_loss(output, target.view(-1))
         self.log("test_loss", loss, prog_bar=True)
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=20.0)
+        return torch.optim.SGD(self.parameters(), lr=0.1)
 
 
 def main():

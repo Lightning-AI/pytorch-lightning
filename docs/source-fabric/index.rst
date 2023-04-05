@@ -41,7 +41,7 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
               input, target = batch
     -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              output = model(input)
+              output = model(input, target)
               loss = F.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)

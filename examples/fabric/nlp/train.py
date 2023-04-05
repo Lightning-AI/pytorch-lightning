@@ -19,7 +19,7 @@ def main():
     model = Transformer(vocab_size=dataset.vocab_size)
 
     # Optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=20.0)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
     model, optimizer = fabric.setup(model, optimizer)
     train(fabric, model, optimizer, train_dataloader, val_dataloader)
@@ -35,7 +35,7 @@ def train(fabric, model, optimizer, train_dataloader, val_dataloader, max_epochs
 def train_epoch(fabric, model, optimizer, train_dataloader, epoch):
     for batch_idx, batch in enumerate(train_dataloader):
         input, target = batch
-        output = model(input)
+        output = model(input, target)
         loss = F.nll_loss(output, target.view(-1))
         fabric.backward(loss)
         fabric.clip_gradients(model, optimizer, clip_val=0.25)
@@ -53,7 +53,7 @@ def validate(fabric, model, val_dataloader):
     losses = torch.zeros(len(val_dataloader))
     for k, batch in enumerate(val_dataloader):
         input, target = batch
-        output = model(input)
+        output = model(input, target)
         loss = F.nll_loss(output, target.view(-1))
         losses[k] = loss.item()
     out = losses.mean()
