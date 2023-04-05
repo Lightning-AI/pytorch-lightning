@@ -94,7 +94,7 @@ class DummyLogger(Logger):
 def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
-    default_func: Callable[[Sequence[float]], float] = torch.mean,
+    default_func: Callable[[torch.Tensor], torch.Tensor] = torch.mean,
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
     function.
@@ -166,10 +166,3 @@ def merge_dicts(  # pragma: no cover
 
     # Convert the defaultdict to a regular dictionary and return it
     return dict(d_out)
-
-
-# Check doctest
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
