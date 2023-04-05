@@ -37,7 +37,6 @@ python backbone_image_classifier.py --trainer.accelerator 'gpu' --trainer.device
 
 ______________________________________________________________________
 
-
 ### Transformers
 
 This example contains a simple training loop for next-word prediction with a [Transformer model](https://arxiv.org/abs/1706.03762) on a subset of the [WikiText2](https://www.salesforce.com/products/einstein/ai-research/the-wikitext-dependency-language-modeling-dataset/) dataset.
@@ -45,7 +44,6 @@ This example contains a simple training loop for next-word prediction with a [Tr
 ```bash
 python transformer.py
 ```
-
 
 ______________________________________________________________________
 
