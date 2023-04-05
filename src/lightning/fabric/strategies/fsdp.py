@@ -215,6 +215,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        with super().module_init_context(), self.module_sharded_context():
+            yield
+
+    @contextmanager
     def module_sharded_context(self) -> Generator:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
