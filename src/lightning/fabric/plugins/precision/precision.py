@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
+from contextlib import contextmanager
 from typing import Any, Dict, Generator, Literal, Optional, Union
 
 from torch import Tensor
@@ -42,7 +42,15 @@ class Precision:
         """
         return module
 
-    @contextlib.contextmanager
+    @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        """Instantiate the module parameters in the precision type this plugin handles.
+
+        This is optional and depends on the precision limitations during optimization.
+        """
+        yield
+
+    @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield

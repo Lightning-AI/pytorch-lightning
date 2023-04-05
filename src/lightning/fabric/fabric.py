@@ -569,19 +569,26 @@ class Fabric:
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
-        Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
-
-        Example::
-
-            with self.sharded_model():
-                model = MyModel()
-
-        The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+        This context manager gets replaced by :meth:`sharded_model`, use it instead.
         """
         if isinstance(self._strategy, _Sharded):
             with self._strategy.module_sharded_context():
                 yield
         else:
+            yield
+
+    @contextmanager
+    def init_model(self) -> Generator:
+        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+
+        The parameters get created on the device and with the right data type right away without wasting memory
+        being allocated unnecessarily.
+
+        This context manager also replaces :meth:`sharded_model` and allows for instantly sharding the model
+        for strategies that support it.
+        """
+        sharded_context = self._strategy.module_sharded_context if isinstance(self._strategy, _Sharded) else nullcontext
+        with self._strategy.module_init_context(), sharded_context():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:

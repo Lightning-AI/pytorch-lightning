@@ -111,6 +111,11 @@ class Strategy(ABC):
         """
         return dataloader
 
+    @contextmanager
+    def module_init_context(self) -> Generator:
+        with self.root_device, self.precision.module_init_context():
+            yield
+
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
