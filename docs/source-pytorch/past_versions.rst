@@ -3,7 +3,7 @@ Past PyTorch Lightning versions
 
 PyTorch Lightning :doc:`evolved over time <versioning>`. Here's the history of versions with links to their respective docs.
 
-To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/migration_guide>`.
+To help you with keeping up to spead, check :doc:`Migration guide <../upgrade/migration_guide>`.
 
 .. list-table:: Past versions
    :widths: 5 50 30 15
@@ -22,7 +22,7 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.9.3 <https://lightning.ai/docs/pytorch/1.9.3>`_,
        `1.9.4 <https://lightning.ai/docs/pytorch/1.9.4>`_,
        `1.9.5 <https://lightning.ai/docs/pytorch/1.9.5>`_
-     - :doc:`from 1.9 to 2.0 <upgrade/from_1_9>`
+     - :doc:`from 1.9 to 2.0 <../upgrade/from_1_9>`
 
    * - `1.8 <https://github.com/Lightning-AI/lightning/releases/tag/1.8.0>`_
      - `Colossal-AI Strategy, Commands and Secrets for Apps, FSDP Improvements and More! <https://lightning.ai/docs/pytorch/1.8.6>`_
@@ -33,7 +33,7 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.8.4 <https://lightning.ai/docs/pytorch/1.8.4>`_,
        `1.8.5 <https://lightning.ai/docs/pytorch/1.8.5>`_,
        `1.8.6 <https://lightning.ai/docs/pytorch/1.8.6>`_
-     - :doc:`from 1.8 to 2.0 <upgrade/from_1_8>`
+     - :doc:`from 1.8 to 2.0 <../upgrade/from_1_8>`
 
    * - `1.7 <https://github.com/Lightning-AI/lightning/releases/tag/1.7.0>`_
      - `Apple Silicon support, Native FSDP, Collaborative training, and multi-GPU support with Jupyter notebooks <https://lightning.ai/docs/pytorch/1.7.7>`_
@@ -45,7 +45,7 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.7.5 <https://lightning.ai/docs/pytorch/1.7.5>`_,
        `1.7.6 <https://lightning.ai/docs/pytorch/1.7.6>`_,
        `1.7.7 <https://lightning.ai/docs/pytorch/1.7.7>`_
-     - :doc:`from 1.7 to 2.0 <upgrade/from_1_7>`
+     - :doc:`from 1.7 to 2.0 <../upgrade/from_1_7>`
 
    * - `1.6 <https://github.com/Lightning-AI/lightning/releases/tag/1.6.0>`_
      - `Support Intel's Habana Accelerator, New efficient DDP strategy (Bagua), Manual Fault-tolerance, Stability and Reliability <https://lightning.ai/docs/pytorch/1.6.5>`_
@@ -55,7 +55,7 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.6.3 <https://lightning.ai/docs/pytorch/1.6.3>`_,
        `1.6.4 <https://lightning.ai/docs/pytorch/1.6.4>`_,
        `1.6.5 <https://lightning.ai/docs/pytorch/1.6.5>`_
-     - :doc:`from 1.6 to 2.0 <upgrade/from_1_6>`
+     - :doc:`from 1.6 to 2.0 <../upgrade/from_1_6>`
 
    * - `1.5 <https://github.com/Lightning-AI/lightning/releases/tag/1.5.0>`_
      - `LightningLite, Fault-Tolerant Training, Loop Customization, Lightning Tutorials, LightningCLI v2, RichProgressBar, CheckpointIO Plugin, and Trainer Strategy Flag <https://lightning.ai/docs/pytorch/1.5.10>`_
@@ -70,7 +70,7 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.5.8 <https://lightning.ai/docs/pytorch/1.5.8>`_,
        `1.5.9 <https://lightning.ai/docs/pytorch/1.5.9>`_,
        `1.5.10 <https://lightning.ai/docs/pytorch/1.5.10>`_
-     - :doc:`from 1.5 to 2.0 <upgrade/from_1_5>`
+     - :doc:`from 1.5 to 2.0 <../upgrade/from_1_5>`
 
    * - `1.4 <https://github.com/Lightning-AI/lightning/releases/tag/1.4.0>`_
      - `TPU Pod Training, IPU Accelerator, DeepSpeed Infinity, Fully Sharded Data Parallel <https://lightning.ai/docs/pytorch/1.4.9>`_
@@ -84,7 +84,7 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.4.7 <https://lightning.ai/docs/pytorch/1.4.7>`_,
        `1.4.8 <https://lightning.ai/docs/pytorch/1.4.8>`_,
        `1.4.9 <https://lightning.ai/docs/pytorch/1.4.9>`_
-     - :doc:`from 1.4 to 2.0 <upgrade/from_1_4>`
+     - :doc:`from 1.4 to 2.0 <../upgrade/from_1_4>`
 
    * - `1.3 <https://github.com/Lightning-AI/lightning/releases/tag/1.3.0>`_
      - `Lightning CLI, PyTorch Profiler, Improved Early Stopping <https://pytorch-lightning.readthedocs.io/en/1.3.8>`_
