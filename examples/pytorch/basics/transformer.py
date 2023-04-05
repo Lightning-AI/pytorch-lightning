@@ -7,9 +7,9 @@ from lightning.pytorch.demos import WikiText2, Transformer
 
 
 class LanguageModel(L.LightningModule):
-    def __init__(self, ntokens):
+    def __init__(self, vocab_size):
         super().__init__()
-        self.model = Transformer(ntokens=ntokens)
+        self.model = Transformer(vocab_size=vocab_size)
 
     def training_step(self, batch, batch_idx):
         input, target = batch
@@ -46,7 +46,7 @@ def main():
     val_dataloader = DataLoader(val_dataset, batch_size=20, shuffle=False)
     test_dataloader = DataLoader(test_dataset, batch_size=20, shuffle=False)
 
-    model = LanguageModel(ntokens=dataset.vocab_size)
+    model = LanguageModel(vocab_size=dataset.vocab_size)
     trainer = L.Trainer(gradient_clip_val=0.25, max_epochs=20)
     trainer.fit(model, train_dataloader, val_dataloader)
     trainer.test(model, test_dataloader)

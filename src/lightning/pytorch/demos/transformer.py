@@ -41,6 +41,7 @@ class WikiText2(Dataset):
 
     @staticmethod
     def download(destination: Path) -> None:
+        os.makedirs(destination.parent, exist_ok=True)
         url = "https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2/train.txt"
         if os.path.exists(destination):
             return
@@ -49,16 +50,16 @@ class WikiText2(Dataset):
 
 
 class Transformer(nn.Module):
-    def __init__(self, ntokens, ninp=200, nhead=2, nhid=200, nlayers=2, dropout=0.2):
+    def __init__(self, vocab_size, ninp=200, nhead=2, nhid=200, nlayers=2, dropout=0.2):
         super().__init__()
         self.pos_encoder = PositionalEncoding(ninp, dropout)
         encoder_layers = nn.TransformerEncoderLayer(ninp, nhead, nhid, dropout)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, nlayers)
-        self.encoder = nn.Embedding(ntokens, ninp)
-        self.decoder = nn.Linear(ninp, ntokens)
+        self.encoder = nn.Embedding(vocab_size, ninp)
+        self.decoder = nn.Linear(ninp, vocab_size)
 
         self.ninp = ninp
-        self.ntokens = ntokens
+        self.vocab_size = vocab_size
         self.src_mask = None
         self.init_weights()
 
@@ -78,7 +79,7 @@ class Transformer(nn.Module):
         output = self.transformer_encoder(src, self.src_mask)
         output = self.decoder(output)
         output = F.log_softmax(output, dim=-1)
-        output = output.view(-1, self.ntokens)
+        output = output.view(-1, self.vocab_size)
         return output
 
 
