@@ -49,7 +49,7 @@ class LayerSummary:
         >>> model = torch.nn.Conv2d(3, 8, 3)
         >>> summary = LayerSummary(model)
         >>> summary.num_parameters
-        224
+        tensor(224.)
         >>> summary.layer_type
         'Conv2d'
         >>> output = model(torch.rand(1, 3, 5, 5))
@@ -429,3 +429,10 @@ def summarize(lightning_module: "pl.LightningModule", max_depth: int = 1) -> Mod
         The model summary object
     """
     return ModelSummary(lightning_module, max_depth=max_depth)
+
+
+# check doctest
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
