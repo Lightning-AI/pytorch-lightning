@@ -11,15 +11,17 @@ def main():
     fabric.launch()
     fabric.seed_everything(42)
 
+    # Data
     dataset = WikiText2()
     train_dataloader, val_dataloader, _ = get_dataloaders(dataset)
 
-    model = Transformer(vocab_size=vocab_size)
-    # model = torch.compile(model)
+    # Model
+    model = Transformer(vocab_size=dataset.vocab_size)
 
+    # Optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=20.0)
-    model, optimizer = fabric.setup(model, optimizer)
 
+    model, optimizer = fabric.setup(model, optimizer)
     train(fabric, model, optimizer, train_dataloader, val_dataloader)
 
 
