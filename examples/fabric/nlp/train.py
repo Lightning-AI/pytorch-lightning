@@ -1,17 +1,12 @@
-"""
-This script is a placeholder for training LLaMA from scratch.
-Currently, it just trains on the Shakespeare dataset.
-"""
-
-import torch.nn.functional as F
 import torch
-from torch.utils.data import random_split, DataLoader
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
+
 import lightning as L
 from lightning.pytorch.demos import Transformer, WikiText2
 
 
 def main():
-
     fabric = L.Fabric(accelerator="cpu")
     fabric.launch()
     fabric.seed_everything(42)
@@ -20,7 +15,7 @@ def main():
     vocab_size = dataset.vocab_size
     train_dataloader, val_dataloader, _ = get_dataloaders(dataset)
 
-    model = Transformer(vocab_size=dataset.vocab_size)
+    model = Transformer(vocab_size=vocab_size)
     # model = torch.compile(model)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=20.0)
@@ -47,9 +42,7 @@ def train_epoch(fabric, model, optimizer, train_dataloader, epoch):
         optimizer.zero_grad()
 
         if batch_idx % 200 == 0:
-            fabric.print(
-                f"epoch: {epoch} - iteration: {batch_idx} - loss {loss.item():.4f}"
-            )
+            fabric.print(f"epoch: {epoch} - iteration: {batch_idx} - loss {loss.item():.4f}")
 
 
 @torch.no_grad()
