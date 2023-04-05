@@ -27,4 +27,4 @@ lightning run model train_fabric.py --accelerator=gpu --devices=4
 
 - [KFold Model Selection](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html)
 - [K-Fold Cross Validation by Sebastian Rashcka](https://sebastianraschka.com/blog/2016/model-evaluation-selection-part3.html#introduction-to-k-fold-cross-validation)
-- [Cross Validation Wiki](<https://en.wikipedia.org/wiki/Cross-validation_(statistics)#k-fold_cross-validation>)
+- [Cross Validation Wiki](https://en.wikipedia.org/wiki/Cross-validation_(statistics)#k-fold_cross-validation)

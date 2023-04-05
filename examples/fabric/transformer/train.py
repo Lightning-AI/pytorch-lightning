@@ -9,8 +9,7 @@ from lightning.pytorch.demos import Transformer, WikiText2
 def main():
     L.seed_everything(42)
 
-    fabric = L.Fabric(accelerator="cpu")
-    fabric.launch()
+    fabric = L.Fabric()
 
     # Data
     dataset = WikiText2()
