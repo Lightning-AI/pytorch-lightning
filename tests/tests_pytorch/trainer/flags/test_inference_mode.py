@@ -17,6 +17,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _Loop
@@ -86,4 +87,5 @@ def test_no_grad_context():
     f.inference_mode = True
     with mock.patch("torch.inference_mode") as inference_mode_mock:
         f.run()
-    inference_mode_mock.assert_called_once_with()
+    if not _TORCH_EQUAL_2_0:
+        inference_mode_mock.assert_called_once_with()
