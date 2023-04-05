@@ -23,7 +23,7 @@ class PPOAgent(torch.nn.Module):
             raise ValueError("Unrecognized activation function: `act_fun` must be either `relu` or `tanh`")
         self.critic = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                torch.nn.Linear(int(torch.tensor(envs.single_observation_space.shape).prod()), 64),
                 ortho_init=ortho_init,
             ),
             act_fun,
@@ -33,7 +33,7 @@ class PPOAgent(torch.nn.Module):
         )
         self.actor = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                torch.nn.Linear(int(torch.tensor(envs.single_observation_space.shape).prod()), 64),
                 ortho_init=ortho_init,
             ),
             act_fun,
@@ -120,7 +120,7 @@ class PPOLightningAgent(LightningModule):
         self.normalize_advantages = normalize_advantages
         self.critic = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                torch.nn.Linear(int(torch.tensor(envs.single_observation_space.shape).prod()), 64),
                 ortho_init=ortho_init,
             ),
             act_fun,
@@ -130,7 +130,7 @@ class PPOLightningAgent(LightningModule):
         )
         self.actor = torch.nn.Sequential(
             layer_init(
-                torch.nn.Linear(int(torch.Tensor(envs.single_observation_space.shape).prod()), 64),
+                torch.nn.Linear(int(torch.tensor(envs.single_observation_space.shape).prod()), 64),
                 ortho_init=ortho_init,
             ),
             act_fun,

@@ -149,9 +149,9 @@ def main(args: argparse.Namespace):
 
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
-            done = torch.logical_or(Tensor(done), Tensor(truncated))
+            done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = Tensor(next_obs).to(device), done.to(device)
+            next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
                 for agent_final_info in info["final_info"]:

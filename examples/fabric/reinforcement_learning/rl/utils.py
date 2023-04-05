@@ -120,7 +120,7 @@ def parse_args():
 
 def layer_init(
     layer: torch.nn.Module,
-    std: float = torch.sqrt(Tensor([2])).item(),
+    std: float = torch.sqrt(torch.tensor(2)).item(),
     bias_const: float = 0.0,
     ortho_init: bool = True,
 ):
