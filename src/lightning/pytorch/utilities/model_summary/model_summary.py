@@ -429,10 +429,3 @@ def summarize(lightning_module: "pl.LightningModule", max_depth: int = 1) -> Mod
         The model summary object
     """
     return ModelSummary(lightning_module, max_depth=max_depth)
-
-
-# check doctest
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
