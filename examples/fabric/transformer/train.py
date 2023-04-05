@@ -22,6 +22,7 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
     model, optimizer = fabric.setup(model, optimizer)
+    train_dataloader, val_dataloader = fabric.setup_dataloaders(train_dataloader, val_dataloader)
     train(fabric, model, optimizer, train_dataloader, val_dataloader)
 
 

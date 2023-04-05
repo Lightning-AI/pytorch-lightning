@@ -7,7 +7,7 @@ It is a simplified version of the [official PyTorch example](https://github.com/
 
 ```bash
 # CPU
-lightning run model train.py
+lightning run model --accelerator=cpu train.py
 
 # GPU (CUDA or M1 Mac)
 lightning run model --accelerator=gpu train.py
