@@ -1,9 +1,8 @@
 import torch
 import torch.nn.functional as F
-from lightning.pytorch.demos import WikiText2, Transformer
 
 import lightning as L
-
+from lightning.pytorch.demos import Transformer, WikiText2
 
 fabric = L.Fabric()
 
