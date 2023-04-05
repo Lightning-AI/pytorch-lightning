@@ -116,18 +116,20 @@ def merge_dicts(  # pragma: no cover
         Dictionary with merged values.
 
     Examples:
-        >>> import pprint
-        >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1, 'd': {'d1': 1, 'd3': 3}}
-        >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1, 'd': {'d1': 2, 'd2': 3}}
-        >>> d3 = {'a': 1.1, 'v': 2.3, 'd': {'d3': 3, 'd4': {'d5': 1}}}
-        >>> dflt_func = min
-        >>> agg_funcs = {'a': torch.mean, 'v': torch.max, 'd': {'d1': torch.sum}}
-        >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
-        {'a': 1.3,
-         'b': 2.0,
-         'c': 1,
-         'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
-         'v': 2.3}
+    >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1, 'd': {'d1': 1, 'd3': 3}}
+    >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1, 'd': {'d1': 2, 'd2': 3}}
+    >>> d3 = {'a': 1.1, 'v': 2.3, 'd': {'d3': 3, 'd4': {'d5': 1}}}
+    >>> dflt_func = min
+    >>> agg_funcs = {'a': torch.mean, 'v': torch.max, 'd': {'d1': torch.sum}}
+    >>> result = merge_dicts([d1, d2, d3], agg_funcs, dflt_func)
+    >>> assert torch.allclose(result['a'], torch.tensor(1.3))
+    >>> assert torch.allclose(result['b'], torch.tensor(2.0))
+    >>> assert torch.allclose(result['c'], torch.tensor(1.0))
+    >>> assert torch.allclose(result['d']['d1'], torch.tensor(3.0))
+    >>> assert torch.allclose(result['d']['d2'], torch.tensor(3.0))
+    >>> assert torch.allclose(result['d']['d3'], torch.tensor(3.0))
+    >>> assert torch.allclose(result['d']['d4']['d5'], torch.tensor(1.0))
+    >>> assert torch.allclose(result['v'], torch.tensor(2.3))
     """
     # If agg_key_funcs is not provided, initialize it as an empty dictionary
     agg_key_funcs = agg_key_funcs or {}
@@ -160,7 +162,14 @@ def merge_dicts(  # pragma: no cover
 
             # Assign the aggregated value to the output dictionary
             # The check is necessary because aggregation functions can return floats instead of tensors
-            d_out[k] = round(aggregated_value, 2) if isinstance(aggregated_value, float) else aggregated_value
+            d_out[k] = aggregated_value if isinstance(aggregated_value, float) else aggregated_value
 
     # Convert the defaultdict to a regular dictionary and return it
     return dict(d_out)
+
+
+# Check doctest
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
