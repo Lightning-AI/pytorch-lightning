@@ -1,1 +1,1 @@
-from lightning.pytorch.demos.transformer import DemoLanguageModel, WikiText2
+from lightning.pytorch.demos.transformer import Transformer, WikiText2

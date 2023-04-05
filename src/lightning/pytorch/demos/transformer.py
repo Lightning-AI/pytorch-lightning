@@ -5,36 +5,31 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 """
 import os
 import math
+from pathlib import Path
+
+import requests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset
-import lightning as L
-
-
-class DemoLanguageModel(L.LightningModule):
-    def __init__(self, ntokens):
-        super().__init__()
-        self.model = Transformer(ntokens=ntokens)
-
-    def training_step(self, batch):
-        input, target = batch
-        output = self.model(input)
-        loss = F.nll_loss(output, target.view(-1))
-        self.log("loss", loss, prog_bar=True)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=20.0)
 
 
 class WikiText2(Dataset):
-    def __init__(self, path, block_size=35):
+    """Mini version of WikiText2."""
+
+    def __init__(self, data_dir=Path("./data"), block_size=35, download=True):
         super().__init__()
-        self.data, self.dictionary = tokenize(path)
+        self.path = data_dir / 'wikitext-2.txt'
+        if download:
+            self.download(self.path)
+        self.data, self.dictionary = tokenize(self.path)
         self.block_size = block_size
 
-    def __len__(self):
+    @property
+    def vocab_size(self) -> int:
+        return len(self.dictionary)
+
+    def __len__(self) -> int:
         return len(self.data) // self.block_size - 1
 
     def __getitem__(self, index):
@@ -43,6 +38,14 @@ class WikiText2(Dataset):
         input = self.data[start:end]
         target = self.data[(start + 1):(end + 1)]
         return input, target
+
+    @staticmethod
+    def download(destination: Path) -> None:
+        url = "https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2/train.txt"
+        if os.path.exists(destination):
+            return
+        with open(destination, 'w') as f:
+            f.write(requests.get(url).text)
 
 
 class Transformer(nn.Module):
