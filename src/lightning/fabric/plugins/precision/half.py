@@ -33,8 +33,7 @@ class HalfPrecision(Precision):
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when
-        initializing the parameters in a module.
+        """A context manager to change the default tensor type when initializing the parameters in a module.
 
         See: :meth:`torch.set_default_tensor_type`
         """
@@ -45,8 +44,8 @@ class HalfPrecision(Precision):
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when
-        tensors get created during the module's forward.
+        """A context manager to change the default tensor type when tensors get created during the module's
+        forward.
 
         See: :meth:`torch.set_default_tensor_type`
         """

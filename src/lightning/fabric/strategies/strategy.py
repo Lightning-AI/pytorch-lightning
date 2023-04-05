@@ -115,8 +115,8 @@ class Strategy(ABC):
     def module_init_context(self) -> Generator:
         """A context manager wrapping the model instantiation.
 
-        Here, the strategy can control how the parameters of the model get created (device, dtype) and
-        or apply other patches to the model.
+        Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
+        patches to the model.
         """
         with self.root_device, self.precision.module_init_context():
             yield
