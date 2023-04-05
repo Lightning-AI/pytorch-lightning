@@ -126,7 +126,7 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
     _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"
-        f" `python -m lightning.pytorch.utilities.upgrade_checkpoint --file {str(path_hint)}`"
+        f" `python -m lightning.pytorch.utilities.upgrade_checkpoint {str(path_hint)}`"
     )
     return checkpoint
 
