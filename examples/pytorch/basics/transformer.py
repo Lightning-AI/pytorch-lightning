@@ -1,9 +1,9 @@
 import torch
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
 
 import lightning as L
-from torch.utils.data import DataLoader, random_split
-from lightning.pytorch.demos import WikiText2, Transformer
+from lightning.pytorch.demos import Transformer, WikiText2
 
 
 class LanguageModel(L.LightningModule):

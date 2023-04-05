@@ -3,8 +3,8 @@
 Code is adapted from the PyTorch examples at
 https://github.com/pytorch/examples/blob/main/word_language_model
 """
-import os
 import math
+import os
 from pathlib import Path
 
 import requests
@@ -19,7 +19,7 @@ class WikiText2(Dataset):
 
     def __init__(self, data_dir=Path("./data"), block_size=35, download=True):
         super().__init__()
-        self.path = data_dir / 'wikitext-2.txt'
+        self.path = data_dir / "wikitext-2.txt"
         if download:
             self.download(self.path)
         self.data, self.dictionary = tokenize(self.path)
@@ -36,7 +36,7 @@ class WikiText2(Dataset):
         start = index * self.block_size
         end = start + self.block_size
         input = self.data[start:end]
-        target = self.data[(start + 1):(end + 1)]
+        target = self.data[(start + 1) : (end + 1)]
         return input, target
 
     @staticmethod
@@ -44,7 +44,7 @@ class WikiText2(Dataset):
         url = "https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2/train.txt"
         if os.path.exists(destination):
             return
-        with open(destination, 'w') as f:
+        with open(destination, "w") as f:
             f.write(requests.get(url).text)
 
 
@@ -71,7 +71,7 @@ class Transformer(nn.Module):
     def forward(self, src, has_mask=True):
         if has_mask and (self.src_mask is None or self.src_mask.size(0) != len(src)):
             mask = (torch.triu(torch.ones(len(src), len(src), device=src.device)) == 1).transpose(0, 1)
-            self.src_mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+            self.src_mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
 
         src = self.encoder(src) * math.sqrt(self.ninp)
         src = self.pos_encoder(src)
@@ -93,10 +93,10 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
+        x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
 
@@ -120,17 +120,17 @@ def tokenize(path):
 
     assert os.path.exists(path)
     # Add words to the dictionary
-    with open(path, 'r', encoding="utf8") as f:
+    with open(path, encoding="utf8") as f:
         for line in f:
-            words = line.split() + ['<eos>']
+            words = line.split() + ["<eos>"]
             for word in words:
                 dictionary.add_word(word)
 
     # Tokenize file content
-    with open(path, 'r', encoding="utf8") as f:
+    with open(path, encoding="utf8") as f:
         idss = []
         for line in f:
-            words = line.split() + ['<eos>']
+            words = line.split() + ["<eos>"]
             ids = []
             for word in words:
                 ids.append(dictionary.word2idx[word])
