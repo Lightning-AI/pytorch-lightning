@@ -201,7 +201,7 @@ def main(args: argparse.Namespace):
             logprobs[step] = logprob
 
             # Single environment step
-            next_obs, reward, done, truncated, info = envs.step(action.cpu().tolist())
+            next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(Tensor(done), Tensor(truncated))
             rewards[step] = torch.tensor(reward, device=device).view(-1)
             next_obs, next_done = Tensor(next_obs).to(device), done.to(device)

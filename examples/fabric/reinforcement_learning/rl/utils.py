@@ -167,7 +167,7 @@ def test(
         action = agent.get_greedy_action(next_obs)
 
         # Single environment step
-        next_obs, reward, done, truncated, info = env.step(action.cpu().tolist())
+        next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
         done = done or truncated
         cumulative_rew += reward
         next_obs = Tensor(next_obs).to(device)

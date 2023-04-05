@@ -122,7 +122,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             logprobs[step] = logprob
 
             # Single environment step
-            next_obs, reward, done, truncated, info = envs.step(action.cpu().tolist())
+            next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(Tensor(done), Tensor(truncated))
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = Tensor(next_obs).to(device), done.to(device)
