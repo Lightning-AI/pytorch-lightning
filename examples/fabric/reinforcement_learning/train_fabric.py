@@ -127,7 +127,7 @@ def main(args: argparse.Namespace):
     num_updates = args.total_timesteps // single_global_rollout
 
     # Get the first environment observation and start the optimization
-    next_obs = Tensor(envs.reset(seed=args.seed)[0]).to(device)
+    next_obs = torch.tensor(envs.reset(seed=args.seed)[0], device=device)
     next_done = torch.zeros(args.num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing

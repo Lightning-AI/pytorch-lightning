@@ -5,7 +5,6 @@ from typing import Optional, TYPE_CHECKING, Union
 
 import gymnasium as gym
 import torch
-from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 
 if TYPE_CHECKING:
@@ -161,7 +160,7 @@ def test(
     step = 0
     done = False
     cumulative_rew = 0
-    next_obs = Tensor(env.reset(seed=args.seed)[0]).to(device)
+    next_obs = torch.tensor(env.reset(seed=args.seed)[0], device=device)
     while not done:
         # Act greedly through the environment
         action = agent.get_greedy_action(next_obs)
@@ -170,7 +169,7 @@ def test(
         next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
         done = done or truncated
         cumulative_rew += reward
-        next_obs = Tensor(next_obs).to(device)
+        next_obs = torch.tensor(next_obs, device=device)
         step += 1
     logger.add_scalar("Test/cumulative_reward", cumulative_rew, 0)
     env.close()
