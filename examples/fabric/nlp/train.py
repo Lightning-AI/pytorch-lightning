@@ -12,7 +12,6 @@ def main():
     fabric.seed_everything(42)
 
     dataset = WikiText2()
-    vocab_size = dataset.vocab_size
     train_dataloader, val_dataloader, _ = get_dataloaders(dataset)
 
     model = Transformer(vocab_size=vocab_size)
