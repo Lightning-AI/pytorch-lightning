@@ -40,7 +40,7 @@ class Transformer(nn.Module):
         # we assume target is already shifted w.r.t. input
         if mask is None:
             mask = (torch.triu(torch.ones(t, t, device=input.device)) == 1).transpose(0, 1)
-            mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+            mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
 
         src = self.pos_encoder(self.embedding(input) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))
