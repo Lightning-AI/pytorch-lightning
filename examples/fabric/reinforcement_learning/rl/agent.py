@@ -1,6 +1,6 @@
+import math
 from typing import Dict, Tuple
 
-import math
 import gymnasium as gym
 import torch
 import torch.nn.functional as F
