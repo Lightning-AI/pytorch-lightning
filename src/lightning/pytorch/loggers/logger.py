@@ -167,10 +167,3 @@ def merge_dicts(  # pragma: no cover
 
     # Convert the defaultdict to a regular dictionary and return it
     return dict(d_out)
-
-
-# check doctest
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
