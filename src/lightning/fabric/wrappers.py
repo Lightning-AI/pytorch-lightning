@@ -142,6 +142,16 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             original_module = super().__getattr__("_original_module")
             return getattr(original_module, item)
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        # Check if _FabricModule is fully initialized
+        if "_original_module" in self.__dict__:
+            original_module = super().__getattr__("_original_module")
+            # Only redirect setattr to _original_module if the attribute is not part of _FabricModule
+            if not hasattr(self, name) and hasattr(original_module, name):
+                setattr(original_module, name, value)
+                return
+        super().__setattr__(name, value)
+
 
 class _FabricDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
@@ -212,3 +222,44 @@ def is_wrapped(obj: object) -> bool:
         obj: The object to test.
     """
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
+
+
+#####
+# Testing
+#####
+
+
+class TestModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(10, 1)
+
+    def forward(self, x):
+        return self.linear(x)
+
+
+def test_fabric_module_setattr():
+    model = TestModel()
+
+    # Initialize the precision plugin
+    precision = Precision
+
+    # Wrap the model using _FabricModule
+    wrapped_model = _FabricModule(model, precision)
+
+    # Set attributes on the wrapped model
+    wrapped_model.new_attr = "test"
+    wrapped_model.linear.weight.data.fill_(1.0)
+
+    # Set attributes on the original model
+    model.linear.bias.data.fill_(2.0)
+
+    # Test if the new attributes are set correctly on the wrapped model
+    assert wrapped_model.new_attr == "test"
+    assert torch.all(wrapped_model.linear.weight.data == 1.0)
+
+    # Test if the attributes are set correctly on the original model
+    assert torch.all(wrapped_model.linear.bias.data == 2.0)
+
+
+test_fabric_module_setattr()
