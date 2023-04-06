@@ -49,7 +49,7 @@ class LayerSummary:
         >>> model = torch.nn.Conv2d(3, 8, 3)
         >>> summary = LayerSummary(model)
         >>> summary.num_parameters
-        tensor(224.)
+        224
         >>> summary.layer_type
         'Conv2d'
         >>> output = model(torch.rand(1, 3, 5, 5))
@@ -119,9 +119,13 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(
-            cast(int, torch.prod(torch.tensor(p.shape, dtype=torch.float32))) if not _is_lazy_weight_tensor(p) else 0
-            for p in self._module.parameters()
+        return int(
+            sum(
+                cast(int, torch.prod(torch.tensor(p.shape, dtype=torch.float32)))
+                if not _is_lazy_weight_tensor(p)
+                else 0
+                for p in self._module.parameters()
+            )
         )
 
 
