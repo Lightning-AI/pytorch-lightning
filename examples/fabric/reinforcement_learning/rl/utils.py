@@ -1,5 +1,6 @@
 import argparse
 import os
+import math
 from distutils.util import strtobool
 from typing import Optional, TYPE_CHECKING, Union
 
@@ -119,7 +120,7 @@ def parse_args():
 
 def layer_init(
     layer: torch.nn.Module,
-    std: float = torch.sqrt(torch.tensor(2)).item(),
+    std: float = math.sqrt(2),
     bias_const: float = 0.0,
     ortho_init: bool = True,
 ):
