@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Allow `sys.argv` and args in `LightningCLI` ([#16808](https://github.com/Lightning-AI/lightning/pull/16808))
 - Moveed HPU broadcast override to the HPU strategy file ([#17011](https://github.com/Lightning-AI/lightning/pull/17011))
 
+- Changed the `is_picklable` util function to handle the edge case that throws a `TypeError` ([#17270](https://github.com/Lightning-AI/lightning/pull/17270))
+
 ### Depercated
 
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
