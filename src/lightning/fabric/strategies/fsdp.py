@@ -36,9 +36,10 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.distributed import ReduceOp
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
+from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
@@ -272,6 +273,82 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             "FSDP currently does not support to clip gradients by value. "
             "Consider clipping by norm instead or choose another strategy!"
         )
+
+    
+    def save_checkpoint(
+        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+    ) -> None:
+        """Save model, optimizer, and other state in a checkpoint directory."""
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError()
+
+        models = {k: model for k, model in state.items() if isinstance(model, FullyShardedDataParallel)}
+        optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
+
+        if not models:
+            raise ValueError()
+        
+        if len(models) > 1:
+            raise NotImplementedError()
+
+        model = models[next(models.keys())]
+        optimizer = optimizers
+
+        # state = self._convert_stateful_objects_in_state(state)
+
+        # FullyShardedDataParallel.optim_state_dict(model, optimizer, rank0_only=True)
+
+        from torch.distributed.fsdp import StateDictType, FullStateDictConfig
+        config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+        state_dict_type = FullyShardedDataParallel.state_dict_type(model, StateDictType.FULL_STATE_DICT, config)
+        
+
+        # TODO: Use `Strategy._convert_stateful_objects_in_state` instead
+        converted_state = {}
+        for key, obj in state.items():
+            with state_dict_type:
+                if isinstance(obj, FullyShardedDataParallel):
+                    converted_state[key] = obj.state_dict()
+                elif isinstance(obj, Optimizer):
+                    converted_state[key] = FullyShardedDataParallel.optim_state_dict(model, obj)
+                else:
+                    converted_state[key] = obj
+
+        for key, obj in state.items():
+            
+                if isinstance(obj, ):
+                    state[key] = 
+                if isinstance(obj, Optimizer):
+                    with state_dict_type:
+            
+                    optim_state_dict = 
+
+        
+
+        if self.global_rank == 0:
+            torch.save(state_dict, file_path)
+        # fabric.barrier()
+
+    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        if not isinstance(module, FullyShardedDataParallel):
+            return super().get_module_state_dict(module)
+        
+        from torch.distributed.fsdp import StateDictType, FullStateDictConfig
+
+        config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+        with FullyShardedDataParallel.state_dict_type(module, StateDictType.FULL_STATE_DICT, config):
+            state_dict = module.state_dict()
+        return state_dict
+
+    def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        raise NotImplementedError()
+
+    def load_checkpoint(
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Load the contents from a checkpoint and restore the state of the given objects."""
+        raise NotImplementedError()
+
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
