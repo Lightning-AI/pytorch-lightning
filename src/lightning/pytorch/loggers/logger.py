@@ -132,38 +132,23 @@ def merge_dicts(  # pragma: no cover
                'd4': {'d5': tensor(1.)}},
          'v': tensor(2.3000)}
     """
-    # If agg_key_funcs is not provided, initialize it as an empty dictionary
     agg_key_funcs = agg_key_funcs or {}
 
-    # Collect all unique keys from the input dictionaries
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
 
-    # Initialize the output dictionary using defaultdict
     d_out: Dict = defaultdict(dict)
 
-    # Iterate over all unique keys
     for k in keys:
-        # Get the aggregation function for the current key, if available
         fn = agg_key_funcs.get(k)
 
-        # Collect values associated with the current key from all input dictionaries
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
 
-        # Check if the values to aggregate are dictionaries
         if isinstance(values_to_agg[0], dict):
-            # Call the merge_dicts function recursively for nested dictionaries
             d_out[k] = merge_dicts(values_to_agg, fn, default_func)
 
         else:
-            # Convert values_to_agg to a tensor with float32 data type
             values_to_agg_tensor = torch.tensor(values_to_agg, dtype=torch.float32)
-
-            # Apply the aggregation function (fn) or the default function (default_func) to the tensor
             aggregated_value = (fn or default_func)(values_to_agg_tensor)
-
-            # Assign the aggregated value to the output dictionary
-            # The check is necessary because aggregation functions can return floats instead of tensors
             d_out[k] = aggregated_value if isinstance(aggregated_value, float) else aggregated_value
 
-    # Convert the defaultdict to a regular dictionary and return it
     return dict(d_out)
