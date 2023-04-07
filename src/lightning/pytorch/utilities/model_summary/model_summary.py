@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to model weights summary."""
+
 import contextlib
 import logging
+import math
 from collections import OrderedDict
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
