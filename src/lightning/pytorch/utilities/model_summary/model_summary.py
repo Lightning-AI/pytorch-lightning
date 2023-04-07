@@ -121,10 +121,8 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return int(
-            sum(
-                cast(int, math.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
-            )
+        return sum(
+            cast(int, math.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
         )
 
 
