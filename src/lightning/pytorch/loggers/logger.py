@@ -13,10 +13,13 @@
 # limitations under the License.
 """Abstract base class used to build new loggers."""
 
-
-import statistics
+import functools
+import operator
 from abc import ABC
+from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+
+import numpy as np
 
 from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
@@ -87,10 +90,10 @@ class DummyLogger(Logger):
 
 
 # TODO: this should have been deprecated
-def merge_dicts(
+def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
-    default_func: Callable[[Sequence[float]], float] = statistics.mean,
+    default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
     function.
@@ -114,7 +117,7 @@ def merge_dicts(
         >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1, 'd': {'d1': 2, 'd2': 3}}
         >>> d3 = {'a': 1.1, 'v': 2.3, 'd': {'d3': 3, 'd4': {'d5': 1}}}
         >>> dflt_func = min
-        >>> agg_funcs = {'a': statistics.mean, 'v': max, 'd': {'d1': sum}}
+        >>> agg_funcs = {'a': np.mean, 'v': max, 'd': {'d1': sum}}
         >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
         {'a': 1.3,
          'b': 2.0,
@@ -122,23 +125,16 @@ def merge_dicts(
          'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
          'v': 2.3}
     """
-
     agg_key_funcs = agg_key_funcs or {}
-
-    keys = list({k for d in dicts for k in d.keys()})
-
-    d_out = {}
-
+    keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
+    d_out: Dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
+        values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
 
-        values_to_agg = [d.get(k) for d in dicts if k in d]
-
-        if values_to_agg and isinstance(values_to_agg[0], dict):
+        if isinstance(values_to_agg[0], dict):
             d_out[k] = merge_dicts(values_to_agg, fn, default_func)
-
         else:
-            aggregated_value = (fn or default_func)(values_to_agg) if values_to_agg else None
-            d_out[k] = aggregated_value
+            d_out[k] = (fn or default_func)(values_to_agg)
 
-    return d_out
+    return dict(d_out)
