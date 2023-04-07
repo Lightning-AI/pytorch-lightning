@@ -396,8 +396,8 @@ def get_human_readable_count(number: int) -> str:
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS
-    num_digits = int(torch.floor(torch.log10(torch.tensor(number, dtype=torch.float32))) + 1 if number > 0 else 1)
-    num_groups = int(torch.ceil(torch.tensor(num_digits, dtype=torch.float32) / 3))
+    num_digits = int(math.floor(math.log10(number)) + 1 if number > 0 else 1)
+    num_groups = int(math.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
     number = number * (10**shift)
