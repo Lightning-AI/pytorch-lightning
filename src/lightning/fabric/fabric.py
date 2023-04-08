@@ -28,8 +28,8 @@ from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from lightning.fabric.loggers import Logger
-
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
