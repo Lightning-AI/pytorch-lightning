@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Callable, cast, Dict, IO, Optional, Type, Union
 from warnings import warn
 
+import torch
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
@@ -87,7 +88,14 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        return _load_state(cls, checkpoint, strict=strict, **kwargs)
+        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        restore_location = torch.serialization._get_restore_location(map_location)
+
+        if isinstance(map_location, dict):
+            return restore_location(storage, map_location.get(str(storage.device)))
+
+        return restore_location(storage, map_location)
+
     raise NotImplementedError(f"Unsupported {cls}")
 
 
