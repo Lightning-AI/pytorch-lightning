@@ -18,6 +18,7 @@ import pytest
 import torch
 
 from lightning.fabric import Fabric
+from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
@@ -25,8 +26,8 @@ from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp import FullyShardedDataParallel
-    from torch.distributed.fsdp.wrap import wrap
+    from torch.distributed.fsdp import FullyShardedDataParallel, FlatParameter
+    from torch.distributed.fsdp.wrap import wrap, always_wrap_policy
 
 
 def _get_model():
@@ -142,3 +143,35 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert fabric_model.device == torch.device("cpu")
     assert fabric.device == torch.device("cuda", fabric.local_rank)
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0")
+def test_setup_with_orig_params_and_multiple_param_groups():
+    """Test that Fabric sets `use_orig_params` for the user when jointly setting up
+    model and optimizer."""
+    strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
+    fabric.launch()
+
+    model = torch.nn.Sequential(
+        torch.nn.Linear(10, 10, bias=False),    # total params: 10 * 10 = 100
+        torch.nn.Linear(5, 2, bias=False),      # total params: 5 * 2 = 10
+    )
+    optimizer = torch.optim.Adam([
+        {'params': model[0].parameters(), "lr": 1e-2},
+        {'params': model[1].parameters(), 'lr': 1e-6},
+    ])
+    
+    # set up model and optimizer jointly
+    wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
+    
+    assert fabric.strategy._fsdp_kwargs["use_orig_params"]
+    assert isinstance(wrapped_optimizer, _FabricOptimizer)
+    assert len(wrapped_optimizer.param_groups) == 2
+    for i in range(2):
+        weight = wrapped_model._forward_module.module[i].weight
+        assert torch.equal(wrapped_optimizer.param_groups[i]["params"][0], weight)
+
+        # A regular parameter as a view into the flattened parameters
+        assert isinstance(weight, torch.nn.Parameter)
+        assert not isinstance(weight, FlatParameter)
