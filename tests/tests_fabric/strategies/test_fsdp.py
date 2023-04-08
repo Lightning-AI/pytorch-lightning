@@ -20,6 +20,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
+import lightning
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -57,19 +58,25 @@ def test_fsdp_cpu_offload():
     assert strategy.cpu_offload == config
 
 
-@RunIf(min_torch="1.12")
-def test_fsdp_setup_optimizer_validation():
+@pytest.mark.parametrize("torch_ge_2_0", [False, True])
+def test_fsdp_setup_optimizer_validation(torch_ge_2_0, monkeypatch):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
 
-    bad_optimizer = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
-    with pytest.raises(ValueError, match="does not support multiple param groups"):
-        strategy.setup_optimizer(bad_optimizer)
+    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", torch_ge_2_0)
 
-    bad_optimizer = Adam(module.parameters())
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
-        strategy.setup_optimizer(bad_optimizer)
+    bad_optimizer_1 = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
+    bad_optimizer_2 = Adam(module.parameters())
+
+    if torch_ge_2_0:
+        strategy.setup_optimizer(bad_optimizer_1)
+        strategy.setup_optimizer(bad_optimizer_2)
+    else:
+        with pytest.raises(ValueError, match="does not support multiple param groups"):
+            strategy.setup_optimizer(bad_optimizer_1)
+        with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
+            strategy.setup_optimizer(bad_optimizer_2)
 
 
 @RunIf(min_torch="1.12")

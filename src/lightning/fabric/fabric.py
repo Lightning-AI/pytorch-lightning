@@ -29,6 +29,7 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Rando
 
 from lightning.fabric.loggers import Logger
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
@@ -798,13 +799,12 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        # On PyTorch < 2.0
-        # if isinstance(self._strategy, FSDPStrategy):
-        #     raise RuntimeError(
-        #         f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-        #         " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
-        #         " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
-        #     )
+        if isinstance(self._strategy, FSDPStrategy) and _TORCH_GREATER_EQUAL_2_0:
+            raise RuntimeError(
+                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
+                " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
+                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+            )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
         if isinstance(module, _FabricModule):
