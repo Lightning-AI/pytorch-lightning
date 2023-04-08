@@ -168,10 +168,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
                 " call `setup_optimizer`."
             )
-        use_orig_params = self._fsdp_kwargs.get("use_orig_params", False)
-        if not use_orig_params:
-            raise NotImplementedError(
-                f"You set `{type(self).__name__}`(use_orig_params=False) but this is not supported when"
+        use_orig_params = self._fsdp_kwargs.get("use_orig_params")
+        if use_orig_params is False:
+            raise ValueError(
+                f"You set `{type(self).__name__}(use_orig_params=False)` but this is not supported when"
                 " setting the model and optimizer up jointly. Either set it to `True` or set the objects"
                 " up in this order: Create the model, call `setup_module`, create the optimizer,"
                 " call `setup_optimizer`."

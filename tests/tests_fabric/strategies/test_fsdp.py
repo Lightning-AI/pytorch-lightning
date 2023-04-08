@@ -79,6 +79,24 @@ def test_fsdp_setup_optimizer_validation(torch_ge_2_0, monkeypatch):
             strategy.setup_optimizer(bad_optimizer_2)
 
 
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.setup_module")
+def test_fsdp_setup_use_orig_params(_):
+    module = nn.Linear(2, 2)
+    optimizer = Adam(module.parameters())
+
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], use_orig_params=False)
+    assert not strategy._fsdp_kwargs["use_orig_params"]
+
+    with pytest.raises(ValueError, match="`FSDPStrategy\(use_orig_params=False\)` but this is not supported"):
+        strategy.setup_module_and_optimizers(module, optimizer)
+
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+    assert "use_orig_params" not in strategy._fsdp_kwargs
+    strategy.setup_module_and_optimizers(module, optimizer)
+    assert strategy._fsdp_kwargs["use_orig_params"]
+
+
 @RunIf(min_torch="1.12")
 def test_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
