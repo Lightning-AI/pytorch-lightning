@@ -88,7 +88,7 @@ def test_fsdp_setup_use_orig_params(_):
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], use_orig_params=False)
     assert not strategy._fsdp_kwargs["use_orig_params"]
 
-    with pytest.raises(ValueError, match="`FSDPStrategy\(use_orig_params=False\)` but this is not supported"):
+    with pytest.raises(ValueError, match=r"`FSDPStrategy\(use_orig_params=False\)` but this is not supported"):
         strategy.setup_module_and_optimizers(module, optimizer)
 
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
