@@ -21,7 +21,7 @@ from lightning.fabric import Fabric
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
@@ -82,32 +82,13 @@ def _assert_save_equality(fabric, model, ckpt_path):
         assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
-if _TORCH_GREATER_EQUAL_2_0:
-
-    def _custom_auto_wrap_policy(
-        module,
-        recurse,
-        nonwrapped_numel: int,
-    ) -> bool:
-        return nonwrapped_numel >= 2
-
-else:
-
-    def _custom_auto_wrap_policy(
-        module,
-        recurse,
-        unwrapped_params: int,
-    ) -> bool:
-        return unwrapped_params >= 2
-
-
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")
 @pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
     strategy = FSDPStrategy(
-        auto_wrap_policy=_custom_auto_wrap_policy,
+        auto_wrap_policy=always_wrap_policy,
         activation_checkpointing=[torch.nn.Linear],
     )
     fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
@@ -127,7 +108,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
     (sharding)."""
-    strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
+    strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
 
@@ -139,6 +120,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # the linear layer got sharded and each part is on the expected device
     assert next(fabric_model.parameters()).device == torch.device("cuda", fabric.local_rank)
     assert next(fabric_model.parameters()).numel() == 50
+    assert isinstance(next(fabric_model.parameters()), FlatParameter)
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert fabric_model.device == torch.device("cpu")
@@ -154,8 +136,8 @@ def test_setup_with_orig_params_and_multiple_param_groups():
     fabric.launch()
 
     model = torch.nn.Sequential(
-        torch.nn.Linear(10, 10, bias=False),    # total params: 10 * 10 = 100
-        torch.nn.Linear(5, 2, bias=False),      # total params: 5 * 2 = 10
+        torch.nn.Linear(10, 10, bias=False),
+        torch.nn.Linear(5, 2, bias=False),
     )
     optimizer = torch.optim.Adam([
         {'params': model[0].parameters(), "lr": 1e-2},
@@ -169,9 +151,10 @@ def test_setup_with_orig_params_and_multiple_param_groups():
     assert isinstance(wrapped_optimizer, _FabricOptimizer)
     assert len(wrapped_optimizer.param_groups) == 2
     for i in range(2):
-        weight = wrapped_model._forward_module.module[i].weight
-        assert torch.equal(wrapped_optimizer.param_groups[i]["params"][0], weight)
+        layer = wrapped_model._forward_module.module[i]
+        assert isinstance(layer, FullyShardedDataParallel)
+        assert torch.equal(wrapped_optimizer.param_groups[i]["params"][0], layer.weight)
 
         # A regular parameter as a view into the flattened parameters
-        assert isinstance(weight, torch.nn.Parameter)
-        assert not isinstance(weight, FlatParameter)
+        assert isinstance(layer.weight, torch.nn.Parameter)
+        assert not isinstance(layer.weight, FlatParameter)

@@ -799,7 +799,7 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, FSDPStrategy) and _TORCH_GREATER_EQUAL_2_0:
+        if isinstance(self._strategy, FSDPStrategy) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
                 " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
