@@ -257,7 +257,7 @@ class FSDPStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        if _TORCH_GREATER_EQUAL_2_0:
+        if self.kwargs["use_orig_params"]:
             return super().setup_optimizers(trainer)
 
         invalid_params_error = False
