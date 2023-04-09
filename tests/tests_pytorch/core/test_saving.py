@@ -8,7 +8,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def create_boring_checkpoint(tmpdir):
     model = BoringModel()
-    trainer = pl.Trainer(accelerator="auto", max_epochs=1, enable_model_summary=False, enable_progress_bar=False)
+    trainer = pl.Trainer(devices=1, max_epochs=1, enable_model_summary=False, enable_progress_bar=False)
     trainer.fit(model)
     trainer.save_checkpoint(f"{tmpdir}/boring.ckpt")
 
