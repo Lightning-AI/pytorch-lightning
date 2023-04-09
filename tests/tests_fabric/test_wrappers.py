@@ -66,6 +66,36 @@ def test_fabric_module_attribute_lookup():
         _ = fabric_module.not_exists
 
 
+def test_fabric_module_setattr():
+    """Test that setattr sets attributes on the original module."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self.attribute = 1
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+
+    fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+
+    # Set an attribute on the fabric_module and check if it's set on the original_module
+    fabric_module.new_attribute = 42
+    assert hasattr(original_module, "new_attribute")
+    assert original_module.new_attribute == 42
+
+    # Set an attribute that already exists on the fabric_module and check if it's updated on the original_module
+    fabric_module.attribute = 100
+    assert original_module.attribute == 100
+
+
 def test_fabric_module_state_dict_access():
     """Test that state_dict access passes through to the original module."""
 
@@ -353,33 +383,3 @@ def test_is_wrapped():
     assert not is_wrapped(dataloader)
     wrapped = _FabricDataLoader(dataloader)
     assert is_wrapped(wrapped)
-
-
-def test_fabric_module_setattr():
-    """Test that setattr sets attributes on the original module."""
-
-    class OriginalModule(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.layer = torch.nn.Linear(2, 3)
-            self.attribute = 1
-
-    original_module = OriginalModule()
-
-    class ModuleWrapper(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.wrapped = original_module
-
-    wrapped_module = ModuleWrapper()
-
-    fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
-
-    # Set an attribute on the fabric_module and check if it's set on the original_module
-    fabric_module.new_attribute = 42
-    assert hasattr(original_module, "new_attribute")
-    assert original_module.new_attribute == 42
-
-    # Set an attribute that already exists on the fabric_module and check if it's updated on the original_module
-    fabric_module.attribute = 100
-    assert original_module.attribute == 100
