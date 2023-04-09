@@ -88,10 +88,10 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        storage: pl.LightningModule = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
         restore_location = torch.serialization._get_restore_location(map_location)
 
-        if isinstance(map_location, dict):
+        if isinstance(map_location, dict) and isinstance(storage, pl.LightningModule):
             return restore_location(storage, str(storage.device))
 
         return restore_location(storage, map_location)

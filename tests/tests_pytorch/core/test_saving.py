@@ -17,7 +17,7 @@ def create_boring_checkpoint():
 def test_load_from_checkpoint_map_location_cpu(map_location):
     create_boring_checkpoint()
     model = BoringModel.load_from_checkpoint("./boring.ckpt", map_location=map_location)
-    assert model.device.type == "cpu"
+    assert model.device.type == "cpu", "Model was not restored onto a cpu device"
 
 
 @RunIf(min_cuda_gpus=1)
@@ -27,4 +27,4 @@ def test_load_from_checkpoint_map_location_cpu(map_location):
 def test_load_from_checkpoint_map_location_gpu(map_location):
     create_boring_checkpoint()
     model = BoringModel.load_from_checkpoint("./boring.ckpt", map_location=map_location)
-    assert model.device.type == "cuda"
+    assert model.device.type == "cuda", "Model was not restored onto a cuda device"
