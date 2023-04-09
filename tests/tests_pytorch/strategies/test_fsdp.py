@@ -8,6 +8,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+import lightning
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -370,3 +371,16 @@ def test_fsdp_strategy_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
+
+
+def test_fsdp_use_orig_params(monkeypatch):
+    """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0"""
+    monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", False)
+    strategy = FSDPStrategy()
+    assert "use_orig_params" not in strategy.kwargs
+
+    monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", True)
+    strategy = FSDPStrategy()
+    assert strategy.kwargs["use_orig_params"]
+    strategy = FSDPStrategy(use_orig_params=False)
+    assert not strategy.kwargs["use_orig_params"]

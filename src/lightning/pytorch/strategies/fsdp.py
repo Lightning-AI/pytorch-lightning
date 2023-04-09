@@ -32,7 +32,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
@@ -130,6 +130,10 @@ class FSDPStrategy(ParallelStrategy):
             [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
         )
         self.kwargs = kwargs
+        if _TORCH_GREATER_EQUAL_2_0:
+            # Avoids the need for user to reference params in `configure_optimizers` via
+            # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
+            self.kwargs.setdefault("use_orig_params", True)
 
     @property
     def root_device(self) -> torch.device:
@@ -257,7 +261,8 @@ class FSDPStrategy(ParallelStrategy):
                 raise
             invalid_params_error = True
 
-        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+        if invalid_params_error or (not _TORCH_GREATER_EQUAL_2_0 and any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers)):
+            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
