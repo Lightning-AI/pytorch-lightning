@@ -144,8 +144,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     def __setattr__(self, name: str, value: Any) -> None:
         # Check if _FabricModule is fully initialized
-        if "_original_module" in self.__dict__:
-            original_module = super().__getattr__("_original_module")
+        if hasattr(self, "_original_module"):
+            original_module = self._original_module
             # Only redirect setattr to _original_module if the attribute is not part of _FabricModule
             if not hasattr(self, name) and hasattr(original_module, name):
                 setattr(original_module, name, value)
