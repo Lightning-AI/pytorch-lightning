@@ -303,7 +303,11 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 def test_invalid_parameters_in_optimizer(torch_ge_2_0):
     trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
 
-    error_context = nullcontext() if torch_ge_2_0 else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+    error_context = (
+        nullcontext()
+        if torch_ge_2_0
+        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+    )
 
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
@@ -379,7 +383,7 @@ def test_fsdp_strategy_cpu_offload():
 
 
 def test_fsdp_use_orig_params(monkeypatch):
-    """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0"""
+    """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0."""
     monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", False)
     strategy = FSDPStrategy()
     assert "use_orig_params" not in strategy.kwargs
