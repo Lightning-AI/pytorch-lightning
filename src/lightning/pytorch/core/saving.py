@@ -21,7 +21,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, Union
 from warnings import warn
 
 import torch
@@ -57,8 +57,6 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
-    if map_location is None:
-        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -88,9 +86,12 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
+        loaded_location = list(checkpoint["state_dict"].items())[0][1].device
+        if map_location is None:
+            map_location = loaded_location
+
         storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
         restore_location = torch.serialization._get_restore_location(map_location)
-
         if isinstance(map_location, dict) and isinstance(storage, pl.LightningModule):
             return restore_location(storage, str(storage.device))
 

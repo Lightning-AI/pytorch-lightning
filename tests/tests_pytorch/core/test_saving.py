@@ -2,21 +2,49 @@ import pytest
 import torch
 
 import lightning.pytorch as pl
+from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
-def create_boring_checkpoint(tmpdir):
-    model = BoringModel()
-    trainer = pl.Trainer(devices=1, max_epochs=1, enable_model_summary=False, enable_progress_bar=False)
+def create_boring_checkpoint(tmpdir, accelerator="gpu", testmodel=BoringModel):
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="checkpoint")
+    model = testmodel()
+    trainer = pl.Trainer(
+        devices=1,
+        accelerator=accelerator,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        callbacks=[checkpoint_callback],
+    )
     trainer.fit(model)
-    trainer.save_checkpoint(f"{tmpdir}/boring.ckpt")
 
 
-@pytest.mark.parametrize("map_location", ("cpu", torch.device("cpu"), lambda storage, loc: storage, {"cpu": "cpu"}))
-def test_load_from_checkpoint_map_location_cpu(tmpdir, map_location):
-    create_boring_checkpoint(tmpdir)
-    model = BoringModel.load_from_checkpoint(f"{tmpdir}/boring.ckpt", map_location=map_location)
+@pytest.mark.parametrize(
+    "map_location", (None, "cpu", torch.device("cpu"), lambda storage, loc: storage, {"cpu": "cpu"})
+)
+def test_load_from_checkpoint_map_location_cpu(tmpdir, map_location, testmodel=BoringModel):
+    create_boring_checkpoint(tmpdir, accelerator="cpu", testmodel=testmodel)
+    model = testmodel.load_from_checkpoint(f"{tmpdir}/checkpoint.ckpt", map_location=map_location)
+    assert model.device.type == "cpu"
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(
+    "map_location", (None, "cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"})
+)
+def test_load_from_checkpoint_map_location_gpu(tmpdir, map_location, testmodel=BoringModel):
+    create_boring_checkpoint(tmpdir, accelerator="gpu", testmodel=testmodel)
+    model = testmodel.load_from_checkpoint(f"{tmpdir}/checkpoint.ckpt", map_location=map_location)
+    assert model.device.type == "cuda"
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("map_location", ("cpu", torch.device("cpu"), lambda storage, loc: storage, {"cuda": "cpu"}))
+def test_load_from_checkpoint_map_location_gpu_to_cpu(tmpdir, map_location, testmodel=BoringModel):
+    create_boring_checkpoint(tmpdir, accelerator="gpu", testmodel=testmodel)
+    model = testmodel.load_from_checkpoint(f"{tmpdir}/checkpoint.ckpt", map_location=map_location)
     assert model.device.type == "cpu"
 
 
@@ -24,7 +52,7 @@ def test_load_from_checkpoint_map_location_cpu(tmpdir, map_location):
 @pytest.mark.parametrize(
     "map_location", ("cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"})
 )
-def test_load_from_checkpoint_map_location_gpu(tmpdir, map_location):
-    create_boring_checkpoint(tmpdir)
-    model = BoringModel.load_from_checkpoint(f"{tmpdir}/boring.ckpt", map_location=map_location)
+def test_load_from_checkpoint_map_location_cpu_to_gpu(tmpdir, map_location, testmodel=BoringModel):
+    create_boring_checkpoint(tmpdir, accelerator="cpu", testmodel=testmodel)
+    model = testmodel.load_from_checkpoint(f"{tmpdir}/checkpoint.ckpt", map_location=map_location)
     assert model.device.type == "cuda"
