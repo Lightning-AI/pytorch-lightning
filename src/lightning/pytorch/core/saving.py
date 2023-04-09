@@ -92,7 +92,7 @@ def _load_from_checkpoint(
         restore_location = torch.serialization._get_restore_location(map_location)
 
         if isinstance(map_location, dict):
-            return restore_location(storage, map_location.get(str(storage.device)))
+            return restore_location(storage, str(storage.device))
 
         return restore_location(storage, map_location)
 
