@@ -300,9 +300,10 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-def test_invalid_parameters_in_optimizer(torch_ge_2_0):
-    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
+def test_invalid_parameters_in_optimizer(torch_ge_2_0, monkeypatch):
+    monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", torch_ge_2_0)
 
+    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
     error_context = (
         nullcontext()
         if torch_ge_2_0
