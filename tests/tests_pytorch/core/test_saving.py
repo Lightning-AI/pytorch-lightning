@@ -25,5 +25,6 @@ def test_load_from_checkpoint_map_location_cpu(map_location):
     "map_location", ("cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"})
 )
 def test_load_from_checkpoint_map_location_gpu(map_location):
+    create_boring_checkpoint()
     model = BoringModel.load_from_checkpoint("./boring.ckpt", map_location=map_location)
     assert model.device.type == "cuda"
