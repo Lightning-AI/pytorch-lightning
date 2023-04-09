@@ -147,7 +147,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         if hasattr(self, "_original_module"):
             original_module = self._original_module
             # Only redirect setattr to _original_module if the attribute is not part of _FabricModule
-            if not hasattr(self, name) and hasattr(original_module, name):
+            if not hasattr(self, name) and (hasattr(original_module, name) or not hasattr(self, "_forward_module")):
                 setattr(original_module, name, value)
                 return
         super().__setattr__(name, value)
