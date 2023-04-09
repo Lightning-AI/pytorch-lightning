@@ -92,7 +92,8 @@ class TestFSDPModelAutoWrapped(BoringModel):
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+        parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
+        return torch.optim.SGD(parameters, lr=0.1)
 
     def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
