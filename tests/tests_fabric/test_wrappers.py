@@ -364,9 +364,6 @@ def test_fabric_module_setattr():
             self.layer = torch.nn.Linear(2, 3)
             self.attribute = 1
 
-        def method(self):
-            return 2
-
     original_module = OriginalModule()
 
     class ModuleWrapper(torch.nn.Module):
