@@ -1,4 +1,5 @@
 import os
+from contextlib import nullcontext
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
@@ -296,16 +297,19 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     _run_multiple_stages(trainer, model)
 
 
+@pytest.mark.parametrize("torch_ge_2_0", [False, True])
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-def test_invalid_parameters_in_optimizer():
+def test_invalid_parameters_in_optimizer(torch_ge_2_0):
     trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
+
+    error_context = nullcontext() if torch_ge_2_0 else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
 
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
     model = EmptyParametersModel()
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+    with error_context:
         trainer.fit(model)
 
     class NoFlatParametersModel(BoringModel):
@@ -314,7 +318,7 @@ def test_invalid_parameters_in_optimizer():
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
     model = NoFlatParametersModel()
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+    with error_context:
         trainer.fit(model)
 
 

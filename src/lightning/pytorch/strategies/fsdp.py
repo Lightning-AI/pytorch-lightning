@@ -253,6 +253,9 @@ class FSDPStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        if _TORCH_GREATER_EQUAL_2_0:
+            return super().setup_optimizers(trainer)
+
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
@@ -261,7 +264,7 @@ class FSDPStrategy(ParallelStrategy):
                 raise
             invalid_params_error = True
 
-        if invalid_params_error or (not _TORCH_GREATER_EQUAL_2_0 and any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers)):
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
             # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
