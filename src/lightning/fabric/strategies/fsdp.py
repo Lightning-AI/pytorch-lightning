@@ -274,7 +274,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             "Consider clipping by norm instead or choose another strategy!"
         )
 
-    
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
@@ -282,52 +281,43 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError()
 
-        models = {k: model for k, model in state.items() if isinstance(model, FullyShardedDataParallel)}
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp.api import StateDictType, ShardedStateDictConfig, ShardedOptimStateDictConfig
+        from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
+
+        modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
         optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
 
-        if not models:
+        if not modules:
             raise ValueError()
         
-        if len(models) > 1:
+        if len(modules) > 1:
             raise NotImplementedError()
 
-        model = models[next(models.keys())]
-        optimizer = optimizers
+        module = modules.values()[0]
 
-        # state = self._convert_stateful_objects_in_state(state)
-
-        # FullyShardedDataParallel.optim_state_dict(model, optimizer, rank0_only=True)
-
-        from torch.distributed.fsdp import StateDictType, FullStateDictConfig
-        config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-        state_dict_type = FullyShardedDataParallel.state_dict_type(model, StateDictType.FULL_STATE_DICT, config)
+        state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
+        optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
+        state_dict_type = FSDP.state_dict_type(
+            module=module, 
+            state_dict_type=StateDictType.SHARDED_STATE_DICT, 
+            state_dict_config=state_dict_config,
+            optim_state_dict_config=optim_state_dict_config,
+        )
         
-
-        # TODO: Use `Strategy._convert_stateful_objects_in_state` instead
+        # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
         converted_state = {}
-        for key, obj in state.items():
-            with state_dict_type:
+        with state_dict_type:
+            for key, obj in state.items():
                 if isinstance(obj, FullyShardedDataParallel):
                     converted_state[key] = obj.state_dict()
                 elif isinstance(obj, Optimizer):
-                    converted_state[key] = FullyShardedDataParallel.optim_state_dict(model, obj)
+                    converted_state[key] = FSDP.optim_state_dict(module, obj)
                 else:
                     converted_state[key] = obj
 
-        for key, obj in state.items():
-            
-                if isinstance(obj, ):
-                    state[key] = 
-                if isinstance(obj, Optimizer):
-                    with state_dict_type:
-            
-                    optim_state_dict = 
-
-        
-
-        if self.global_rank == 0:
-            torch.save(state_dict, file_path)
-        # fabric.barrier()
+        writer = FileSystemWriter(path=path, single_file_per_rank=True)
+        save_state_dict(converted_state, writer)
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         if not isinstance(module, FullyShardedDataParallel):
