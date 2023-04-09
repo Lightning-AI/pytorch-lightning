@@ -73,6 +73,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed parsing the precision config for inference in `DeepSpeedStrategy` ([#16973](https://github.com/Lightning-AI/lightning/pull/16973))
 - Fixed issue where `torch.compile` would fail when logging to WandB ([#17216](https://github.com/Lightning-AI/lightning/pull/17216))
 
+- Fixed issue where `Model.load_from_checkpoint("checkpoint.ckpt", map_location=map_location)` would always return model on CPU ([#17308](https://github.com/Lightning-AI/lightning/pull/17308))
+
 
 ## [2.0.0] - 2023-03-15
 
