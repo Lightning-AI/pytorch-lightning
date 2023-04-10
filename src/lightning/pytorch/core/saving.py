@@ -85,9 +85,11 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
+        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
         assert len(checkpoint["state_dict"]) > 0
+        assert isinstance(storage, pl.LightningModule)
         map_location = list(checkpoint["state_dict"].values())[0].device
-        return _load_state(cls, checkpoint, strict=strict, **kwargs).to(map_location)
+        return storage.to(map_location)
 
     raise NotImplementedError(f"Unsupported {cls}")
 
