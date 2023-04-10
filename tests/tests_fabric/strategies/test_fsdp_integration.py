@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 import tempfile
 from unittest import mock
 
@@ -115,9 +116,20 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
     with tempfile.TemporaryFile() as ckpt_path:
         ckpt_path = fabric.broadcast(str(ckpt_path))
-        fabric._strategy.save_checkpoint(ckpt_path, fabric.model.state_dict())
+        state = {"model": fabric.model, "optimizer": fabric.optimizer}
+        fabric.save(ckpt_path, state)
 
-    _assert_save_equality(fabric, fabric.model, ckpt_path)
+        params_before = deepcopy(list(fabric.model.parameters()))
+
+        fabric = fabric_cls(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
+        state = {"model": fabric.model, "optimizer": fabric.optimizer}
+        fabric.load(ckpt_path, state)
+
+        params_after = deepcopy(list(fabric.model.parameters()))
+        for p0, p1 in zip(params_before, params_after):
+            assert torch.equal(p0, p1)
+
+    # _assert_save_equality(fabric, fabric.model, ckpt_path)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")

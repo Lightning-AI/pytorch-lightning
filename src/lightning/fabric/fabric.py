@@ -613,7 +613,13 @@ class Fabric:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
         """
-        return self._strategy.load_checkpoint(path=path, state=state)
+        unwrapped_state = _unwrap_objects(state)
+        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state)
+        for k in list(unwrapped_state.keys()):
+            if isinstance(unwrapped_state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+                continue
+            state[k] = unwrapped_state[k]
+        return remainder
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.

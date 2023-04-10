@@ -286,7 +286,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
 
         modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
-        optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
+        # optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
 
         if not modules:
             raise ValueError()
@@ -294,7 +294,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if len(modules) > 1:
             raise NotImplementedError()
 
-        module = modules.values()[0]
+        module = next(iter(modules.values()))
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
@@ -309,7 +309,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         converted_state = {}
         with state_dict_type:
             for key, obj in state.items():
-                if isinstance(obj, FullyShardedDataParallel):
+                if isinstance(obj, FSDP):
                     converted_state[key] = obj.state_dict()
                 elif isinstance(obj, Optimizer):
                     converted_state[key] = FSDP.optim_state_dict(module, obj)
@@ -337,8 +337,48 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
-        raise NotImplementedError()
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError()
 
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp.api import StateDictType, ShardedStateDictConfig, ShardedOptimStateDictConfig
+        from torch.distributed._shard.checkpoint import FileSystemReader, load_state_dict
+
+        modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
+        # optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
+
+        if not modules:
+            raise ValueError()
+        
+        if len(modules) > 1:
+            raise NotImplementedError()
+
+        module = next(iter(modules.values()))
+
+        state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
+        optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
+        state_dict_type = FSDP.state_dict_type(
+            module=module, 
+            state_dict_type=StateDictType.SHARDED_STATE_DICT, 
+            state_dict_config=state_dict_config,
+            optim_state_dict_config=optim_state_dict_config,
+        )
+        
+        # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
+        converted_state = {}
+        with state_dict_type:
+            for key, obj in state.items():
+                if isinstance(obj, FSDP):
+                    converted_state[key] = obj.state_dict()
+                elif isinstance(obj, Optimizer):
+                    converted_state[key] = FSDP.optim_state_dict(module, obj)
+                else:
+                    converted_state[key] = obj
+
+        reader = FileSystemReader(path=path)
+        load_state_dict(converted_state, reader)
+
+        return converted_state
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
