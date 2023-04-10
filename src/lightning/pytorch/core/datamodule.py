@@ -33,19 +33,19 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     Example::
 
         import lightning as L
-        import torch.utils.data as data, torchvision as tv
+        import torch.utils.data as data
 
         class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
                 # download, IO, etc. Useful with shared filesystems
                 # only called on 1 GPU/TPU in distributed
-                tv.datasets.MNIST(".", download=True)
+                ...
 
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
-                dataset = tv.datasets.MNIST(".", download=False, transform=tv.transforms.ToTensor())
-                self.train, self.val, self.test = data.random_split(dataset, [50000, 5000, 5000])
+                dataset = range(100)
+                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
 
             def train_dataloader(self):
                 return data.DataLoader(self.train)
