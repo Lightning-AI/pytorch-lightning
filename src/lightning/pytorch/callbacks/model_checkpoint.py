@@ -129,7 +129,7 @@ class ModelCheckpoint(Checkpoint):
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
-        override_existing: Whether to overwrite the checkpoint file. 
+        override_existing: Whether to overwrite the checkpoint file.
             If this is ``True``, then the name of the saved file won't be appended with a version.
 
     Note:
@@ -219,7 +219,7 @@ class ModelCheckpoint(Checkpoint):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
-        override_existing: bool = False
+        override_existing: bool = False,
     ):
         super().__init__()
         self.monitor = monitor
