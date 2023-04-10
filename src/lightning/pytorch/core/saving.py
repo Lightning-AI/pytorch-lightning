@@ -87,14 +87,12 @@ def _load_from_checkpoint(
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
         if map_location is None:
-            loaded_location = list(checkpoint["state_dict"].values())[0].device
-            map_location = loaded_location
-
+            map_location = list(checkpoint["state_dict"].values())[0].device
         storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        assert isinstance(storage, pl.LightningModule)
         restore_location = torch.serialization._get_restore_location(map_location)
-        if isinstance(map_location, dict) and isinstance(storage, pl.LightningModule):
-            return restore_location(storage, str(storage.device))
-
+        if isinstance(map_location, dict):
+            map_location = str(storage.device)
         return restore_location(storage, map_location)
 
     raise NotImplementedError(f"Unsupported {cls}")
