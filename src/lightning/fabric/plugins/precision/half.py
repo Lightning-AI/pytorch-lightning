@@ -24,12 +24,20 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 
 
 class HalfPrecision(Precision):
-    """Plugin for training with half (``torch.bfloat16``) precision."""
+    """Plugin for training with half (``torch.bfloat16``) precision.
 
-    precision: Literal["bf16-true"] = "bf16-true"
+    Args:
+        precision: Whether to use ``torch.float16`` (``'16-true'``) or ``torch.bfloat16`` (``'bf16-true'``).
+    """
+
+    precision: Literal["bf16-true", "16-true"] = "bf16-true"
+
+    def __init__(self, precision: Literal["bf16-true", "16-true"]) -> None:
+        self.precision = precision
+        self._desired_input_dtype = torch.bfloat16 if precision == "bf16-true" else torch.float16
 
     def convert_module(self, module: Module) -> Module:
-        return module.bfloat16()
+        return module.bfloat16() if self.precision == "bf16-true" else module.half()
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
@@ -38,7 +46,7 @@ class HalfPrecision(Precision):
         See: :meth:`torch.set_default_tensor_type`
         """
         default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.bfloat16)
+        torch.set_default_dtype(self._desired_input_dtype)
         yield
         torch.set_default_dtype(default_dtype)
 
@@ -50,12 +58,12 @@ class HalfPrecision(Precision):
         See: :meth:`torch.set_default_tensor_type`
         """
         default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.bfloat16)
+        torch.set_default_dtype(self._desired_input_dtype)
         yield
         torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
-        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.bfloat16)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
 
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
