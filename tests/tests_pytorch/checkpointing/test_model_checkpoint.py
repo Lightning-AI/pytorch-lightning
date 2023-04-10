@@ -1171,6 +1171,59 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     assert set(os.listdir(tmpdir)) == expected
 
 
+def test_ckpt_overriding_enabled_after_rerun_new_trainer(tmpdir):
+    """Check that previous checkpoints are renamed to have the correct version suffix when new trainer instances
+    are used."""
+    epochs = 2
+    for i in range(epochs):
+        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}", override_existing=True)
+        trainer = Trainer(
+            max_epochs=epochs,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            default_root_dir=tmpdir,
+            callbacks=[mc],
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(BoringModel())
+
+        # check best_k_models state
+        expected = {"epoch=0.ckpt", "epoch=1.ckpt"}
+        assert {Path(f).name for f in mc.best_k_models} == expected
+
+    # check created ckpts
+    actual = {f.basename for f in tmpdir.listdir()}
+    assert actual == {"epoch=0.ckpt", "epoch=1.ckpt"}
+
+
+def test_ckpt_overriding_enabled_after_rerun_same_trainer(tmpdir):
+    """Check that previous checkpoints are renamed to have the correct version suffix when the same trainer
+    instance is used."""
+    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test", override_existing=True)
+    mc.STARTING_VERSION = 9
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(BoringModel())
+    trainer.fit_loop.max_epochs = 4
+    trainer.fit(BoringModel())
+
+    expected = {"test.ckpt"}
+    # check best_k_models state
+    assert {Path(f).name for f in mc.best_k_models} == expected
+    # check created ckpts
+    assert set(os.listdir(tmpdir)) == expected
+
+
 def test_model_checkpoint_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")
