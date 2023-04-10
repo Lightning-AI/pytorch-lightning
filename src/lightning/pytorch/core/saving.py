@@ -87,7 +87,7 @@ def _load_from_checkpoint(
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
         if map_location is None:
-            loaded_location = list(checkpoint["state_dict"].items())[0][1].device
+            loaded_location = list(checkpoint["state_dict"].values())[0].device
             map_location = loaded_location
 
         storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
