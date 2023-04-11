@@ -381,6 +381,7 @@ def test_fsdp_strategy_cpu_offload():
     assert strategy.cpu_offload == config
 
 
+@RunIf(min_torch="1.12")
 def test_fsdp_use_orig_params():
     """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0."""
     with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False):
