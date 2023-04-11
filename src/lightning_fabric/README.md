@@ -188,7 +188,7 @@ class MyCustomTrainer:
                 optimizer.step()
 ```
 
-You can find a more extensive example in our [examples](examples/fabric/build_your_own_trainer)
+You can find a more extensive example in our [examples](../../examples/fabric/build_your_own_trainer)
 
 </details>
 
