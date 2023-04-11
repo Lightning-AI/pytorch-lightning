@@ -14,7 +14,6 @@ defaults:
   run:
     shell: bash
 
-
 env:
   PROJECT_ID: pt-lightning
 
@@ -121,11 +120,9 @@ jobs:
           kubectl get pod $pod_name -o jsonpath={.status}
           exit 1
         fi
-      shell: bash
 
     - name: Cleanup
       if: always()
-      shell: bash
       run: |
         pod_name="${{ steps.deploy.outputs.pod_name }}"
         job_name="${{ steps.deploy.outputs.job_name }}"
