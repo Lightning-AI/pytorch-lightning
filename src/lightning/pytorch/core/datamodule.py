@@ -34,6 +34,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         import lightning as L
         import torch.utils.data as data
+        from lightning.pytorch.demos.boring_classes import RandomDataset
 
         class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
@@ -44,7 +45,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
-                dataset = range(100)
+                dataset = RandomDataset(1, 100)  # you'll need to replace this with your data
                 self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
 
             def train_dataloader(self):
