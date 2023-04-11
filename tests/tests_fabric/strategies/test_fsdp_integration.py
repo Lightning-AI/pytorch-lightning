@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
-import tempfile
-from unittest import mock
-from pathlib import Path
 import os
+import tempfile
+from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -28,10 +27,9 @@ from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
-
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
-    from torch.distributed.fsdp.wrap import wrap, always_wrap_policy
+    from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 
 
 class _MyFabric(BoringFabric):
