@@ -33,7 +33,9 @@ def target_fn(port, workers):
 
 
 @pytest.mark.skipif(not (_is_torch_available() and _is_numpy_available()), reason="Missing torch and numpy")
-@pytest.mark.skipif(sys.platform == "win32", reason="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1")
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1"
+)
 @pytest.mark.parametrize("workers", [0])
 def test_model_inference_api(workers):
 
