@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["fabric"]
-    timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
+    timeout-minutes: 100  # should match the timeout in the jsonnet files
 
     steps:
     - uses: actions/checkout@v3
@@ -66,10 +66,10 @@ jobs:
         fname = f'dockers/base-xla/tpu_workflow_{os.getenv("SCOPE")}.jsonnet'
         with open(fname) as fo:
             data = fo.read()
-        data = data.replace('{PYTORCH_VERSION}', os.getenv("XLA_VER"))
-        data = data.replace('{PYTHON_VERSION}', os.getenv("PYTHON_VER"))
-        data = data.replace('{PR_NUMBER}', os.getenv("PR_NUMBER"))
-        data = data.replace('{SHA}', os.getenv("SHA"))
+        data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
+        data = data.replace('{PYTHON_VERSION}', os.environ["PYTHON_VER"])
+        data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
+        data = data.replace('{SHA}', os.environ["SHA"])
         with open(fname, "w") as fw:
             fw.write(data)
       shell: python
@@ -91,27 +91,18 @@ jobs:
 
     - name: Deploy cluster
       run: |
+        set -ue
         export PATH=$PATH:$HOME/go/bin
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -f -)
+
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -o name -f -)
         job_name=${job_name#job.batch/}
-        job_name=${job_name% created}
-        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
+        echo "Waiting for $job_name to launch..."
+
+        kubectl get pods  # debugging
+
+        pod_name=$(kubectl wait --for condition=ready --timeout=60m pod -l job-name=$job_name -o name
         echo "GKE pod name: $pod_name"
-        echo "Waiting on kubernetes job: $job_name"
-        status_code=2 &&
-        # Check on the job periodically. Set the status code depending on what happened to the job in Kubernetes.
-        printf "Waiting for job to finish: "
-        while true; do
-          if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then
-            status_code=1 && break;
-          elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1"; then
-            status_code=0 && break;
-          else
-            printf ".";
-          fi;
-          sleep 5;
-        done
-        echo "Done waiting. Job status code: $status_code"
+
         kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
         if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
           # successful run. split the output into logs + coverage report
@@ -122,7 +113,9 @@ jobs:
           # failed run, print everything
           cat /tmp/full_output.txt;
         fi
-        exit $status_code
+
+        # cleanup
+        kubectl delete pod $job_name
       shell: bash
 
     - name: Upload coverage to Codecov
