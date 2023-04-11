@@ -96,6 +96,7 @@ jobs:
         job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -o name -f -)
         job_name=${job_name#job.batch/}
         echo "Launched job name $job_name"
+        echo "job_name=$job_name" >> $GITHUB_OUTPUT
 
         pod_name=$(kubectl get pods --selector job-name=$job_name -o name)
         pod_name=${pod_name#pod/}
@@ -130,13 +131,17 @@ jobs:
       shell: bash
       run: |
         pod_name="${{ steps.deploy.outputs.pod_name }}"
-        echo "Running cleanup for $pod_name..."
+        job_name="${{ steps.deploy.outputs.job_name }}"
+        echo "Running cleanup: job $job_name, pod $pod_name"
         # show all pods
         kubectl get pods
         # get events for the current pod
         kubectl get event --field-selector involvedObject.name=$pod_name
-        # delete the pod
-        kubectl delete pod $pod_name
+        # delete the job, this will also delete the pod
+        kubectl delete job $job_name
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
