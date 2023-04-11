@@ -30,7 +30,6 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
-from lightning.fabric.utilities.data import has_len
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -105,7 +104,6 @@ class XLAStrategy(ParallelStrategy):
         module.to(self.root_device)
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
-        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -210,11 +208,3 @@ class XLAStrategy(ParallelStrategy):
         if self.cluster_environment is None:
             return
         rank_zero_only.rank = self.cluster_environment.global_rank()
-
-    @staticmethod
-    def _validate_dataloader(dataloader: object) -> None:
-        if not has_len(dataloader):
-            raise TypeError(
-                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                " HINT: You can mock the length on your dataset to bypass this error."
-            )

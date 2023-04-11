@@ -32,27 +32,34 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     Example::
 
-        class MyDataModule(LightningDataModule):
-            def __init__(self):
-                super().__init__()
+        import lightning as L
+        import torch.utils.data as data
+
+        class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
-                # download, split, etc...
+                # download, IO, etc. Useful with shared filesystems
                 # only called on 1 GPU/TPU in distributed
+                ...
+
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
+                dataset = range(100)
+                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
+
             def train_dataloader(self):
-                train_split = Dataset(...)
-                return DataLoader(train_split)
+                return data.DataLoader(self.train)
+
             def val_dataloader(self):
-                val_split = Dataset(...)
-                return DataLoader(val_split)
+                return data.DataLoader(self.val)
+
             def test_dataloader(self):
-                test_split = Dataset(...)
-                return DataLoader(test_split)
+                return data.DataLoader(self.test)
+
             def teardown(self):
-                # clean up after fit or test
+                # clean up state after the trainer stops, delete files...
                 # called on every process in DDP
+                ...
     """
 
     name: Optional[str] = None

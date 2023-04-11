@@ -53,33 +53,31 @@ All steps combined, this is how your code will change:
 
 .. code-block:: diff
 
+      import torch
+      from lightning.pytorch.demos import WikiText2, Transformer
     + import lightning as L
-      import torch; import torchvision as tv
 
-    + fabric = L.Fabric()
+    - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    + fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
-      model = tv.models.resnet18()
-      optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-    - device = "cuda" if torch.cuda.is_available() else "cpu"
-    - model.to(device)
-    + model, optimizer = fabric.setup(model, optimizer)
+      dataset = WikiText2()
+      dataloader = torch.utils.data.DataLoader(dataset)
+      model = Transformer(vocab_size=dataset.vocab_size)
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
-      dataset = tv.datasets.CIFAR10("data", download=True,
-                                    train=True,
-                                    transform=tv.transforms.ToTensor())
-      dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
+    - model = model.to(device)
+    + model, optimizer = fabric.setup(model, optimizer)
     + dataloader = fabric.setup_dataloaders(dataloader)
 
       model.train()
-      num_epochs = 10
-      for epoch in range(num_epochs):
+      for epoch in range(20):
           for batch in dataloader:
               inputs, labels = batch
     -         inputs, labels = inputs.to(device), labels.to(device)
               optimizer.zero_grad()
-              outputs = model(inputs)
-              loss = torch.nn.functional.cross_entropy(outputs, labels)
+              output = model(input, target)
+              loss = torch.nn.functional.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
