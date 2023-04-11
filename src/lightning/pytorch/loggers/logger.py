@@ -13,6 +13,7 @@
 # limitations under the License.
 """Abstract base class used to build new loggers."""
 
+
 import functools
 import operator
 from abc import ABC
@@ -97,6 +98,7 @@ def merge_dicts(  # pragma: no cover
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
     function.
+
     Args:
         dicts:
             Sequence of dictionaries to be merged.
@@ -109,8 +111,10 @@ def merge_dicts(  # pragma: no cover
         default_func:
             Default function to aggregate keys, which are not presented in the
             `agg_key_funcs` map.
+
     Returns:
         Dictionary with merged values.
+
     Examples:
         >>> import pprint
         >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1, 'd': {'d1': 1, 'd3': 3}}
