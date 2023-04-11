@@ -9,7 +9,6 @@ import pytest
 import torch
 import torch.nn as nn
 
-import lightning
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -301,31 +300,30 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 def test_invalid_parameters_in_optimizer(torch_ge_2_0, monkeypatch):
-    monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", torch_ge_2_0)
+    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):
+        trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
+        error_context = (
+            nullcontext()
+            if torch_ge_2_0
+            else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+        )
 
-    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
-    error_context = (
-        nullcontext()
-        if torch_ge_2_0
-        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
-    )
+        class EmptyParametersModel(BoringModel):
+            def configure_optimizers(self):
+                return torch.optim.Adam(self.parameters(), lr=1e-2)
 
-    class EmptyParametersModel(BoringModel):
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=1e-2)
+        model = EmptyParametersModel()
+        with error_context:
+            trainer.fit(model)
 
-    model = EmptyParametersModel()
-    with error_context:
-        trainer.fit(model)
+        class NoFlatParametersModel(BoringModel):
+            def configure_optimizers(self):
+                layer = torch.nn.Linear(4, 5)
+                return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
-    class NoFlatParametersModel(BoringModel):
-        def configure_optimizers(self):
-            layer = torch.nn.Linear(4, 5)
-            return torch.optim.Adam(layer.parameters(), lr=1e-2)
-
-    model = NoFlatParametersModel()
-    with error_context:
-        trainer.fit(model)
+        model = NoFlatParametersModel()
+        with error_context:
+            trainer.fit(model)
 
 
 @RunIf(min_torch="1.12")
@@ -383,14 +381,14 @@ def test_fsdp_strategy_cpu_offload():
     assert strategy.cpu_offload == config
 
 
-def test_fsdp_use_orig_params(monkeypatch):
+def test_fsdp_use_orig_params():
     """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0."""
-    monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", False)
-    strategy = FSDPStrategy()
-    assert "use_orig_params" not in strategy.kwargs
+    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False):
+        strategy = FSDPStrategy()
+        assert "use_orig_params" not in strategy.kwargs
 
-    monkeypatch.setattr(lightning.pytorch.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", True)
-    strategy = FSDPStrategy()
-    assert strategy.kwargs["use_orig_params"]
-    strategy = FSDPStrategy(use_orig_params=False)
-    assert not strategy.kwargs["use_orig_params"]
+    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", True):
+        strategy = FSDPStrategy()
+        assert strategy.kwargs["use_orig_params"]
+        strategy = FSDPStrategy(use_orig_params=False)
+        assert not strategy.kwargs["use_orig_params"]
