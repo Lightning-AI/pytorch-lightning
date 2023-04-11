@@ -69,7 +69,11 @@ class MultiProcessRuntime(Runtime):
                 port = find_free_network_port()
 
                 server_host = "0.0.0.0" if in_cloudspace else "localhost"
-                server_target = f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}" if in_cloudspace else f"http://localhost:{port}"
+                server_target = (
+                    f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+                    if in_cloudspace
+                    else f"http://localhost:{port}"
+                )
 
                 frontend.start_server(host=server_host, port=port)
                 frontend.flow._layout["target"] = f"{server_target}/{frontend.flow.name}"

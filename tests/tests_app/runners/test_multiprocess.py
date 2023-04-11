@@ -4,8 +4,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning.app.core import constants
 from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.core import constants
 from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.utilities.component import _get_context
@@ -55,7 +55,9 @@ class StartFrontendServersTestFlow(LightningFlow):
     ],
 )
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
-def test_multiprocess_starts_frontend_servers(mock_find_free_network_port, monkeypatch, cloudspace_host, port, expected_host, expected_target):
+def test_multiprocess_starts_frontend_servers(
+    mock_find_free_network_port, monkeypatch, cloudspace_host, port, expected_host, expected_target
+):
     """Test that the MultiProcessRuntime starts the servers for the frontends in each LightningFlow."""
 
     monkeypatch.setattr(constants, "LIGHTNING_CLOUDSPACE_HOST", cloudspace_host)
