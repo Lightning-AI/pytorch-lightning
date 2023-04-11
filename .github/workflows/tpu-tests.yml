@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-22.04
     # run only when merged to master or the PR title contains '[TPU]'
     if: ${{ github.event.pull_request.merged == true || contains(github.event.pull_request.title, '[TPU]') }}
-    env:
-      PYTHON_VER: 3.8
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +33,7 @@ jobs:
 
     - uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.PYTHON_VER }}
+        python-version: 3.10
 
     - name: Checkout ml-testing-accelerators
       run: |
@@ -59,11 +57,10 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
       run: |
         import os
-        fname = f'dockers/base-xla/tpu_workflow_{os.getenv("SCOPE")}.jsonnet'
+        fname = f'.github/workflows/tpu_workflow_{os.getenv("SCOPE")}.jsonnet'
         with open(fname) as fo:
             data = fo.read()
         data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
-        data = data.replace('{PYTHON_VERSION}', os.environ["PYTHON_VER"])
         data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
         data = data.replace('{SHA}', os.environ["SHA"])
         with open(fname, "w") as fw:
@@ -89,7 +86,7 @@ jobs:
         set -ue
         export PATH=$PATH:$HOME/go/bin
 
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -o name -f -)
+        job_name=$(jsonnet -J ml-testing-accelerators/ .github/workflows/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -o name -f -)
         job_name=${job_name#job.batch/}
         echo "Launched job name $job_name"
         echo "job_name=$job_name" >> $GITHUB_OUTPUT
@@ -144,6 +141,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml
-        flags: tpu,pytest,python${{ env.PYTHON_VER }}
+        flags: tpu,pytest
         name: TPU-coverage
         fail_ci_if_error: false
