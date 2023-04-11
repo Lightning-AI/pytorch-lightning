@@ -300,8 +300,8 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 def test_invalid_parameters_in_optimizer():
     trainer = Trainer(
-        strategy="fsdp", 
-        accelerator="cuda", 
+        strategy="fsdp",
+        accelerator="cuda",
         devices=1,
         fast_dev_run=1,
     )
