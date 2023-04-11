@@ -36,8 +36,8 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
       model.train()
       for epoch in range(20):
           for batch in dataloader:
-              inputs, labels = batch
-    -         inputs, labels = inputs.to(device), labels.to(device)
+              input, target = batch
+    -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
               output = model(input, target)
               loss = torch.nn.functional.nll_loss(output, target.view(-1))
