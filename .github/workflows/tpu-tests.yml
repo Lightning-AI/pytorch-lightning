@@ -59,7 +59,7 @@ jobs:
     - name: Update jsonnet
       env:
         SCOPE: ${{ matrix.pkg-name }}
-        XLA_VER: 1.12
+        XLA_VER: 2.0
         PR_NUMBER: ${{ github.event.pull_request.number }}
         SHA: ${{ github.event.pull_request.head.sha }}
       run: |

@@ -68,7 +68,7 @@ jobs:
       matrix:
         # the config used in '.github/workflows/tpu-tests.yml'
         python_version: ["3.8"]
-        xla_version: ["1.12"]
+        xla_version: ["2.0"]
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
