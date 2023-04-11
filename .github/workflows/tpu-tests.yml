@@ -14,9 +14,6 @@ defaults:
   run:
     shell: bash
 
-#env:
-#  PROJECT_ID: pt-lightning
-
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
@@ -78,9 +75,10 @@ jobs:
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
     - uses: google-github-actions/get-gke-credentials@v1
       with:
+        # see: https://console.cloud.google.com/kubernetes/list/overview?project=pt-lightning
         cluster_name: lightning-cluster
-        # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
-        location: us-central2-b
+        # recommended zone for v3.8: https://cloud.google.com/tpu/docs/regions-zones
+        location: us-central1-a
 
     - name: Deploy cluster
       id: deploy
