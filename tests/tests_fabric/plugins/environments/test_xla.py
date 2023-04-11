@@ -23,7 +23,8 @@ from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {}, clear=True)
+# keep existing environment or else xla will default to pjrt
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("torch_xla._XLAC._xla_get_default_device", return_value=torch.device("xla:0"))
 def test_default_attributes(*_):
     """Test the default attributes when no environment variables are set."""
@@ -46,6 +47,7 @@ def test_default_attributes(*_):
 @mock.patch.dict(
     os.environ,
     {
+        **os.environ,
         "TPU_MESH_CONTROLLER_ADDRESS": "1.2.3.4",
         "TPU_MESH_CONTROLLER_PORT": "500",
         "XRT_SHARD_WORLD_SIZE": "1",

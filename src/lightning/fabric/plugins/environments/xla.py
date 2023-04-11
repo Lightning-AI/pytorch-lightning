@@ -76,5 +76,6 @@ class XLAEnvironment(ClusterEnvironment):
 
     def node_rank(self) -> int:
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.utils.utils import getenv_as
 
-        return int(os.environ.get(xenv.HOST_ORDINAL, 0))
+        return getenv_as(xenv.HOST_ORDINAL, int, 0)

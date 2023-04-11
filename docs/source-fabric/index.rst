@@ -17,39 +17,35 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
 .. code-block:: diff
 
       import torch
-      import torch.nn as nn
-      from torch.utils.data import DataLoader, Dataset
+      import torch.nn.functional as F
+      from lightning.pytorch.demos import WikiText2, Transformer
 
-    + from lightning.fabric import Fabric
+    + import lightning as L
 
-      class PyTorchModel(nn.Module):
-          ...
-
-      class PyTorchDataset(Dataset):
-          ...
-
-    + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
+    - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    + fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
-    - device = "cuda" if torch.cuda.is_available() else "cpu"
-      model = PyTorchModel(...)
-      optimizer = torch.optim.SGD(model.parameters())
-    + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(PyTorchDataset(...), ...)
-    + dataloader = fabric.setup_dataloaders(dataloader)
-      model.train()
+      dataset = WikiText2()
+      dataloader = torch.utils.data.DataLoader(dataset)
+      model = Transformer(vocab_size=dataset.vocab_size)
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
-      for epoch in range(num_epochs):
+    - model = model.to(device)
+    + model, optimizer = fabric.setup(model, optimizer)
+    + dataloader = fabric.setup_dataloaders(dataloader)
+
+      model.train()
+      for epoch in range(20):
           for batch in dataloader:
               input, target = batch
     -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              output = model(input)
-              loss = loss_fn(output, target)
+              output = model(input, target)
+              loss = F.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
-              lr_scheduler.step()
 
 
 ----
@@ -118,23 +114,34 @@ For alternative ways to install, read the :doc:`installation guide <fundamentals
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Get started in steps
+    :maxdepth: 1
+    :caption: Get started in steps
 
-   Basic <levels/basic>
-   Intermediate <levels/intermediate>
-   Advanced <levels/advanced>
+    Basic skills <levels/basic>
+    Intermediate skills <levels/intermediate>
+    Advanced skills <levels/advanced>
 
 
 .. toctree::
     :maxdepth: 1
-    :name: api
     :caption: Core API Reference
 
     Fabric Arguments <api/fabric_args>
     Fabric Methods <api/fabric_methods>
-    Utilities <api/utilities>
-    Full API Reference <api_reference>
+
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Full API Reference
+
+    Accelerators <api/accelerators>
+    Collectives <api/collectives>
+    Environments <api/environments>
+    Fabric <api/fabric>
+    IO <api/io>
+    Loggers <api/loggers>
+    Precision <api/precision>
+    Strategies <api/strategies>
 
 
 .. toctree::
@@ -143,6 +150,9 @@ For alternative ways to install, read the :doc:`installation guide <fundamentals
     :caption: More
 
     Examples <examples/index>
+    Glossary <glossary/index>
+    How-tos <guide/index>
+    Style Guide <fundamentals/code_structure>
 
 
 .. raw:: html
