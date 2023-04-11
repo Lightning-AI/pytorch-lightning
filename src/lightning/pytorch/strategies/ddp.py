@@ -181,7 +181,6 @@ class DDPStrategy(ParallelStrategy):
             ddp_model = DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
         return ddp_model
 
-
     def setup_distributed(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
