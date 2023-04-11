@@ -16,11 +16,12 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.nn import Parameter
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
@@ -82,7 +83,6 @@ def _assert_save_equality(fabric, model, ckpt_path):
         assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
-@pytest.mark.skip(reason="Requires rework of FSDP checkpointing (#17323)")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")
 @pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
@@ -121,7 +121,11 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # the linear layer got sharded and each part is on the expected device
     assert next(fabric_model.parameters()).device == torch.device("cuda", fabric.local_rank)
     assert next(fabric_model.parameters()).numel() == 50
-    assert isinstance(next(fabric_model.parameters()), FlatParameter)
+    if _TORCH_GREATER_EQUAL_2_0:
+        # In PyTorch >= 2.0 we set `use_orig_params=True` and don't see flattened parameters
+        assert isinstance(next(fabric_model.parameters()), Parameter)
+    else:
+        assert isinstance(next(fabric_model.parameters()), FlatParameter)
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert fabric_model.device == torch.device("cpu")
