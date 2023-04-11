@@ -66,11 +66,10 @@ jobs:
         data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
         data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
         data = data.replace('{SHA}', os.environ["SHA"])
+        print(data)
         with open(fname, "w") as fw:
             fw.write(data)
       shell: python
-    - name: Show jsonnet
-      run: cat dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet
 
     - uses: google-github-actions/auth@v1
       with:
