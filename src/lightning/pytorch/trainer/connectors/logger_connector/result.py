@@ -411,7 +411,7 @@ class _ResultCollection(dict):
 
         Value can be provided as a nested collection
         """
-        metric = _ResultMetric(meta, isinstance(value, Tensor)).to(self.device)
+        metric = _ResultMetric(meta, isinstance(value, Tensor)).to(value.device)
         self[key] = metric
 
     def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
