@@ -589,20 +589,23 @@ class Fabric:
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
         saves checkpoints only on process 0, while the `fsdp` strategy saves files from every rank.
+        This method must be called on all processes!
 
         Args:
             path: A path to where the file(s) should be saved
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
         """
-        return self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
+        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
+        self.barrier()
 
     def load(
         self, path: Union[str, Path], state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None
     ) -> Dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
 
-        How and which processes load gets determined by the `strategy`
+        How and which processes load gets determined by the `strategy`.
+        This method must be called on all processes!
 
         Args:
             path: A path to where the file is located
@@ -619,6 +622,8 @@ class Fabric:
             if isinstance(unwrapped_state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                 continue
             state[k] = unwrapped_state[k]
+
+        self.barrier()
         return remainder
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:

@@ -14,6 +14,8 @@
 from copy import deepcopy
 import tempfile
 from unittest import mock
+from pathlib import Path
+import os
 
 import pytest
 import torch
@@ -24,10 +26,12 @@ from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
+from tests_fabric.test_fabric import BoringModel
+
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
-    from torch.distributed.fsdp.wrap import wrap
+    from torch.distributed.fsdp.wrap import wrap, always_wrap_policy
 
 
 def _get_model():
@@ -70,16 +74,16 @@ def _step(fabric, model, batch):
     return loss
 
 
-def _assert_save_equality(fabric, model, ckpt_path):
-    current_state_dict = fabric._strategy.get_module_state_dict(model)
+# def _assert_save_equality(fabric, model, ckpt_path):
+#     current_state_dict = fabric._strategy.get_module_state_dict(model)
 
-    checkpoint = fabric.load(ckpt_path)
-    loaded_model = _get_model()
-    loaded_model.load_state_dict(checkpoint)
+#     checkpoint = fabric.load(ckpt_path)
+#     loaded_model = _get_model()
+#     loaded_model.load_state_dict(checkpoint)
 
-    # model parameters are identical after loading
-    for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
-        assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
+#     # model parameters are identical after loading
+#     for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
+#         assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
 if _TORCH_GREATER_EQUAL_2_0:
@@ -154,3 +158,55 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert fabric_model.device == torch.device("cpu")
     assert fabric.device == torch.device("cuda", fabric.local_rank)
+
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_save_load(tmp_path):
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy))
+    fabric.launch()
+
+    checkpoint_path = fabric.broadcast(tmp_path / "fsdp-checkpoint")
+
+    with fabric.sharded_model():
+        model = BoringModel()
+
+    model = fabric.setup_module(model)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    optimizer = fabric.setup_optimizers(optimizer)
+    assert isinstance(model._forward_module, FullyShardedDataParallel)
+
+    output = model(torch.randn(1, 32).to(fabric.device))
+    loss = output.sum()
+    fabric.backward(loss)
+    optimizer.step()
+    optimizer.zero_grad()
+
+    weights_before = deepcopy(list(model.parameters()))
+    state = {"model": model, "optimizer": optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    fabric.barrier()
+
+    # re-init all objects and resume
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy))
+    fabric.launch()
+
+    with fabric.sharded_model():
+        model = BoringModel()
+
+    model = fabric.setup_module(model)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    optimizer = fabric.setup_optimizers(optimizer)
+
+    state = {"model": model, "optimizer": optimizer, "steps": 0}
+
+    metadata = fabric.load(checkpoint_path, state)
+
+    weights_after = deepcopy(list(model.parameters()))
+    assert all(torch.equal(p0, p1) for p0, p1 in zip(weights_before, weights_after))
+
+    # check user data in state reloaded
+    assert state["steps"] == 1
+    assert not metadata

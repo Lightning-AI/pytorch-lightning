@@ -34,49 +34,36 @@ def main():
     # mp.spawn(worker, nprocs=2)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy))
     fabric.launch()
+
     model = nn.Linear(10, 10, bias=False)
-    model.weight.data.fill_(1.)
-    
     model = fabric.setup_module(model)
-    print(fabric.global_rank, model.weight.numel())
-    print(fabric.global_rank, next(model.parameters()).numel())
     optimizer = torch.optim.Adam(model.parameters())
     optimizer = fabric.setup_optimizers(optimizer)
 
     checkpoint_path = Path("there.ckpt")
     
-    weight_before = deepcopy(list(model.parameters()))
+    weights_before = deepcopy(list(model.parameters()))
+    # optim_state_before = deepcopy(optimizer.state)
 
-    state = {"model": model, "optimizer": optimizer}
+    state = {"model": model, "optimizer": optimizer, "epoch": 3}
     fabric.save(checkpoint_path, state)
 
-    assert set(os.listdir(checkpoint_path)) == {".metadata", "__0_0.distcp", "__1_0.distcp"}
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
 
-    # load checkpoint into fresh model
+    # load checkpoint into fresh model and optimizer
     model = nn.Linear(10, 10, bias=False)
     model = fabric.setup_module(model)
-    state = {"model": model}
-    fabric.load(checkpoint_path, state)
-
-    weight_after = deepcopy(list(model.parameters()))
-    print(weight_after)
-    # for p0, p1 in zip(weight_before, weight_after):
-    #     assert torch.equal(p0, p1)
-
+    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = fabric.setup_optimizers(optimizer)
     
+    state = {"model": model, "optimizer": optimizer}
+    remainder = fabric.load(checkpoint_path, state)
 
-    # with torch.no_grad():
-    #     save_policy = ShardedStateDictConfig(offload_to_cpu=True)
-    #     optim_policy = ShardedOptimStateDictConfig(offload_to_cpu=True)
-    #     with FSDP.state_dict_type(model, StateDictType.SHARDED_STATE_DICT, state_dict_config=save_policy, optim_state_dict_config=optim_policy):
-    #         state_dict = model._forward_module.state_dict()
-    #         optim_state_dict = FSDP.optim_state_dict(model, optimizer.optimizer)
+    weights_after = deepcopy(list(model.parameters()))
 
-    # state = {"model": state_dict, "optimizer": optim_state_dict}
-    # writer = FileSystemWriter(path="here.ckpt", single_file_per_rank=False)
-    # save_state_dict(state, writer)
+    assert all(torch.equal(p0, p1) for p0, p1 in zip(weights_before, weights_after))
+    assert remainder["epoch"] == 3
 
-    # print(fabric.global_rank, state)
 
     
 

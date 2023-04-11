@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import functools
 from contextlib import contextmanager
 from datetime import timedelta
@@ -307,6 +308,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         
         # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
         converted_state = {}
+        metadata = {}
         with state_dict_type:
             for key, obj in state.items():
                 if isinstance(obj, FSDP):
@@ -314,10 +316,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 elif isinstance(obj, Optimizer):
                     converted_state[key] = FSDP.optim_state_dict(module, obj)
                 else:
-                    converted_state[key] = obj
+                    metadata[key] = obj
 
         writer = FileSystemWriter(path=path, single_file_per_rank=True)
         save_state_dict(converted_state, writer)
+
+        if self.global_rank == 0:
+            torch.save(metadata, os.path.join(path, "meta.pt"))
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         if not isinstance(module, FullyShardedDataParallel):
@@ -363,6 +368,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             state_dict_config=state_dict_config,
             optim_state_dict_config=optim_state_dict_config,
         )
+
+        metadata = torch.load(os.path.join(path, "meta.pt"))
         
         # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
         converted_state = {}
@@ -372,13 +379,20 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     converted_state[key] = obj.state_dict()
                 elif isinstance(obj, Optimizer):
                     converted_state[key] = FSDP.optim_state_dict(module, obj)
+                
+
+            reader = FileSystemReader(path=path)
+            load_state_dict(converted_state, reader)
+
+            # copy it back
+            for key, obj in state.items():
+                if isinstance(obj, (FSDP, Optimizer)):
+                    obj.load_state_dict(converted_state.pop(key))
                 else:
-                    converted_state[key] = obj
+                    state[key] = metadata.pop(key)
 
-        reader = FileSystemReader(path=path)
-        load_state_dict(converted_state, reader)
-
-        return converted_state
+        # return the remainder
+        return metadata
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

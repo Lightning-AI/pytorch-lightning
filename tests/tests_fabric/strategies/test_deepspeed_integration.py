@@ -400,7 +400,6 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
     state = {"model": model, "optimizer": optimizer, "steps": 0}
 
     metadata = fabric.load(checkpoint_path, state)
-    fabric.barrier()
 
     # check user data in state reloaded
     assert state["steps"] == 1
