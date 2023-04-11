@@ -289,7 +289,7 @@ class DDPStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD, device=torch.cuda.current_device())
         return obj[0]
 
     def pre_backward(self, closure_loss: Tensor) -> None:
