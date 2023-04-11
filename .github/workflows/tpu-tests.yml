@@ -103,8 +103,6 @@ jobs:
         echo "Pod name: $pod_name"
         echo "pod_name=$pod_name" >> $GITHUB_OUTPUT
 
-        exit 0   # DEBUGGING
-
         echo "Waiting for the pod to be ready..."
         kubectl wait --for condition=ready --timeout=30m pod $pod_name
 
@@ -127,9 +125,6 @@ jobs:
           exit 1
         fi
       shell: bash
-
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
 
     - name: Cleanup
       if: always()
