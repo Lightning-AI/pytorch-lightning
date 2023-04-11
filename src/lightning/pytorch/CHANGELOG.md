@@ -4,12 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [2.0.1post] - 2023-04-12
-
-### Fixed
-
-- Make the `is_picklable` function more robust ([#17270](https://github.com/Lightning-AI/lightning/pull/17270))
-
 
 ## [2.0.1] - 2023-03-30
 
@@ -27,6 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed the availability check for `rich` that prevented Lightning to be imported in Google Colab ([#17156](https://github.com/Lightning-AI/lightning/pull/17156))
 - Fixed parsing the precision config for inference in `DeepSpeedStrategy` ([#16973](https://github.com/Lightning-AI/lightning/pull/16973))
 - Fixed issue where `torch.compile` would fail when logging to WandB ([#17216](https://github.com/Lightning-AI/lightning/pull/17216))
+- Make the `is_picklable` function more robust ([#17270](https://github.com/Lightning-AI/lightning/pull/17270))
 
 
 ## [2.0.0] - 2023-03-15
