@@ -372,7 +372,19 @@ def test_deepspeed_custom_precision_params(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
-@pytest.mark.parametrize("precision", ["fp16", pytest.param("bf16", marks=pytest.mark.xfail(NotImplementedError, reason="When not running ZeRO, BF16 training support is only supported for Pipeline parallelism"))])
+@pytest.mark.parametrize(
+    "precision",
+    [
+        "fp16",
+        pytest.param(
+            "bf16",
+            marks=pytest.mark.xfail(
+                NotImplementedError,
+                reason="When not running ZeRO, BF16 training support is only supported for Pipeline parallelism",
+            ),
+        ),
+    ],
+)
 def test_deepspeed_inference_precision_during_inference(precision, tmpdir):
     """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains
     these changes."""
