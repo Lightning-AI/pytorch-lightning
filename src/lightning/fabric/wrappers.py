@@ -142,15 +142,29 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             original_module = super().__getattr__("_original_module")
             return getattr(original_module, item)
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        # Check if _FabricModule is fully initialized
+    def __setattr__(self, name, value):
+        # Check if the _FabricModule is fully initialized and has an _original_module
         if hasattr(self, "_original_module"):
-            original_module = self._original_module
-            # Only redirect setattr to _original_module if the attribute is not part of _FabricModule
+            # Get the _original_module attribute
+            original_module = getattr(self, "_original_module")
+
+            # If the _FabricModule object itself and the original_module both do not have the given attribute,
+            # set the attribute on the original_module.
             if not hasattr(self, name) and not hasattr(original_module, name):
                 setattr(original_module, name, value)
-                return
-        super().__setattr__(name, value)
+
+            # If the original_module already has the given attribute, update its value.
+            elif hasattr(original_module, name):
+                setattr(original_module, name, value)
+
+            # If the attribute doesn't belong to the original_module but belongs to _FabricModule or its ancestors,
+            # set the attribute using the parent's __setattr__ method.
+            else:
+                super().__setattr__(name, value)
+
+        # If the _FabricModule is not fully initialized, set the attribute using the parent's __setattr__ method.
+        else:
+            super().__setattr__(name, value)
 
 
 class _FabricDataLoader:
