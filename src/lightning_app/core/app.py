@@ -69,6 +69,9 @@ if TYPE_CHECKING:
 
 logger = Logger(__name__)
 
+if platform.system() == "Windows":
+    __doctest_skip__ = ["LightningApp"]
+
 
 class LightningApp:
     def __init__(
