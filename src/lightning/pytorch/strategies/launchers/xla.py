@@ -103,6 +103,15 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
+        import torch_xla.core.xla_model as xm
+        if len(xm.get_xla_supported_devices()) > 1:
+            # multi-threading under PJRT, objects need to be deepcopied
+            import copy
+            trainer = copy.deepcopy(trainer)
+            function = copy.deepcopy(function)
+            args = copy.deepcopy(args)
+            kwargs = copy.deepcopy(kwargs)
+
         results = function(*args, **kwargs)
 
         if trainer is not None:
