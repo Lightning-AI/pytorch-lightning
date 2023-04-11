@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import functools
+import os
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -37,7 +37,11 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.distributed import ReduceOp
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCH_GREATER_EQUAL_2_0,
+)
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -282,16 +286,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError()
 
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp.api import StateDictType, ShardedStateDictConfig, ShardedOptimStateDictConfig
         from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
         modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
         # optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
 
         if not modules:
             raise ValueError()
-        
+
         if len(modules) > 1:
             raise NotImplementedError()
 
@@ -300,12 +304,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
         state_dict_type = FSDP.state_dict_type(
-            module=module, 
-            state_dict_type=StateDictType.SHARDED_STATE_DICT, 
+            module=module,
+            state_dict_type=StateDictType.SHARDED_STATE_DICT,
             state_dict_config=state_dict_config,
             optim_state_dict_config=optim_state_dict_config,
         )
-        
+
         # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
         converted_state = {}
         metadata = {}
@@ -327,8 +331,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         if not isinstance(module, FullyShardedDataParallel):
             return super().get_module_state_dict(module)
-        
-        from torch.distributed.fsdp import StateDictType, FullStateDictConfig
+
+        from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
         config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
         with FullyShardedDataParallel.state_dict_type(module, StateDictType.FULL_STATE_DICT, config):
@@ -345,16 +349,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError()
 
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp.api import StateDictType, ShardedStateDictConfig, ShardedOptimStateDictConfig
         from torch.distributed._shard.checkpoint import FileSystemReader, load_state_dict
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
         modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
         # optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
 
         if not modules:
             raise ValueError()
-        
+
         if len(modules) > 1:
             raise NotImplementedError()
 
@@ -363,14 +367,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
         state_dict_type = FSDP.state_dict_type(
-            module=module, 
-            state_dict_type=StateDictType.SHARDED_STATE_DICT, 
+            module=module,
+            state_dict_type=StateDictType.SHARDED_STATE_DICT,
             state_dict_config=state_dict_config,
             optim_state_dict_config=optim_state_dict_config,
         )
 
         metadata = torch.load(os.path.join(path, "meta.pt"))
-        
+
         # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
         converted_state = {}
         with state_dict_type:
@@ -379,7 +383,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     converted_state[key] = obj.state_dict()
                 elif isinstance(obj, Optimizer):
                     converted_state[key] = FSDP.optim_state_dict(module, obj)
-                
 
             reader = FileSystemReader(path=path)
             load_state_dict(converted_state, reader)

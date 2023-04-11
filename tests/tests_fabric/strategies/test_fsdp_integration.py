@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
-import tempfile
-from unittest import mock
-from pathlib import Path
 import os
+import tempfile
+from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -28,10 +27,9 @@ from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
-
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
-    from torch.distributed.fsdp.wrap import wrap, always_wrap_policy
+    from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 
 
 def _get_model():
@@ -158,7 +156,6 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert fabric_model.device == torch.device("cpu")
     assert fabric.device == torch.device("cuda", fabric.local_rank)
-
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
