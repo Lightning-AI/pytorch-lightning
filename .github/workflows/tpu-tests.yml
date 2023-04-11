@@ -10,11 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
-env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: lightning-cluster
-  GKE_ZONE: us-central1-a
-
 defaults:
   run:
     shell: bash
@@ -84,8 +79,9 @@ jobs:
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
     - uses: google-github-actions/get-gke-credentials@v1
       with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
+        cluster_name: lightning-cluster
+        # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
+        location: us-central2-b
 
     - name: Deploy cluster
       id: deploy
