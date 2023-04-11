@@ -93,7 +93,7 @@ def test_fsdp_setup_use_orig_params(_):
         strategy.setup_module_and_optimizers(module, optimizer)
 
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
-    assert "use_orig_params" not in strategy._fsdp_kwargs
+    assert strategy._fsdp_kwargs["use_orig_params"]
     strategy.setup_module_and_optimizers(module, optimizer)
     assert strategy._fsdp_kwargs["use_orig_params"]
 

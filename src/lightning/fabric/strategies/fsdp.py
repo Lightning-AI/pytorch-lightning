@@ -107,6 +107,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._backward_sync_control = _FSDPBackwardSyncControl()
         self._fsdp_kwargs = kwargs
 
+        if _TORCH_GREATER_EQUAL_2_0:
+            # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
+            self._fsdp_kwargs.setdefault("use_orig_params", True)
+
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
             raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
         activation_checkpointing = activation_checkpointing or []
@@ -180,8 +184,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " up in this order: Create the model, call `setup_module`, create the optimizer,"
                 " call `setup_optimizer`."
             )
-
-        self._fsdp_kwargs["use_orig_params"] = True
         module = self.setup_module(module)
         return module, optimizers
 
