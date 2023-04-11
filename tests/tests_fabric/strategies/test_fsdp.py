@@ -58,18 +58,42 @@ def test_fsdp_cpu_offload():
 
 
 @RunIf(min_torch="1.12")
-def test_fsdp_setup_optimizer_validation():
+@pytest.mark.parametrize("torch_ge_2_0", [False, True])
+def test_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
 
-    bad_optimizer = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
-    with pytest.raises(ValueError, match="does not support multiple param groups"):
-        strategy.setup_optimizer(bad_optimizer)
+    with mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):
+        bad_optimizer_1 = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
+        bad_optimizer_2 = Adam(module.parameters())
 
-    bad_optimizer = Adam(module.parameters())
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
-        strategy.setup_optimizer(bad_optimizer)
+        if torch_ge_2_0:
+            strategy.setup_optimizer(bad_optimizer_1)
+            strategy.setup_optimizer(bad_optimizer_2)
+        else:
+            with pytest.raises(ValueError, match="does not support multiple param groups"):
+                strategy.setup_optimizer(bad_optimizer_1)
+            with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
+                strategy.setup_optimizer(bad_optimizer_2)
+
+
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.setup_module")
+def test_fsdp_setup_use_orig_params(_):
+    module = nn.Linear(2, 2)
+    optimizer = Adam(module.parameters())
+
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], use_orig_params=False)
+    assert not strategy._fsdp_kwargs["use_orig_params"]
+
+    with pytest.raises(ValueError, match=r"`FSDPStrategy\(use_orig_params=False\)` but this is not supported"):
+        strategy.setup_module_and_optimizers(module, optimizer)
+
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+    assert strategy._fsdp_kwargs["use_orig_params"]
+    strategy.setup_module_and_optimizers(module, optimizer)
+    assert strategy._fsdp_kwargs["use_orig_params"]
 
 
 @RunIf(min_torch="1.12")
