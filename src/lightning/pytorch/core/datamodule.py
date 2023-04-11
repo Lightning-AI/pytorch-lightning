@@ -45,7 +45,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
-                dataset = RandomDataset(1, 100)  # you'll need to replace this with your data
+                dataset = RandomDataset(1, 100)
                 self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
 
             def train_dataloader(self):
