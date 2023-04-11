@@ -14,6 +14,10 @@ defaults:
   run:
     shell: bash
 
+
+env:
+  PROJECT_ID: pt-lightning
+
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
