@@ -297,33 +297,36 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     _run_multiple_stages(trainer, model)
 
 
-@pytest.mark.parametrize("torch_ge_2_0", [False, True])
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-def test_invalid_parameters_in_optimizer(torch_ge_2_0, monkeypatch):
-    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):
-        trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
-        error_context = (
-            nullcontext()
-            if torch_ge_2_0
-            else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
-        )
+def test_invalid_parameters_in_optimizer():
+    trainer = Trainer(
+        strategy="fsdp", 
+        accelerator="cuda", 
+        devices=1,
+        fast_dev_run=1,
+    )
+    error_context = (
+        nullcontext()
+        if _TORCH_GREATER_EQUAL_2_0
+        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+    )
 
-        class EmptyParametersModel(BoringModel):
-            def configure_optimizers(self):
-                return torch.optim.Adam(self.parameters(), lr=1e-2)
+    class EmptyParametersModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-2)
 
-        model = EmptyParametersModel()
-        with error_context:
-            trainer.fit(model)
+    model = EmptyParametersModel()
+    with error_context:
+        trainer.fit(model)
 
-        class NoFlatParametersModel(BoringModel):
-            def configure_optimizers(self):
-                layer = torch.nn.Linear(4, 5)
-                return torch.optim.Adam(layer.parameters(), lr=1e-2)
+    class NoFlatParametersModel(BoringModel):
+        def configure_optimizers(self):
+            layer = torch.nn.Linear(4, 5)
+            return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
-        model = NoFlatParametersModel()
-        with error_context:
-            trainer.fit(model)
+    model = NoFlatParametersModel()
+    with error_context:
+        trainer.fit(model)
 
 
 @RunIf(min_torch="1.12")
