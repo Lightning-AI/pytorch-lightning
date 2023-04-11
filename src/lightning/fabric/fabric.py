@@ -49,6 +49,9 @@ from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
 
 
+# Trigger full ci
+
+
 class Fabric:
     """Fabric accelerates your PyTorch training or inference code with minimal changes required.
 
