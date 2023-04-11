@@ -97,14 +97,6 @@ class XLAStrategy(DDPStrategy):
     def local_rank(self) -> int:
         return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
-    @staticmethod
-    def _validate_dataloader(dataloader: object) -> None:
-        if not has_len(dataloader):
-            raise TypeError(
-                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                " HINT: You can mock the length on your dataset to bypass this error."
-            )
-
     def connect(self, model: "pl.LightningModule") -> None:
         import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -147,7 +139,6 @@ class XLAStrategy(DDPStrategy):
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
-        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
