@@ -54,9 +54,7 @@ All steps combined, this is how your code will change:
 .. code-block:: diff
 
       import torch
-      import torch.nn.functional as F
       from lightning.pytorch.demos import WikiText2, Transformer
-
     + import lightning as L
 
     - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -79,7 +77,7 @@ All steps combined, this is how your code will change:
     -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
               output = model(input, target)
-              loss = F.nll_loss(output, target.view(-1))
+              loss = torch.nn.functional.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
