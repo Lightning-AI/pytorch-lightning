@@ -82,6 +82,7 @@ def _assert_save_equality(fabric, model, ckpt_path):
         assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
+@pytest.mark.skip(reason="Requires rework of FSDP checkpointing (#17323)")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")
 @pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
