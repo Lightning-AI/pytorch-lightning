@@ -417,7 +417,7 @@ class _ResultCollection(dict):
     def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
         result_metric = self[key]
         # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
-        result_metric.forward(value.to(self.device), batch_size)
+        result_metric.forward(value, batch_size)
         result_metric.has_reset = False
 
     @staticmethod
