@@ -169,7 +169,6 @@ subprojects:
       - "build-pl (3.9, 1.12, 11.6.1)"
       - "build-pl (3.9, 1.13, 11.7.1)"
       - "build-pl (3.10, 2.0, 11.7.1)"
-      - "build-xla (3.8, 2.0)"
 
   # SECTION: lightning_fabric
 

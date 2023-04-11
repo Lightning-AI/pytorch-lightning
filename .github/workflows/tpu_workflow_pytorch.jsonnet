@@ -10,6 +10,7 @@ local tputests = base.BaseTest {
 
   timeout: 3600, # 60 minutes, in seconds.
 
+  # https://github.com/pytorch/xla#docker
   image: 'gcr.io/tpu-pytorch/xla:r{PYTORCH_VERSION}_4.8_tpuvm',
 
   tpuSettings+: {
