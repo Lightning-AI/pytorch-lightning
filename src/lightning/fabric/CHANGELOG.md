@@ -39,6 +39,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed issue where running on TPUs would select the wrong device index ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
 
+## [2.0.1.post0] - 2023-04-11
+
+No changes
+
+
 ## [2.0.1] - 2023-03-30
 
 ### Changed
