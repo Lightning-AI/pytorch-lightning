@@ -2231,7 +2231,9 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 
 
 @RunIf(min_torch="2.0.0")
-@pytest.mark.xfail(AssertionError, reason="expected FunctionType found method <bound method BoringModel.forward of BoringModel(...)")
+@pytest.mark.xfail(
+    AssertionError, reason="expected FunctionType found method <bound method BoringModel.forward of BoringModel(...)"
+)
 def test_trainer_compiled_model(tmp_path, monkeypatch):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
