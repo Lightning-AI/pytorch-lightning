@@ -122,14 +122,14 @@ ______________________________________________________________________
 ```python
 # main.py
 # ! pip install torchvision
-import os, torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, torch.nn.functional as F
+import torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, torch.nn.functional as F
 import lightning as L
 
 # --------------------------------
 # Step 1: Define a LightningModule
 # --------------------------------
 # A LightningModule (nn.Module subclass) defines a full *system*
-# (ie: an LLM, difussion model, autoencoder, or simple image classifier).
+# (ie: an LLM, diffusion model, autoencoder, or simple image classifier).
 
 
 class LitAutoEncoder(L.LightningModule):
@@ -161,7 +161,7 @@ class LitAutoEncoder(L.LightningModule):
 # -------------------
 # Step 2: Define data
 # -------------------
-dataset = tv.datasets.MNIST(os.getcwd(), download=True, transform=tv.transforms.ToTensor())
+dataset = tv.datasets.MNIST(".", download=True, transform=tv.transforms.ToTensor())
 train, val = data.random_split(dataset, [55000, 5000])
 
 # -------------------
