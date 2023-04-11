@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import tempfile
 from copy import deepcopy
 from unittest import mock
 
@@ -22,7 +21,7 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
