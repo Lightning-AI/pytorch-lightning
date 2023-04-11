@@ -30,7 +30,8 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["fabric"]
-    timeout-minutes: 100  # should match the timeout in the jsonnet files
+    # 1 hour is the access token lifetime: https://cloud.google.com/docs/authentication/token-types#at-lifetime
+    timeout-minutes: 60  # should match the timeout in the jsonnet files
 
     steps:
     - uses: actions/checkout@v3
@@ -98,9 +99,9 @@ jobs:
         job_name=${job_name#job.batch/}
         echo "Waiting for $job_name to launch..."
 
-        kubectl get pods  # debugging
+        kubectl get pods  # information for debugging
 
-        pod_name=$(kubectl wait --for condition=ready --timeout=60m pod -l job-name=$job_name -o name
+        pod_name=$(kubectl wait --for condition=ready --timeout=30m pod -l job-name=$job_name -o name)
         echo "GKE pod name: $pod_name"
 
         kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
