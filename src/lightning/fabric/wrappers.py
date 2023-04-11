@@ -142,7 +142,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             original_module = super().__getattr__("_original_module")
             return getattr(original_module, item)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         # Check if the _FabricModule is fully initialized and has an _original_module
         if hasattr(self, "_original_module"):
             # Get the _original_module attribute
