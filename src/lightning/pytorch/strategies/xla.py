@@ -286,6 +286,7 @@ class XLAStrategy(DDPStrategy):
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.utils.utils import getenv_as
 
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+        if self.global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
             print()

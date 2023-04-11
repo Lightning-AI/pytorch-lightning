@@ -38,7 +38,10 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
     accelerator = TPUAccelerator()
-    strategy = XLAStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
+    strategy = XLAStrategy(
+        accelerator=accelerator,
+        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+    )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)
@@ -114,7 +117,8 @@ def tpu_all_gather_fn(strategy):
         tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
-        assert torch.equal(summed, torch.tensor(8.0))
+        device_count = strategy.accelerator.auto_device_count()
+        assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
         summed.backward()
         if sync_grads:
             assert torch.equal(tensor.grad, torch.tensor(1.0))
