@@ -139,7 +139,7 @@ jobs:
       run: echo ${{ needs.create-legacy-ckpts.outputs.pl-version }} >> ${{ env.legacy_dir }}/back-compatible-versions.txt
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v4
+      uses: peter-evans/create-pull-request@v5
       with:
         title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
