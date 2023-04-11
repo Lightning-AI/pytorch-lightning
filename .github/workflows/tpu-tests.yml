@@ -103,6 +103,8 @@ jobs:
         echo "Pod name: $pod_name"
         echo "pod_name=$pod_name" >> $GITHUB_OUTPUT
 
+        exit 0   # DEBUGGING
+
         echo "Waiting for the pod to be ready..."
         kubectl wait --for condition=ready --timeout=30m pod $pod_name
 
@@ -126,6 +128,9 @@ jobs:
         fi
       shell: bash
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Cleanup
       if: always()
       shell: bash
@@ -133,15 +138,13 @@ jobs:
         pod_name="${{ steps.deploy.outputs.pod_name }}"
         job_name="${{ steps.deploy.outputs.job_name }}"
         echo "Running cleanup: job $job_name, pod $pod_name"
-        # show all pods
-        kubectl get pods
         # get events for the current pod
         kubectl get event --field-selector involvedObject.name=$pod_name
-        # delete the job, this will also delete the pod
+        # delete the job, this will also delete the associated pod
         kubectl delete job $job_name
-
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
+        # show all resources
+        kubectl get pods
+        kubectl get jobs
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
