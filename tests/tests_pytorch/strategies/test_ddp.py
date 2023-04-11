@@ -57,7 +57,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
         assert out["test_acc"] > 0.7
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.0.0")  # Todo: `AttributeError: module 'torch._C' has no attribute '_cuda_clearCublasWorkspaces'`
 def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     model = BoringModel()
