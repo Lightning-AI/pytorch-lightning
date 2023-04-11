@@ -48,7 +48,6 @@ from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
 
-
 # Trigger full ci
 
 
