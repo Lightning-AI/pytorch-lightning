@@ -30,7 +30,6 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
-from lightning.fabric.utilities.data import has_len
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 

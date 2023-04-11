@@ -23,7 +23,6 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.utilities.data import has_len
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
