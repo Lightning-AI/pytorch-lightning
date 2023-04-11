@@ -58,6 +58,7 @@ def test_fsdp_cpu_offload():
     assert strategy.cpu_offload == config
 
 
+@RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 def test_fsdp_setup_optimizer_validation(torch_ge_2_0, monkeypatch):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
@@ -65,7 +66,6 @@ def test_fsdp_setup_optimizer_validation(torch_ge_2_0, monkeypatch):
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
 
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_0", torch_ge_2_0)
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_12", torch_ge_2_0)
 
     bad_optimizer_1 = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
     bad_optimizer_2 = Adam(module.parameters())
