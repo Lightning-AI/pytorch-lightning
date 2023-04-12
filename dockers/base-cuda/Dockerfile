@@ -78,6 +78,7 @@ RUN \
 
 COPY ./requirements/pytorch/ ./requirements/pytorch/
 COPY ./requirements/_integrations/ ./requirements/_integrations/
+COPY ./.actions/requirements/ ./.actions/requirements/
 
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
@@ -86,17 +87,21 @@ RUN \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
     # Disable cache \
-    export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
+    # prune packages with installation issues
+    pip install -q -r .actions/requirements.txt && \
+    python .actions/assistant.py requirements_prune_pkgs \
+      --packages="[lightning-colossalai,lightning-bagua]" \
+      --req_files="[requirements/_integrations/strategies.txt]" && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     pip install -r requirements/pytorch/devel.txt \
-      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
     # install separately because they require torch
-    pip install -r requirements/pytorch/strategies.txt -r --no-cache-dir
+    pip install -r requirements/_integrations/strategies.txt -r requirements/_integrations/strategies.txt
 
 RUN \
     # Show what we have
