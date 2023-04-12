@@ -91,16 +91,11 @@ RUN \
     for fpath in `ls requirements/**/*.txt`; do \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
-    # prune packages with installation issues
-    pip install -q jsonargparse && \
-    python .actions/assistant.py requirements_prune_pkgs \
-      --packages="[lightning-colossalai,lightning-bagua]" \
-      --req_files="[requirements/_integrations/strategies.txt]" && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     pip install -r requirements/pytorch/devel.txt \
       --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
     # install separately because they require torch
-    pip install -r requirements/_integrations/strategies.txt -r requirements/_integrations/strategies.txt
+    pip install -r requirements/_integrations/strategies.txt
 
 RUN \
     # Show what we have
