@@ -6,9 +6,8 @@ pytest-doctestplus>=0.9.0
 pytest-asyncio==0.20.3
 playwright==1.30.0
 httpx
-trio<0.22.0
+trio<0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
 psutil
 setuptools<67.7.0
-sqlmodel
 requests-mock
