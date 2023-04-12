@@ -57,7 +57,7 @@ def test_model_tpu_devices_1(tmpdir):
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
-@pytest.mark.parametrize("tpu_core", [1, 5])
+@pytest.mark.parametrize("tpu_core", [1, 3])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_index(tmpdir, tpu_core):
@@ -81,19 +81,19 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_tpu_devices_8(tmpdir):
+def test_model_multiple_tpu_devices(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=1,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
         limit_train_batches=4,
         limit_val_batches=4,
     )
 
-    # 8 cores needs a big dataset
+    # multiple cores needs a big dataset
     model = SerialLoaderBoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False, min_acc=0.05)
 
@@ -117,7 +117,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.mark.parametrize("tpu_core", [1, 5])
+@pytest.mark.parametrize("tpu_core", [1, 3])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
@@ -142,7 +142,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_16bit_tpu_devices_8(tmpdir):
+def test_model_16bit_multiple_tpu_devices(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -150,12 +150,12 @@ def test_model_16bit_tpu_devices_8(tmpdir):
         enable_progress_bar=False,
         max_epochs=1,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
         limit_train_batches=4,
         limit_val_batches=4,
     )
 
-    # 8 cores needs a big dataset
+    # multiple cores needs a big dataset
     model = SerialLoaderBoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False, min_acc=0.05)
 
@@ -180,7 +180,7 @@ def test_model_tpu_early_stop(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
     )
     trainer.fit(model)
     trainer.test(dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
@@ -231,13 +231,13 @@ def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU."""
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="tpu", devices=8)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="tpu", devices="auto")
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
-@pytest.mark.parametrize("devices", [[1, 8], "9, ", [9], [0], 2, 10])
+@pytest.mark.parametrize("devices", [[1, 8], "9, ", [9], [-1], 2, 10])
 def test_tpu_misconfiguration(devices, tpu_available):
-    with pytest.raises(TypeError, match="`devices` can only be"):
+    with pytest.raises(ValueError, match="`devices` can only be"):
         Trainer(accelerator="tpu", devices=devices)
 
 
@@ -248,7 +248,7 @@ def test_exception_when_no_tpu_found(xla_available):
         Trainer(accelerator="tpu", devices=8)
 
 
-@pytest.mark.parametrize("devices", [1, 8, [1]])
+@pytest.mark.parametrize("devices", [1, 4, [1]])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_set_when_using_tpu(devices):
@@ -266,7 +266,7 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
         default_root_dir=tmpdir,
         fast_dev_run=True,
         enable_checkpointing=False,
@@ -285,7 +285,10 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
     accelerator = TPUAccelerator()
-    strategy = XLAStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
+    strategy = XLAStrategy(
+        accelerator=accelerator,
+        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+    )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)
@@ -295,7 +298,8 @@ def tpu_sync_dist_fn(strategy):
     sync = _Sync(strategy.reduce, _should=True, _op=torch.distributed.ReduceOp.SUM)
     value = torch.tensor([1.0])
     value = sync(value)
-    assert value.item() == 8
+    world_size = TPUAccelerator.auto_device_count()
+    assert value.item() == world_size
 
 
 @RunIf(tpu=True)
@@ -322,7 +326,7 @@ def test_tpu_debug_mode(tmpdir):
         enable_progress_bar=False,
         max_epochs=4,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
         limit_train_batches=0.4,
         limit_val_batches=0.4,
         strategy=XLAStrategy(debug=True),
@@ -346,7 +350,7 @@ def test_tpu_host_world_size(tmpdir):
         enable_progress_bar=False,
         max_epochs=4,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
         limit_train_batches=0.4,
         limit_val_batches=0.4,
     )
@@ -359,6 +363,6 @@ def test_tpu_host_world_size(tmpdir):
 
 @RunIf(tpu=True)
 def test_device_type_when_tpu_strategy_passed(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=XLAStrategy(), accelerator="tpu", devices="auto")
     assert isinstance(trainer.strategy, XLAStrategy)
     assert isinstance(trainer.accelerator, TPUAccelerator)
