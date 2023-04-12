@@ -187,7 +187,7 @@ class CombinedLoader(Iterable):
               through the rest of the iterables.
             * ``max_size``: stops after the longest iterable (the one with most items) is done, while returning None
               for the exhausted iterables.
-            * ``sequential``: completely consumes ecah iterable sequentially, and returns a triplet
+            * ``sequential``: completely consumes each iterable sequentially, and returns a triplet
               ``(data, idx, iterable_idx)``
 
     Examples:
