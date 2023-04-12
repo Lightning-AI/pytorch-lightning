@@ -95,7 +95,7 @@ RUN \
     pip install -r requirements/pytorch/devel.txt \
       --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
     # install separately because they require torch
-    pip install -r requirements/_integrations/strategies.txt
+    pip install -r requirements/pytorch/strategies.txt
 
 RUN \
     # Show what we have
