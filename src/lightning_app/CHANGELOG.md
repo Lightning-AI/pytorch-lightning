@@ -8,11 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-
-
-### Fixed
-
--
+- Added `healthz` endpoint to plugin server ([#16882](https://github.com/Lightning-AI/lightning/pull/16882))
+- System customization syncing for jobs run ([#16932](https://github.com/Lightning-AI/lightning/pull/16932))
 
 
 ## [1.9.4] - 2023-03-01
