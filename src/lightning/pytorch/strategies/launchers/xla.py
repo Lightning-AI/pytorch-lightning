@@ -70,13 +70,20 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         return_queue = mp.Manager().Queue()
         import torch_xla.distributed.xla_multiprocessing as xmp
+        from torch_xla.experimental import pjrt
+
+        spawn_kwargs = {}
+        if pjrt.using_pjrt() and (nprocs := self._strategy.num_processes) == 1:
+            # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
+            # otherwise it will use all devices
+            spawn_kwargs["nprocs"] = nprocs
 
         process_context = xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
             join=False,  # we will join ourselves to get the process references
+            **spawn_kwargs,
         )
         # xla will not actually create processes if only 1 device
         if process_context is not None:
@@ -107,7 +114,8 @@ class _XLALauncher(_MultiProcessingLauncher):
         from torch_xla.experimental import pjrt
 
         if pjrt.using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
-            # multi-threading under PJRT, objects need to be deepcopied
+            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
+            # so when there's more than one (multithreading), objects need to be deep-copied
             import copy
 
             trainer = copy.deepcopy(trainer)

@@ -127,14 +127,15 @@ class XLAStrategy(DDPStrategy):
 
     @property
     def is_distributed(self) -> bool:
-        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
-        import torch_xla.core.xla_env_vars as xenv
         from torch_xla.experimental import pjrt
 
         if pjrt.using_pjrt():
             from multiprocessing import current_process
 
             return current_process().name != "MainProcess" and self.world_size != 1
+
+        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
+        import torch_xla.core.xla_env_vars as xenv
 
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
