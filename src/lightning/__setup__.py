@@ -42,7 +42,7 @@ def _prepare_extras() -> Dict[str, Any]:
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
     extras["extra"] += extras["cloud"] + extras["ui"] + extras["components"]
-    extras["all"] = extras["extra"]
+    extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
     print("The extras are: ", extras)
