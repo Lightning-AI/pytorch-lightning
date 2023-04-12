@@ -95,6 +95,8 @@ RUN \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     pip install -r requirements/pytorch/devel.txt \
       --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
+    # install separately because they require torch
+    pip install -r requirements/pytorch/strategies.txt -r --no-cache-dir
 
 RUN \
     # Show what we have
