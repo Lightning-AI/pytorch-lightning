@@ -17,9 +17,7 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
 .. code-block:: diff
 
       import torch
-      import torch.nn.functional as F
       from lightning.pytorch.demos import WikiText2, Transformer
-
     + import lightning as L
 
     - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,7 +40,7 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
     -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
               output = model(input, target)
-              loss = F.nll_loss(output, target.view(-1))
+              loss = torch.nn.functional.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
