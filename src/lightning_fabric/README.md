@@ -22,52 +22,181 @@ ______________________________________________________________________
 
 </div>
 
-## Maximum flexibility, minimum code changes
+# Lightning Fabric: Expert control.
 
-With just a few code changes, run any PyTorch model on any distributed hardware, no boilerplate!
+Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
-- Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-- All the device logic boilerplate is handled for you
-- Designed with multi-billion parameter models in mind
-- Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more
+Fabric is designed for the most complex models like foundation model scaling, LLMs, diffusion, transformers, reinforcement learning, active learning. Of any size.
+
+<table>
+<tr>
+<th>What to change</th>
+<th>Resulting Fabric Code (copy me!)</th>
+</tr>
+<tr>
+<td>
+<sub>
 
 ```diff
 + import lightning as L
+  import torch; import torchvision as tv
 
-  import torch
-  import torch.nn as nn
-  from torch.utils.data import DataLoader, Dataset
-
-  class PyTorchModel(nn.Module):
-      ...
-
-  class PyTorchDataset(Dataset):
-      ...
-
-+ fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
++ fabric = L.Fabric()
 + fabric.launch()
 
-- device = "cuda" if torch.cuda.is_available() else "cpu
-  model = PyTorchModel(...)
-  optimizer = torch.optim.SGD(model.parameters())
+  model = tv.models.resnet18()
+  optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+- device = "cuda" if torch.cuda.is_available() else "cpu"
+- model.to(device)
 + model, optimizer = fabric.setup(model, optimizer)
-  dataloader = DataLoader(PyTorchDataset(...), ...)
-+ dataloader = fabric.setup_dataloaders(dataloader)
-  model.train()
 
+  dataset = tv.datasets.CIFAR10("data", download=True,
+                                train=True,
+                                transform=tv.transforms.ToTensor())
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
++ dataloader = fabric.setup_dataloaders(dataloader)
+
+  model.train()
+  num_epochs = 10
   for epoch in range(num_epochs):
       for batch in dataloader:
-          input, target = batch
--         input, target = input.to(device), target.to(device)
+          inputs, labels = batch
+-         inputs, labels = inputs.to(device), labels.to(device)
           optimizer.zero_grad()
-          output = model(input)
-          loss = loss_fn(output, target)
+          outputs = model(inputs)
+          loss = torch.nn.functional.cross_entropy(outputs, labels)
 -         loss.backward()
 +         fabric.backward(loss)
           optimizer.step()
-          lr_scheduler.step()
 ```
+
+</sub>
+<td>
+<sub>
+
+```Python
+import lightning as L
+import torch; import torchvision as tv
+
+fabric = L.Fabric()
+fabric.launch()
+
+model = tv.models.resnet18()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+model, optimizer = fabric.setup(model, optimizer)
+
+dataset = tv.datasets.CIFAR10("data", download=True,
+                              train=True,
+                              transform=tv.transforms.ToTensor())
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
+dataloader = fabric.setup_dataloaders(dataloader)
+
+model.train()
+num_epochs = 10
+for epoch in range(num_epochs):
+    for batch in dataloader:
+        inputs, labels = batch
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = torch.nn.functional.cross_entropy(outputs, labels)
+        fabric.backward(loss)
+        optimizer.step()
+```
+
+</sub>
+</td>
+</tr>
+</table>
+
+## Key features
+
+<details>
+  <summary>Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training</summary>
+
+```python
+# Use your available hardware
+# no code changes needed
+fabric = Fabric()
+
+# Run on GPUs (CUDA or MPS)
+fabric = Fabric(accelerator="gpu")
+
+# 8 GPUs
+fabric = Fabric(accelerator="gpu", devices=8)
+
+# 256 GPUs, multi-node
+fabric = Fabric(accelerator="gpu", devices=8, num_nodes=32)
+
+# Run on TPUs
+fabric = Fabric(accelerator="tpu")
+```
+
+</details>
+
+<details>
+  <summary>Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box</summary>
+
+```python
+# Use state-of-the-art distributed training techniques
+fabric = Fabric(strategy="ddp")
+fabric = Fabric(strategy="deepspeed")
+fabric = Fabric(strategy="fsdp")
+
+# Switch the precision
+fabric = Fabric(precision="16-mixed")
+fabric = Fabric(precision="64")
+```
+
+</details>
+
+<details>
+  <summary>All the device logic boilerplate is handled for you</summary>
+
+```diff
+  # no more of this!
+- model.to(device)
+- batch.to(device)
+```
+
+</details>
+
+<details>
+  <summary>Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more</summary>
+
+```python
+import lightning as L
+
+
+class MyCustomTrainer:
+    def __init__(self, accelerator="auto", strategy="auto", devices="auto", precision="32-true"):
+        self.fabric = L.Fabric(accelerator=accelerator, strategy=strategy, devices=devices, precision=precision)
+
+    def fit(self, model, optimizer, dataloader, max_epochs):
+        self.fabric.launch()
+
+        model, optimizer = self.fabric.setup(model, optimizer)
+        dataloader = self.fabric.setup_dataloaders(dataloader)
+        model.train()
+
+        for epoch in range(max_epochs):
+            for batch in dataloader:
+                input, target = batch
+                optimizer.zero_grad()
+                output = model(input)
+                loss = loss_fn(output, target)
+                self.fabric.backward(loss)
+                optimizer.step()
+```
+
+You can find a more extensive example in our [examples](../../examples/fabric/build_your_own_trainer)
+
+</details>
+
+______________________________________________________________________
+
+<div align="center">
+    <a href="https://lightning.ai/docs/fabric/stable/">Read the Lightning Fabric docs</a>
+</div>
 
 ______________________________________________________________________
 

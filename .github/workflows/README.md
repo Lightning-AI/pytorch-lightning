@@ -10,7 +10,7 @@
 | .azure-pipelines/ipu-tests.yml         | Run only IPU-specific tests.                                                                                                                                                | IPU           |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
 | .azure-pipelines/gpu-benchmark.yml     | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
-| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests.                                                                                                                                                | TPU           |
+| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]'                                                                                                  | TPU           |
 
 - \*Accelerators used in CI
 
