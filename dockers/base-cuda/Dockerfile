@@ -96,7 +96,7 @@ RUN \
     pip install -r requirements/pytorch/devel.txt \
       --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
     # install in two steps because torch needs to be available
-    pip -r requirements/pytorch/strategies.txt -r requirements/_integrations/strategies.txt \
+    pip install -r requirements/pytorch/strategies.txt -r requirements/_integrations/strategies.txt \
       --no-cache-dir
 
 RUN \
