@@ -119,7 +119,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         max_epochs=2,
         limit_train_batches=5,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),

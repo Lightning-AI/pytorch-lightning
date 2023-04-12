@@ -38,7 +38,9 @@ class SingleDeviceStrategy(Strategy):
         precision_plugin: PrecisionPlugin | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
-        self._root_device = torch.device(device)
+        if not isinstance(device, torch.device):
+            device = torch.device(device)
+        self._root_device = device
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1
