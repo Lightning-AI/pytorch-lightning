@@ -78,7 +78,6 @@ RUN \
 
 COPY requirements/pytorch/ requirements/pytorch/
 COPY requirements/_integrations/ requirements/_integrations/
-COPY .actions/requirements/ .actions/requirements/
 
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
@@ -93,7 +92,7 @@ RUN \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     # prune packages with installation issues
-    pip install -q -r .actions/requirements.txt && \
+    pip install -q jsonargparse && \
     python .actions/assistant.py requirements_prune_pkgs \
       --packages="[lightning-colossalai,lightning-bagua]" \
       --req_files="[requirements/_integrations/strategies.txt]" && \
