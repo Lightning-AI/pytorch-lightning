@@ -77,6 +77,7 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 COPY ./requirements/pytorch/ ./requirements/pytorch/
+COPY ./requirements/_integrations/ ./requirements/_integrations/
 
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
