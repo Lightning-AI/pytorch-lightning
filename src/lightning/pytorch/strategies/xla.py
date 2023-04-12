@@ -93,6 +93,7 @@ class XLAStrategy(DDPStrategy):
         return xm.xla_device()
 
     def connect(self, model: "pl.LightningModule") -> None:
+        # this is called in the spawned process, so no need to use `xmp.MpModelWrapper`
         self.wrapped_model = _LightningModuleWrapperBase(model)
         return super().connect(model)
 
