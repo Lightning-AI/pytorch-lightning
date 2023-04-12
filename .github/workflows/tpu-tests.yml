@@ -76,7 +76,7 @@ jobs:
     - uses: google-github-actions/get-gke-credentials@v1
       with:
         # see: https://console.cloud.google.com/kubernetes/list/overview?project=pt-lightning
-        cluster_name: lightning-cluster-autopilot
+        cluster_name: lightning-cluster
         # recommended zone for v3.8: https://cloud.google.com/tpu/docs/regions-zones
         location: us-central1-a
 
