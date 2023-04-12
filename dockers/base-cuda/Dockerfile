@@ -76,9 +76,9 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements/pytorch/ ./requirements/pytorch/
-COPY ./requirements/_integrations/ ./requirements/_integrations/
-COPY ./.actions/requirements/ ./.actions/requirements/
+COPY requirements/pytorch/ requirements/pytorch/
+COPY requirements/_integrations/ requirements/_integrations/
+COPY .actions/requirements/ .actions/requirements/
 
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
