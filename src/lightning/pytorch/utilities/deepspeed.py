@@ -105,3 +105,5 @@ def convert_zero_checkpoint_to_fp32_state_dict(
 
     print(f"Saving fp32 state dict to {output_file}")
     torch.save(client_state, output_file)
+    
+    return client_state
