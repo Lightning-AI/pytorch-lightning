@@ -17,7 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -121,9 +121,7 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(
-            math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
-        )
+        return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary:
