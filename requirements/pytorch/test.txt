@@ -1,5 +1,4 @@
 coverage ==6.5.0
-codecov ==2.1.12
 pytest ==7.2.0
 pytest-cov ==4.0.0
 pytest-forked ==1.4.0
