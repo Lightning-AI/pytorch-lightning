@@ -8,12 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-
+- Let `TorchCollective` works on the `torch.distributed` WORLD process group by default ([#16995](https://github.com/Lightning-AI/lightning/pull/16995))
 
 ### Fixed
 
--
-
+- fixed for all `_cuda_clearCublasWorkspaces` on teardown ([#16907](https://github.com/Lightning-AI/lightning/pull/16907))
 - Improved the error message for installing tensorboard or tensorboardx ([#17053](https://github.com/Lightning-AI/lightning/pull/17053))
 
 

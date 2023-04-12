@@ -8,34 +8,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Changes to the `NeptuneLogger` ([#16761](https://github.com/Lightning-AI/lightning/pull/16761)):
+- Changed to the `NeptuneLogger` ([#16761](https://github.com/Lightning-AI/lightning/pull/16761)):
   * It now supports neptune-client 0.16.16 and neptune >=1.0, and we have replaced the `log()` method with `append()` and `extend()`.
   * It now accepts a namespace `Handler` as an alternative to `Run` for the `run` argument. This means that you can call it like `NeptuneLogger(run=run["some/namespace"])` to log everything to the `some/namespace/` location of the run.
+- Allow `sys.argv` and args in `LightningCLI` ([#16808](https://github.com/Lightning-AI/lightning/pull/16808))
+- Moveed HPU broadcast override to the HPU strategy file ([#17011](https://github.com/Lightning-AI/lightning/pull/17011))
 
 ### Depercated
 
--
-
-
 - Removed registration of `ShardedTensor` state dict hooks in `LightningModule.__init__` with `torch>=2.1` ([#16892](https://github.com/Lightning-AI/lightning/pull/16892))
-
 - Removed the `lightning.pytorch.core.saving.ModelIO` class interface ([#16974](https://github.com/Lightning-AI/lightning/pull/16974))
 
 
 ### Fixed
 
 - Fixed `num_nodes` not being set for `DDPFullyShardedNativeStrategy` ([#17160](https://github.com/Lightning-AI/lightning/pull/17160))
-
 - Fixed parsing the precision config for inference in `DeepSpeedStrategy` ([#16973](https://github.com/Lightning-AI/lightning/pull/16973))
-
-
 - Fixed the availability check for `rich` that prevented Lightning to be imported in Google Colab ([#17156](https://github.com/Lightning-AI/lightning/pull/17156))
-
-
-
+- Fixed for all `_cuda_clearCublasWorkspaces` on teardown ([#16907](https://github.com/Lightning-AI/lightning/pull/16907))
 - The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
-
-
 - Improved the error message for installing tensorboard or tensorboardx ([#17053](https://github.com/Lightning-AI/lightning/pull/17053))
 
 
