@@ -74,8 +74,8 @@ class TPUAccelerator(Accelerator):
     @functools.lru_cache(maxsize=1)
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        from torch_xla.experimental import pjrt, tpu
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.experimental import pjrt, tpu
         from torch_xla.utils.utils import getenv_as
 
         if pjrt.using_pjrt():

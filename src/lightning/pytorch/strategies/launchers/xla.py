@@ -105,9 +105,11 @@ class _XLALauncher(_MultiProcessingLauncher):
     ) -> None:
         import torch_xla.core.xla_model as xm
         from torch_xla.experimental import pjrt
+
         if pjrt.using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
             # multi-threading under PJRT, objects need to be deepcopied
             import copy
+
             trainer = copy.deepcopy(trainer)
             function = copy.deepcopy(function)
             args = copy.deepcopy(args)
