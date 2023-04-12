@@ -83,12 +83,11 @@ class SimpleProfiler(Profiler):
 
         for a, d in self.recorded_durations.items():
             d_tensor = torch.tensor(d)
-            mean_d = torch.mean(d_tensor).item()
             len_d = len(d)
             sum_d = torch.sum(d_tensor).item()
             percentage_d = 100.0 * sum_d / total_duration
 
-            report.append((a, mean_d, len_d, sum_d, percentage_d))
+            report.append((a, sum_d / len_d, len_d, sum_d, percentage_d))
 
         report.sort(key=lambda x: x[4], reverse=True)
         total_calls = sum(x[2] for x in report)
@@ -98,10 +97,9 @@ class SimpleProfiler(Profiler):
         report = []
         for action, d in self.recorded_durations.items():
             d_tensor = torch.tensor(d)
-            mean_d = torch.mean(d_tensor).item()
             sum_d = torch.sum(d_tensor).item()
 
-            report.append((action, mean_d, sum_d))
+            report.append((action, sum_d / len(d), sum_d))
 
         report.sort(key=lambda x: x[1], reverse=True)
         return report
