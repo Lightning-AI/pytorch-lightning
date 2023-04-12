@@ -303,7 +303,7 @@ class TensorBoardLogger(Logger):
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
-        return {k: str(v) if isinstance(v, (Tensor, torch.Tensor)) and v.ndim > 1 else v for k, v in params.items()}
+        return {k: str(v) if hasattr(v, "ndim") and v.ndim > 1 else v for k, v in params.items()}
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
