@@ -76,16 +76,12 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements/pytorch/ ./requirements/pytorch/
-COPY ./.actions/assistant.py assistant.py
-
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
-    pip install -q fire && \
     # Disable cache \
     export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
@@ -93,23 +89,10 @@ RUN \
     for fpath in `ls requirements/**/*.txt`; do \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
-
-    rm assistant.py && \
-    # Install base requirements \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    pip install -r requirements/pytorch/base.txt \
+    pip install -r requirements/pytorch/devel.txt \
+      -r requirements/pytorch/strategies.txt -r requirements/_integrations/strategies.txt \
       --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
-
-
-RUN \
-    # install rest of strategies
-    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt \
-      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
-
-COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
-COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
 RUN \
     # Show what we have
@@ -118,4 +101,5 @@ RUN \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
     python requirements/pytorch/check-avail-extras.py && \
+    python requirements/pytorch/check-avail-strategies.py && \
     rm -rf requirements/
