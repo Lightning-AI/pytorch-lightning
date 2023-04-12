@@ -1172,7 +1172,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
 
 
 def test_ckpt_overriding_enabled_after_rerun_new_trainer(tmpdir):
-    """Check that previous checkpoints are renamed to have the correct version suffix when new trainer instances
+    """Check that previous checkpoints get overwritten and no suffixes are generated when new trainer instances
     are used."""
     epochs = 2
     for i in range(epochs):
@@ -1199,7 +1199,7 @@ def test_ckpt_overriding_enabled_after_rerun_new_trainer(tmpdir):
 
 
 def test_ckpt_overriding_enabled_after_rerun_same_trainer(tmpdir):
-    """Check that previous checkpoints are renamed to have the correct version suffix when the same trainer
+    """Check that previous checkpoints get overwritten and no suffixes are generated when the same trainer
     instance is used."""
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test", override_existing=True)
     mc.STARTING_VERSION = 9
