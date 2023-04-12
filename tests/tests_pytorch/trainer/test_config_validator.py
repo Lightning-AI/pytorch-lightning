@@ -20,6 +20,7 @@ from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_wrong_train_setting(tmpdir):
@@ -135,6 +136,7 @@ def test_trainer_manual_optimization_config():
         trainer.fit(model)
 
 
+@RunIf(max_torch="2.0.0")  # Todo: `AttributeError: module 'torch._C' has no attribute '_cuda_clearCublasWorkspaces'`
 @pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}, {"accelerator": "gpu", "strategy": "dp"}])
 @pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
 def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):

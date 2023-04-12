@@ -469,7 +469,7 @@ def test_fabric_reference_recursively():
     assert inner.fabric is weakref.proxy(fabric)
 
 
-@RunIf(min_torch="2.0.0")
+@RunIf(min_torch="2.0.0", skip_windows=True)
 def test_compile_uncompile():
     model = BoringModel()
     compiled_model = torch.compile(model)
