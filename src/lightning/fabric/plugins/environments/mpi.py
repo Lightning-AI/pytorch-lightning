@@ -108,7 +108,7 @@ class MPIEnvironment(ClusterEnvironment):
         hostname = socket.gethostname()
         all_hostnames = self._comm_world.gather(hostname, root=0)
         # sort all the hostnames, and find unique ones
-        unique_hosts = sorted(list(set(all_hostnames)))
+        unique_hosts = sorted(set(all_hostnames))
         unique_hosts = self._comm_world.bcast(unique_hosts, root=0)
         # find the index for this host in the list of hosts:
         self._node_rank = unique_hosts.index(hostname)
