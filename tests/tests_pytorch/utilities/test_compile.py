@@ -148,3 +148,21 @@ def test_trainer_compiled_model_that_logs(tmp_path):
     trainer.fit(compiled_model)
 
     assert set(trainer.callback_metrics) == {"loss"}
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(min_torch="2.0.0")
+def test_trainer_compiled_model_test(tmp_path):
+    skip_if_unsupported()
+
+    model = BoringModel()
+    compiled_model = torch.compile(model)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        fast_dev_run=True,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.test(compiled_model)

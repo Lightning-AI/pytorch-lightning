@@ -20,7 +20,7 @@ import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.callbacks.timer import Timer
@@ -165,6 +165,9 @@ def _no_grad_context(loop_run: Callable) -> Callable:
             context_manager = torch.no_grad
         elif _TORCH_GREATER_EQUAL_1_13 and isinstance(self.trainer.strategy, FSDPStrategy):
             # https://github.com/pytorch/pytorch/issues/95957
+            context_manager = torch.no_grad
+        elif _TORCH_EQUAL_2_0 and self.trainer.lightning_module._compiler_ctx is not None:
+            # avoid: `RuntimeError: Inference tensors do not track version counter` fixed in v2.1
             context_manager = torch.no_grad
         elif self.inference_mode:
             context_manager = torch.inference_mode
