@@ -95,9 +95,6 @@ RUN \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     pip install -r requirements/pytorch/devel.txt \
       --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
-    # install in two steps because torch needs to be available
-    pip install -r requirements/pytorch/strategies.txt -r requirements/_integrations/strategies.txt \
-      --no-cache-dir
 
 RUN \
     # Show what we have
@@ -106,5 +103,4 @@ RUN \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
     python requirements/pytorch/check-avail-extras.py && \
-    python requirements/pytorch/check-avail-strategies.py && \
     rm -rf requirements/
