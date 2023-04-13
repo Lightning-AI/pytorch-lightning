@@ -55,7 +55,13 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
 if _fsdp_available:
-    from torch.distributed.fsdp import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp import (
+        CPUOffload,
+        FullStateDictConfig,
+        FullyShardedDataParallel,
+        MixedPrecision,
+        StateDictType,
+    )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
     FullyShardedDataParallel = None  # type: ignore[misc,assignment]
@@ -68,42 +74,37 @@ if _distributed_available:
 log = logging.getLogger(__name__)
 
 
+def _clean_up_state_dict(state_dict: Dict[str, Any], prefix: str = "_forward_module.") -> Dict[str, Any]:
+    prefix_len = len(prefix)
+    clean_state_dict = {k[prefix_len:]: v for k, v in state_dict.items()}
+    return clean_state_dict
+
+
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can
-        bring breaking changes and new features with the next release of PyTorch.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
     at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
     to ZeRO-Stage 3.
 
-    For more information `check out <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
+    For more information check out
+    `this blogpost <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
 
     Defaults have been set and options have been exposed, but may require configuration
     based on your level of memory/speed efficiency. We suggest having a look at
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
-            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
-            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default: no offloading
-        backward_prefetch:
-            This is an experimental feature that is subject to change in the
-            the near future. It allows users to enable two different backward_prefetch
-            algorithms to help backward communication and computation overlapping.
-            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-        mixed_precision:
-            Mixed Precision config. By default, Lightning will enable FP16 if ``precision="16-mixed"``
-            or BF16 if ``precision="bf16-mixed"`` unless a config is passed in.
-            This is only available in PyTorch 1.12 and later.
+        cpu_offload: See ``cpu_offload`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+        mixed_precision: See ``mixed_precision`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
         activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
-        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
+        \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
 
     """
 
@@ -149,6 +150,18 @@ class FSDPStrategy(ParallelStrategy):
             # Avoids the need for user to reference params in `configure_optimizers` via
             # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
             self.kwargs.setdefault("use_orig_params", True)
+
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        """Returns model state."""
+        assert self.model is not None
+
+        with FullyShardedDataParallel.state_dict_type(
+            module=self.model,
+            state_dict_type=StateDictType.FULL_STATE_DICT,
+            state_dict_config=FullStateDictConfig(offload_to_cpu=self.cpu_offload.offload_params, rank0_only=True),
+        ):
+            state_dict = self.model.state_dict()
+            return _clean_up_state_dict(state_dict)
 
     @property
     def root_device(self) -> torch.device:
