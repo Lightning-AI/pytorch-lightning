@@ -13,7 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from typing import Any, Dict, IO, Mapping, Optional, Sequence, Union
+from typing import Any, cast, Dict, IO, Mapping, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
@@ -32,27 +32,34 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     Example::
 
-        class MyDataModule(LightningDataModule):
-            def __init__(self):
-                super().__init__()
+        import lightning as L
+        import torch.utils.data as data
+
+        class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
-                # download, split, etc...
+                # download, IO, etc. Useful with shared filesystems
                 # only called on 1 GPU/TPU in distributed
+                ...
+
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
+                dataset = range(100)
+                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
+
             def train_dataloader(self):
-                train_split = Dataset(...)
-                return DataLoader(train_split)
+                return data.DataLoader(self.train)
+
             def val_dataloader(self):
-                val_split = Dataset(...)
-                return DataLoader(val_split)
+                return data.DataLoader(self.val)
+
             def test_dataloader(self):
-                test_split = Dataset(...)
-                return DataLoader(test_split)
+                return data.DataLoader(self.test)
+
             def teardown(self):
-                # clean up after fit or test
+                # clean up state after the trainer stops, delete files...
                 # called on every process in DDP
+                ...
     """
 
     name: Optional[str] = None
@@ -138,13 +145,13 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         datamodule = cls(**datamodule_kwargs, **special_kwargs)
         if train_dataset is not None:
-            datamodule.train_dataloader = train_dataloader  # type: ignore[assignment]
+            datamodule.train_dataloader = train_dataloader  # type: ignore[method-assign]
         if val_dataset is not None:
-            datamodule.val_dataloader = val_dataloader  # type: ignore[assignment]
+            datamodule.val_dataloader = val_dataloader  # type: ignore[method-assign]
         if test_dataset is not None:
-            datamodule.test_dataloader = test_dataloader  # type: ignore[assignment]
+            datamodule.test_dataloader = test_dataloader  # type: ignore[method-assign]
         if predict_dataset is not None:
-            datamodule.predict_dataloader = predict_dataloader  # type: ignore[assignment]
+            datamodule.predict_dataloader = predict_dataloader  # type: ignore[method-assign]
         return datamodule
 
     def state_dict(self) -> Dict[str, Any]:
@@ -169,7 +176,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
+    ) -> Self:
         r"""
         Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
@@ -223,7 +230,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             )
 
         """
-        return _load_from_checkpoint(
+        loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
             map_location=None,
@@ -231,3 +238,4 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             strict=None,
             **kwargs,
         )
+        return cast(Self, loaded)

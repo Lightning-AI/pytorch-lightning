@@ -3,25 +3,8 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request_target:
+  pull_request:  # TODO: set to target later
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
-    paths:
-      - ".actions/**"
-      - ".github/workflows/tpu-tests.yml"
-      - "dockers/base-xla/*"
-      - "requirements/fabric/**"
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "tests/tests_fabric/**"
-      - "requirements/pytorch/**"
-      - "src/lightning/pytorch/**"
-      - "src/pytorch_lightning/*"
-      - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -39,16 +22,16 @@ defaults:
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
-    if: github.event.pull_request.draft == false
+    # run only when merged to master or the PR title contains '[TPU]'
+    if: ${{ github.event.pull_request.merged == true || contains(github.event.pull_request.title, '[TPU]') }}
     env:
       PYTHON_VER: 3.8
     strategy:
-      fail-fast: true
-      max-parallel: 1  # run sequential
+      fail-fast: false
       matrix:
-        # TODO: add also lightning
         pkg-name: ["fabric", "pytorch"]
-    timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
+    # 1 hour is the access token lifetime: https://cloud.google.com/docs/authentication/token-types#at-lifetime
+    timeout-minutes: 60  # should match the timeout in the jsonnet files
 
     steps:
     - uses: actions/checkout@v3
@@ -66,7 +49,7 @@ jobs:
        git fetch origin 5e88ac24f631c27045e62f0e8d5dfcf34e425e25:stable
        git checkout stable
 
-    - uses: actions/setup-go@v3
+    - uses: actions/setup-go@v4
       with:
         go-version: '1.19'
 
@@ -84,10 +67,10 @@ jobs:
         fname = f'dockers/base-xla/tpu_workflow_{os.getenv("SCOPE")}.jsonnet'
         with open(fname) as fo:
             data = fo.read()
-        data = data.replace('{PYTORCH_VERSION}', os.getenv("XLA_VER"))
-        data = data.replace('{PYTHON_VERSION}', os.getenv("PYTHON_VER"))
-        data = data.replace('{PR_NUMBER}', os.getenv("PR_NUMBER"))
-        data = data.replace('{SHA}', os.getenv("SHA"))
+        data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
+        data = data.replace('{PYTHON_VERSION}', os.environ["PYTHON_VER"])
+        data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
+        data = data.replace('{SHA}', os.environ["SHA"])
         with open(fname, "w") as fw:
             fw.write(data)
       shell: python
@@ -105,28 +88,24 @@ jobs:
         location: ${{ env.GKE_ZONE }}
 
     - name: Deploy cluster
+      id: deploy
       run: |
+        set -ue
         export PATH=$PATH:$HOME/go/bin
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -f -)
+
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -o name -f -)
         job_name=${job_name#job.batch/}
-        job_name=${job_name% created}
-        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
-        echo "GKE pod name: $pod_name"
-        echo "Waiting on kubernetes job: $job_name"
-        status_code=2 &&
-        # Check on the job periodically. Set the status code depending on what happened to the job in Kubernetes.
-        printf "Waiting for job to finish: "
-        while true; do
-          if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then
-            status_code=1 && break;
-          elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1"; then
-            status_code=0 && break;
-          else
-            printf ".";
-          fi;
-          sleep 5;
-        done
-        echo "Done waiting. Job status code: $status_code"
+        echo "Launched job name $job_name"
+        echo "job_name=$job_name" >> $GITHUB_OUTPUT
+
+        pod_name=$(kubectl get pods --selector job-name=$job_name -o name)
+        pod_name=${pod_name#pod/}
+        echo "Pod name: $pod_name"
+        echo "pod_name=$pod_name" >> $GITHUB_OUTPUT
+
+        echo "Waiting for the pod to be ready..."
+        kubectl wait --for condition=ready --timeout=30m pod $pod_name
+
         kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
         if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
           # successful run. split the output into logs + coverage report
@@ -137,8 +116,30 @@ jobs:
           # failed run, print everything
           cat /tmp/full_output.txt;
         fi
-        exit $status_code
+
+        failed=$(kubectl get job $job_name -o jsonpath={.status.failed})
+        if [ -z "$failed" ] || [ $failed -eq 1 ]; then
+          echo "Error: the job failed"
+          kubectl get job $job_name -o jsonpath={.status}
+          kubectl get pod $pod_name -o jsonpath={.status}
+          exit 1
+        fi
       shell: bash
+
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: |
+        pod_name="${{ steps.deploy.outputs.pod_name }}"
+        job_name="${{ steps.deploy.outputs.job_name }}"
+        echo "Running cleanup: job $job_name, pod $pod_name"
+        # get events for the current pod
+        kubectl get event --field-selector involvedObject.name=$pod_name
+        # delete the job, this will also delete the associated pod
+        kubectl delete job $job_name
+        # show all resources
+        kubectl get pods
+        kubectl get jobs
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

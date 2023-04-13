@@ -16,33 +16,13 @@ import urllib
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
-from lightning_cloud.openapi import ApiClient, AuthServiceApi, V1LoginRequest
 from websocket import WebSocketApp
 
 from lightning.app.core import constants
-from lightning.app.utilities.login import Auth
+from lightning.app.utilities.auth import _AuthTokenGetter
 
 
-# This class joins common things for reading logs,
-# initialization and getting API token
-class _LogsSocketAPI:
-    def __init__(self, api_client: ApiClient):
-        self.api_client = api_client
-        self._auth = Auth()
-        self._auth.authenticate()
-        self._auth_service = AuthServiceApi(api_client)
-
-    def _get_api_token(self) -> str:
-        token_resp = self._auth_service.auth_service_login(
-            body=V1LoginRequest(
-                username=self._auth.username,
-                api_key=self._auth.api_key,
-            )
-        )
-        return token_resp.token
-
-
-class _LightningLogsSocketAPI(_LogsSocketAPI):
+class _LightningLogsSocketAPI(_AuthTokenGetter):
     @staticmethod
     def _app_logs_socket_url(host: str, project_id: str, app_id: str, token: str, component: str) -> str:
         return (
@@ -115,7 +95,7 @@ class _LightningLogsSocketAPI(_LogsSocketAPI):
         return WebSocketApp(socket_url, on_message=on_message_callback, on_error=on_error_callback)
 
 
-class _ClusterLogsSocketAPI(_LogsSocketAPI):
+class _ClusterLogsSocketAPI(_AuthTokenGetter):
     @staticmethod
     def _cluster_logs_socket_url(
         host: str, cluster_id: str, start: float, end: Optional[float], limit: int, token: str

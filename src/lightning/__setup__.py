@@ -11,7 +11,7 @@ _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning")
 _PATH_REQUIREMENTS = os.path.join(_PROJECT_ROOT, "requirements")
-_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
+_FREEZE_REQUIREMENTS = os.environ.get("FREEZE_REQUIREMENTS", "0").lower() in ("1", "true")
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -36,7 +36,7 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
-        if p.name not in ("docs.txt", "devel.txt", "base.txt")
+        if p.name not in ("docs.txt", "devel.txt", "base.txt") and not p.parts[-2].startswith("_")
     }
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])

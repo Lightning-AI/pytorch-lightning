@@ -17,10 +17,6 @@ Intermediate skills
 ###################
 Learn to coordinate 2+ components into workflows which we call Lightning apps.
 
-.. join_slack::
-   :align: left
-
-----
 
 .. raw:: html
 

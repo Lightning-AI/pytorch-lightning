@@ -147,7 +147,7 @@ Save checkpoints manually
 *************************
 
 You can manually save checkpoints and restore your model from the checkpointed state using :meth:`~lightning.pytorch.trainer.trainer.Trainer.save_checkpoint`
-and :meth:`~lightning.pytorch.core.saving.ModelIO.load_from_checkpoint`.
+and :meth:`~lightning.pytorch.core.module.LightningModule.load_from_checkpoint`.
 
 .. code-block:: python
 

@@ -91,7 +91,8 @@ class TensorBoardLogger(Logger):
     ):
         if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
             raise ModuleNotFoundError(
-                "Neither `tensorboard` nor `tensorboardX` is available. Try `pip install`ing either."
+                "Neither `tensorboard` nor `tensorboardX` is available. Try `pip install`ing either.\n"
+                f"{str(_TENSORBOARDX_AVAILABLE)}\n{str(_TENSORBOARD_AVAILABLE)}"
             )
         super().__init__()
         root_dir = os.fspath(root_dir)

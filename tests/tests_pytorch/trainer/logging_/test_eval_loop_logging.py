@@ -597,7 +597,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
             self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
             return out
 
-        def on_training_epoch_end(self):
+        def on_train_epoch_end(self):
             metrics = self.trainer.progress_bar_metrics
             v = 15 if self.current_epoch == 0 else 150
             assert metrics["batch_idx_epoch"] == (v / 5.0)

@@ -41,7 +41,7 @@ def _find_tensors(
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
-        model.require_forward_param_sync = True  # type: ignore[assignment]
+        model.require_forward_param_sync = True
         # We'll return the output object verbatim since it is a freeform
         # object. We need to find any tensors in this object, though,
         # because we need to figure out which parameters were used during
@@ -52,7 +52,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
         reducer._rebuild_buckets()  # avoids "INTERNAL ASSERT FAILED" with `find_unused_parameters=False`
         reducer.prepare_for_backward(args)
     else:
-        model.require_forward_param_sync = False  # type: ignore[assignment]
+        model.require_forward_param_sync = False
 
 
 class UnrepeatedDistributedSampler(DistributedSampler):

@@ -94,7 +94,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
         io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
     with mock.patch(
-        "lightning.pytorch.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint"
+        "lightning.pytorch.trainer.connectors.checkpoint_connector._CheckpointConnector.save_checkpoint"
     ) as cc_mock:
         trainer.save_checkpoint(instance_path, True)
         cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)

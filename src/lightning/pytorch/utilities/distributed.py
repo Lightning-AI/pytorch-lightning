@@ -21,7 +21,7 @@ from lightning.fabric.utilities.distributed import _distributed_available as new
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
-def register_ddp_comm_hook(
+def _register_ddp_comm_hook(
     model: DistributedDataParallel,
     ddp_comm_state: Optional[object] = None,
     ddp_comm_hook: Optional[Callable] = None,
@@ -64,14 +64,14 @@ def register_ddp_comm_hook(
         >>>
         >>> # fp16_compress_hook for compress gradients
         >>> ddp_model = ...
-        >>> register_ddp_comm_hook( # doctest: +SKIP
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
         ...     model=ddp_model,
         ...     ddp_comm_hook=default.fp16_compress_hook,
         ... )
         >>>
         >>> # powerSGD_hook
         >>> ddp_model = ...
-        >>> register_ddp_comm_hook( # doctest: +SKIP
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
         ...     model=ddp_model,
         ...     ddp_comm_state=powerSGD.PowerSGDState(
         ...         process_group=None,
@@ -84,7 +84,7 @@ def register_ddp_comm_hook(
         >>> # post_localSGD_hook
         >>> subgroup, _ = torch.distributed.new_subgroups() # doctest: +SKIP
         >>> ddp_model = ...
-        >>> register_ddp_comm_hook( # doctest: +SKIP
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
         ...     model=ddp_model,
         ...     state=post_localSGD.PostLocalSGDState(
         ...         process_group=None,
@@ -96,7 +96,7 @@ def register_ddp_comm_hook(
         >>>
         >>> # fp16_compress_wrapper combined with other communication hook
         >>> ddp_model = ...
-        >>> register_ddp_comm_hook( # doctest: +SKIP
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
         ...     model=ddp_model,
         ...     ddp_comm_state=powerSGD.PowerSGDState(
         ...         process_group=None,
@@ -119,7 +119,7 @@ def register_ddp_comm_hook(
         ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
     rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
-    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)  # type: ignore[operator]
+    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
 
 
 def _broadcast_object_list(obj: Any, rank: int) -> Any:

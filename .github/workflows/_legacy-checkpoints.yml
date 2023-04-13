@@ -57,7 +57,7 @@ jobs:
         python-version: 3.8
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
@@ -100,11 +100,16 @@ jobs:
       run: |
         bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
+    - name: Keep artifact
+      id: keep-artifact
+      run: python -c "print('DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+
     - name: Upload checkpoints to GitHub Actions artifact
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
         path: ${{ env.legacy_dir }}/checkpoints/
+        retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
     - name: Upload checkpoints to S3 (dryrun)
       working-directory: ${{ env.legacy_dir }}
@@ -134,7 +139,7 @@ jobs:
       run: echo ${{ needs.create-legacy-ckpts.outputs.pl-version }} >> ${{ env.legacy_dir }}/back-compatible-versions.txt
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v4
+      uses: peter-evans/create-pull-request@v5
       with:
         title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true

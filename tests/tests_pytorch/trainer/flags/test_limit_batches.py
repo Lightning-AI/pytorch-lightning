@@ -17,7 +17,7 @@ import pytest
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.trainer.states import TrainerFn
 
 
 def test_num_dataloader_batches(tmpdir):
@@ -46,15 +46,15 @@ def test_num_dataloader_batches(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["stage", "mode"],
+    "mode",
     [
-        (RunningStage.VALIDATING, "val"),
-        (RunningStage.TESTING, "test"),
-        (RunningStage.PREDICTING, "predict"),
+        "val",
+        "test",
+        "predict",
     ],
 )
 @pytest.mark.parametrize("limit_batches", [0.1, 10])
-def test_eval_limit_batches(stage, mode, limit_batches):
+def test_eval_limit_batches(mode, limit_batches):
     limit_eval_batches = f"limit_{mode}_batches"
     dl_hook = f"{mode}_dataloader"
     model = BoringModel()
@@ -65,16 +65,17 @@ def test_eval_limit_batches(stage, mode, limit_batches):
     trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
 
-    trainer.state.stage = stage
-    trainer.state.fn = stage.value
-    trainer._active_loop.setup_data()
-    if stage == RunningStage.VALIDATING:
+    if mode == "val":
+        trainer.validate_loop.setup_data()
+        trainer.state.fn = TrainerFn.VALIDATING
         loader_num_batches = trainer.num_val_batches
         dataloaders = trainer.val_dataloaders
-    elif stage == RunningStage.TESTING:
+    elif mode == "test":
+        trainer.test_loop.setup_data()
         loader_num_batches = trainer.num_test_batches
         dataloaders = trainer.test_dataloaders
-    elif stage == RunningStage.PREDICTING:
+    elif mode == "predict":
+        trainer.predict_loop.setup_data()
         loader_num_batches = trainer.num_predict_batches
         dataloaders = trainer.predict_dataloaders
 

@@ -4,6 +4,8 @@ TPU training (Basic)
 ====================
 **Audience:** Users looking to train on single or multiple TPU cores.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 .. raw:: html
@@ -48,8 +50,8 @@ To run on different cores, modify the ``devices`` argument.
     trainer = Trainer(accelerator="tpu", devices=1)
     # run on multiple TPU cores
     trainer = Trainer(accelerator="tpu", devices=8)
-    # run on the 5th core
-    trainer = Trainer(accelerator="tpu", devices=[5])
+    # run on one specific TPU core: the 2nd core (index 1)
+    trainer = Trainer(accelerator="tpu", devices=[1])
     # choose the number of cores automatically
     trainer = Trainer(accelerator="tpu", devices="auto")
 
@@ -84,13 +86,13 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install pytorch-lightning
+        !pip install lightning
 
 6. Then set up your LightningModule as normal.
 
 Google Cloud (GCP)
 ^^^^^^^^^^^^^^^^^^
-You could refer to this `page <https://cloud.google.com/tpu/docs/setup-gcp-account>`_ for getting started with Cloud TPU resources on GCP.
+You could refer to this `page <https://cloud.google.com/tpu/docs/v4-users-guide>`_ for getting started with Cloud TPU resources on GCP.
 
 Kaggle
 ^^^^^^
@@ -112,7 +114,6 @@ There are cases in which training on TPUs is slower when compared with GPUs, for
 - Limited resources when using TPU's with PyTorch `Link <https://github.com/pytorch/xla/issues/2054#issuecomment-627367729>`_
 - XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
 - Some tensor ops are not fully supported on TPU, or not supported at all. These operations will be performed on CPU (context switch).
-- PyTorch integration is still experimental. Some performance bottlenecks may simply be the result of unfinished implementation.
 
 The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats>`_
 has more detailed information on how PyTorch code can be optimized for TPU. In particular, the

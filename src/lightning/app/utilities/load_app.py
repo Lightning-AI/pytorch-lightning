@@ -51,6 +51,7 @@ def _load_objects_from_file(
     target_type: Type,
     raise_exception: bool = False,
     mock_imports: bool = False,
+    env_vars: Dict[str, str] = {},
 ) -> Tuple[List[Any], types.ModuleType]:
     """Load all of the top-level objects of the given type from a file.
 
@@ -70,12 +71,13 @@ def _load_objects_from_file(
         code = _create_code(filepath)
         with _create_fake_main_module(filepath) as module:
             try:
-                with _patch_sys_argv():
-                    if mock_imports:
-                        with _mock_missing_imports():
+                with _add_to_env(env_vars):
+                    with _patch_sys_argv():
+                        if mock_imports:
+                            with _mock_missing_imports():
+                                exec(code, module.__dict__)
+                        else:
                             exec(code, module.__dict__)
-                    else:
-                        exec(code, module.__dict__)
             except Exception as e:
                 if raise_exception:
                     raise e
@@ -98,7 +100,12 @@ def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
     raise RuntimeError(f"The provided file {filepath} does not contain a Plugin.")
 
 
-def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
+def load_app_from_file(
+    filepath: str,
+    raise_exception: bool = False,
+    mock_imports: bool = False,
+    env_vars: Dict[str, str] = {},
+) -> "LightningApp":
     """Load a LightningApp from a file.
 
     Arguments:
@@ -108,7 +115,7 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
     from lightning.app.core.app import LightningApp
 
     apps, main_module = _load_objects_from_file(
-        filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports
+        filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports, env_vars=env_vars
     )
 
     # TODO: Remove this, downstream code shouldn't depend on side-effects here but it does
@@ -211,6 +218,19 @@ def _patch_sys_path(append):
         yield
     finally:
         sys.path.remove(append)
+
+
+@contextmanager
+def _add_to_env(envs: Dict[str, str]):
+    """This function adds the given environment variables to the current environment."""
+    original_envs = dict(os.environ)
+    os.environ.update(envs)
+
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(original_envs)
 
 
 @contextmanager

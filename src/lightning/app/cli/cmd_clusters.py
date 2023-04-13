@@ -64,7 +64,7 @@ class ClusterState(StrEnum):
     @classmethod
     def from_api(cls, status: V1ClusterState) -> "ClusterState":
         parsed = str(status).lower().split("_", maxsplit=2)[-1]
-        return cls.from_str(parsed)
+        return cls(super().from_str(parsed))
 
 
 class ClusterList(Formatable):

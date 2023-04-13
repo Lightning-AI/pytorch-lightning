@@ -40,14 +40,14 @@ Without doing this conscientiously for every single path, your application will 
 In the example below, a file written by **SourceFileWork** is being transferred by the flow
 to the **DestinationFileAndServeWork** work. The Path object is the reference to the file.
 
-.. literalinclude:: ../examples/app_boring/app.py
+.. literalinclude:: ../../examples/app/boring/app.py
     :emphasize-lines: 5, 22, 28, 48
 
 In the ``scripts/serve.py`` file, we are creating a **FastApi Service** running on port ``1111``
 that returns the content of the file received from **SourceFileWork** when
 a post request is sent to ``/file``.
 
-.. literalinclude:: ../examples/app_boring/scripts/serve.py
+.. literalinclude:: ../../examples/app/boring/scripts/serve.py
     :emphasize-lines: 21, 23-26
 
 ----
@@ -64,14 +64,14 @@ In order to assemble them, you need to do two things:
 
 Here's how to expose the port:
 
-.. literalinclude:: ../examples/app_boring/app.py
+.. literalinclude:: ../../examples/app/boring/app.py
     :emphasize-lines: 8
     :lines: 33-44
 
 
 And here's how to expose your services within the ``configure_layout`` flow hook:
 
-.. literalinclude:: ../examples/app_boring/app.py
+.. literalinclude:: ../../examples/app/boring/app.py
     :emphasize-lines: 5
     :lines: 53-57
 
@@ -79,7 +79,7 @@ In this example, we're appending ``/file`` to our **FastApi Service** url.
 This means that our ``Boring Tab`` triggers the ``get_file_content`` from the **FastAPI Service**
 and embeds its content as an `IFrame <https://en.wikipedia.org/wiki/HTML_element#Frames>`_.
 
-.. literalinclude:: ../examples/app_boring/scripts/serve.py
+.. literalinclude:: ../../examples/app/boring/scripts/serve.py
     :lines: 23-26
 
 

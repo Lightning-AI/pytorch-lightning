@@ -200,7 +200,7 @@ In the example below, the Drive is created by the Flow and passed to its Works.
 
 The ``Work_1`` put a file **a.txt** in the **Drive("lit://this_drive_id")** and the ``Work_2`` can list and get the **a.txt** file from it.
 
-.. literalinclude:: ../../../examples/app_drive/app.py
+.. literalinclude:: ../../../../examples/app/drive/app.py
 
 ----
 

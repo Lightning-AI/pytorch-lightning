@@ -416,23 +416,24 @@ def _replace_value_in_saved_args(
     return False, args, kwargs
 
 
-def _set_sampler_epoch(dataloader: Iterable, epoch: int) -> None:
+def _set_sampler_epoch(dataloader: object, epoch: int) -> None:
     """Calls the ``set_epoch`` method on either the sampler of the given dataloader.
 
     Every PyTorch dataloader has either a sampler or a batch sampler. If the sampler is wrapped by a
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
     """
-    objects = set()
+    # cannot use a set because samplers might be unhashable: use a dict based on the id to drop duplicates
+    objects: Dict[int, Any] = {}
     # check dataloader.sampler
     if (sampler := getattr(dataloader, "sampler", None)) is not None:
-        objects.add(sampler)
+        objects[id(sampler)] = sampler
     # check dataloader.batch_sampler.sampler
     if (batch_sampler := getattr(dataloader, "batch_sampler", None)) is not None and (
         sampler := getattr(batch_sampler, "sampler", None)
     ) is not None:
-        objects.add(sampler)
-    for obj in objects:
+        objects[id(sampler)] = sampler
+    for obj in objects.values():
         set_epoch = getattr(obj, "set_epoch", None)
         if callable(set_epoch):
             set_epoch(epoch)

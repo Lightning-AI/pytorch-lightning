@@ -119,6 +119,9 @@ def test_detect():
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
         assert not SLURMEnvironment.detect()
 
+    with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
+        assert not SLURMEnvironment.detect()
+
 
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")

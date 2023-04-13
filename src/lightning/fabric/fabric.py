@@ -28,6 +28,7 @@ from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from lightning.fabric.loggers import Logger
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -78,6 +79,7 @@ class Fabric:
 
     def __init__(
         self,
+        *,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
@@ -454,12 +456,15 @@ class Fabric:
         """Wait for all processes to enter this call.
 
         Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
-        will cause your program to slow down.
+        will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
+        cause your program to stall forever.
         """
         self._strategy.barrier(name=name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Send a tensor from one process to all others.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             obj: The object to broadcast to all other members. Any serializable object is supported, but it is
@@ -475,6 +480,8 @@ class Fabric:
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Gather tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -496,6 +503,8 @@ class Fabric:
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -608,6 +617,24 @@ class Fabric:
         return self._strategy.load_checkpoint(path=path, state=state)
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+        """Launch and initialize all the processes needed for distributed execution.
+
+        Args:
+            function: Optional function to launch when using a spawn/fork-based strategy, for example, when using the
+                XLA strategy (``accelerator="tpu"``). The function must accept at least one argument, to which
+                the Fabric object itself will be passed.
+            *args: Optional positional arguments to be passed to the function.
+            **kwargs: Optional keyword arguments to be passed to the function.
+
+        Returns:
+            Returns the output of the function that ran in worker process with rank 0.
+
+        The ``launch()`` method should only be used if you intend to specify accelerator, devices, and so on in
+        the code (programmatically). If you are launching with the Lightning CLI, ``lightning run model ...``, remove
+        ``launch()`` from your code.
+
+        ``launch()`` is a no-op when called multiple times and no function is passed in.
+        """
         if _is_using_cli():
             raise RuntimeError(
                 "This script was launched through the CLI, and processes have already been created. Calling "
@@ -691,7 +718,7 @@ class Fabric:
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
         """Helper function to seed everything without explicitly importing Lightning.
 
-        See :func:`lightning.pytorch.seed_everything` for more details.
+        See :func:`lightning.fabric.utilities.seed.seed_everything` for more details.
         """
         if workers is None:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
@@ -772,7 +799,7 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, FSDPStrategy):
+        if isinstance(self._strategy, FSDPStrategy) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
                 " Create and set up the model first through `model = self.setup_model(model)`. Then create the"

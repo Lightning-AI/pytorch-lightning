@@ -37,6 +37,8 @@ _PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Args:
         precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
     Raises:
