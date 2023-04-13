@@ -308,8 +308,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
 
-        The directory will contain one file per process, with model- and optimizer shards stored per file.
-        Additionally, it creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
+        The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
+        it creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -393,8 +393,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
-        The strategy currently only supports saving and loading sharded checkpoints which are stored in form of
-        a directory of multiple files rather than a single file.
+        The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
+        directory of multiple files rather than a single file.
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
