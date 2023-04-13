@@ -73,7 +73,8 @@ class _XLALauncher(_MultiProcessingLauncher):
         from torch_xla.experimental import pjrt
 
         spawn_kwargs = {}
-        if pjrt.using_pjrt() and (nprocs := self._strategy.num_processes) == 1:
+        nprocs = self._strategy.num_processes
+        if not pjrt.using_pjrt() or nprocs == 1:
             # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
             # otherwise it will use all devices
             spawn_kwargs["nprocs"] = nprocs
