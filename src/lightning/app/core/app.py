@@ -15,6 +15,7 @@
 import logging
 import os
 import pickle
+import platform
 import queue
 import threading
 import warnings
@@ -68,6 +69,9 @@ if TYPE_CHECKING:
 
 
 logger = Logger(__name__)
+
+if platform.system() == "Windows":
+    __doctest_skip__ = ["LightningApp.__init__"]
 
 
 class LightningApp:
