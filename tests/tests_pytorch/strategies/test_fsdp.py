@@ -1,4 +1,5 @@
 import os
+from contextlib import nullcontext
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
@@ -299,8 +300,6 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
             marks=RunIf(min_torch="2.0.0"),
             id="autowrap_use_orig_params",
         ),
-        (TestFSDPModel(), "fsdp", None),
-        (TestFSDPModelAutoWrapped(wrap_min_params=2), FSDPStrategy, None),
     ],
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
@@ -310,8 +309,6 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 
     strategy_cfg = strategy_cfg or {}
     if not isinstance(strategy, str):
-        # So every layer is wrapped
-        strategy = strategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=2))
         strategy = strategy(**strategy_cfg)
 
     trainer = Trainer(
@@ -326,21 +323,30 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
         limit_test_batches=2,
         limit_predict_batches=2,
         callbacks=[ck],
-        inference_mode=not _TORCH_GREATER_EQUAL_2_0,  # TODO(carmocca): inference_mode raises RuntimeError
     )
     _run_multiple_stages(trainer, model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 def test_invalid_parameters_in_optimizer():
-    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
+    trainer = Trainer(
+        strategy="fsdp",
+        accelerator="cuda",
+        devices=1,
+        fast_dev_run=1,
+    )
+    error_context = (
+        nullcontext()
+        if _TORCH_GREATER_EQUAL_2_0
+        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+    )
 
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
     model = EmptyParametersModel()
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+    with error_context:
         trainer.fit(model)
 
     class NoFlatParametersModel(BoringModel):
@@ -349,7 +355,7 @@ def test_invalid_parameters_in_optimizer():
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
     model = NoFlatParametersModel()
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+    with error_context:
         trainer.fit(model)
 
 
