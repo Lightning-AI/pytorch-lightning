@@ -15,6 +15,7 @@ import functools
 import os
 from contextlib import contextmanager
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
@@ -305,24 +306,44 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        """Save model, optimizer, and other state in a checkpoint directory."""
+        """Save model, optimizer, and other state in a checkpoint directory.
+
+        The directory will contain one file per process, with model- and optimizer shards stored per file.
+        Additionally, it creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
+        """
         if not _TORCH_GREATER_EQUAL_2_0:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+            )
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `FSDPStrategy` does not use the `CheckpointIO`."
+            )
 
         from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
-        modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
-        # optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
+        modules = [module for module in state.values() if isinstance(module, FSDP)]
+        if len(modules) == 0:
+            raise ValueError(
+                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
+            )
+        elif len(modules) > 1:
+            raise ValueError(
+                "Found multiple FSDP modules in the given state. Saving checkpoints with FSDP is"
+                " currently limited to a single model per checkpoint. To save multiple models, call the"
+                " save method for each model separately with a different path."
+            )
 
-        if not modules:
-            raise ValueError()
+        module = modules[0]
 
-        if len(modules) > 1:
-            raise NotImplementedError()
-
-        module = next(iter(modules.values()))
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = self.broadcast(path)
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
@@ -333,7 +354,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             optim_state_dict_config=optim_state_dict_config,
         )
 
-        # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
+        # replace the modules and optimizer objects in the state with their local state dict and
+        # separate the user's metadata
         converted_state = {}
         metadata = {}
         with state_dict_type:
@@ -342,9 +364,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     converted_state[key] = obj.state_dict()
                 elif isinstance(obj, Optimizer):
                     converted_state[key] = FSDP.optim_state_dict(module, obj)
-                else:
+                else:  # everything not a module or optimizer is considered metadata
                     metadata[key] = obj
 
+        # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
         writer = FileSystemWriter(path=path, single_file_per_rank=True)
         save_state_dict(converted_state, writer)
 
@@ -368,24 +391,40 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
     ) -> Dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects."""
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        The strategy currently only supports saving and loading sharded checkpoints which are stored in form of
+        a directory of multiple files rather than a single file.
+        """
         if not _TORCH_GREATER_EQUAL_2_0:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+            )
+        if Path(path).is_file():
+            raise NotImplementedError(
+                f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
+                f" with sharded states in a directory."
+            )
 
         from torch.distributed._shard.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
-        modules = {k: model for k, model in state.items() if isinstance(model, FSDP)}
-        # optimizers = {k: optimizer for k, optimizer in state if isinstance(optimizer, Optimizer)}
-
-        if not modules:
-            raise ValueError()
-
-        if len(modules) > 1:
-            raise NotImplementedError()
-
-        module = next(iter(modules.values()))
+        modules = [module for module in state.values() if isinstance(module, FSDP)]
+        if len(modules) == 0:
+            raise ValueError(
+                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
+            )
+        elif len(modules) > 1:
+            raise ValueError(
+                "Found multiple FSDP modules in the given state. Loading checkpoints with FSDP is"
+                " currently limited to a single model per checkpoint. To load multiple models, call the"
+                " load method for each model separately with a different path."
+            )
+        module = modules[0]
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
