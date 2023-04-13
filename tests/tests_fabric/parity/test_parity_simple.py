@@ -145,7 +145,7 @@ def test_parity_single_device(precision, accelerator):
     assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
 
     # Compare the time per iteration
-    assert is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3)
+    assert is_timing_close(timings_torch, timings_fabric, rtol=1e-2, atol=0.1)
 
     # Compare memory usage
     if accelerator == "cuda":

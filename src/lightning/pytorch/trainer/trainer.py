@@ -155,7 +155,7 @@ class Trainer:
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
                 ``False`` will disable logging. If multiple loggers are provided, local files
-                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of he first logger.
+                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
 
             callbacks: Add a callback or list of callbacks.
@@ -410,8 +410,10 @@ class Trainer:
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
         self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop(self, inference_mode=inference_mode)
-        self.test_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.validate_loop = _EvaluationLoop(
+            self, TrainerFn.VALIDATING, RunningStage.VALIDATING, inference_mode=inference_mode
+        )
+        self.test_loop = _EvaluationLoop(self, TrainerFn.TESTING, RunningStage.TESTING, inference_mode=inference_mode)
         self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -1548,11 +1550,7 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            state = self.state
-            self.state.fn = TrainerFn.FITTING
-            self.training = True
             self.fit_loop.setup_data()
-            self.state = state
 
         total_batches = self.num_training_batches
 

@@ -55,7 +55,6 @@ The full list of built-in precision plugins is listed below.
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
-    HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
@@ -86,7 +85,6 @@ Below is a list of built-in plugins for checkpointing.
 
     AsyncCheckpointIO
     CheckpointIO
-    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 

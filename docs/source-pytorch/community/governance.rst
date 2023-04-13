@@ -26,7 +26,6 @@ Maintainers
 
 Emeritus Maintainers
 --------------------
-- Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Nicki Skafte (`SkafteNicki <https://github.com/SkafteNicki>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
@@ -34,6 +33,7 @@ Emeritus Maintainers
 
 Alumni
 ------
+- Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)

@@ -231,15 +231,15 @@
      - `PR16750`_
 
    * - had any logic except reducing the DP outputs in  ``LightningModule.training_step_end`` hook
-     - port it to ``LightningModule.training_batch_end`` hook
+     - port it to ``LightningModule.on_train_batch_end`` hook
      - `PR16791`_
 
    * - had any logic except reducing the DP outputs in  ``LightningModule.validation_step_end`` hook
-     - port it to ``LightningModule.validation_batch_end`` hook
+     - port it to ``LightningModule.on_validation_batch_end`` hook
      - `PR16791`_
 
    * - had any logic except reducing the DP outputs in  ``LightningModule.test_step_end`` hook
-     - port it to ``LightningModule.test_batch_end`` hook
+     - port it to ``LightningModule.on_test_batch_end`` hook
      - `PR16791`_
 
    * - used ``pl.strategies.DDPSpawnStrategy``

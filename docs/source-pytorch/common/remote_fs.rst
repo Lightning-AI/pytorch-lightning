@@ -17,7 +17,8 @@ Working with different filesystems can be accomplished by appending a protocol l
     trainer = Trainer(default_root_dir="s3://my_bucket/data/")
     trainer.fit(model)
 
-You could pass custom paths to loggers for logging data.
+
+For logging, remote filesystem support depends on the particular logger integration being used. Consult :ref:`the documentation of the individual logger <loggers-api-references>` for more details.
 
 .. code-block:: python
 

@@ -1,11 +1,15 @@
 import argparse
+import math
 import os
 from distutils.util import strtobool
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, Union
 
 import gymnasium as gym
-import numpy as np
 import torch
+from torch.utils.tensorboard import SummaryWriter
+
+if TYPE_CHECKING:
+    from rl.agent import PPOAgent, PPOLightningAgent
 
 
 def parse_args():
@@ -24,6 +28,15 @@ def parse_args():
         "This affects also the distributed backend used (NCCL (gpu) vs GLOO (cpu))",
     )
     parser.add_argument(
+        "--player-on-gpu",
+        type=lambda x: bool(strtobool(x)),
+        default=False,
+        nargs="?",
+        const=True,
+        help="If toggled, player will run on GPU (used only by `train_fabric_decoupled.py` script). "
+        "This affects also the distributed backend used (NCCL (gpu) vs GLOO (cpu))",
+    )
+    parser.add_argument(
         "--torch-deterministic",
         type=lambda x: bool(strtobool(x)),
         default=True,
@@ -33,9 +46,7 @@ def parse_args():
     )
 
     # Distributed arguments
-    parser.add_argument(
-        "--per-rank-num-envs", type=int, default=2, help="the number of parallel game environments for each rank"
-    )
+    parser.add_argument("--num-envs", type=int, default=2, help="the number of parallel game environments")
     parser.add_argument("--per-rank-batch-size", type=int, default=64, help="the batch size for each rank")
 
     # Environment arguments
@@ -107,11 +118,23 @@ def parse_args():
     return args
 
 
-def layer_init(layer: torch.nn.Module, std: float = np.sqrt(2), bias_const: float = 0.0, ortho_init: bool = True):
+def layer_init(
+    layer: torch.nn.Module,
+    std: float = math.sqrt(2),
+    bias_const: float = 0.0,
+    ortho_init: bool = True,
+):
     if ortho_init:
         torch.nn.init.orthogonal_(layer.weight, std)
         torch.nn.init.constant_(layer.bias, bias_const)
     return layer
+
+
+def linear_annealing(optimizer: torch.optim.Optimizer, update: int, num_updates: int, initial_lr: float):
+    frac = 1.0 - (update - 1.0) / num_updates
+    lrnow = frac * initial_lr
+    for pg in optimizer.param_groups:
+        pg["lr"] = lrnow
 
 
 def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Optional[str] = None, prefix: str = ""):
@@ -128,3 +151,26 @@ def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Op
         return env
 
     return thunk
+
+
+@torch.no_grad()
+def test(
+    agent: Union["PPOLightningAgent", "PPOAgent"], device: torch.device, logger: SummaryWriter, args: argparse.Namespace
+):
+    env = make_env(args.env_id, args.seed, 0, args.capture_video, logger.log_dir, "test")()
+    step = 0
+    done = False
+    cumulative_rew = 0
+    next_obs = torch.tensor(env.reset(seed=args.seed)[0], device=device)
+    while not done:
+        # Act greedly through the environment
+        action = agent.get_greedy_action(next_obs)
+
+        # Single environment step
+        next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
+        done = done or truncated
+        cumulative_rew += reward
+        next_obs = torch.tensor(next_obs, device=device)
+        step += 1
+    logger.add_scalar("Test/cumulative_reward", cumulative_rew, 0)
+    env.close()

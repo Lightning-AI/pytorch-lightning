@@ -3,12 +3,12 @@ local tpus = import 'templates/tpus.libsonnet';
 local utils = import "templates/utils.libsonnet";
 
 local tputests = base.BaseTest {
-  frameworkPrefix: 'pl',
-  modelName: 'tpu-tests',
-  mode: 'postsubmit',
+  frameworkPrefix: 'pytorch',
+  modelName: '{PR_NUMBER}',
+  mode: 'unit-tests',
   configMaps: [],
 
-  timeout: 6000, # 100 minutes, in seconds.
+  timeout: 3600, # 60 minutes, in seconds.
 
   image: 'pytorchlightning/pytorch_lightning',
   imageTag: 'base-xla-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}',
@@ -20,7 +20,6 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
-      set +x  # turn off tracing, spammy
       set -e  # exit on error
 
       source ~/.bashrc
@@ -30,7 +29,7 @@ local tputests = base.BaseTest {
       git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
       cd lightning
       # PR triggered it, check it out
-      if [ -n "{PR_NUMBER}" ]; then  # if PR number is not empty
+      if [ "{PR_NUMBER}" != "master" ]; then  # if PR number is set
         echo "--- Fetch the PR changes ---"
         git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
         echo "--- Checkout PR changes ---"
