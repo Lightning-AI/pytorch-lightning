@@ -94,7 +94,6 @@ class XLAStrategy(ParallelStrategy):
 
     def setup_environment(self) -> None:
         self._launched = True
-        self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
         super().setup_environment()
 

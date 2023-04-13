@@ -44,7 +44,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -330,7 +330,6 @@ class DeepSpeedStrategy(DDPStrategy):
         _validate_device_index_selection(self.parallel_devices)
         reset_seed()
         self.set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
