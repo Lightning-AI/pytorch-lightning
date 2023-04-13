@@ -68,8 +68,8 @@ jobs:
           current_timestamp=$(date +%s)
           age=$((current_timestamp - created_timestamp))
 
-          # Check if the age is greater than 60 minutes
-          if ((age > 3600)); then
+          # Check if the age has surpassed a timeout
+          if ((age > 35 * 60)); then
             # delete the job
             gcloud compute tpus tpu-vm delete "$job_name" --async
             jobs_deleted=true
