@@ -15,7 +15,6 @@
 import logging
 import os
 import pickle
-import platform
 import queue
 import threading
 import warnings
@@ -107,11 +106,11 @@ class LightningApp:
 
             from lightning.app import LightningFlow, LightningApp
             from lightning.app.runners import MultiProcessRuntime
-            
+
             class RootFlow(LightningFlow):
                 def run(self):
                     self.stop()
-            
+
             app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
             MultiProcessRuntime(app).dispatch()
         """
