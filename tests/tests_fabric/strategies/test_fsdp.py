@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
@@ -193,3 +193,29 @@ class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
 def test_fsdp_grad_clipping_norm(precision):
     fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
     fabric.run()
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_save_checkpoint_storage_options(tmp_path):
+    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
+        strategy.save_checkpoint(path=tmp_path, state=Mock(), storage_options=Mock())
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
+    """Test that the FSDP strategy can only save one FSDP model per checkpoint."""
+    strategy = FSDPStrategy()
+
+    # missing FSDP model
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.save_checkpoint(path=tmp_path, state={})
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.save_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+
+    # multiple FSDP models
+    model1 = Mock(spec=FullyShardedDataParallel)
+    model2 = Mock(spec=FullyShardedDataParallel)
+    with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
+        strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
