@@ -111,7 +111,9 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_pytorch/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (pytorch)"
+      - "test-on-tpus (pytorch, xrt)"
+      # TODO: uncomment when PJRT support is added
+      #- "test-on-tpus (pytorch, pjrt)"
 
   - id: "fabric: Docs"
     paths:
@@ -235,7 +237,9 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_fabric/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (fabric)"
+      - "test-on-tpus (fabric, xrt)"
+      # TODO: uncomment when PJRT support is added
+      #- "test-on-tpus (pytorch, pjrt)"
 
   # SECTION: lightning_app
 
