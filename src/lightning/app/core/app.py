@@ -70,9 +70,6 @@ if TYPE_CHECKING:
 
 logger = Logger(__name__)
 
-if platform.system() == "Windows":
-    __doctest_skip__ = ["LightningApp.__init__"]
-
 
 class LightningApp:
     def __init__(
@@ -106,17 +103,17 @@ class LightningApp:
                 set `root_path` to `/myapp`.
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
-
         Example:
 
-            >>> from lightning.app import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
-            >>> class RootFlow(LightningFlow):
-            ...     def run(self):
-            ...         self.stop()
-            ...
-            >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
-            >>> MultiProcessRuntime(app).dispatch()
+            from lightning.app import LightningFlow, LightningApp
+            from lightning.app.runners import MultiProcessRuntime
+            
+            class RootFlow(LightningFlow):
+                def run(self):
+                    self.stop()
+            
+            app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
+            MultiProcessRuntime(app).dispatch()
         """
 
         self.root_path = root_path  # when running behind a proxy
