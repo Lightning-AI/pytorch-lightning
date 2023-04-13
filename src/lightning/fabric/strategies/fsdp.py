@@ -324,7 +324,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
         modules = [module for module in state.values() if isinstance(module, FSDP)]
         if len(modules) == 0:
@@ -345,14 +344,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = self.broadcast(path)
 
-        state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
-        optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
-        state_dict_type = FSDP.state_dict_type(
-            module=module,
-            state_dict_type=StateDictType.SHARDED_STATE_DICT,
-            state_dict_config=state_dict_config,
-            optim_state_dict_config=optim_state_dict_config,
-        )
+        state_dict_type = _get_state_dict_type(module)
 
         # replace the modules and optimizer objects in the state with their local state dict and
         # separate the user's metadata
@@ -375,6 +367,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             torch.save(metadata, os.path.join(path, "meta.pt"))
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        """Get the full consolidated module state. All tensors in this state will be returned on CPU."""
         if not isinstance(module, FullyShardedDataParallel):
             return super().get_module_state_dict(module)
 
@@ -384,9 +377,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         with FullyShardedDataParallel.state_dict_type(module, StateDictType.FULL_STATE_DICT, config):
             state_dict = module.state_dict()
         return state_dict
-
-    def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        raise NotImplementedError()
 
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
@@ -409,7 +399,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         from torch.distributed._shard.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
         modules = [module for module in state.values() if isinstance(module, FSDP)]
         if len(modules) == 0:
@@ -426,37 +415,34 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module = modules[0]
 
-        state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
-        optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
-        state_dict_type = FSDP.state_dict_type(
-            module=module,
-            state_dict_type=StateDictType.SHARDED_STATE_DICT,
-            state_dict_config=state_dict_config,
-            optim_state_dict_config=optim_state_dict_config,
-        )
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = self.broadcast(path)
 
+        state_dict_type = _get_state_dict_type(module)
         metadata = torch.load(os.path.join(path, "meta.pt"))
 
-        # TODO: Refactor `Strategy._convert_stateful_objects_in_state`
-        converted_state = {}
         with state_dict_type:
+            # replace the modules and optimizer objects in the state with their local state dict
+            converted_state = {}
             for key, obj in state.items():
                 if isinstance(obj, FSDP):
                     converted_state[key] = obj.state_dict()
                 elif isinstance(obj, Optimizer):
                     converted_state[key] = FSDP.optim_state_dict(module, obj)
 
+            # load the states from the checkpoint into the local state dict (in-place)
             reader = FileSystemReader(path=path)
             load_state_dict(converted_state, reader)
 
-            # copy it back
+            # load the local state dict into the modules and optimizers
+            # and populate the requested user metadata
             for key, obj in state.items():
                 if isinstance(obj, (FSDP, Optimizer)):
                     obj.load_state_dict(converted_state.pop(key))
                 else:
                     state[key] = metadata.pop(key)
 
-        # return the remainder
+        # return the remaining metadata that wasn't requested as part of `state`
         return metadata
 
     @classmethod
@@ -541,3 +527,18 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
         from torch.distributed.fsdp import FlatParameter
 
         return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
+
+
+def _get_state_dict_type(module: "FullyShardedDataParallel") -> Generator:
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
+
+    state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
+    optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
+    state_dict_type = FSDP.state_dict_type(
+        module=module,
+        state_dict_type=StateDictType.SHARDED_STATE_DICT,
+        state_dict_config=state_dict_config,
+        optim_state_dict_config=optim_state_dict_config,
+    )
+    return state_dict_type
