@@ -367,7 +367,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             torch.save(metadata, os.path.join(path, "meta.pt"))
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
-        """Get the full consolidated module state. All tensors in this state will be returned on CPU."""
+        """Get the full consolidated module state.
+
+        All tensors in this state will be returned on CPU.
+        """
         if not isinstance(module, FullyShardedDataParallel):
             return super().get_module_state_dict(module)
 
