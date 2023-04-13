@@ -78,7 +78,7 @@ Configure the devices to run on. Can be of type:
     # int: run on two GPUs
     fabric = Fabric(devices=2, accelerator="gpu")
 
-    # list: run on GPUs 1, 4 (by bus ordering)
+    # list: run on the 2nd (idx 1) and 5th (idx 4) GPUs (by bus ordering)
     fabric = Fabric(devices=[1, 4], accelerator="gpu")
     fabric = Fabric(devices="1, 4", accelerator="gpu")  # equivalent
 
