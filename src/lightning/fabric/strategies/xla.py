@@ -93,7 +93,6 @@ class XLAStrategy(ParallelStrategy):
 
     def setup_environment(self) -> None:
         self._launched = True
-        self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
         super().setup_environment()
 
@@ -203,8 +202,3 @@ class XLAStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
-
-    def _set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
