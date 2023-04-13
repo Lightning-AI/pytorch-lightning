@@ -1,9 +1,6 @@
 import os
-from contextlib import nullcontext
 from functools import partial
 from typing import Any, Callable, Dict, Optional
-from functools import partial
-from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -233,31 +230,6 @@ class CustomWrapPolicy(_FSDPPolicy):
 
 custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
 
-
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
-def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
-    """Test to ensure that state dict is extracted correctly when using FSDP strategy.
-
-    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
-    """
-    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
-    correct_state_dict = model.state_dict()  # State dict before wrapping
-
-    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy=strategy, precision=16, max_epochs=1
-    )
-    trainer.fit(model)
-    # CheckpointConnector use this to extract state dict
-    extracted_state_dict = trainer.strategy.lightning_module_state_dict()
-
-    # State dict should contain same number of keys
-    assert len(correct_state_dict) == len(extracted_state_dict)
-    # OrderedDict should return the same keys in the same order
-    assert all(_ex == _co for _ex, _co in zip(list(extracted_state_dict.keys()), list(correct_state_dict.keys())))
-
-
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -277,7 +249,7 @@ else:
         return unwrapped_params >= 2
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
 def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that state dict is extracted correctly when using FSDP strategy.
@@ -289,7 +261,7 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy=strategy, precision=16, max_epochs=1
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
     )
     trainer.fit(model)
     # CheckpointConnector use this to extract state dict
@@ -307,28 +279,28 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     [
         pytest.param(TestFSDPModel(), "fsdp", None, id="manually_wrapped"),
         pytest.param(
-            TestFSDPModelAutoWrapped(),
+            TestFSDPModelAutoWrapped(wrap_min_params=2),
             FSDPStrategy,
             {"auto_wrap_policy": custom_auto_wrap_policy},
             marks=RunIf(max_torch="2.0.0"),
             id="autowrap_1x",
         ),
         pytest.param(
-            TestFSDPModelAutoWrapped(),
+            TestFSDPModelAutoWrapped(wrap_min_params=2),
             FSDPStrategy,
             {"auto_wrap_policy": custom_auto_wrap_policy},
             marks=RunIf(min_torch="2.0.0"),
             id="autowrap_2x",
         ),
         pytest.param(
-            TestFSDPModelAutoWrapped(),
+            TestFSDPModelAutoWrapped(wrap_min_params=2),
             FSDPStrategy,
             {"auto_wrap_policy": custom_fsdp_policy, "use_orig_params": True},
             marks=RunIf(min_torch="2.0.0"),
             id="autowrap_use_orig_params",
         ),
-        (TestFSDPModel(), "fsdp"),
-        (TestFSDPModelAutoWrapped(wrap_min_params=2), FSDPStrategy),
+        (TestFSDPModel(), "fsdp", None),
+        (TestFSDPModelAutoWrapped(wrap_min_params=2), FSDPStrategy, None),
     ],
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
