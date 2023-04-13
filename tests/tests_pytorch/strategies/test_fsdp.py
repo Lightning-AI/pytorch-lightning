@@ -234,6 +234,30 @@ class CustomWrapPolicy(_FSDPPolicy):
 custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
 
 
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
+def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
+    """Test to ensure that state dict is extracted correctly when using FSDP strategy.
+
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
+    """
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
+    correct_state_dict = model.state_dict()  # State dict before wrapping
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy=strategy, precision=16, max_epochs=1
+    )
+    trainer.fit(model)
+    # CheckpointConnector use this to extract state dict
+    extracted_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    # State dict should contain same number of keys
+    assert len(correct_state_dict) == len(extracted_state_dict)
+    # OrderedDict should return the same keys in the same order
+    assert all(_ex == _co for _ex, _co in zip(list(extracted_state_dict.keys()), list(correct_state_dict.keys())))
+
+
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -330,30 +354,21 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
         limit_test_batches=2,
         limit_predict_batches=2,
         callbacks=[ck],
+        inference_mode=not _TORCH_GREATER_EQUAL_2_0,  # TODO(carmocca): inference_mode raises RuntimeError
     )
     _run_multiple_stages(trainer, model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 def test_invalid_parameters_in_optimizer():
-    trainer = Trainer(
-        strategy="fsdp",
-        accelerator="cuda",
-        devices=1,
-        fast_dev_run=1,
-    )
-    error_context = (
-        nullcontext()
-        if _TORCH_GREATER_EQUAL_2_0
-        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
-    )
+    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
 
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
     model = EmptyParametersModel()
-    with error_context:
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
         trainer.fit(model)
 
     class NoFlatParametersModel(BoringModel):
@@ -362,7 +377,7 @@ def test_invalid_parameters_in_optimizer():
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
     model = NoFlatParametersModel()
-    with error_context:
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
         trainer.fit(model)
 
 

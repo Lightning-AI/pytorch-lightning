@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional, Type, Union, Iterator, Tuple
+from typing import Any, Dict, Generator, List, Optional, Type, Union
 
 import torch
 from torch import Tensor
@@ -68,45 +68,42 @@ if _distributed_available:
 log = logging.getLogger(__name__)
 
 
-class _FSDPStrategyModuleWrapper(_LightningModuleWrapperBase):
-    def state_dict(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
-        # this is required because with FSDP lightning_module is empty because weights are sharded.
-        # So we need to call self.trainer.model.state_dict (wrapped version) and use this wraper to
-        # avoid extra keys `_forward_module.layer.weight.` since we want `layer.weight.` in state_dict.
-        return self._forward_module.state_dict(*args, **kwargs)
-
-    def named_modules(self, *args: Any, **kwargs: Any) -> Iterator[Tuple[str, Module]]:
-        # This is required because FSDP explicitly checks that each flatted parameter in state_dict.
-        # Since we are wrapping the model, all flatted parameters will have `_forward_module.` prefix.
-        # This redirect avoids adding this prefix.
-        return self._forward_module.named_modules()
-
-
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can
+        bring breaking changes and new features with the next release of PyTorch.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
     at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
     to ZeRO-Stage 3.
 
-    For more information check out
-    `this blogpost <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
+    For more information `check out <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
 
     Defaults have been set and options have been exposed, but may require configuration
     based on your level of memory/speed efficiency. We suggest having a look at
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload: See ``cpu_offload`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
-        mixed_precision: See ``mixed_precision`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
+            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
+            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
+            to work with the optimizer. This API is subject to change. Default: no offloading
+        backward_prefetch:
+            This is an experimental feature that is subject to change in the
+            the near future. It allows users to enable two different backward_prefetch
+            algorithms to help backward communication and computation overlapping.
+            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
+        mixed_precision:
+            Mixed Precision config. By default, Lightning will enable FP16 if ``precision="16-mixed"``
+            or BF16 if ``precision="bf16-mixed"`` unless a config is passed in.
+            This is only available in PyTorch 1.12 and later.
         activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
-        \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
 
     """
 
@@ -152,11 +149,6 @@ class FSDPStrategy(ParallelStrategy):
             # Avoids the need for user to reference params in `configure_optimizers` via
             # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
             self.kwargs.setdefault("use_orig_params", True)
-
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
-        """Returns model state."""
-        assert self.model is not None
-        return self.model.state_dict()
 
     @property
     def root_device(self) -> torch.device:
@@ -260,7 +252,7 @@ class FSDPStrategy(ParallelStrategy):
         self.lightning_module._device = self.root_device
 
         assert isinstance(self.model, pl.LightningModule)
-        self.model = _FSDPStrategyModuleWrapper(self.model)
+        self.model = _LightningModuleWrapperBase(self.model)
         if is_overridden("configure_sharded_model", self.lightning_module):
             rank_zero_info(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
