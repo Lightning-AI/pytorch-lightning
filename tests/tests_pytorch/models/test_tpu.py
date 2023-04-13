@@ -76,7 +76,8 @@ def test_model_tpu_index(tmpdir, tpu_core):
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
     import torch_xla
 
-    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
+    expected = tpu_core + 1
+    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
 @RunIf(tpu=True)
@@ -137,7 +138,8 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     tpipes.run_model_test(trainer_options, model)
     import torch_xla
 
-    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
+    expected = tpu_core + 1
+    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
 @RunIf(tpu=True)
