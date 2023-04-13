@@ -106,7 +106,7 @@ jobs:
     - name: Run tests
       env:
         SCOPE: ${{ matrix.pkg-name }}
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ env.SHA }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         set -uex
 
@@ -128,7 +128,7 @@ jobs:
     - name: Cleanup job
       if: always()
       env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ env.SHA }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
           echo "$JOB_NAME wasn't created"
