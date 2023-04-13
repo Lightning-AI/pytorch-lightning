@@ -379,7 +379,7 @@ class _Connector:
                 return "xla"
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
+                return SingleTPUStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:

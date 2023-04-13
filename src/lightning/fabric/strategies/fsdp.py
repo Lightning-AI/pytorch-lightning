@@ -107,7 +107,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
-        self._ddp_kwargs = kwargs
+        self._fsdp_kwargs = kwargs
+
+        if _TORCH_GREATER_EQUAL_2_0:
+            # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
+            self._fsdp_kwargs.setdefault("use_orig_params", True)
 
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
             raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
@@ -163,28 +167,44 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
-        raise NotImplementedError(
-            f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
-            " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
-            " call `setup_optimizer`."
-        )
+        """Wraps the model into a
+        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module
+        and sets `use_orig_params=True` to keep the reference to the original parameters in the
+        optimizer.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
+                " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
+                " call `setup_optimizer`."
+            )
+        use_orig_params = self._fsdp_kwargs.get("use_orig_params")
+        if use_orig_params is False:
+            raise ValueError(
+                f"You set `{type(self).__name__}(use_orig_params=False)` but this is not supported when"
+                " setting the model and optimizer up jointly. Either set it to `True` or set the objects"
+                " up in this order: Create the model, call `setup_module`, create the optimizer,"
+                " call `setup_optimizer`."
+            )
+        module = self.setup_module(module)
+        return module, optimizers
 
     def setup_module(self, module: Module) -> "FullyShardedDataParallel":
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-        if "auto_wrap_policy" in self._ddp_kwargs and any(
+        if "auto_wrap_policy" in self._fsdp_kwargs and any(
             isinstance(mod, FullyShardedDataParallel) for mod in module.modules()
         ):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
-            del self._ddp_kwargs["auto_wrap_policy"]
+            del self._fsdp_kwargs["auto_wrap_policy"]
         wrapped_module = FullyShardedDataParallel(
             module=module,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
-            **self._ddp_kwargs,
+            **self._fsdp_kwargs,
         )
 
         # activation checkpointing needs to be set up after wrapping the model
@@ -200,6 +220,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
         flattened parameters.
         """
+        if _TORCH_GREATER_EQUAL_2_0:
+            return optimizer
+
         from torch.distributed.fsdp import FlatParameter
 
         num_groups = len(optimizer.param_groups)
@@ -230,7 +253,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
-            **self._ddp_kwargs,
+            **self._fsdp_kwargs,
         ):
             yield
 

@@ -22,9 +22,20 @@ body:
         ```
         The error message you got, with the full traceback if available.
         ```
-
     validations:
       required: true
+
+  - type: dropdown
+    id: versions
+    attributes:
+      label: What version are you seeing the problem on?
+      multiple: true
+      options:
+        - 1.6.x
+        - 1.7.x
+        - 1.8.x
+        - 1.9.x
+        - 2.0+
 
   - type: markdown
     attributes:
