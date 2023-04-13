@@ -115,6 +115,9 @@ class XLAStrategy(DDPStrategy):
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
+            from torch_xla.experimental import pjrt
+
+            pjrt.broadcast_master_param(self.model)
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
