@@ -204,6 +204,9 @@ class XLAStrategy(DDPStrategy):
         rank_zero_only.rank = self.global_rank
 
     def set_world_ranks(self) -> None:
+        # accessing global_rank will initialize the XLA computation client. since this is called outside of the spawned
+        # processes (by the accelerator connector), we cannot run the code that would normally be here.
+        # instead it's done in `setup_distributed`
         pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
