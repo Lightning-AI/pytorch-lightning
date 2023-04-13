@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
 
@@ -113,7 +113,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: mp.Queue,
+        return_queue: Union[mp.Queue, mp.SimpleQueue],
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
         import torch_xla.core.xla_model as xm
