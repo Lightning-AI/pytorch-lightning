@@ -16,8 +16,7 @@ import os
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional, Union
 
 import numpy as np
 import torch
@@ -138,7 +137,7 @@ class _MultiProcessingLauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: SimpleQueue,
+        return_queue: Union[mp.SimpleQueue, mp.Queue],
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:
