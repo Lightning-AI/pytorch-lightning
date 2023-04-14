@@ -13,6 +13,7 @@
 # limitations under the License.
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
+from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO  # noqa: F401
 
 __all__ = [
     "AsyncCheckpointIO",

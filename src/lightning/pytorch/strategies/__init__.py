@@ -12,17 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.pytorch.strategies.ddp import DDPStrategy  # noqa: F401
-from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
-from lightning.pytorch.strategies.fsdp import FSDPStrategy  # noqa: F401
+from lightning.pytorch.strategies.ddp import DDPStrategy
+from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
+from lightning.pytorch.strategies.fsdp import FSDPStrategy
+from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy  # noqa: F401
 from lightning.pytorch.strategies.ipu import IPUStrategy  # noqa: F401
-from lightning.pytorch.strategies.parallel import ParallelStrategy  # noqa: F401
-from lightning.pytorch.strategies.single_device import SingleDeviceStrategy  # noqa: F401
+from lightning.pytorch.strategies.parallel import ParallelStrategy
+from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
+from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy  # noqa: F401
 from lightning.pytorch.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
-from lightning.pytorch.strategies.strategy import Strategy  # noqa: F401
+from lightning.pytorch.strategies.strategy import Strategy
 from lightning.pytorch.strategies.utils import _call_register_strategies
 from lightning.pytorch.strategies.xla import XLAStrategy  # noqa: F401
 
 _STRATEGIES_BASE_MODULE = "lightning.pytorch.strategies"
 StrategyRegistry = _StrategyRegistry()
 _call_register_strategies(StrategyRegistry, _STRATEGIES_BASE_MODULE)
+
+__all__ = [
+    "DDPStrategy",
+    "DeepSpeedStrategy",
+    "FSDPStrategy",
+    "ParallelStrategy",
+    "SingleDeviceStrategy",
+    "Strategy",
+]

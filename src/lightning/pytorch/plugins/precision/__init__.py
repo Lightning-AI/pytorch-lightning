@@ -15,6 +15,7 @@ from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+from lightning.pytorch.plugins.precision.hpu import HPUPrecisionPlugin  # noqa: F401
 from lightning.pytorch.plugins.precision.ipu import IPUPrecisionPlugin
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.plugins.precision.tpu import TPUPrecisionPlugin
