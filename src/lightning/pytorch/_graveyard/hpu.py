@@ -25,7 +25,6 @@ class HPUAccelerator(pl.accelerators.Accelerator):
         )
 
 
-
 class HPUParallelStrategy(pl.strategies.DDPStrategy):
     """Strategy for distributed training on multiple HPU devices."""
 
@@ -36,9 +35,6 @@ class HPUParallelStrategy(pl.strategies.DDPStrategy):
             " and import with `from lightning_habana import HPUParallelStrategy`."
             " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )
-
-
-
 
 
 class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
@@ -52,6 +48,7 @@ class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
             " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )
 
+
 class HPUCheckpointIO(pl.plugins.io.TorchCheckpointIO):
     """CheckpointIO to save checkpoints for HPU training strategies."""
 
@@ -62,7 +59,6 @@ class HPUCheckpointIO(pl.plugins.io.TorchCheckpointIO):
             " and import with `from lightning_habana import HPUCheckpointIO`."
             " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )
-
 
 
 class HPUPrecisionPlugin(pl.plugins.precision.PrecisionPlugin):
