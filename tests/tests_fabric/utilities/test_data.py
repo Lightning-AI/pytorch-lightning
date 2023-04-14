@@ -1,3 +1,4 @@
+import contextlib
 import random
 from unittest.mock import Mock
 
@@ -270,10 +271,8 @@ def test_replace_dunder_methods_attrs():
         dataloader.my_arg = 10
         dataloader.another_arg = 100
         del dataloader.dataset
-        try:
+        with contextlib.suppress(AttributeError):
             del dataloader.abc_arg
-        except AttributeError:
-            pass
 
     assert dataloader.__pl_saved_args == (range(10),)
     assert dataloader.__pl_saved_kwargs == {}

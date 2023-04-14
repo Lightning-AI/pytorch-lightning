@@ -304,10 +304,10 @@ class WorkStateObserver(Thread):
                 try:
                     with _state_observer_lock:
                         self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))
-                except Exception as e:
+                except Exception as ex:
                     print(traceback.print_exc())
-                    self._error_queue.put(e)
-                    raise e
+                    self._error_queue.put(ex)
+                    raise ex
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -422,19 +422,19 @@ class WorkRunner:
                         self.state_observer.join(0)
                     self.state_observer = None
                 self.copier.join(0)
-            except LightningSigtermStateException as e:
+            except LightningSigtermStateException as ex:
                 logger.debug("Exiting")
-                os._exit(e.exit_code)
-            except Exception as e:
+                os._exit(ex.exit_code)
+            except Exception as ex:
                 # Inform the flow the work failed. This would fail the entire application.
-                self.error_queue.put(e)
+                self.error_queue.put(ex)
                 # Terminate the threads
                 if self.state_observer:
                     if self.state_observer.started:
                         self.state_observer.join(0)
                     self.state_observer = None
                 self.copier.join(0)
-                raise e
+                raise ex
 
     def setup(self):
         from lightning.app.utilities.state import AppState
@@ -532,9 +532,9 @@ class WorkRunner:
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
             ret = self.run_executor_cls(self.work, work_run, self.delta_queue)(*args, **kwargs)
-        except LightningSigtermStateException as e:
-            raise e
-        except BaseException as e:
+        except LightningSigtermStateException as ex:
+            raise ex
+        except BaseException as ex:
             # 10.2 Send failed delta to the flow.
             reference_state = deepcopy(self.work.state)
             exp, val, tb = sys.exc_info()
@@ -566,7 +566,7 @@ class WorkRunner:
                     id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2))
                 )
             )
-            self.work.on_exception(e)
+            self.work.on_exception(ex)
             print("########## CAPTURED EXCEPTION ###########")
             print(traceback.print_exc())
             print("########## CAPTURED EXCEPTION ###########")

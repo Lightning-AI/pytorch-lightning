@@ -221,10 +221,10 @@ def _dataloader_init_kwargs_resolve_sampler(
                         batch_size=batch_sampler.batch_size,
                         drop_last=batch_sampler.drop_last,
                     )
-                except TypeError as e:
+                except TypeError as ex:
                     import re
 
-                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
+                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
                     if not match:
                         # an unexpected `TypeError`, continue failure
                         raise
@@ -235,7 +235,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                         "We tried to re-instantiate your custom batch sampler and failed. "
                         "To mitigate this, either follow the API of `BatchSampler` or instantiate "
                         "your custom batch sampler inside `*_dataloader` hooks of your module."
-                    ) from e
+                    ) from ex
 
             return {
                 "sampler": None,
@@ -260,12 +260,12 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
 
     try:
         result = constructor(*args, **kwargs)
-    except TypeError as e:
+    except TypeError as ex:
         # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
         # `__init__` arguments map to one `DataLoader.__init__` argument
         import re
 
-        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
+        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(ex))
         if not match:
             # an unexpected `TypeError`, continue failure
             raise

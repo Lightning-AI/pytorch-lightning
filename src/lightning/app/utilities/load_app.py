@@ -78,9 +78,9 @@ def _load_objects_from_file(
                                 exec(code, module.__dict__)
                         else:
                             exec(code, module.__dict__)
-            except Exception as e:
+            except Exception as ex:
                 if raise_exception:
-                    raise e
+                    raise ex
                 _prettifiy_exception(filepath)
 
     return [v for v in module.__dict__.values() if isinstance(v, target_type)], module

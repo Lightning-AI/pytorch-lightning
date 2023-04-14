@@ -152,8 +152,8 @@ class AppState:
             try:
                 # TODO: Send the delta directly to the REST API.
                 response = self._session.post(app_url, json=data, headers=headers)
-            except ConnectionError as e:
-                raise AttributeError("Failed to connect and send the app state. Is the app running?") from e
+            except ConnectionError as ex:
+                raise AttributeError("Failed to connect and send the app state. Is the app running?") from ex
 
             if response and response.status_code != 200:
                 raise Exception(f"The response from the server was {response.status_code}. Your inputs were rejected.")
@@ -172,8 +172,8 @@ class AppState:
             sleep(0.5)
             try:
                 response = self._session.get(app_url, headers=headers, timeout=1)
-            except ConnectionError as e:
-                raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from e
+            except ConnectionError as ex:
+                raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from ex
 
             self._authorized = response.status_code
             if self._authorized != 200:

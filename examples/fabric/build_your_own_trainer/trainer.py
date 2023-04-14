@@ -377,11 +377,11 @@ class MyCustomTrainer:
 
         try:
             monitor = possible_monitor_vals[cast(Optional[str], scheduler_cfg["monitor"])]
-        except KeyError as e:
+        except KeyError as ex:
             possible_keys = list(possible_monitor_vals.keys())
             raise KeyError(
                 f"monitor {scheduler_cfg['monitor']} is invalid. Possible values are {possible_keys}."
-            ) from e
+            ) from ex
 
         # rely on model hook for actual step
         model.lr_scheduler_step(scheduler_cfg["scheduler"], monitor)

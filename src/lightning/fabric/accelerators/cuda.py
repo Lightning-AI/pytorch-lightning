@@ -331,9 +331,7 @@ def _device_count_nvml() -> int:
             for idx, val in enumerate(visible_devices):
                 if cast(int, val) >= raw_cnt:
                     return idx
-    except OSError:
-        return -1
-    except AttributeError:
+    except (OSError, AttributeError):
         return -1
     return len(visible_devices)
 

@@ -135,8 +135,8 @@ def MNIST(*args: Any, **kwargs: Any) -> Dataset:
             from torchvision.datasets import MNIST
 
             MNIST(_DATASETS_PATH, download=True)
-        except HTTPError as e:
-            print(f"Error {e} downloading `torchvision.datasets.MNIST`")
+        except HTTPError as ex:
+            print(f"Error {ex} downloading `torchvision.datasets.MNIST`")
             torchvision_mnist_available = False
     if not torchvision_mnist_available:
         print("`torchvision.datasets.MNIST` not available. Using our hosted version")

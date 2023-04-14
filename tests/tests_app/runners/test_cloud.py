@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pathlib
@@ -1904,11 +1905,9 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
 
     try:
         with caplog.at_level(logging.INFO):
-            try:
+            # Expected behaviour
+            with contextlib.suppress(SystemExit):
                 cloud_runtime.dispatch()
-            except SystemExit:
-                # Expected behaviour
-                pass
 
         lines = caplog.text.split("\n")
 

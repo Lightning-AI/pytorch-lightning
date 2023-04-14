@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pathlib
@@ -140,10 +141,8 @@ def test_work_runner(parallel, cache_calls, *_):
         copy_request_queue,
         copy_response_queue,
     )
-    try:
+    with contextlib.suppress(Empty, Exception):
         work_runner()
-    except (Empty, Exception):
-        pass
 
     assert readiness_queue._queue[0]
     if parallel:
@@ -263,9 +262,9 @@ class WorkRunnerPatch(WorkRunner):
                     ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
                 )
                 self.counter += 1
-            except Exception as e:
+            except Exception as ex:
                 logger.error(traceback.format_exc())
-                self.error_queue.put(e)
+                self.error_queue.put(ex)
                 raise ExitAppException
 
 
@@ -343,10 +342,8 @@ def test_path_argument_to_transfer(*_):
         copy_response_queue=_MockQueue(),
     )
 
-    try:
+    with contextlib.suppress(ExitAppException):
         runner()
-    except ExitAppException:
-        pass
 
     path1.exists_remote.assert_called_once()
     path1.get.assert_not_called()
@@ -433,11 +430,8 @@ def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
         copy_request_queue=_MockQueue(),
         copy_response_queue=_MockQueue(),
     )
-
-    try:
+    with contextlib.suppress(ExitAppException):
         runner()
-    except ExitAppException:
-        pass
 
     assert path_mock.get.call_count == expected_get
 
@@ -695,10 +689,8 @@ def test_work_runner_sets_internal_ip(patch_constants, environment, expected_ip_
         work_runner.setup()
         # The internal ip address only becomes available once the hardware is up / the work is running.
         assert work.internal_ip == ""
-        try:
+        with contextlib.suppress(Empty):
             work_runner.run_once()
-        except Empty:
-            pass
         assert work.internal_ip == expected_ip_addr
 
 

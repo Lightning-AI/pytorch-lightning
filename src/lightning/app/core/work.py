@@ -483,10 +483,10 @@ class LightningWork:
     def __getattribute__(self, name: str) -> Any:
         try:
             attr = object.__getattribute__(self, name)
-        except AttributeError as e:
-            if str(e).endswith("'_state'"):
+        except AttributeError as ex:
+            if str(ex).endswith("'_state'"):
                 raise AttributeError(f"Did you forget to call super().__init__() in {self}")
-            raise e
+            raise ex
 
         if isinstance(attr, ProxyWorkRun):
             return attr

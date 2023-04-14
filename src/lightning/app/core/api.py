@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import contextlib
 import json
 import os
 import queue
@@ -116,28 +117,24 @@ class UIRefresher(Thread):
                 self.run_once()
                 # Note: Sleep to reduce queue calls.
                 sleep(self.refresh_interval)
-        except Exception as e:
+        except Exception as ex:
             logger.error(traceback.print_exc())
-            raise e
+            raise ex
 
     def run_once(self):
-        try:
+        with contextlib.suppress(queue.Empty):
             global app_status
             state, app_status = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
-        except queue.Empty:
-            pass
 
-        try:
+        with contextlib.suppress(queue.Empty):
             responses = self.api_response_queue.get(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
                 for response in responses:
                     responses_store[response["id"]] = response["response"]
-        except queue.Empty:
-            pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()

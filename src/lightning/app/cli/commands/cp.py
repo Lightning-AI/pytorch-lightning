@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import concurrent
+import contextlib
 import os
 import sys
 from functools import partial
@@ -258,7 +259,7 @@ def _download_file(path: str, url: str, progress: Progress, task_id: TaskID) -> 
     # Disable warning about making an insecure request
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    try:
+    with contextlib.suppress(ConnectionError):
         request = requests.get(url, stream=True, verify=False)
 
         chunk_size = 1024
@@ -267,8 +268,6 @@ def _download_file(path: str, url: str, progress: Progress, task_id: TaskID) -> 
             for chunk in request.iter_content(chunk_size=chunk_size):
                 fp.write(chunk)  # type: ignore
                 progress.update(task_id, advance=len(chunk))
-    except ConnectionError:
-        pass
 
 
 def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import multiprocessing as mp
 import os
@@ -549,10 +550,8 @@ def test_configure_api():
     assert response.status_code == 200
 
     # Stop the Application
-    try:
+    with contextlib.suppress(Exception):
         response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
-    except Exception:
-        pass
 
     # Teardown
     time_left = 5

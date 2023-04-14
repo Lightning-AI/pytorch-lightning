@@ -115,8 +115,8 @@ class MNIST(Dataset):
             try:
                 res = torch.load(path_data)
             # todo: specify the possible exception
-            except Exception as e:
-                exception = e
+            except Exception as ex:
+                exception = ex
                 time.sleep(delta * random.random())
             else:
                 break

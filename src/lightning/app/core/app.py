@@ -368,8 +368,8 @@ class LightningApp:
                     work = None
                     try:
                         work = self.get_component_by_name(delta.id)
-                    except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
+                    except (KeyError, AttributeError) as ex:
+                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {ex}")
 
                     if work:
                         delta = _delta_to_app_state_delta(
@@ -434,8 +434,8 @@ class LightningApp:
         for delta in deltas:
             try:
                 state += delta
-            except Exception as e:
-                raise Exception(f"Current State {state}, {delta.to_dict()}") from e
+            except Exception as ex:
+                raise Exception(f"Current State {state}, {delta.to_dict()}") from ex
 
         # new_state = self.populate_changes(self.last_state, state)
         self.set_state(state)

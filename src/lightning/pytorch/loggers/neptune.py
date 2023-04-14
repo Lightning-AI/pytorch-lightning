@@ -19,6 +19,7 @@ __all__ = [
     "NeptuneLogger",
 ]
 
+import contextlib
 import logging
 import os
 from argparse import Namespace
@@ -281,10 +282,8 @@ class NeptuneLogger(Logger):
     def _neptune_init_args(self) -> Dict:
         args: Dict = {}
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             args = self._neptune_run_kwargs
-        except AttributeError:
-            pass
 
         if self._project_name is not None:
             args["project"] = self._project_name
@@ -296,11 +295,9 @@ class NeptuneLogger(Logger):
             args["run"] = self._run_short_id
 
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             if self._run_name is not None:
                 args["name"] = self._run_name
-        except AttributeError:
-            pass
 
         return args
 
