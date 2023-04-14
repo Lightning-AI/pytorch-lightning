@@ -370,7 +370,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         """Get the full consolidated module state.
 
-        All tensors in this state will be returned on CPU.
+        All tensors in this state will be returned on CPU and only on rank 0 (to reduce the chance of OOMs).
         """
         if not isinstance(module, FullyShardedDataParallel):
             return super().get_module_state_dict(module)
