@@ -14,7 +14,7 @@
 from typing import Iterable
 
 import pytest
-from fiftyone.utils import torch
+import torch
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from lightning.fabric.utilities.data import has_len
@@ -22,23 +22,27 @@ from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 
 
+class MyModel(LightningModule):
+    def setup(self, stage: str) -> None:
+        self.layer = torch.nn.Linear(1, 1)
+        weights = self.layer.weight.item(), self.layer.bias.item()
+        self.rank_0_weights = self.trainer.strategy.broadcast(weights)
+
+    def test_step(self, batch, batch_idx):
+        current = self.layer.weight.item(), self.layer.bias.item()
+        assert self.rank_0_weights == current
+        gathered = self.all_gather(current)
+        # the weights have been synced
+        assert all(torch.all(t == t[0]) for t in gathered), gathered
+
+
 def test_params_synced_during_nonfit():
-    class MyModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.layer = torch.nn.Linear(1, 1)
-            print(self.local_rank, "INIT", self.layer.weight.data, self.layer.bias.data)
-
-        def test_step(self, batch, batch_idx):
-            print(self.local_rank, "FWD", self.layer.weight.data, self.layer.bias.data)
-
     model = MyModel()
     trainer = Trainer(
-        limit_test_batches=1,
         barebones=True,
         devices=2,
         accelerator="cpu",
-        strategy="ddp_spawn",
+        strategy="ddp",
     )
     trainer.test(model, [0])
 
