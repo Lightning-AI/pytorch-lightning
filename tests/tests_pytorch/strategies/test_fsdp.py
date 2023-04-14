@@ -90,7 +90,7 @@ class TestFSDPModelAutoWrapped(BoringModel):
         super().__init__()
         self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        self.wrap_min_params = wrap_min_params
+        self.should_be_wrapped = [(32 * 32 + 32) > wrap_min_params, None, (32 * 2 + 2) > wrap_min_params]
 
     def configure_optimizers(self):
         parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
@@ -114,8 +114,7 @@ class TestFSDPModelAutoWrapped(BoringModel):
 
         precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
         for layer_num in [0, 2]:
-            num_params = sum(p.numel() for p in self.layer[layer_num].parameters())
-            if num_params < self.wrap_min_params:
+            if not self.should_be_wrapped[layer_num]:
                 # this layer is not wrapped
                 assert not isinstance(self.layer[layer_num], FullyShardedDataParallel)
                 continue
@@ -267,6 +266,10 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     trainer.fit(model)
     # CheckpointConnector use this to extract state dict
     extracted_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    if trainer.global_rank != 0:
+        assert len(extracted_state_dict) == 0
+        return
 
     # State dict should contain same number of keys
     assert len(correct_state_dict) == len(extracted_state_dict)
