@@ -128,6 +128,8 @@ def test_custom_cluster_environment_in_slurm_environment(_):
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, CustomCluster)
+    # this checks that `strategy._set_world_ranks` was called by the connector
+    assert connector.strategy.world_size == 2
 
 
 @RunIf(mps=False)
@@ -230,10 +232,10 @@ def test_custom_accelerator(*_):
 @mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
 def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
     with mock.patch.dict(os.environ, env_vars, clear=True):
-        trainer = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, expected_environment)
+        connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
+    assert isinstance(connector.accelerator, CPUAccelerator)
+    assert isinstance(connector.strategy, DDPStrategy)
+    assert isinstance(connector.strategy.cluster_environment, expected_environment)
 
 
 @RunIf(mps=False)
