@@ -9,12 +9,18 @@ def _patch_sys_modules() -> None:
     sys.modules["lightning.pytorch.accelerators.hpu"] = self
     sys.modules["lightning.pytorch.strategies.hpu_parallel"] = self
     sys.modules["lightning.pytorch.strategies.single_hpu"] = self
-    sys.modules["lightning.plugins.io.hpu_plugin"] = self
-    sys.modules["lightning.plugins.precision.hpu"] = self
+    sys.modules["lightning.pytorch.plugins.io.hpu_plugin"] = self
+    sys.modules["lightning.pytorch.plugins.precision.hpu"] = self
 
 
 class HPUAccelerator(pl.accelerators.Accelerator):
     """Accelerator for HPU devices."""
+    auto_device_count = ...
+    get_parallel_devices= ...
+    is_available= ...
+    parse_devices= ...
+    setup_device= ...
+    teardown= ...
 
     def __init__(self, *_: Any, **__: Any):
         raise NotImplementedError(
@@ -35,6 +41,11 @@ class HPUParallelStrategy(pl.strategies.DDPStrategy):
             " and import with `from lightning_habana import HPUParallelStrategy`."
             " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )
+    def setup(self, *_: Any, **__: Any) -> None:
+        raise NotImplementedError
+
+    def get_device_stats(self, *_: Any, **__: Any) -> dict:
+        raise NotImplementedError
 
 
 class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
