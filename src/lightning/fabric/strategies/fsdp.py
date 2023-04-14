@@ -321,6 +321,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `FSDPStrategy` does not use the `CheckpointIO`."
             )
+        if any(isinstance(opt, Optimizer) for opt in state.values()):
+            raise NotImplementedError()
 
         from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -346,16 +348,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         state_dict_type = _get_state_dict_type(module)
 
-        # replace the modules and optimizer objects in the state with their local state dict and
-        # separate the user's metadata
+        # replace the modules in the state with their local state dict and separate the user's metadata
         converted_state = {}
         metadata = {}
         with state_dict_type:
             for key, obj in state.items():
                 if isinstance(obj, FSDP):
                     converted_state[key] = obj.state_dict()
-                elif isinstance(obj, Optimizer):
-                    converted_state[key] = FSDP.optim_state_dict(module, obj)
                 else:  # everything not a module or optimizer is considered metadata
                     metadata[key] = obj
 
@@ -399,6 +398,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
                 f" with sharded states in a directory."
             )
+        if any(isinstance(opt, Optimizer) for opt in state.values()):
+            raise NotImplementedError()
 
         from torch.distributed._shard.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -425,22 +426,20 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         metadata = torch.load(os.path.join(path, "meta.pt"))
 
         with state_dict_type:
-            # replace the modules and optimizer objects in the state with their local state dict
+            # replace the module in the state with their local state dict
             converted_state = {}
             for key, obj in state.items():
                 if isinstance(obj, FSDP):
                     converted_state[key] = obj.state_dict()
-                elif isinstance(obj, Optimizer):
-                    converted_state[key] = FSDP.optim_state_dict(module, obj)
 
             # load the states from the checkpoint into the local state dict (in-place)
             reader = FileSystemReader(path=path)
+            print("loading", list(converted_state.keys()))
             load_state_dict(converted_state, reader)
 
-            # load the local state dict into the modules and optimizers
-            # and populate the requested user metadata
+            # load the local state dict into the module and populate the requested user metadata
             for key, obj in state.items():
-                if isinstance(obj, (FSDP, Optimizer)):
+                if isinstance(obj, FSDP):
                     obj.load_state_dict(converted_state.pop(key))
                 else:
                     state[key] = metadata.pop(key)
@@ -536,8 +535,8 @@ def _get_state_dict_type(module: "FullyShardedDataParallel") -> Generator:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
-    state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
-    optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
+    state_dict_config = ShardedStateDictConfig(offload_to_cpu=False)
+    optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=False)
     state_dict_type = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.SHARDED_STATE_DICT,

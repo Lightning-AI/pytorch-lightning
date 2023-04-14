@@ -80,7 +80,7 @@ def test_fsdp_train_save_load(tmp_path):
     with fabric.sharded_model():
         model = BoringModel()
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(model.parameters())
     model, optimizer = fabric.setup(model, optimizer)
     
     assert isinstance(model._forward_module, FullyShardedDataParallel)
@@ -92,7 +92,7 @@ def test_fsdp_train_save_load(tmp_path):
     optimizer.zero_grad()
 
     weights_before = deepcopy(list(model.parameters()))
-    state = {"model": model, "optimizer": optimizer, "steps": 1}
+    state = {"model": model, "steps": 1}
     fabric.save(checkpoint_path, state)
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
 
@@ -105,10 +105,10 @@ def test_fsdp_train_save_load(tmp_path):
     with fabric.sharded_model():
         model = BoringModel()
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(model.parameters())
     model, optimizer = fabric.setup(model, optimizer)
     
-    state = {"model": model, "optimizer": optimizer, "steps": 0}
+    state = {"model": model, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
 
     params_after = deepcopy(list(model.parameters()))
