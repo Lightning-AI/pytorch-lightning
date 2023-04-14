@@ -201,13 +201,13 @@ class XLAStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         self._launched = True
-        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        # accessing global_rank will initialize the XLA computation client. since this is called outside of the spawned
+        # processes (by the accelerator connector), we cannot run the code that would normally be here.
+        # instead it's done in `setup_distributed`
+        pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None

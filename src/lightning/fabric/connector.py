@@ -507,8 +507,8 @@ class _Connector:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
-        if hasattr(self.strategy, "set_world_ranks"):
-            self.strategy.set_world_ranks()
+        if hasattr(self.strategy, "_set_world_ranks"):
+            self.strategy._set_world_ranks()
         self.strategy._configure_launcher()
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
