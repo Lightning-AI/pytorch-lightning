@@ -856,6 +856,7 @@ def test_load_wrapped_objects(setup, tmp_path):
     fabric = Fabric(accelerator="cpu")
 
     expected_remainder = {"extra": "data"}
+
     def mocked_load_checkpoint(path, state):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
