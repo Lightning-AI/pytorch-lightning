@@ -109,8 +109,7 @@ class _XLALauncher(_Launcher):
             # so when there's more than one (multithreading), objects need to be deep-copied
             import copy
 
-            args = copy.deepcopy(args)
-            kwargs = copy.deepcopy(kwargs)
+            args, kwargs = copy.deepcopy((args, kwargs))
 
         results = function(*args, **kwargs)
 

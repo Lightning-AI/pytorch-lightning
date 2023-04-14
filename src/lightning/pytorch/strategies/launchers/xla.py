@@ -127,10 +127,7 @@ class _XLALauncher(_MultiProcessingLauncher):
             # so when there's more than one (multithreading), objects need to be deep-copied
             import copy
 
-            trainer = copy.deepcopy(trainer)
-            function = copy.deepcopy(function)
-            args = copy.deepcopy(args)
-            kwargs = copy.deepcopy(kwargs)
+            trainer, function, args, kwargs = copy.deepcopy((trainer, function, args, kwargs))
 
         results = function(*args, **kwargs)
 
