@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import queue
 from typing import Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
@@ -67,13 +68,15 @@ class _XLALauncher(_MultiProcessingLauncher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._start_method)
-
         from torch_xla.experimental import pjrt
 
         using_pjrt = pjrt.using_pjrt()
-        # pjrt requires that the queue is serializable, `SimpleQueue` is not
-        return_queue = context.Queue() if using_pjrt else context.SimpleQueue()
+        return_queue: Union[queue.Queue, mp.SimpleQueue]
+        if using_pjrt:
+            # pjrt requires that the queue is serializable
+            return_queue = mp.Manager().Queue()
+        else:
+            return_queue = mp.get_context(self._start_method).SimpleQueue()
 
         import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -113,7 +116,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.Queue, mp.SimpleQueue],
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
         import torch_xla.core.xla_model as xm

@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+import queue
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
@@ -137,7 +138,7 @@ class _MultiProcessingLauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, mp.Queue],
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:
