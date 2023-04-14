@@ -103,10 +103,6 @@ class DDPStrategy(ParallelStrategy):
         self._start_method = start_method
 
     @property
-    def is_distributed(self) -> bool:
-        return True
-
-    @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
