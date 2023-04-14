@@ -456,7 +456,8 @@ class Trainer:
 
         if detect_anomaly:
             rank_zero_info(
-                "You have turned on `Trainer(detect_anomaly=True)`. This will significantly slow down compute speed and is recommended only for model debugging."
+                "You have turned on `Trainer(detect_anomaly=True)`. This will significantly slow down compute speed and"
+                " is recommended only for model debugging."
             )
         self._detect_anomaly: bool = detect_anomaly
 
