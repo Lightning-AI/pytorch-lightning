@@ -349,6 +349,11 @@ class AssertXLAWorldSizeModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_host_world_size(tmpdir):
     """Test Host World size env setup on TPU."""
+    from torch_xla.experimental import pjrt
+
+    if pjrt.using_pjrt():
+        pytest.skip("PJRT doesn't set 'XRT_HOST_WORLD_SIZE'")
+
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,

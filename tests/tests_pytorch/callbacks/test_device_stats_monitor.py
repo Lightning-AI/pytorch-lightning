@@ -111,10 +111,8 @@ class AssertTpuMetricsLogger(CSVLogger):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -127,7 +125,15 @@ def test_device_stats_monitor_tpu(tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
-    trainer.fit(model)
+
+    try:
+        trainer.fit(model)
+    except RuntimeError as e:
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt() and "GetMemoryInfo not implemented" in str(e):
+            pytest.xfail("`xm.get_memory_info` is not implemented with PJRT")
+        raise e
 
 
 def test_device_stats_monitor_no_logger(tmpdir):
