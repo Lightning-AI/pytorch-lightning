@@ -99,60 +99,61 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
+class ManualOptimizationModel(BoringModel):
+
+    count = 0
+    called = collections.defaultdict(int)
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    @property
+    def should_update(self):
+        return self.count % 2 == 0
+
+    def on_train_batch_start(self, batch, batch_idx):
+        self.called["on_train_batch_start"] += 1
+        self.weight_before = self.layer.weight.clone()
+
+    def training_step(self, batch, batch_idx):
+        self.called["training_step"] += 1
+        opt = self.optimizers()
+        loss = self.step(batch)
+
+        if self.should_update:
+            self.manual_backward(loss)
+            opt.step()
+            opt.zero_grad()
+        return loss
+
+    def on_train_batch_end(self, *_):
+        self.called["on_train_batch_end"] += 1
+        after_before = self.layer.weight.clone()
+        if self.should_update:
+            assert not torch.equal(self.weight_before, after_before), self.count
+        else:
+            assert torch.equal(self.weight_before, after_before)
+        assert_emtpy_grad(self.layer.weight.grad)
+        self.count += 1
+
+    def on_train_start(self):
+        opt = self.optimizers()
+        self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
+        self.opt_step_mock = self.opt_step_patch.start()
+
+    def on_train_end(self):
+        assert self.called["training_step"] == 5
+        assert self.called["on_train_batch_start"] == 5
+        assert self.called["on_train_batch_end"] == 5
+
+        self.opt_step_patch.stop()
+        assert self.opt_step_mock.call_count == 3
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_manual_optimization_tpus(tmpdir):
-    class ManualOptimizationModel(BoringModel):
-
-        count = 0
-        called = collections.defaultdict(int)
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        @property
-        def should_update(self):
-            return self.count % 2 == 0
-
-        def on_train_batch_start(self, batch, batch_idx):
-            self.called["on_train_batch_start"] += 1
-            self.weight_before = self.layer.weight.clone()
-
-        def training_step(self, batch, batch_idx):
-            self.called["training_step"] += 1
-            opt = self.optimizers()
-            loss = self.step(batch)
-
-            if self.should_update:
-                self.manual_backward(loss)
-                opt.step()
-                opt.zero_grad()
-            return loss
-
-        def on_train_batch_end(self, *_):
-            self.called["on_train_batch_end"] += 1
-            after_before = self.layer.weight.clone()
-            if self.should_update:
-                assert not torch.equal(self.weight_before, after_before), self.count
-            else:
-                assert torch.equal(self.weight_before, after_before)
-            assert_emtpy_grad(self.layer.weight.grad)
-            self.count += 1
-
-        def on_train_start(self):
-            opt = self.optimizers()
-            self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
-            self.opt_step_mock = self.opt_step_patch.start()
-
-        def on_train_end(self):
-            assert self.called["training_step"] == 5
-            assert self.called["on_train_batch_start"] == 5
-            assert self.called["on_train_batch_end"] == 5
-
-            self.opt_step_patch.stop()
-            assert self.opt_step_mock.call_count == 3
-
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
 
@@ -204,33 +205,34 @@ def test_auto_parameters_tying_tpus(tmpdir):
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
 
 
+class SubModule(nn.Module):
+    def __init__(self, layer):
+        super().__init__()
+        self.layer = layer
+
+    def forward(self, x):
+        return self.layer(x)
+
+
+class NestedModule(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(32, 10, bias=False)
+        self.net_a = SubModule(self.layer)
+        self.layer_2 = nn.Linear(10, 32, bias=False)
+        self.net_b = SubModule(self.layer)
+
+    def forward(self, x):
+        x = self.net_a(x)
+        x = self.layer_2(x)
+        x = self.net_b(x)
+        return x
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_auto_parameters_tying_tpus_nested_module(tmpdir):
-    class SubModule(nn.Module):
-        def __init__(self, layer):
-            super().__init__()
-            self.layer = layer
-
-        def forward(self, x):
-            return self.layer(x)
-
-    class NestedModule(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer = nn.Linear(32, 10, bias=False)
-            self.net_a = SubModule(self.layer)
-            self.layer_2 = nn.Linear(10, 32, bias=False)
-            self.net_b = SubModule(self.layer)
-
-        def forward(self, x):
-            x = self.net_a(x)
-            x = self.layer_2(x)
-            x = self.net_b(x)
-            return x
-
     model = NestedModule()
-
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 

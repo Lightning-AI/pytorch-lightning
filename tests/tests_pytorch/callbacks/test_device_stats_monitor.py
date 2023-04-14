@@ -99,6 +99,14 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     assert cpu_stats_mock.call_count == expected
 
 
+class AssertTpuMetricsLogger(CSVLogger):
+    @rank_zero_only
+    def log_metrics(self, metrics, step=None) -> None:
+        fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
+        for f in fields:
+            assert any(f in h for h in metrics)
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
@@ -106,13 +114,6 @@ def test_device_stats_monitor_tpu(tmpdir):
 
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
-
-    class DebugLogger(CSVLogger):
-        @rank_zero_only
-        def log_metrics(self, metrics, step=None) -> None:
-            fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
-            for f in fields:
-                assert any(f in h for h in metrics)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -122,7 +123,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         devices="auto",
         log_every_n_steps=1,
         callbacks=[device_stats],
-        logger=DebugLogger(tmpdir),
+        logger=AssertTpuMetricsLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
