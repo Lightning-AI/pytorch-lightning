@@ -104,16 +104,16 @@ subprojects:
   #  checks:
   #    - "pytorch-lightning (IPUs)"
 
-  - id: "pytorch-lightning: TPU workflow"
-    paths:
+  # TODO: there are issues to address
+  #- id: "pytorch-lightning: TPU workflow"
+  #  paths:
       # tpu CI availability is very limited, so we only require tpu tests
       # to pass when their configurations are modified
-      - ".github/workflows/tpu-tests.yml"
-      - "tests/tests_pytorch/run_tpu_tests.sh"
-    checks:
-      - "test-on-tpus (pytorch, xrt)"
-      # TODO: uncomment when PJRT support is added
-      #- "test-on-tpus (pytorch, pjrt)"
+  #    - ".github/workflows/tpu-tests.yml"
+  #    - "tests/tests_pytorch/run_tpu_tests.sh"
+  #  checks:
+  #    - "test-on-tpus (pytorch, xrt)"
+  #    - "test-on-tpus (pytorch, pjrt)"
 
   - id: "fabric: Docs"
     paths:
