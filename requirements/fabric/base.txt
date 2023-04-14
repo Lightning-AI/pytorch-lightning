@@ -6,4 +6,4 @@ torch>=1.11.0, <=2.0.0
 fsspec[http]>2021.06.0, <2023.2.0
 packaging>=17.1, <=23.0
 typing-extensions>=4.0.0, <=4.4.0
-lightning-utilities>=0.7.0, <0.9.0
+lightning-utilities>=0.8.0, <0.9.0

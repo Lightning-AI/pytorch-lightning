@@ -10,12 +10,12 @@
 | .azure-pipelines/ipu-tests.yml         | Run only IPU-specific tests.                                                                                                                                                | IPU           |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
 | .azure-pipelines/gpu-benchmark.yml     | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
-| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests.                                                                                                                                                | TPU           |
+| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]'                                                                                                  | TPU           |
 
 - \*Accelerators used in CI
 
   - GPU: 2 x NVIDIA RTX 3090
-  - TPU: Google GKE TPUv3
+  - TPU: [Google TPU v4-8](https://cloud.google.com/tpu/docs/v4-users-guide)
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
 
 - To check which versions of Python or PyTorch are used for testing in our CI, see the corresponding workflow files or checkgroup cofig file at [`.github/checkgroup.yml`](../checkgroup.yml).
