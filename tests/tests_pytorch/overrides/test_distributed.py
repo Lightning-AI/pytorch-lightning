@@ -20,7 +20,7 @@ from torch.utils.data import BatchSampler, SequentialSampler
 from lightning.fabric.utilities.data import has_len
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from tests.tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class MyModel(LightningModule):
