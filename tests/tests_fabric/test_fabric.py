@@ -850,6 +850,37 @@ def test_save_wrapped_objects(setup, tmp_path):
     save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
 
 
+@pytest.mark.parametrize("setup", [True, False])
+def test_load_wrapped_objects(setup, tmp_path):
+    """Test that loading happens in-place for model, optimizer, and other user data."""
+    fabric = Fabric(accelerator="cpu")
+
+    expected_remainder = {"extra": "data"}
+    def mocked_load_checkpoint(path, state):
+        assert not isinstance(state["model"], _FabricModule)
+        assert not isinstance(state["optimizer"], _FabricOptimizer)
+        state.update({"int": 5, "dict": {"x": 1}})
+        return expected_remainder
+
+    fabric.strategy.load_checkpoint = mocked_load_checkpoint
+
+    unwrapped_model = BoringModel()
+    unwrapped_optimizer = torch.optim.Adam(unwrapped_model.parameters())
+
+    if setup:
+        model, optimizer = fabric.setup(unwrapped_model, unwrapped_optimizer)
+        assert isinstance(model, _FabricModule)
+        assert isinstance(optimizer, _FabricOptimizer)
+    else:
+        model, optimizer = unwrapped_model, unwrapped_optimizer
+
+    state = {"model": model, "optimizer": optimizer, "int": 0, "dict": {"x": 0}}
+    expected = {"model": model, "optimizer": optimizer, "int": 5, "dict": {"x": 1}}
+    remainder = fabric.load(tmp_path, state)
+    assert state == expected
+    assert remainder == expected_remainder
+
+
 def test_barrier():
     """Test that `Fabric.barrier()` calls into the strategy."""
     fabric = Fabric()

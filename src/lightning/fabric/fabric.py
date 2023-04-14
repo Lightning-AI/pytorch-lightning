@@ -619,8 +619,10 @@ class Fabric:
         """
         unwrapped_state = _unwrap_objects(state)
         remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state)
+        # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates 
+        # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
         for k in list(unwrapped_state.keys()):
-            if isinstance(unwrapped_state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+            if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                 continue
             state[k] = unwrapped_state[k]
 
