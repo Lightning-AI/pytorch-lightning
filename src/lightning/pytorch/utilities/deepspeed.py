@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Dict, Union
 
 import torch
 
@@ -33,7 +33,7 @@ if _DEEPSPEED_AVAILABLE:
 CPU_DEVICE = torch.device("cpu")
 
 
-def ds_checkpoint_dir(checkpoint_dir: _PATH, tag: str | None = None) -> str:
+def ds_checkpoint_dir(checkpoint_dir: _PATH, tag: Union[str, None] = None) -> str:
     if tag is None:
         latest_path = os.path.join(checkpoint_dir, "latest")
         if os.path.isfile(latest_path):
@@ -51,8 +51,8 @@ def ds_checkpoint_dir(checkpoint_dir: _PATH, tag: str | None = None) -> str:
 
 # Modified script from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py
 def convert_zero_checkpoint_to_fp32_state_dict(
-    checkpoint_dir: _PATH, output_file: _PATH, tag: str | None = None
-) -> dict[str, Any]:
+    checkpoint_dir: _PATH, output_file: _PATH, tag: Union[str, None] = None
+) -> Dict[str, Any]:
     """Convert ZeRO 2 or 3 checkpoint into a single fp32 consolidated ``state_dict`` file that can be loaded with
     ``torch.load(file)`` + ``load_state_dict()`` and used for training without DeepSpeed. It gets copied into the
     top level checkpoint dir, so the user can easily do the conversion at any point in the future. Once extracted,
