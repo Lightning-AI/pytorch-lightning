@@ -332,7 +332,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
             )
-        elif len(modules) > 1:
+        if len(modules) > 1:
             raise ValueError(
                 "Found multiple FSDP modules in the given state. Saving checkpoints with FSDP is"
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
