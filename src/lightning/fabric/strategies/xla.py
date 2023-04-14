@@ -106,8 +106,7 @@ class XLAStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> Module:
         from torch_xla.experimental import pjrt
 
-        if pjrt.using_pjrt():
-            pjrt.broadcast_master_param(module)
+        pjrt.broadcast_master_param(module)
         return module
 
     def module_to_device(self, module: Module) -> None:

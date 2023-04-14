@@ -114,10 +114,11 @@ class XLAStrategy(DDPStrategy):
         set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
-        if trainer.state.fn == TrainerFn.FITTING:
-            from torch_xla.experimental import pjrt
+        from torch_xla.experimental import pjrt
 
-            pjrt.broadcast_master_param(self.model)
+        pjrt.broadcast_master_param(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
