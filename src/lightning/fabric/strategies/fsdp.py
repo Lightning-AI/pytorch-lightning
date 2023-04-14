@@ -401,7 +401,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
-        elif len(modules) > 1:
+        if len(modules) > 1:
             raise ValueError(
                 "Found multiple FSDP modules in the given state. Loading checkpoints with FSDP is"
                 " currently limited to a single model per checkpoint. To load multiple models, call the"
