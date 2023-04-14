@@ -129,7 +129,7 @@ class ModelCheckpoint(Checkpoint):
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
-        override_existing: Whether to overwrite the checkpoint file.
+        overwrite_existing: Whether to overwrite the checkpoint file.
             If this is ``True``, then the name of the saved file won't be appended with a version.
 
     Note:
@@ -219,7 +219,7 @@ class ModelCheckpoint(Checkpoint):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
-        override_existing: bool = False,
+        overwrite_existing: bool = False,
     ):
         super().__init__()
         self.monitor = monitor
@@ -229,7 +229,7 @@ class ModelCheckpoint(Checkpoint):
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
-        self._override_existing = override_existing
+        self._overwrite_existing = overwrite_existing
         self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
@@ -619,7 +619,7 @@ class ModelCheckpoint(Checkpoint):
     ) -> str:
         filepath = self.format_checkpoint_name(monitor_candidates)
 
-        if not self._override_existing:
+        if not self._overwrite_existing:
             version_cnt = self.STARTING_VERSION
             while self.file_exists(filepath, trainer) and filepath != del_filepath:
                 filepath = self.format_checkpoint_name(monitor_candidates, ver=version_cnt)
