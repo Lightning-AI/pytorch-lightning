@@ -13,24 +13,13 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import MagicMock
 
-import pytest
 import torch
-from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import XLAStrategy
-from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
-
-
-def test_error_process_iterable_dataloader(xla_available):
-    strategy = XLAStrategy(MagicMock())
-    loader_no_len = CustomNotImplementedErrorDataloader(DataLoader(RandomDataset(32, 64)))
-    with pytest.raises(TypeError, match="TPUs do not currently support"):
-        strategy.process_dataloader(loader_no_len)
 
 
 class BoringModelTPU(BoringModel):
