@@ -228,12 +228,14 @@ def _show_install_component_prompt(entry: Dict[str, str], component: str, org: s
         return git_url
     except KeyboardInterrupt:
         repo = entry["sourceUrl"]
-        raise SystemExit(f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the component yourself by visiting:
         {repo}
-        """)
+        """
+        )
 
 
 def _show_non_gallery_install_component_prompt(gh_url: str, yes_arg: bool) -> str:
@@ -282,12 +284,14 @@ def _show_non_gallery_install_component_prompt(gh_url: str, yes_arg: bool) -> st
 
         return gh_url
     except KeyboardInterrupt:
-        raise SystemExit(f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the component yourself by visiting:
         {repo_url}
-        """)
+        """
+        )
 
 
 def _show_install_app_prompt(
@@ -331,12 +335,14 @@ def _show_install_app_prompt(
         return source_url, git_url, folder_name, git_sha
     except KeyboardInterrupt:
         repo = entry["sourceUrl"]
-        raise SystemExit(f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the {resource_type} yourself by visiting:
         {repo}
-        """)
+        """
+        )
 
 
 def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[str, str]:
@@ -351,13 +357,15 @@ def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[st
 
         org = re.search(r"github.com\/(.*)\/", gh_url).group(1)  # type: ignore
     except Exception:
-        raise SystemExit("""
+        raise SystemExit(
+            """
         Your github url is not supported. Here's the supported format:
         https://github.com/YourOrgName/your-repo-name
 
         Example:
         https://github.com/Lightning-AI/lightning
-        """)
+        """
+        )
 
     # yes arg does not prompt the user for permission to install anything
     # automatically creates env and sets up the project
@@ -393,11 +401,13 @@ def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[st
 
         return gh_url, folder_name
     except KeyboardInterrupt:
-        raise SystemExit(f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the app yourself by visiting {gh_url}
-        """)
+        """
+        )
 
 
 def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, str]:
@@ -405,7 +415,8 @@ def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, st
     try:
         org, resource = name.split("/")
     except Exception:
-        raise SystemExit(f"""
+        raise SystemExit(
+            f"""
         {resource_type} name format must have organization/{resource_type}-name
 
         Examples:
@@ -413,7 +424,8 @@ def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, st
         user/{resource_type}-name
 
         You passed in: {name}
-        """)
+        """
+        )
     return org, resource
 
 
@@ -458,11 +470,13 @@ def _resolve_resource(
             gallery_entries = data["components"]
     except requests.ConnectionError:
         sys.tracebacklimit = 0
-        raise SystemError(f"""
+        raise SystemError(
+            f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
 
         Try again when you have a network connection!
-        """)
+        """
+        )
 
     entries = []
     all_versions = []
@@ -574,10 +588,12 @@ def _install_app_from_source(
         subprocess.check_output(["git", "clone", git_url], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as ex:
         if "Repository not found" in str(ex.output):
-            raise SystemExit(f"""
+            raise SystemExit(
+                f"""
             Looks like the github url was not found or doesn't exist. Do you have a typo?
             {source_url}
-            """)
+            """
+            )
         else:
             raise Exception(ex)
 

@@ -23,8 +23,7 @@ def validate_app_functionalities(app_page: "Page") -> None:
     """
 
     while True:
-        with contextlib.suppress(playwright._impl._api_types.Error,
-            playwright._impl._api_types.TimeoutError):
+        with contextlib.suppress(playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
             app_page.reload()
             sleep(5)
             app_label = app_page.frame_locator("iframe").locator("text=Choose your AI task")
