@@ -19,6 +19,7 @@ from lightning.pytorch.strategies.ipu import IPUStrategy  # noqa: F401
 from lightning.pytorch.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy  # noqa: F401
 from lightning.pytorch.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
+from lightning.pytorch.strategies.single_xla import SingleDeviceXLAStrategy  # noqa: F401
 from lightning.pytorch.strategies.strategy import Strategy  # noqa: F401
 from lightning.pytorch.strategies.utils import _call_register_strategies
 from lightning.pytorch.strategies.xla import XLAStrategy  # noqa: F401

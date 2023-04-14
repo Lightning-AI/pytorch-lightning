@@ -11,84 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from typing import Dict, Optional
+from typing import Dict
 
-import torch
-
-import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
-from lightning.fabric.utilities.types import _DEVICE
-from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
-from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
+from lightning.pytorch.strategies.single_xla import SingleDeviceXLAStrategy
 
 
-class SingleTPUStrategy(SingleDeviceStrategy):
-    """Strategy for training on a single TPU device."""
+class SingleTPUStrategy(SingleDeviceXLAStrategy):
+    """Legacy class.
 
-    strategy_name = "single_tpu"
-
-    def __init__(
-        self,
-        device: _DEVICE,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
-        debug: bool = False,
-    ):
-        if not _XLA_AVAILABLE:
-            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
-        if isinstance(device, torch.device):
-            # unwrap the `torch.device` in favor of `xla_device`
-            device = device.index
-        import torch_xla.core.xla_model as xm
-
-        super().__init__(
-            accelerator=accelerator,
-            device=xm.xla_device(device),
-            checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
-        )
-        self.debug = debug
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
-        self._checkpoint_io = io
-
-    @property
-    def is_distributed(self) -> bool:
-        return False
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.model, "self.model must be set before find_shared_parameters(self.model)"
-        shared_params = find_shared_parameters(self.model)
-        self.model_to_device()
-        set_shared_parameters(self.model, shared_params)
-        super().setup(trainer)
-
-        if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
+    Use `SingleDeviceXLAStrategy` instead.
+    """
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)
+        strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
