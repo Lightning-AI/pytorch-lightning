@@ -156,7 +156,9 @@ def _register_ddp_comm_hook(
 def _sync_module_states(module: torch.nn.Module) -> None:
     """Taken from https://github.com/pytorch/pytorch/blob/v2.0.0/torch/nn/parallel/distributed.py#L675-L682."""
     parameters_to_ignore = (
-        set(module._ddp_params_and_buffers_to_ignore) if hasattr(module, "_ddp_params_and_buffers_to_ignore") else set()
+        set(module._ddp_params_and_buffers_to_ignore)  # type: ignore[arg-type]
+        if hasattr(module, "_ddp_params_and_buffers_to_ignore")
+        else set()
     )
     from torch.distributed.distributed_c10d import _get_default_group
     from torch.distributed.utils import _sync_module_states as torch_sync_module_states

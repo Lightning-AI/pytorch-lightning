@@ -20,6 +20,7 @@ from torch.utils.data import BatchSampler, SequentialSampler
 from lightning.fabric.utilities.data import has_len
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from tests.tests_pytorch.helpers.runif import RunIf
 
 
 class MyModel(LightningModule):
@@ -36,6 +37,7 @@ class MyModel(LightningModule):
         assert all(torch.all(t == t[0]) for t in gathered), gathered
 
 
+@RunIf(standalone=True)
 def test_params_synced_during_nonfit():
     model = MyModel()
     trainer = Trainer(
