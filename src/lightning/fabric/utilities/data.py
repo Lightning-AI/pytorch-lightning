@@ -277,7 +277,7 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
             f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
             " This argument was automatically passed to your object by PyTorch Lightning."
         )
-        raise MisconfigurationException(message) from e
+        raise MisconfigurationException(message) from ex
 
     attrs_record = getattr(orig_object, "__pl_attrs_record", list())
     for args, fn in attrs_record:

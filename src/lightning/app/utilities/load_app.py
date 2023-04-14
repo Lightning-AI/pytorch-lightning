@@ -71,13 +71,12 @@ def _load_objects_from_file(
         code = _create_code(filepath)
         with _create_fake_main_module(filepath) as module:
             try:
-                with _add_to_env(env_vars):
-                    with _patch_sys_argv():
-                        if mock_imports:
-                            with _mock_missing_imports():
-                                exec(code, module.__dict__)
-                        else:
-                            exec(code, module.__dict__)
+                with _add_to_env(env_vars), _patch_sys_argv():
+                    if mock_imports:
+                        with _mock_missing_imports():
+                            exec(code, module.__dict__)  # noqa: S102
+                    else:
+                        exec(code, module.__dict__)  # noqa: S102
             except Exception as ex:
                 if raise_exception:
                     raise ex

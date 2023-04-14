@@ -51,7 +51,7 @@ class MultiProcessRuntime(Runtime):
 
             # Note: In case the runtime is used in the cloud.
             in_cloudspace = constants.LIGHTNING_CLOUDSPACE_HOST is not None
-            self.host = "0.0.0.0" if constants.APP_SERVER_IN_CLOUD or in_cloudspace else self.host
+            self.host = "0.0.0.0" if constants.APP_SERVER_IN_CLOUD or in_cloudspace else self.host  # noqa: S104
 
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
@@ -68,7 +68,7 @@ class MultiProcessRuntime(Runtime):
             for frontend in self.app.frontends.values():
                 port = find_free_network_port()
 
-                server_host = "0.0.0.0" if in_cloudspace else "localhost"
+                server_host = "0.0.0.0" if in_cloudspace else "localhost"  # noqa: S104
                 server_target = (
                     f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
                     if in_cloudspace

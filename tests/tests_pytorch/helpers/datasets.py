@@ -103,7 +103,7 @@ class MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data, trials: int = 30, delta: float = 1.0):

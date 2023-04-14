@@ -58,8 +58,8 @@ def train(model):
     from torchvision.datasets import MNIST
     from torchvision.transforms import ToTensor
 
-    train_set = MNIST(root="/tmp/data/MNIST", train=True, transform=ToTensor(), download=True)
-    val_set = MNIST(root="/tmp/data/MNIST", train=False, transform=ToTensor(), download=False)
+    train_set = MNIST(root="/tmp/data/MNIST", train=True, transform=ToTensor(), download=True)  # noqa: S108
+    val_set = MNIST(root="/tmp/data/MNIST", train=False, transform=ToTensor(), download=False)  # noqa: S108
 
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=64, shuffle=True, pin_memory=torch.cuda.is_available(), num_workers=4

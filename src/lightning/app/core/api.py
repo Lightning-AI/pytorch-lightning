@@ -173,7 +173,7 @@ fastapi_service.add_middleware(
 )
 
 if _is_starsessions_available():
-    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)
+    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)  # noqa: S106
 
 
 # General sequence is:
@@ -482,7 +482,7 @@ def start_server(
 
     if uvicorn_run:
         host = host.split("//")[-1] if "//" in host else host
-        if host == "0.0.0.0":
+        if host == "0.0.0.0":  # noqa: S104
             logger.info("Your app has started.")
         else:
             logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")

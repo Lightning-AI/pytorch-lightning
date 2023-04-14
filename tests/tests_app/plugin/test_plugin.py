@@ -25,7 +25,7 @@ def mock_plugin_server(mock_uvicorn) -> TestClient:
 
     mock_uvicorn.run.side_effect = create_test_client
 
-    _start_plugin_server("0.0.0.0", 8888)
+    _start_plugin_server("0.0.0.0", 8888)  # noqa: S104
 
     return test_client["client"]
 

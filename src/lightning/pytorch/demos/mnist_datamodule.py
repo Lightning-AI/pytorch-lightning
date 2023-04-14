@@ -98,7 +98,7 @@ class _MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
@@ -112,7 +112,7 @@ class _MNIST(Dataset):
             # todo: specify the possible exception
             except Exception as ex:
                 exception = ex
-                time.sleep(delta * random.random())
+                time.sleep(delta * random.random())  # noqa: S311
             else:
                 break
         assert res is not None

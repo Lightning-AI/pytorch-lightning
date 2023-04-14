@@ -773,7 +773,7 @@ class CloudRuntime(Runtime):
             if cloudspace is not None and cloudspace.code_config is not None:
                 data_connection_mounts = cloudspace.code_config.data_connection_mounts
 
-            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
             work_spec = V1LightningworkSpec(
                 build_spec=build_spec,
                 drives=drives + mounts,

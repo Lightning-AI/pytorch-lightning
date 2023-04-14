@@ -35,7 +35,7 @@ def replace(req: str, torch_version: Optional[str] = None) -> str:
         import torch
 
         torch_version = torch.__version__
-    assert torch_version, f"invalid torch: {torch_version}"
+    assert torch_version, f"invalid torch: {torch_version}"  # noqa: S101
 
     # remove comments and strip whitespace
     req = re.sub(rf"\s*#.*{os.linesep}", os.linesep, req).strip()

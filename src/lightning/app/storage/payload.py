@@ -65,7 +65,7 @@ class _BasePayload(ABC):
         if self._origin is None:
             return None
         contents = f"{self.origin_name}/{self.consumer_name}/{self.name}"
-        return hashlib.sha1(contents.encode("utf-8")).hexdigest()
+        return hashlib.sha1(contents.encode("utf-8")).hexdigest()  # noqa: S324
 
     @property
     def origin_name(self) -> str:

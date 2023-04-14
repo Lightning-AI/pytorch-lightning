@@ -129,7 +129,7 @@ class Path(PathlibPath):
         if self._origin is None:
             return None
         contents = f"{self.origin_name}/{self}"
-        return hashlib.sha1(contents.encode("utf-8")).hexdigest()
+        return hashlib.sha1(contents.encode("utf-8")).hexdigest()  # noqa: S324
 
     @property
     def parents(self) -> Sequence["Path"]:
