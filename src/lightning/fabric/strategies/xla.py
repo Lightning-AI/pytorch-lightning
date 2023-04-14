@@ -83,6 +83,13 @@ class XLAStrategy(ParallelStrategy):
 
     @property
     def _is_distributed(self) -> bool:
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt():
+            from multiprocessing import current_process
+
+            return current_process().name != "MainProcess" and self.world_size != 1
+
         import torch_xla.core.xla_env_vars as xenv
 
         # HOST_WORLD_SIZE is not set outside the xmp.spawn process
@@ -97,6 +104,10 @@ class XLAStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt():
+            pjrt.broadcast_master_param(module)
         return module
 
     def module_to_device(self, module: Module) -> None:
