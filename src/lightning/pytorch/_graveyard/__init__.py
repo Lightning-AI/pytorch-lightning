@@ -11,9 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import lightning.pytorch._graveyard.hpu.accelerator
-import lightning.pytorch._graveyard.hpu.io_plugin
-import lightning.pytorch._graveyard.hpu.precision_plugin
-import lightning.pytorch._graveyard.hpu.strategy_parallel
-import lightning.pytorch._graveyard.hpu.strategy_single
+import lightning.pytorch._graveyard.hpu
 import lightning.pytorch._graveyard.legacy_import_unpickler  # noqa: F401
