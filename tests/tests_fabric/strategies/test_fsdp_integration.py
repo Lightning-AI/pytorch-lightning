@@ -73,7 +73,9 @@ class _MyFabricManualWrapping(_MyFabric):
 def test_fsdp_train_save_load(tmp_path, manual_wrapping=False, precision="bf16-mixed"):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
     fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
-    fabric = fabric_cls(accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision)
+    fabric = fabric_cls(
+        accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision
+    )
     fabric.run()
 
     checkpoint_path = fabric.broadcast(str(tmp_path / "fsdp-checkpoint"))
@@ -85,9 +87,11 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping=False, precision="bf16-m
     fabric.barrier()
 
     # re-init all objects and resume
-    fabric = fabric_cls(accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision)
+    fabric = fabric_cls(
+        accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision
+    )
     fabric.run()
-    
+
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
     params_after = deepcopy(list(fabric.model.parameters()))

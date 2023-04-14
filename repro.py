@@ -1,10 +1,11 @@
-import torch.multiprocessing as mp
-import torch
 import os
+
+import torch
+import torch.multiprocessing as mp
+from torch.distributed._shard.checkpoint import FileSystemReader, FileSystemWriter, load_state_dict, save_state_dict
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp.wrap import always_wrap_policy
 from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
-from torch.distributed._shard.checkpoint import FileSystemWriter, FileSystemReader, save_state_dict, load_state_dict
+from torch.distributed.fsdp.wrap import always_wrap_policy
 
 
 def run(rank):
@@ -34,7 +35,7 @@ def run(rank):
         checkpoint = {"model": model.state_dict(), "optimizer": FSDP.optim_state_dict(model, optimizer)}
         writer = FileSystemWriter(path="checkpoint.pt")
         save_state_dict(checkpoint, writer)
-    
+
     # Load
     state_dict_type = FSDP.state_dict_type(
         module=model,
