@@ -42,8 +42,6 @@ Built-in Checkpoint IO Plugins
        respectively, common for most use cases.
    * - :class:`~lightning.pytorch.plugins.io.XLACheckpointIO`
      - CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
-   * - :class:`~lightning.pytorch.plugins.io.HPUCheckpointIO`
-     - CheckpointIO to save checkpoints for HPU training strategies.
    * - :class:`~lightning.pytorch.plugins.io.AsyncCheckpointIO`
      - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 

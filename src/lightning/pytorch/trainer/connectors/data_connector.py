@@ -141,11 +141,8 @@ class _DataConnector:
         trainer.fit_loop.epoch_loop.val_loop._data_source.instance = (
             val_dataloaders if val_dataloaders is not None else model
         )
-        trainer.fit_loop.epoch_loop.val_loop._data_source.name = "val_dataloader"
         trainer.validate_loop._data_source.instance = val_dataloaders if val_dataloaders is not None else model
-        trainer.validate_loop._data_source.name = "val_dataloader"
         trainer.test_loop._data_source.instance = test_dataloaders if test_dataloaders is not None else model
-        trainer.test_loop._data_source.name = "test_dataloader"
         trainer.predict_loop._data_source.instance = predict_dataloaders if predict_dataloaders is not None else model
 
     def attach_datamodule(
@@ -160,11 +157,8 @@ class _DataConnector:
         trainer = self.trainer
         trainer.fit_loop._data_source.instance = datamodule
         trainer.fit_loop.epoch_loop.val_loop._data_source.instance = datamodule
-        trainer.fit_loop.epoch_loop.val_loop._data_source.name = "val_dataloader"
         trainer.validate_loop._data_source.instance = datamodule
-        trainer.validate_loop._data_source.name = "val_dataloader"
         trainer.test_loop._data_source.instance = datamodule
-        trainer.test_loop._data_source.name = "test_dataloader"
         trainer.predict_loop._data_source.instance = datamodule
 
         trainer.datamodule = datamodule
@@ -465,12 +459,9 @@ def _parse_num_batches(
     return num_batches
 
 
-def _process_dataloader(trainer: "pl.Trainer", dataloader: object) -> object:
-    trainer_fn = trainer.state.fn
-    stage = trainer.state.stage
-    if trainer_fn is None or stage is None:
-        raise RuntimeError("Unexpected state")
-
+def _process_dataloader(
+    trainer: "pl.Trainer", trainer_fn: TrainerFn, stage: RunningStage, dataloader: object
+) -> object:
     if stage != RunningStage.TRAINING:
         is_shuffled = _is_dataloader_shuffled(dataloader)
         # limit this warning only for samplers assigned automatically when shuffle is set

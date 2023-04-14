@@ -13,12 +13,12 @@
 # limitations under the License.
 import torch
 from jsonargparse import lazy_instance
+from lightning_habana import HPUPrecisionPlugin
 from torch.nn import functional as F
 
 from lightning.pytorch import LightningModule
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
-from lightning.pytorch.plugins import HPUPrecisionPlugin
 
 
 class LitClassifier(LightningModule):

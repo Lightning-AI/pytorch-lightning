@@ -88,7 +88,7 @@ class LSFEnvironment(ClusterEnvironment):
         if world_size is None:
             raise ValueError(
                 "Cannot determine world size. Environment variable `JSM_NAMESPACE_SIZE` not found."
-                "Make sure you run your executable with `jsrun`."
+                " Make sure you run your executable with `jsrun`."
             )
         return int(world_size)
 
@@ -101,7 +101,7 @@ class LSFEnvironment(ClusterEnvironment):
         if global_rank is None:
             raise ValueError(
                 "Cannot determine global rank. Environment variable `JSM_NAMESPACE_RANK` not found."
-                "Make sure you run your executable with `jsrun`."
+                " Make sure you run your executable with `jsrun`."
             )
         return int(global_rank)
 
@@ -114,7 +114,7 @@ class LSFEnvironment(ClusterEnvironment):
         if local_rank is None:
             raise ValueError(
                 "Cannot determine local rank. Environment variable `JSM_NAMESPACE_LOCAL_RANK` not found."
-                "Make sure you run your executable with `jsrun`."
+                " Make sure you run your executable with `jsrun`."
             )
         return int(local_rank)
 
