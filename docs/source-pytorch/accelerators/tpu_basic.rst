@@ -50,8 +50,8 @@ To run on different cores, modify the ``devices`` argument.
     trainer = Trainer(accelerator="tpu", devices=1)
     # run on multiple TPU cores
     trainer = Trainer(accelerator="tpu", devices=8)
-    # run on the 5th core
-    trainer = Trainer(accelerator="tpu", devices=[5])
+    # run on one specific TPU core: the 2nd core (index 1)
+    trainer = Trainer(accelerator="tpu", devices=[1])
     # choose the number of cores automatically
     trainer = Trainer(accelerator="tpu", devices="auto")
 
@@ -92,7 +92,7 @@ To get a TPU on colab, follow these steps:
 
 Google Cloud (GCP)
 ^^^^^^^^^^^^^^^^^^
-You could refer to this `page <https://cloud.google.com/tpu/docs/setup-gcp-account>`_ for getting started with Cloud TPU resources on GCP.
+You could refer to this `page <https://cloud.google.com/tpu/docs/v4-users-guide>`_ for getting started with Cloud TPU resources on GCP.
 
 Kaggle
 ^^^^^^
