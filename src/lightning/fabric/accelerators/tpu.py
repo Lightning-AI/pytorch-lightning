@@ -18,7 +18,7 @@ from multiprocessing import Process, Queue
 from typing import Any, Callable, Dict, List, Union
 
 import torch
-from lightning_utilities.core.imports import ModuleAvailableCache
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.utilities.device_parser import _check_data_type
@@ -146,7 +146,8 @@ def _is_device_tpu() -> bool:
     return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
 
 
-_XLA_AVAILABLE = ModuleAvailableCache("torch_xla")
+# PJRT support requires this minimum version
+_XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 
 
 def _tpu_distributed() -> bool:
