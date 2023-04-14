@@ -20,6 +20,8 @@ class HPUCheckpointIO(TorchCheckpointIO):
 
     def __init__(self, *_, **__):
         raise NotImplementedError(
-            "Implementtaion of HPU extension has been moved to own package."
-            " Please see https://github.com/Lightning-AI/lightning-Habana for more details."
+            "The `HPUCheckpointIO` class has been moved to an external package."
+            " Setting the parrity, install the extension package as `pip install lightning-habana`"
+            " and proceed with `from lightning_habana import HPUCheckpointIO` import intead."
+            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )

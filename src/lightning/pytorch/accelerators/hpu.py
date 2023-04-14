@@ -20,6 +20,8 @@ class HPUAccelerator(Accelerator):
 
     def __init__(self, *_, **__):
         raise NotImplementedError(
-            "The HPUAccelerator class has been moved to an external package."
-            " Please see https://github.com/Lightning-AI/lightning-Habana for more details."
+            "The `HPUAccelerator` class has been moved to an external package."
+            " Setting the parrity, install the extension package as `pip install lightning-habana`"
+            " and proceed with `from lightning_habana import HPUAccelerator` import intead."
+            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )
