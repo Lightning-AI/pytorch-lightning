@@ -75,8 +75,9 @@ def test_model_tpu_index(tmpdir, tpu_core):
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
     import torch_xla
+    from torch_xla.experimental import pjrt
 
-    expected = tpu_core + 1
+    expected = tpu_core if pjrt.using_pjrt() else tpu_core + 1
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
@@ -137,8 +138,9 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
     import torch_xla
+    from torch_xla.experimental import pjrt
 
-    expected = tpu_core + 1
+    expected = tpu_core if pjrt.using_pjrt() else tpu_core + 1
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 

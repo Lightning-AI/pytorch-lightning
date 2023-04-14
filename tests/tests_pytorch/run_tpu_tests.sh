@@ -21,9 +21,12 @@ pip list
 
 # https://cloud.google.com/tpu/docs/v4-users-guide#train_ml_workloads_with_pytorch_xla
 export ALLOW_MULTIPLE_LIBTPU_LOAD=1
-# XRT config
-export XRT_TPU_CONFIG="localservice;0;localhost:51011"
-export TPU_NUM_DEVICES=4
+if [ "{RUNTIME}" = "xrt" ]; then
+  export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+  export TPU_NUM_DEVICES=4
+else
+  export PJRT_DEVICE=TPU
+fi
 
 echo "--- Sanity check TPU availability ---"
 python3 -c "import torch_xla; print(torch_xla)"
