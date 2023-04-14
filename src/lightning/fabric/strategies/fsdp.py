@@ -409,7 +409,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module = modules[0]
 
-        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = self.broadcast(path)
 
         state_dict_type = _get_state_dict_type(module)
