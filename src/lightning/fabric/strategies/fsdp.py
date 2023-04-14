@@ -367,21 +367,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             print(metadata)
             torch.save(metadata, os.path.join(path, "meta.pt"))
 
-    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
-        """Get the full consolidated module state.
-
-        All tensors in this state will be returned on CPU and only on rank 0 (to reduce the chance of OOMs).
-        """
-        if not isinstance(module, FullyShardedDataParallel):
-            return super().get_module_state_dict(module)
-
-        from torch.distributed.fsdp import FullStateDictConfig, StateDictType
-
-        config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-        with FullyShardedDataParallel.state_dict_type(module, StateDictType.FULL_STATE_DICT, config):
-            state_dict = module.state_dict()
-        return state_dict
-
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
     ) -> Dict[str, Any]:
