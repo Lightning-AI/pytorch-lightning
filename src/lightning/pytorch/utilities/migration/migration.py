@@ -26,7 +26,7 @@ For the Lightning developer: How to add a new migration?
 3. You can test the migration on a checkpoint (backup your files first) by running:
 
    cp model.ckpt model.ckpt.backup
-   python -m lightning.pytorch.utilities.upgrade_checkpoint --file model.ckpt
+   python -m lightning.pytorch.utilities.upgrade_checkpoint model.ckpt
 """
 import re
 from typing import Any, Callable, Dict, List

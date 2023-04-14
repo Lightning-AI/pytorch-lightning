@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.core import constants
 from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.utilities.component import _get_context
@@ -46,15 +47,34 @@ class StartFrontendServersTestFlow(LightningFlow):
         self.stop()
 
 
+@pytest.mark.parametrize(
+    "cloudspace_host, port, expected_host, expected_target",
+    [
+        (None, 7000, "localhost", "http://localhost:7000"),
+        ("test.lightning.ai", 7000, "0.0.0.0", "https://7000-test.lightning.ai"),
+    ],
+)
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
-def test_multiprocess_starts_frontend_servers(*_):
+def test_multiprocess_starts_frontend_servers(
+    mock_find_free_network_port, monkeypatch, cloudspace_host, port, expected_host, expected_target
+):
     """Test that the MultiProcessRuntime starts the servers for the frontends in each LightningFlow."""
+
+    monkeypatch.setattr(constants, "LIGHTNING_CLOUDSPACE_HOST", cloudspace_host)
+    mock_find_free_network_port.return_value = port
+
     root = StartFrontendServersTestFlow()
     app = LightningApp(root)
     MultiProcessRuntime(app).dispatch()
 
     app.frontends[root.flow0.name].start_server.assert_called_once()
+    assert app.frontends[root.flow0.name].start_server.call_args.kwargs["host"] == expected_host
+
     app.frontends[root.flow1.name].start_server.assert_called_once()
+    assert app.frontends[root.flow1.name].start_server.call_args.kwargs["host"] == expected_host
+
+    assert app.frontends[root.flow0.name].flow._layout["target"] == f"{expected_target}/{root.flow0.name}"
+    assert app.frontends[root.flow1.name].flow._layout["target"] == f"{expected_target}/{root.flow1.name}"
 
     app.frontends[root.flow0.name].stop_server.assert_called_once()
     app.frontends[root.flow1.name].stop_server.assert_called_once()
