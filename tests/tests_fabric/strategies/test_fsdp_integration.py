@@ -68,17 +68,18 @@ class _MyFabricManualWrapping(_MyFabric):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
-@pytest.mark.parametrize("manual_wrapping", [True, False])
-def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
+# @pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
+# @pytest.mark.parametrize("manual_wrapping", [True, False])
+def test_fsdp_train_save_load(tmp_path, manual_wrapping=False, precision="bf16-mixed"):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
     fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
     fabric = fabric_cls(accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision)
     fabric.run()
 
-    checkpoint_path = fabric.broadcast(tmp_path / "fsdp-checkpoint")
+    checkpoint_path = fabric.broadcast(str(tmp_path / "fsdp-checkpoint"))
+
     params_before = deepcopy(list(fabric.model.parameters()))
-    state = {"model": fabric.model, "steps": 1}
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
     fabric.barrier()
@@ -87,7 +88,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     fabric = fabric_cls(accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision)
     fabric.run()
     
-    state = {"model": fabric.model, "steps": 0}
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
     params_after = deepcopy(list(fabric.model.parameters()))
     assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))

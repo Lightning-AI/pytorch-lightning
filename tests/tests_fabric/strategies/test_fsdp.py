@@ -219,15 +219,3 @@ def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
     model2 = Mock(spec=FullyShardedDataParallel)
     with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
         strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
-
-
-@RunIf(min_torch="2.0.0")
-def test_fsdp_save_load_checkpoint_optimizer_not_supported(tmp_path):
-    """The strategy does not yet support saving optimizer states due to issues in PyTorch FSDP."""
-    strategy = FSDPStrategy()
-    model = Mock(spec=FullyShardedDataParallel)
-    optimizer = Mock(spec=torch.optim.SGD)
-    with pytest.raises(NotImplementedError, match="does not yet support saving and loading optimizer states"):
-        strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer})
-    with pytest.raises(NotImplementedError, match="does not yet support saving and loading optimizer states"):
-        strategy.load_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer})
