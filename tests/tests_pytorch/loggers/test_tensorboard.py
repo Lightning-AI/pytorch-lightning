@@ -145,7 +145,7 @@ def test_tensorboard_log_sub_dir(tmpdir):
     # test env var (`$`) handling
     test_env_dir = "some_directory"
     os.environ["TEST_ENV_DIR"] = test_env_dir
-    save_dir = "$test_env_dir/tmp"
+    save_dir = "$TEST_ENV_DIR/tmp"
     explicit_save_dir = f"{test_env_dir}/tmp"
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
