@@ -20,6 +20,6 @@ class HPUAccelerator(Accelerator):
 
     def __init__(self, *_, **__):
         raise NotImplementedError(
-            "Implementtaion of HPU extension has been moved to own package."
+            "The HPUAccelerator class has been moved to an external package."
             " Please see https://github.com/Lightning-AI/lightning-Habana for more details."
         )
