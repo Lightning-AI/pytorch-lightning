@@ -455,7 +455,7 @@ class Trainer:
         )
 
         if detect_anomaly:
-            rank_zero_info("You have turned on detect_anomaly flag, which greatly affects compute performance and is recommended only for model debugging.")
+            rank_zero_info("You have turned on detect_anomaly flag, which can significantly slow down compute speed and is recommended only for model debugging.")
         self._detect_anomaly: bool = detect_anomaly
 
         setup._log_device_info(self)
