@@ -44,21 +44,25 @@ def test_default_attributes(*_):
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(
-    os.environ,
-    {
-        **os.environ,
-        "TPU_MESH_CONTROLLER_ADDRESS": "1.2.3.4",
-        "TPU_MESH_CONTROLLER_PORT": "500",
-        "XRT_SHARD_WORLD_SIZE": "1",
-        "XRT_SHARD_ORDINAL": "0",
-        "XRT_SHARD_LOCAL_ORDINAL": "2",
-        "XRT_HOST_ORDINAL": "3",
-    },
-    clear=True,
-)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_attributes_from_environment_variables():
     """Test that the default cluster environment takes the attributes from the environment variables."""
+    from torch_xla.experimental import pjrt
+
+    if pjrt.using_pjrt():
+        # FIXME
+        envvars = {}
+    else:
+        envvars = {
+            "TPU_MESH_CONTROLLER_ADDRESS": "1.2.3.4",
+            "TPU_MESH_CONTROLLER_PORT": "500",
+            "XRT_SHARD_WORLD_SIZE": "1",
+            "XRT_SHARD_ORDINAL": "0",
+            "XRT_SHARD_LOCAL_ORDINAL": "2",
+            "XRT_HOST_ORDINAL": "3",
+        }
+    os.environ.update(envvars)
+
     env = XLAEnvironment()
     assert env.main_address == "1.2.3.4"
     assert env.main_port == 500
