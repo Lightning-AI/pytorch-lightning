@@ -624,7 +624,7 @@ class Fabric:
         for k in list(unwrapped_state.keys()):
             if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                 continue
-            state[k] = unwrapped_state[k]
+            state[k] = unwrapped_state[k]  # type: ignore[index]
 
         self.barrier()
         return remainder
