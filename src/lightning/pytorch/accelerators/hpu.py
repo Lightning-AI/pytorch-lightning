@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Any
+
 from lightning.pytorch.accelerators.accelerator import Accelerator
 
 
