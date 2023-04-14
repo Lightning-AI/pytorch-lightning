@@ -1176,7 +1176,9 @@ def test_ckpt_overwriting_enabled_after_rerun_new_trainer(tmpdir):
     used."""
     epochs = 2
     for i in range(epochs):
-        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}", overwrite_existing=True)
+        mc = ModelCheckpoint(
+            dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}", overwrite_existing=True
+        )
         trainer = Trainer(
             max_epochs=epochs,
             limit_train_batches=1,
