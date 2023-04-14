@@ -86,7 +86,7 @@ class TestFSDPModel(BoringModel):
 
 
 class TestFSDPModelAutoWrapped(BoringModel):
-    def __init__(self, wrap_min_params: int):
+    def __init__(self, wrap_min_params: int = 2):
         super().__init__()
         self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -283,21 +283,21 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
     [
         pytest.param(TestFSDPModel(), "fsdp", None, id="manually_wrapped"),
         pytest.param(
-            TestFSDPModelAutoWrapped(wrap_min_params=2),
+            TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": custom_auto_wrap_policy},
             marks=RunIf(max_torch="2.0.0"),
             id="autowrap_1x",
         ),
         pytest.param(
-            TestFSDPModelAutoWrapped(wrap_min_params=2),
+            TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": custom_auto_wrap_policy},
             marks=RunIf(min_torch="2.0.0"),
             id="autowrap_2x",
         ),
         pytest.param(
-            TestFSDPModelAutoWrapped(wrap_min_params=2),
+            TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": custom_fsdp_policy, "use_orig_params": True},
             marks=RunIf(min_torch="2.0.0"),
