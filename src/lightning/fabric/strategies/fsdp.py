@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import os
-from contextlib import contextmanager
+from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -524,7 +524,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
         return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
 
 
-def _get_state_dict_type(module: "FullyShardedDataParallel") -> Generator[Any, Any, Any]:
+def _get_state_dict_type(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
