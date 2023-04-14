@@ -23,7 +23,6 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.utilities.data import has_len
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
@@ -97,14 +96,6 @@ class XLAStrategy(DDPStrategy):
     def local_rank(self) -> int:
         return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
-    @staticmethod
-    def _validate_dataloader(dataloader: object) -> None:
-        if not has_len(dataloader):
-            raise TypeError(
-                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                " HINT: You can mock the length on your dataset to bypass this error."
-            )
-
     def connect(self, model: "pl.LightningModule") -> None:
         import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -147,7 +138,6 @@ class XLAStrategy(DDPStrategy):
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
-        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -211,13 +201,13 @@ class XLAStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         self._launched = True
-        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        # accessing global_rank will initialize the XLA computation client. since this is called outside of the spawned
+        # processes (by the accelerator connector), we cannot run the code that would normally be here.
+        # instead it's done in `setup_distributed`
+        pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None
@@ -296,6 +286,7 @@ class XLAStrategy(DDPStrategy):
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.utils.utils import getenv_as
 
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+        if self.global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
             print()
