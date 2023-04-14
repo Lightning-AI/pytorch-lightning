@@ -26,7 +26,6 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.test_fabric import BoringModel
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel
@@ -68,51 +67,30 @@ class _MyFabricManualWrapping(_MyFabric):
         return model
 
 
-# TODO: Refactor to use the MyFabric classes above
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-def test_fsdp_train_save_load(tmp_path):
+@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
+@pytest.mark.parametrize("manual_wrapping", [True, False])
+def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
-    fabric = Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy))
-    fabric.launch()
+    fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
+    fabric = fabric_cls(accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision)
+    fabric.run()
 
     checkpoint_path = fabric.broadcast(tmp_path / "fsdp-checkpoint")
-
-    with fabric.sharded_model():
-        model = BoringModel()
-
-    optimizer = torch.optim.Adam(model.parameters())
-    model, optimizer = fabric.setup(model, optimizer)
-    
-    assert isinstance(model._forward_module, FullyShardedDataParallel)
-
-    output = model(torch.randn(1, 32).to(fabric.device))
-    loss = output.sum()
-    fabric.backward(loss)
-    optimizer.step()
-    optimizer.zero_grad()
-
-    weights_before = deepcopy(list(model.parameters()))
-    state = {"model": model, "steps": 1}
+    params_before = deepcopy(list(fabric.model.parameters()))
+    state = {"model": fabric.model, "steps": 1}
     fabric.save(checkpoint_path, state)
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
-
     fabric.barrier()
 
     # re-init all objects and resume
-    fabric = Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy))
-    fabric.launch()
-
-    with fabric.sharded_model():
-        model = BoringModel()
-
-    optimizer = torch.optim.Adam(model.parameters())
-    model, optimizer = fabric.setup(model, optimizer)
+    fabric = fabric_cls(accelerator="cuda", strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy), devices=2, precision=precision)
+    fabric.run()
     
-    state = {"model": model, "steps": 0}
+    state = {"model": fabric.model, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
-
-    params_after = deepcopy(list(model.parameters()))
-    assert all(torch.equal(p0, p1) for p0, p1 in zip(weights_before, params_after))
+    params_after = deepcopy(list(fabric.model.parameters()))
+    assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))
 
     # check user data in state reloaded
     assert state["steps"] == 1

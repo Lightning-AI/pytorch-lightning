@@ -434,7 +434,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # load the states from the checkpoint into the local state dict (in-place)
             reader = FileSystemReader(path=path)
-            print("loading", list(converted_state.keys()))
             load_state_dict(converted_state, reader)
 
             # load the local state dict into the module and populate the requested user metadata
