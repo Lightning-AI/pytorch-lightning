@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 
 
 class HPUPrecisionPlugin(PrecisionPlugin):

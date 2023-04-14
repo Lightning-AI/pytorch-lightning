@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from lightning.pytorch.accelerators.accelerator import Accelerator
 
 
 class HPUAccelerator(Accelerator):

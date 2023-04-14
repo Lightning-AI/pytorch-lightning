@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_fabric.plugins import TorchCheckpointIO
+from lightning.fabric.plugins import TorchCheckpointIO
 
 
 class HPUCheckpointIO(TorchCheckpointIO):

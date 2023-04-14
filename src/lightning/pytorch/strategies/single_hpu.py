@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
+from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):

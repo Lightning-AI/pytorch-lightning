@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.strategies.ddp import DDPStrategy
+from lightning.pytorch.strategies.ddp import DDPStrategy
 
 
 class HPUParallelStrategy(DDPStrategy):
