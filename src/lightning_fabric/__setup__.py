@@ -35,7 +35,7 @@ def _prepare_extras() -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all")
+    common_args = {"path_dir": _PATH_REQUIREMENTS, "unfreeze": "none" if _FREEZE_REQUIREMENTS else "all"}
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
     extras = {
         p.stem: assistant.load_requirements(file_name=p.name, **common_args)
@@ -57,34 +57,34 @@ def _setup_args() -> Dict[str, Any]:
         _PACKAGE_ROOT, homepage=about.__homepage__, version=version.version
     )
 
-    return dict(
-        name="lightning-fabric",
-        version=version.version,
-        description=about.__docs__,
-        author=about.__author__,
-        author_email=about.__author_email__,
-        url=about.__homepage__,
-        download_url="https://github.com/Lightning-AI/lightning",
-        license=about.__license__,
-        packages=find_packages(where="src", include=["lightning_fabric", "lightning_fabric.*"]),
-        package_dir={"": "src"},
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        include_package_data=True,
-        zip_safe=False,
-        keywords=["deep learning", "pytorch", "AI"],
-        python_requires=">=3.8",
-        setup_requires=["wheel"],
-        install_requires=assistant.load_requirements(
+    return {
+        "name": "lightning-fabric",
+        "version": version.version,
+        "description": about.__docs__,
+        "author": about.__author__,
+        "author_email": about.__author_email__,
+        "url": about.__homepage__,
+        "download_url": "https://github.com/Lightning-AI/lightning",
+        "license": about.__license__,
+        "packages": find_packages(where="src", include=["lightning_fabric", "lightning_fabric.*"]),
+        "package_dir": {"": "src"},
+        "long_description": long_description,
+        "long_description_content_type": "text/markdown",
+        "include_package_data": True,
+        "zip_safe": False,
+        "keywords": ["deep learning", "pytorch", "AI"],
+        "python_requires": ">=3.8",
+        "setup_requires": ["wheel"],
+        "install_requires": assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
         ),
-        extras_require=_prepare_extras(),
-        project_urls={
+        "extras_require": _prepare_extras(),
+        "project_urls": {
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
-        classifiers=[
+        "classifiers": [
             "Environment :: Console",
             "Natural Language :: English",
             # How mature is this project? Common values are
@@ -104,4 +104,4 @@ def _setup_args() -> Dict[str, Any]:
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
         ],
-    )
+    }

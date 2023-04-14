@@ -173,4 +173,4 @@ class List(t.List[T]):
 
     def __len__(self):
         """Returns the number of elements within this List."""
-        return len([v for v in self])
+        return len(list(self))

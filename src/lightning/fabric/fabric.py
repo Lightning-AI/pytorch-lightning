@@ -217,7 +217,7 @@ class Fabric:
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return tuple((module, *optimizers))
+            return (module, *optimizers)
         return module
 
     def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
