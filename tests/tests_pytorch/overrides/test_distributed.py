@@ -14,11 +14,33 @@
 from typing import Iterable
 
 import pytest
+from fiftyone.utils import torch
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from lightning.fabric.utilities.data import has_len
-from lightning.pytorch import seed_everything
+from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+
+
+def test_params_synced_during_nonfit():
+    class MyModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(1, 1)
+            print(self.local_rank, "INIT", self.layer.weight.data, self.layer.bias.data)
+
+        def test_step(self, batch, batch_idx):
+            print(self.local_rank, "FWD", self.layer.weight.data, self.layer.bias.data)
+
+    model = MyModel()
+    trainer = Trainer(
+        limit_test_batches=1,
+        barebones=True,
+        devices=2,
+        accelerator="cpu",
+        strategy="ddp_spawn",
+    )
+    trainer.test(model, [0])
 
 
 @pytest.mark.parametrize("shuffle", [False, True])
