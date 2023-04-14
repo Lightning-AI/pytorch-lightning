@@ -364,7 +364,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         save_state_dict(converted_state, writer)
 
         if self.global_rank == 0:
-            print(metadata)
             torch.save(metadata, os.path.join(path, "meta.pt"))
 
     def load_checkpoint(
@@ -379,6 +378,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             raise NotImplementedError(
                 "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
                 " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+            )
+        if not state:
+            raise ValueError(
+                f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
+                f" a model instance to reload is required. Pass it in like so:"
+                " FSDPStrategy.load_checkpoint(..., state={'model': model, ...})"
             )
         if Path(path).is_file():
             raise NotImplementedError(

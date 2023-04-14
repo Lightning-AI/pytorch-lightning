@@ -219,3 +219,31 @@ def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
     model2 = Mock(spec=FullyShardedDataParallel)
     with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
         strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_checkpoint_no_state(tmp_path):
+    """Test that the FSDP strategy can't load the full state without access to a model instance from the user."""
+    strategy = FSDPStrategy()
+    with pytest.raises(ValueError, match=escape("Got FSDPStrategy.load_checkpoint(..., state=None")):
+        strategy.load_checkpoint(path=tmp_path, state=None)
+    with pytest.raises(ValueError, match=escape("Got FSDPStrategy.load_checkpoint(..., state={})")):
+        strategy.load_checkpoint(path=tmp_path, state={})
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
+    """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
+    strategy = FSDPStrategy()
+
+    # missing FSDP model
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"other": "data"})
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+
+    # multiple FSDP models
+    model1 = Mock(spec=FullyShardedDataParallel)
+    model2 = Mock(spec=FullyShardedDataParallel)
+    with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
