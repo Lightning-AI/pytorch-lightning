@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Any
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
     """Strategy for training on single HPU device."""
 
-    def __init__(self, *_, **__):
+    def __init__(self, *_: Any, **__: Any):
         raise NotImplementedError(
             "The `SingleHPUStrategy` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"

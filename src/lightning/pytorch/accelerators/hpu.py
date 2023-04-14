@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 from lightning.pytorch.accelerators.accelerator import Accelerator
 
 
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
-    def __init__(self, *_, **__):
+    def __init__(self, *_: Any, **__: Any):
         raise NotImplementedError(
             "The `HPUAccelerator` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"

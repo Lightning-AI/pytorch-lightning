@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Any
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 
 
 class HPUPrecisionPlugin(PrecisionPlugin):
     """Plugin that enables bfloat/half support on HPUs."""
 
-    def __init__(self, *_, **__):
+    def __init__(self, *_: Any, **__: Any):
         raise NotImplementedError(
             "The `HPUPrecisionPlugin` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"
