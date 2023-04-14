@@ -8,17 +8,17 @@ import pytest
     [
         ("lightning.pytorch.accelerators", "HPUAccelerator"),
         ("lightning.pytorch.accelerators.hpu", "HPUAccelerator"),
-         ("lightning.pytorch.strategies", "HPUParallelStrategy"),
-         ("lightning.pytorch.strategies.hpu_parallel", "HPUParallelStrategy"),
-          ("lightning.pytorch.strategies", "SingleHPUStrategy"),
-          ("lightning.pytorch.strategies.single_hpu", "SingleHPUStrategy"),
-           ("lightning.pytorch.plugins.io", "HPUCheckpointIO"),
-           ("lightning.pytorch.plugins.io.hpu_plugin", "HPUCheckpointIO"),
-            ("lightning.pytorch.plugins.precision", "HPUPrecisionPlugin"),
-            ("lightning.pytorch.plugins.precision.hpu", "HPUPrecisionPlugin"),
+        ("lightning.pytorch.strategies", "HPUParallelStrategy"),
+        ("lightning.pytorch.strategies.hpu_parallel", "HPUParallelStrategy"),
+        ("lightning.pytorch.strategies", "SingleHPUStrategy"),
+        ("lightning.pytorch.strategies.single_hpu", "SingleHPUStrategy"),
+        ("lightning.pytorch.plugins.io", "HPUCheckpointIO"),
+        ("lightning.pytorch.plugins.io.hpu_plugin", "HPUCheckpointIO"),
+        ("lightning.pytorch.plugins.precision", "HPUPrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision.hpu", "HPUPrecisionPlugin"),
     ],
 )
-def test_extracted_hpu(import_path,name):
+def test_extracted_hpu(import_path, name):
     module = import_module(import_path)
     cls = getattr(module, name)
     with pytest.raises(NotImplementedError, match=f"{name}` class has been moved to an external package.*"):
@@ -27,10 +27,10 @@ def test_extracted_hpu(import_path,name):
 
 def test_extracted_hpu_classes_inner_import():
     from lightning.pytorch.accelerators.hpu import HPUAccelerator
-    from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
-    from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
     from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
     from lightning.pytorch.plugins.precision.hpu import HPUPrecisionPlugin
+    from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
+    from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
 
     with pytest.raises(NotImplementedError, match="HPUAccelerator` class has been moved to an external package.*"):
         HPUAccelerator()
