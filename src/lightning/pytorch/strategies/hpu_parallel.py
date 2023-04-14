@@ -21,7 +21,7 @@ class HPUParallelStrategy(DDPStrategy):
     def __init__(self, *_, **__):
         raise NotImplementedError(
             "The `HPUParallelStrategy` class has been moved to an external package."
-            " Setting the parrity, install the extension package as `pip install lightning-habana`"
-            " and proceed with `from lightning_habana import HPUParallelStrategy` import intead."
+            " Install the extension package as `pip install lightning-habana`"
+            " and import with `from lightning_habana import HPUParallelStrategy`."
             " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
         )
