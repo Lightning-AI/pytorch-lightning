@@ -129,20 +129,6 @@ class XLAStrategy(DDPStrategy):
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return dict(num_replicas=self.world_size, rank=self.global_rank)
 
-    @property
-    def is_distributed(self) -> bool:
-        from torch_xla.experimental import pjrt
-
-        if pjrt.using_pjrt():
-            from multiprocessing import current_process
-
-            return current_process().name != "MainProcess" and self.world_size != 1
-
-        import torch_xla.core.xla_env_vars as xenv
-
-        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
-        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
-
     def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
@@ -163,14 +149,11 @@ class XLAStrategy(DDPStrategy):
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self.is_distributed:
-            import torch_xla.core.xla_model as xm
+        import torch_xla.core.xla_model as xm
 
-            xm.rendezvous(name)
+        xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self.is_distributed:
-            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
