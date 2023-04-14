@@ -322,7 +322,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " `FSDPStrategy` does not use the `CheckpointIO`."
             )
         if any(isinstance(opt, Optimizer) for opt in state.values()):
-            raise NotImplementedError()
+            raise NotImplementedError("The `FSDPStrategy` does not yet support saving and loading optimizer states.")
 
         from torch.distributed._shard.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -399,7 +399,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 f" with sharded states in a directory."
             )
         if any(isinstance(opt, Optimizer) for opt in state.values()):
-            raise NotImplementedError()
+            raise NotImplementedError("The `FSDPStrategy` does not yet support saving and loading optimizer states.")
 
         from torch.distributed._shard.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
