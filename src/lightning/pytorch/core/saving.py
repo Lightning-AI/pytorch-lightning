@@ -267,12 +267,11 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     with fs.open(config_yaml, "r") as fp:
         hparams = yaml.full_load(fp)
 
-    if _OMEGACONF_AVAILABLE:
-        if use_omegaconf:
-            try:
-                return OmegaConf.create(hparams)
-            except (UnsupportedValueType, ValidationError):
-                pass
+    if _OMEGACONF_AVAILABLE and use_omegaconf:
+        try:
+            return OmegaConf.create(hparams)
+        except (UnsupportedValueType, ValidationError):
+            pass
     return hparams
 
 

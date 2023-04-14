@@ -274,10 +274,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args[:-1], **kwargs)
-            if add_dataloader_idx:
-                name = "val_loss"
-            else:
-                name = f"val_loss_custom_naming_{args[-1]}"
+            name = "val_loss" if add_dataloader_idx else f"val_loss_custom_naming_{args[-1]}"
 
             self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
             return output

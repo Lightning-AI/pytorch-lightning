@@ -106,10 +106,7 @@ class AppState:
         self._session = self._configure_session()
 
     def _attach_plugin(self, plugin: Optional[BaseStatePlugin]) -> None:
-        if plugin is not None:
-            plugin = plugin
-        else:
-            plugin = AppStatePlugin()
+        plugin = plugin if plugin is not None else AppStatePlugin()
         self._plugin = plugin
 
     @staticmethod

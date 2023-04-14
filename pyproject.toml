@@ -56,6 +56,9 @@ select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
 ]
+extend-select = [
+    "SIM",  # see: https://pypi.org/project/flake8-simplify
+]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
 ]

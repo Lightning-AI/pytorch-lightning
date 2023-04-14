@@ -329,7 +329,8 @@ def test_path_in_flow_and_work(cls, tmpdir):
     else:
         assert root.path_component.path_one._origin is None
         assert root.path_component.path_one._consumer is None
-    assert open(root.path_component.path_two).readlines() == ["Hello"]
+    with open(root.path_component.path_two) as fo:
+        assert fo.readlines() == ["Hello"]
 
 
 class SourceWork(LightningWork):
@@ -556,9 +557,10 @@ def test_path_get_overwrite(tmpdir):
 
 
 def test_path_get_error_in_flow_context():
-    with pytest.raises(RuntimeError, match=escape("`Path.get()` can only be called from within the `run()`")):
-        with _context("flow"):
-            Path().get()
+    with pytest.raises(RuntimeError, match=escape("`Path.get()` can only be called from within the `run()`")), _context(
+        "flow"
+    ):
+        Path().get()
 
 
 def test_path_response_with_exception(tmpdir):
@@ -581,9 +583,10 @@ def test_path_response_with_exception(tmpdir):
         )
     )
 
-    with pytest.raises(RuntimeError, match="An exception was raised while trying to transfer the contents at"):
-        with _context("work"):
-            path.get()
+    with pytest.raises(
+        RuntimeError, match="An exception was raised while trying to transfer the contents at"
+    ), _context("work"):
+        path.get()
 
 
 def test_path_response_not_matching_reqeuest(tmpdir):

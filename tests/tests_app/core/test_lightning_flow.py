@@ -962,6 +962,5 @@ def test_structures_register_work_cloudcompute():
 
 
 def test_deprecation_warning_exit():
-    with pytest.raises(ExitAppException):
-        with pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
-            RootFlowReady()._exit()
+    with pytest.raises(ExitAppException), pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
+        RootFlowReady()._exit()

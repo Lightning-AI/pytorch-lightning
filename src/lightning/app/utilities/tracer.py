@@ -75,10 +75,7 @@ def wrap_fn(fn, cls, method_name, trace, stack_level=1, pre_fn=None, post_fn=Non
 
         trace_entry["call"] = {"start": time.time_ns()}
 
-        if not is_class_method:
-            ret = fn(self, *args, **kwargs)
-        else:
-            ret = fn(*args, **kwargs)
+        ret = fn(self, *args, **kwargs) if not is_class_method else fn(*args, **kwargs)
 
         trace_entry["call"]["end"] = time.time_ns()
 

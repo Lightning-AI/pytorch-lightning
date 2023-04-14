@@ -382,7 +382,7 @@ def _scan_lightning_connections(app_name_or_id):
         if not curr_app_name:
             continue
 
-        if app_name_or_id == curr_app_name or app_name_or_id == curr_app_id:
+        if app_name_or_id in (curr_app_name, curr_app_id):
             return connection_path
 
     return None

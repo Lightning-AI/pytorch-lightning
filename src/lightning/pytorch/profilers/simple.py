@@ -102,7 +102,7 @@ class SimpleProfiler(Profiler):
         if self.extended:
 
             if len(self.recorded_durations) > 0:
-                max_key = max(len(k) for k in self.recorded_durations.keys())
+                max_key = max(len(k) for k in self.recorded_durations)
 
                 def log_row_extended(action: str, mean: str, num_calls: str, total: str, per: str) -> str:
                     row = f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|"

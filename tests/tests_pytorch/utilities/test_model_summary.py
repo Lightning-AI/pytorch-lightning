@@ -292,7 +292,7 @@ def test_empty_model_size(max_depth):
     """Test empty model size is zero."""
     model = EmptyModule()
     summary = summarize(model, max_depth=max_depth)
-    assert 0.0 == summary.model_size
+    assert summary.model_size == 0.0
 
 
 @pytest.mark.parametrize(

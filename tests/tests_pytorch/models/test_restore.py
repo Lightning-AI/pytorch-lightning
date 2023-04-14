@@ -142,7 +142,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
                 return torch.all(torch.eq(a, b))
 
             if isinstance(a, Mapping):
-                return all(self._is_equal(a.get(k, None), b.get(k, None)) for k in b.keys())
+                return all(self._is_equal(a.get(k, None), b.get(k, None)) for k in b)
 
             return a == b
 
@@ -463,7 +463,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # Since `BoringModel` has `_save_hparams = True` by default, check that ckpt has hparams
     ckpt = torch.load(last_checkpoint)
-    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), "hyper_parameters missing from checkpoints"
+    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # Ensure that model can be correctly restored from checkpoint
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
