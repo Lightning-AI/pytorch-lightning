@@ -20,6 +20,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for handling multiple parameter groups in optimizers set up with FSDP ([#17305](https://github.com/Lightning-AI/lightning/pull/17305))
 
+
+- Added support for saving and loading sharded model and optimizer state with `FSDPStrategy` ([#17323](https://github.com/Lightning-AI/lightning/pull/17323))
+
+
 ### Changed
 
 - Allow using iterable-style datasets with TPUs ([#17331](https://github.com/Lightning-AI/lightning/pull/17331))
