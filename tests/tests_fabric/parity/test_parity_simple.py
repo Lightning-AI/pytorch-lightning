@@ -118,10 +118,10 @@ def train_fabric(fabric):
     "precision, accelerator",
     [
         (32, "cpu"),
-        pytest.param(32, "cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, "cuda", marks=RunIf(min_cuda_gpus=1, standalone=True)),
         # pytest.param(16, "cuda", marks=RunIf(min_cuda_gpus=1)),  # TODO: requires GradScaler
         pytest.param("bf16", "cpu", marks=RunIf(skip_windows=True)),
-        pytest.param("bf16", "cuda", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
+        pytest.param("bf16", "cuda", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True, standalone=True)),
         pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
