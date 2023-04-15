@@ -280,9 +280,6 @@ class _EvaluationLoop(_Loop):
         """Runs ``on_{validation/test}_start`` hooks."""
         trainer = self.trainer
 
-        assert self._results is not None
-        self._results.to(device=trainer.lightning_module.device)
-
         hook_name = "on_test_start" if trainer.testing else "on_validation_start"
         call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
         call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
