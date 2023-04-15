@@ -3,35 +3,36 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:  # TODO: set to target later
+  pull_request_target:
     branches: [master, "release/*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
-env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: lightning-cluster
-  GKE_ZONE: us-central1-a
-
 defaults:
   run:
     shell: bash
+
+env:
+  XLA_VER: '2.0'
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  SHA: ${{ github.event.pull_request.head.sha }}
+  CLOUDSDK_CORE_DISABLE_PROMPTS: 1  # default to --quiet
+  # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
+  CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
 
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
     # run only when merged to master or the PR title contains '[TPU]'
     if: ${{ github.event.pull_request.merged == true || contains(github.event.pull_request.title, '[TPU]') }}
-    env:
-      PYTHON_VER: 3.8
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["fabric", "pytorch"]
-    # 1 hour is the access token lifetime: https://cloud.google.com/docs/authentication/token-types#at-lifetime
-    timeout-minutes: 60  # should match the timeout in the jsonnet files
+        runtime: ["xrt", "pjrt"]
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v3
@@ -40,106 +41,109 @@ jobs:
 
     - uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.PYTHON_VER }}
-
-    - name: Checkout ml-testing-accelerators
-      run: |
-       git clone https://github.com/GoogleCloudPlatform/ml-testing-accelerators.git
-       cd ml-testing-accelerators
-       git fetch origin 5e88ac24f631c27045e62f0e8d5dfcf34e425e25:stable
-       git checkout stable
-
-    - uses: actions/setup-go@v4
-      with:
-        go-version: '1.19'
-
-    - name: Install jsonnet
-      run: go install github.com/google/go-jsonnet/cmd/jsonnet@latest
-
-    - name: Update jsonnet
-      env:
-        SCOPE: ${{ matrix.pkg-name }}
-        XLA_VER: 1.12
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        SHA: ${{ github.event.pull_request.head.sha }}
-      run: |
-        import os
-        fname = f'dockers/base-xla/tpu_workflow_{os.getenv("SCOPE")}.jsonnet'
-        with open(fname) as fo:
-            data = fo.read()
-        data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
-        data = data.replace('{PYTHON_VERSION}', os.environ["PYTHON_VER"])
-        data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
-        data = data.replace('{SHA}', os.environ["SHA"])
-        with open(fname, "w") as fw:
-            fw.write(data)
-      shell: python
-    - name: Show jsonnet
-      run: cat dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet
+        python-version: '3.10'
 
     - uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
-    # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
-    - uses: google-github-actions/get-gke-credentials@v1
-      with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
+    - uses: 'google-github-actions/setup-gcloud@v1'
 
-    - name: Deploy cluster
-      id: deploy
-      run: |
-        set -ue
-        export PATH=$PATH:$HOME/go/bin
-
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -o name -f -)
-        job_name=${job_name#job.batch/}
-        echo "Launched job name $job_name"
-        echo "job_name=$job_name" >> $GITHUB_OUTPUT
-
-        pod_name=$(kubectl get pods --selector job-name=$job_name -o name)
-        pod_name=${pod_name#pod/}
-        echo "Pod name: $pod_name"
-        echo "pod_name=$pod_name" >> $GITHUB_OUTPUT
-
-        echo "Waiting for the pod to be ready..."
-        kubectl wait --for condition=ready --timeout=30m pod $pod_name
-
-        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
-        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
-          # successful run. split the output into logs + coverage report
-          csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/';
-          cat xx00  # test logs
-          mv xx01 coverage.xml
-        else
-          # failed run, print everything
-          cat /tmp/full_output.txt;
-        fi
-
-        failed=$(kubectl get job $job_name -o jsonpath={.status.failed})
-        if [ -z "$failed" ] || [ $failed -eq 1 ]; then
-          echo "Error: the job failed"
-          kubectl get job $job_name -o jsonpath={.status}
-          kubectl get pod $pod_name -o jsonpath={.status}
-          exit 1
-        fi
-      shell: bash
-
-    - name: Cleanup
+    - name: Time-based job cleanup
       if: always()
-      shell: bash
       run: |
-        pod_name="${{ steps.deploy.outputs.pod_name }}"
-        job_name="${{ steps.deploy.outputs.job_name }}"
-        echo "Running cleanup: job $job_name, pod $pod_name"
-        # get events for the current pod
-        kubectl get event --field-selector involvedObject.name=$pod_name
-        # delete the job, this will also delete the associated pod
-        kubectl delete job $job_name
-        # show all resources
-        kubectl get pods
-        kubectl get jobs
+        gcloud compute tpus tpu-vm list --format='value(name,createTime)' > data.txt
+        cat data.txt
+
+        if [ ! -s "data.txt" ]; then
+          echo "No existing jobs"
+          exit 0
+        fi
+
+        jobs_deleted=false
+        while read -r job_name created_at; do
+          # Convert the creation time to Unix timestamp
+          created_timestamp=$(date -d "${created_at}" +%s)
+
+          # Calculate the difference between the current time and the creation time
+          current_timestamp=$(date +%s)
+          age=$((current_timestamp - created_timestamp))
+
+          # Check if the age has surpassed a timeout
+          if ((age > 35 * 60)); then
+            # delete the job
+            gcloud compute tpus tpu-vm delete "$job_name" --async
+            jobs_deleted=true
+          else
+            echo "Skipping $job_name, alive for $age seconds"
+          fi
+        done < data.txt
+
+        if [ "$jobs_deleted" = true ]; then
+          sleep 5
+          # diagnostics
+          gcloud compute tpus tpu-vm list
+        fi
+
+    - name: Update script
+      env:
+        SCOPE: ${{ matrix.pkg-name }}
+        RUNTIME: ${{ matrix.runtime }}
+      run: |
+        import os
+        fname = f'tests/tests_{os.getenv("SCOPE")}/run_tpu_tests.sh'
+        with open(fname) as fo:
+            data = fo.read()
+        data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
+        data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
+        data = data.replace('{SHA}', os.environ["SHA"])
+        data = data.replace('{RUNTIME}', os.environ["RUNTIME"])
+        print(data)
+        with open(fname, "w") as fw:
+            fw.write(data)
+      shell: python
+
+    - name: Run tests
+      env:
+        SCOPE: ${{ matrix.pkg-name }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
+      run: |
+        set -uex
+
+        # create the job
+        gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER"
+
+        # copy the testing script
+        gcloud compute tpus tpu-vm scp "tests/tests_$SCOPE/run_tpu_tests.sh" "$JOB_NAME":~
+
+        # run it
+        gcloud compute tpus tpu-vm ssh "$JOB_NAME" --command="cd ~; bash run_tpu_tests.sh"
+        exit_code=$?
+
+        # pull out the coverage file
+        gcloud compute tpus tpu-vm scp "$JOB_NAME":~/coverage.xml .
+
+        exit $exit_code
+
+    - name: Cleanup job
+      if: always()
+      env:
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
+      run: |
+        if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
+          echo "$JOB_NAME wasn't created"
+          exit 0
+        fi
+
+        # diagnostics
+        gcloud compute tpus tpu-vm describe "$JOB_NAME"
+
+        # delete the job
+        gcloud compute tpus tpu-vm delete "$JOB_NAME" --async
+        sleep 5
+
+        # diagnostics
+        gcloud compute tpus tpu-vm list
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -148,6 +152,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml
-        flags: tpu,pytest,python${{ env.PYTHON_VER }}
+        flags: tpu,pytest
         name: TPU-coverage
         fail_ci_if_error: false
