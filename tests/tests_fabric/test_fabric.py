@@ -170,7 +170,7 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
 def test_setup_module_and_optimizers():
     """Test that `setup()` can handle no optimizers, one optimizer, or multiple optimizers."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
     optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
@@ -219,7 +219,7 @@ def test_setup_optimizers():
 
 def test_setup_twice_fails():
     """Test that calling `setup` with a model or optimizer that is already wrapped fails."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -234,7 +234,7 @@ def test_setup_twice_fails():
 
 def test_setup_module_twice_fails():
     """Test that calling `setup_module` with a model that is already wrapped fails."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
 
     fabric_model = fabric.setup_module(model)
@@ -267,7 +267,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
 
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -293,7 +293,7 @@ def test_setup_dataloaders_unsupported_input():
 
 def test_setup_dataloaders_return_type():
     """Test that the setup method returns the dataloaders wrapped as FabricDataLoader and in the right order."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
 
     # single dataloader
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(2)))
@@ -363,12 +363,12 @@ def test_setup_dataloaders_twice_fails():
 )
 def test_setup_dataloaders_move_to_device(fabric_device_mock):
     """Test that the setup configures FabricDataLoader to move the data to the device automatically."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
     assert all(dl.device is None for dl in fabric_dataloaders)
     fabric_device_mock.assert_not_called()
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=True)
     assert all(dl.device == torch.device("cuda", 1) for dl in fabric_dataloaders)
     fabric_device_mock.assert_called()
@@ -673,7 +673,7 @@ def test_launch_with_function():
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
         fabric.launch()
 
