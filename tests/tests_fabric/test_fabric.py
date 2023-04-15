@@ -585,7 +585,7 @@ def test_backward_model_input_required():
     fabric.setup(model0, optimizer0)
     fabric.setup(model1, optimizer1)
 
-    loss = model0(torch.randn(1, 1)).sum()
+    loss = model0(torch.randn(1, 1), device=fabric.device).sum()
 
     with pytest.raises(ValueError, match="please provide the model used to perform"):
         fabric.backward(loss)
