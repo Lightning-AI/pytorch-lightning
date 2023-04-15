@@ -20,6 +20,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
@@ -161,6 +162,19 @@ def _sync_module_states(module: torch.nn.Module) -> None:
         else set()
     )
     from torch.distributed.distributed_c10d import _get_default_group
+
+    if not _TORCH_GREATER_EQUAL_1_12:
+        module_states = []
+        for name, param in module.named_parameters():
+            if name not in parameters_to_ignore:
+                module_states.append(param.detach())
+        for name, buffer in module.named_buffers():
+            if name not in parameters_to_ignore:
+                module_states.append(buffer.detach())
+        if len(module_states) > 0:
+            torch.distributed._broadcast_coalesced(_get_default_group(), module_states, 250 * 1024 * 1024, 0)
+        return
+
     from torch.distributed.utils import _sync_module_states as torch_sync_module_states
 
     torch_sync_module_states(
