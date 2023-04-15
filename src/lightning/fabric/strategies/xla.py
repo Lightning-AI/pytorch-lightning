@@ -150,6 +150,9 @@ class XLAStrategy(ParallelStrategy):
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         import torch_xla.core.xla_model as xm
 
+        if name is None:
+            # `None` is not supported: "TypeError: _xla_rendezvous(): incompatible function arguments"
+            name = ""
         xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
