@@ -23,7 +23,7 @@ class HPUAccelerator(pl.accelerators.Accelerator):
     setup_device = ...
     teardown = ...
 
-    def __init__(self, *_: Any, **__: Any):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUAccelerator` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"
@@ -35,7 +35,7 @@ class HPUAccelerator(pl.accelerators.Accelerator):
 class HPUParallelStrategy(pl.strategies.DDPStrategy):
     """Strategy for distributed training on multiple HPU devices."""
 
-    def __init__(self, *_: Any, **__: Any):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUParallelStrategy` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"
@@ -53,7 +53,7 @@ class HPUParallelStrategy(pl.strategies.DDPStrategy):
 class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
     """Strategy for training on single HPU device."""
 
-    def __init__(self, *_: Any, **__: Any):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `SingleHPUStrategy` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"
@@ -65,7 +65,7 @@ class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
 class HPUCheckpointIO(pl.plugins.io.TorchCheckpointIO):
     """CheckpointIO to save checkpoints for HPU training strategies."""
 
-    def __init__(self, *_: Any, **__: Any):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUCheckpointIO` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"
@@ -77,7 +77,7 @@ class HPUCheckpointIO(pl.plugins.io.TorchCheckpointIO):
 class HPUPrecisionPlugin(pl.plugins.precision.PrecisionPlugin):
     """Plugin that enables bfloat/half support on HPUs."""
 
-    def __init__(self, *_: Any, **__: Any):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUPrecisionPlugin` class has been moved to an external package."
             " Install the extension package as `pip install lightning-habana`"
