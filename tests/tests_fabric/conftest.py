@@ -141,7 +141,8 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
         # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.
         # by deleting the key, we avoid filtering out the CPU tests
-        del options["min_cuda_gpus"]
+        # del options["min_cuda_gpus"]
+        options.pop("min_cuda_gpus", None)
 
     for kwarg, env_var in options.items():
         # this will compute the intersection of all tests selected per environment variable
