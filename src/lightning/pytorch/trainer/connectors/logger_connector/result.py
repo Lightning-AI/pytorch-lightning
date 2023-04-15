@@ -315,10 +315,9 @@ class _ResultCollection(dict):
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
-    def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
+    def __init__(self, training: bool) -> None:
         super().__init__()
         self.training = training
-        self.device: Optional[Union[str, torch.device]] = device
         self.batch: Optional[Any] = None
         self.batch_size: Optional[int] = None
         self.dataloader_idx: Optional[int] = None
@@ -510,9 +509,6 @@ class _ResultCollection(dict):
     def to(self, *args: Any, **kwargs: Any) -> "_ResultCollection":
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (Tensor, Metric), move_data_to_device, *args, **kwargs))
-
-        if "device" in kwargs:
-            self.device = kwargs["device"]
         return self
 
     def cpu(self) -> "_ResultCollection":
@@ -525,4 +521,4 @@ class _ResultCollection(dict):
         return f"{self.__class__.__name__}({self_str})"
 
     def __repr__(self) -> str:
-        return f"{{{self.training}, {repr(self.device)}, {super().__repr__()}}}"
+        return f"{{{self.training}, {super().__repr__()}}}"
