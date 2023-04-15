@@ -105,7 +105,9 @@ class DDPStrategy(ParallelStrategy):
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
         """Legacy property kept for backwards compatibility."""
-        rank_zero_deprecation(f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.")
+        rank_zero_deprecation(
+            f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6
+        )
         return True
 
     @property
