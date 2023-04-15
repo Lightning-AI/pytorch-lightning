@@ -139,7 +139,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 
         # Assert model parameters are identical after loading
         for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
-            assert torch.equal(ddp_param.float().cpu(), shard_param)
+            assert torch.equal(ddp_param, shard_param)
 
 
 @RunIf(min_torch="1.12")
