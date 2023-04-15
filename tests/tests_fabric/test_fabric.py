@@ -380,7 +380,7 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
     # keep the custom sampler when not needed to replace
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
     assert fabric_dataloader.sampler is custom_sampler
 
@@ -455,7 +455,7 @@ def test_seed_everything():
     """Test that seed everything is static and sets the worker init function on the dataloader."""
     Fabric.seed_everything(3)
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(Mock()))
 
     assert fabric_dataloader.worker_init_fn.func is pl_worker_init_function
@@ -604,7 +604,7 @@ def test_autocast():
 
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(3, 3)
     with pytest.raises(TypeError, match="You need to set up the model first"):
         with fabric.no_backward_sync(model):
@@ -829,7 +829,7 @@ def test_log_dict_input_parsing():
 @pytest.mark.parametrize("setup", [True, False])
 def test_save_wrapped_objects(setup, tmp_path):
     """Test that when modules and optimizers are in the state, they get unwrapped properly."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     save_checkpoint_mock = Mock()
     fabric.strategy.save_checkpoint = save_checkpoint_mock
 
@@ -910,7 +910,7 @@ def test_all_reduce():
 
 @pytest.mark.parametrize("clip_val,max_norm", [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
 
     fabric.strategy.clip_gradients_norm = Mock()
     fabric.strategy.clip_gradients_value = Mock()
