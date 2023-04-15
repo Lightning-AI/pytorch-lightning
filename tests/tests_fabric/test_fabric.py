@@ -92,7 +92,7 @@ def test_setup_compiled_module(setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
     from torch._dynamo.eval_frame import OptimizedModule
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     compiled_model = torch.compile(model)
     assert isinstance(compiled_model, OptimizedModule)
