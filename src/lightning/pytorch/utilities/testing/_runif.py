@@ -127,6 +127,9 @@ def _RunIf(
         reasons.append("unimplemented on Windows")
 
     if tpu:
+        if standalone:
+            os.system("pgrep python3")
+            print("OS.ENVIRON", os.environ)
         conditions.append(not TPUAccelerator.is_available())
         reasons.append("TPU")
         # used in conftest.py::pytest_collection_modifyitems
