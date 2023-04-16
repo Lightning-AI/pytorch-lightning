@@ -218,7 +218,8 @@ def main(args: argparse.Namespace):
                     if agent_final_info is not None and "episode" in agent_final_info:
                         if global_rank == 0:
                             print(
-                                f"Rank-0: global_step={global_step}, reward_env_{i}={agent_final_info['episode']['r'][0]}"
+                                f"Rank-0: global_step={global_step}, "
+                                f"reward_env_{i}={agent_final_info['episode']['r'][0]}"
                             )
                         local_num_episodes += 1
                         local_rew += agent_final_info["episode"]["r"][0]
