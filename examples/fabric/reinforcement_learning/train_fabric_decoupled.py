@@ -21,6 +21,7 @@ import argparse
 import os
 import time
 from datetime import datetime
+from contextlib import nullcontext
 
 import gymnasium as gym
 import numpy as np
@@ -28,7 +29,8 @@ import torch
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch import Tensor
-from torch.utils.data import BatchSampler, DistributedSampler
+from torch.distributed.algorithms.join import Join
+from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 from torchmetrics import MeanMetric
 
 from lightning.fabric import Fabric
@@ -102,6 +104,18 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     start_time = time.time()
     single_global_step = int(args.num_envs * args.num_steps)
     num_updates = args.total_timesteps // single_global_step
+    if args.share_data:
+        batch_size = args.num_steps * args.num_envs
+        chunks_sizes = [
+            len(chunk) for chunk in torch.tensor_split(torch.arange(batch_size), world_collective.world_size - 1)
+        ]
+        if len(chunks_sizes) >= world_collective.world_size:
+            raise RuntimeError(
+                "The number of trainers ({}) is greater than the available collected data ({}). ".format(
+                    world_collective.world_size - 1, batch_size
+                )
+                + "Consider to lower the number of trainers at least to the size of available collected data"
+            )
 
     # Broadcast num_updates to all the world
     update_t = torch.tensor([num_updates], device=device, dtype=torch.float32)
@@ -110,7 +124,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     # Get the first environment observation and start the optimization
     next_obs = Tensor(envs.reset(seed=args.seed)[0]).to(device)
     next_done = torch.zeros(args.num_envs).to(device)
-    for update in range(1, num_updates + 1):
+    for _ in range(1, num_updates + 1):
         for step in range(0, args.num_steps):
             global_step += args.num_envs
             obs[step] = next_obs
@@ -129,9 +143,11 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             next_obs, next_done = Tensor(next_obs).to(device), Tensor(done).to(device)
 
             if "final_info" in info:
-                for agent_final_info in info["final_info"]:
+                for i, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        fabric.print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
+                        fabric.print(
+                            f"Rank-0: global_step={global_step}, reward_env_{i}={agent_final_info['episode']['r'][0]}"
+                        )
                         rew_avg(agent_final_info["episode"]["r"][0])
                         ep_len_avg(agent_final_info["episode"]["l"][0])
 
@@ -164,7 +180,18 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
                 v = v.pin_memory()
 
         # Send data to the training agents
-        world_collective.broadcast_object_list([local_data], src=0)
+        if args.share_data:
+            world_collective.broadcast_object_list([local_data], src=0)
+        else:
+            # Split data in an even way, when possible
+            perm = torch.randperm(batch_size, device=device)
+            chunks = [{} for _ in range(world_collective.world_size - 1)]
+            for k, v in local_data.items():
+                chunked_local_data = v[perm].split(chunks_sizes)
+                for i in range(len(chunks)):
+                    chunks[i][k] = chunked_local_data[i]
+
+            world_collective.scatter_object_list([None], [None] + chunks, src=0)
 
         # Gather metrics from the trainers to be plotted
         metrics = [None]
@@ -179,7 +206,10 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
         fabric.log_dict(metrics[0], global_step)
         fabric.log_dict({"Time/step_per_second": int(global_step / (time.time() - start_time))}, global_step)
 
-    world_collective.broadcast_object_list([-1], src=0)
+    if args.share_data:
+        world_collective.broadcast_object_list([-1], src=0)
+    else:
+        world_collective.scatter_object_list([None], [None] + [-1] * (world_collective.world_size - 1), src=0)
     envs.close()
     test(agent, device, fabric.logger.experiment, args)
 
@@ -235,10 +265,14 @@ def trainer(
     while True:
         # Wait for data
         data = [None]
-        world_collective.broadcast_object_list(data, src=0)
+        if args.share_data:
+            world_collective.broadcast_object_list(data, src=0)
+        else:
+            world_collective.scatter_object_list(data, [None for _ in range(world_collective.world_size)], src=0)
         data = data[0]
         if data == -1:
             return
+
         # Metrics dict to be sent to the player
         if group_rank == 0:
             metrics = {}
@@ -250,24 +284,27 @@ def trainer(
             metrics["Info/learning_rate"] = optimizer.param_groups[0]["lr"]
         update += 1
 
-        sampler = DistributedSampler(
-            list(range(data["obs"].shape[0])),
-            num_replicas=group_world_size,
-            rank=group_rank,
-            shuffle=True,
-            seed=args.seed,
-            drop_last=False,
-        )
+        indexes = list(range(data["obs"].shape[0]))
+        if args.share_data:
+            sampler = DistributedSampler(
+                indexes, num_replicas=group_world_size, rank=group_rank, shuffle=True, seed=args.seed, drop_last=False
+            )
+        else:
+            sampler = RandomSampler(indexes)
         sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
 
-        for epoch in range(args.update_epochs):
-            sampler.sampler.set_epoch(epoch)
-            for batch_idxes in sampler:
-                loss = agent.training_step({k: v[batch_idxes].to(device) for k, v in data.items()})
-                optimizer.zero_grad(set_to_none=True)
-                fabric.backward(loss)
-                fabric.clip_gradients(agent, optimizer, max_norm=args.max_grad_norm)
-                optimizer.step()
+        # The Join context is needed because there can be the possibility
+        # that some ranks receive less data
+        with Join([agent._forward_module]) if args.share_data else nullcontext():
+            for epoch in range(args.update_epochs):
+                if args.share_data:
+                    sampler.sampler.set_epoch(epoch)
+                for batch_idxes in sampler:
+                    loss = agent.training_step({k: v[batch_idxes].to(device) for k, v in data.items()})
+                    optimizer.zero_grad(set_to_none=True)
+                    fabric.backward(loss)
+                    fabric.clip_gradients(agent, optimizer, max_norm=args.max_grad_norm)
+                    optimizer.step()
 
         # Sync metrics
         avg_pg_loss = agent.avg_pg_loss.compute()
