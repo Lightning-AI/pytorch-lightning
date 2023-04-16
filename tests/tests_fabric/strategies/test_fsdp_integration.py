@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import tempfile
 from unittest import mock
-import os
 
 import pytest
 import torch
@@ -180,9 +180,9 @@ def test_compile(compile_after_setup):
 
     if not compile_after_setup:
         model = torch.compile(model)
-    
+
     model = fabric.setup(model)
-    
+
     if compile_after_setup:
         model = torch.compile(model)
 
