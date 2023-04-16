@@ -261,10 +261,10 @@ def main(args: argparse.Namespace):
                         (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
                     )
         else:
-            gathered_data = local_data
+            processed_gathered_data = local_data
 
         # Train the agent
-        train(agent, optimizer, local_data, logger, global_step, args)
+        train(agent, optimizer, processed_gathered_data, logger, global_step, args)
         if global_rank == 0:
             logger.add_scalar("Time/step_per_second", int(global_step / (time.time() - start_time)), global_step)
 
