@@ -38,7 +38,7 @@ def train_torch(
     precision_context,
     input_dtype=torch.float32,
 ):
-    make_deterministic()
+    make_deterministic(warn_only=True)
     memory_stats = {}
 
     model = ConvNet()
@@ -73,7 +73,7 @@ def train_torch(
 
 
 def train_fabric(fabric):
-    make_deterministic()
+    make_deterministic(warn_only=True)
     memory_stats = {}
 
     model = ConvNet()
@@ -118,10 +118,10 @@ def train_fabric(fabric):
     "precision, accelerator",
     [
         (32, "cpu"),
-        pytest.param(32, "cuda", marks=RunIf(min_cuda_gpus=1, standalone=True)),
+        pytest.param(32, "cuda", marks=RunIf(min_cuda_gpus=1)),
         # pytest.param(16, "cuda", marks=RunIf(min_cuda_gpus=1)),  # TODO: requires GradScaler
         pytest.param("bf16", "cpu", marks=RunIf(skip_windows=True)),
-        pytest.param("bf16", "cuda", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True, standalone=True)),
+        pytest.param("bf16", "cuda", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
         pytest.param(32, "mps", marks=RunIf(mps=True)),
     ],
 )
