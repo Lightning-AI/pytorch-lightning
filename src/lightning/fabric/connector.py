@@ -26,11 +26,11 @@ from lightning.fabric.accelerators.tpu import TPUAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
+    HalfPrecision,
     MixedPrecision,
     Precision,
     TPUBf16Precision,
     TPUPrecision,
-    HalfPrecision,
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,

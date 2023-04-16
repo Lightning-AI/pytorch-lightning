@@ -31,7 +31,7 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision, HalfPrecision
+from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
