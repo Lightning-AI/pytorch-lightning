@@ -60,6 +60,7 @@ def test_model_tpu_devices_1(tmpdir):
 @pytest.mark.parametrize("tpu_core", [1, 3])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+@pytest.mark.xfail(raises=TimeoutError, reason="Test interaction making TPU availability check hang")  # TODO(carmocca)
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     trainer_options = dict(
@@ -122,6 +123,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 @pytest.mark.parametrize("tpu_core", [1, 3])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+@pytest.mark.xfail(raises=TimeoutError, reason="Test interaction making TPU availability check hang")  # TODO(carmocca)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     trainer_options = dict(
