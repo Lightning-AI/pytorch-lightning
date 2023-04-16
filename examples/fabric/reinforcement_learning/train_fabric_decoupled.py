@@ -103,17 +103,17 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     single_global_step = int(args.num_envs * args.num_steps)
     num_updates = args.total_timesteps // single_global_step
     if not args.share_data:
-        batch_size = args.num_steps * args.num_envs
-        chunks_sizes = [
-            len(chunk) for chunk in torch.tensor_split(torch.arange(batch_size), world_collective.world_size - 1)
-        ]
-        if len(chunks_sizes) >= world_collective.world_size:
+        if single_global_step < world_collective.world_size - 1:
             raise RuntimeError(
                 "The number of trainers ({}) is greater than the available collected data ({}). ".format(
-                    world_collective.world_size - 1, batch_size
+                    world_collective.world_size - 1, single_global_step
                 )
                 + "Consider to lower the number of trainers at least to the size of available collected data"
             )
+        chunks_sizes = [
+            len(chunk)
+            for chunk in torch.tensor_split(torch.arange(single_global_step), world_collective.world_size - 1)
+        ]
 
     # Broadcast num_updates to all the world
     update_t = torch.tensor([num_updates], device=device, dtype=torch.float32)
@@ -182,7 +182,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             world_collective.broadcast_object_list([local_data], src=0)
         else:
             # Split data in an even way, when possible
-            perm = torch.randperm(batch_size, device=device)
+            perm = torch.randperm(single_global_step, device=device)
             chunks = [{} for _ in range(world_collective.world_size - 1)]
             for k, v in local_data.items():
                 chunked_local_data = v[perm].split(chunks_sizes)
