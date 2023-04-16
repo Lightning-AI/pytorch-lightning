@@ -619,14 +619,14 @@ class Fabric:
         """
         unwrapped_state = _unwrap_objects(state)
         remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state)
-        # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
-        # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
-        for k in list(unwrapped_state.keys()):
-            if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):  # type: ignore[index]
-                continue
-            state[k] = unwrapped_state[k]  # type: ignore[index]
-
         self.barrier()
+        if state is not None:
+            # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
+            # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
+            for k in list(unwrapped_state.keys()):
+                if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+                    continue
+                state[k] = unwrapped_state[k]
         return remainder
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
