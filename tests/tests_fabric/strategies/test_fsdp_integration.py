@@ -101,7 +101,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping=False, precision="bf16")
     # check user data in state reloaded
     assert state["steps"] == 1
     assert not metadata
-    
+
     # attempt to load a key not in the metadata checkpoint
     state = {"model": fabric.model, "coconut": 11}
     with pytest.raises(KeyError, match="'coconut' not found in the checkpoint."):

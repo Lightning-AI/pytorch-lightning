@@ -206,7 +206,7 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 @RunIf(min_torch="2.0.0")
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_fsdp_save_checkpoint_folder_exists(tmp_path):
-    path = (tmp_path / "exists")
+    path = tmp_path / "exists"
     path.mkdir()
     (path / "file").touch()
     strategy = FSDPStrategy()

@@ -416,7 +416,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         state_dict_type = _get_state_dict_type(module)
         reader = FileSystemReader(path=path)
-        
+
         with state_dict_type:
             module_state = {module_key: module.state_dict()}
             load_state_dict(module_state, reader)
@@ -431,8 +431,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 )
                 flattened_osd = FSDP.optim_state_dict_to_load(
                     optim_state_dict=optim_state[optim_key],
-                    model=module, 
-                    optim=optim, 
+                    model=module,
+                    optim=optim,
                 )
                 optim.load_state_dict(flattened_osd)
 
