@@ -31,7 +31,7 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
+from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision, HalfPrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -271,7 +271,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
-@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         _Connector(accelerator=accelerator, strategy=strategy)

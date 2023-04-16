@@ -30,6 +30,7 @@ from lightning.fabric.plugins import (
     Precision,
     TPUBf16Precision,
     TPUPrecision,
+    HalfPrecision,
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
@@ -448,6 +449,8 @@ class _Connector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
+        if self._precision_input in ("16-true", "bf16-true"):
+            return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":
