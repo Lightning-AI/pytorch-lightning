@@ -295,7 +295,7 @@ def trainer(
 
         # The Join context is needed because there can be the possibility
         # that some ranks receive less data
-        with Join([agent._forward_module]) if args.share_data else nullcontext():
+        with Join([agent._forward_module]) if not args.share_data else nullcontext():
             for epoch in range(args.update_epochs):
                 if args.share_data:
                     sampler.sampler.set_epoch(epoch)
