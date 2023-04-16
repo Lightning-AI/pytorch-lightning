@@ -21,7 +21,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, Union
 from warnings import warn
 
 import yaml
@@ -56,8 +56,6 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
-    if map_location is None:
-        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -87,7 +85,14 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        return _load_state(cls, checkpoint, strict=strict, **kwargs)
+        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        state_dict = checkpoint["state_dict"]
+        if not state_dict:
+            raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
+        map_location = list(state_dict.values())[0].device
+        assert isinstance(storage, pl.LightningModule)
+        return storage.to(map_location)
+
     raise NotImplementedError(f"Unsupported {cls}")
 
 
