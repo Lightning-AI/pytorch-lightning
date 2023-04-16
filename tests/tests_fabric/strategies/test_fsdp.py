@@ -204,6 +204,18 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_folder_exists(tmp_path):
+    path = (tmp_path / "exists")
+    path.mkdir()
+    (path / "file").touch()
+    strategy = FSDPStrategy()
+    with pytest.raises(FileExistsError, match="exists and is not empty"):
+        strategy.save_checkpoint(path=path, state=Mock())
+
+
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only save one FSDP model per checkpoint."""
     strategy = FSDPStrategy()
@@ -232,6 +244,7 @@ def test_fsdp_load_checkpoint_no_state(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
     strategy = FSDPStrategy()

@@ -70,7 +70,7 @@ class _MyFabricManualWrapping(_MyFabric):
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 @pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
-def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
+def test_fsdp_train_save_load(tmp_path, manual_wrapping=False, precision="bf16"):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
     fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
     fabric = fabric_cls(
@@ -92,6 +92,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     )
     fabric.run()
 
+    # check correctness with loaded state
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
     params_after = deepcopy(list(fabric.model.parameters()))
@@ -100,6 +101,11 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     # check user data in state reloaded
     assert state["steps"] == 1
     assert not metadata
+    
+    # attempt to load a key not in the metadata checkpoint
+    state = {"model": fabric.model, "coconut": 11}
+    with pytest.raises(KeyError, match="'coconut' not found in the checkpoint."):
+        fabric.load(checkpoint_path, state)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
