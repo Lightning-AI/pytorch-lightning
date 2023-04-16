@@ -24,7 +24,6 @@ from datetime import datetime
 from typing import Dict
 
 import gymnasium as gym
-import numpy as np
 import torch
 import torchmetrics
 from rl.agent import PPOLightningAgent
@@ -129,7 +128,7 @@ def main(args: argparse.Namespace):
     num_updates = args.total_timesteps // single_global_rollout
 
     # Get the first environment observation and start the optimization
-    next_obs = Tensor(envs.reset(seed=args.seed)[0]).to(device)
+    next_obs = torch.tensor(envs.reset(seed=args.seed)[0], device=device)
     next_done = torch.zeros(args.num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing
@@ -151,9 +150,9 @@ def main(args: argparse.Namespace):
 
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
-            done = np.logical_or(done, truncated)
+            done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = Tensor(next_obs).to(device), Tensor(done).to(device)
+            next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
                 for i, agent_final_info in enumerate(info["final_info"]):

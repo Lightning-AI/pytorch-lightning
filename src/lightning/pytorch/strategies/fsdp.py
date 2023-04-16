@@ -32,7 +32,11 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCH_GREATER_EQUAL_2_0,
+)
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
@@ -130,6 +134,10 @@ class FSDPStrategy(ParallelStrategy):
             [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
         )
         self.kwargs = kwargs
+        if _TORCH_GREATER_EQUAL_2_0:
+            # Avoids the need for user to reference params in `configure_optimizers` via
+            # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
+            self.kwargs.setdefault("use_orig_params", True)
 
     @property
     def root_device(self) -> torch.device:
@@ -170,9 +178,6 @@ class FSDPStrategy(ParallelStrategy):
         # determine which process we are and world size
         self.set_world_ranks()
 
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend)
@@ -182,11 +187,12 @@ class FSDPStrategy(ParallelStrategy):
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
+        # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
+        rank_zero_only.rank = self.global_rank
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -249,6 +255,9 @@ class FSDPStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        if self.kwargs.get("use_orig_params"):
+            return super().setup_optimizers(trainer)
+
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
@@ -258,6 +267,7 @@ class FSDPStrategy(ParallelStrategy):
             invalid_params_error = True
 
         if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"

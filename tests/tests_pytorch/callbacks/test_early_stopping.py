@@ -20,7 +20,6 @@ from unittest import mock
 from unittest.mock import Mock
 
 import cloudpickle
-import numpy as np
 import pytest
 import torch
 
@@ -245,7 +244,7 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thresh
     assert trainer.current_epoch - 1 == expected_epoch, "early_stopping failed"
 
 
-@pytest.mark.parametrize("stop_value", [torch.tensor(np.inf), torch.tensor(np.nan)])
+@pytest.mark.parametrize("stop_value", [torch.tensor(torch.inf), torch.tensor(torch.nan)])
 def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
 
     losses = [4, 3, stop_value, 2, 1]

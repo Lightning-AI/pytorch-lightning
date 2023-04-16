@@ -454,6 +454,11 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
 
+        if detect_anomaly:
+            rank_zero_info(
+                "You have turned on `Trainer(detect_anomaly=True)`. This will significantly slow down compute speed and"
+                " is recommended only for model debugging."
+            )
         self._detect_anomaly: bool = detect_anomaly
 
         setup._log_device_info(self)
