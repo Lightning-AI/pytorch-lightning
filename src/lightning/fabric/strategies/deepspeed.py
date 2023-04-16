@@ -490,7 +490,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
-        for k, v in client_state.copy().items():
+        for k in client_state.copy():
             if k not in state:
                 continue
             state[k] = client_state.pop(k)
