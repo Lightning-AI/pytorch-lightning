@@ -13,6 +13,7 @@
 # limitations under the License.
 import tempfile
 from unittest import mock
+import os
 
 import pytest
 import torch
@@ -25,6 +26,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
+from tests_fabric.test_fabric import BoringModel
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel
@@ -164,3 +166,25 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         # A regular parameter as a view into the flattened parameters
         assert isinstance(layer.weight, torch.nn.Parameter)
         assert not isinstance(layer.weight, FlatParameter)
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0")
+@mock.patch.dict(os.environ, {})
+@pytest.mark.parametrize("compile_after_setup", [False, True])
+def test_compile(compile_after_setup):
+    """Test that the model can be compiled before and after the model is wrapped in FSDP."""
+    model = BoringModel()
+    strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
+    fabric.launch()
+
+    if not compile_after_setup:
+        model = torch.compile(model)
+    
+    model = fabric.setup(model)
+    
+    if compile_after_setup:
+        model = torch.compile(model)
+
+    for _ in range(3):
+        model(torch.rand(2, 32, device=fabric.device)).sum().backward()
