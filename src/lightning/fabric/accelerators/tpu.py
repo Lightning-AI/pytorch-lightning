@@ -118,7 +118,7 @@ def _has_tpu_device() -> bool:
     import torch_xla.core.xla_model as xm
     from torch_xla.experimental import pjrt
 
-    if pjrt.using_pjrt:
+    if pjrt.using_pjrt():
         return bool(xm.get_xla_supported_devices("TPU"))
     # For the TPU Pod training process, for example, if we have TPU v3-32 with 4 VMs, the world size would be 4 and as
     # we would have to use `torch_xla.distributed.xla_dist` for multiple VMs and TPU_CONFIG won't be available, running
