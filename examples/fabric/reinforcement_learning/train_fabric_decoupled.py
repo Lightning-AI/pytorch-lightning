@@ -104,7 +104,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     start_time = time.time()
     single_global_step = int(args.num_envs * args.num_steps)
     num_updates = args.total_timesteps // single_global_step
-    if args.share_data:
+    if not args.share_data:
         batch_size = args.num_steps * args.num_envs
         chunks_sizes = [
             len(chunk) for chunk in torch.tensor_split(torch.arange(batch_size), world_collective.world_size - 1)
