@@ -1,4 +1,3 @@
-import sys
 from queue import Empty
 from re import escape
 from unittest.mock import MagicMock, Mock
@@ -254,7 +253,7 @@ def test_work_path_assignment():
     assert work.path == work.lit_path
 
 
-@pytest.mark.xfail(reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme
 def test_work_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
 

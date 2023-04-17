@@ -509,7 +509,7 @@ async def async_request(url: str, data: InputRequestModel):
             return await result.json()
 
 
-@pytest.mark.xfail(reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme
 def test_configure_api():
     # Setup
     process = Process(target=target)

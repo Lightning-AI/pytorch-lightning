@@ -88,7 +88,7 @@ class StaticWebFrontendFlow(LightningFlow):
 
 
 @pytest.mark.skipif(sys.platform == "linux", reason="hanging... need to be fixed")  # fixme
-@pytest.mark.xfail(sys.platform == "darwin", reason="failing... need to be fixed")  # fixme
+@pytest.mark.xfail(sys.platform == "darwin", strict=False, reason="failing... need to be fixed")  # fixme
 @pytest.mark.parametrize("flow", (StaticWebFrontendFlow, StreamlitFrontendFlow))
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
 def test_layout_leaf_node(find_ports_mock, flow):
