@@ -94,10 +94,6 @@ Google Cloud (GCP)
 ^^^^^^^^^^^^^^^^^^
 You could refer to this `page <https://cloud.google.com/tpu/docs/v4-users-guide>`_ for getting started with Cloud TPU resources on GCP.
 
-Kaggle
-^^^^^^
-For starting Kaggle projects with TPUs, refer to this `kernel <https://www.kaggle.com/pytorchlightning/pytorch-on-tpu-with-pytorch-lightning>`_.
-
 ----
 
 Optimize Performance
