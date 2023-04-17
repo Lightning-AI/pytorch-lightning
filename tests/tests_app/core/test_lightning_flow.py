@@ -1,6 +1,5 @@
 import os
 import pickle
-import sys
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
@@ -610,7 +609,6 @@ def test_flow_path_assignment():
     assert flow.path == flow.lit_path
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="The pipe is being closed")
 @pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme
 def test_flow_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
