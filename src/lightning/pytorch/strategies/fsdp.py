@@ -74,12 +74,6 @@ if _distributed_available:
 log = logging.getLogger(__name__)
 
 
-def _clean_up_state_dict(state_dict: Dict[str, Any], prefix: str = "_forward_module.") -> Dict[str, Any]:
-    prefix_len = len(prefix)
-    clean_state_dict = {k[prefix_len:]: v for k, v in state_dict.items()}
-    return clean_state_dict
-
-
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
@@ -161,7 +155,7 @@ class FSDPStrategy(ParallelStrategy):
             state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
         ):
             state_dict = self.model.state_dict()
-            return _clean_up_state_dict(state_dict)
+            return _strip_prefix_from_state_dict(state_dict, prefix="_forward_module.")
 
     @property
     def root_device(self) -> torch.device:
@@ -414,3 +408,9 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
+
+
+
+def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
+    prefix_len = len(prefix)
+    return {k[prefix_len:]: v for k, v in state_dict.items()}
