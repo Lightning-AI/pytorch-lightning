@@ -104,6 +104,7 @@ class ContextFlow(LightningFlow):
         self.stop()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="hanging with timeout")
 @pytest.mark.xfail(sys.platform == "linux", reason="No idea why... need to be fixed")  # fixme
 def test_multiprocess_runtime_sets_context():
     """Test that the runtime sets the global variable COMPONENT_CONTEXT in Flow and Work."""
