@@ -50,6 +50,7 @@ class RunIf:
         skip_windows: bool = False,
         standalone: bool = False,
         deepspeed: bool = False,
+        dynamo: bool = False,
         **kwargs,
     ):
         """
@@ -67,6 +68,7 @@ class RunIf:
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             deepspeed: Require that microsoft/DeepSpeed is installed.
+            dynamo: Require that `torch.dynamo` is supported.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -136,20 +138,20 @@ class RunIf:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
 
+        if dynamo:
+            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
+            if _TORCH_GREATER_EQUAL_2_1:
+                from torch._dynamo.eval_frame import is_dynamo_supported
+
+                cond = not is_dynamo_supported()
+
+            conditions.append(cond)
+            reasons.append("torch.dynamo")
+
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
             *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
         )
-
-
-def skip_if_dynamo_unsupported():
-    if _TORCH_GREATER_EQUAL_2_1:
-        from torch._dynamo.eval_frame import is_dynamo_supported
-
-        if not is_dynamo_supported():
-            pytest.skip("TorchDynamo unsupported")
-    elif sys.platform == "win32" or sys.version_info >= (3, 11):
-        pytest.skip("TorchDynamo unsupported")
 
 
 @RunIf(min_torch="99")

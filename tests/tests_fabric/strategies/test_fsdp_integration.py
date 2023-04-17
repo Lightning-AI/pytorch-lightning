@@ -25,7 +25,7 @@ from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
-from tests_fabric.helpers.runif import RunIf, skip_if_dynamo_unsupported
+from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 if _TORCH_GREATER_EQUAL_1_12:
@@ -172,13 +172,11 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0", dynamo=True)
 @mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize("compile_after_setup", [False, True])
 def test_compile(compile_after_setup):
     """Test that the model can be compiled before and after the model is wrapped in FSDP."""
-    skip_if_dynamo_unsupported()
-
     model = BoringModel()
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
