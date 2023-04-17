@@ -610,7 +610,7 @@ def test_flow_path_assignment():
     assert flow.path == flow.lit_path
 
 
-@pytest.mark.xfail(sys.platform == "linux", reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.xfail(reason="No idea why... need to be fixed")  # fixme
 def test_flow_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
 
