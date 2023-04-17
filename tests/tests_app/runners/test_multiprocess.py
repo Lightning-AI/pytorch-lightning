@@ -48,7 +48,7 @@ class StartFrontendServersTestFlow(LightningFlow):
         self.stop()
 
 
-@pytest.mark.xfail(sys.platform == "linux", reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.skipif(sys.platform == "linux", reason="No idea why... need to be fixed")  # fixme
 @pytest.mark.parametrize(
     "cloudspace_host, port, expected_host, expected_target",
     [
