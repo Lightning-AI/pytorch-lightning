@@ -3,7 +3,7 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:  # TODO: set to target later
+  pull_request_target:
     branches: [master, "release/*"]
 
 concurrency:

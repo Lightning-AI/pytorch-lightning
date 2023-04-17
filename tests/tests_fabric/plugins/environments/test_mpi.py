@@ -16,7 +16,6 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 
 import lightning.fabric.plugins.environments.mpi
@@ -84,12 +83,12 @@ def test_init_local_comm(monkeypatch):
         env = MPIEnvironment()
 
         hostname_mock.return_value = "host1"
-        env._comm_world.bcast.return_value = np.array(["host1", "host2"])
+        env._comm_world.bcast.return_value = ["host1", "host2"]
         assert env.node_rank() == 0
 
         env._node_rank = None
         hostname_mock.return_value = "host2"
-        env._comm_world.bcast.return_value = np.array(["host1", "host2"])
+        env._comm_world.bcast.return_value = ["host1", "host2"]
         assert env.node_rank() == 1
 
         assert env._comm_local is not None
