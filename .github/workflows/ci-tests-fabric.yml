@@ -111,6 +111,7 @@ jobs:
 
     - name: Install package & dependencies
       run: |
+        python -m pip install -q pip -U
         pip install -e .[test] \
           "pytest-timeout" -r requirements/fabric/strategies.txt \
           -U --find-links ${TORCH_URL}
