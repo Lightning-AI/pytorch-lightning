@@ -250,9 +250,9 @@ else:
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("wrap_min_params", (2, 1024, 1048576))
-def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
-    """Test to ensure that state dict is extracted correctly when using FSDP strategy.
+@pytest.mark.parametrize("wrap_min_params", (2, 1024, 100000000))
+def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
+    """Test to ensure that the full state dict is extracted when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
     """
@@ -264,17 +264,17 @@ def test_fsdp_strategy_state_dict(tmpdir, wrap_min_params):
         default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
     )
     trainer.fit(model)
-    # CheckpointConnector use this to extract state dict
-    extracted_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    full_state_dict = trainer.strategy.lightning_module_state_dict()
 
     if trainer.global_rank != 0:
-        assert len(extracted_state_dict) == 0
+        assert len(full_state_dict) == 0
         return
 
     # State dict should contain same number of keys
-    assert len(correct_state_dict) == len(extracted_state_dict)
+    assert len(correct_state_dict) == len(full_state_dict)
     # OrderedDict should return the same keys in the same order
-    assert all(_ex == _co for _ex, _co in zip(list(extracted_state_dict.keys()), list(correct_state_dict.keys())))
+    assert all(_ex == _co for _ex, _co in zip(full_state_dict.keys(), correct_state_dict.keys()))
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
