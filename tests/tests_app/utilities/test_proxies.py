@@ -71,7 +71,7 @@ def test_lightning_work_setattr():
         (True, True),
         (True, False),
         (False, True),
-        pytest.param(False, False, marks=pytest.mark.xfail(sys.platform == "linux", strict=False)),
+        pytest.param(False, False, marks=pytest.mark.xfail(sys.platform == "linux", strict=False, reason="failing...")),
     ],
 )
 @mock.patch("lightning.app.utilities.proxies._Copier", MagicMock())
