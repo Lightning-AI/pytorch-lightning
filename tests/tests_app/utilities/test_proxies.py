@@ -66,12 +66,12 @@ def test_lightning_work_setattr():
 
 
 @pytest.mark.parametrize(
-    "parallel,cache_calls",
+    ["parallel", "cache_calls"],
     [
         (True, True),
         (True, False),
         (False, True),
-        pytest.param((False, False), marks=pytest.mark.xfail(sys.platform == "linux", strict=False)),
+        pytest.param(False, False, marks=pytest.mark.xfail(sys.platform == "linux", strict=False)),
     ],
 )
 @mock.patch("lightning.app.utilities.proxies._Copier", MagicMock())
