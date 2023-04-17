@@ -154,6 +154,16 @@ class RunIf:
         )
 
 
+def skip_if_dynamo_unsupported():
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch._dynamo.eval_frame import is_dynamo_supported
+
+        if not is_dynamo_supported():
+            pytest.skip("TorchDynamo unsupported")
+    elif sys.platform == "win32" or sys.version_info >= (3, 11):
+        pytest.skip("TorchDynamo unsupported")
+
+
 @RunIf(min_torch="99")
 def test_always_skip():
     exit(1)
