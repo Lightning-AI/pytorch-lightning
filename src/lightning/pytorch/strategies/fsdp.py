@@ -146,8 +146,11 @@ class FSDPStrategy(ParallelStrategy):
             self.kwargs.setdefault("use_orig_params", True)
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
-        """Gathers the full state dict by unsharding all the parameters. To avoid OOM, the returned
-        parameters will only be returned on rank 0 and on CPU. All other ranks get an empty dict."""
+        """Gathers the full state dict by unsharding all the parameters.
+
+        To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
+        dict.
+        """
         assert self.model is not None
 
         with FullyShardedDataParallel.state_dict_type(
