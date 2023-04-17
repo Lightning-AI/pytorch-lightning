@@ -411,7 +411,6 @@ class FSDPStrategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp_cpu_offload")
 
 
-
 def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
     prefix_len = len(prefix)
     return {k[prefix_len:]: v for k, v in state_dict.items()}
