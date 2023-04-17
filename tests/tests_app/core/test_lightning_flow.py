@@ -1,6 +1,5 @@
 import os
 import pickle
-import sys
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
