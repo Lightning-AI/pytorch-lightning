@@ -703,6 +703,15 @@ def test_module_sharding_context():
     fabric._strategy.module_sharded_context.assert_called_once()
 
 
+def test_init_module_context():
+    """Test that the stratey returns the context manager for initializing the module."""
+    fabric = Fabric()
+    fabric._strategy = MagicMock(spec=Strategy, module_init_context=MagicMock())
+    with fabric.init_module():
+        pass
+    fabric._strategy.module_init_context.assert_called_once()
+
+
 def test_callbacks_input():
     """Test the various ways in which callbacks can be registered with Fabric."""
     callback0 = Mock()
