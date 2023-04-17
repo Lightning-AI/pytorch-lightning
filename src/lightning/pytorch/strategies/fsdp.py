@@ -158,7 +158,7 @@ class FSDPStrategy(ParallelStrategy):
         with FullyShardedDataParallel.state_dict_type(
             module=self.model,
             state_dict_type=StateDictType.FULL_STATE_DICT,
-            state_dict_config=FullStateDictConfig(offload_to_cpu=self.cpu_offload.offload_params, rank0_only=True),
+            state_dict_config=FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
         ):
             state_dict = self.model.state_dict()
             return _clean_up_state_dict(state_dict)
