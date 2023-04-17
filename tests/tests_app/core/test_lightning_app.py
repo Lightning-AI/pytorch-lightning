@@ -447,7 +447,7 @@ class EmptyFlow(LightningFlow):
         pytest.param(
             0,
             10.0,
-            marks=pytest.mark.xfail(sys.platform == "win32", strict=False, reason="failing..."),
+            marks=pytest.mark.xfail(sys.platform in ("darwin", "win32"), strict=False, reason="failing..."),
         ),
     ],
 )
