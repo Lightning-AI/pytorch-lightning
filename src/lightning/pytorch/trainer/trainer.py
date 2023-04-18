@@ -155,7 +155,7 @@ class Trainer:
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
                 ``False`` will disable logging. If multiple loggers are provided, local files
-                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of he first logger.
+                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
 
             callbacks: Add a callback or list of callbacks.
@@ -454,6 +454,11 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
 
+        if detect_anomaly:
+            rank_zero_info(
+                "You have turned on `Trainer(detect_anomaly=True)`. This will significantly slow down compute speed and"
+                " is recommended only for model debugging."
+            )
         self._detect_anomaly: bool = detect_anomaly
 
         setup._log_device_info(self)
@@ -1408,14 +1413,18 @@ class Trainer:
         return self.fit_loop.max_batches
 
     @property
-    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+    def num_sanity_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of validation batches that will be used during the sanity-checking part of
         ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
-        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+        # re-compute the `min` in case this is called outside of the sanity-checking stage
+        sanity_val_steps = self.num_sanity_val_steps
+        if isinstance(max_batches, list):
+            return [min(sanity_val_steps, batches) for batches in max_batches]
+        return min(sanity_val_steps, max_batches)
 
     @property
-    def num_val_batches(self) -> List[Union[int, float]]:
+    def num_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of validation batches that will be used during ``trainer.fit()`` or
         ``trainer.validate()``."""
         if self.state.fn == TrainerFn.VALIDATING:
@@ -1425,7 +1434,7 @@ class Trainer:
         return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
-    def num_test_batches(self) -> List[Union[int, float]]:
+    def num_test_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of test batches that will be used during ``trainer.test()``."""
         return self.test_loop.max_batches
 
