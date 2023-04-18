@@ -325,16 +325,16 @@ class AssertXLADebugModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_debug_mode(tmpdir):
     """Test if debug mode works on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=4,
-        accelerator="tpu",
-        devices="auto",
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        strategy=XLAStrategy(debug=True),
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 4,
+        "accelerator": "tpu",
+        "devices": "auto",
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.4,
+        "strategy": XLAStrategy(debug=True),
+    }
 
     model = AssertXLADebugModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
