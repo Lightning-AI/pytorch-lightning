@@ -86,7 +86,7 @@ def test_setup_module(ddp_mock, setup_method):
     assert fabric_model.forward != model.forward
 
 
-@RunIf(min_torch="2.0.0", skip_windows=True)
+@RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_compiled_module(setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
