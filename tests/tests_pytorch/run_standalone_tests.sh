@@ -51,11 +51,11 @@ function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
     cat standalone_test_output.txt
     # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
-    #if grep -iE 'error|exception|traceback|failed' standalone_test_output.txt | grep -qvE 'on_exception|xfailed'; then
-    #  echo "Potential error! Stopping."
-    #  rm standalone_test_output.txt
-    #  exit 1
-    #fi
+    if grep -iE 'error|exception|traceback|failed' standalone_test_output.txt | grep -qvE 'on_exception|xfailed'; then
+      echo "Potential error! Stopping."
+      rm standalone_test_output.txt
+      exit 1
+    fi
     rm standalone_test_output.txt
   fi
 }
