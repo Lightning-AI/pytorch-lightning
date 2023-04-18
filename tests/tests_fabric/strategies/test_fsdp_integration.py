@@ -172,7 +172,7 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0", dynamo=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
 @mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize("compile_after_setup", [False, True])
 def test_compile(compile_after_setup):

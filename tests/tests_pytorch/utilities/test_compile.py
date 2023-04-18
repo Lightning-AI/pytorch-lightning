@@ -24,7 +24,7 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(min_torch="2.0.0", dynamo=True)
+@RunIf(dynamo=True)
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
 def test_trainer_compiled_model(tmp_path, monkeypatch):
     trainer_kwargs = {
@@ -78,7 +78,7 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
         trainer.fit(object())
 
 
-@RunIf(min_torch="2.0.0", dynamo=True)
+@RunIf(dynamo=True)
 def test_compile_uncompile():
     model = BoringModel()
     compiled_model = torch.compile(model)
@@ -110,7 +110,7 @@ def test_compile_uncompile():
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(min_torch="2.0.0", dynamo=True)
+@RunIf(dynamo=True)
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -134,7 +134,7 @@ def test_trainer_compiled_model_that_logs(tmp_path):
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(min_torch="2.0.0", dynamo=True)
+@RunIf(dynamo=True)
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
     compiled_model = torch.compile(model)
