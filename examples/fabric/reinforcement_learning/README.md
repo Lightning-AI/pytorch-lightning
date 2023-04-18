@@ -117,3 +117,13 @@ lightning run model --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda --
 > **Warning**
 >
 > With this second example, there is no need for the user to provide the `accellerator` and the `strategy` to the `lightning run model` script.
+
+## Number of updates, environment steps and share data
+
+In every one of the examples above, one has that:
+
+- The number of total updates will be given by `args.total_timesteps / args.num_steps`
+- `args.num_steps` is the number of environment interactions before the agent training step, i.e. the agent gathers `args.num_steps` experiences and uses them to update itself during the training step
+- `args.share_data` controls how the data is shared between processes. In particular:
+  - In the first example, **if `args.share_data` is set** then every process will have access at the data gathered by all the other processes, effectively calling the [all_gather](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_gather) distributed function. In this way, during the training step, the agents can employ the standard [PyTorch distributed training receipe](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel), where one can assume that before the training starts every process sees the same data, and trains the model on a disjoint subset (from process to process) of it. Otherwise, **if `args.share_data` is not set** (the default), then every process will update the model with its own local data
+  - In the second example, when **`args.share_data` is set** then one has the same behaviour of the first example. Instead, when **`args.share_data` is not set** then the player scatters an almost-equal-sized subset of the collected experiences to the trainers, effectively calling the [scatter](https://pytorch.org/docs/stable/distributed.html#torch.distributed.scatter) distributed function
