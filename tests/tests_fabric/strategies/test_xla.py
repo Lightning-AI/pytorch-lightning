@@ -50,7 +50,11 @@ def xla_launch(fn):
 def broadcast_on_tpu_fn(strategy):
     # test broadcasting a tensor
     obj = torch.tensor(strategy.local_rank)
-    src = 0  # TODO: fails with a different src
+    # In PjRT, the local rank and global rank have no solid relation.
+    # global rank may not even be contiguous on a host, because it depends on the 3D mesh structure that is formed by
+    # the TPUs on all hosts in a pod. So checking a different src is not reliable
+    # https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/experimental/pjrt.py#L161-L163
+    src = 0
     result = strategy.broadcast(obj, src)
     assert result.item() == src
     assert result.device.type == "xla"

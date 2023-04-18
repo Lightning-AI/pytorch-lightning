@@ -217,7 +217,8 @@ class XLAStrategy(DDPStrategy):
 
         assert self.parallel_devices is not None
         if using_pjrt() and len(self.parallel_devices) == 1:
-            # this would raise an internal XLA error. Can be checked with `devices=1, strategy="xla"`
+            # spawning only 1 device with PjRT is not supported:
+            # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleTPUStrategy` strategy"
