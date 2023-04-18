@@ -18,7 +18,7 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Type, Union
+from typing import Any, Generator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
 
 import torch
 from torch import Tensor
@@ -28,8 +28,8 @@ from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, Pr
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
-STEP_OUTPUT = Union[Tensor, Dict[str, Any]]
-_EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
+STEP_OUTPUT = Union[Tensor, Mapping[str, Any]]
+_EVALUATE_OUTPUT = List[Mapping[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 TRAIN_DATALOADERS = Any  # any iterable or collection of iterables
 EVAL_DATALOADERS = Any  # any iterable or collection of iterables
