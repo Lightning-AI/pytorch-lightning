@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -18,6 +19,7 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
+from fabric.plugins import Precision
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
@@ -126,3 +128,28 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
         clipping_test_cls = _MyFabricGradVal
     fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
     fabric.run()
+
+
+# @pytest.mark.parametrize("device", [
+#     "cpu",
+#     pytest.param("cuda:1", marks=RunIf(min_cuda_gpus=1)),
+# ])
+# @pytest.mark.parametrize("precision,dtype", [
+#     (Precision(), torch.float32),
+#     (HalfPrecision("16-true"), torch.float16),
+#     pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(mps=False)),
+#     pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
+# ])
+def test_module_init_context():
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+    # device = torch.device(device)
+    precision = Precision()
+    with mock.patch.dict(os.environ, {"LOCAL_RANK": "1"}):
+        strategy = DDPStrategy(parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)], precision=precision)
+
+        with strategy.module_init_context():
+            module = torch.nn.Linear(2, 2)
+
+        # expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+        assert module.weight.device == module.bias.device == torch.device("cuda", 1)
+        assert module.weight.dtype == module.bias.dtype == torch.float32
