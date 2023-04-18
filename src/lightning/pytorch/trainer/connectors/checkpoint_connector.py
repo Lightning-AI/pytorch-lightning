@@ -486,19 +486,6 @@ class _CheckpointConnector:
         call._call_lightning_module_hook(trainer, "on_save_checkpoint", checkpoint)
         return checkpoint
 
-    def save_checkpoint(
-        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
-    ) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        Args:
-            filepath: write-target file's path
-            weights_only: saving model weights only
-            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
-        """
-        _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
-
     def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
         return self.trainer.strategy.lightning_module_state_dict()
 
