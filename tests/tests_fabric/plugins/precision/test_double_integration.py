@@ -51,5 +51,5 @@ class DoublePrecisionBoringFabric(BoringFabric):
 
 
 def test_double_precision():
-    fabric = DoublePrecisionBoringFabric(precision="64-true")
+    fabric = DoublePrecisionBoringFabric(devices=1, precision="64-true")
     fabric.run()
