@@ -36,6 +36,7 @@ def _t1_5():
     return True
 
 
+@RunIf(skip_windows=True)
 def test_result_returns_within_timeout_seconds(monkeypatch):
     """Check that the TPU availability process launch returns within 3 seconds."""
     from lightning.fabric.accelerators import tpu
