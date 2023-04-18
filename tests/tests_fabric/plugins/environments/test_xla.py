@@ -66,7 +66,7 @@ def test_attributes_from_environment_variables(monkeypatch):
     with pytest.raises(NotImplementedError):
         _ = env.main_address
     with pytest.raises(NotImplementedError):
-        _ = env.main_port == 500
+        _ = env.main_port
     assert env.world_size() == 1
     assert env.global_rank() == 0
     assert env.local_rank() == 2
