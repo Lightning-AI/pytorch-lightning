@@ -21,10 +21,10 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from fabric.plugins import HalfPrecision
 from lightning_utilities.test.warning import no_warning_call
 
 import lightning.fabric
-from fabric.plugins import HalfPrecision
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -747,14 +747,17 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
         _Connector(strategy=strategy)
 
 
-@pytest.mark.parametrize("precision_str,precision_cls", [
-    ("64-true", DoublePrecision),
-    ("32-true", Precision),
-    ("16-true", HalfPrecision),
-    ("bf16-true", HalfPrecision),
-    ("16-mixed", MixedPrecision),
-    ("bf16-mixed", MixedPrecision),
-])
+@pytest.mark.parametrize(
+    "precision_str,precision_cls",
+    [
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("bf16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+        ("bf16-mixed", MixedPrecision),
+    ],
+)
 def test_precision_selection(precision_str, precision_cls):
     connector = _Connector(precision=precision_str)
     assert isinstance(connector.precision, precision_cls)
