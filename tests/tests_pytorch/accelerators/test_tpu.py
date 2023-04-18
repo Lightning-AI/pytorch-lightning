@@ -15,13 +15,14 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
@@ -30,6 +31,7 @@ from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACh
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
@@ -54,7 +56,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto")
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -74,7 +76,7 @@ def test_resume_training_on_cpu(tmpdir):
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto", default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     out = trainer.test(model)
     assert len(out) == 1
@@ -89,14 +91,12 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
-def test_accelerator_tpu(_, accelerator, devices, tpu_available):
+def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
-    assert trainer.num_devices == 8
 
 
 @RunIf(tpu=True)
@@ -163,7 +163,7 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
     )
     trainer.fit(model)
 
@@ -185,7 +185,7 @@ def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
 
 @RunIf(tpu=True)
 def test_strategy_choice_tpu_strategy():
-    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices="auto")
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
@@ -198,7 +198,7 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
@@ -231,7 +231,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
     model = NestedModule()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
@@ -298,11 +298,10 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 
 def test_warning_if_tpus_not_used(tpu_available):
-    with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
+    with pytest.warns(UserWarning, match="TPU available but not used"):
         Trainer(accelerator="cpu")
 
 
-@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
     [
@@ -313,8 +312,15 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_trainer_config_device_ids(devices, expected_device_ids):
+@RunIf(min_python="3.9")  # mocking issue
+def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
+    mock = DeviceMock()
+    monkeypatch.setattr(torch, "device", mock)
+    if _IS_WINDOWS:
+        # simulate fork support on windows
+        monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
     trainer = Trainer(accelerator="tpu", devices=devices)
-    assert trainer.device_ids == expected_device_ids
+    assert mock.mock_calls == [call("xla", i + 1) for i in expected_device_ids]
+    assert len(trainer.device_ids) == len(expected_device_ids)
     assert trainer.num_devices == len(expected_device_ids)

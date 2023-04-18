@@ -23,7 +23,6 @@ from packaging.version import Version
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
@@ -43,7 +42,6 @@ def _RunIf(
     bf16_cuda: bool = False,
     tpu: bool = False,
     ipu: bool = False,
-    hpu: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
@@ -71,7 +69,6 @@ def _RunIf(
         bf16_cuda: Require that CUDA device supports bf16.
         tpu: Require that TPU is available.
         ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
-        hpu: Require that HPU is available.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
@@ -140,10 +137,6 @@ def _RunIf(
         reasons.append("IPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["ipu"] = True
-
-    if hpu:
-        conditions.append(not _HPU_AVAILABLE)
-        reasons.append("HPU")
 
     if mps is not None:
         if mps:

@@ -13,11 +13,13 @@
 # limitations under the License.
 import os
 import signal
+import sys
 import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import List
+from unittest.mock import Mock
 
 import pytest
 import torch.distributed
@@ -75,6 +77,7 @@ def restore_env_variables():
         "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # leaked by tensorboardX
+        "TRITON_CACHE_DIR",  # leaked by torch.compile
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
         "GRPC_VERBOSITY",
@@ -172,7 +175,6 @@ def mps_count_4(monkeypatch):
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", value)
@@ -193,6 +195,10 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     mock_xla_available(monkeypatch, value)
     monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
 
 
 @pytest.fixture(scope="function")
@@ -316,19 +322,3 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     )
     for item in items:
         item.add_marker(deprecation_error)
-
-
-def pytest_addoption(parser):
-    parser.addoption("--hpus", action="store", type=int, default=1, help="Number of hpus 1-8")
-    parser.addoption(
-        "--hmp-bf16", action="store", type=str, default="./ops_bf16_mnist.txt", help="bf16 ops list file in hmp O1 mode"
-    )
-    parser.addoption(
-        "--hmp-fp32", action="store", type=str, default="./ops_fp32_mnist.txt", help="fp32 ops list file in hmp O1 mode"
-    )
-
-
-@pytest.fixture
-def hpus(request):
-    hpus = request.config.getoption("--hpus")
-    return hpus

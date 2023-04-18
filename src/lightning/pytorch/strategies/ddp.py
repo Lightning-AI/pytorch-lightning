@@ -38,15 +38,14 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from lightning.pytorch.overrides.distributed import prepare_for_backward
+from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.distributed import _register_ddp_comm_hook
 from lightning.pytorch.utilities.exceptions import _augment_message
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if torch.distributed.is_available():
@@ -103,7 +102,11 @@ class DDPStrategy(ParallelStrategy):
         self._start_method = start_method
 
     @property
-    def is_distributed(self) -> bool:
+    def is_distributed(self) -> bool:  # pragma: no-cover
+        """Legacy property kept for backwards compatibility."""
+        rank_zero_deprecation(
+            f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6
+        )
         return True
 
     @property
@@ -153,25 +156,28 @@ class DDPStrategy(ParallelStrategy):
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
 
-        if trainer_fn == TrainerFn.FITTING:
-            if self._layer_sync:
-                assert self.model is not None
-                self.model = self._layer_sync.apply(self.model)
+        if trainer_fn == TrainerFn.FITTING and self._layer_sync:
+            assert self.model is not None
+            self.model = self._layer_sync.apply(self.model)
 
         self.setup_precision_plugin()
 
         if trainer_fn == TrainerFn.FITTING:
+            # do not wrap with DDP if not fitting as there's no gradients to reduce
             self.configure_ddp()
 
             # set up optimizers after the wrapped module has been moved to the device
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
-        if trainer_fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging()
+        else:
+            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
+            assert self.model is not None
+            _sync_module_states(self.model)
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -183,7 +189,6 @@ class DDPStrategy(ParallelStrategy):
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
         self.set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
@@ -192,11 +197,12 @@ class DDPStrategy(ParallelStrategy):
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
+        # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
+        rank_zero_only.rank = self.global_rank
 
     def _register_ddp_hooks(self) -> None:
         log.debug(f"{self.__class__.__name__}: registering ddp hooks")
