@@ -180,11 +180,12 @@ def _RunIf(
         reasons.append("onnx")
 
     if dynamo:
-        cond = sys.platform == "win32" or sys.version_info >= (3, 11)
         if _TORCH_GREATER_EQUAL_2_1:
             from torch._dynamo.eval_frame import is_dynamo_supported
 
             cond = not is_dynamo_supported()
+        else:
+            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
 
         conditions.append(cond)
         reasons.append("torch.dynamo")
