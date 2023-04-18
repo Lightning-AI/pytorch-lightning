@@ -31,20 +31,19 @@ def test_tpu_device_presence():
     assert TPUAccelerator.is_available()
 
 
-def _t1_5():
-    time.sleep(1.5)
+def _t3():
+    time.sleep(3)
     return True
 
 
-@RunIf(skip_windows=True)
 def test_result_returns_within_timeout_seconds(monkeypatch):
     """Check that the TPU availability process launch returns within 3 seconds."""
     from lightning.fabric.accelerators import tpu
 
-    timeout = 3
+    timeout = 6
     monkeypatch.setattr(tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(tpu, "TPU_CHECK_TIMEOUT", timeout)
-    monkeypatch.setattr(tpu, "_has_tpu_device", _t1_5)
+    monkeypatch.setattr(tpu, "_has_tpu_device", _t3)
     tpu.TPUAccelerator.is_available.cache_clear()
 
     start = time.monotonic()
@@ -54,16 +53,11 @@ def test_result_returns_within_timeout_seconds(monkeypatch):
     end = time.monotonic()
     elapsed_time = end - start
 
-    # around 1.5 but definitely not 3 (timeout time)
-    assert 1 < elapsed_time < 2, elapsed_time
+    # around 3 but definitely not 6 (timeout time)
+    assert 2 < elapsed_time < 4, elapsed_time
     assert result
 
     tpu.TPUAccelerator.is_available.cache_clear()
-
-
-def _t3():
-    time.sleep(3)
-    return True
 
 
 def test_timeout_triggered(monkeypatch):
