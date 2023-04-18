@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from contextlib import contextmanager
+import os
+from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
@@ -36,9 +38,14 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.distributed import ReduceOp
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCH_GREATER_EQUAL_2_0,
+)
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
+from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
@@ -101,7 +108,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
-        self._ddp_kwargs = kwargs
+        self._fsdp_kwargs = kwargs
+
+        if _TORCH_GREATER_EQUAL_2_0:
+            # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
+            self._fsdp_kwargs.setdefault("use_orig_params", True)
 
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
             raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
@@ -157,28 +168,44 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
-        raise NotImplementedError(
-            f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
-            " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
-            " call `setup_optimizer`."
-        )
+        """Wraps the model into a
+        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module
+        and sets `use_orig_params=True` to keep the reference to the original parameters in the
+        optimizer.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
+                " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
+                " call `setup_optimizer`."
+            )
+        use_orig_params = self._fsdp_kwargs.get("use_orig_params")
+        if use_orig_params is False:
+            raise ValueError(
+                f"You set `{type(self).__name__}(use_orig_params=False)` but this is not supported when"
+                " setting the model and optimizer up jointly. Either set it to `True` or set the objects"
+                " up in this order: Create the model, call `setup_module`, create the optimizer,"
+                " call `setup_optimizer`."
+            )
+        module = self.setup_module(module)
+        return module, optimizers
 
     def setup_module(self, module: Module) -> "FullyShardedDataParallel":
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-        if "auto_wrap_policy" in self._ddp_kwargs and any(
+        if "auto_wrap_policy" in self._fsdp_kwargs and any(
             isinstance(mod, FullyShardedDataParallel) for mod in module.modules()
         ):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
-            del self._ddp_kwargs["auto_wrap_policy"]
+            del self._fsdp_kwargs["auto_wrap_policy"]
         wrapped_module = FullyShardedDataParallel(
             module=module,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
-            **self._ddp_kwargs,
+            **self._fsdp_kwargs,
         )
 
         # activation checkpointing needs to be set up after wrapping the model
@@ -194,6 +221,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
         flattened parameters.
         """
+        if _TORCH_GREATER_EQUAL_2_0:
+            return optimizer
+
         from torch.distributed.fsdp import FlatParameter
 
         num_groups = len(optimizer.param_groups)
@@ -224,7 +254,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
-            **self._ddp_kwargs,
+            **self._fsdp_kwargs,
         ):
             yield
 
@@ -273,6 +303,151 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             "Consider clipping by norm instead or choose another strategy!"
         )
 
+    def save_checkpoint(
+        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+    ) -> None:
+        """Save model, optimizer, and other state in a checkpoint directory.
+
+        The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
+        it creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
+        """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+            )
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `FSDPStrategy` does not use the `CheckpointIO`."
+            )
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = Path(self.broadcast(path))
+        if path.is_dir() and os.listdir(path):
+            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+
+        from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+        modules = [module for module in state.values() if isinstance(module, FSDP)]
+        if len(modules) == 0:
+            raise ValueError(
+                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
+            )
+        if len(modules) > 1:
+            raise ValueError(
+                "Found multiple FSDP modules in the given state. Saving checkpoints with FSDP is"
+                " currently limited to a single model per checkpoint. To save multiple models, call the"
+                " save method for each model separately with a different path."
+            )
+
+        module = modules[0]
+
+        state_dict_type = _get_state_dict_type(module)
+
+        # replace the modules and optimizer objects in the state with their local state dict
+        # and separate the user's metadata
+        converted_state = {}
+        metadata = {}
+        with state_dict_type:
+            for key, obj in state.items():
+                if isinstance(obj, FSDP):
+                    converted_state[key] = obj.state_dict()
+                elif isinstance(obj, Optimizer):
+                    converted_state[key] = FSDP.optim_state_dict(module, obj)
+                else:  # everything not a module or optimizer is considered metadata
+                    metadata[key] = obj
+
+        # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
+        writer = FileSystemWriter(path=path, single_file_per_rank=True)
+        save_state_dict(converted_state, writer)
+
+        if self.global_rank == 0:
+            torch.save(metadata, path / "meta.pt")
+
+    def load_checkpoint(
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
+        directory of multiple files rather than a single file.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+            )
+        if not state:
+            raise ValueError(
+                f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
+                f" a model instance to reload is required. Pass it in like so:"
+                " FSDPStrategy.load_checkpoint(..., state={'model': model, ...})"
+            )
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
+        path = Path(self.broadcast(path))
+        if path.is_file():
+            raise NotImplementedError(
+                f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
+                f" with sharded states in a directory."
+            )
+
+        from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+        modules = {key: module for key, module in state.items() if isinstance(module, FSDP)}
+        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
+        if len(modules) == 0:
+            raise ValueError(
+                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
+            )
+        if len(modules) > 1:
+            raise ValueError(
+                "Found multiple FSDP modules in the given state. Loading checkpoints with FSDP is"
+                " currently limited to a single model per checkpoint. To load multiple models, call the"
+                " load method for each model separately with a different path."
+            )
+        module_key, module = list(modules.items())[0]
+
+        state_dict_type = _get_state_dict_type(module)
+        reader = FileSystemReader(path=path)
+
+        with state_dict_type:
+            module_state = {module_key: module.state_dict()}
+            load_state_dict(module_state, reader)
+            module.load_state_dict(module_state[module_key])
+
+            # the optimizer states must be loaded separately
+            for optim_key, optim in optimizers.items():
+                optim_state = load_sharded_optimizer_state_dict(
+                    model_state_dict=module_state[module_key],
+                    optimizer_key=optim_key,
+                    storage_reader=reader,
+                )
+                flattened_osd = FSDP.optim_state_dict_to_load(
+                    optim_state_dict=optim_state[optim_key],
+                    model=module,
+                    optim=optim,
+                )
+                optim.load_state_dict(flattened_osd)
+
+        # Load metadata (anything not a module or optimizer)
+        metadata = torch.load(path / "meta.pt")
+        for key, obj in state.items():
+            if isinstance(obj, (FSDP, Optimizer)):
+                continue
+            if key not in metadata:
+                raise KeyError(f"'{key}' not found in the checkpoint.")
+            state[key] = metadata.pop(key)
+
+        # return the remaining metadata that wasn't requested as part of `state`
+        return metadata
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
@@ -293,7 +468,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def _setup_distributed(self) -> None:
         reset_seed()
         self._set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
@@ -302,11 +476,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def _set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
+        # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
+        rank_zero_only.rank = self.global_rank
 
 
 def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: List[Type[Module]]) -> None:
@@ -348,6 +523,25 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
-    from torch.distributed.fsdp import FlatParameter
+    _FSDP_FLATTENED = "_fsdp_flattened"
+    if _TORCH_GREATER_EQUAL_1_13:
+        return any(getattr(param, _FSDP_FLATTENED, False) for param in optimizer.param_groups[0]["params"])
+    else:
+        from torch.distributed.fsdp import FlatParameter
 
-    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
+        return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
+
+
+def _get_state_dict_type(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
+
+    state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
+    optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
+    state_dict_type = FSDP.state_dict_type(
+        module=module,
+        state_dict_type=StateDictType.SHARDED_STATE_DICT,
+        state_dict_config=state_dict_config,
+        optim_state_dict_config=optim_state_dict_config,
+    )
+    return state_dict_type

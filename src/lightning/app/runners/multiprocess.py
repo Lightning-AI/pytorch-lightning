@@ -66,10 +66,17 @@ class MultiProcessRuntime(Runtime):
 
             _set_frontend_context()
             for frontend in self.app.frontends.values():
-                host = "localhost"
                 port = find_free_network_port()
-                frontend.start_server(host="localhost", port=port)
-                frontend.flow._layout["target"] = f"http://{host}:{port}/{frontend.flow.name}"
+
+                server_host = "0.0.0.0" if in_cloudspace else "localhost"
+                server_target = (
+                    f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+                    if in_cloudspace
+                    else f"http://localhost:{port}"
+                )
+
+                frontend.start_server(host=server_host, port=port)
+                frontend.flow._layout["target"] = f"{server_target}/{frontend.flow.name}"
 
             _set_flow_context()
 
