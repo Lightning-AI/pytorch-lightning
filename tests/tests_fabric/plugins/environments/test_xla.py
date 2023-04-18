@@ -15,6 +15,7 @@ import os
 from unittest import mock
 
 import pytest
+import torch
 
 import lightning.fabric
 from lightning.fabric.plugins.environments import XLAEnvironment
@@ -33,6 +34,11 @@ def test_default_attributes(monkeypatch):
         monkeypatch.setattr(pjrt, "world_size", lambda: 1)
         monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
         monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
+    else:
+        from torch_xla import _XLAC
+
+        # avoid: "Cannot replicate if number of devices ... is different from ..."
+        monkeypatch.setattr(_XLAC, "_xla_get_default_device", lambda: torch.device("xla:0"))
 
     env = XLAEnvironment()
     assert not env.creates_processes_externally
