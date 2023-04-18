@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
@@ -24,10 +24,10 @@ from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.runif import RunIf
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
 
 @mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
@@ -192,3 +192,70 @@ class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
 def test_fsdp_grad_clipping_norm(precision):
     fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
     fabric.run()
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_save_checkpoint_storage_options(tmp_path):
+    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
+        strategy.save_checkpoint(path=tmp_path, state=Mock(), storage_options=Mock())
+
+
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_folder_exists(tmp_path):
+    path = tmp_path / "exists"
+    path.mkdir()
+    (path / "file").touch()
+    strategy = FSDPStrategy()
+    with pytest.raises(FileExistsError, match="exists and is not empty"):
+        strategy.save_checkpoint(path=path, state=Mock())
+
+
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
+    """Test that the FSDP strategy can only save one FSDP model per checkpoint."""
+    strategy = FSDPStrategy()
+
+    # missing FSDP model
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.save_checkpoint(path=tmp_path, state={})
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.save_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+
+    # multiple FSDP models
+    model1 = Mock(spec=FullyShardedDataParallel)
+    model2 = Mock(spec=FullyShardedDataParallel)
+    with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
+        strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_checkpoint_no_state(tmp_path):
+    """Test that the FSDP strategy can't load the full state without access to a model instance from the user."""
+    strategy = FSDPStrategy()
+    with pytest.raises(ValueError, match=escape("Got FSDPStrategy.load_checkpoint(..., state=None")):
+        strategy.load_checkpoint(path=tmp_path, state=None)
+    with pytest.raises(ValueError, match=escape("Got FSDPStrategy.load_checkpoint(..., state={})")):
+        strategy.load_checkpoint(path=tmp_path, state={})
+
+
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
+    """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
+    strategy = FSDPStrategy()
+
+    # missing FSDP model
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"other": "data"})
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+
+    # multiple FSDP models
+    model1 = Mock(spec=FullyShardedDataParallel)
+    model2 = Mock(spec=FullyShardedDataParallel)
+    with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})

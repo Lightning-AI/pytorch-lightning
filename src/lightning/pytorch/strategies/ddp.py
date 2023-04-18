@@ -38,15 +38,14 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from lightning.pytorch.overrides.distributed import prepare_for_backward
+from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.distributed import _register_ddp_comm_hook
 from lightning.pytorch.utilities.exceptions import _augment_message
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if torch.distributed.is_available():
@@ -103,7 +102,11 @@ class DDPStrategy(ParallelStrategy):
         self._start_method = start_method
 
     @property
-    def is_distributed(self) -> bool:
+    def is_distributed(self) -> bool:  # pragma: no-cover
+        """Legacy property kept for backwards compatibility."""
+        rank_zero_deprecation(
+            f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6
+        )
         return True
 
     @property
@@ -160,17 +163,21 @@ class DDPStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
         if trainer_fn == TrainerFn.FITTING:
+            # do not wrap with DDP if not fitting as there's no gradients to reduce
             self.configure_ddp()
 
             # set up optimizers after the wrapped module has been moved to the device
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
-        if trainer_fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging()
+        else:
+            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
+            assert self.model is not None
+            _sync_module_states(self.model)
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
