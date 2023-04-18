@@ -29,13 +29,14 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded
+from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
-    ReduceOp,
 )
+from lightning.fabric.utilities.distributed import group as _group
+from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
@@ -262,6 +263,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if isinstance(tensor, Tensor):
             tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
+
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
+        if torch.distributed.get_backend() == "nccl":
+            torch.distributed.barrier(device_ids=[self.root_device.index])
+        else:
+            torch.distributed.barrier()
+
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        obj = [obj]
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
 
     def clip_gradients_norm(  # type: ignore[override]
         self,

@@ -186,9 +186,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
 
     def _determine_ddp_device_ids(self) -> Optional[List[int]]:
-        if self.root_device.type == "cpu":
-            return None
-        return [self.root_device.index]
+        return None if self.root_device.type == "cpu" else [self.root_device.index]
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
