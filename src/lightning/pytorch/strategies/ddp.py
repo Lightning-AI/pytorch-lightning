@@ -47,6 +47,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
+from contextlib import nullcontext
 
 if torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
@@ -183,7 +184,11 @@ class DDPStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        with torch.cuda.stream(torch.cuda.Stream()):
+        if torch.cuda.is_available():
+            ctx = torch.cuda.stream(torch.cuda.Stream())
+        else:
+            ctx = nullcontext()
+        with ctx:
             ddp_model = DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
         return ddp_model
 
