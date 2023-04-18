@@ -37,7 +37,7 @@ class BoringModelTPU(BoringModel):
 def test_model_tpu_one_core():
     """Tests if device/debug flag is set correctly when training and after teardown for XLAStrategy."""
     model = BoringModelTPU()
-    trainer = Trainer(accelerator="tpu", devices=1, fast_dev_run=True, strategy=XLAStrategy(debug=True))
+    trainer = Trainer(fast_dev_run=True, strategy=XLAStrategy(debug=True))
     assert isinstance(trainer.strategy, XLAStrategy)
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ

@@ -84,6 +84,15 @@ class XLAStrategy(ParallelStrategy):
         self._launcher = _XLALauncher(self)
 
     def setup_environment(self) -> None:
+        from torch_xla.experimental.pjrt import using_pjrt
+
+        if using_pjrt() and len(self.parallel_devices) == 1:
+            # this would raise an internal XLA error. Can be checked with `devices=1, strategy="xla"`
+            raise NotImplementedError(
+                "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
+                " Try using all devices or the `SingleTPUStrategy` strategy"
+            )
+
         self._launched = True
         rank_zero_only.rank = self.global_rank
         super().setup_environment()

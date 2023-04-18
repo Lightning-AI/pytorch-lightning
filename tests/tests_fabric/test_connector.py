@@ -661,6 +661,19 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(strategy=strategy)
 
 
+def test_connector_with_accelerator_instance(tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
+    accelerator = TPUAccelerator()
+    connector = _Connector(accelerator=accelerator, devices=1)
+    assert connector.accelerator is accelerator
+    assert isinstance(connector.strategy, SingleTPUStrategy)
+
+    connector = _Connector(accelerator=accelerator)
+    assert connector.accelerator is accelerator
+    assert isinstance(connector.strategy, XLAStrategy)
+
+
 @RunIf(mps=True)
 def test_devices_auto_choice_mps():
     connector = _Connector(accelerator="auto", devices="auto")
