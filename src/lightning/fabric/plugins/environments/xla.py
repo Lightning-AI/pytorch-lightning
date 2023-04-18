@@ -39,15 +39,11 @@ class XLAEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        import torch_xla.core.xla_env_vars as xenv
-
-        return os.environ[xenv.TPU_MESH_CTLER_ADDR]
+        raise NotImplementedError
 
     @property
     def main_port(self) -> int:
-        import torch_xla.core.xla_env_vars as xenv
-
-        return int(os.environ[xenv.TPU_MESH_CTLER_PORT])
+        raise NotImplementedError
 
     @staticmethod
     def detect() -> bool:
