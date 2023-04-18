@@ -34,7 +34,7 @@ from rl.loss import entropy_loss, policy_loss, value_loss
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -46,17 +46,22 @@ def train(
     global_step: int,
     args: argparse.Namespace,
 ):
-    sampler = DistributedSampler(
-        list(range(data["obs"].shape[0])),
-        num_replicas=distributed.get_world_size(),
-        rank=distributed.get_rank(),
-        shuffle=True,
-        seed=args.seed,
-    )
+    indexes = list(range(data["obs"].shape[0]))
+    if args.share_data:
+        sampler = DistributedSampler(
+            indexes,
+            num_replicas=distributed.get_world_size(),
+            rank=distributed.get_rank(),
+            shuffle=True,
+            seed=args.seed,
+        )
+    else:
+        sampler = RandomSampler(indexes)
     sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
     per_epoch_losses = torch.tensor([0.0, 0.0, 0.0], device=data["obs"].device)
     for epoch in range(args.update_epochs):
-        sampler.sampler.set_epoch(epoch)
+        if args.share_data:
+            sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
             _, newlogprob, entropy, newvalue = agent(data["obs"][batch_idxes], data["actions"].long()[batch_idxes])
             logratio = newlogprob - data["logprobs"][batch_idxes]
@@ -207,10 +212,13 @@ def main(args: argparse.Namespace):
             next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
-                for agent_final_info in info["final_info"]:
+                for i, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
                         if global_rank == 0:
-                            print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
+                            print(
+                                f"Rank-0: global_step={global_step}, "
+                                f"reward_env_{i}={agent_final_info['episode']['r'][0]}"
+                            )
                         local_num_episodes += 1
                         local_rew += agent_final_info["episode"]["r"][0]
                         local_ep_len += agent_final_info["episode"]["l"][0]
@@ -242,15 +250,18 @@ def main(args: argparse.Namespace):
             "values": values.reshape(-1),
         }
 
-        # Gather all the tensors from all the world, concat and reshape them
-        gathered_data = [None for _ in range(world_size)]
-        distributed.all_gather_object(gathered_data, local_data)
-        processed_gathered_data = gathered_data[0]
-        for i in range(1, len(gathered_data)):
-            for k in processed_gathered_data:
-                processed_gathered_data[k] = torch.cat(
-                    (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
-                )
+        if args.share_data:
+            # Gather all the tensors from all the world, concat and reshape them
+            gathered_data = [None for _ in range(world_size)]
+            distributed.all_gather_object(gathered_data, local_data)
+            processed_gathered_data = gathered_data[0]
+            for i in range(1, len(gathered_data)):
+                for k in processed_gathered_data.keys():
+                    processed_gathered_data[k] = torch.cat(
+                        (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
+                    )
+        else:
+            processed_gathered_data = local_data
 
         # Train the agent
         train(agent, optimizer, processed_gathered_data, logger, global_step, args)

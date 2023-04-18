@@ -47,6 +47,14 @@ def parse_args():
 
     # Distributed arguments
     parser.add_argument("--num-envs", type=int, default=2, help="the number of parallel game environments")
+    parser.add_argument(
+        "--share-data",
+        type=lambda x: bool(strtobool(x)),
+        default=False,
+        nargs="?",
+        const=True,
+        help="Toggle sharing data between processes",
+    )
     parser.add_argument("--per-rank-batch-size", type=int, default=64, help="the batch size for each rank")
 
     # Environment arguments
