@@ -35,33 +35,38 @@ def test_default_attributes(*_):
     assert env.local_rank() == 0
     assert env.node_rank() == 0
 
-    with pytest.raises(KeyError):
-        # main_address is required to be passed as env variable
+    with pytest.raises(NotImplementedError):
         _ = env.main_address
-    with pytest.raises(KeyError):
-        # main_port is required to be passed as env variable
+    with pytest.raises(NotImplementedError):
         _ = env.main_port
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(
-    os.environ,
-    {
-        **os.environ,
-        "TPU_MESH_CONTROLLER_ADDRESS": "1.2.3.4",
-        "TPU_MESH_CONTROLLER_PORT": "500",
-        "XRT_SHARD_WORLD_SIZE": "1",
-        "XRT_SHARD_ORDINAL": "0",
-        "XRT_SHARD_LOCAL_ORDINAL": "2",
-        "XRT_HOST_ORDINAL": "3",
-    },
-    clear=True,
-)
-def test_attributes_from_environment_variables():
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_attributes_from_environment_variables(monkeypatch):
     """Test that the default cluster environment takes the attributes from the environment variables."""
+    from torch_xla.experimental import pjrt
+
+    os.environ["XRT_HOST_ORDINAL"] = "3"
+    if not pjrt.using_pjrt():
+        os.environ.update(
+            {
+                "XRT_SHARD_WORLD_SIZE": "1",
+                "XRT_SHARD_ORDINAL": "0",
+                "XRT_SHARD_LOCAL_ORDINAL": "2",
+            }
+        )
+    else:
+        # PJRT doesn't pull these from envvars
+        monkeypatch.setattr(pjrt, "world_size", lambda: 1)
+        monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+        monkeypatch.setattr(pjrt, "local_ordinal", lambda: 2)
+
     env = XLAEnvironment()
-    assert env.main_address == "1.2.3.4"
-    assert env.main_port == 500
+    with pytest.raises(NotImplementedError):
+        _ = env.main_address
+    with pytest.raises(NotImplementedError):
+        _ = env.main_port
     assert env.world_size() == 1
     assert env.global_rank() == 0
     assert env.local_rank() == 2
