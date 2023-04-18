@@ -26,7 +26,6 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.utilities.distributed import (
-    _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -282,19 +281,13 @@ class DDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_available():
-            return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_available():
-            return obj
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 

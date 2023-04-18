@@ -48,15 +48,23 @@ def xla_launch(fn):
 
 
 def broadcast_on_tpu_fn(strategy):
+    # test broadcasting a tensor
+    obj = torch.tensor(strategy.local_rank)
+    src = 0  # TODO: fails with a different src
+    result = strategy.broadcast(obj, src)
+    assert result.item() == src
+    assert result.device.type == "xla"
+
+    # test broadcasting an arbitrary object
     obj = ("ver_0.5", "logger_name", strategy.local_rank)
-    result = strategy.broadcast(obj)
-    assert result == ("ver_0.5", "logger_name", 0)
+    result = strategy.broadcast(obj, src=src)
+    assert result == ("ver_0.5", "logger_name", src)
 
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_broadcast_on_tpu():
-    """Checks if an object from the main process is broadcasted to other processes correctly."""
+    """Checks if an object from the main process is broadcast to other processes correctly."""
     xla_launch(broadcast_on_tpu_fn)
 
 
@@ -113,10 +121,11 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 
 def tpu_all_gather_fn(strategy):
-    for sync_grads in [True, False]:
-        tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
+    for sync_grads in (True, False):
+        tensor = torch.tensor(1.0, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
+        assert summed.device.type == "xla"
         device_count = strategy.accelerator.auto_device_count()
         assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
         summed.backward()

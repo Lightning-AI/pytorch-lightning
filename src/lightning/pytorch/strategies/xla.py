@@ -157,15 +157,28 @@ class XLAStrategy(DDPStrategy):
         xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
         import torch_xla.core.xla_model as xm
 
-        data = xm.all_gather(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
+        is_tensor = isinstance(obj, Tensor)
+        if is_tensor:
+            if obj.dim() == 0:
+                obj = obj.unsqueeze(0)
+            if obj.device.type != "xla":
+                obj = obj.to(self.root_device)
+        else:
+            # support for arbitrary pickle-ables
+            buffer = io.BytesIO()
+            torch.save(obj, buffer)
+            obj = torch.tensor(bytearray(buffer.getbuffer()), device=self.root_device, dtype=torch.float)
+
+        obj = [obj]
+        xm.collective_broadcast(obj, root_ordinal=src)
+        obj = obj[0]
+
+        if not is_tensor:
+            buffer = io.BytesIO(obj.cpu().byte().numpy())
+            obj = torch.load(buffer)
+
         return obj
 
     def reduce(
@@ -238,8 +251,11 @@ class XLAStrategy(DDPStrategy):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        if isinstance(tensor, Tensor) and tensor.dim() == 0:
-            tensor = tensor.unsqueeze(0)
+        if isinstance(tensor, Tensor):
+            if tensor.dim() == 0:
+                tensor = tensor.unsqueeze(0)
+            if tensor.device.type != "xla":
+                tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
