@@ -149,7 +149,7 @@ def test_module_init_context():
         strategy = DDPStrategy(
             parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
             precision=precision,
-            cluster_environment=LightningEnvironment()
+            cluster_environment=LightningEnvironment(),
         )
         assert strategy.local_rank == 1
 
