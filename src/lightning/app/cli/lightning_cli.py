@@ -194,15 +194,15 @@ def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, 
 
     $ lightning show cluster logs my-cluster
 
-     Print cluster logs and wait for new logs:
+    Print cluster logs and wait for new logs:
 
     $ lightning show cluster logs my-cluster --follow
 
-     Print cluster logs, from 48 hours ago to now:
+    Print cluster logs, from 48 hours ago to now:
 
     $ lightning show cluster logs my-cluster --from "48 hours ago"
 
-     Print cluster logs, 10 most recent lines:
+    Print cluster logs, 10 most recent lines:
 
     $ lightning show cluster logs my-cluster --limit 10
     """

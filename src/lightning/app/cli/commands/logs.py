@@ -39,11 +39,11 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     $ lightning show logs my-application
 
-     Print logs only from the flow (no work):
+    Print logs only from the flow (no work):
 
     $ lightning show logs my-application flow
 
-     Print logs only from selected works:
+    Print logs only from selected works:
 
     $ lightning show logs my-application root.work_a root.work_b
     """
