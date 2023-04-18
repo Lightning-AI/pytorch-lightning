@@ -20,6 +20,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from fabric.plugins import Precision
+from fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
@@ -145,7 +146,12 @@ def test_module_init_context():
     # device = torch.device(device)
     precision = Precision()
     with mock.patch.dict(os.environ, {"LOCAL_RANK": "1"}):
-        strategy = DDPStrategy(parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)], precision=precision)
+        strategy = DDPStrategy(
+            parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
+            precision=precision,
+            cluster_environment=LightningEnvironment()
+        )
+        assert strategy.local_rank == 1
 
         with strategy.module_init_context():
             module = torch.nn.Linear(2, 2)

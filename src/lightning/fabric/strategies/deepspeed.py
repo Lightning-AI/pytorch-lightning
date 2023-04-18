@@ -349,7 +349,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
-        with self.module_sharded_context():
+        with super().module_init_context(), self.module_sharded_context():
             yield
 
     @contextmanager
