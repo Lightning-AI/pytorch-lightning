@@ -19,13 +19,13 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning.fabric.plugins import Precision, HalfPrecision, DoublePrecision
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 
 @pytest.mark.parametrize(
@@ -133,12 +133,15 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("precision,expected_dtype", [
-    (Precision(), torch.float32),
-    (HalfPrecision("16-true"), torch.float16),
-    pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
-    (DoublePrecision(), torch.float64),
-])
+@pytest.mark.parametrize(
+    "precision,expected_dtype",
+    [
+        (Precision(), torch.float32),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+        (DoublePrecision(), torch.float64),
+    ],
+)
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
 def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
@@ -146,9 +149,7 @@ def test_module_init_context(precision, expected_dtype):
     expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
 
     strategy = DDPStrategy(
-        parallel_devices=parallel_devices,
-        precision=precision,
-        cluster_environment=LightningEnvironment()
+        parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
     with strategy.module_init_context():
