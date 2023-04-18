@@ -558,6 +558,7 @@ def test_unsupported_tpu_choice(tpu_available):
 def mock_ipu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning.pytorch.accelerators.ipu, "_IPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.trainer.setup, "_IPU_AVAILABLE", value)
 
 
 def test_unsupported_ipu_choice(monkeypatch):
