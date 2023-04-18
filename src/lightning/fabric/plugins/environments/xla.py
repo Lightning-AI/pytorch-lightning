@@ -38,10 +38,12 @@ class XLAEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
+        # unused by lightning
         raise NotImplementedError
 
     @property
     def main_port(self) -> int:
+        # unused by lightning
         raise NotImplementedError
 
     @staticmethod
