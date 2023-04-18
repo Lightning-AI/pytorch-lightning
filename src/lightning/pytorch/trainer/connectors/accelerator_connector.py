@@ -630,12 +630,7 @@ class _AcceleratorConnector:
 
     @property
     def is_distributed(self) -> bool:
-        # TODO: deprecate this property
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = [
+        distributed_strategies = [
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
@@ -644,11 +639,13 @@ class _AcceleratorConnector:
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUParallelStrategy
 
-            distributed_strategy.append(HPUParallelStrategy)
-        is_distributed = isinstance(self.strategy, tuple(distributed_strategy))
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed
+            distributed_strategies.append(HPUParallelStrategy)
+        if isinstance(self.strategy, tuple(distributed_strategies)):
+            return True
+        if hasattr(self.strategy, "is_distributed"):
+            # Used for custom plugins. They should implement this property
+            return self.strategy.is_distributed
+        return False
 
 
 def _set_torch_flags(

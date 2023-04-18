@@ -55,7 +55,13 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
 if _fsdp_available:
-    from torch.distributed.fsdp import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp import (
+        CPUOffload,
+        FullStateDictConfig,
+        FullyShardedDataParallel,
+        MixedPrecision,
+        StateDictType,
+    )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
     FullyShardedDataParallel = None  # type: ignore[misc,assignment]
@@ -138,6 +144,22 @@ class FSDPStrategy(ParallelStrategy):
             # Avoids the need for user to reference params in `configure_optimizers` via
             # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
             self.kwargs.setdefault("use_orig_params", True)
+
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        """Gathers the full state dict by unsharding all the parameters.
+
+        To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
+        dict.
+        """
+        assert self.model is not None
+
+        with FullyShardedDataParallel.state_dict_type(
+            module=self.model,
+            state_dict_type=StateDictType.FULL_STATE_DICT,
+            state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
+        ):
+            state_dict = self.model.state_dict()
+            return _strip_prefix_from_state_dict(state_dict, prefix="_forward_module.")
 
     @property
     def root_device(self) -> torch.device:
@@ -390,3 +412,8 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
+
+
+def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
+    prefix_len = len(prefix)
+    return {k[prefix_len:]: v for k, v in state_dict.items()}
