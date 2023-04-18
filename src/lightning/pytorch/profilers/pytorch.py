@@ -347,9 +347,22 @@ class PyTorchProfiler(Profiler):
         if self._schedule.is_training:
             return trainer.num_training_batches
         if self._schedule.is_validating:
-            return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
+            num_val_batches = (
+                sum(trainer.num_val_batches) if isinstance(trainer.num_val_batches, list) else trainer.num_val_batches
+            )
+            num_sanity_val_batches = (
+                sum(trainer.num_sanity_val_batches)
+                if isinstance(trainer.num_sanity_val_batches, list)
+                else trainer.num_sanity_val_batches
+            )
+            return num_val_batches + num_sanity_val_batches
         if self._schedule.is_testing:
-            return sum(trainer.num_test_batches)
+            num_test_batches = (
+                sum(trainer.num_test_batches)
+                if isinstance(trainer.num_test_batches, list)
+                else trainer.num_test_batches
+            )
+            return num_test_batches
         if self._schedule.is_predicting:
             return sum(trainer.num_predict_batches)
         raise NotImplementedError("Unsupported schedule")

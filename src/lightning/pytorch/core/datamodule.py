@@ -13,8 +13,9 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from typing import Any, cast, Dict, IO, Mapping, Optional, Sequence, Union
+from typing import Any, cast, Dict, IO, Iterable, Optional, Union
 
+from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
 
@@ -32,27 +33,35 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     Example::
 
-        class MyDataModule(LightningDataModule):
-            def __init__(self):
-                super().__init__()
+        import lightning as L
+        import torch.utils.data as data
+        from lightning.pytorch.demos.boring_classes import RandomDataset
+
+        class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
-                # download, split, etc...
+                # download, IO, etc. Useful with shared filesystems
                 # only called on 1 GPU/TPU in distributed
+                ...
+
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
+                dataset = RandomDataset(1, 100)
+                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
+
             def train_dataloader(self):
-                train_split = Dataset(...)
-                return DataLoader(train_split)
+                return data.DataLoader(self.train)
+
             def val_dataloader(self):
-                val_split = Dataset(...)
-                return DataLoader(val_split)
+                return data.DataLoader(self.val)
+
             def test_dataloader(self):
-                test_split = Dataset(...)
-                return DataLoader(test_split)
+                return data.DataLoader(self.test)
+
             def teardown(self):
-                # clean up after fit or test
+                # clean up state after the trainer stops, delete files...
                 # called on every process in DDP
+                ...
     """
 
     name: Optional[str] = None
@@ -68,10 +77,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     @classmethod
     def from_datasets(
         cls,
-        train_dataset: Optional[Union[Dataset, Sequence[Dataset], Mapping[str, Dataset]]] = None,
-        val_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
-        test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
-        predict_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
+        train_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        val_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        test_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        predict_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
         **datamodule_kwargs: Any,
@@ -79,10 +88,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         r"""Create an instance from torch.utils.data.Dataset.
 
         Args:
-            train_dataset: Optional dataset to be used for train_dataloader()
-            val_dataset: Optional dataset or list of Dataset to be used for val_dataloader()
-            test_dataset: Optional dataset or list of Dataset to be used for test_dataloader()
-            predict_dataset: Optional dataset or list of Dataset to be used for predict_dataloader()
+            train_dataset: Optional dataset or iterable of datasets to be used for train_dataloader()
+            val_dataset: Optional dataset or iterable of datasets to be used for val_dataloader()
+            test_dataset: Optional dataset or iterable of datasets to be used for test_dataloader()
+            predict_dataset: Optional dataset or iterable of datasets to be used for predict_dataloader()
             batch_size: Batch size to use for each dataloader. Default is 1. This parameter gets forwarded to the
                 ``__init__`` if the datamodule has such a name defined in its signature.
             num_workers: Number of subprocesses to use for data loading. 0 means that the
@@ -96,34 +105,16 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
         def train_dataloader() -> TRAIN_DATALOADERS:
-            assert train_dataset
-
-            if isinstance(train_dataset, Mapping):
-                return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
-            if isinstance(train_dataset, Sequence):
-                return [dataloader(ds, shuffle=True) for ds in train_dataset]
-            return dataloader(train_dataset, shuffle=True)
+            return apply_to_collection(train_dataset, Dataset, dataloader, shuffle=True)
 
         def val_dataloader() -> EVAL_DATALOADERS:
-            assert val_dataset
-
-            if isinstance(val_dataset, Sequence):
-                return [dataloader(ds) for ds in val_dataset]
-            return dataloader(val_dataset)
+            return apply_to_collection(val_dataset, Dataset, dataloader)
 
         def test_dataloader() -> EVAL_DATALOADERS:
-            assert test_dataset
-
-            if isinstance(test_dataset, Sequence):
-                return [dataloader(ds) for ds in test_dataset]
-            return dataloader(test_dataset)
+            return apply_to_collection(test_dataset, Dataset, dataloader)
 
         def predict_dataloader() -> EVAL_DATALOADERS:
-            assert predict_dataset
-
-            if isinstance(predict_dataset, Sequence):
-                return [dataloader(ds) for ds in predict_dataset]
-            return dataloader(predict_dataset)
+            return apply_to_collection(predict_dataset, Dataset, dataloader)
 
         candidate_kwargs = dict(batch_size=batch_size, num_workers=num_workers)
         accepted_params = inspect.signature(cls.__init__).parameters

@@ -39,7 +39,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from tests_fabric.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf, skip_if_dynamo_unsupported
 
 
 class BoringModel(nn.Module):
@@ -89,6 +89,8 @@ def test_setup_module(ddp_mock, setup_method):
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_compiled_module(setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
+    skip_if_dynamo_unsupported()
+
     from torch._dynamo.eval_frame import OptimizedModule
 
     fabric = Fabric()
@@ -513,7 +515,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         ("cpu", "cpu"),
         pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True, standalone=True)),
+        pytest.param("tpu", "xla:1", marks=RunIf(tpu=True, standalone=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
@@ -844,6 +846,38 @@ def test_save_wrapped_objects(setup, tmp_path):
     expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
     fabric.save(tmp_path, state)
     save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+
+
+@pytest.mark.parametrize("setup", [True, False])
+def test_load_wrapped_objects(setup, tmp_path):
+    """Test that loading happens in-place for model, optimizer, and other user data."""
+    fabric = Fabric(accelerator="cpu")
+
+    expected_remainder = {"extra": "data"}
+
+    def mocked_load_checkpoint(path, state):
+        assert not isinstance(state["model"], _FabricModule)
+        assert not isinstance(state["optimizer"], _FabricOptimizer)
+        state.update({"int": 5, "dict": {"x": 1}})
+        return expected_remainder
+
+    fabric.strategy.load_checkpoint = mocked_load_checkpoint
+
+    unwrapped_model = BoringModel()
+    unwrapped_optimizer = torch.optim.Adam(unwrapped_model.parameters())
+
+    if setup:
+        model, optimizer = fabric.setup(unwrapped_model, unwrapped_optimizer)
+        assert isinstance(model, _FabricModule)
+        assert isinstance(optimizer, _FabricOptimizer)
+    else:
+        model, optimizer = unwrapped_model, unwrapped_optimizer
+
+    state = {"model": model, "optimizer": optimizer, "int": 0, "dict": {"x": 0}}
+    expected = {"model": model, "optimizer": optimizer, "int": 5, "dict": {"x": 1}}
+    remainder = fabric.load(tmp_path, state)
+    assert state == expected
+    assert remainder == expected_remainder
 
 
 def test_barrier():

@@ -90,11 +90,11 @@ class ProgressBar(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
-        assert self._current_eval_dataloader_idx is not None
-        if self.trainer.sanity_checking:
-            return self.trainer.num_sanity_val_batches[self._current_eval_dataloader_idx]
-
-        return self.trainer.num_val_batches[self._current_eval_dataloader_idx]
+        batches = self.trainer.num_sanity_val_batches if self.trainer.sanity_checking else self.trainer.num_val_batches
+        if isinstance(batches, list):
+            assert self._current_eval_dataloader_idx is not None
+            return batches[self._current_eval_dataloader_idx]
+        return batches
 
     @property
     def total_test_batches_current_dataloader(self) -> Union[int, float]:
@@ -103,8 +103,11 @@ class ProgressBar(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
         """
-        assert self._current_eval_dataloader_idx is not None
-        return self.trainer.num_test_batches[self._current_eval_dataloader_idx]
+        batches = self.trainer.num_test_batches
+        if isinstance(batches, list):
+            assert self._current_eval_dataloader_idx is not None
+            return batches[self._current_eval_dataloader_idx]
+        return batches
 
     @property
     def total_predict_batches_current_dataloader(self) -> Union[int, float]:
@@ -123,7 +126,13 @@ class ProgressBar(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
-        return sum(self.trainer.num_val_batches) if self.trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+        if not self.trainer.fit_loop.epoch_loop._should_check_val_epoch():
+            return 0
+        return (
+            sum(self.trainer.num_val_batches)
+            if isinstance(self.trainer.num_val_batches, list)
+            else self.trainer.num_val_batches
+        )
 
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
         old_dataloader_idx = self._current_eval_dataloader_idx
