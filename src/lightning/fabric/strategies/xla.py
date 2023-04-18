@@ -86,6 +86,7 @@ class XLAStrategy(ParallelStrategy):
     def setup_environment(self) -> None:
         from torch_xla.experimental.pjrt import using_pjrt
 
+        assert self.parallel_devices is not None
         if using_pjrt() and len(self.parallel_devices) == 1:
             # this would raise an internal XLA error. Can be checked with `devices=1, strategy="xla"`
             raise NotImplementedError(
@@ -191,7 +192,9 @@ class XLAStrategy(ParallelStrategy):
             # support for arbitrary pickle-ables
             buffer = io.BytesIO()
             torch.save(obj, buffer)
-            obj = torch.tensor(bytearray(buffer.getbuffer()), device=self.root_device, dtype=torch.float)
+            obj = torch.tensor(  # type: ignore[assignment]
+                bytearray(buffer.getbuffer()), device=self.root_device, dtype=torch.float
+            )
 
         obj = [obj]
         xm.collective_broadcast(obj, root_ordinal=src)
