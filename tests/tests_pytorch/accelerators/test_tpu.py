@@ -100,7 +100,6 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
 
 
 class ManualOptimizationModel(BoringModel):
-
     count = 0
     called = collections.defaultdict(int)
 
