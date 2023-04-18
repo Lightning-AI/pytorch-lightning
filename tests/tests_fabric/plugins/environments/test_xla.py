@@ -15,7 +15,6 @@ import os
 from unittest import mock
 
 import pytest
-import torch
 
 import lightning.fabric
 from lightning.fabric.plugins.environments import XLAEnvironment
@@ -25,9 +24,16 @@ from tests_fabric.helpers.runif import RunIf
 @RunIf(tpu=True)
 # keep existing environment or else xla will default to pjrt
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("torch_xla._XLAC._xla_get_default_device", return_value=torch.device("xla:0"))
-def test_default_attributes(*_):
+def test_default_attributes(monkeypatch):
     """Test the default attributes when no environment variables are set."""
+    from torch_xla.experimental import pjrt
+
+    if pjrt.using_pjrt():
+        # calling these creates side effects in other tests
+        monkeypatch.setattr(pjrt, "world_size", lambda: 1)
+        monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+        monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
+
     env = XLAEnvironment()
     assert not env.creates_processes_externally
     assert env.world_size() == 1
