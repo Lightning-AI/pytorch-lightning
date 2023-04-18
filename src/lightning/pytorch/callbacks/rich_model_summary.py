@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -52,18 +52,19 @@ class RichModelSummary(ModelSummary):
     Args:
         max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
             layer summary off.
+        **summarize_kwargs: Additional arguments to pass to the `summarize` method.
 
     Raises:
         ModuleNotFoundError:
             If required `rich` package is not installed on the device.
     """
 
-    def __init__(self, max_depth: int = 1) -> None:
+    def __init__(self, max_depth: int = 1, **summarize_kwargs: Any) -> None:
         if not _RICH_AVAILABLE:
             raise ModuleNotFoundError(
                 "`RichModelSummary` requires `rich` to be installed. Install it by running `pip install -U rich`."
             )
-        super().__init__(max_depth)
+        super().__init__(max_depth, **summarize_kwargs)
 
     @staticmethod
     def summarize(
@@ -71,11 +72,13 @@ class RichModelSummary(ModelSummary):
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
+        **summarize_kwargs: Any,
     ) -> None:
 
         console = get_console()
 
-        table = Table(header_style="bold magenta")
+        header_style: str = summarize_kwargs.get("header_style", "bold magenta")
+        table = Table(header_style=header_style)
         table.add_column(" ", style="dim")
         table.add_column("Name", justify="left", no_wrap=True)
         table.add_column("Type")
