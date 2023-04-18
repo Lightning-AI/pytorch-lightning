@@ -1413,14 +1413,18 @@ class Trainer:
         return self.fit_loop.max_batches
 
     @property
-    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+    def num_sanity_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of validation batches that will be used during the sanity-checking part of
         ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
-        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+        # re-compute the `min` in case this is called outside of the sanity-checking stage
+        sanity_val_steps = self.num_sanity_val_steps
+        if isinstance(max_batches, list):
+            return [min(sanity_val_steps, batches) for batches in max_batches]
+        return min(sanity_val_steps, max_batches)
 
     @property
-    def num_val_batches(self) -> List[Union[int, float]]:
+    def num_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of validation batches that will be used during ``trainer.fit()`` or
         ``trainer.validate()``."""
         if self.state.fn == TrainerFn.VALIDATING:
@@ -1430,7 +1434,7 @@ class Trainer:
         return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
-    def num_test_batches(self) -> List[Union[int, float]]:
+    def num_test_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of test batches that will be used during ``trainer.test()``."""
         return self.test_loop.max_batches
 
