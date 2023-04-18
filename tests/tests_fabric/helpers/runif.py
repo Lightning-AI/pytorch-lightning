@@ -25,6 +25,7 @@ from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
 class RunIf:
@@ -49,6 +50,7 @@ class RunIf:
         skip_windows: bool = False,
         standalone: bool = False,
         deepspeed: bool = False,
+        dynamo: bool = False,
         **kwargs,
     ):
         """
@@ -66,6 +68,7 @@ class RunIf:
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             deepspeed: Require that microsoft/DeepSpeed is installed.
+            dynamo: Require that `torch.dynamo` is supported.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -134,6 +137,19 @@ class RunIf:
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
+
+        if dynamo:
+            if _TORCH_GREATER_EQUAL_2_1:
+                from torch._dynamo.eval_frame import is_dynamo_supported
+
+                cond = not is_dynamo_supported()
+            else:
+                cond = sys.platform == "win32" or sys.version_info >= (3, 11)
+
+            # set use_base_version for nightly support
+            cond |= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
+            conditions.append(cond)
+            reasons.append("torch.dynamo")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
