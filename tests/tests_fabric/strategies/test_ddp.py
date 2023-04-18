@@ -19,12 +19,13 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning.fabric.plugins import Precision
+from lightning.fabric.plugins import Precision, HalfPrecision, DoublePrecision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 
 @pytest.mark.parametrize(
@@ -131,31 +132,26 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
     fabric.run()
 
 
-# @pytest.mark.parametrize("device", [
-#     "cpu",
-#     pytest.param("cuda:1", marks=RunIf(min_cuda_gpus=1)),
-# ])
-# @pytest.mark.parametrize("precision,dtype", [
-#     (Precision(), torch.float32),
-#     (HalfPrecision("16-true"), torch.float16),
-#     pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(mps=False)),
-#     pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
-# ])
-def test_module_init_context():
+@RunIf(min_cuda_gpus=2)
+@pytest.mark.parametrize("precision,expected_dtype", [
+    (Precision(), torch.float32),
+    (HalfPrecision("16-true"), torch.float16),
+    pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+    (DoublePrecision(), torch.float64),
+])
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
+def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
-    # device = torch.device(device)
-    precision = Precision()
-    with mock.patch.dict(os.environ, {"LOCAL_RANK": "1"}):
-        strategy = DDPStrategy(
-            parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-            precision=precision,
-            cluster_environment=LightningEnvironment()
-        )
-        assert strategy.local_rank == 1
+    parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
+    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
 
-        with strategy.module_init_context():
-            module = torch.nn.Linear(2, 2)
-
-        # expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-        assert module.weight.device == module.bias.device == torch.device("cuda", 1)
-        assert module.weight.dtype == module.bias.dtype == torch.float32
+    strategy = DDPStrategy(
+        parallel_devices=parallel_devices,
+        precision=precision,
+        cluster_environment=LightningEnvironment()
+    )
+    assert strategy.local_rank == 1
+    with strategy.module_init_context():
+        module = torch.nn.Linear(2, 2)
+    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.dtype == module.bias.dtype == expected_dtype
