@@ -498,7 +498,7 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and self.trainer._accelerator_connector.is_distributed,
+            sync_dist=sync_dist and trainer._accelerator_connector.is_distributed,
             sync_dist_fn=trainer.strategy.reduce,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,

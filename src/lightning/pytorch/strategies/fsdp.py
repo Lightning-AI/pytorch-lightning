@@ -325,8 +325,6 @@ class FSDPStrategy(ParallelStrategy):
             return obj
 
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
