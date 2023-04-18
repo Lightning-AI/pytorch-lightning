@@ -17,9 +17,9 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+from fabric.plugins import Precision
 from torch.nn.parallel import DistributedDataParallel
 
-from fabric.plugins import Precision
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
