@@ -153,10 +153,6 @@ jobs:
     - name: Prevent using raw source
       run: rm -rf src/
 
-    - name: Setup tmate session
-      if: ${{ matrix.pkg-name == 'lightning' && matrix.pytorch-version == '1.11' && matrix.os == 'ubuntu-20.04' }}
-      uses: mxschmitt/action-tmate@v3
-
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
