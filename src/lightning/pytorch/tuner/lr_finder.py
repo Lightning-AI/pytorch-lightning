@@ -18,7 +18,6 @@ import uuid
 from copy import deepcopy
 from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
-import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
@@ -184,8 +183,9 @@ class _LRFinder:
             The suggested initial learning rate to use, or `None` if a suggestion is not possible due to too few
             loss samples.
         """
-        losses = np.array(self.results["loss"][skip_begin:-skip_end])
-        losses = losses[np.isfinite(losses)]
+        losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
+        losses = losses[torch.isfinite(losses)]
+
         if len(losses) < 2:
             # computing np.gradient requires at least 2 points
             log.error(
@@ -197,7 +197,9 @@ class _LRFinder:
 
         # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
         #   incorrectly shifted by an offset
-        min_grad = np.gradient(losses).argmin()
+        gradients = torch.gradient(losses)[0]  # Unpack the tuple
+        min_grad = torch.argmin(gradients).item()
+
         self._optimal_idx = min_grad + skip_begin
         return self.results["lr"][self._optimal_idx]
 
