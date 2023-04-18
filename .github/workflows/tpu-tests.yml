@@ -62,6 +62,12 @@ jobs:
 
         jobs_deleted=false
         while read -r job_name created_at; do
+          # Skip jobs with "keepalive" in the name
+          if [[ "$job_name" == *"keepalive"* ]]; then
+            echo "Skipping $job_name, has keepalive in name"
+            continue
+          fi
+
           # Convert the creation time to Unix timestamp
           created_timestamp=$(date -d "${created_at}" +%s)
 
