@@ -1,13 +1,15 @@
+import itertools
 import logging
 import os
 import sys
 from contextlib import nullcontext
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union, cast
 
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import module_available
 from torch import Tensor
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
@@ -314,3 +316,35 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
+
+
+def _find_tensors(
+    obj: Union[Tensor, list, tuple, dict, Any]
+) -> Union[List[Tensor], itertools.chain]:  # pragma: no-cover
+    """Recursively find all tensors contained in the specified object."""
+    if isinstance(obj, Tensor):
+        return [obj]
+    if isinstance(obj, (list, tuple)):
+        return itertools.chain(*map(_find_tensors, obj))
+    if isinstance(obj, dict):
+        return itertools.chain(*map(_find_tensors, obj.values()))
+    return []
+
+
+# Note: Keep track of PyTorch DDP and update if there is a change
+# https://github.com/pytorch/pytorch/blob/v2.0.0/torch/nn/parallel/distributed.py#L1163-L1178
+def _prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
+    # `prepare_for_backward` is `DistributedDataParallel` specific.
+    if torch.is_grad_enabled() and model.require_backward_grad_sync:
+        model.require_forward_param_sync = True
+        # We'll return the output object verbatim since it is a freeform
+        # object. We need to find any tensors in this object, though,
+        # because we need to figure out which parameters were used during
+        # this forward pass, to ensure we short circuit reduction for any
+        # unused parameters. Only if `find_unused_parameters` is set.
+        args = list(_find_tensors(output)) if model.find_unused_parameters and not model.static_graph else []
+        reducer = cast(torch._C._distributed_c10d.Reducer, model.reducer)
+        reducer._rebuild_buckets()  # avoids "INTERNAL ASSERT FAILED" with `find_unused_parameters=False`
+        reducer.prepare_for_backward(args)
+    else:
+        model.require_forward_param_sync = False

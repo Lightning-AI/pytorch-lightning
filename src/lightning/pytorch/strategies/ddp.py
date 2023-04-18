@@ -31,14 +31,14 @@ from lightning.fabric.utilities.distributed import (
     _init_dist_connection,
     _sync_ddp_if_available,
 )
-from lightning.fabric.utilities.distributed import group as _group
+from lightning.fabric.utilities.distributed import group as _group, _prepare_for_backward
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
+from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
@@ -304,7 +304,7 @@ class DDPStrategy(ParallelStrategy):
             return
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
-            prepare_for_backward(self.model, closure_loss)
+            _prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
         log.debug(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
