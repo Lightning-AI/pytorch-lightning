@@ -111,7 +111,7 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_pytorch/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (pytorch, xrt)"
+      #- "test-on-tpus (pytorch, xrt)"
       - "test-on-tpus (pytorch, pjrt)"
 
   - id: "fabric: Docs"
