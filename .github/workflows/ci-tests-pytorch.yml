@@ -148,9 +148,6 @@ jobs:
           --source_import="lightning.fabric,lightning.pytorch" \
           --target_import="lightning_fabric,pytorch_lightning"
 
-    - name: Prevent using raw source
-      run: rm -rf src/
-
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
