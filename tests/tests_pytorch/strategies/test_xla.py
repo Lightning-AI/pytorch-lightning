@@ -24,8 +24,11 @@ from tests_pytorch.helpers.runif import RunIf
 
 class BoringModelTPU(BoringModel):
     def on_train_start(self) -> None:
+        from torch_xla.experimental.pjrt import using_pjrt
+
+        index = 0 if using_pjrt() else 1
         # assert strategy attributes for device setting
-        assert self.device == torch.device("xla", index=1)
+        assert self.device == torch.device("xla", index=index)
         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
