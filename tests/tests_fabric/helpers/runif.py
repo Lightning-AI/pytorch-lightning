@@ -25,6 +25,7 @@ from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
 class RunIf:
@@ -139,6 +140,16 @@ class RunIf:
         return pytest.mark.skipif(
             *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
         )
+
+
+def skip_if_dynamo_unsupported():
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch._dynamo.eval_frame import is_dynamo_supported
+
+        if not is_dynamo_supported():
+            pytest.skip("TorchDynamo unsupported")
+    elif sys.platform == "win32" or sys.version_info >= (3, 11):
+        pytest.skip("TorchDynamo unsupported")
 
 
 @RunIf(min_torch="99")
