@@ -146,9 +146,9 @@ class RunIf:
             else:
                 cond = sys.platform == "win32" or sys.version_info >= (3, 11)
 
-            conditions.append(cond)
             # set use_base_version for nightly support
-            conditions.append(compare_version("torch", operator.lt, "2.0.0", use_base_version=True))
+            cond &= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
+            conditions.append(cond)
             reasons.append("torch.dynamo")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
