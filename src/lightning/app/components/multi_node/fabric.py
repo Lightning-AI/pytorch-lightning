@@ -73,7 +73,7 @@ class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["LT_CLI_USED"] = "1"
 
         # Used to pass information to Fabric directly.
-        def pre_fn(fabric, *args, **kwargs):
+        def pre_fn(fabric, *args: Any, **kwargs: Any):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
 

@@ -25,7 +25,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
+from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -85,7 +85,7 @@ def test_tqdm_progress_bar_on(tmpdir, pbar):
     """Test different ways the progress bar can be turned on."""
     trainer = Trainer(default_root_dir=tmpdir, callbacks=pbar)
 
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert len(progress_bars) == 1
     assert progress_bars[0] is trainer.progress_bar_callback
 
@@ -93,7 +93,7 @@ def test_tqdm_progress_bar_on(tmpdir, pbar):
 def test_tqdm_progress_bar_off(tmpdir):
     """Test turning the progress bar off."""
     trainer = Trainer(default_root_dir=tmpdir, enable_progress_bar=False)
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert not len(progress_bars)
 
 

@@ -2,11 +2,11 @@ import os
 import platform
 
 import pytest
-from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.store.cloud_api import download_model, upload_model
 from lightning.store.save import __STORAGE_DIR_NAME
+from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 
 
 def assert_download_successful(lit_home, username, model_name, version):

@@ -8,9 +8,6 @@ Welcome to ⚡ Lightning
 #######################
 Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
 
-.. join_slack::
-   :align: left
-
 **Featured examples of what you can do with Lightning:**
 
 |

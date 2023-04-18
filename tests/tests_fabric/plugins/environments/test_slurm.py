@@ -19,10 +19,10 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.test.warning import no_warning_call
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -117,6 +117,9 @@ def test_detect():
         assert SLURMEnvironment.detect()
 
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
+        assert not SLURMEnvironment.detect()
+
+    with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
         assert not SLURMEnvironment.detect()
 
 

@@ -20,7 +20,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
 from lightning.fabric.accelerators.cuda import (
@@ -30,6 +29,7 @@ from lightning.fabric.accelerators.cuda import (
     is_cuda_available,
     num_cuda_devices,
 )
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -68,6 +68,7 @@ def test_set_cuda_device(_, set_device_mock):
 
 
 @mock.patch("lightning.fabric.accelerators.cuda._device_count_nvml", return_value=-1)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=100)
 def test_num_cuda_devices_without_nvml(*_):
     """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for

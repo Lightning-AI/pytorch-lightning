@@ -2,9 +2,9 @@ import os
 from unittest import mock
 
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 from lightning_utilities.core.imports import package_available
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.testing.testing import application_testing, LightningTestApp
 
@@ -41,7 +41,7 @@ def test_multi_node_examples(_, app_name, monkeypatch):
     #   rewritten to use `lightning.app` imports (CI does this)
     # * if you installed `lightning`, then the imports in this file and mocks
     #   need to be changed to use `lightning`.
-    monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
+    monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "multi_node"))
     command_line = [app_name, "--blocking", "False", "--open-ui", "False", "--setup"]
     result = application_testing(LightningTestMultiNodeApp, command_line)
     assert result.exit_code == 0

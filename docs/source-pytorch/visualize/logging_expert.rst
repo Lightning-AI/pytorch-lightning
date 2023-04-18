@@ -82,14 +82,14 @@ To customize either the  :class:`~lightning.pytorch.callbacks.TQDMProgressBar` o
 ***************************
 Build your own progress bar
 ***************************
-To build your own progress bar, subclass :class:`~lightning.pytorch.callbacks.ProgressBarBase`
+To build your own progress bar, subclass :class:`~lightning.pytorch.callbacks.ProgressBar`
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import ProgressBarBase
+    from lightning.pytorch.callbacks import ProgressBar
 
 
-    class LitProgressBar(ProgressBarBase):
+    class LitProgressBar(ProgressBar):
         def __init__(self):
             super().__init__()  # don't forget this :)
             self.enable = True

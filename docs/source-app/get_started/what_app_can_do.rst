@@ -8,10 +8,6 @@ Discover what Lightning Apps can do in 5 min
 
 Lightning Apps can be plenty things, and while a picture is worth a thousand words, videos showing you examples should be worth even more.
 
-.. join_slack::
-   :align: left
-
-----
 
 *****************************
 Flashy - Auto ML App (Public)

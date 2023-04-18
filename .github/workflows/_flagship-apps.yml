@@ -29,7 +29,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright/python:v1.29.1-focal
+      image: mcr.microsoft.com/playwright/python:v1.30.0-focal
     strategy:
       fail-fast: false
       matrix:

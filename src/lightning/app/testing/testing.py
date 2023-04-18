@@ -99,7 +99,7 @@ def _print_logs(app_id: str):
 
 
 class LightningTestApp(LightningApp):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.counter = 0
 
@@ -107,11 +107,11 @@ class LightningTestApp(LightningApp):
     def _configure_session() -> Session:
         return _configure_session()
 
-    def make_request(self, fn, *args, **kwargs):
+    def make_request(self, fn, *args: Any, **kwargs: Any):
         loop = asyncio.new_event_loop()
         loop.run_until_complete(self._make_request(fn, *args, **kwargs))
 
-    async def _make_request(self, fn: Callable, *args, **kwargs):
+    async def _make_request(self, fn: Callable, *args: Any, **kwargs: Any):
         from lightning.app.utilities.state import AppState
 
         state = AppState()
@@ -175,7 +175,7 @@ class _SingleWorkFlow(LightningFlow):
         self.work.run(*self.args, **self.kwargs)
 
 
-def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
+def run_work_isolated(work, *args: Any, start_server: bool = False, **kwargs: Any):
     """This function is used to run a work a single time with multiprocessing runtime."""
     MultiProcessRuntime(
         LightningApp(_SingleWorkFlow(work, args, kwargs), log_level="debug"),
@@ -447,7 +447,7 @@ def run_app_in_cloud(
             Popen("lightning disconnect", shell=True).wait()
 
 
-def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
+def wait_for(page, callback: Callable, *args: Any, **kwargs: Any) -> Any:
     import playwright
 
     while True:

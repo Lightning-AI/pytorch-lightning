@@ -13,7 +13,7 @@ def test_serve_gradio(gradio_mock):
 
         inputs = gradio_mock.inputs.Image(type="pil")
         outputs = gradio_mock.outputs.Image(type="pil")
-        examples = [["./examples/app_components/serve/gradio/beyonce.png"]]
+        examples = [["./examples/app/components/serve/gradio/beyonce.png"]]
 
         def build_model(self):
             super().build_model()

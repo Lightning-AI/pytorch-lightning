@@ -28,7 +28,10 @@ else:
 
 
 class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """AMP for Fully Sharded Data Parallel (FSDP) Training."""
+    """AMP for Fully Sharded Data Parallel (FSDP) Training.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     def __init__(
         self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional[ShardedGradScaler] = None

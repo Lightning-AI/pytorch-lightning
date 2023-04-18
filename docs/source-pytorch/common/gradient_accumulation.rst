@@ -9,8 +9,6 @@ effective batch size is increased but there is no memory overhead.
     step, the effective batch size on each device will remain ``N*K`` but right before the ``optimizer.step()``, the gradient sync will make the effective
     batch size as ``P*N*K``. For DP, since the batch is split across devices, the final effective batch size will be ``N*K``.
 
-.. seealso:: :class:`~lightning.pytorch.trainer.trainer.Trainer`
-
 .. testcode::
 
     # DEFAULT (ie: no accumulated grads)

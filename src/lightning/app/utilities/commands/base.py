@@ -97,7 +97,7 @@ class ClientCommand:
     def _to_dict(self):
         return {"owner": self.owner, "requirements": self.requirements}
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs: Any):
         return self.method(**kwargs)
 
 

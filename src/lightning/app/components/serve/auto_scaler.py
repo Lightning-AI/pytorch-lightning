@@ -47,7 +47,7 @@ logger = Logger(__name__)
 class _TrackableFastAPI(FastAPI):
     """A FastAPI subclass that tracks the request metadata."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.global_request_count = 0
         self.num_current_requests = 0

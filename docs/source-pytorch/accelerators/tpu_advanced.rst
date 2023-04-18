@@ -4,6 +4,8 @@ TPU training (Advanced)
 =======================
 **Audience:** Users looking to apply advanced performance techniques to TPU training.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 Weight Sharing/Tying
@@ -48,7 +50,7 @@ Example:
 
 
     model = WeightSharingModule()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu")
 
 See `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
 

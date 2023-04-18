@@ -3,15 +3,15 @@ from subprocess import Popen
 from time import sleep
 
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.testing.testing import run_app_in_cloud
 
 
 @pytest.mark.timeout(300)
 @pytest.mark.cloud
 def test_commands_and_api_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_commands_and_api")) as (
+    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "commands_and_api")) as (
         _,
         view_page,
         fetch_logs,

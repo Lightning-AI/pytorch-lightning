@@ -19,16 +19,16 @@ from typing import Any, cast, Dict, Optional, Union
 from lightning_utilities.core.imports import RequirementCache
 
 import lightning.pytorch as pl
-from lightning.pytorch.callbacks.progress.base import ProgressBarBase
+from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
-_RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
+_RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
     from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
-    from rich.progress_bar import ProgressBar
+    from rich.progress_bar import ProgressBar as _RichProgressBar
     from rich.style import Style
     from rich.text import Text
 
@@ -36,11 +36,11 @@ if _RICH_AVAILABLE:
         """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
         such as ``IterableDataset``."""
 
-        def render(self, task: "Task") -> ProgressBar:
+        def render(self, task: "Task") -> _RichProgressBar:
             """Gets a progress bar widget for a task."""
             assert task.total is not None
             assert task.remaining is not None
-            return ProgressBar(
+            return _RichProgressBar(
                 total=max(0, task.total),
                 completed=max(0, task.completed),
                 width=None if self.bar_width is None else max(1, self.bar_width),
@@ -204,7 +204,7 @@ class RichProgressBarTheme:
     metrics: Union[str, Style] = "white"
 
 
-class RichProgressBar(ProgressBarBase):
+class RichProgressBar(ProgressBar):
     """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:

@@ -1,5 +1,3 @@
-:orphan:
-
 ##############################
 Convert PyTorch code to Fabric
 ##############################
@@ -20,7 +18,7 @@ Here are five easy steps to let :class:`~lightning.fabric.fabric.Fabric` scale y
 
     fabric.launch()
 
-**Step 3:** Call :meth:`~lightning.fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
+**Step 3:** Call :meth:`~lightning.fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders` on all your data loaders.
 
 .. code-block:: python
 
@@ -56,43 +54,41 @@ All steps combined, this is how your code will change:
 .. code-block:: diff
 
       import torch
-      import torch.nn as nn
-      from torch.utils.data import DataLoader, Dataset
+      from lightning.pytorch.demos import WikiText2, Transformer
+    + import lightning as L
 
-    + from lightning.fabric import Fabric
-
-      class PyTorchModel(nn.Module):
-          ...
-
-      class PyTorchDataset(Dataset):
-          ...
-
-    + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
+    - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    + fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
-    - device = "cuda" if torch.cuda.is_available() else "cpu"
-      model = PyTorchModel(...)
-      optimizer = torch.optim.SGD(model.parameters())
-    + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(PyTorchDataset(...), ...)
-    + dataloader = fabric.setup_dataloaders(dataloader)
-      model.train()
+      dataset = WikiText2()
+      dataloader = torch.utils.data.DataLoader(dataset)
+      model = Transformer(vocab_size=dataset.vocab_size)
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
-      for epoch in range(num_epochs):
+    - model = model.to(device)
+    + model, optimizer = fabric.setup(model, optimizer)
+    + dataloader = fabric.setup_dataloaders(dataloader)
+
+      model.train()
+      for epoch in range(20):
           for batch in dataloader:
               input, target = batch
     -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              output = model(input)
-              loss = loss_fn(output, target)
+              output = model(input, target)
+              loss = torch.nn.functional.nll_loss(output, target.view(-1))
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
-              lr_scheduler.step()
 
 
 That's it! You can now train on any device at any scale with a switch of a flag.
-Check out our before-and-after example for `image classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_ and many more :ref:`examples <Fabric Examples>` that use Fabric.
+Check out our before-and-after example for `image classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_ and many more :doc:`examples <../examples/index>` that use Fabric.
+
+
+----
+
 
 **********
 Next steps
@@ -107,7 +103,7 @@ Next steps
     :header: Examples
     :description: See examples across computer vision, NLP, RL, etc.
     :col_css: col-md-4
-    :button_link: ../fabric.html#examples
+    :button_link: ../examples/index.html
     :height: 150
     :tag: basic
 
@@ -117,13 +113,13 @@ Next steps
     :button_link: accelerators.html
     :col_css: col-md-4
     :height: 150
-    :tag: intermediate
+    :tag: basic
 
 .. displayitem::
     :header: Build your own Trainer
     :description: Learn how to build a trainer tailored for you
     :col_css: col-md-4
-    :button_link: ../fabric.html#build-your-own-trainer
+    :button_link: ../levels/intermediate
     :height: 150
     :tag: intermediate
 

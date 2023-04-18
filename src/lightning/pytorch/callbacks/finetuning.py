@@ -40,6 +40,8 @@ class BaseFinetuning(Callback):
     r"""
     This class implements the base logic for writing your own Finetuning Callback.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Override ``freeze_before_training`` and ``finetune_function`` methods with your own logic.
 
     ``freeze_before_training``: This method is called before ``configure_optimizers``

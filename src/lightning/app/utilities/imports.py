@@ -16,7 +16,7 @@
 import functools
 import os
 import warnings
-from typing import List, Union
+from typing import Any, List, Union
 
 from lightning_utilities.core.imports import module_available
 from packaging.requirements import Marker, Requirement
@@ -51,7 +51,7 @@ def requires(module_paths: Union[str, List]):
 
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             unavailable_modules = [f"'{module}'" for module in module_paths if not module_available(module)]
             if any(unavailable_modules):
                 is_lit_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))

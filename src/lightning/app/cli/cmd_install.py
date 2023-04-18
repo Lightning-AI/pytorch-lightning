@@ -107,7 +107,7 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
 
 
 def gallery_apps_and_components(
-    name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False
+    name: str, yes_arg: bool, version_arg: str, cwd: Optional[str] = None, overwrite: bool = False
 ) -> Optional[str]:
 
     try:
@@ -142,7 +142,7 @@ def gallery_apps_and_components(
     return None
 
 
-def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> str:
+def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: Optional[str] = None) -> str:
     # make sure org/component-name name is correct
     org, component = _validate_name(name, resource_type="component", example="lightning/LAI-slack-component")
 
@@ -161,7 +161,7 @@ def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = Non
     return os.path.join(os.getcwd(), component_entry["entrypointFile"])
 
 
-def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
+def non_gallery_component(gh_url: str, yes_arg: bool, cwd: Optional[str] = None) -> None:
     # give the user the chance to do a manual install
     git_url = _show_non_gallery_install_component_prompt(gh_url, yes_arg)
 
@@ -169,7 +169,7 @@ def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
     _install_component_from_source(git_url)
 
 
-def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> str:
+def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: Optional[str] = None, overwrite: bool = False) -> str:
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
 
@@ -190,7 +190,7 @@ def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, ove
     return os.path.join(os.getcwd(), folder_name, app_entry["appEntrypointFile"])
 
 
-def non_gallery_app(gh_url: str, yes_arg: bool, cwd: str = None, overwrite: bool = False) -> None:
+def non_gallery_app(gh_url: str, yes_arg: bool, cwd: Optional[str] = None, overwrite: bool = False) -> None:
     # give the user the chance to do a manual install
     repo_url, folder_name = _show_non_gallery_install_app_prompt(gh_url, yes_arg)
 
@@ -509,7 +509,7 @@ def _resolve_resource(
     return entry
 
 
-def _install_with_env(repo_url: str, folder_name: str, cwd: str = None) -> None:
+def _install_with_env(repo_url: str, folder_name: str, cwd: Optional[str] = None) -> None:
     if not cwd:
         cwd = os.getcwd()
 
@@ -545,7 +545,12 @@ def _install_with_env(repo_url: str, folder_name: str, cwd: str = None) -> None:
 
 
 def _install_app_from_source(
-    source_url: str, git_url: str, folder_name: str, cwd: str = None, overwrite: bool = False, git_sha: str = None
+    source_url: str,
+    git_url: str,
+    folder_name: str,
+    cwd: Optional[str] = None,
+    overwrite: bool = False,
+    git_sha: Optional[str] = None,
 ) -> None:
     """Installing lighting app from the `git_url`
 

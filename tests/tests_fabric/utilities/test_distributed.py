@@ -2,13 +2,13 @@ from functools import partial
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import _gather_all_tensors
+from tests_fabric.helpers.runif import RunIf
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):

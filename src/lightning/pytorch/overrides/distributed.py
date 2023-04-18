@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Dict, Iterable, Iterator, List, Optional, Sized, Union
+from typing import Any, Callable, cast, Dict, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 from torch import Tensor
-from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
 def _find_tensors(
@@ -37,22 +39,151 @@ def _find_tensors(
 
 # In manual_optimization, we need to call reducer prepare_for_backward.
 # Note: Keep track of PyTorch DDP and update if there is a change
-# https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
+# https://github.com/pytorch/pytorch/blob/v2.0.0/torch/nn/parallel/distributed.py#L1163-L1178
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
-        model.require_forward_param_sync = True  # type: ignore[assignment]
+        model.require_forward_param_sync = True
         # We'll return the output object verbatim since it is a freeform
         # object. We need to find any tensors in this object, though,
         # because we need to figure out which parameters were used during
         # this forward pass, to ensure we short circuit reduction for any
         # unused parameters. Only if `find_unused_parameters` is set.
-        args = list(_find_tensors(output)) if model.find_unused_parameters else []
+        args = list(_find_tensors(output)) if model.find_unused_parameters and not model.static_graph else []
         reducer = cast(torch._C._distributed_c10d.Reducer, model.reducer)
         reducer._rebuild_buckets()  # avoids "INTERNAL ASSERT FAILED" with `find_unused_parameters=False`
         reducer.prepare_for_backward(args)
     else:
-        model.require_forward_param_sync = False  # type: ignore[assignment]
+        model.require_forward_param_sync = False
+
+
+def _register_ddp_comm_hook(
+    model: DistributedDataParallel,
+    ddp_comm_state: Optional[object] = None,
+    ddp_comm_hook: Optional[Callable] = None,
+    ddp_comm_wrapper: Optional[Callable] = None,
+) -> None:
+    """Function to register communication hook for DDP model https://pytorch.org/docs/master/ddp_comm_hooks.html.
+
+    Args:
+        model:
+            DDP model
+        ddp_comm_state:
+            state is passed to the hook and can be used to maintain
+            and update any state information that users would like to
+            maintain as part of the training process. Examples: error
+            feedback in gradient compression, peers to communicate with
+            next in GossipGrad etc.
+        ddp_comm_hook:
+            hook(state: object, bucket: dist._GradBucket) -> torch.futures.Future
+
+            This callable function is called once the bucket is ready. The
+            hook can perform whatever processing is needed and return
+            a Future indicating completion of any async work (ex: allreduce).
+            If the hook doesn't perform any communication, it can also
+            just return a completed Future. The Future should hold the
+            new value of grad bucket's tensors. Once a bucket is ready,
+            c10d reducer would call this hook and use the tensors returned
+            by the Future and copy grads to individual parameters.
+        ddp_comm_wrapper:
+            communication hook wrapper to support a communication hook such
+            as FP16 compression as wrapper, which could be combined with
+            ddp_comm_hook
+
+    Examples:
+
+        >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
+        ...     default_hooks as default,
+        ...     powerSGD_hook as powerSGD,
+        ...     post_localSGD_hook as post_localSGD,
+        ... )
+        >>> # fp16_compress_hook for compress gradients
+        >>> ddp_model = ...
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_hook=default.fp16_compress_hook,
+        ... )
+        >>> # powerSGD_hook
+        >>> ddp_model = ...
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ... )
+        >>> # post_localSGD_hook
+        >>> subgroup, _ = torch.distributed.new_subgroups() # doctest: +SKIP
+        >>> ddp_model = ...
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     state=post_localSGD.PostLocalSGDState(
+        ...         process_group=None,
+        ...         subgroup=subgroup,
+        ...         start_localSGD_iter=1_000,
+        ...     ),
+        ...     ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        ... )
+        >>> # fp16_compress_wrapper combined with other communication hook
+        >>> ddp_model = ...
+        >>> _register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
+        ... )
+    """
+    if ddp_comm_hook is None:
+        return
+    # inform mypy that ddp_comm_hook is callable
+    ddp_comm_hook: Callable = ddp_comm_hook
+
+    if ddp_comm_wrapper is not None:
+        rank_zero_info(
+            f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
+        )
+        ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
+
+    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
+    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
+
+
+def _sync_module_states(module: torch.nn.Module) -> None:
+    """Taken from https://github.com/pytorch/pytorch/blob/v2.0.0/torch/nn/parallel/distributed.py#L675-L682."""
+    parameters_to_ignore = (
+        set(module._ddp_params_and_buffers_to_ignore)  # type: ignore[arg-type]
+        if hasattr(module, "_ddp_params_and_buffers_to_ignore")
+        else set()
+    )
+    from torch.distributed.distributed_c10d import _get_default_group
+
+    if not _TORCH_GREATER_EQUAL_1_12:
+        module_states = []
+        for name, param in module.named_parameters():
+            if name not in parameters_to_ignore:
+                module_states.append(param.detach())
+        for name, buffer in module.named_buffers():
+            if name not in parameters_to_ignore:
+                module_states.append(buffer.detach())
+        if len(module_states) > 0:
+            torch.distributed._broadcast_coalesced(_get_default_group(), module_states, 250 * 1024 * 1024, 0)
+        return
+
+    from torch.distributed.utils import _sync_module_states as torch_sync_module_states
+
+    torch_sync_module_states(
+        module,
+        _get_default_group(),
+        250 * 1024 * 1024,
+        src=0,
+        params_and_buffers_to_ignore=parameters_to_ignore,
+    )
 
 
 class UnrepeatedDistributedSampler(DistributedSampler):

@@ -121,7 +121,7 @@ class ProxyWorkRun:
     def __post_init__(self):
         self.work_state = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         self.has_sent = False
 
         self._validate_call_args(args, kwargs)

@@ -16,13 +16,14 @@ import os
 import re
 import shutil
 import subprocess
+from typing import Optional
 
 from lightning.app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
 
-def react_ui(dest_dir: str = None) -> None:
+def react_ui(dest_dir: Optional[str] = None) -> None:
     # verify all the prereqs for install are met
     _check_react_prerequisites()
 
@@ -30,7 +31,7 @@ def react_ui(dest_dir: str = None) -> None:
     _copy_and_setup_react_ui(dest_dir)
 
 
-def _copy_and_setup_react_ui(dest_dir: str = None) -> None:
+def _copy_and_setup_react_ui(dest_dir: Optional[str] = None) -> None:
     logger.info("⚡ setting up react-ui template")
     path = os.path.dirname(os.path.abspath(__file__))
     template_dir = os.path.join(path, "react-ui-template")

@@ -17,14 +17,7 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import (
-    CUDAAccelerator,
-    HPUAccelerator,
-    IPUAccelerator,
-    MPSAccelerator,
-    TPUAccelerator,
-)
-from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
+from lightning.pytorch.accelerators import CUDAAccelerator, IPUAccelerator, MPSAccelerator, TPUAccelerator
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
@@ -36,6 +29,7 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _HPU_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
@@ -168,7 +162,12 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
     rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-    num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
+    if _LIGHTNING_HABANA_AVAILABLE:
+        from lightning_habana import HPUAccelerator
+
+        num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
+    else:
+        num_hpus = 0
     rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
     # TODO: Integrate MPS Accelerator here, once gpu maps to both
@@ -191,11 +190,20 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
             f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
         )
 
-    if _HPU_AVAILABLE and not isinstance(trainer.accelerator, HPUAccelerator):
-        rank_zero_warn(
-            "HPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
-        )
+    if _HPU_AVAILABLE:
+        if not _LIGHTNING_HABANA_AVAILABLE:
+            raise ModuleNotFoundError(
+                "You are running on HPU machine but you have not installed `lightning-habana`"
+                f" extension is  {str(_LIGHTNING_HABANA_AVAILABLE)}."
+            )
+
+        from lightning_habana import HPUAccelerator
+
+        if not isinstance(trainer.accelerator, HPUAccelerator):
+            rank_zero_warn(
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
+            )
 
     if MPSAccelerator.is_available() and not isinstance(trainer.accelerator, MPSAccelerator):
         rank_zero_warn(

@@ -8,24 +8,26 @@
 * @lantiga @borda @tchaton @awaelchli
 
 # CI/CD and configs
-/.actions/      @borda @carmocca @akihironitta
-/.github/       @borda @carmocca @akihironitta
-/.azure/        @borda @carmocca @akihironitta
-/dockers/       @borda @carmocca @akihironitta
-*.yml           @borda @carmocca @akihironitta
+/.actions/      @borda @carmocca
+/.github/       @borda @carmocca
+/.azure/        @borda @carmocca
+/dockers/       @borda @carmocca
+*.yml           @borda @carmocca
 
 # Docs
-/docs/                                      @edenlightning @lantiga @borda @awaelchli @RobertLaurella
+/docs/                                      @edenlightning @lantiga @borda @awaelchli
 /.github/*.md                               @edenlightning @williamfalcon @lantiga @borda
 /.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
+/docs/source-fabric/conf.py                 @borda @awaelchli @carmocca
+/docs/source-fabric/index.rst               @awaelchli @lantiga @carmocca
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
-/docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
-/docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
-/docs/source/                               @williamfalcon @RobertLaurella @tchaton @awaelchli
-/docs/source/conf.py                        @borda @awaelchli @carmocca
-/docs/source/index.rst                      @williamfalcon @lantiga
-/docs/source/expertise_levels               @williamfalcon @RobertLaurella
+/docs/source-pytorch/levels                 @williamfalcon
+/docs/source-pytorch/expertise_levels       @williamfalcon
+/docs/source-app/                           @williamfalcon @tchaton @awaelchli
+/docs/source-app/conf.py                    @borda @awaelchli @carmocca
+/docs/source-app/index.rst                  @williamfalcon @lantiga
+/docs/source-app/expertise_levels           @williamfalcon
 
 # PyTorch Lightning
 /src/lightning/pytorch                      @williamfalcon @awaelchli @carmocca @justusschock
@@ -45,15 +47,15 @@
 /tests/tests_fabric                         @awaelchli @carmocca @justusschock
 
 # Lightning App
-/src/lightning/app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
-/src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
-/tests/tests_app                            @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
-/tests/integrations_app                     @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
-/examples/app_*                             @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/src/lightning/app                          @tchaton @lantiga @awaelchli @ethanwharris
+/src/lightning_app                          @tchaton @lantiga @awaelchli @ethanwharris
+/tests/tests_app                            @tchaton @lantiga @awaelchli @ethanwharris
+/tests/integrations_app                     @tchaton @lantiga @awaelchli @ethanwharris
+/examples/app_*                             @tchaton @lantiga @awaelchli @ethanwharris
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon @lantiga
-/README.md                           @williamfalcon @lantiga @edenlightning @borda
+/README.md                           @williamfalcon @lantiga
 /setup.py                            @williamfalcon @borda @carmocca
 /src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
 /src/lightning_app/__about__.py      @williamfalcon @lantiga @borda

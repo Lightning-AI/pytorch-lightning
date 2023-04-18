@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal
+from typing import Any, Literal
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 from lightning.fabric.plugins.precision import TPUPrecision
@@ -30,8 +31,11 @@ class TPUBf16Precision(TPUPrecision):
         super().__init__()
         os.environ["XLA_USE_BF16"] = "1"
 
-    def convert_input(self, data: Tensor) -> Tensor:
-        return _convert_fp_tensor(data, torch.bfloat16)
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.bfloat16)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
