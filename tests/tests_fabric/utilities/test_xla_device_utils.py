@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 import time
 
 import pytest
@@ -36,7 +37,9 @@ def _t1_5():
     return True
 
 
+# this test runs very slowly on these platforms
 @RunIf(skip_windows=True)
+@pytest.mark.skipif(sys.platform == "darwin", reason="Times out")
 def test_result_returns_within_timeout_seconds(monkeypatch):
     """Check that the TPU availability process launch returns within 3 seconds."""
     from lightning.fabric.accelerators import tpu
