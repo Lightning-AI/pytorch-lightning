@@ -38,7 +38,7 @@ def train_torch(
     precision_context,
     input_dtype=torch.float32,
 ):
-    make_deterministic()
+    make_deterministic(warn_only=True)
     memory_stats = {}
 
     model = ConvNet()
@@ -73,7 +73,7 @@ def train_torch(
 
 
 def train_fabric(fabric):
-    make_deterministic()
+    make_deterministic(warn_only=True)
     memory_stats = {}
 
     model = ConvNet()
