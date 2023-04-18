@@ -41,6 +41,7 @@ def test_default_attributes(*_):
         _ = env.main_port
 
 
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_attributes_from_environment_variables(monkeypatch):
     """Test that the default cluster environment takes the attributes from the environment variables."""
