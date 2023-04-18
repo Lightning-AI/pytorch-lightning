@@ -92,14 +92,9 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    @property
-    def local_rank(self) -> int:
-        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
-
     def connect(self, model: "pl.LightningModule") -> None:
-        import torch_xla.distributed.xla_multiprocessing as xmp
-
-        self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
+        # this is called in the spawned process, so no need to use `xmp.MpModelWrapper`
+        self.wrapped_model = _LightningModuleWrapperBase(model)
         return super().connect(model)
 
     def _configure_launcher(self) -> None:
@@ -118,6 +113,10 @@ class XLAStrategy(DDPStrategy):
 
         set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
+
+        from torch_xla.experimental import pjrt
+
+        pjrt.broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
