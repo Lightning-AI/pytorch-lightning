@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-import os
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -30,7 +29,6 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
-from lightning.fabric.utilities.data import has_len
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -82,19 +80,11 @@ class XLAStrategy(ParallelStrategy):
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
 
-    @property
-    def _is_distributed(self) -> bool:
-        import torch_xla.core.xla_env_vars as xenv
-
-        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
-        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
-
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
     def setup_environment(self) -> None:
         self._launched = True
-        self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
         super().setup_environment()
 
@@ -105,7 +95,6 @@ class XLAStrategy(ParallelStrategy):
         module.to(self.root_device)
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
-        XLAStrategy._validate_dataloader(dataloader)
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -159,14 +148,14 @@ class XLAStrategy(ParallelStrategy):
         return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self._is_distributed:
-            import torch_xla.core.xla_model as xm
+        import torch_xla.core.xla_model as xm
 
-            xm.rendezvous(name)
+        if name is None:
+            # `None` is not supported: "TypeError: _xla_rendezvous(): incompatible function arguments"
+            name = ""
+        xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self._is_distributed:
-            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
@@ -205,16 +194,3 @@ class XLAStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
-
-    def _set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
-
-    @staticmethod
-    def _validate_dataloader(dataloader: object) -> None:
-        if not has_len(dataloader):
-            raise TypeError(
-                "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                " HINT: You can mock the length on your dataset to bypass this error."
-            )

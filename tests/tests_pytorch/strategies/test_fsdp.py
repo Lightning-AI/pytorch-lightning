@@ -1,4 +1,5 @@
 import os
+from contextlib import nullcontext
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
@@ -85,12 +86,15 @@ class TestFSDPModel(BoringModel):
 
 
 class TestFSDPModelAutoWrapped(BoringModel):
-    def __init__(self):
+    def __init__(self, wrap_min_params: int = 2):
         super().__init__()
+        self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        self.should_be_wrapped = [(32 * 32 + 32) > wrap_min_params, None, (32 * 2 + 2) > wrap_min_params]
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+        parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
+        return torch.optim.SGD(parameters, lr=0.1)
 
     def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
@@ -110,6 +114,10 @@ class TestFSDPModelAutoWrapped(BoringModel):
 
         precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
         for layer_num in [0, 2]:
+            if not self.should_be_wrapped[layer_num]:
+                # this layer is not wrapped
+                assert not isinstance(self.layer[layer_num], FullyShardedDataParallel)
+                continue
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
             assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
@@ -148,7 +156,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 
         # Assert model parameters are identical after loading
         for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
-            assert torch.equal(ddp_param.float().cpu(), shard_param)
+            assert torch.equal(ddp_param, shard_param)
 
 
 @RunIf(min_torch="1.12")
@@ -222,7 +230,6 @@ class CustomWrapPolicy(_FSDPPolicy):
 
 custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
 
-
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -240,6 +247,34 @@ else:
         unwrapped_params: int,
     ) -> bool:
         return unwrapped_params >= 2
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", (2, 1024, 100000000))
+def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
+    """Test to ensure that the full state dict is extracted when using FSDP strategy.
+
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
+    """
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
+    correct_state_dict = model.state_dict()  # State dict before wrapping
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+    )
+    trainer.fit(model)
+
+    full_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    if trainer.global_rank != 0:
+        assert len(full_state_dict) == 0
+        return
+
+    # State dict should contain same number of keys
+    assert len(correct_state_dict) == len(full_state_dict)
+    # OrderedDict should return the same keys in the same order
+    assert all(_ex == _co for _ex, _co in zip(full_state_dict.keys(), correct_state_dict.keys()))
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -297,14 +332,24 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 def test_invalid_parameters_in_optimizer():
-    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
+    trainer = Trainer(
+        strategy="fsdp",
+        accelerator="cuda",
+        devices=1,
+        fast_dev_run=1,
+    )
+    error_context = (
+        nullcontext()
+        if _TORCH_GREATER_EQUAL_2_0
+        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+    )
 
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
     model = EmptyParametersModel()
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+    with error_context:
         trainer.fit(model)
 
     class NoFlatParametersModel(BoringModel):
@@ -313,7 +358,7 @@ def test_invalid_parameters_in_optimizer():
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
     model = NoFlatParametersModel()
-    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+    with error_context:
         trainer.fit(model)
 
 
@@ -370,3 +415,17 @@ def test_fsdp_strategy_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_use_orig_params():
+    """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0."""
+    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False):
+        strategy = FSDPStrategy()
+        assert "use_orig_params" not in strategy.kwargs
+
+    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", True):
+        strategy = FSDPStrategy()
+        assert strategy.kwargs["use_orig_params"]
+        strategy = FSDPStrategy(use_orig_params=False)
+        assert not strategy.kwargs["use_orig_params"]

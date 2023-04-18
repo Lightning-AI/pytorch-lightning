@@ -394,7 +394,10 @@ class ModelCheckpoint(Checkpoint):
             return False
 
         # no validation means save on train epoch end
-        if sum(trainer.num_val_batches) == 0:
+        num_val_batches = (
+            sum(trainer.num_val_batches) if isinstance(trainer.num_val_batches, list) else trainer.num_val_batches
+        )
+        if num_val_batches == 0:
             return True
 
         # if the user runs validation multiple times per training epoch, then we run after validation
