@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional
+import queue
+from typing import Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
 
@@ -68,16 +68,31 @@ class _XLALauncher(_MultiProcessingLauncher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._start_method)
-        return_queue = context.SimpleQueue()
+        from torch_xla.experimental import pjrt
+
+        using_pjrt = pjrt.using_pjrt()
+        return_queue: Union[queue.Queue, mp.SimpleQueue]
+        if using_pjrt:
+            # pjrt requires that the queue is serializable
+            return_queue = mp.Manager().Queue()
+        else:
+            return_queue = mp.get_context(self._start_method).SimpleQueue()
+
         import torch_xla.distributed.xla_multiprocessing as xmp
+
+        spawn_kwargs = {}
+        nprocs = self._strategy.num_processes
+        if not using_pjrt or nprocs == 1:
+            # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
+            # otherwise it will use all devices
+            spawn_kwargs["nprocs"] = nprocs
 
         process_context = xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
             join=False,  # we will join ourselves to get the process references
+            **spawn_kwargs,
         )
         # xla will not actually create processes if only 1 device
         if process_context is not None:
@@ -101,9 +116,19 @@ class _XLALauncher(_MultiProcessingLauncher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: SimpleQueue,
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
+        import torch_xla.core.xla_model as xm
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
+            # so when there's more than one (multithreading), objects need to be deep-copied
+            import copy
+
+            trainer, function, args, kwargs = copy.deepcopy((trainer, function, args, kwargs))
+
         results = function(*args, **kwargs)
 
         if trainer is not None:
