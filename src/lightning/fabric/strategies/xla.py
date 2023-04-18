@@ -129,6 +129,9 @@ class XLAStrategy(ParallelStrategy):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
+        if not self._launched:
+            return tensor
+
         if isinstance(tensor, Tensor):
             if tensor.dim() == 0:
                 tensor = tensor.unsqueeze(0)
@@ -163,6 +166,8 @@ class XLAStrategy(ParallelStrategy):
         return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+        if not self._launched:
+            return
         import torch_xla.core.xla_model as xm
 
         if name is None:
@@ -171,6 +176,9 @@ class XLAStrategy(ParallelStrategy):
         xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not self._launched:
+            return obj
+
         import torch_xla.core.xla_model as xm
 
         is_tensor = isinstance(obj, Tensor)

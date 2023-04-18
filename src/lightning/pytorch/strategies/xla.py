@@ -149,6 +149,9 @@ class XLAStrategy(DDPStrategy):
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+        if not self._launched:
+            return
+
         import torch_xla.core.xla_model as xm
 
         if name is None:
@@ -157,6 +160,9 @@ class XLAStrategy(DDPStrategy):
         xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not self._launched:
+            return obj
+
         import torch_xla.core.xla_model as xm
 
         is_tensor = isinstance(obj, Tensor)
@@ -260,6 +266,9 @@ class XLAStrategy(DDPStrategy):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
+        if not self._launched:
+            return tensor
+
         if isinstance(tensor, Tensor):
             if tensor.dim() == 0:
                 tensor = tensor.unsqueeze(0)

@@ -281,12 +281,18 @@ class DDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
+        if not torch.distributed.is_initialized():
+            return
+
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not torch.distributed.is_initialized():
+            return obj
+
         obj = [obj]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
