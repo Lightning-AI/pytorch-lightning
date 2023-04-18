@@ -3,7 +3,7 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:  # TODO: set to target later
+  pull_request_target:
     branches: [master, "release/*"]
 
 concurrency:
@@ -31,6 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["fabric", "pytorch"]
+        runtime: ["xrt", "pjrt"]
     timeout-minutes: 30
 
     steps:
@@ -87,6 +88,7 @@ jobs:
     - name: Update script
       env:
         SCOPE: ${{ matrix.pkg-name }}
+        RUNTIME: ${{ matrix.runtime }}
       run: |
         import os
         fname = f'tests/tests_{os.getenv("SCOPE")}/run_tpu_tests.sh'
@@ -95,6 +97,7 @@ jobs:
         data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
         data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
         data = data.replace('{SHA}', os.environ["SHA"])
+        data = data.replace('{RUNTIME}', os.environ["RUNTIME"])
         print(data)
         with open(fname, "w") as fw:
             fw.write(data)
@@ -103,7 +106,7 @@ jobs:
     - name: Run tests
       env:
         SCOPE: ${{ matrix.pkg-name }}
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ env.SHA }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         set -uex
 
@@ -125,7 +128,7 @@ jobs:
     - name: Cleanup job
       if: always()
       env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ env.SHA }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
           echo "$JOB_NAME wasn't created"
