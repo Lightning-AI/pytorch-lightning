@@ -66,7 +66,7 @@ a comma separated list of GPU ids:
     Trainer(accelerator="gpu", devices="0, 1")
 
     # To use all available GPUs put -1 or '-1'
-    # equivalent to list(range(torch.cuda.device_count()))
+    # equivalent to `list(range(torch.cuda.device_count())) and `"auto"`
     Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
@@ -80,11 +80,11 @@ The table below lists examples of possible input formats and how they are interp
 +------------------+-----------+---------------------+---------------------------------+
 | [0]              | list      | [0]                 | GPU 0                           |
 +------------------+-----------+---------------------+---------------------------------+
-| [1, 3]           | list      | [1, 3]              | GPUs 1 and 3                    |
+| [1, 3]           | list      | [1, 3]              | GPU index 1 and 3 (0-based)     |
 +------------------+-----------+---------------------+---------------------------------+
 | "3"              | str       | [0, 1, 2]           | first 3 GPUs                    |
 +------------------+-----------+---------------------+---------------------------------+
-| "1, 3"           | str       | [1, 3]              | GPUs 1 and 3                    |
+| "1, 3"           | str       | [1, 3]              | GPU index 1 and 3 (0-based)     |
 +------------------+-----------+---------------------+---------------------------------+
 | "-1"             | str       | [0, 1, 2, ...]      | all available GPUs              |
 +------------------+-----------+---------------------+---------------------------------+
