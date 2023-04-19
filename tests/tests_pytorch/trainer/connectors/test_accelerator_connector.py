@@ -816,6 +816,7 @@ class DeviceMock(Mock):
         return True
 
 
+@RunIf(skip_windows=True)
 def test_connector_with_accelerator_instance(tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
 
