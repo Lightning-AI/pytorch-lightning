@@ -39,7 +39,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from tests_fabric.helpers.runif import RunIf, skip_if_dynamo_unsupported
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
@@ -86,15 +86,13 @@ def test_setup_module(ddp_mock, setup_method):
     assert fabric_model.forward != model.forward
 
 
-@RunIf(min_torch="2.0.0", skip_windows=True)
+@RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_compiled_module(setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
-    skip_if_dynamo_unsupported()
-
     from torch._dynamo.eval_frame import OptimizedModule
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     compiled_model = torch.compile(model)
     assert isinstance(compiled_model, OptimizedModule)
@@ -172,7 +170,7 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
 def test_setup_module_and_optimizers():
     """Test that `setup()` can handle no optimizers, one optimizer, or multiple optimizers."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
     optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
@@ -221,7 +219,7 @@ def test_setup_optimizers():
 
 def test_setup_twice_fails():
     """Test that calling `setup` with a model or optimizer that is already wrapped fails."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -236,7 +234,7 @@ def test_setup_twice_fails():
 
 def test_setup_module_twice_fails():
     """Test that calling `setup_module` with a model that is already wrapped fails."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
 
     fabric_model = fabric.setup_module(model)
@@ -269,7 +267,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
 
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -295,7 +293,7 @@ def test_setup_dataloaders_unsupported_input():
 
 def test_setup_dataloaders_return_type():
     """Test that the setup method returns the dataloaders wrapped as FabricDataLoader and in the right order."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
 
     # single dataloader
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(2)))
@@ -365,12 +363,12 @@ def test_setup_dataloaders_twice_fails():
 )
 def test_setup_dataloaders_move_to_device(fabric_device_mock):
     """Test that the setup configures FabricDataLoader to move the data to the device automatically."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
     assert all(dl.device is None for dl in fabric_dataloaders)
     fabric_device_mock.assert_not_called()
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=True)
     assert all(dl.device == torch.device("cuda", 1) for dl in fabric_dataloaders)
     fabric_device_mock.assert_called()
@@ -382,7 +380,7 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
     # keep the custom sampler when not needed to replace
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
     assert fabric_dataloader.sampler is custom_sampler
 
@@ -457,7 +455,7 @@ def test_seed_everything():
     """Test that seed everything is static and sets the worker init function on the dataloader."""
     Fabric.seed_everything(3)
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(Mock()))
 
     assert fabric_dataloader.worker_init_fn.func is pl_worker_init_function
@@ -587,7 +585,7 @@ def test_backward_model_input_required():
     fabric.setup(model0, optimizer0)
     fabric.setup(model1, optimizer1)
 
-    loss = model0(torch.randn(1, 1)).sum()
+    loss = model0(torch.randn(1, 1, device=fabric.device)).sum()
 
     with pytest.raises(ValueError, match="please provide the model used to perform"):
         fabric.backward(loss)
@@ -606,7 +604,7 @@ def test_autocast():
 
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(3, 3)
     with pytest.raises(TypeError, match="You need to set up the model first"):
         with fabric.no_backward_sync(model):
@@ -675,7 +673,7 @@ def test_launch_with_function():
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
         fabric.launch()
 
@@ -831,7 +829,7 @@ def test_log_dict_input_parsing():
 @pytest.mark.parametrize("setup", [True, False])
 def test_save_wrapped_objects(setup, tmp_path):
     """Test that when modules and optimizers are in the state, they get unwrapped properly."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     save_checkpoint_mock = Mock()
     fabric.strategy.save_checkpoint = save_checkpoint_mock
 
@@ -944,7 +942,7 @@ def test_all_reduce():
 
 @pytest.mark.parametrize("clip_val,max_norm", [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
 
     fabric.strategy.clip_gradients_norm = Mock()
     fabric.strategy.clip_gradients_value = Mock()
