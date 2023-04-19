@@ -47,11 +47,11 @@
 /tests/tests_fabric                         @awaelchli @carmocca @justusschock
 
 # Lightning App
-/src/lightning/app                          @awaelchli @ethanwharris @lantiga @tchaton
-/src/lightning_app                          @awaelchli @ethanwharris @lantiga @tchaton
-/tests/tests_app                            @awaelchli @ethanwharris @lantiga @tchaton
-/tests/integrations_app                     @awaelchli @ethanwharris @lantiga @tchaton
-/examples/app_*                             @awaelchli @ethanwharris @lantiga @tchaton
+/src/lightning/app                          @tchaton @lantiga @awaelchli @ethanwharris
+/src/lightning_app                          @tchaton @lantiga @awaelchli @ethanwharris
+/tests/tests_app                            @tchaton @lantiga @awaelchli @ethanwharris
+/tests/integrations_app                     @tchaton @lantiga @awaelchli @ethanwharris
+/examples/app_*                             @tchaton @lantiga @awaelchli @ethanwharris
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon @lantiga
