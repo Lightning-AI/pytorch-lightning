@@ -57,6 +57,7 @@ from lightning.fabric.strategies import (
     Strategy,
     STRATEGY_REGISTRY,
     XLAStrategy,
+    FSDPXLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
@@ -523,10 +524,10 @@ class _Connector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy)
+            self.strategy, (SingleTPUStrategy, XLAStrategy, FSDPXLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
+                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy`, `XLAStrategy`, or `FSDPXLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 
