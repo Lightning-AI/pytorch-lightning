@@ -21,7 +21,7 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
@@ -51,6 +51,7 @@ def _RunIf(
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
+    dynamo: bool = False,
 ) -> Any:  # not the real return because it would require that pytest is available
     """Wrapper around ``pytest.mark.skipif`` with specific conditions.
 
@@ -80,6 +81,7 @@ def _RunIf(
         psutil: Require that psutil is installed.
         sklearn: Require that scikit-learn is installed.
         onnx: Require that onnx is installed.
+        dynamo: Require that `torch.dynamo` is supported.
     """
     import pytest
 
@@ -176,6 +178,19 @@ def _RunIf(
     if onnx:
         conditions.append(_TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE)
         reasons.append("onnx")
+
+    if dynamo:
+        if _TORCH_GREATER_EQUAL_2_1:
+            from torch._dynamo.eval_frame import is_dynamo_supported
+
+            cond = not is_dynamo_supported()
+        else:
+            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
+
+        # set use_base_version for nightly support
+        cond |= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
+        conditions.append(cond)
+        reasons.append("torch.dynamo")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
     kwargs.pop("condition", None)
