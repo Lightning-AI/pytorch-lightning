@@ -17,7 +17,6 @@ import pytest
 import torch
 from lightning_utilities.core import module_available
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
@@ -25,21 +24,9 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-def skip_if_unsupported():
-    if _TORCH_GREATER_EQUAL_2_1:
-        from torch._dynamo.eval_frame import is_dynamo_supported
-
-        if not is_dynamo_supported():
-            pytest.skip("TorchDynamo unsupported")
-    elif sys.platform == "win32" or sys.version_info >= (3, 11):
-        pytest.skip("TorchDynamo unsupported")
-
-
-@RunIf(min_torch="2.0.0")
+@RunIf(dynamo=True)
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
 def test_trainer_compiled_model(tmp_path, monkeypatch):
-    skip_if_unsupported()
-
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,
@@ -91,10 +78,8 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
         trainer.fit(object())
 
 
-@RunIf(min_torch="2.0.0")
+@RunIf(dynamo=True)
 def test_compile_uncompile():
-    skip_if_unsupported()
-
     model = BoringModel()
     compiled_model = torch.compile(model)
 
@@ -125,10 +110,8 @@ def test_compile_uncompile():
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(min_torch="2.0.0")
+@RunIf(dynamo=True)
 def test_trainer_compiled_model_that_logs(tmp_path):
-    skip_if_unsupported()
-
     class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
@@ -151,10 +134,8 @@ def test_trainer_compiled_model_that_logs(tmp_path):
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(min_torch="2.0.0")
+@RunIf(dynamo=True)
 def test_trainer_compiled_model_test(tmp_path):
-    skip_if_unsupported()
-
     model = BoringModel()
     compiled_model = torch.compile(model)
 
