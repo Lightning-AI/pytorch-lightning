@@ -125,12 +125,15 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 
 def tpu_all_gather_fn(strategy):
+    with pytest.raises(NotImplementedError, match="only implemented for tensors"):
+        strategy.all_gather([1])
+
+    device_count = strategy.accelerator.auto_device_count()
     for sync_grads in (True, False):
         tensor = torch.tensor(1.0, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
         assert summed.device.type == "xla"
-        device_count = strategy.accelerator.auto_device_count()
         assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
         summed.backward()
         if sync_grads:

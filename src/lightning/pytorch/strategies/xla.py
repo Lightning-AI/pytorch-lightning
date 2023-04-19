@@ -264,20 +264,22 @@ class XLAStrategy(DDPStrategy):
         """Function to gather a tensor from several distributed processes.
 
         Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
+            tensor: tensor to all-gather.
+            group: unused.
+            sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
-            A tensor of shape (world_size, batch, ...)
+            A tensor of shape (world_size, ...)
         """
         if not self._launched:
             return tensor
-
-        if isinstance(tensor, Tensor):
-            if tensor.dim() == 0:
-                tensor = tensor.unsqueeze(0)
-            if tensor.device.type != "xla":
-                tensor = tensor.to(self.root_device)
+        if not isinstance(tensor, Tensor):
+            raise NotImplementedError(
+                f"`{type(self).__name__}.all_gather` is only implemented for tensors. Given {tensor}"
+            )
+        if tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+        if tensor.device.type != "xla":
+            tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
