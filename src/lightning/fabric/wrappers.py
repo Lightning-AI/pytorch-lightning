@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
 
 import torch
@@ -19,6 +20,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn as nn
 from torch import Tensor
 from torch.nn.modules.module import _IncompatibleKeys
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -212,3 +214,39 @@ def is_wrapped(obj: object) -> bool:
         obj: The object to test.
     """
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
+
+
+# FabricModule(Wrapper1(DDP(Wrapper2(OriginalModule))))
+
+# FabricModule.foo -> Wrapper2.foo -> DDP.forward("foo") -> Wrapper1.forward("foo") -> OriginalModule.foo
+
+class Wrapper1(nn.Module):
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, method_name, *args, **kwargs):
+        return getattr(self.module, method_name)(*args, **kwargs)
+
+
+class Wrapper2(nn.Module):
+    def __init__(self, module, **ddp_kwargs):
+        super().__init__()
+        self._original_module = module
+        self.ddp_wrapper = DistributedDataParallel(Wrapper1(module), **ddp_kwargs)
+
+    def forward(self, *args, **kwargs):
+        return self.ddp_wrapper.forward("forward", *args, **kwargs)
+
+    def _redirect_to_forward(self, method_name, *args, **kwargs):
+        return self.ddp_wrapper.forward(method_name, *args, **kwargs)
+
+    def __getattr__(self, item):
+        attr = getattr(self._original_module, item, None)
+        if callable(attr):
+            return partial(self._redirect_to_forward, item)
+        return super().__getattr__(item)
+
+
+if __name__ == "__main__":
+
