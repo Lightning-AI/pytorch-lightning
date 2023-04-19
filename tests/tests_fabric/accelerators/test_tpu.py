@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-import os
 
 import pytest
 
@@ -21,7 +20,9 @@ from tests_fabric.helpers.runif import RunIf
 
 @RunIf(tpu=True)
 def test_auto_device_count():
-    assert TPUAccelerator.auto_device_count() == int(os.environ["TPU_NUM_DEVICES"])
+    # this depends on the chip used, e.g. with v4-8 we expect 4
+    # there's no easy way to test it without copying the `auto_device_count` so just check that its greater than 1
+    assert TPUAccelerator.auto_device_count() > 1
 
 
 @RunIf(tpu=True)
