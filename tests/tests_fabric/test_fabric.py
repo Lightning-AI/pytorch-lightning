@@ -39,7 +39,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from tests_fabric.helpers.runif import RunIf, skip_if_dynamo_unsupported
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
@@ -86,12 +86,10 @@ def test_setup_module(ddp_mock, setup_method):
     assert fabric_model.forward != model.forward
 
 
-@RunIf(min_torch="2.0.0", skip_windows=True)
+@RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_compiled_module(setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
-    skip_if_dynamo_unsupported()
-
     from torch._dynamo.eval_frame import OptimizedModule
 
     fabric = Fabric(devices=1)
@@ -516,7 +514,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         ("cpu", "cpu"),
         pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", "xla:1", marks=RunIf(tpu=True, standalone=True)),
+        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True, standalone=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
@@ -524,6 +522,11 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
+    if accelerator == "tpu":
+        from torch_xla.experimental import pjrt
+
+        if not pjrt.using_pjrt():
+            expected = "xla:1"
 
     class RunFabric(Fabric):
         def run(self):

@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import pickle
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from unittest import mock
 
 import pytest
@@ -591,11 +591,14 @@ def test_logger_sync_dist(distributed_env, log_val):
     result_metric.update(log_val, 10)
 
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
+    patch_ctx = (
+        mock.patch("torch.distributed.is_initialized", return_value=distributed_env)
+        if isinstance(log_val, Tensor)
+        else nullcontext()
+    )
 
-    with mock.patch(
-        "lightning.pytorch.trainer.connectors.logger_connector.result._distributed_available",
-        return_value=distributed_env,
-    ):
-        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
-            value = _ResultCollection._get_cache(result_metric, on_step=False)
-        assert value == 0.5
+    with warning_ctx(
+        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
+    ), patch_ctx:
+        value = _ResultCollection._get_cache(result_metric, on_step=False)
+    assert value == 0.5
