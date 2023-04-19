@@ -47,14 +47,21 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
+        from torch_xla.experimental import pjrt
+
         devices = _parse_tpu_devices(devices)
-        # In XLA index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
-        # since the user passes a 0-based index, we need to adjust the indices
+        if pjrt.using_pjrt():
+            device_offset = 0
+        else:
+            # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
+            # since the user passes a 0-based index, we need to adjust the indices
+            device_offset = 1
+
         if isinstance(devices, int):
-            return [torch.device("xla", i) for i in range(1, devices + 1)]
+            return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
         else:
             # list of devices is not supported, just a specific index, fine to access [0]
-            return [torch.device("xla", devices[0] + 1)]
+            return [torch.device("xla", devices[0] + device_offset)]
         # we cannot create `xla_device` here because processes have not been spawned yet (this is called in the
         # accelerator connector init). However, there doesn't seem to be a problem with instantiating `torch.device`.
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
@@ -66,9 +73,14 @@ class TPUAccelerator(Accelerator):
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.experimental import pjrt, tpu
         from torch_xla.utils.utils import getenv_as
 
-        return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
+        if pjrt.using_pjrt():
+            device_count_on_version = {2: 8, 3: 8, 4: 4}
+            return device_count_on_version.get(tpu.version(), 8)
+        else:
+            return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
