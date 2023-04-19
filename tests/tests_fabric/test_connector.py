@@ -662,7 +662,7 @@ def test_unsupported_tpu_choice(_, tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_connector_with_accelerator_instance(tpu_available, monkeypatch):
+def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
 
     accelerator = TPUAccelerator()
