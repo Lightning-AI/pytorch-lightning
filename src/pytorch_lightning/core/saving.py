@@ -21,7 +21,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
 import yaml
