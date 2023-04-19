@@ -153,9 +153,6 @@ jobs:
     - name: Prevent using raw source
       run: rm -rf src/
 
-    - name: Prevent using raw source
-      run: rm -rf src/
-
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
