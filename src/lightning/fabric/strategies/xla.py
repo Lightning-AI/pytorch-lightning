@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-import os
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -81,13 +80,6 @@ class XLAStrategy(ParallelStrategy):
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
 
-    @property
-    def _is_distributed(self) -> bool:
-        import torch_xla.core.xla_env_vars as xenv
-
-        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
-        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
-
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
@@ -97,6 +89,9 @@ class XLAStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
+        from torch_xla.experimental import pjrt
+
+        pjrt.broadcast_master_param(module)
         return module
 
     def module_to_device(self, module: Module) -> None:
@@ -156,14 +151,14 @@ class XLAStrategy(ParallelStrategy):
         return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self._is_distributed:
-            import torch_xla.core.xla_model as xm
+        import torch_xla.core.xla_model as xm
 
-            xm.rendezvous(name)
+        if name is None:
+            # `None` is not supported: "TypeError: _xla_rendezvous(): incompatible function arguments"
+            name = ""
+        xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self._is_distributed:
-            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())

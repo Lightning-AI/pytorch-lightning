@@ -92,14 +92,9 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    @property
-    def local_rank(self) -> int:
-        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
-
     def connect(self, model: "pl.LightningModule") -> None:
-        import torch_xla.distributed.xla_multiprocessing as xmp
-
-        self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
+        # this is called in the spawned process, so no need to use `xmp.MpModelWrapper`
+        self.wrapped_model = _LightningModuleWrapperBase(model)
         return super().connect(model)
 
     def _configure_launcher(self) -> None:
@@ -119,6 +114,10 @@ class XLAStrategy(DDPStrategy):
         set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
+        from torch_xla.experimental import pjrt
+
+        pjrt.broadcast_master_param(self.model)
+
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
@@ -129,13 +128,6 @@ class XLAStrategy(DDPStrategy):
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return dict(num_replicas=self.world_size, rank=self.global_rank)
-
-    @property
-    def is_distributed(self) -> bool:
-        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
-        import torch_xla.core.xla_env_vars as xenv
-
-        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -157,14 +149,14 @@ class XLAStrategy(DDPStrategy):
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self.is_distributed:
-            import torch_xla.core.xla_model as xm
+        import torch_xla.core.xla_model as xm
 
-            xm.rendezvous(name)
+        if name is None:
+            # `None` is not supported: "TypeError: _xla_rendezvous(): incompatible function arguments"
+            name = ""
+        xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self.is_distributed:
-            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())

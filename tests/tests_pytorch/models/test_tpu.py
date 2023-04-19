@@ -164,17 +164,17 @@ def test_model_16bit_multiple_tpu_devices(tmpdir):
     tpipes.run_model_test(trainer_options, model, with_hpc=False, min_acc=0.05)
 
 
+class CustomBoringModel(BoringModel):
+    def validation_step(self, *args, **kwargs):
+        out = super().validation_step(*args, **kwargs)
+        self.log("val_loss", out["x"])
+        return out
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works."""
-
-    class CustomBoringModel(BoringModel):
-        def validation_step(self, *args, **kwargs):
-            out = super().validation_step(*args, **kwargs)
-            self.log("val_loss", out["x"])
-            return out
-
     model = CustomBoringModel()
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
@@ -313,18 +313,18 @@ def test_tpu_sync_dist():
     xla_launch(tpu_sync_dist_fn)
 
 
+class AssertXLADebugModel(BoringModel):
+    def on_train_start(self):
+        assert os.environ.get("PT_XLA_DEBUG") == "1", "PT_XLA_DEBUG was not set in environment variables"
+
+    def teardown(self, stage):
+        assert "PT_XLA_DEBUG" not in os.environ
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_debug_mode(tmpdir):
     """Test if debug mode works on TPU."""
-
-    class DebugModel(BoringModel):
-        def on_train_start(self):
-            assert os.environ.get("PT_XLA_DEBUG") == str(1), "PT_XLA_DEBUG was not set in environment variables"
-
-        def teardown(self, stage):
-            assert "PT_XLA_DEBUG" not in os.environ
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -336,18 +336,23 @@ def test_tpu_debug_mode(tmpdir):
         strategy=XLAStrategy(debug=True),
     )
 
-    model = DebugModel()
+    model = AssertXLADebugModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
+
+
+class AssertXLAWorldSizeModel(BoringModel):
+    def on_train_start(self):
+        assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
 
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_host_world_size(tmpdir):
     """Test Host World size env setup on TPU."""
+    from torch_xla.experimental import pjrt
 
-    class DebugModel(BoringModel):
-        def on_train_start(self):
-            assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
+    if pjrt.using_pjrt():
+        pytest.skip("PJRT doesn't set 'XRT_HOST_WORLD_SIZE'")
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -359,7 +364,7 @@ def test_tpu_host_world_size(tmpdir):
         limit_val_batches=0.4,
     )
 
-    model = DebugModel()
+    model = AssertXLAWorldSizeModel()
     assert "XRT_HOST_WORLD_SIZE" not in os.environ
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
     assert "XRT_HOST_WORLD_SIZE" not in os.environ
