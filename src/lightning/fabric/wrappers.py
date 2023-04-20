@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
 
 import torch
@@ -20,10 +19,8 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn as nn
 from torch import Tensor
 from torch.nn.modules.module import _IncompatibleKeys
-from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
@@ -134,7 +131,32 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
 
+    def _redirection_through_forward(self, method_name: str) -> Callable:
+        assert method_name != "forward"
+        original_forward = self._original_module.forward
+
+        def wrapped_forward(*args, **kwargs):
+            # Unpatch ourselves immediately before calling the method `method_name`
+            # because itself may want to call the real `forward`
+            self._original_module.forward = original_forward
+            # Call the actual method e.g. `.training_step(...)`
+            return getattr(self._original_module, method_name)(*args, **kwargs)
+
+        # We make the caller "unknowingly" send their arguments through the forward_module's `__call__`.
+        # We expect that the `forward_module` will eventually call `original_module.forward`, which we
+        # have patched to redirect back to `original_module.method_name()`.
+        def call_forward_module(*args, **kwargs):
+            # Patch the original_module's forward so we can redirect the arguments back to the real method
+            self._original_module.forward = wrapped_forward
+            return self._forward_module(*args, **kwargs)
+
+        return call_forward_module
+
     def __getattr__(self, item: Any) -> Any:
+        if item in ("training_step", "validation_step", "test_step", "predict_step") and self._forward_module != self._original_module:
+            # Special support for `LightningModule`, to prevent bypassing DDP's forward
+            return self._redirection_through_forward(item)
+
         try:
             # __getattr__ gets called as a last resort if the attribute does not exist
             # call nn.Module's implementation first
@@ -142,6 +164,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         except AttributeError:
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
+
+            # TODO: if callable(attr) and not lightning module step method:
+            #  warning()
             return getattr(original_module, item)
 
 
@@ -216,37 +241,80 @@ def is_wrapped(obj: object) -> bool:
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
 
 
+# Trainer has DDP(_LightningModuleWrapperBase(OriginalModule))
+
 # FabricModule(Wrapper1(DDP(Wrapper2(OriginalModule))))
 
 # FabricModule.foo -> Wrapper2.foo -> DDP.forward("foo") -> Wrapper1.forward("foo") -> OriginalModule.foo
 
-class Wrapper1(nn.Module):
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
 
-    def forward(self, method_name, *args, **kwargs):
-        return getattr(self.module, method_name)(*args, **kwargs)
-
-
-class Wrapper2(nn.Module):
-    def __init__(self, module, **ddp_kwargs):
-        super().__init__()
-        self._original_module = module
-        self.ddp_wrapper = DistributedDataParallel(Wrapper1(module), **ddp_kwargs)
-
-    def forward(self, *args, **kwargs):
-        return self.ddp_wrapper.forward("forward", *args, **kwargs)
-
-    def _redirect_to_forward(self, method_name, *args, **kwargs):
-        return self.ddp_wrapper.forward(method_name, *args, **kwargs)
-
-    def __getattr__(self, item):
-        attr = getattr(self._original_module, item, None)
-        if callable(attr):
-            return partial(self._redirect_to_forward, item)
-        return super().__getattr__(item)
+# TODO: check that only inner module keys are exposed through state_dict
+#
+# class Wrapper1(nn.Module):
+#     def __init__(self, module):
+#         super().__init__()
+#         self.module = module
+#
+#     def forward(self, method_name, *args, **kwargs):
+#         return getattr(self.module, method_name)(*args, **kwargs)
 
 
-if __name__ == "__main__":
+# class Wrapper2(nn.Module):
+#     def __init__(self, module, **ddp_kwargs):
+#         super().__init__()
+#         self._original_module = module
+#         self.ddp_wrapper = DistributedDataParallel(Wrapper1(module), **ddp_kwargs)
+#
+#     def forward(self, *args, **kwargs):
+#         return self.ddp_wrapper.forward("forward", *args, **kwargs)
+#
+#     def _redirect_to_forward(self, method_name, *args, **kwargs):
+#         return self.ddp_wrapper.forward(method_name, *args, **kwargs)
+#
+#     def __getattr__(self, item):
+#         attr = getattr(self._original_module, item, None)
+#         if callable(attr):
+#             return partial(self._redirect_to_forward, item)
+#         return super().__getattr__(item)
+
+#
+# if __name__ == "__main__":
+#     from lightning.pytorch import LightningModule
+#
+#
+#     class DDP(nn.Module):
+#         def __init__(self, module):
+#             super().__init__()
+#             self.module = module
+#
+#         def forward(self, *args, **kwargs):
+#             return self.module(*args, **kwargs)
+#
+#
+#     class OriginalModule(LightningModule):
+#
+#         def forward(self, *args, **kwargs):
+#             return 1
+#
+#         def training_step(self, *args, **kwargs):
+#             return 2
+#
+#     original_module = OriginalModule()
+#     # wrapped = DDP(original_module)
+#     wrapped = _FabricModule(forward_module=DDP(original_module), precision=None, original_module=original_module)
+#     print(wrapped.training_step())
+#
+#     def ddp_forward(self, *args, **kwargs):
+#         return self.module(*args, **kwargs)
+#
+#     # target_name = "training_step"
+#     # original_forward = original_module.forward
+#     #
+#     # def module_forward(*args, **kwargs):
+#     #     original_module.forward = original_forward
+#     #     return getattr(original_module, target_name)(*args, **kwargs)
+#     #
+#     # original_module.forward = module_forward
+#     #
+#     # print(wrapped())
 

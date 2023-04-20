@@ -24,14 +24,20 @@ class MyModel(LightningModule):
         return self.model(batch)
 
 
+# _LightningModuleWrapperBase
+
 def main():
     fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
     fabric.launch()
 
+
     model = MyModel()
-    model = fabric.setup(model)
+    model = fabric.setup(model)  # FabricModule(DDP(MyModel))
+
+    # model.x = 1
 
     for _ in range(3):
+        # out = model(torch.rand(4, 10))
         out = model.training_step(torch.rand(4, 10))
 
         if fabric.global_rank == 0:

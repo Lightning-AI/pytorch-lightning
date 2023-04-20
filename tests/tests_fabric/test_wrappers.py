@@ -353,3 +353,62 @@ def test_is_wrapped():
     assert not is_wrapped(dataloader)
     wrapped = _FabricDataLoader(dataloader)
     assert is_wrapped(wrapped)
+
+
+def test_step_method_redirection():
+    """Test that the FabricModule redirects the special `LightningModule.*_step` through the forward-module's .forward()."""
+
+    class DDP(torch.nn.Module):
+        def __init__(self, module):
+            super().__init__()
+            self.module = module
+
+        def forward(self, *args, **kwargs):
+            return self.module(*args, **kwargs)
+
+    class LightningModule(torch.nn.Module):
+        def forward(self):
+            return "forward_return"
+
+        def training_step(self, arg, kwarg=None):
+            assert self() == "forward_return"
+            assert arg == "train_arg"
+            assert kwarg == "train_kwarg"
+            return "training_step_return"
+
+        def validation_step(self, arg, kwarg=None):
+            assert self() == "forward_return"
+            assert arg == "val_arg"
+            assert kwarg == "val_kwarg"
+            return "validation_step_return"
+
+        def normal_method(self):
+            pass
+
+    original_module = LightningModule()
+    forward_module = DDP(original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, precision=Mock(), original_module=original_module)
+
+    # Regular methods on the original_module are visible and identiacal on the fabric_module ...
+    assert fabric_module.normal_method == original_module.normal_method
+    # ... but speical methods like training_step get redirected to the forward_module
+    assert fabric_module.training_step.__name__ == "call_forward_module"
+    assert fabric_module.validation_step.__name__ == "call_forward_module"
+    assert fabric_module.test_step.__name__ == "call_forward_module"
+    assert fabric_module.predict_step.__name__ == "call_forward_module"
+
+    with pytest.raises(AttributeError, match="has no attribute 'predict_step'"):
+        # A special method that does not exist will raise its AttributeError when being called
+        fabric_module.predict_step()
+
+    # The forward method on the original module remains untouched
+    assert original_module.forward.__name__ == "forward"
+
+    # The special methods get redirected correctly to produce the expected output
+    assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
+    assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
+
+    # Special case: forward_module == original_module
+    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    assert fabric_module.training_step == original_module.training_step
+    assert fabric_module.validation_step == original_module.validation_step
