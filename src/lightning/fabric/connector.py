@@ -51,13 +51,13 @@ from lightning.fabric.plugins.precision.precision import (
 )
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
+    FSDPXLAStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
     STRATEGY_REGISTRY,
     XLAStrategy,
-    FSDPXLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy

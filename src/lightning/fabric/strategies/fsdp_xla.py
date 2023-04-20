@@ -19,7 +19,6 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-
 from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
 
 from lightning.fabric.accelerators import Accelerator
@@ -31,21 +30,19 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
-from lightning.fabric.utilities.rank_zero import rank_zero_only
-from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
-    _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
+from lightning.fabric.utilities.rank_zero import rank_zero_only
+from lightning.fabric.utilities.types import _PATH, ReduceOp
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 
 class FSDPXLAStrategy(ParallelStrategy):
-    """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel`
-    method."""
+    """Strategy for training multiple TPU devices using the
+    :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method."""
 
     def __init__(
         self,
@@ -68,8 +65,8 @@ class FSDPXLAStrategy(ParallelStrategy):
         self._fsdp_kwargs = kwargs
 
         # if _TORCH_GREATER_EQUAL_2_0:
-            # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
-            # self._fsdp_kwargs.setdefault("use_orig_params", True)
+        # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
+        # self._fsdp_kwargs.setdefault("use_orig_params", True)
 
     @property
     def root_device(self) -> torch.device:
@@ -113,9 +110,7 @@ class FSDPXLAStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
-        if "auto_wrap_policy" in self._fsdp_kwargs and any(
-            isinstance(mod, FSDP) for mod in module.modules()
-        ):
+        if "auto_wrap_policy" in self._fsdp_kwargs and any(isinstance(mod, FSDP) for mod in module.modules()):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
             del self._fsdp_kwargs["auto_wrap_policy"]
 
@@ -287,5 +282,3 @@ class FSDPXLAStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("fsdp_xla", cls, description=cls.__class__.__name__)
-
-
