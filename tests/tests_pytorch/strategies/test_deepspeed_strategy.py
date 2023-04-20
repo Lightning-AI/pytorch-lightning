@@ -979,7 +979,6 @@ def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()
 
     # carry out the check only on rank 0
     if trainer.is_global_zero:

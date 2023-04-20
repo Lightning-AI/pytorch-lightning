@@ -313,7 +313,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not _distributed_available:
+        if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -321,9 +321,10 @@ class FSDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not torch.distributed.is_initialized():
+            return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
