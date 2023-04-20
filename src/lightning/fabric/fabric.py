@@ -660,8 +660,8 @@ class Fabric:
         if function is not _do_nothing:
             if not callable(function):
                 raise TypeError(
-                    f"`Fabric.launch(...)` needs to be a callable. Given {function}."
-                    " HINT: do `.launch(your_fn)` instead of .launch(your_fn())"
+                    f"`Fabric.launch(...)` needs to be a callable, but got {function}."
+                    " HINT: do `.launch(your_fn)` instead of `.launch(your_fn())`"
                 )
             if not inspect.signature(function).parameters:
                 raise TypeError(
