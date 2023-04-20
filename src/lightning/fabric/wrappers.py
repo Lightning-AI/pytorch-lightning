@@ -33,6 +33,7 @@ from lightning.fabric.utilities.warnings import PossibleUserWarning
 
 warning_cache = WarningCache()
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
+_LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
 
 class _FabricOptimizer:
@@ -166,10 +167,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             )
 
     def __getattr__(self, item: Any) -> Any:
-        if (
-            item in ("training_step", "validation_step", "test_step", "predict_step")
-            and self._forward_module != self._original_module
-        ):
+        if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
             # Special support for `LightningModule`, to prevent bypassing DDP's forward
             return self._redirection_through_forward(item)
 
