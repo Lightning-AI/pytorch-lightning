@@ -373,7 +373,7 @@ class _Connector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "tpu":
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
             else:

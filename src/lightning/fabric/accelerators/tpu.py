@@ -142,14 +142,6 @@ def _has_tpu_device() -> bool:
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 
 
-def _tpu_distributed() -> bool:
-    if not TPUAccelerator.is_available():
-        return False
-    import torch_xla.core.xla_model as xm
-
-    return xm.xrt_world_size() > 1
-
-
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
     """
     Parses the TPU devices given in the format as accepted by the
