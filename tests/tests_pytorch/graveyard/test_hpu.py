@@ -23,5 +23,3 @@ def test_extracted_hpu(import_path, name):
     cls = getattr(module, name)
     with pytest.raises(NotImplementedError, match=f"{name}` class has been moved to an external package.*"):
         cls()
-
-
