@@ -356,8 +356,10 @@ def test_is_wrapped():
 
 
 def test_step_method_redirection():
-    """Test that the FabricModule redirects the special `LightningModule.*_step` through the forward-module's
-    .forward()."""
+    """Test that the FabricModule redirects the special `LightningModule.*_step` through the forward-module's.
+
+    .forward().
+    """
 
     class DDP(torch.nn.Module):
         def __init__(self, module):
