@@ -13,8 +13,7 @@ def _patch_sys_modules() -> None:
     sys.modules["lightning.pytorch.plugins.precision.hpu"] = self
 
 
-class HPUAccelerator(pl.accelerators.Accelerator):
-    """Accelerator for HPU devices."""
+class HPUAccelerator:
 
     auto_device_count = ...
     get_parallel_devices = ...
@@ -32,7 +31,7 @@ class HPUAccelerator(pl.accelerators.Accelerator):
         )
 
 
-class HPUParallelStrategy(pl.strategies.DDPStrategy):
+class HPUParallelStrategy:
     """Strategy for distributed training on multiple HPU devices."""
 
     def __init__(self, *_: Any, **__: Any) -> None:
@@ -50,7 +49,7 @@ class HPUParallelStrategy(pl.strategies.DDPStrategy):
         raise NotImplementedError
 
 
-class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
+class SingleHPUStrategy:
     """Strategy for training on single HPU device."""
 
     def __init__(self, *_: Any, **__: Any) -> None:
@@ -62,7 +61,7 @@ class SingleHPUStrategy(pl.strategies.SingleDeviceStrategy):
         )
 
 
-class HPUCheckpointIO(pl.plugins.io.TorchCheckpointIO):
+class HPUCheckpointIO:
     """CheckpointIO to save checkpoints for HPU training strategies."""
 
     def __init__(self, *_: Any, **__: Any) -> None:

@@ -25,20 +25,3 @@ def test_extracted_hpu(import_path, name):
         cls()
 
 
-def test_extracted_hpu_classes_inner_import():
-    from lightning.pytorch.accelerators.hpu import HPUAccelerator
-    from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
-    from lightning.pytorch.plugins.precision.hpu import HPUPrecisionPlugin
-    from lightning.pytorch.strategies.hpu_parallel import HPUParallelStrategy
-    from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
-
-    with pytest.raises(NotImplementedError, match="HPUAccelerator` class has been moved to an external package.*"):
-        HPUAccelerator()
-    with pytest.raises(NotImplementedError, match="HPUParallelStrategy` class has been moved to an external package.*"):
-        HPUParallelStrategy()
-    with pytest.raises(NotImplementedError, match="SingleHPUStrategy` class has been moved to an external package.*"):
-        SingleHPUStrategy()
-    with pytest.raises(NotImplementedError, match="HPUCheckpointIO` class has been moved to an external package.*"):
-        HPUCheckpointIO()
-    with pytest.raises(NotImplementedError, match="HPUPrecisionPlugin` class has been moved to an external package.*"):
-        HPUPrecisionPlugin()
