@@ -17,10 +17,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
-from lightning.fabric.utilities.distributed import (
-    _DatasetSamplerWrapper,
-    _prepare_for_backward as prepare_for_backward,  # noqa: F401  # for backward compatibility
-)
+from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 

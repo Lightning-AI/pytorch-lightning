@@ -1,18 +1,11 @@
-import itertools
 import time
-from typing import cast, Union, List, Any
 
 import torch
-from torch import Tensor
-from torch.nn.parallel import DistributedDataParallel
 
 from lightning import Fabric, LightningModule
 
 
-
-
 class MyModel(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.model = torch.nn.Linear(10, 10)
@@ -26,10 +19,10 @@ class MyModel(LightningModule):
 
 # _LightningModuleWrapperBase
 
+
 def main():
     fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
     fabric.launch()
-
 
     model = MyModel()
     model = fabric.setup(model)  # FabricModule(DDP(MyModel))
@@ -47,7 +40,6 @@ def main():
         # prepare_for_backward(model._forward_module, out)
         fabric.backward(out.sum())  # .backward()
         print("running", fabric.global_rank)
-
 
 
 if __name__ == "__main__":

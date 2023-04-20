@@ -21,6 +21,7 @@ from torch import Tensor
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
@@ -153,7 +154,10 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return call_forward_module
 
     def __getattr__(self, item: Any) -> Any:
-        if item in ("training_step", "validation_step", "test_step", "predict_step") and self._forward_module != self._original_module:
+        if (
+            item in ("training_step", "validation_step", "test_step", "predict_step")
+            and self._forward_module != self._original_module
+        ):
             # Special support for `LightningModule`, to prevent bypassing DDP's forward
             return self._redirection_through_forward(item)
 
@@ -317,4 +321,3 @@ def is_wrapped(obj: object) -> bool:
 #     # original_module.forward = module_forward
 #     #
 #     # print(wrapped())
-

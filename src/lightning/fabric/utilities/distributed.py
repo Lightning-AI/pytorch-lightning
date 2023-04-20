@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from contextlib import nullcontext
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union, cast
+from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 import torch.nn.functional as F

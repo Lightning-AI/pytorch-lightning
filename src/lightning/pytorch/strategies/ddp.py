@@ -29,9 +29,10 @@ from lightning.fabric.utilities.distributed import (
     _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
+    _prepare_for_backward,
     _sync_ddp_if_available,
 )
-from lightning.fabric.utilities.distributed import group as _group, _prepare_for_backward
+from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
