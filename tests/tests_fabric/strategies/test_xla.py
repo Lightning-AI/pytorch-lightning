@@ -48,15 +48,27 @@ def xla_launch(fn):
 
 
 def broadcast_on_tpu_fn(strategy):
+    # test broadcasting a tensor
+    obj = torch.tensor(strategy.local_rank)
+    # In PjRT, the local rank and global rank have no solid relation.
+    # global rank may not even be contiguous on a host, because it depends on the 3D mesh structure that is formed by
+    # the TPUs on all hosts in a pod. So checking a different src is not reliable
+    # https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/experimental/pjrt.py#L161-L163
+    src = 0
+    result = strategy.broadcast(obj, src)
+    assert result.item() == src
+    assert result.device.type == "xla"
+
+    # test broadcasting an arbitrary object
     obj = ("ver_0.5", "logger_name", strategy.local_rank)
-    result = strategy.broadcast(obj)
-    assert result == ("ver_0.5", "logger_name", 0)
+    result = strategy.broadcast(obj, src=src)
+    assert result == ("ver_0.5", "logger_name", src)
 
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_broadcast_on_tpu():
-    """Checks if an object from the main process is broadcasted to other processes correctly."""
+    """Checks if an object from the main process is broadcast to other processes correctly."""
     xla_launch(broadcast_on_tpu_fn)
 
 
@@ -113,11 +125,15 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 
 def tpu_all_gather_fn(strategy):
-    for sync_grads in [True, False]:
-        tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
+    with pytest.raises(NotImplementedError, match="only implemented for tensors"):
+        strategy.all_gather([1])
+
+    device_count = strategy.accelerator.auto_device_count()
+    for sync_grads in (True, False):
+        tensor = torch.tensor(1.0, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
-        device_count = strategy.accelerator.auto_device_count()
+        assert summed.device.type == "xla"
         assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
         summed.backward()
         if sync_grads:

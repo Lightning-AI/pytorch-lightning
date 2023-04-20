@@ -40,7 +40,6 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()
     if trainer.is_global_zero:
         # ensure function call works
         output_path = os.path.join(tmpdir, "single_model.pt")
