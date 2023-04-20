@@ -73,7 +73,7 @@ class HPUCheckpointIO:
         )
 
 
-class HPUPrecisionPlugin(pl.plugins.precision.PrecisionPlugin):
+class HPUPrecisionPlugin:
     """Plugin that enables bfloat/half support on HPUs."""
 
     def __init__(self, *_: Any, **__: Any) -> None:
