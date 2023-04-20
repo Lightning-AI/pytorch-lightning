@@ -85,7 +85,6 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
-    fabric.barrier()
 
     # re-init all objects and resume
     fabric = fabric_cls(
