@@ -18,6 +18,7 @@ import pytest
 import torch
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
+from lightning_utilities.test.warning import no_warning_call
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -59,11 +60,41 @@ def test_fabric_module_attribute_lookup():
     fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
     assert fabric_module.attribute == 1
     assert fabric_module.layer is original_module.layer
-    assert fabric_module.method() == 2
     assert fabric_module.forward.__self__.__class__ == _FabricModule
 
     with pytest.raises(AttributeError):
         _ = fabric_module.not_exists
+
+
+def test_fabric_module_method_lookup():
+    """Test that access to methods warns about inproper use when a wrapper from a strategy is involved."""
+    from lightning.fabric.wrappers import warning_cache
+
+    class OriginalModule(torch.nn.Module):
+        def method(self):
+            return 100
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self, module):
+            super().__init__()
+            self.wrapped = module
+
+    # Regular case: forward_module == original_module -> no warnings
+    original_module = OriginalModule()
+    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    warning_cache.clear()
+    with no_warning_call(UserWarning):
+        assert fabric_module.method() == 100
+    assert not warning_cache
+
+    # Special case: original module wrapped by forward module: -> warn
+    original_module = OriginalModule()
+    wrapped_module = ModuleWrapper(original_module)
+    fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
+    warning_cache.clear()
+    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method\(\)` from outside the"):
+        assert fabric_module.method() == 100
+    warning_cache.clear()
 
 
 def test_fabric_module_state_dict_access():
@@ -356,10 +387,7 @@ def test_is_wrapped():
 
 
 def test_step_method_redirection():
-    """Test that the FabricModule redirects the special `LightningModule.*_step` through the forward-module's.
-
-    .forward().
-    """
+    """Test that the FabricModule redirects the special `LightningModule.*_step` methods through the forward-module."""
 
     class DDP(torch.nn.Module):
         def __init__(self, module):

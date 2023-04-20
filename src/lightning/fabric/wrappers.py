@@ -15,6 +15,7 @@ import inspect
 from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
 
 import torch
+from lightning_utilities import WarningCache
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn as nn
 from torch import Tensor
@@ -28,7 +29,9 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.types import Optimizable
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 
+warning_cache = WarningCache()
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
 
@@ -169,9 +172,15 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
 
-            # TODO: if callable(attr) and not lightning module step method:
-            #  warning()
-            return getattr(original_module, item)
+            attr = getattr(original_module, item)
+            if inspect.ismethod(attr) and self._forward_module != self._original_module:
+                warning_cache.warn(
+                    f"You are calling the method `{type(self._original_module).__name__}.{item}()` from outside the"
+                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
+                    f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
+                    category=PossibleUserWarning,
+                )
+            return attr
 
 
 class _FabricDataLoader:
