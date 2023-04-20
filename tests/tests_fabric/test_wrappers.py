@@ -16,9 +16,9 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
-from lightning_utilities.test.warning import no_warning_call
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -387,7 +387,8 @@ def test_is_wrapped():
 
 
 def test_step_method_redirection():
-    """Test that the FabricModule redirects the special `LightningModule.*_step` methods through the forward-module."""
+    """Test that the FabricModule redirects the special `LightningModule.*_step` methods through the forward-
+    module."""
 
     class DDP(torch.nn.Module):
         def __init__(self, module):
