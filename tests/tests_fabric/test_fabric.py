@@ -513,7 +513,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         ("cpu", "cpu"),
         pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", "xla:1", marks=RunIf(tpu=True, standalone=True)),
+        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True, standalone=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
@@ -521,6 +521,11 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
+    if accelerator == "tpu":
+        from torch_xla.experimental import pjrt
+
+        if not pjrt.using_pjrt():
+            expected = "xla:1"
 
     class RunFabric(Fabric):
         def run(self):

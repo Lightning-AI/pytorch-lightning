@@ -815,6 +815,20 @@ class DeviceMock(Mock):
         return True
 
 
+@RunIf(skip_windows=True)
+def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
+    accelerator = TPUAccelerator()
+    trainer = Trainer(accelerator=accelerator, devices=1)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, SingleTPUStrategy)
+
+    trainer = Trainer(accelerator=accelerator)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, XLAStrategy)
+
+
 @pytest.mark.parametrize("is_interactive", (False, True))
 @RunIf(min_python="3.9")  # mocking issue
 def test_connector_auto_selection(monkeypatch, is_interactive):
