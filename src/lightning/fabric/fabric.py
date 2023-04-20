@@ -34,6 +34,7 @@ from lightning.fabric.plugins import Precision  # avoid circular imports: # isor
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
@@ -668,10 +669,10 @@ class Fabric:
                     f"`Fabric.launch(function={function})` needs to take at least one argument. The launcher will"
                     " pass in the `Fabric` object so you can use it inside the function."
                 )
-        elif isinstance(self.strategy, XLAStrategy):
+        elif isinstance(self.strategy.launcher, (_MultiProcessingLauncher, _XLALauncher)):
             raise TypeError(
-                "When `Fabric(strategy='xla')` is used, `.launch()` needs to be called with a function that contains"
-                " the code to launch in processes."
+                f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
+                " that contains the code to launch in processes."
             )
         function = partial(self._run_with_setup, function)
         if self._strategy.launcher is not None:

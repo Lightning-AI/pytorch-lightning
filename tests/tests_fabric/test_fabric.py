@@ -687,8 +687,9 @@ def test_launch_and_cli_not_allowed():
         fabric.launch()
 
 
-def test_launch_and_strategies_unsupported_combinations(xla_available):
-    fabric = Fabric(strategy="xla")
+@pytest.mark.parametrize("strategy", ("xla", "ddp_spawn"))
+def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
+    fabric = Fabric(strategy=strategy)
     with pytest.raises(TypeError, match=r"launch\(\)` needs to be called with a function"):
         fabric.launch()
 
