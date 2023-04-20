@@ -156,6 +156,15 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         return call_forward_module
 
+    def _validate_method_access(self, name: str, attribute: Any) -> None:
+        if inspect.ismethod(attribute) and self._forward_module != self._original_module:
+            warning_cache.warn(
+                f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
+                " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
+                f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
+                category=PossibleUserWarning,
+            )
+
     def __getattr__(self, item: Any) -> Any:
         if (
             item in ("training_step", "validation_step", "test_step", "predict_step")
@@ -171,15 +180,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         except AttributeError:
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
-
             attr = getattr(original_module, item)
-            if inspect.ismethod(attr) and self._forward_module != self._original_module:
-                warning_cache.warn(
-                    f"You are calling the method `{type(self._original_module).__name__}.{item}()` from outside the"
-                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                    f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
-                    category=PossibleUserWarning,
-                )
+            self._validate_method_access(item, attr)
             return attr
 
 
