@@ -421,10 +421,10 @@ def test_step_method_redirection():
     forward_module = DDP(original_module)
     fabric_module = _FabricModule(forward_module=forward_module, precision=Mock(), original_module=original_module)
 
-    # Regular methods on the original_module are visible and identiacal on the fabric_module ...
+    # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method == original_module.normal_method
 
-    # ... but speical methods like training_step get redirected to the forward_module
+    # ... but special methods like training_step get redirected to the forward_module
     assert fabric_module.training_step.__name__ == "call_forward_module"
     assert fabric_module.validation_step.__name__ == "call_forward_module"
     assert fabric_module.test_step.__name__ == "call_forward_module"
