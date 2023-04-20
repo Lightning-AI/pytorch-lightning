@@ -85,12 +85,6 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> L
     return gathered_result
 
 
-def _distributed_available() -> bool:
-    from lightning.fabric.accelerators.tpu import _tpu_distributed
-
-    return torch.distributed.is_available() and torch.distributed.is_initialized() or _tpu_distributed()
-
-
 def _sync_ddp_if_available(
     result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> Tensor:
@@ -105,7 +99,7 @@ def _sync_ddp_if_available(
     Return:
         reduced value
     """
-    if _distributed_available():
+    if torch.distributed.is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
@@ -203,7 +197,7 @@ def _all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    if not _distributed_available():
+    if not torch.distributed.is_initialized():
         return tensor
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
