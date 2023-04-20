@@ -29,6 +29,7 @@ from lightning.fabric.utilities.distributed import (
     _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
+    _prepare_for_backward,
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
