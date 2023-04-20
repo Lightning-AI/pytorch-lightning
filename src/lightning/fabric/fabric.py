@@ -50,6 +50,10 @@ from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
 
 
+def _do_nothing(*_: Any) -> None:
+    pass
+
+
 class Fabric:
     """Fabric accelerates your PyTorch training or inference code with minimal changes required.
 
@@ -629,7 +633,7 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
-    def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Callable[["Fabric"], Any] = _do_nothing, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
 
         Args:
@@ -653,16 +657,26 @@ class Fabric:
                 "This script was launched through the CLI, and processes have already been created. Calling "
                 " `.launch()` again is not allowed."
             )
-        if function is not None and not inspect.signature(function).parameters:
+        if function is not _do_nothing:
+            if not callable(function):
+                raise TypeError(
+                    f"`Fabric.launch(...)` needs to be a callable. Given {function}."
+                    " HINT: do `.launch(your_fn)` instead of .launch(your_fn())"
+                )
+            if not inspect.signature(function).parameters:
+                raise TypeError(
+                    f"`Fabric.launch(function={function})` needs to take at least one argument. The launcher will"
+                    " pass in the `Fabric` object so you can use it inside the function."
+                )
+        elif isinstance(self.strategy, XLAStrategy):
             raise TypeError(
-                "The function passed to `Fabric.launch()` needs to take at least one argument. The launcher will pass"
-                " in the `Fabric` object so you can use it inside the function."
+                "When `Fabric(strategy='xla')` is used, `.launch()` needs to be called with a function that contains"
+                " the code to launch in processes."
             )
-        function = partial(self._run_with_setup, function or _do_nothing)
-        args = [self, *args]
+        function = partial(self._run_with_setup, function)
         if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(function, *args, **kwargs)
-        return function(*args, **kwargs)
+            return self._strategy.launcher.launch(function, self, *args, **kwargs)
+        return function(self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
@@ -850,7 +864,3 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
-
-
-def _do_nothing(*_: Any) -> None:
-    pass
