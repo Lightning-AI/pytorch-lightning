@@ -36,7 +36,8 @@ from lightning.fabric.utilities.distributed import (
     _init_dist_connection,
     _sync_ddp_if_available,
 )
-from lightning.fabric.utilities.distributed import group as _group, ReduceOp, _prepare_for_backward
+from lightning.fabric.utilities.distributed import group as _group
+from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
