@@ -51,7 +51,7 @@ from lightning.fabric.plugins.precision.precision import (
 )
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
-    FSDPXLAStrategy,
+    XLAFSDPStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -524,10 +524,10 @@ class _Connector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy, FSDPXLAStrategy)
+            self.strategy, (SingleTPUStrategy, XLAStrategy, XLAFSDPStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy`, `XLAStrategy`, or `FSDPXLAStrategy`,"
+                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy`, `XLAStrategy`, or `XLAFSDPStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

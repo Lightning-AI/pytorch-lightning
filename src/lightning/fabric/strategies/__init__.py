@@ -15,13 +15,13 @@ from lightning.fabric.strategies.ddp import DDPStrategy  # noqa: F401
 from lightning.fabric.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning.fabric.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning.fabric.strategies.fsdp import FSDPStrategy  # noqa: F401
-from lightning.fabric.strategies.fsdp_xla import FSDPXLAStrategy  # noqa: F401
 from lightning.fabric.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning.fabric.strategies.registry import _call_register_strategies, _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy  # noqa: F401
 from lightning.fabric.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
 from lightning.fabric.strategies.strategy import Strategy  # noqa: F401
 from lightning.fabric.strategies.xla import XLAStrategy  # noqa: F401
+from lightning.fabric.strategies.xla_fsdp import XLAFSDPStrategy  # noqa: F401
 
 STRATEGY_REGISTRY = _StrategyRegistry()
 _STRATEGIES_BASE_MODULE = "lightning.fabric.strategies"
