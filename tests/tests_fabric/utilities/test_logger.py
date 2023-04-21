@@ -30,7 +30,7 @@ def test_convert_params():
     """Test conversion of params to a dict."""
 
     # Test normal dict, make sure it is unchanged
-    params = dict(string="string", int=1, float=0.1, bool=True, none=None)
+    params = {"string": "string", "int": 1, "float": 0.1, "bool": True, "none": None}
     expected = params.copy()
     assert _convert_params(params) == expected
 

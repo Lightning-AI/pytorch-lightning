@@ -60,7 +60,7 @@ class _FabricOptimizer:
         return self._strategy.get_optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None) -> Any:
-        kwargs = dict(closure=closure) if closure is not None else {}
+        kwargs = {"closure": closure} if closure is not None else {}
         if hasattr(self._strategy, "model") and isinstance(self._strategy.model, Optimizable):
             # only DeepSpeed defines this
             optimizer = self._strategy.model
