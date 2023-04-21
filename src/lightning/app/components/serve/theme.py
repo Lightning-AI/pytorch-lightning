@@ -7,7 +7,8 @@ if _is_gradio_available():
 else:
     gradio = ModuleType("gradio")
     gradio.themes = ModuleType("gradio.themes")
-    gradio.themes.Base = ModuleType("gradio.themes.Base")
+    gradio.themes.Default = ModuleType("gradio.themes.Default")
+    gradio.themes.Color = ModuleType("gradio.themes.Color")
 
 theme = gradio.themes.Default(
     primary_hue=gradio.themes.Color(
