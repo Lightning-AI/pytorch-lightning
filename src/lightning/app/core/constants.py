@@ -118,17 +118,5 @@ def enable_interruptible_works() -> bool:
     return bool(int(os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0")))
 
 
-# Get Cluster Driver
-_CLUSTER_DRIVERS = [None, "k8s", "direct"]
-
-
 def get_cluster_driver() -> Optional[str]:
-    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
-    if value is None:
-        if enable_interruptible_works():
-            value = "direct"
-        else:
-            value = None
-    if value not in _CLUSTER_DRIVERS:
-        raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
-    return value
+    return "direct"
