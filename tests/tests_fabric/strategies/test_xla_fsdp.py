@@ -14,27 +14,22 @@
 import os
 from functools import partial
 from unittest import mock
-from unittest.mock import ANY, MagicMock, Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-
-import torch_xla.core.xla_model as xm
+from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
 from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
-from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
+from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from lightning.fabric.utilities.distributed import ReduceOp
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
-
-from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
@@ -132,6 +127,7 @@ def test_xla_fsdp_mp_device_dataloader_attribute(_, monkeypatch):
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
     assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
+
 @RunIf(tpu=True)
 def tpu_all_gather_fn(strategy):
     with pytest.raises(NotImplementedError, match="only implemented for tensors"):
@@ -164,7 +160,9 @@ def test_tpu_all_gather():
 def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
-    strategy = XLAFSDPStrategy(parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),)
+    strategy = XLAFSDPStrategy(
+        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+    )
 
     with mock.patch("lightning.fabric.strategies.xla_fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):
         bad_optimizer_1 = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
