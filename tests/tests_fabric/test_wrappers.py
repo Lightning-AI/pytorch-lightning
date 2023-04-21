@@ -67,7 +67,7 @@ def test_fabric_module_attribute_lookup():
 
 
 def test_fabric_module_method_lookup():
-    """Test that access to methods warns about inproper use when a wrapper from a strategy is involved."""
+    """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
     from lightning.fabric.wrappers import warning_cache
 
     class OriginalModule(torch.nn.Module):
