@@ -2,7 +2,6 @@ import json
 import os
 import pathlib
 import pickle
-import sys
 from re import escape
 from time import sleep
 from unittest import mock, TestCase
