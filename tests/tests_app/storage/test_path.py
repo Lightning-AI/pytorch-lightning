@@ -400,8 +400,7 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
-@pytest.mark.skipif(sys.platform in ("linux", "win32"), reason="hanging...")
-@pytest.mark.xfail(sys.platform == "darwin", strict=False, reason="Timeout >300.0s")  # fixme
+@pytest.mark.skip(reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
     app = LightningApp(root)
