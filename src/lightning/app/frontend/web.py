@@ -55,14 +55,14 @@ class StaticWebFrontend(Frontend):
         log_file = str(get_logfile())
         self._process = mp.Process(
             target=_start_server,
-            kwargs=dict(
-                host=host,
-                port=port,
-                serve_dir=self.serve_dir,
-                path=f"/{self.flow.name}",
-                log_file=log_file,
-                root_path=root_path,
-            ),
+            kwargs={
+                "host": host,
+                "port": port,
+                "serve_dir": self.serve_dir,
+                "path": f"/{self.flow.name}",
+                "log_file": log_file,
+                "root_path": root_path,
+            },
         )
         self._process.start()
 
