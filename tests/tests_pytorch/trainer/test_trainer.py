@@ -2007,8 +2007,8 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
         mock_mps_count(monkeypatch, 1)
     elif trainer_kwargs.get("accelerator") == "ipu":
-        monkeypatch.setattr(lightning.pytorch.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
-        monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+        monkeypatch.setattr(lightning_graphcore.IPUAccelerator, "is_available", lambda: True)
+        monkeypatch.setattr(lightning_graphcore, "_IPU_AVAILABLE", lambda: True)
 
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids

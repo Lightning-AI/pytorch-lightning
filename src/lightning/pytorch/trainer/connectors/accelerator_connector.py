@@ -68,6 +68,7 @@ from lightning.pytorch.utilities.imports import (
     _LIGHTNING_BAGUA_AVAILABLE,
     _LIGHTNING_COLOSSALAI_AVAILABLE,
     _LIGHTNING_HABANA_AVAILABLE,
+    _LIGHTNING_GRAPHCORE_AVAILABLE,
 )
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -352,8 +353,11 @@ class _AcceleratorConnector:
         """Choose the accelerator type (str) based on availability."""
         if TPUAccelerator.is_available():
             return "tpu"
-        if IPUAccelerator.is_available():
-            return "ipu"
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            if IPUAccelerator.is_available():
+                return "ipu"
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUAccelerator
 
@@ -423,6 +427,12 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
+            if not _LIGHTNING_GRAPHCORE_AVAILABLE:
+                raise ImportError(
+                    "You have asked for IPU but you miss install related integration."
+                    " Please run `pip install lightning-graphcore` or see for further instructions"
+                    " in https://github.com/Lightning-AI/lightning-Graphcore/."
+                )
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
             if not _LIGHTNING_HABANA_AVAILABLE:
@@ -497,8 +507,10 @@ class _AcceleratorConnector:
         if isinstance(self._precision_plugin_flag, PrecisionPlugin):
             return self._precision_plugin_flag
 
-        if isinstance(self.accelerator, IPUAccelerator):
-            return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator, IPUPrecisionPlugin
+            if isinstance(self.accelerator, IPUAccelerator):
+                return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
 
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
@@ -699,3 +711,12 @@ def _register_external_accelerators_and_strategies() -> None:
             HPUParallelStrategy.register_strategies(StrategyRegistry)
         if "hpu_single" not in StrategyRegistry:
             SingleHPUStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        from lightning_graphcore import IPUAccelerator, IPUStrategy
+
+        # TODO: Prevent registering multiple times
+        if "hpu" not in AcceleratorRegistry:
+            IPUAccelerator.register_accelerators(AcceleratorRegistry)
+        if "hpu" not in StrategyRegistry:
+            IPUStrategy.register_strategies(StrategyRegistry)
