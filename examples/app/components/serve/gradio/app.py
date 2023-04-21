@@ -1,6 +1,3 @@
-
- 
-
 from functools import partial
 
 import gradio as gr

@@ -1,5 +1,6 @@
-from lightning.app.utilities.imports import _is_gradio_available
 from types import ModuleType
+
+from lightning.app.utilities.imports import _is_gradio_available
 
 if _is_gradio_available():
     import gradio
