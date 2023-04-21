@@ -126,7 +126,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 return [dataloader(ds) for ds in predict_dataset]
             return dataloader(predict_dataset)
 
-        candidate_kwargs = dict(batch_size=batch_size, num_workers=num_workers)
+        candidate_kwargs = {"batch_size": batch_size, "num_workers": num_workers}
         accepted_params = inspect.signature(cls.__init__).parameters
         accepts_kwargs = any(param.kind == param.VAR_KEYWORD for param in accepted_params.values())
         if accepts_kwargs:
@@ -153,7 +153,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         Returns:
             A dictionary containing datamodule state.
         """
-        return dict()
+        return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.

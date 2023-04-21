@@ -444,7 +444,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         if self.last_epoch > 0:
             val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         else:
-            val = [base_lr for base_lr in self.base_lrs]
+            val = list(self.base_lrs)
         self._lr = val
         return val
 
@@ -479,7 +479,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         if self.last_epoch > 0:
             val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:
-            val = [base_lr for base_lr in self.base_lrs]
+            val = list(self.base_lrs)
         self._lr = val
         return val
 

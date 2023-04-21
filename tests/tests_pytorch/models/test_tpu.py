@@ -43,15 +43,15 @@ class SerialLoaderBoringModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        accelerator="tpu",
-        devices=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "accelerator": "tpu",
+        "devices": 1,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
@@ -62,15 +62,15 @@ def test_model_tpu_devices_1(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        accelerator="tpu",
-        devices=[tpu_core],
-        limit_train_batches=4,
-        limit_val_batches=4,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "accelerator": "tpu",
+        "devices": [tpu_core],
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
@@ -83,15 +83,15 @@ def test_model_tpu_index(tmpdir, tpu_core):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        accelerator="tpu",
-        devices=8,
-        limit_train_batches=4,
-        limit_val_batches=4,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "accelerator": "tpu",
+        "devices": 8,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+    }
 
     # 8 cores needs a big dataset
     model = SerialLoaderBoringModel()
@@ -102,16 +102,16 @@ def test_model_tpu_devices_8(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        precision="16-mixed",
-        enable_progress_bar=False,
-        max_epochs=2,
-        accelerator="tpu",
-        devices=1,
-        limit_train_batches=8,
-        limit_val_batches=2,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "precision": "16-mixed",
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "accelerator": "tpu",
+        "devices": 1,
+        "limit_train_batches": 8,
+        "limit_val_batches": 2,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
@@ -122,16 +122,16 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        precision="16-mixed",
-        enable_progress_bar=False,
-        max_epochs=2,
-        accelerator="tpu",
-        devices=[tpu_core],
-        limit_train_batches=4,
-        limit_val_batches=2,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "precision": "16-mixed",
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "accelerator": "tpu",
+        "devices": [tpu_core],
+        "limit_train_batches": 4,
+        "limit_val_batches": 2,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
@@ -144,16 +144,16 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        precision="16-mixed",
-        enable_progress_bar=False,
-        max_epochs=1,
-        accelerator="tpu",
-        devices=8,
-        limit_train_batches=4,
-        limit_val_batches=4,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "precision": "16-mixed",
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "accelerator": "tpu",
+        "devices": 8,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+    }
 
     # 8 cores needs a big dataset
     model = SerialLoaderBoringModel()
@@ -190,16 +190,16 @@ def test_model_tpu_early_stop(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=4,
-        accelerator="tpu",
-        devices=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        gradient_clip_val=0.5,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 4,
+        "accelerator": "tpu",
+        "devices": 1,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.4,
+        "gradient_clip_val": 0.5,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
@@ -209,17 +209,17 @@ def test_tpu_grad_norm(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_clip_grad_by_value(tmpdir):
     """Test if clip_gradients by value works on TPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=4,
-        accelerator="tpu",
-        devices=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gradient_clip_val=0.5,
-        gradient_clip_algorithm="value",
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 4,
+        "accelerator": "tpu",
+        "devices": 1,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "gradient_clip_val": 0.5,
+        "gradient_clip_algorithm": "value",
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
@@ -317,16 +317,16 @@ def test_tpu_debug_mode(tmpdir):
         def teardown(self, stage):
             assert "PT_XLA_DEBUG" not in os.environ
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=4,
-        accelerator="tpu",
-        devices=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        strategy=XLAStrategy(debug=True),
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 4,
+        "accelerator": "tpu",
+        "devices": 8,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.4,
+        "strategy": XLAStrategy(debug=True),
+    }
 
     model = DebugModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
@@ -341,15 +341,15 @@ def test_tpu_host_world_size(tmpdir):
         def on_train_start(self):
             assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=4,
-        accelerator="tpu",
-        devices=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 4,
+        "accelerator": "tpu",
+        "devices": 8,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.4,
+    }
 
     model = DebugModel()
     assert "XRT_HOST_WORLD_SIZE" not in os.environ
