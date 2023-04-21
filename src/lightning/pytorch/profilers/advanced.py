@@ -87,5 +87,5 @@ class AdvancedProfiler(Profiler):
         return (
             self.__class__,
             (),
-            dict(dirpath=self.dirpath, filename=self.filename, line_count_restriction=self.line_count_restriction),
+            {"dirpath": self.dirpath, "filename": self.filename, "line_count_restriction": self.line_count_restriction},
         )
