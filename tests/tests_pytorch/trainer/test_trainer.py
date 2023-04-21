@@ -32,7 +32,6 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
-import lightning.pytorch
 import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
@@ -1996,8 +1995,6 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "2,"}, [2]),
         ({"accelerator": "cuda", "devices": [0, 2]}, [0, 2]),
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
-        ({"accelerator": "ipu", "devices": 1}, [0]),
-        ({"accelerator": "ipu", "devices": 2}, [0, 1]),
         pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
     ],
 )
@@ -2006,9 +2003,6 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
         mock_cuda_count(monkeypatch, 4)
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
         mock_mps_count(monkeypatch, 1)
-    elif trainer_kwargs.get("accelerator") == "ipu":
-        monkeypatch.setattr(lightning_graphcore.IPUAccelerator, "is_available", lambda: True)
-        monkeypatch.setattr(lightning_graphcore, "_IPU_AVAILABLE", lambda: True)
 
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids

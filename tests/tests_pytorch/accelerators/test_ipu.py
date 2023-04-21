@@ -26,6 +26,7 @@ from tests_pytorch.trainer.connectors.test_accelerator_connector import mock_ipu
 if _IPU_AVAILABLE:
     import poptorch
 
+
 def test_auto_device_count():
     assert IPUAccelerator.auto_device_count() == 4
 
@@ -55,6 +56,7 @@ def test_no_warning_strategy(tmpdir):
     with pytest.warns(None) as record:
         Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=IPUStrategy(training_opts=poptorch.Options()))
     assert len(record) == 0
+
 
 @RunIf(ipu=True)
 def test_accelerator_ipu():

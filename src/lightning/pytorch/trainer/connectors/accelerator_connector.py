@@ -34,14 +34,12 @@ from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
-    IPUPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
@@ -67,8 +65,8 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_BAGUA_AVAILABLE,
     _LIGHTNING_COLOSSALAI_AVAILABLE,
-    _LIGHTNING_HABANA_AVAILABLE,
     _LIGHTNING_GRAPHCORE_AVAILABLE,
+    _LIGHTNING_HABANA_AVAILABLE,
 )
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -509,6 +507,7 @@ class _AcceleratorConnector:
 
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
             from lightning_graphcore import IPUAccelerator, IPUPrecisionPlugin
+
             if isinstance(self.accelerator, IPUAccelerator):
                 return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
 
