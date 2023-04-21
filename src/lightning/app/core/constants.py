@@ -20,6 +20,9 @@ import lightning_cloud.env
 
 
 def get_lightning_cloud_url() -> str:
+    # detect local development
+    if os.getenv("VSCODE_PROXY_URI", "").startswith("http://localhost:9800"):
+        return "http://localhost:9800"
     # DO NOT CHANGE!
     return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
 
