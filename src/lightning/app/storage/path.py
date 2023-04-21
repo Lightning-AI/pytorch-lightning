@@ -427,7 +427,7 @@ def _filesystem() -> AbstractFileSystem:
     endpoint_url = os.getenv("LIGHTNING_BUCKET_ENDPOINT_URL", "")
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     if endpoint_url != "" and bucket_name != "":
-        # FIXME: Temporary fix until we remove the injection.
+        # FIXME: Temporary fix until we remove the injection from the platform
         os.environ.pop("AWS_ACCESS_KEY_ID", None)
         os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
 
