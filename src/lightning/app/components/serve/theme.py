@@ -1,4 +1,11 @@
-import gradio
+from lightning.app.utilities.imports import _is_gradio_available, 
+from types import ModuleType
+
+if _is_gradio_available():
+    import gradio
+    from gradio import themes
+else:
+    gradio = ModuleType("gradio")
 
 theme = gradio.themes.Default(
     primary_hue=gradio.themes.Color(
