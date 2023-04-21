@@ -873,10 +873,6 @@ class CloudRuntime(Runtime):
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
-        v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_QUEUE_TYPE", value="http"))
-
-        v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLUSTER_DRIVER", value="direct"))
-
         if enable_interruptible_works():
             v1_env_vars.append(
                 V1EnvVar(

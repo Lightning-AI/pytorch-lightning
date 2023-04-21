@@ -388,19 +388,28 @@ class HTTPQueue(BaseQueue):
         if timeout is None:
             while True:
                 try:
-                    return self._get()
+                    try:
+                        return self._get()
+                    except requests.exceptions.HTTPError:
+                        pass
                 except queue.Empty:
                     time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
         # make one request and return the result
         if timeout == 0:
-            return self._get()
+            try:
+                return self._get()
+            except requests.exceptions.HTTPError:
+                return None
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
         while (time.time() - start_time) < timeout:
             try:
-                return self._get()
+                try:
+                    return self._get()
+                except requests.exceptions.HTTPError:
+                    raise queue.Empty
             except queue.Empty:
                 # Note: In theory, there isn't a need for a sleep as the queue shouldn't
                 # block the flow if the queue is empty.
