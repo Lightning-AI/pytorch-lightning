@@ -93,21 +93,21 @@ class WorkWithTwoDrives(LightningWork):
 
 
 def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
-    default_request_body = dict(
-        app_entrypoint_file=mock.ANY,
-        enable_app_server=True,
-        is_headless=True,
-        flow_servers=[],
-        image_spec=None,
-        works=[],
-        local_source=True,
-        dependency_cache_key=mock.ANY,
-        user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+    default_request_body = {
+        "app_entrypoint_file": mock.ANY,
+        "enable_app_server": True,
+        "is_headless": True,
+        "flow_servers": [],
+        "image_spec": None,
+        "works": [],
+        "local_source": True,
+        "dependency_cache_key": mock.ANY,
+        "user_requested_flow_compute_config": V1UserRequestedFlowComputeConfig(
             name="flow-lite",
             preemptible=False,
             shm_size=0,
         ),
-    )
+    }
 
     if kwargs.get("user_requested_flow_compute_config") is not None:
         default_request_body["user_requested_flow_compute_config"] = kwargs["user_requested_flow_compute_config"]
