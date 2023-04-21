@@ -1,9 +1,8 @@
-from lightning.app.utilities.imports import _is_gradio_available, 
+from lightning.app.utilities.imports import _is_gradio_available
 from types import ModuleType
 
 if _is_gradio_available():
     import gradio
-    from gradio import themes
 else:
     gradio = ModuleType("gradio")
 
