@@ -52,7 +52,6 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    IPUStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -342,6 +341,15 @@ class _AcceleratorConnector:
             )
 
     def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
+        if not _LIGHTNING_GRAPHCORE_AVAILABLE:
+            raise ImportError(
+                "You have asked for IPU but you miss install related integration."
+                " Please run `pip install lightning-graphcore` or see for further instructions"
+                " in https://github.com/Lightning-AI/lightning-Graphcore/."
+            )
+
+        from lightning_graphcore import IPUStrategy
+
         # current logic only apply to object config
         # TODO this logic should apply to both str and object config
         if isinstance(self._strategy_flag, IPUStrategy):
@@ -431,6 +439,8 @@ class _AcceleratorConnector:
                     " Please run `pip install lightning-graphcore` or see for further instructions"
                     " in https://github.com/Lightning-AI/lightning-Graphcore/."
                 )
+            from lightning_graphcore import IPUStrategy
+
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
             if not _LIGHTNING_HABANA_AVAILABLE:
@@ -715,7 +725,7 @@ def _register_external_accelerators_and_strategies() -> None:
         from lightning_graphcore import IPUAccelerator, IPUStrategy
 
         # TODO: Prevent registering multiple times
-        if "hpu" not in AcceleratorRegistry:
+        if "ipu" not in AcceleratorRegistry:
             IPUAccelerator.register_accelerators(AcceleratorRegistry)
-        if "hpu" not in StrategyRegistry:
+        if "ipu" not in StrategyRegistry:
             IPUStrategy.register_strategies(StrategyRegistry)

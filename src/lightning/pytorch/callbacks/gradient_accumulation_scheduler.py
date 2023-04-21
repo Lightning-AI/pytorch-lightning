@@ -121,10 +121,9 @@ class GradientAccumulationScheduler(Callback):
             )
 
         # local import to avoid circular import
-        from lightning.pytorch.accelerators import IPUAccelerator
         from lightning.pytorch.strategies import DeepSpeedStrategy
 
-        unsupported_accelerators = (IPUAccelerator,)
+        unsupported_accelerators = set()
         unsupported_strategies = [DeepSpeedStrategy]
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIStrategy

@@ -169,8 +169,6 @@ class _DataConnector:
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
-            and not isinstance(self.trainer.accelerator, IPUAccelerator)
         )
 
     def _prepare_dataloader(self, dataloader: object, shuffle: bool, mode: RunningStage) -> object:
@@ -186,8 +184,6 @@ class _DataConnector:
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
-            or isinstance(self.trainer.accelerator, IPUAccelerator)
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)

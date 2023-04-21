@@ -16,6 +16,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -122,10 +123,13 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
     for hook in batch_transfer_hooks:
-        if isinstance(trainer.accelerator, IPUAccelerator) and (
-            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
-        ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            if isinstance(trainer.accelerator, IPUAccelerator) and (
+                is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+            ):
+                raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:

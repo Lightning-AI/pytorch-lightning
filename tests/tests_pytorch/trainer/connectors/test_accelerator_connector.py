@@ -56,7 +56,7 @@ from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_ava
 from tests_pytorch.helpers.runif import RunIf
 
 if _LIGHTNING_GRAPHCORE_AVAILABLE:
-    from lightning_habana import IPUAccelerator, IPUStrategy
+    from lightning_graphcore import IPUAccelerator, IPUStrategy
 
 if _LIGHTNING_HABANA_AVAILABLE:
     from lightning_habana import HPUAccelerator, SingleHPUStrategy

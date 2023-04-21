@@ -30,6 +30,7 @@ from lightning.pytorch.profilers import (
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _HPU_AVAILABLE,
+    _IPU_AVAILABLE,
     _LIGHTNING_GRAPHCORE_AVAILABLE,
     _LIGHTNING_HABANA_AVAILABLE,
 )
@@ -192,8 +193,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     if TPUAccelerator.is_available() and not isinstance(trainer.accelerator, TPUAccelerator):
         rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
-    if _IPU_AVAILABLE and not isinstance(trainer.accelerator, IPUAccelerator):
-
+    if _IPU_AVAILABLE:
         if not _LIGHTNING_GRAPHCORE_AVAILABLE:
             raise ModuleNotFoundError(
                 "You are running on IPU machine but you have not installed `lightning-graphcore`"
