@@ -439,7 +439,11 @@ def test_step_method_redirection():
 
     # The special methods get redirected correctly to produce the expected output
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
+    assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
+
+    # The forward method remains untouched/unpatched after the special methods have been called
+    assert original_module.forward.__name__ == "forward"
 
     # Special case: forward_module == original_module -> no special treatment applied
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
