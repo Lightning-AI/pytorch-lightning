@@ -1,11 +1,11 @@
 # Copyright The Lightning AI team.
-#	
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#	
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-#	
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,6 @@ from .theme import theme
 
 if _is_gradio_available():
     import gradio
-    from gradio import themes
 else:
     gradio = ModuleType("gradio")
     gradio.themes = ModuleType("gradio.themes")
@@ -54,7 +53,7 @@ class ServeGradio(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    def __init__(self, *args: Any, theme: Optional[themes.Base] = theme, **kwargs: Any):
+    def __init__(self, *args: Any, theme: Optional[gradio.themes.Base] = theme, **kwargs: Any):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
         assert self.outputs
