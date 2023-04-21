@@ -78,11 +78,11 @@ class ServeGradio(LightningWork, abc.ABC):
             title=self.title,
             description=self.description,
             theme=self._theme,
-          ).launch(
-              server_name=self.host,
-              server_port=self.port,
-              enable_queue=self.enable_queue,
-          )
+        ).launch(
+            server_name=self.host,
+            server_port=self.port,
+            enable_queue=self.enable_queue,
+        )
 
     def configure_layout(self) -> str:
         return self.url
