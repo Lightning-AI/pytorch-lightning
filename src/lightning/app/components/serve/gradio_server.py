@@ -1,19 +1,4 @@
-# Copyright The Lightning AI team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import abc
-import os.path
 from functools import partial
 from types import ModuleType
 from typing import Any, List, Optional
@@ -21,12 +6,15 @@ from typing import Any, List, Optional
 from lightning.app.core.work import LightningWork
 from lightning.app.utilities.imports import _is_gradio_available, requires
 
-DEFAULT_CSS_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gradio.css")
+from .theme import theme
 
 if _is_gradio_available():
     import gradio
+    from gradio import themes
 else:
     gradio = ModuleType("gradio")
+    gradio.themes = ModuleType("gradio.themes")
+    gradio.themes.Base = ModuleType("gradio.themes.Base")
 
 
 class ServeGradio(LightningWork, abc.ABC):
@@ -52,12 +40,12 @@ class ServeGradio(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    def __init__(self, *args: Any, css: Optional[str] = None, **kwargs: Any):
+    def __init__(self, *args: Any, theme: Optional[themes.Base] = theme, **kwargs: Any):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
         assert self.outputs
         self._model = None
-        self._css = css
+        self._theme = theme
 
         self.ready = False
 
@@ -89,12 +77,12 @@ class ServeGradio(LightningWork, abc.ABC):
             examples=self.examples,
             title=self.title,
             description=self.description,
-            css=self._css or DEFAULT_CSS_FILE_PATH,
-        ).launch(
-            server_name=self.host,
-            server_port=self.port,
-            enable_queue=self.enable_queue,
-        )
+            theme=self._theme,
+          ).launch(
+              server_name=self.host,
+              server_port=self.port,
+              enable_queue=self.enable_queue,
+          )
 
     def configure_layout(self) -> str:
         return self.url

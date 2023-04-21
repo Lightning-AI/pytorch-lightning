@@ -28,5 +28,5 @@ def test_serve_gradio(gradio_mock):
     assert comp.model == "model"
     assert comp.predict() == "prediction"
     gradio_mock.Interface.assert_called_once_with(
-        fn=ANY, inputs=ANY, outputs=ANY, examples=ANY, title=None, description=None, css=ANY
+        fn=ANY, inputs=ANY, outputs=ANY, examples=ANY, title=None, description=None, theme=ANY
     )
