@@ -16,7 +16,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
