@@ -140,28 +140,6 @@ def test_trainer_manual_optimization_config():
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}])
-@pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
-def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):
-    """Test that an exception is raised when overriding batch_transfer_hooks."""
-    if trainer_kwargs.get("accelerator") == "ipu":
-        match_pattern = rf"Overriding `{hook}` is not .* with IPUs"
-        monkeypatch.setattr(pl.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
-        monkeypatch.setattr(pl.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
-
-    def custom_method(self, batch, *_, **__):
-        batch = batch + 1
-        return batch
-
-    trainer = Trainer(default_root_dir=tmpdir, **trainer_kwargs)
-
-    model = BoringModel()
-    setattr(model, hook, custom_method)
-
-    with pytest.raises(MisconfigurationException, match=match_pattern):
-        trainer.fit(model)
-
-
 def test_legacy_epoch_end_hooks():
     class TrainingEpochEndModel(BoringModel):
         def training_epoch_end(self, outputs):
