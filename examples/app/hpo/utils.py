@@ -27,8 +27,8 @@ def download_data(url: str, path: str = "data/", verbose: bool = False) -> None:
     chunk_size = 1024
     num_bars = int(file_size / chunk_size)
     if verbose:
-        print(dict(file_size=file_size))
-        print(dict(num_bars=num_bars))
+        print({"file_size": file_size})
+        print({"num_bars": num_bars})
 
     if not os.path.exists(local_filename):
         with open(local_filename, "wb") as fp:

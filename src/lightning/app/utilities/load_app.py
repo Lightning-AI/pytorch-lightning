@@ -283,11 +283,11 @@ def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
     extras = {}
 
     if isinstance(obj, LightningWork):
-        extras = dict(
-            local_build_config=obj.local_build_config.to_dict(),
-            cloud_build_config=obj.cloud_build_config.to_dict(),
-            cloud_compute=obj.cloud_compute.to_dict(),
-        )
+        extras = {
+            "local_build_config": obj.local_build_config.to_dict(),
+            "cloud_build_config": obj.cloud_build_config.to_dict(),
+            "cloud_compute": obj.cloud_compute.to_dict(),
+        }
 
     return dict(
         affiliation=obj.name.split("."),
@@ -301,4 +301,4 @@ def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
 def extract_metadata_from_app(app: "LightningApp") -> List:
     metadata = {flow.name: component_to_metadata(flow) for flow in app.flows}
     metadata.update({work.name: component_to_metadata(work) for work in app.works})
-    return list(metadata[key] for key in sorted(metadata.keys()))
+    return [metadata[key] for key in sorted(metadata.keys())]

@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
@@ -93,13 +93,16 @@ def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
         trainer.save_checkpoint(instance_path)
         io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
-    with mock.patch(
-        "lightning.pytorch.trainer.connectors.checkpoint_connector._CheckpointConnector.save_checkpoint"
-    ) as cc_mock:
+    checkpoint_mock = Mock()
+    with mock.patch.object(trainer.strategy, "save_checkpoint") as save_mock, mock.patch.object(
+        trainer._checkpoint_connector, "dump_checkpoint", return_value=checkpoint_mock
+    ) as dump_mock:
         trainer.save_checkpoint(instance_path, True)
-        cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)
+        dump_mock.assert_called_with(True)
+        save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=None)
         trainer.save_checkpoint(instance_path, False, instance_storage_options)
-        cc_mock.assert_called_with(instance_path, weights_only=False, storage_options=instance_storage_options)
+        dump_mock.assert_called_with(False)
+        save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=instance_storage_options)
 
     torch_checkpoint_io = TorchCheckpointIO()
     with pytest.raises(

@@ -279,7 +279,7 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
         )
         raise MisconfigurationException(message) from ex
 
-    attrs_record = getattr(orig_object, "__pl_attrs_record", list())
+    attrs_record = getattr(orig_object, "__pl_attrs_record", [])
     for args, fn in attrs_record:
         fn(result, *args)
 
@@ -353,7 +353,7 @@ def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
         if first_call and not getattr(obj, "__pl_inside_init", True):
             # and save the value it was called with to the internal list,
             # if we're outside of __init__ and the original call did not fail and we're the first call
-            attrs_record = getattr(obj, "__pl_attrs_record", list())
+            attrs_record = getattr(obj, "__pl_attrs_record", [])
             attrs_record.append((args, tag))
             object.__setattr__(obj, "__pl_attrs_record", attrs_record)
         object.__setattr__(obj, "__pl_current_call", (prev_call_name, prev_call_method))

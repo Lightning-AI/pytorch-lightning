@@ -178,7 +178,7 @@ class LightningWork:
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
         # tuple instead of a list so that it cannot be modified without using the setter
-        self._lightningignore: Tuple[str, ...] = tuple()
+        self._lightningignore: Tuple[str, ...] = ()
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()

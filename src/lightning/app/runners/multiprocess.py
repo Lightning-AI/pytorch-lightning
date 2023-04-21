@@ -105,17 +105,17 @@ class MultiProcessRuntime(Runtime):
                     commands = _prepare_commands(self.app)
                     apis += _commands_to_api(commands, info=self.app.info)
 
-                kwargs = dict(
-                    apis=apis,
-                    host=self.host,
-                    port=self.port,
-                    api_response_queue=self.app.api_response_queue,
-                    api_publish_state_queue=self.app.api_publish_state_queue,
-                    api_delta_queue=self.app.api_delta_queue,
-                    has_started_queue=has_started_queue,
-                    spec=extract_metadata_from_app(self.app),
-                    root_path=self.app.root_path,
-                )
+                kwargs = {
+                    "apis": apis,
+                    "host": self.host,
+                    "port": self.port,
+                    "api_response_queue": self.app.api_response_queue,
+                    "api_publish_state_queue": self.app.api_publish_state_queue,
+                    "api_delta_queue": self.app.api_delta_queue,
+                    "has_started_queue": has_started_queue,
+                    "spec": extract_metadata_from_app(self.app),
+                    "root_path": self.app.root_path,
+                }
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)
                 self.processes["server"] = server_proc
                 server_proc.start()

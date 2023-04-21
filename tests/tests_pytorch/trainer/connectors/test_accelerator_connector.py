@@ -558,6 +558,7 @@ def test_unsupported_tpu_choice(tpu_available):
 def mock_ipu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning.pytorch.accelerators.ipu, "_IPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.trainer.setup, "_IPU_AVAILABLE", value)
 
 
 def test_unsupported_ipu_choice(monkeypatch):
@@ -813,6 +814,20 @@ def test_bagua_external_strategy(monkeypatch):
 class DeviceMock(Mock):
     def __instancecheck__(self, instance):
         return True
+
+
+@RunIf(skip_windows=True)
+def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
+    accelerator = TPUAccelerator()
+    trainer = Trainer(accelerator=accelerator, devices=1)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, SingleTPUStrategy)
+
+    trainer = Trainer(accelerator=accelerator)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, XLAStrategy)
 
 
 @pytest.mark.parametrize("is_interactive", (False, True))
