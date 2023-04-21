@@ -428,8 +428,9 @@ def _filesystem() -> AbstractFileSystem:
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     if endpoint_url != "" and bucket_name != "":
         # FIXME: Temporary fix until we remove the injection from the platform
-        os.environ.pop("AWS_ACCESS_KEY_ID", None)
-        os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
+        if "AWS_ACCESS_KEY_ID" in os.environ:
+            del os.environ["AWS_ACCESS_KEY_ID"]
+            del os.environ["AWS_SECRET_ACCESS_KEY"]
 
         fs = S3FileSystem()
 
