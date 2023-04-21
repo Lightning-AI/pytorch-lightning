@@ -23,7 +23,7 @@ source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults="-m coverage run --source ${source} --append -m pytest --no-header -v -s"
+defaults="-m coverage run --source ${source} --append -m pytest --no-header -v -s --timeout 120"
 echo "Using defaults: ${defaults}"
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
@@ -35,9 +35,9 @@ files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
+  parametrizations=$(python3 -m pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
 else
-  parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | head -n -2)
+  parametrizations=$(python3 -m pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 # remove the "tests/tests_pytorch/" path suffixes
 path_suffix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https://stackoverflow.com/a/8223345
@@ -74,7 +74,7 @@ for i in "${!parametrizations_arr[@]}"; do
     # execute the test in the background
     # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
     # output to std{out,err} because the outputs would be garbled together
-    python ${defaults} "$parametrization" &>> standalone_test_output.txt &
+    python3 ${defaults} "$parametrization" &>> standalone_test_output.txt &
     # save the PID in an array
     pids[${i}]=$!
     # add row to the final report
