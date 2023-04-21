@@ -409,6 +409,8 @@ class HTTPQueue(BaseQueue):
                 try:
                     return self._get()
                 except requests.exceptions.HTTPError:
+                    if timeout > self.default_timeout:
+                        return None
                     raise queue.Empty
             except queue.Empty:
                 # Note: In theory, there isn't a need for a sleep as the queue shouldn't
