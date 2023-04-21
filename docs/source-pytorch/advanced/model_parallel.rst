@@ -88,9 +88,9 @@ simplest way to do it is auto wrapping, which can serve as a drop-in replacement
 have to ``wrap`` layers manually as in the case of manual wrapping.
 
 .. note::
-    While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
+    For users of PyTorch < 2.0: While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
     PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
-    ``lightning_module.parameters()`` will return a generator with no params. This inconvenience will be addressed in the future.
+    ``lightning_module.parameters()`` will return a generator with no params.
 
 
 .. code-block:: python

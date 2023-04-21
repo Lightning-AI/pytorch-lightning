@@ -50,7 +50,7 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
 @RunIf(skip_windows=True)
 @mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
-def test_xla_debug_strategy_registry(_, tpu_available, xla_available):
+def test_xla_debug_strategy_registry(_, tpu_available):
     strategy = "xla_debug"
 
     assert strategy in StrategyRegistry
