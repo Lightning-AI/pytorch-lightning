@@ -145,7 +145,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             # because itself may want to call the real `forward`
             self._original_module.forward = original_forward
             # Call the actual method e.g. `.training_step(...)`
-            return getattr(self._original_module, method_name)(*args, **kwargs)
+            method = getattr(self._original_module, method_name)
+            return method(*args, **kwargs)
 
         # We make the caller "unknowingly" send their arguments through the forward_module's `__call__`.
         # We expect that the `forward_module` will eventually call `original_module.forward`, which we
