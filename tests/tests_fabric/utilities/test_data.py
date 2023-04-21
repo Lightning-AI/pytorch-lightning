@@ -143,60 +143,60 @@ class ChangingDataLoader(DataLoader):
         pytest.param(
             DataLoaderSubclass1,
             ("attribute1",),
-            dict(dataset=range(4), batch_size=2),
+            {"dataset": range(4), "batch_size": 2},
             ("attribute1",),
             range(4),
-            dict(batch_size=2, at1="attribute1"),
+            {"batch_size": 2, "at1": "attribute1"},
             id="test1",
         ),
         pytest.param(
             DataLoaderSubclass2,
             ("attribute2",),
-            dict(dataset=range(4), batch_size=2),
+            {"dataset": range(4), "batch_size": 2},
             ("attribute2",),
             range(4),
-            dict(batch_size=2, at1="attribute2-2", at2="attribute2"),
+            {"batch_size": 2, "at1": "attribute2-2", "at2": "attribute2"},
             id="test2",
         ),
         pytest.param(
             MyDataLoader,
             (test3_data,),
-            dict(batch_size=2),
+            {"batch_size": 2},
             ("data",),
             range(10),
-            dict(batch_size=2, data=test3_data),
+            {"batch_size": 2, "data": test3_data},
             id="test3",
         ),
-        pytest.param(PoptorchDataLoader, (123, [1]), dict(), ("options",), [1], dict(options=123), id="test4"),
+        pytest.param(PoptorchDataLoader, (123, [1]), {}, ("options",), [1], {"options": 123}, id="test4"),
         pytest.param(
             IncompleteDataLoader,
             (range(10),),
-            dict(batch_size=10),
+            {"batch_size": 10},
             ("dataset",),
             range(10),
-            dict(batch_size=5),
+            {"batch_size": 5},
             id="test5",
         ),
         pytest.param(
             WeirdDataLoader1,
             (10, range(10)),
-            dict(batch_size=10),
+            {"batch_size": 10},
             ("arg1", "arg2"),
             range(10),
-            dict(arg1=10, batch_size=10),
+            {"arg1": 10, "batch_size": 10},
             id="test6",
         ),
         pytest.param(
             WeirdDataLoader2,
             (range(10), range(10, 20)),
-            dict(batch_size=10),
+            {"batch_size": 10},
             ("data_part1", "data_part2"),
             list(range(20)),
-            dict(batch_size=10),
+            {"batch_size": 10},
             id="test7",
         ),
-        pytest.param(NoneDataLoader, (None,), dict(), (), None, dict(), id="test8"),
-        pytest.param(ChangingDataLoader, (range(5),), dict(), ("dataset",), list(range(10)), dict(), id="test9"),
+        pytest.param(NoneDataLoader, (None,), {}, (), None, {}, id="test8"),
+        pytest.param(ChangingDataLoader, (range(5),), {}, ("dataset",), list(range(10)), {}, id="test9"),
     ],
 )
 def test_replace_dunder_methods_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
@@ -323,7 +323,7 @@ def test_replace_dunder_methods_restore_methods():
     class AllDunder(Init, SetAttr, DelAttr):
         pass
 
-    before = dict()
+    before = {}
     for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
         before[cls] = {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
 

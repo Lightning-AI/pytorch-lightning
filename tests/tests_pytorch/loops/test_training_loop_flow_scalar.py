@@ -151,7 +151,7 @@ def test_train_step_no_return(tmpdir):
             self.validation_step_called = True
 
     model = TestModel()
-    trainer_args = dict(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer_args = {"default_root_dir": tmpdir, "fast_dev_run": 2}
     trainer = Trainer(**trainer_args)
 
     Closure.warning_cache.clear()

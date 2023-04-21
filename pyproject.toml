@@ -57,6 +57,7 @@ select = [
     "F",  # see: https://pypi.org/project/pyflakes
 ]
 extend-select = [
+    "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
 ]
 ignore = [

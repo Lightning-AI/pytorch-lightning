@@ -45,9 +45,9 @@ if _CLICK_AVAILABLE:
 
     @click.command(
         "model",
-        context_settings=dict(
-            ignore_unknown_options=True,
-        ),
+        context_settings={
+            "ignore_unknown_options": True,
+        },
     )
     @click.argument(
         "script",

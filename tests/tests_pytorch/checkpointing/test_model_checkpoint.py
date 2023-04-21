@@ -925,15 +925,15 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     checkpoint_cb = ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)
     epochs = 2
     limit_train_batches = 2
-    trainer_config = dict(
-        default_root_dir=tmpdir,
-        max_epochs=epochs,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=3,
-        limit_test_batches=4,
-        callbacks=[checkpoint_cb],
-        logger=TensorBoardLogger(tmpdir),
-    )
+    trainer_config = {
+        "default_root_dir": tmpdir,
+        "max_epochs": epochs,
+        "limit_train_batches": limit_train_batches,
+        "limit_val_batches": 3,
+        "limit_test_batches": 4,
+        "callbacks": [checkpoint_cb],
+        "logger": TensorBoardLogger(tmpdir),
+    }
     trainer = Trainer(**trainer_config)
     assert_trainer_init(trainer)
 
@@ -983,7 +983,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
 def test_configure_model_checkpoint(tmpdir):
     """Test all valid and invalid ways a checkpoint callback can be passed to the Trainer."""
-    kwargs = dict(default_root_dir=tmpdir)
+    kwargs = {"default_root_dir": tmpdir}
     callback1 = ModelCheckpoint(monitor="foo")
     callback2 = ModelCheckpoint(monitor="bar")
 
