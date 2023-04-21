@@ -363,7 +363,7 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._precision.backward(tensor, module, *args, **kwargs)
+        self._strategy.backward(tensor, module, *args, **kwargs)
 
     def clip_gradients(
         self,
