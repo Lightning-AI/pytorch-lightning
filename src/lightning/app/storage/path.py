@@ -234,12 +234,12 @@ class Path(PathlibPath):
 
     def to_dict(self) -> dict:
         """Serialize this Path to a dictionary."""
-        return dict(
-            path=str(self),
-            origin_name=self.origin_name,
-            consumer_name=self.consumer_name,
-            metadata=self._metadata,
-        )
+        return {
+            "path": str(self),
+            "origin_name": self.origin_name,
+            "consumer_name": self.consumer_name,
+            "metadata": self._metadata,
+        }
 
     @classmethod
     def from_dict(cls, content: dict) -> "Path":

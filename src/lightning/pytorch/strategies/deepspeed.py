@@ -568,7 +568,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.

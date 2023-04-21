@@ -891,14 +891,14 @@ def test_disabled_training(tmpdir):
 
     model = CurrentModel()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=0.0,
-        limit_val_batches=0.2,
-        fast_dev_run=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 0.0,
+        "limit_val_batches": 0.2,
+        "fast_dev_run": False,
+    }
 
     before_state_dict = deepcopy(model.state_dict())
 
@@ -946,14 +946,14 @@ def test_disabled_validation(tmpdir):
 
     model = CurrentModel()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=0.4,
-        limit_val_batches=0.0,
-        fast_dev_run=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.0,
+        "fast_dev_run": False,
+    }
 
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
@@ -1528,14 +1528,14 @@ def test_train_loop_system(tmpdir):
     """
     called_methods = []
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        enable_progress_bar=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 5,
+        "limit_val_batches": 1,
+        "limit_test_batches": 1,
+        "enable_progress_bar": False,
+    }
 
     class TestOptimizer(SGD):
         def step(self, *args, **kwargs):
@@ -1730,15 +1730,15 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     initial = current_memory()
 
     model = TestModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        accelerator="gpu",
-        devices=1,
-        strategy="ddp",
-        enable_progress_bar=False,
-        callbacks=Check(),
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "fast_dev_run": True,
+        "accelerator": "gpu",
+        "devices": 1,
+        "strategy": "ddp",
+        "enable_progress_bar": False,
+        "callbacks": Check(),
+    }
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 

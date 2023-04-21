@@ -161,7 +161,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     def setup_environment(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")

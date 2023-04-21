@@ -80,16 +80,16 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
 @RunIf(min_cuda_gpus=2, onnx=True)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-        enable_progress_bar=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+        "enable_progress_bar": False,
+    }
 
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)

@@ -133,15 +133,15 @@ def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-        callbacks=[checkpoint_callback],
-        num_sanity_val_steps=0,
-    )
+    trainer_args = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "logger": False,
+        "callbacks": [checkpoint_callback],
+        "num_sanity_val_steps": 0,
+    }
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 
