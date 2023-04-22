@@ -26,7 +26,7 @@ The same can be done with code inside a function:
     fabric = Fabric(devices=2)
     fabric.launch(run)
 
-For example, you can use the latter for multi-GPU training inside a Jupyter notebook.
+For example, you can use the latter for multi-GPU training inside a :doc:`Jupyter notebook <../fundamentals/notebooks>`.
 For launching distributed training with the CLI, multi-node cluster, or cloud, see :doc:`../fundamentals/launch`.
 
 setup
