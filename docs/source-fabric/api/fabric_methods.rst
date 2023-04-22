@@ -22,6 +22,7 @@ The same can be done with code inside a function:
         # Your distributed code here
         ...
 
+
     # Launch a function on 2 devices and init distributed backend
     fabric = Fabric(devices=2)
     fabric.launch(run)
