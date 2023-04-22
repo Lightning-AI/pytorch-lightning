@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from contextlib import _GeneratorContextManager, contextmanager
+from contextlib import contextmanager
 from typing import Any, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
@@ -32,10 +32,8 @@ from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-)
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -109,13 +107,12 @@ class XLAFSDPStrategy(ParallelStrategy):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
-        """Returns NotImplementedError since for XLA FSDP optimizer setup must happen after module setup"""
+        """Returns NotImplementedError since for XLA FSDP optimizer setup must happen after module setup."""
         raise NotImplementedError(
             f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
             " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
             " call `setup_optimizer`."
         )
-
 
     def setup_module(self, module: Module) -> Module:
         if "auto_wrap_policy" in self._fsdp_kwargs and any(isinstance(mod, XLAFSDP) for mod in module.modules()):
@@ -327,9 +324,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def load_checkpoint():
         # TODO all training processes need to load their corresponding (sharded) model and optimizer state_dict.
-        raise NotImplementedError(
-            "This strategy does not currently support loading checkpoints."
-        )
+        raise NotImplementedError("This strategy does not currently support loading checkpoints.")
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -354,4 +349,5 @@ class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
+
     return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
