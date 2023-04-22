@@ -137,13 +137,10 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
     assert fabric_model.device == expected_device
     assert fabric.device == target_device
 
-
-def test_setup_module_no_parameters():
-    """Test that setting up a model without parameters works."""
-    fabric = Fabric(devices=1)
-    model = nn.Sequential()  # has no params
-    model = fabric.setup(model)
-    assert model.device == fabric.device
+    # edge case: model has no parameters
+    model = nn.Sequential()
+    fabric_model = setup_method(model, move_to_device=move_to_device)
+    assert fabric_model.device == target_device if move_to_device else torch.device("cpu")
 
 
 @RunIf(min_cuda_gpus=1)

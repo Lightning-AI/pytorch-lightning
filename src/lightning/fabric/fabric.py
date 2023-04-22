@@ -205,7 +205,7 @@ class Fabric:
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        module.to(self.device if move_to_device else next(module.parameters()).device)
+        module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
 
@@ -249,7 +249,7 @@ class Fabric:
 
         if not isinstance(self._strategy, FSDPStrategy):
             # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters()).device)
+            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
