@@ -133,10 +133,12 @@ You can access the Fabric instance in any of the LightningModule hooks via ``sel
 
     import lightning as L
 
+
     class LitModel(L.LightningModule):
         def on_train_start(self):
             # Access Fabric and its attributes
             print(self.fabric.world_size)
+
 
     fabric = L.Fabric()
     model = fabric.setup(LitModel())
