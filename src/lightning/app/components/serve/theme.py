@@ -8,8 +8,12 @@ else:
     gradio = ModuleType("gradio")
     gradio.themes = ModuleType("gradio.themes")
     gradio.themes.Default = ModuleType("gradio.themes.Default")
-    gradio.themes.Color = ModuleType("gradio.themes.Color")
+    class DummyColor:
+        def __init__(self, *args, **kwargs):
+            pass
 
+    gradio.themes.Color = DummyColor
+    
 theme = gradio.themes.Default(
     primary_hue=gradio.themes.Color(
         "#ffffff",
