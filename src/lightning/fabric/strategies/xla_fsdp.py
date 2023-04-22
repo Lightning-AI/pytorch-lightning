@@ -31,7 +31,7 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
-from lightning.fabric.utilities.rank_zero import rank_zero_only
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
@@ -118,7 +118,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
 
     def setup_module(self, module: Module) -> Module:
-        if "auto_wrap_policy" in self._fsdp_kwargs and any(isinstance(mod, FSDP) for mod in module.modules()):
+        if "auto_wrap_policy" in self._fsdp_kwargs and any(isinstance(mod, XLAFSDP) for mod in module.modules()):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
             del self._fsdp_kwargs["auto_wrap_policy"]
 
@@ -269,12 +269,13 @@ class XLAFSDPStrategy(ParallelStrategy):
         optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
+        groups: Optional[List[List[int]]] = None,
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
         rank_zero_warn("Gradient Clipping by Norm is currently experimental for XLA FSDP. Proceed with Caution!")
         self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type, groups=groups)
 
     def clip_gradients_value(  # type: ignore[override]
         self, module: "XlaFullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
@@ -297,14 +298,20 @@ class XLAFSDPStrategy(ParallelStrategy):
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
         """
-        """ TODO: need to save checkpoints for each device which include 
-            'model': model.state_dict(),
-            'shard_metadata': model.get_shard_metadata(),
-            'optimizer': optimizer.state_dict(),
-        """
-        raise NotImplementedError(
-            "This strategy does not currently support saving checkpoints."
-        )
+        rank_zero_warn("Saving checkpoints in the XLAFSDPStrategy requires saving a sharded checkpoint for each device. \
+        Please make sure the path specified is device specific!")
+
+        state = self._convert_stateful_objects_in_state(state)
+
+        if 'model' not in state:
+             raise ValueError('XLAFSDPStrategy requires the saved state to include \'model\'.')
+        if 'shard_metadata' not in state:
+             raise ValueError('XLAFSDPStrategy requires the saved state to include \'shard_metadata\'.')
+        if 'optimizer' not in state:
+             raise ValueError('XLAFSDPStrategy requires the saved state to include \'optimizer\'.')
+
+        self.checkpoint_io.save_checkpoint(state, path, storage_options=storage_options)
+
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -313,9 +320,10 @@ class XLAFSDPStrategy(ParallelStrategy):
             filepath: Path to checkpoint
         """
         # TODO: delete on each device
-        raise NotImplementedError(
-            "This strategy does not currently support deleting checkpoints."
-        )
+
+        rank_zero_warn("The XLAFSDPStrategy saves sharded checkpoints for each device, please make sure the filepath is device specific")
+        self.checkpoint_io.remove_checkpoint(filepath)
+
 
     def load_checkpoint():
         # TODO all training processes need to load their corresponding (sharded) model and optimizer state_dict.
