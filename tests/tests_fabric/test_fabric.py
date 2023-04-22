@@ -138,6 +138,14 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
     assert fabric.device == target_device
 
 
+def test_setup_module_no_parameters():
+    """Test that setting up a model without parameters works."""
+    fabric = Fabric(devices=1)
+    model = nn.Sequential()  # has no params
+    model = fabric.setup(model)
+    assert model.device == fabric.device
+
+
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
