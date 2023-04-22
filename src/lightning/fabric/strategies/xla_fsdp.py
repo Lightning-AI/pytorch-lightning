@@ -31,8 +31,8 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
@@ -295,20 +295,21 @@ class XLAFSDPStrategy(ParallelStrategy):
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
         """
-        rank_zero_warn("Saving checkpoints in the XLAFSDPStrategy requires saving a sharded checkpoint for each device. \
-        Please make sure the path specified is device specific!")
+        rank_zero_warn(
+            "Saving checkpoints in the XLAFSDPStrategy requires saving a sharded checkpoint for each device. \
+        Please make sure the path specified is device specific!"
+        )
 
         state = self._convert_stateful_objects_in_state(state)
 
-        if 'model' not in state:
-             raise ValueError('XLAFSDPStrategy requires the saved state to include \'model\'.')
-        if 'shard_metadata' not in state:
-             raise ValueError('XLAFSDPStrategy requires the saved state to include \'shard_metadata\'.')
-        if 'optimizer' not in state:
-             raise ValueError('XLAFSDPStrategy requires the saved state to include \'optimizer\'.')
+        if "model" not in state:
+            raise ValueError("XLAFSDPStrategy requires the saved state to include 'model'.")
+        if "shard_metadata" not in state:
+            raise ValueError("XLAFSDPStrategy requires the saved state to include 'shard_metadata'.")
+        if "optimizer" not in state:
+            raise ValueError("XLAFSDPStrategy requires the saved state to include 'optimizer'.")
 
         self.checkpoint_io.save_checkpoint(state, path, storage_options=storage_options)
-
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -318,9 +319,10 @@ class XLAFSDPStrategy(ParallelStrategy):
         """
         # TODO: delete on each device
 
-        rank_zero_warn("The XLAFSDPStrategy saves sharded checkpoints for each device, please make sure the filepath is device specific")
+        rank_zero_warn(
+            "The XLAFSDPStrategy saves sharded checkpoints for each device, please make sure the filepath is device specific"
+        )
         self.checkpoint_io.remove_checkpoint(filepath)
-
 
     def load_checkpoint():
         # TODO all training processes need to load their corresponding (sharded) model and optimizer state_dict.
