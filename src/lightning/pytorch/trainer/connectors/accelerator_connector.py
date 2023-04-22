@@ -516,10 +516,10 @@ class _AcceleratorConnector:
             return self._precision_plugin_flag
 
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
-            from lightning_graphcore import IPUAccelerator, IPUPrecisionPlugin
+            from lightning_graphcore import IPUAccelerator, IPUPrecisionugin
 
             if isinstance(self.accelerator, IPUAccelerator):
-                return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
+                return IPUPrecisionugin(self._precision_flag)  # type: ignore
 
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin

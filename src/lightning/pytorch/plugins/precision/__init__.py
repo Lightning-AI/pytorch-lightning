@@ -23,7 +23,6 @@ __all__ = [
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "FSDPMixedPrecisionPlugin",
-    "IPUPrecisionPlugin",
     "MixedPrecisionPlugin",
     "PrecisionPlugin",
     "TPUPrecisionPlugin",
