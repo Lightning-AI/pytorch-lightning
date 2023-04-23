@@ -481,6 +481,7 @@ def _delete_lightning_app(client, project_id, app_id, app_name):
 
 
 def _delete_cloud_space(client, project_id, cloud_space_id, app_name):
+    """Used to delete the parent cloudspace."""
     print(f"Deleting {app_name} id: {cloud_space_id}")
     try:
         res = client.cloud_space_service_delete_cloud_space(
