@@ -52,7 +52,7 @@ def test_extract_metadata_from_component():
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "shm_size": 0,
@@ -76,7 +76,7 @@ def test_extract_metadata_from_component():
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "shm_size": 0,
