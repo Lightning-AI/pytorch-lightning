@@ -25,8 +25,10 @@ if _is_gradio_available():
 else:
     gradio = ModuleType("gradio")
     gradio.themes = ModuleType("gradio.themes")
+
     class Base:
-      pass
+        pass
+
     gradio.themes.Base = Base
 
 
