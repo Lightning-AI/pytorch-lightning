@@ -146,7 +146,7 @@ class ServeGradio(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    def __init__(self, *args: Any, theme: Optional[gradio.themes.Base] = None, **kwargs: Any):
+    def __init__(self, *args: Any, theme: Optional[gradio.themes.Theme] = None, **kwargs: Any):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
         assert self.outputs
