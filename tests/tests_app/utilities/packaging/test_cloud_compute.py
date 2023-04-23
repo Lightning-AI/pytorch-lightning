@@ -5,7 +5,7 @@ from lightning_app.storage import Mount
 
 
 def test_cloud_compute_names():
-    assert CloudCompute().name == "default"
+    assert CloudCompute().name == "cpu-small"
     assert CloudCompute("cpu-small").name == "cpu-small"
     assert CloudCompute("coconut").name == "coconut"  # the backend is responsible for validation of names
 

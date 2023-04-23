@@ -111,6 +111,11 @@ class CloudCompute:
             if "gpu" not in self.name:
                 raise ValueError("CloudCompute `interruptible=True` is supported only with GPU.")
 
+        # FIXME: Clean the mess on the platform side
+        if self.name == "default" or self.name == "cpu":
+            self.name = "cpu-small"
+            self._internal_id = "default"
+
         # TODO: Remove from the platform first.
         self.preemptible = self.interruptible
 
@@ -147,7 +152,7 @@ class CloudCompute:
         return self._internal_id
 
     def is_default(self) -> bool:
-        return self.name == "default"
+        return self.name in ("default", "cpu-small")
 
     def _generate_id(self):
         return "default" if self.name == "default" else uuid4().hex[:7]

@@ -1799,7 +1799,7 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
                         "userRequestedComputeConfig": {
                             "count": 1,
                             "diskSize": 0,
-                            "name": "default",
+                            "name": "cpu-small",
                             "preemptible": "*",
                             "shmSize": 0,
                         },
@@ -1822,7 +1822,7 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
                         "user_requested_compute_config": {
                             "count": 1,
                             "disk_size": 0,
-                            "name": "default",
+                            "name": "cpu-small",
                             "preemptible": "*",
                             "shm_size": 0,
                         },
@@ -1881,6 +1881,8 @@ def test_incompatible_cloud_compute_and_build_config(monkeypatch):
         def __init__(self):
             super().__init__()
             self.cloud_compute = CloudCompute(name="default")
+            # TODO: Remove me
+            self.cloud_compute.name = "default"
             self.cloud_build_config = BuildConfig(image="custom")
 
         def run(self):
