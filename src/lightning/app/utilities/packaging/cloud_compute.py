@@ -111,6 +111,9 @@ class CloudCompute:
             if "gpu" not in self.name:
                 raise ValueError("CloudCompute `interruptible=True` is supported only with GPU.")
 
+        if self.name == "default" or self.name == "cpu":
+            self.name = "cpu-small"
+
         # TODO: Remove from the platform first.
         self.preemptible = self.interruptible
 
