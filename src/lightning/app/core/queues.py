@@ -452,8 +452,11 @@ class HTTPQueue(BaseQueue):
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
-        val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
-        return int(val.text)
+        try:
+            val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
+            return int(val.text)
+        except requests.exceptions.HTTPError:
+            return 0
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name: str) -> Tuple[str, str]:
