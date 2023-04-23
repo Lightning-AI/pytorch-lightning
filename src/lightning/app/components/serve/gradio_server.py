@@ -26,13 +26,14 @@ else:
     gradio = ModuleType("gradio")
     gradio.themes = ModuleType("gradio.themes")
 
-    class Base:
-        pass
 
-    gradio.themes.Base = Base
+    class __DummyBase:
+      pass
+
+    gradio.themes.Base = __DummyBase
 
 
-def lightning_gradio_theme():
+def __lightning_gradio_theme():
     return gradio.themes.Default(
         primary_hue=gradio.themes.Color(
             "#ffffff",
@@ -155,7 +156,7 @@ class ServeGradio(LightningWork, abc.ABC):
         assert self.inputs
         assert self.outputs
         self._model = None
-        self._theme = theme or lightning_gradio_theme()
+        self._theme = theme or __lightning_gradio_theme()
 
         self.ready = False
 
