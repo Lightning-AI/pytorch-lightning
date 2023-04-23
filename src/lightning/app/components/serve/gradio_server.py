@@ -26,9 +26,8 @@ else:
     gradio = ModuleType("gradio")
     gradio.themes = ModuleType("gradio.themes")
 
-
     class __DummyBase:
-      pass
+        pass
 
     gradio.themes.Base = __DummyBase
 
