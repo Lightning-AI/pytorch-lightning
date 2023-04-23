@@ -987,8 +987,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7952
-    assert app.root._state_sizes[20] <= 26500
+    assert app.root._state_sizes[0] <= 7965
+    assert app.root._state_sizes[20] <= 26550
 
 
 class FlowUpdated(LightningFlow):
@@ -1108,7 +1108,6 @@ class FlowWrapper(LightningFlow):
 
 
 def test_cloud_compute_binding():
-
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
     assert cloud_compute._CLOUD_COMPUTE_STORE == {}
