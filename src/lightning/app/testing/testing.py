@@ -377,6 +377,8 @@ def run_app_in_cloud(
                 [constants.LIGHTNING_CLOUD_PROJECT_ID],
             )
 
+        admin_page.reload()
+
         view_page = context.new_page()
         i = 1
         while True:
@@ -385,12 +387,10 @@ def run_app_in_cloud(
 
             # wait until the app is running and openapi.json is ready
             if app.status.phase == V1LightningappInstanceState.RUNNING:
-                break
-                # FIXME: WHY DOES THIS FAIL
-                view_page.goto(f"{app.status.url}/view")
                 status_code = requests.get(f"{app.status.url}/openapi.json").status_code
                 if status_code == 200:
                     print("App is running, continuing with testing...")
+                    view_page.goto(f"{app.status.url}/view")
                     break
                 msg = f"Received status code {status_code} at {app.status.url!r}"
             elif app.status.phase not in (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.NOT_STARTED):
