@@ -13,11 +13,10 @@
 # limitations under the License.
 import functools
 import os
-from contextlib import _GeneratorContextManager, contextmanager
+from contextlib import _GeneratorContextManager, contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
-from contextlib import nullcontext
 
 import torch
 from torch import Tensor

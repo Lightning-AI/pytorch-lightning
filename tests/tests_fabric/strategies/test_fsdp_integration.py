@@ -22,7 +22,6 @@ from torch.nn import Parameter
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.plugins.precision import Precision, HalfPrecision, DoublePrecision
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
@@ -209,8 +208,8 @@ def test_module_init_context(precision, expected_dtype):
     expected_device = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
 
     fabric = Fabric(
-        accelerator="cuda", 
-        devices=2, 
+        accelerator="cuda",
+        devices=2,
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         precision=precision,
     )
@@ -218,7 +217,7 @@ def test_module_init_context(precision, expected_dtype):
 
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
-    
+
     assert model.weight.device == expected_device
     assert model.weight.dtype == expected_dtype
 
