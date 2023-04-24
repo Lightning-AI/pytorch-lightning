@@ -121,7 +121,6 @@ def _trainer_builder(
 @pytest.mark.parametrize(["trainer_class", "model_class"], [(Trainer, Model), (_trainer_builder, _model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
-
     expected_model = {"model_param": 7}
     expected_trainer = {"limit_train_batches": 100}
 
