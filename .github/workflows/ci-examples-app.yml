@@ -74,7 +74,7 @@ jobs:
 
     - name: Install Lightning package & dependencies
       run: |
-        extra=$(python -c "print({'app': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
+        extra=$(python -c "print({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
         # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
         pip install ".[${extra}dev]" -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
