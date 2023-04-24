@@ -137,7 +137,6 @@ module = [
     "lightning.app.components.serve.types.image",
     "lightning.app.components.serve.types.type",
     "lightning.app.components.training",
-    "lightning.app.core.api",
     "lightning.app.frontend.panel.app_state_comm",
     "lightning.app.frontend.panel.app_state_watcher",
     "lightning.app.frontend.panel.panel_frontend",
