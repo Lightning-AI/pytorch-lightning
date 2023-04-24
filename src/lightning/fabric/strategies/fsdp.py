@@ -17,6 +17,7 @@ from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
+from contextlib import nullcontext
 
 import torch
 from torch import Tensor
@@ -245,7 +246,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
-        with super().module_init_context(), self.module_sharded_context():
+        device_context = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        with device_context, self.precision.module_init_context(), self.module_sharded_context():
             yield
 
     @contextmanager
