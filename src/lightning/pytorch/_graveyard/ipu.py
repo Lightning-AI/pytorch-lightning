@@ -10,7 +10,6 @@ def _patch_sys_modules() -> None:
 
 
 class IPUAccelerator:
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `IPUAccelerator` class has been moved to an external package."
