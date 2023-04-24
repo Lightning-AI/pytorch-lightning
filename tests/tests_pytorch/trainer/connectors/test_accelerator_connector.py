@@ -971,3 +971,17 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        "ddp",
+        "ddp_spawn",
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+        pytest.param("fsdp", marks=RunIf(min_torch="1.12.0")),
+    ],
+)
+def test_connector_sets_num_nodes(strategy, cuda_count_2):
+    trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    assert trainer.strategy.num_nodes == 2
