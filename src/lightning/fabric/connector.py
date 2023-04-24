@@ -26,7 +26,6 @@ from lightning.fabric.accelerators.tpu import TPUAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
-    HalfPrecision,
     MixedPrecision,
     Precision,
     TPUBf16Precision,
@@ -449,8 +448,6 @@ class _Connector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
-        if self._precision_input in ("16-true", "bf16-true"):
-            return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":

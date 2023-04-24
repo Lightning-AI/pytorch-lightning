@@ -19,7 +19,7 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
+from lightning.fabric.plugins import DoublePrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
@@ -137,8 +137,6 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
     "precision,expected_dtype",
     [
         (Precision(), torch.float32),
-        (HalfPrecision("16-true"), torch.float16),
-        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
         (DoublePrecision(), torch.float64),
     ],
 )
