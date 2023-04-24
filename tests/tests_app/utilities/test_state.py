@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 import requests
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceStatus
 
 import lightning_app
 from lightning_app import LightningApp, LightningFlow, LightningWork
@@ -266,13 +267,29 @@ def test_get_send_request(monkeypatch):
     state.w.counter = 1
 
 
-@mock.patch("lightning_app.utilities.state.APP_SERVER_HOST", "https://lightning-cloud.com")
-@mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "https://lightning-cloud.com"})
-def test_app_state_with_env_var(**__):
+@mock.patch.dict(
+    os.environ,
+    {
+        "LIGHTNING_APP_STATE_URL": "https://lightning-cloud.com",
+        "LIGHTNING_CLOUD_PROJECT_ID": "test-project-id",
+        "LIGHTNING_CLOUD_APP_ID": "test-app-id",
+    },
+)
+@mock.patch("lightning_app.utilities.state.LightningClient")
+def test_app_state_with_env_var(mock_client):
+    mock_client().lightningapp_instance_service_get_lightningapp_instance.return_value = Externalv1LightningappInstance(
+        status=V1LightningappInstanceStatus(ip_address="test-ip"),
+    )
     state = AppState()
-    assert state._host == "https://lightning-cloud.com"
+    url = state._url
+
+    mock_client().lightningapp_instance_service_get_lightningapp_instance.assert_called_once_with(
+        "test-project-id",
+        "test-app-id",
+    )
+
+    assert url == "http://test-ip:8080"
     assert not state._port
-    assert state._url == "https://lightning-cloud.com"
 
 
 @mock.patch.dict(os.environ, {})
