@@ -26,7 +26,7 @@ from requests.exceptions import ConnectionError
 from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning.app.storage.drive import _maybe_create_drive
 from lightning.app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin, Logger
-from lightning.app.utilities.network import _configure_session
+from lightning.app.utilities.network import _configure_session, LightningClient
 
 logger = Logger(__name__)
 
@@ -50,6 +50,7 @@ def headers_for(context: Dict[str, str]) -> Dict[str, str]:
 
 class AppState:
     _APP_PRIVATE_KEYS: Tuple[str, ...] = (
+        "_use_localhost",
         "_host",
         "_session_id",
         "_state",
@@ -93,10 +94,9 @@ class AppState:
                 on this AppState, this affiliation will be used to reduce the scope of the given state.
             plugin: A plugin to handle authorization.
         """
-        use_localhost = "LIGHTNING_APP_STATE_URL" not in os.environ
-        self._host = host or APP_SERVER_HOST
-        self._port = port or (APP_SERVER_PORT if use_localhost else None)
-        self._url = f"{self._host}:{self._port}" if use_localhost else self._host
+        self._use_localhost = "LIGHTNING_APP_STATE_URL" not in os.environ
+        self._host = host or ("http://127.0.0.1" if self._use_localhost else None)
+        self._port = port or (APP_SERVER_PORT if self._use_localhost else None)
         self._last_state = last_state
         self._state = state
         self._session_id = "1234"
@@ -104,6 +104,23 @@ class AppState:
         self._authorized = None
         self._attach_plugin(plugin)
         self._session = self._configure_session()
+
+    @property
+    def _url(self) -> str:
+        if self._host is None:
+            app_ip = ""
+
+            if "LIGHTNING_CLOUD_PROJECT_ID" in os.environ and "LIGHTNING_CLOUD_APP_ID" in os.environ:
+                client = LightningClient()
+                app_instance = client.lightningapp_instance_service_get_lightningapp_instance(
+                    os.environ.get("LIGHTNING_CLOUD_PROJECT_ID"),
+                    os.environ.get("LIGHTNING_CLOUD_APP_ID"),
+                )
+                app_ip = app_instance.status.ip_address
+
+            # TODO: Don't hard code port 8080 here
+            self._host = f"http://{app_ip}:8080" if app_ip else APP_SERVER_HOST
+        return f"{self._host}:{self._port}" if self._use_localhost else self._host
 
     def _attach_plugin(self, plugin: Optional[BaseStatePlugin]) -> None:
         if plugin is not None:
