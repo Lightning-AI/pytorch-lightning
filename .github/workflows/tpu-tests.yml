@@ -16,8 +16,8 @@ defaults:
 
 env:
   XLA_VER: '2.0'
-  PR_NUMBER: ${{ github.event.pull_request.number }}
-  SHA: ${{ github.event.pull_request.head.sha }}
+  PR_NUMBER: ${{ github.event.pull_request.number && github.event.pull_request.number || 'master' }}
+  SHA: ${{ github.event.pull_request.head.sha && github.event.pull_request.head.sha || github.sha }}
   CLOUDSDK_CORE_DISABLE_PROMPTS: 1  # default to --quiet
   # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
   CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
@@ -25,8 +25,8 @@ env:
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
-    # run only when merged to master or the PR title contains '[TPU]'
-    if: ${{ github.event.pull_request.merged == true || contains(github.event.pull_request.title, '[TPU]') }}
+    # run only when the PR title contains '[TPU]' or is a merge to master
+    if: ${{ startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, '[TPU]') || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +62,12 @@ jobs:
 
         jobs_deleted=false
         while read -r job_name created_at; do
+          # Skip jobs with "keepalive" in the name
+          if [[ "$job_name" == *"keepalive"* ]]; then
+            echo "Skipping $job_name, has keepalive in name"
+            continue
+          fi
+
           # Convert the creation time to Unix timestamp
           created_timestamp=$(date -d "${created_at}" +%s)
 
