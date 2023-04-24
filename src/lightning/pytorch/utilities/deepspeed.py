@@ -97,7 +97,7 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     client_state = {key: value for key, value in client_state.items() if key not in deepspeed_states}
     # State dict keys will include reference to wrapper _LightningModuleWrapperBase
     # Delete `module` prefix before saving.
-    state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict.keys()}
+    state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict}
     client_state["state_dict"] = state_dict
 
     print(f"Saving fp32 state dict to {output_file}")

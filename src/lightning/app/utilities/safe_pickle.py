@@ -89,9 +89,8 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
         fake_module.__dict__["__name__"] = expected_module_name
         sys.modules[expected_module_name] = fake_module
         for k, v in fake_module.__dict__.items():
-            if not k.startswith("__") and hasattr(v, "__module__"):
-                if "_main__" in v.__module__:
-                    v.__module__ = expected_module_name
+            if not k.startswith("__") and hasattr(v, "__module__") and "_main__" in v.__module__:
+                v.__module__ = expected_module_name
     return copied_work
 
 

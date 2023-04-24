@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pathlib
@@ -1916,12 +1917,8 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
     cloud.LIGHTNING_CLOUD_PRINT_SPECS = print_format
 
     try:
-        with caplog.at_level(logging.INFO):
-            try:
-                cloud_runtime.dispatch()
-            except SystemExit:
-                # Expected behaviour
-                pass
+        with caplog.at_level(logging.INFO), contextlib.suppress(SystemExit):
+            cloud_runtime.dispatch()
 
         lines = caplog.text.split("\n")
 

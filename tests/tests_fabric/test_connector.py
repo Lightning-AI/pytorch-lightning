@@ -837,25 +837,30 @@ def test_devices_from_environment(*_):
 
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
-    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
-        with pytest.raises(ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"):
-            _Connector(accelerator="cuda")
+    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}), pytest.raises(
+        ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"
+    ):
+        _Connector(accelerator="cuda")
 
-    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}):
-        with pytest.raises(ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"):
-            _Connector(strategy="ddp_spawn")
+    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}), pytest.raises(
+        ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"
+    ):
+        _Connector(strategy="ddp_spawn")
 
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}):
-        with pytest.raises(ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"):
-            _Connector(devices=3)
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}), pytest.raises(
+        ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"
+    ):
+        _Connector(devices=3)
 
-    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
-        with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
-            _Connector(num_nodes=2)
+    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}), pytest.raises(
+        ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"
+    ):
+        _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}):
-        with pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"):
-            _Connector(precision="64-true")
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}), pytest.raises(
+        ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"
+    ):
+        _Connector(precision="64-true")
 
 
 @RunIf(min_torch="1.12")

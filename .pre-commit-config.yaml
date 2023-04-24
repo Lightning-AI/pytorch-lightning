@@ -67,6 +67,8 @@ repos:
     hooks:
       - id: yesqa
         name: Unused noqa
+        additional_dependencies:
+          - flake8-simplify
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0

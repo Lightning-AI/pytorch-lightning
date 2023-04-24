@@ -205,9 +205,9 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        if not _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/95857
-            if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-                trainer = weakref.proxy(trainer)
+        # https://github.com/pytorch/pytorch/issues/95857
+        if not _TORCH_GREATER_EQUAL_2_0 and trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property

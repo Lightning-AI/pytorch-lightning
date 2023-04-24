@@ -349,7 +349,7 @@ def main(args: argparse.Namespace):
         distributed.all_gather_object(gathered_data, local_data)
         processed_gathered_data = gathered_data[0]
         for i in range(1, len(gathered_data)):
-            for k in processed_gathered_data.keys():
+            for k in processed_gathered_data:
                 processed_gathered_data[k] = torch.cat(
                     (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
                 )

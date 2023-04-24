@@ -1,3 +1,4 @@
+import contextlib
 from queue import Empty
 from re import escape
 from unittest.mock import MagicMock, Mock
@@ -196,10 +197,8 @@ def test_lightning_status(enable_exception, raise_exception):
         copy_request_queue,
         copy_response_queue,
     )
-    try:
+    with contextlib.suppress(Exception, Empty):
         work_runner()
-    except (Exception, Empty):
-        pass
 
     res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
     L = len(delta_queue._queue) - 1

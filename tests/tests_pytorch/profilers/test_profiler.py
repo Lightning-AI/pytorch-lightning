@@ -510,9 +510,8 @@ def test_register_record_function(tmpdir):
         model = model.cuda()
         input = input.cuda()
 
-    with pytorch_profiler.profile("a"):
-        with RegisterRecordFunction(model):
-            model(input)
+    with pytorch_profiler.profile("a"), RegisterRecordFunction(model):
+        model(input)
 
     pytorch_profiler.describe()
     event_names = [e.name for e in pytorch_profiler.function_events]

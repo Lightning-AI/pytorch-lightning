@@ -87,7 +87,7 @@ class BaseFinetuning(Callback):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._restarting = True
-        if "internal_optimizer_metadata" in state_dict:
+        if "internal_optimizer_metadata" in state_dict:  # noqa: SIM401
             self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
         else:
             # compatibility to load from old checkpoints before PR #11887

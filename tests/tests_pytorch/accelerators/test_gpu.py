@@ -30,7 +30,7 @@ def test_get_torch_gpu_stats():
     fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @RunIf(min_cuda_gpus=1)
@@ -40,7 +40,7 @@ def test_get_nvidia_gpu_stats():
     fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @RunIf(min_cuda_gpus=1)
