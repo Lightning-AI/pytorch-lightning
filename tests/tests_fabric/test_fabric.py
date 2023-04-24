@@ -136,6 +136,11 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
     assert fabric_model.device == expected_device
     assert fabric.device == target_device
 
+    # edge case: model has no parameters
+    model = nn.Sequential()
+    fabric_model = setup_method(model, move_to_device=move_to_device)
+    assert fabric_model.device == target_device if move_to_device else torch.device("cpu")
+
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("move_to_device", [True, False])
@@ -400,14 +405,14 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     ]
     for dataloader in no_shuffle_dataloaders:
         dataloader = fabric.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [0, 2, 4, 6]
+        assert [t[0].item() for t in iter(dataloader)] == [0, 2, 4, 6]
 
     # shuffling turned on
     shuffle_dataloaders = [DataLoader(dataset, shuffle=True), DataLoader(dataset, sampler=RandomSampler(dataset))]
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
         dataloader = fabric.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [5, 2, 7, 1]
+        assert [t[0].item() for t in iter(dataloader)] == [5, 2, 7, 1]
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
@@ -567,10 +572,10 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._precision = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Precision)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
-    fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True, mps=False)
@@ -903,7 +908,7 @@ def test_all_gather():
     """Test that `Fabric.all_gather()` applies itself to collections and calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock(root_device=torch.device("cpu"))
-    defaults = dict(group=None, sync_grads=False)
+    defaults = {"group": None, "sync_grads": False}
 
     # single tensor
     fabric.all_gather(torch.tensor(1))
@@ -924,7 +929,7 @@ def test_all_reduce():
     """Test that `Fabric.all_reduce()` applies itself to collections and calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock(root_device=torch.device("cpu"))
-    defaults = dict(group=None, reduce_op="mean")
+    defaults = {"group": None, "reduce_op": "mean"}
 
     # single tensor
     fabric.all_reduce(torch.tensor(1))

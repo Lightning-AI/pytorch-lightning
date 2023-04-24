@@ -377,6 +377,8 @@ def run_app_in_cloud(
                 [constants.LIGHTNING_CLOUD_PROJECT_ID],
             )
 
+        admin_page.reload()
+
         view_page = context.new_page()
         i = 1
         while True:
@@ -385,10 +387,10 @@ def run_app_in_cloud(
 
             # wait until the app is running and openapi.json is ready
             if app.status.phase == V1LightningappInstanceState.RUNNING:
-                view_page.goto(f"{app.status.url}/view")
                 status_code = requests.get(f"{app.status.url}/openapi.json").status_code
                 if status_code == 200:
                     print("App is running, continuing with testing...")
+                    view_page.goto(f"{app.status.url}/view")
                     break
                 msg = f"Received status code {status_code} at {app.status.url!r}"
             elif app.status.phase not in (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.NOT_STARTED):
@@ -478,6 +480,19 @@ def _delete_lightning_app(client, project_id, app_id, app_name):
         print(f"Failed to delete {app_name}. Exception {ex}")
 
 
+def _delete_cloud_space(client, project_id, cloud_space_id, app_name):
+    """Used to delete the parent cloudspace."""
+    print(f"Deleting {app_name} id: {cloud_space_id}")
+    try:
+        res = client.cloud_space_service_delete_cloud_space(
+            project_id=project_id,
+            id=cloud_space_id,
+        )
+        assert res == {}
+    except ApiException as ex:
+        print(f"Failed to delete {app_name}. Exception {ex}")
+
+
 def delete_cloud_lightning_apps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
@@ -501,9 +516,15 @@ def delete_cloud_lightning_apps():
         if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
         _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
+        _delete_cloud_space(
+            client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
+        )
 
     print("deleting apps that were created more than 1 hour ago.")
 
     for lit_app in list_apps.lightningapps:
         if lit_app.created_at < datetime.datetime.now(lit_app.created_at.tzinfo) - datetime.timedelta(hours=1):
             _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
+            _delete_cloud_space(
+                client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
+            )

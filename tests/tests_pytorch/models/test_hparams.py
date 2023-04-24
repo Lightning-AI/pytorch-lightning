@@ -160,7 +160,7 @@ def test_dict_hparams(tmpdir, cls):
     "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
 )
 def test_omega_conf_hparams(tmpdir, cls):
-    conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
+    conf = OmegaConf.create({"test_arg": 14, "mylist": [15.4, {"a": 1, "b": 2}]})
     if issubclass(cls, LightningDataModule):
         model = BoringModel()
         obj = datamodule = cls(hparams=conf)
@@ -342,7 +342,7 @@ class UnconventionalArgsBoringModel(CustomBoringModel):
 if _OMEGACONF_AVAILABLE:
 
     class DictConfSubClassBoringModel(SubClassBoringModel):
-        def __init__(self, *args, dict_conf=OmegaConf.create(dict(my_param="something")), **kwargs):
+        def __init__(self, *args, dict_conf=OmegaConf.create({"my_param": "something"}), **kwargs):
             super().__init__(*args, **kwargs)
             self.save_hyperparameters()
 
@@ -372,7 +372,7 @@ def test_collect_init_arguments(tmpdir, cls):
     if cls is AggSubClassBoringModel:
         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
     elif cls is DictConfSubClassBoringModel:
-        extra_args.update(dict_conf=OmegaConf.create(dict(my_param="anything")))
+        extra_args.update(dict_conf=OmegaConf.create({"my_param": "anything"}))
 
     model = cls(**extra_args)
     assert model.hparams.batch_size == 64
@@ -435,7 +435,7 @@ def test_save_hyperparameters_under_composition(base_class):
             self.child = ChildInComposition(same_arg="cocofruit")
 
     parent = NotPLSubclass()
-    assert parent.child.hparams == dict(same_arg="cocofruit")
+    assert parent.child.hparams == {"same_arg": "cocofruit"}
 
 
 class LocalVariableModelSuperLast(BoringModel):
@@ -487,7 +487,7 @@ class OtherArgsModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "cls,config", [(AnotherArgModel, dict(arg1=42)), (OtherArgsModel, dict(arg1=3.14, arg2="abc"))]
+    "cls,config", [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
 )
 def test_single_config_models_fail(tmpdir, cls, config):
     """Test fail on passing unsupported config type."""
@@ -549,13 +549,13 @@ def test_hparams_save_yaml(tmpdir):
         option2name = "option2val"
         option3name = "option3val"
 
-    hparams = dict(
-        batch_size=32,
-        learning_rate=0.001,
-        data_root="./any/path/here",
-        nested=dict(any_num=123, anystr="abcd"),
-        switch=Options.option3name,
-    )
+    hparams = {
+        "batch_size": 32,
+        "learning_rate": 0.001,
+        "data_root": "./any/path/here",
+        "nested": {"any_num": 123, "anystr": "abcd"},
+        "switch": Options.option3name,
+    }
     path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
 
     def _compare_params(loaded_params, default_params: dict):
@@ -635,7 +635,7 @@ class SubClassVarArgs(SuperClassPositionalArgs):
 
 def test_args(tmpdir):
     """Test for inheritance: super class takes positional arg, subclass takes varargs."""
-    hparams = dict(test=1)
+    hparams = {"test": 1}
     model = SubClassVarArgs(hparams)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
@@ -823,7 +823,7 @@ class DataClassModel(BoringModel):
 def test_dataclass_lightning_module(tmpdir):
     """Test that save_hyperparameters() works with a LightningModule as a dataclass."""
     model = DataClassModel(33, optional="cocofruit")
-    assert model.hparams == dict(mandatory=33, optional="cocofruit")
+    assert model.hparams == {"mandatory": 33, "optional": "cocofruit"}
 
 
 class NoHparamsModel(BoringModel):

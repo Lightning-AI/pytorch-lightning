@@ -548,7 +548,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 @pytest.mark.parametrize(
     "value",
-    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
+    [None, {"a": None}, {"a": 1}, {"a": {"b": None}}, {"a": {"b": 1}}, "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
 def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):

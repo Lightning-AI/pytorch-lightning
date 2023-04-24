@@ -261,7 +261,7 @@ def _get_commands_folder() -> str:
 
 
 def _write_commands_metadata(api_commands):
-    metadata = {command_name: metadata for command_name, metadata in api_commands.items()}
+    metadata = dict(api_commands.items())
     metadata_path = os.path.join(_get_commands_folder(), ".meta.json")
     with open(metadata_path, "w") as f:
         json.dump(metadata, f)
@@ -281,7 +281,7 @@ def _list_app_commands(echo: bool = True) -> List[str]:
     metadata = _get_commands_metadata()
     metadata = {key.replace("_", " "): value for key, value in metadata.items()}
 
-    command_names = list(sorted(metadata.keys()))
+    command_names = sorted(metadata.keys())
     if not command_names:
         click.echo("The current Lightning App doesn't have commands.")
         return []

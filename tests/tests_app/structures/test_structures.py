@@ -48,7 +48,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -82,7 +82,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -116,7 +116,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -202,7 +202,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -236,7 +236,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -265,7 +265,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,

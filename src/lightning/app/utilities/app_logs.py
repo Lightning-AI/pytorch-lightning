@@ -27,13 +27,16 @@ from lightning.app.utilities.logs_socket_api import _LightningLogsSocketAPI
 
 @dataclass
 class _LogEventLabels:
-    app: str
-    container: str
-    filename: str
-    job: str
-    namespace: str
-    node_name: str
-    pod: str
+    app: Optional[str] = None
+    container: Optional[str] = None
+    filename: Optional[str] = None
+    job: Optional[str] = None
+    namespace: Optional[str] = None
+    node_name: Optional[str] = None
+    pod: Optional[str] = None
+    clusterID: Optional[str] = None
+    component: Optional[str] = None
+    projectID: Optional[str] = None
     stream: Optional[str] = None
 
 

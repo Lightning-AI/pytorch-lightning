@@ -334,9 +334,13 @@ def test_callbacks_restore(tmpdir):
     model = FinetuningBoringModel()
     callback = TestCallbacksRestoreCallback()
 
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, callbacks=[callback, chk], max_epochs=2
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "callbacks": [callback, chk],
+        "max_epochs": 2,
+    }
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)

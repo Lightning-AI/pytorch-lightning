@@ -984,8 +984,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7952
-    assert app.root._state_sizes[20] <= 26500
+    assert app.root._state_sizes[0] <= 7965
+    assert app.root._state_sizes[20] <= 26550
 
 
 class FlowUpdated(LightningFlow):

@@ -41,23 +41,23 @@ def test_app_state_affiliation(_, my_affiliation, global_affiliation, expected):
 
 def test_app_state_state_access():
     """Test the many ways an AppState object can be accessed to set or get attributes on the state."""
-    mocked_state = dict(
-        vars=dict(root_var="root"),
-        flows=dict(
-            child0=dict(
-                vars=dict(child_var=1),
-                flows=dict(),
-                works=dict(),
-            )
-        ),
-        works=dict(
-            work0=dict(
-                vars=dict(work_var=2),
-                flows=dict(),
-                works=dict(),
-            )
-        ),
-    )
+    mocked_state = {
+        "vars": {"root_var": "root"},
+        "flows": {
+            "child0": {
+                "vars": {"child_var": 1},
+                "flows": {},
+                "works": {},
+            }
+        },
+        "works": {
+            "work0": {
+                "vars": {"work_var": 2},
+                "flows": {},
+                "works": {},
+            }
+        },
+    }
 
     state = AppState()
     state._state = state._last_state = mocked_state
@@ -86,33 +86,33 @@ def test_app_state_state_access():
 @mock.patch("lightning.app.utilities.state.AppState.send_delta")
 def test_app_state_state_access_under_affiliation(*_):
     """Test the access to attributes when the state is restricted under the given affiliation."""
-    mocked_state = dict(
-        vars=dict(root_var="root"),
-        flows=dict(
-            child0=dict(
-                vars=dict(child0_var=0),
-                flows=dict(
-                    child1=dict(
-                        vars=dict(child1_var=1),
-                        flows=dict(
-                            child2=dict(
-                                vars=dict(child2_var=2),
-                                flows=dict(),
-                                works=dict(),
-                            ),
-                        ),
-                        works=dict(),
-                    ),
-                ),
-                works=dict(
-                    work1=dict(
-                        vars=dict(work1_var=11),
-                    ),
-                ),
-            ),
-        ),
-        works=dict(),
-    )
+    mocked_state = {
+        "vars": {"root_var": "root"},
+        "flows": {
+            "child0": {
+                "vars": {"child0_var": 0},
+                "flows": {
+                    "child1": {
+                        "vars": {"child1_var": 1},
+                        "flows": {
+                            "child2": {
+                                "vars": {"child2_var": 2},
+                                "flows": {},
+                                "works": {},
+                            },
+                        },
+                        "works": {},
+                    },
+                },
+                "works": {
+                    "work1": {
+                        "vars": {"work1_var": 11},
+                    },
+                },
+            },
+        },
+        "works": {},
+    }
 
     # root-level affiliation
     state = AppState(my_affiliation=())
@@ -165,15 +165,15 @@ def test_app_state_repr():
     assert repr(app_state) == "None"
 
     app_state = AppState()
-    app_state._store_state(dict(vars=dict(x=1, y=2)))
+    app_state._store_state({"vars": {"x": 1, "y": 2}})
     assert repr(app_state) == "{'vars': {'x': 1, 'y': 2}}"
 
     app_state = AppState()
-    app_state._store_state(dict(vars=dict(x=1, y=2)))
+    app_state._store_state({"vars": {"x": 1, "y": 2}})
     assert repr(app_state.y) == "2"
 
     app_state = AppState()
-    app_state._store_state(dict(vars={}, flows=dict(child=dict(vars=dict(child_var="child_val")))))
+    app_state._store_state({"vars": {}, "flows": {"child": {"vars": {"child_var": "child_val"}}}})
     assert repr(app_state.child) == "{'vars': {'child_var': 'child_val'}}"
 
 
@@ -182,7 +182,7 @@ def test_app_state_bool():
     assert not bool(app_state)
 
     app_state = AppState()
-    app_state._store_state(dict(vars=dict(x=1, y=2)))
+    app_state._store_state({"vars": {"x": 1, "y": 2}})
     assert bool(app_state)
 
 

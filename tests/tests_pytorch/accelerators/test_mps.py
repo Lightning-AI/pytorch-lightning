@@ -56,15 +56,15 @@ def test_trainer_mps_accelerator(accelerator_value):
 @pytest.mark.parametrize("devices", [1, [0], "-1"])
 def test_single_gpu_model(tmpdir, devices):
     """Make sure single GPU works."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        accelerator="mps",
-        devices=devices,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.1,
+        "limit_val_batches": 0.1,
+        "accelerator": "mps",
+        "devices": devices,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)

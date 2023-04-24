@@ -335,14 +335,14 @@ class WandbLogger(Logger):
             dir = os.fspath(dir)
 
         # set wandb init arguments
-        self._wandb_init: Dict[str, Any] = dict(
-            name=name,
-            project=project,
-            dir=save_dir or dir,
-            id=version or id,
-            resume="allow",
-            anonymous=("allow" if anonymous else None),
-        )
+        self._wandb_init: Dict[str, Any] = {
+            "name": name,
+            "project": project,
+            "dir": save_dir or dir,
+            "id": version or id,
+            "resume": "allow",
+            "anonymous": ("allow" if anonymous else None),
+        }
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")

@@ -33,9 +33,12 @@ def test_callbacks_configured_in_model(tmpdir):
             return [model_callback_mock]
 
     model = TestModel()
-    trainer_options = dict(
-        default_root_dir=tmpdir, enable_checkpointing=False, fast_dev_run=True, enable_progress_bar=False
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_checkpointing": False,
+        "fast_dev_run": True,
+        "enable_progress_bar": False,
+    }
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
         # assert that the rest of calls are the same as for trainer callbacks

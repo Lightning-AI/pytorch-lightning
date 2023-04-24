@@ -267,7 +267,7 @@ def _get_newer_version() -> Optional[str]:
         if __version__ not in releases:
             # Always return None if not installed from PyPI (e.g. dev versions)
             return None
-        releases = {version: release for version, release in filter(_is_valid_release, releases.items())}
+        releases = dict(filter(_is_valid_release, releases.items()))
         sorted_releases = sorted(
             releases.items(), key=lambda release: release[1][0]["upload_time_iso_8601"], reverse=True
         )

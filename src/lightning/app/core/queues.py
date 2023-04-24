@@ -387,19 +387,30 @@ class HTTPQueue(BaseQueue):
         if timeout is None:
             while True:
                 try:
-                    return self._get()
+                    try:
+                        return self._get()
+                    except requests.exceptions.HTTPError:
+                        pass
                 except queue.Empty:
                     time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
         # make one request and return the result
         if timeout == 0:
-            return self._get()
+            try:
+                return self._get()
+            except requests.exceptions.HTTPError:
+                return None
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
         while (time.time() - start_time) < timeout:
             try:
-                return self._get()
+                try:
+                    return self._get()
+                except requests.exceptions.HTTPError:
+                    if timeout > self.default_timeout:
+                        return None
+                    raise queue.Empty
             except queue.Empty:
                 # Note: In theory, there isn't a need for a sleep as the queue shouldn't
                 # block the flow if the queue is empty.
@@ -440,8 +451,11 @@ class HTTPQueue(BaseQueue):
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
-        val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
-        return int(val.text)
+        try:
+            val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
+            return int(val.text)
+        except requests.exceptions.HTTPError:
+            return 0
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name: str) -> Tuple[str, str]:

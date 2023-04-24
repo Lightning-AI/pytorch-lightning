@@ -520,7 +520,7 @@ def test_fabric_log():
 
     # unsupported data type
     with pytest.raises(ValueError, match="`list` values cannot be logged"):
-        wrapped_module.log("invalid", list())
+        wrapped_module.log("invalid", [])
 
     # supported data types
     wrapped_module.log("int", 1)
