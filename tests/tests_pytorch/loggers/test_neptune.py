@@ -85,6 +85,7 @@ class Run:
 @pytest.fixture
 def tmpdir_unittest_fixture(request, tmpdir):
     """Proxy for pytest `tmpdir` fixture between pytest and unittest.
+
     Resources:
      * https://docs.pytest.org/en/6.2.x/tmpdir.html#the-tmpdir-fixture
      * https://towardsdatascience.com/mixing-pytest-fixture-and-unittest-testcase-for-selenium-test-9162218e8c8e

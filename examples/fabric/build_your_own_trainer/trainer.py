@@ -477,9 +477,7 @@ class MyCustomTrainer:
 
         # list or tuple
         elif isinstance(configure_optim_output, (list, tuple)):
-            if all(
-                [isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output]
-            ):
+            if all(isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output):
                 # single optimizer in list
                 if len(configure_optim_output) == 1:
                     return configure_optim_output[0][0], None
@@ -487,10 +485,8 @@ class MyCustomTrainer:
                 raise NotImplementedError("BYOT only supports a single optimizer")
 
             elif all(
-                [
-                    isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
-                    for _lr_cand in configure_optim_output
-                ]
+                isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
+                for _lr_cand in configure_optim_output
             ):
                 # single scheduler in list
                 if len(configure_optim_output) == 1:

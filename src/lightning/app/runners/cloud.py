@@ -536,7 +536,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = cloudspace_name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_cloudspaces])
+                name_exists = any(app.name == random_name for app in existing_cloudspaces)
 
             cloudspace_name = random_name
         return cloudspace_name
@@ -551,7 +551,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_instances])
+                name_exists = any(app.name == random_name for app in existing_instances)
 
             name = random_name
         return name

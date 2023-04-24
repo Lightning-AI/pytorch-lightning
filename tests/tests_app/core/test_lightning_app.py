@@ -602,7 +602,7 @@ class WaitForAllFlow(LightningFlow):
 
         expected = 1 if self.use_same_args else next_c
 
-        if not all([w.num_successes == (expected if w.cache_calls else next_c) for w in self.works()]):
+        if not all(w.num_successes == (expected if w.cache_calls else next_c) for w in self.works()):
             return
 
         self.c += 1

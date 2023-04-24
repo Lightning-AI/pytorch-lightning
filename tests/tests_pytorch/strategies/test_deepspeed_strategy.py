@@ -898,7 +898,7 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
             return self.layer(x)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(
@@ -925,7 +925,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
             self.rnn = torch.nn.GRU(32, 32)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(
