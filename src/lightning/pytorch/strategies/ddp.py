@@ -129,7 +129,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -236,11 +236,7 @@ class DDPStrategy(ParallelStrategy):
                 optimizer = optimizer._optimizer
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
-            if (
-                is_distributed_optimizer
-                or isinstance(optimizer, ZeroRedundancyOptimizer)
-                or isinstance(optimizer, PostLocalSGDOptimizer)
-            ):
+            if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
                 raise ValueError(
                     f"Currently model averaging cannot work with a distributed optimizer of type "
                     f"{optimizer.__class__.__name__}."
