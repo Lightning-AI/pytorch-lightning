@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn, rank_zero_deprecation
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -570,8 +570,7 @@ class Fabric:
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
-        .. deprecated::
-            This context manager is deprecated in favor of :meth:`init_module`, use it instead.
+        .. deprecated::     This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
         rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
         with _old_sharded_model_context(self._strategy):
@@ -754,9 +753,9 @@ class Fabric:
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
