@@ -568,10 +568,10 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._precision = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Precision)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
-    fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True, mps=False)
