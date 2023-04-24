@@ -137,6 +137,11 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
     assert fabric_model.device == expected_device
     assert fabric.device == target_device
 
+    # edge case: model has no parameters
+    model = nn.Sequential()
+    fabric_model = setup_method(model, move_to_device=move_to_device)
+    assert fabric_model.device == target_device if move_to_device else torch.device("cpu")
+
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("move_to_device", [True, False])
@@ -568,10 +573,10 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._precision = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Precision)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
-    fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True, mps=False)
