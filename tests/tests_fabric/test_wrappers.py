@@ -21,6 +21,7 @@ from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.fabric import Fabric
+from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
 from tests_fabric.helpers.runif import RunIf
@@ -417,9 +418,10 @@ def test_step_method_redirection():
         def normal_method(self):
             pass
 
+    precision = Mock(wraps=Precision())
     original_module = LightningModule()
     forward_module = DDP(original_module)
-    fabric_module = _FabricModule(forward_module=forward_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method == original_module.normal_method
@@ -441,6 +443,7 @@ def test_step_method_redirection():
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
+    precision.forward_context.assert_called()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"
