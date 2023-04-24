@@ -12,6 +12,7 @@ types-redis
 types-requests
 types-setuptools
 types-six
+types-tabulate
 types-toml
 types-tzlocal
 types-ujson
