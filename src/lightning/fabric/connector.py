@@ -375,12 +375,12 @@ class _Connector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "tpu":
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
+                return SingleTPUStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
@@ -510,8 +510,8 @@ class _Connector:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
-        if hasattr(self.strategy, "set_world_ranks"):
-            self.strategy.set_world_ranks()
+        if hasattr(self.strategy, "_set_world_ranks"):
+            self.strategy._set_world_ranks()
         self.strategy._configure_launcher()
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:

@@ -22,7 +22,7 @@ from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 @pytest.mark.parametrize(
     "dataset_cls,args",
-    [(MNIST, dict(root=_PATH_DATASETS)), (TrialMNIST, dict(root=_PATH_DATASETS)), (AverageDataset, {})],
+    [(MNIST, {"root": _PATH_DATASETS}), (TrialMNIST, {"root": _PATH_DATASETS}), (AverageDataset, {})],
 )
 def test_pickling_dataset_mnist(tmpdir, dataset_cls, args):
     mnist = dataset_cls(**args)

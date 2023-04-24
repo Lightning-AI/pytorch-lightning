@@ -122,7 +122,7 @@ def test_tensorboard_log_sub_dir(tmpdir):
         def name(self):
             return "name"
 
-    trainer_args = dict(default_root_dir=tmpdir, max_steps=1)
+    trainer_args = {"default_root_dir": tmpdir, "max_steps": 1}
 
     # no sub_dir specified
     save_dir = tmpdir / "logs"
@@ -234,7 +234,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     ):
         logger.log_graph(model)
 
-    model.example_input_array = dict(x=1, y=2)
+    model.example_input_array = {"x": 1, "y": 2}
     with pytest.warns(
         UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):

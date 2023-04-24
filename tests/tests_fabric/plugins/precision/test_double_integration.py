@@ -53,5 +53,5 @@ class DoublePrecisionBoringFabric(BoringFabric):
 
 @RunIf(mps=False)  # MPS doesn't support float64
 def test_double_precision():
-    fabric = DoublePrecisionBoringFabric(precision="64-true")
+    fabric = DoublePrecisionBoringFabric(devices=1, precision="64-true")
     fabric.run()
