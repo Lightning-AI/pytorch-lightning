@@ -121,7 +121,6 @@ jobs:
           "pytest-timeout" -r requirements/_integrations/accelerators.txt \
           -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
-
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true

@@ -84,7 +84,6 @@ jobs:
         extra=$(python -c "print({'app': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
         pip install -e ".[${extra}dev]" -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
-
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
