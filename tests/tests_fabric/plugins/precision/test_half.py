@@ -58,3 +58,18 @@ def test_forward_context(precision, expected_dtype):
     with precision.forward_context():
         assert torch.get_default_dtype() == expected_dtype
     assert torch.get_default_dtype() == torch.float32
+
+
+@pytest.mark.parametrize(
+    "precision, expected_dtype",
+    [
+        ("bf16-true", torch.bfloat16),
+        ("16-true", torch.half),
+    ],
+)
+def test_convert_module(precision, expected_dtype):
+    precision = HalfPrecision(precision=precision)
+    module = torch.nn.Linear(2, 2)
+    assert module.weight.dtype == module.bias.dtype == torch.float32
+    module = precision.convert_module(module)
+    assert module.weight.dtype == module.bias.dtype == expected_dtype
