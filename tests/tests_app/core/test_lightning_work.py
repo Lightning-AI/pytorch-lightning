@@ -1,5 +1,4 @@
 import contextlib
-import sys
 from queue import Empty
 from re import escape
 from unittest.mock import MagicMock, Mock

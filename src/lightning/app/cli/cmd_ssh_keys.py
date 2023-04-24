@@ -59,10 +59,8 @@ class _SSHKeyManager:
         console.print(ssh_keys.as_table())
 
     def add_key(self, public_key: str, name: Optional[str], comment: Optional[str]) -> None:
-        if name is not None:
-            key_name = name
-        else:
-            key_name = "-".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
+        rnd = "-".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
+        key_name = name if name is not None else rnd
         self.api_client.s_sh_public_key_service_create_ssh_public_key(
             V1CreateSSHPublicKeyRequest(
                 name=key_name,
