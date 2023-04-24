@@ -187,7 +187,7 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
 
     for row_index in sorted(columns):
         row = ""
-        for (name, color) in columns[row_index]:
+        for name, color in columns[row_index]:
             spacing = padding if use_spacing else max_L - len(name)
             spaces = " " * spacing
             row += _add_colors(name, color) + spaces
