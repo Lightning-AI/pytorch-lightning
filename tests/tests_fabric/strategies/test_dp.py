@@ -84,9 +84,6 @@ def test_dp_module_state_dict():
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 @RunIf(min_cuda_gpus=2)
 def test_dp_grad_clipping(clip_type, precision):
-    if clip_type == "norm":
-        clipping_test_cls = _MyFabricGradNorm
-    else:
-        clipping_test_cls = _MyFabricGradVal
+    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator="cuda", devices=2, precision=precision, strategy="dp")
     fabric.run()

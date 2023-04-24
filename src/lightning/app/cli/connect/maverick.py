@@ -112,11 +112,10 @@ def connect_maverick(name: str, project_name: str = "") -> None:
         # run network creation in the background
         out = subprocess.run(CMD_CREATE_NETWORK, shell=True, capture_output=True)
         error = out.stderr
-        if error:
-            if "already exists" not in str(error):
-                live.stop()
-                rich.print(f"[red]Failed[/red]: network creation failed with error: {str(error)}")
-                return
+        if error and "already exists" not in str(error):
+            live.stop()
+            rich.print(f"[red]Failed[/red]: network creation failed with error: {str(error)}")
+            return
 
         # if code server is already running, ignore.
         # If not, but container exists, remove it and run. Otherwise, run.

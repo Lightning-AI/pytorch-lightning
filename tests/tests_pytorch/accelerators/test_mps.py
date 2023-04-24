@@ -31,7 +31,7 @@ def test_get_mps_stats():
     fields = ["M1_vm_percent", "M1_percent", "M1_swap_percent"]
 
     for f in fields:
-        assert any(f in h for h in device_stats.keys())
+        assert any(f in h for h in device_stats)
 
 
 @RunIf(mps=True)
