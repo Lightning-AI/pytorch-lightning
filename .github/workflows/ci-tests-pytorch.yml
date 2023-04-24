@@ -120,6 +120,16 @@ jobs:
           "pytest-timeout" -r requirements/_integrations/accelerators.txt \
           -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
+      if: ${{ matrix.pkg-name == 'lightning' }}
+    - name: Install package & dependencies standalone
+      run: |
+        python -m pip install -q pip -U
+        pip install .[extra,test] -U \
+          "pytest-timeout" -r requirements/_integrations/accelerators.txt \
+          -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        pip list
+      if: ${{ matrix.pkg-name != 'lightning' }}
+
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
