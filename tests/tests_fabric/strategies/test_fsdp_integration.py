@@ -205,8 +205,6 @@ def test_compile(compile_after_setup):
 )
 def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
-    expected_device = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-
     fabric = Fabric(
         accelerator="cuda",
         devices=2,
@@ -218,11 +216,14 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
+    # The model is on the meta device until `.setup()``
+    expected_device = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
     assert model.weight.device == expected_device
     assert model.weight.dtype == expected_dtype
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
 
+    # Parameters get sharded in `.setup()` and moved to the target device
     assert model.weight.device == torch.device("cuda", fabric.local_rank)
     assert model.weight.dtype == expected_dtype
