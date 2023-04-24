@@ -23,7 +23,6 @@ from typing_extensions import TypedDict
 
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -180,7 +179,7 @@ class _Metadata:
         return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
-class _ResultMetric(Metric, _DeviceDtypeModuleMixin):  # type: ignore[misc]  # torchmetrics methods should return Self
+class _ResultMetric(Metric):
     """Wraps the value provided to `:meth:`~lightning.pytorch.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
