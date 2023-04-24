@@ -40,7 +40,6 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
@@ -50,7 +49,6 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
@@ -260,8 +258,6 @@ class FSDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
-        assert isinstance(self.model, pl.LightningModule)
-        self.model = _LightningModuleWrapperBase(self.model)
         if is_overridden("configure_sharded_model", self.lightning_module):
             rank_zero_info(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
@@ -348,24 +344,6 @@ class FSDPStrategy(ParallelStrategy):
         if isinstance(tensor, Tensor):
             tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        # we don't need precision context since casting is done by FSDP
-        # read `mixed_precision` docstring here: https://pytorch.org/docs/stable/fsdp.html
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
 
     def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]

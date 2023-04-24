@@ -356,14 +356,41 @@ class Strategy(ABC):
             optimizer.load_state_dict(opt_state)
             _optimizer_to_device(optimizer, self.root_device)
 
+    def _redirection_through_forward(self, method_name: str, *args, **kwargs) -> STEP_OUTPUT:
+        assert method_name != "forward"
+        original_forward = self.lightning_module.forward
+
+        def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
+            # Unpatch ourselves immediately before calling the method `method_name`
+            # because itself may want to call the real `forward`
+            self.lightning_module.forward = original_forward
+            # Call the actual method e.g. `.training_step(...)`
+            method = getattr(self.lightning_module, method_name)
+            out = method(*_args, **_kwargs)
+
+            # In manual_optimization, we need to prevent DDP reducer as
+            # it is done manually in `LightningModule.manual_backward`
+            # `require_backward_grad_sync` will be reset in the
+            # ddp_strategy `post_training_step` hook
+            if not self.lightning_module.automatic_optimization:
+                self.model.require_backward_grad_sync = False  # type: ignore[assignment]
+
+            return out
+
+        # Patch the original_module's forward so we can redirect the arguments back to the real method
+        self.lightning_module.forward = wrapped_forward
+        assert self.model is not None
+        return self.model(*args, **kwargs)
+
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual training step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._redirection_through_forward("training_step", *args, **kwargs)
+            return self.lightning_module.training_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
         pass
@@ -374,8 +401,9 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._redirection_through_forward("validation_step", *args, **kwargs)
+            return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual test step.
@@ -383,8 +411,9 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._redirection_through_forward("test_step", *args, **kwargs)
+            return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual predict step.
@@ -392,8 +421,9 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._redirection_through_forward("predict_step", *args, **kwargs)
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def process_dataloader(self, dataloader: object) -> object:
         """Wraps the dataloader if necessary.
