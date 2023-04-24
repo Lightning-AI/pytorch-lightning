@@ -8,7 +8,7 @@
    ../generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
    ../versioning
-   past_versions
+   ../past_versions
    ../generated/CHANGELOG.md
 
 #########
