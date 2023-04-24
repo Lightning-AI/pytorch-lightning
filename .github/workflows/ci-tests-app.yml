@@ -123,7 +123,7 @@ jobs:
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest -m "not cloud" tests_app \
-          --timeout=300 -vvvv --durations=50
+          -n auto --timeout=300 -vvvv --durations=50
 
     - name: Statistics
       if: success()

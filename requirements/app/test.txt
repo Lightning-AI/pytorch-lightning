@@ -10,4 +10,5 @@ trio<0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
 psutil
 setuptools<67.7.0
-requests-mock
+requests-mock <=1.10.0
+pytest-xdist <=3.2.1
