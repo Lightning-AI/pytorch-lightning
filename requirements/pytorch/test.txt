@@ -3,6 +3,7 @@ pytest ==7.2.2
 pytest-cov ==4.0.0
 pytest-forked ==1.4.0
 pytest-rerunfailures ==10.3
+pytest-random-order <=1.1.0
 
 # needed in tests
 cloudpickle >=1.3, <2.3.0
