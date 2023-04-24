@@ -27,13 +27,16 @@ from lightning.app.utilities.logs_socket_api import _LightningLogsSocketAPI
 
 @dataclass
 class _LogEventLabels:
-    app: str
-    container: str
-    filename: str
-    job: str
-    namespace: str
-    node_name: str
-    pod: str
+    app: Optional[str] = None
+    container: Optional[str] = None
+    filename: Optional[str] = None
+    job: Optional[str] = None
+    namespace: Optional[str] = None
+    node_name: Optional[str] = None
+    pod: Optional[str] = None
+    clusterID: Optional[str] = None
+    component: Optional[str] = None
+    projectID: Optional[str] = None
     stream: Optional[str] = None
 
 
@@ -114,9 +117,8 @@ def _app_logs_reader(
                 start_timestamps[log_event.component_name] = log_event.timestamp
 
             timestamp = start_timestamps.get(log_event.component_name, None)
-            if timestamp and log_event.timestamp >= timestamp:
-                if "launcher" not in log_event.message:
-                    yield log_event
+            if timestamp and log_event.timestamp >= timestamp and "launcher" not in log_event.message:
+                yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.

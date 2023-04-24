@@ -147,9 +147,6 @@ def test_start_app(create_response, monkeypatch):
     elif isinstance(create_response, RuntimeErrorResponse2):
         with pytest.raises(RuntimeError, match="The source upload url is empty."):
             run()
-    elif isinstance(create_response, RuntimeErrorResponse2):
-        with pytest.raises(RuntimeError, match="The source upload url is empty."):
-            run()
     else:
         run()
         mocks_calls = cloud.LocalSourceCodeDir._mock_mock_calls
@@ -217,8 +214,9 @@ def test_start_app_exception(message, monkeypatch, caplog):
     runner = CliRunner()
 
     fake_grid_rest_client = partial(FakeLightningClientException, message=message)
-    with caplog.at_level(logging.ERROR):
-        with mock.patch("lightning.app.runners.backends.cloud.LightningClient", fake_grid_rest_client):
-            result = runner.invoke(run_app, [_FILE_PATH, "--cloud", "--open-ui=False"], catch_exceptions=False)
-            assert result.exit_code == 1
+    with caplog.at_level(logging.ERROR), mock.patch(
+        "lightning.app.runners.backends.cloud.LightningClient", fake_grid_rest_client
+    ):
+        result = runner.invoke(run_app, [_FILE_PATH, "--cloud", "--open-ui=False"], catch_exceptions=False)
+        assert result.exit_code == 1
     assert caplog.messages == [message]

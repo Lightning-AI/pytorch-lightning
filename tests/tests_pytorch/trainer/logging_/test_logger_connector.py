@@ -274,10 +274,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args[:-1], **kwargs)
-            if add_dataloader_idx:
-                name = "val_loss"
-            else:
-                name = f"val_loss_custom_naming_{args[-1]}"
+            name = "val_loss" if add_dataloader_idx else f"val_loss_custom_naming_{args[-1]}"
 
             self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
             return output
@@ -496,16 +493,16 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    log_kwargs = dict(
-                        fx="training_step",
-                        name=name,
-                        value=v,
-                        on_step=on_step,
-                        on_epoch=on_epoch,
-                        batch_size=batches[i],
-                        prog_bar=prog_bar,
-                        logger=logger,
-                    )
+                    log_kwargs = {
+                        "fx": "training_step",
+                        "name": name,
+                        "value": v,
+                        "on_step": on_step,
+                        "on_epoch": on_epoch,
+                        "batch_size": batches[i],
+                        "prog_bar": prog_bar,
+                        "logger": logger,
+                    }
                     if not on_step and not on_epoch:
                         with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
                             result_collection.log(**log_kwargs)
@@ -584,9 +581,13 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=1, logger=False
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": 2,
+        "limit_val_batches": 0,
+        "max_epochs": 1,
+        "logger": False,
+    }
     if logger:
         trainer_kwargs["logger"] = CSVLogger(tmpdir)
     trainer = Trainer(**trainer_kwargs)

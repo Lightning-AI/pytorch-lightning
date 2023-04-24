@@ -1317,7 +1317,9 @@ class Trainer:
                 "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
                 " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
             )
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
+        checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
+        self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+        self.strategy.barrier("Trainer.save_checkpoint")
 
     """
     State properties
@@ -1441,9 +1443,9 @@ class Trainer:
     @property
     def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``."""
-        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None:
-            return combined_loader.iterables
-        elif (combined_loader := self.validate_loop._combined_loader) is not None:
+        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None or (
+            combined_loader := self.validate_loop._combined_loader
+        ) is not None:
             return combined_loader.iterables
 
     @property
