@@ -1384,9 +1384,9 @@ class Trainer:
     @property
     def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``."""
-        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None:
-            return combined_loader.iterables
-        elif (combined_loader := self.validate_loop._combined_loader) is not None:
+        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None or (
+            combined_loader := self.validate_loop._combined_loader
+        ) is not None:
             return combined_loader.iterables
 
     @property

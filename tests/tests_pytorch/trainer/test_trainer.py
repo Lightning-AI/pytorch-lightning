@@ -104,7 +104,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), "hyper_parameters missing from checkpoints"
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
@@ -306,7 +306,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
-        open(filepath, "a").close()
+        open(filepath, "a").close()  # noqa: SIM115
 
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
@@ -906,7 +906,7 @@ def test_disabled_training(tmpdir):
 
     after_state_dict = model.state_dict()
 
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     # check that limit_train_batches=0 turns off training
@@ -924,7 +924,7 @@ def test_disabled_training(tmpdir):
 
     after_state_dict = model.state_dict()
 
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -1322,10 +1322,7 @@ def predict(
         with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, datamodule=dm, return_predictions=True)
 
-    if datamodule:
-        results = trainer.predict(model, datamodule=dm)
-    else:
-        results = trainer.predict(model, dataloaders=dataloaders)
+    results = trainer.predict(model, datamodule=dm) if datamodule else trainer.predict(model, dataloaders=dataloaders)
 
     if not isinstance(trainer.strategy.launcher, _MultiProcessingLauncher):
         if use_callbacks:
@@ -1856,11 +1853,10 @@ def test_detect_anomaly_nan(tmpdir):
 
     model = NanModel()
     trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
-    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
-        with pytest.warns(
-            UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
-        ):
-            trainer.fit(model)
+    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."), pytest.warns(
+        UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+    ):
+        trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -2041,7 +2037,8 @@ def test_trainer_calls_strategy_on_exception(exception_type):
             raise exception
 
     trainer = Trainer()
-    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock:
-        with suppress(Exception):
-            trainer.fit(ExceptionModel())
+    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
+        Exception
+    ):
+        trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)

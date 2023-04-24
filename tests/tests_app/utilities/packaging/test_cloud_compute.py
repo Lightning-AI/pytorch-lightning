@@ -60,7 +60,7 @@ def test_cloud_compute_clone():
 
     assert len(c1_dict) == len(c2_dict)
 
-    for k in c1_dict.keys():
+    for k in c1_dict:
         if k == "_internal_id":
             assert c1_dict[k] != c2_dict[k]
         else:

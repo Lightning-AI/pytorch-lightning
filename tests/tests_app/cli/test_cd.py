@@ -15,11 +15,11 @@ def test_cd(monkeypatch):
     ls = mock.MagicMock()
     monkeypatch.setattr(cd, "ls", ls)
 
-    assert "/" == cd.cd("/")
-    assert "/" == pwd()
+    assert cd.cd("/") == "/"
+    assert pwd() == "/"
     ls.ls.return_value = ["hero"]
-    assert "/hero" == cd.cd("hero")
-    assert "/hero" == pwd()
+    assert cd.cd("hero") == "/hero"
+    assert pwd() == "/hero"
     ls.ls.return_value = ["something_else"]
     assert f"/hero{os.sep}something_else" == cd.cd("something_else")
     assert f"/hero{os.sep}something_else" == pwd()
@@ -29,30 +29,30 @@ def test_cd(monkeypatch):
     assert f"/hero{os.sep}something_else" == cd.cd(f"..{os.sep}..")
     ls.ls.return_value = ["something_else"]
     assert f"/hero{os.sep}something_else" == pwd()
-    assert "/hero" == cd.cd("..")
-    assert "/hero" == pwd()
-    assert "/" == cd.cd("/")
-    assert "/" == pwd()
+    assert cd.cd("..") == "/hero"
+    assert pwd() == "/hero"
+    assert cd.cd("/") == "/"
+    assert pwd() == "/"
     ls.ls.return_value = ["a"]
-    assert "/a" == cd.cd("../a")
-    assert "/a" == pwd()
+    assert cd.cd("../a") == "/a"
+    assert pwd() == "/a"
     ls.ls.return_value = ["thomas"]
     assert f"/a{os.sep}thomas{os.sep}hello" == cd.cd(f"thomas{os.sep}hello")
     assert f"/a{os.sep}thomas{os.sep}hello" == pwd()
     ls.ls.return_value = ["thomas"]
     assert f"/thomas{os.sep}hello" == cd.cd(f"/thomas{os.sep}hello")
     assert f"/thomas{os.sep}hello" == pwd()
-    assert "/" == cd.cd("/")
+    assert cd.cd("/") == "/"
     ls.ls.return_value = ["name with spaces"]
-    assert "/name with spaces" == cd.cd("name with spaces")
+    assert cd.cd("name with spaces") == "/name with spaces"
     ls.ls.return_value = ["name with spaces 2"]
-    assert "/name with spaces/name with spaces 2" == cd.cd("name with spaces 2")
+    assert cd.cd("name with spaces 2") == "/name with spaces/name with spaces 2"
 
     os.remove(cd._CD_FILE)
 
     mock_exit = mock.MagicMock()
     monkeypatch.setattr(cd, "_error_and_exit", mock_exit)
-    assert "/" == cd.cd("/")
+    assert cd.cd("/") == "/"
     ls.ls.return_value = ["project_a"]
     cd.cd("project_b")
     assert mock_exit._mock_call_args.args[0] == "no such file or directory: /project_b"

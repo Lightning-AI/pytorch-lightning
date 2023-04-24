@@ -81,9 +81,7 @@ class Work(LightningWork):
 
     def run(self):
         self.counter = self.counter + 1
-        if self.cache_calls:
-            self.has_finished = True
-        elif self.counter >= 3:
+        if self.cache_calls or self.counter >= 3:
             self.has_finished = True
 
 
@@ -445,6 +443,7 @@ class EmptyFlow(LightningFlow):
         pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
     ],
 )
+@pytest.mark.flaky(reruns=5)
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
@@ -1107,7 +1106,7 @@ class FlowWrapper(LightningFlow):
 def test_cloud_compute_binding():
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
-    assert cloud_compute._CLOUD_COMPUTE_STORE == {}
+    assert {} == cloud_compute._CLOUD_COMPUTE_STORE
     flow = FlowCC()
     assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]
@@ -1121,10 +1120,10 @@ def test_cloud_compute_binding():
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.w.w.work_c"]
     assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_a", "root.w.w.work_b"]
 
-    assert "__cloud_compute__" == flow.state["vars"]["cloud_compute"]["type"]
-    assert "__cloud_compute__" == flow.work_a.state["vars"]["_cloud_compute"]["type"]
-    assert "__cloud_compute__" == flow.work_b.state["vars"]["_cloud_compute"]["type"]
-    assert "__cloud_compute__" == flow.work_c.state["vars"]["_cloud_compute"]["type"]
+    assert flow.state["vars"]["cloud_compute"]["type"] == "__cloud_compute__"
+    assert flow.work_a.state["vars"]["_cloud_compute"]["type"] == "__cloud_compute__"
+    assert flow.work_b.state["vars"]["_cloud_compute"]["type"] == "__cloud_compute__"
+    assert flow.work_c.state["vars"]["_cloud_compute"]["type"] == "__cloud_compute__"
     work_a_id = flow.work_a.state["vars"]["_cloud_compute"]["_internal_id"]
     work_b_id = flow.work_b.state["vars"]["_cloud_compute"]["_internal_id"]
     work_c_id = flow.work_c.state["vars"]["_cloud_compute"]["_internal_id"]

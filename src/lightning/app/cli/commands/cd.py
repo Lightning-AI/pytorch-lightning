@@ -113,8 +113,5 @@ def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
 def _apply_double_dots(root: str, path: str) -> str:
     splits = [split for split in path.split("/") if split != ""]
     for split in splits:
-        if split == "..":
-            root = "/" + os.path.join(*root.split("/")[:-1])
-        else:
-            root = os.path.join(root, split)
+        root = "/" + os.path.join(*root.split("/")[:-1]) if split == ".." else os.path.join(root, split)
     return root

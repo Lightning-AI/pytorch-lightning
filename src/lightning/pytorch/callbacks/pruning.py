@@ -406,7 +406,7 @@ class ModelPruning(Callback):
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
-        map_pruned_params = {k.replace("_mask", "") for k in state_dict.keys() if k.endswith("_mask")}
+        map_pruned_params = {k.replace("_mask", "") for k in state_dict if k.endswith("_mask")}
         for tensor_name in map_pruned_params:
             orig = state_dict.pop(tensor_name + "_orig")
             mask = state_dict.pop(tensor_name + "_mask")

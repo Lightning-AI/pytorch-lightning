@@ -84,7 +84,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     checkpoint = torch.load(checkpoint_filepath)
     # the checkpoint saves "epoch + 1"
     early_stop_callback_state = early_stop_callback.saved_states[checkpoint["epoch"]]
-    assert 4 == len(early_stop_callback.saved_states)
+    assert len(early_stop_callback.saved_states) == 4
     es_name = "EarlyStoppingTestRestore{'monitor': 'train_loss', 'mode': 'min'}"
     assert checkpoint["callbacks"][es_name] == early_stop_callback_state
 

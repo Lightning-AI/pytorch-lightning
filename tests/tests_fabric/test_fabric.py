@@ -615,17 +615,17 @@ def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
     fabric = Fabric(devices=1)
     model = nn.Linear(3, 3)
-    with pytest.raises(TypeError, match="You need to set up the model first"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.raises(TypeError, match="You need to set up the model first"), fabric.no_backward_sync(model):
+        pass
 
     model = fabric.setup(model)
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.warns(
+        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
+    ), fabric.no_backward_sync(model):
+        pass
 
     # for single-device strategies, it becomes a no-op without warning
     fabric._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())

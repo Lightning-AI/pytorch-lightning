@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import multiprocessing as mp
 import os
@@ -522,7 +523,8 @@ def test_configure_api():
             time_left -= 0.1
 
     # Test Upload File
-    files = {"uploaded_file": open(__file__, "rb")}
+    with open(__file__, "rb") as fo:
+        files = {"uploaded_file": fo}
 
     response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
     assert response.json() == "Successfully uploaded 'test' to the Drive"
@@ -548,10 +550,8 @@ def test_configure_api():
     assert response.status_code == 200
 
     # Stop the Application
-    try:
+    with contextlib.suppress(Exception):
         response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
-    except Exception:
-        pass
 
     # Teardown
     time_left = 5

@@ -19,6 +19,7 @@ __all__ = [
     "NeptuneLogger",
 ]
 
+import contextlib
 import logging
 import os
 from argparse import Namespace
@@ -280,10 +281,8 @@ class NeptuneLogger(Logger):
     def _neptune_init_args(self) -> Dict:
         args: Dict = {}
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             args = self._neptune_run_kwargs
-        except AttributeError:
-            pass
 
         if self._project_name is not None:
             args["project"] = self._project_name
@@ -490,7 +489,7 @@ class NeptuneLogger(Logger):
 
         # save best k models
         if hasattr(checkpoint_callback, "best_k_models"):
-            for key in checkpoint_callback.best_k_models.keys():
+            for key in checkpoint_callback.best_k_models:
                 model_name = self._get_full_model_name(key, checkpoint_callback)
                 file_names.add(model_name)
                 self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)

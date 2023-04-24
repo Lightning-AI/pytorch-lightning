@@ -67,11 +67,8 @@ class _XLALauncher(_Launcher):
 
         using_pjrt = pjrt.using_pjrt()
         return_queue: Union[queue.Queue, mp.SimpleQueue]
-        if using_pjrt:
-            # pjrt requires that the queue is serializable
-            return_queue = mp.Manager().Queue()
-        else:
-            return_queue = mp.get_context(self._start_method).SimpleQueue()
+        # pjrt requires that the queue is serializable
+        return_queue = mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
 
         import torch_xla.distributed.xla_multiprocessing as xmp
 
