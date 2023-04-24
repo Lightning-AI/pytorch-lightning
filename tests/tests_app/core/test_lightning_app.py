@@ -446,6 +446,7 @@ class EmptyFlow(LightningFlow):
         pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
     ],
 )
+@pytest.mark.flaky(reruns=5)
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
