@@ -116,8 +116,8 @@ jobs:
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        pip install .[extra,test] -U \
-          "pytest-timeout" \
+        extra=$(python -c "print({'lightning': 'pytorch-'}.get('${{ matrix.pkg-name }}', ''))")
+        pip install ".[${extra}extra,${extra}test]" -U "pytest-timeout" \
           -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
