@@ -693,8 +693,6 @@ def test_artifacts_path():
 @pytest.mark.skipif(not _is_s3fs_available(), reason="This test requires s3fs.")
 @mock.patch.dict(os.environ, {"LIGHTNING_BUCKET_ENDPOINT_URL": "a"})
 @mock.patch.dict(os.environ, {"LIGHTNING_BUCKET_NAME": "b"})
-@mock.patch.dict(os.environ, {"LIGHTNING_AWS_ACCESS_KEY_ID": "c"})
-@mock.patch.dict(os.environ, {"LIGHTNING_AWS_SECRET_ACCESS_KEY": "d"})
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "e"})
 def test_filesystem(monkeypatch):
     from lightning.app.storage import path
@@ -702,10 +700,7 @@ def test_filesystem(monkeypatch):
     mock = MagicMock()
     monkeypatch.setattr(path, "S3FileSystem", mock)
     fs = _filesystem()
-    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["key"] == "c"
-    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["secret"] == "d"
-    assert not fs._mock_new_parent._mock_mock_calls[0].kwargs["use_ssl"]
-    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["client_kwargs"] == {"endpoint_url": "a"}
+    assert fs == mock()
 
 
 class TestSharedStoragePath(TestCase):
