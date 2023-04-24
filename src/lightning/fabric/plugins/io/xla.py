@@ -14,6 +14,7 @@
 import os
 from typing import Any, Dict, Optional
 
+import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 
@@ -61,4 +62,5 @@ class XLACheckpointIO(TorchCheckpointIO):
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         import torch_xla.core.xla_model as xm
 
-        xm.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, path)
+        cpu_data = xm._maybe_convert_to_cpu(checkpoint, convert=True)
+        torch.save(cpu_data, path)

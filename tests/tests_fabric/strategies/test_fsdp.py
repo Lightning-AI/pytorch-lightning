@@ -106,9 +106,8 @@ def test_fsdp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
-    ):
-        with strategy._backward_sync_control.no_backward_sync(Mock()):
-            pass
+    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+        pass
 
     module = MagicMock(spec=FullyShardedDataParallel)
     with strategy._backward_sync_control.no_backward_sync(module):

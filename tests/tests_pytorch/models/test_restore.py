@@ -87,14 +87,14 @@ def test_model_properties_fit_ckpt_path(tmpdir):
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        logger=False,
-        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
-    )
+    trainer_args = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 2,
+        "limit_val_batches": 2,
+        "logger": False,
+        "callbacks": [checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
+    }
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 
@@ -117,17 +117,17 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
     model = CustomClassifModel()
     dm = ClassifDataModule()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        limit_predict_batches=2,
-        logger=False,
-        callbacks=[checkpoint_callback],
-        num_sanity_val_steps=0,
-    )
+    trainer_args = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 2,
+        "limit_val_batches": 2,
+        "limit_test_batches": 2,
+        "limit_predict_batches": 2,
+        "logger": False,
+        "callbacks": [checkpoint_callback],
+        "num_sanity_val_steps": 0,
+    }
     trainer = Trainer(**trainer_args)
     trainer.fit(model, datamodule=dm)
 
@@ -142,7 +142,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
                 return torch.all(torch.eq(a, b))
 
             if isinstance(a, Mapping):
-                return all(self._is_equal(a.get(k, None), b.get(k, None)) for k in b.keys())
+                return all(self._is_equal(a.get(k, None), b.get(k, None)) for k in b)
 
             return a == b
 
@@ -281,14 +281,14 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-        trainer_args = dict(
-            default_root_dir=tmpdir,
-            limit_train_batches=1,
-            limit_val_batches=2,
-            max_epochs=1,
-            logger=False,
-            callbacks=[checkpoint, callback_capture],
-        )
+        trainer_args = {
+            "default_root_dir": tmpdir,
+            "limit_train_batches": 1,
+            "limit_val_batches": 2,
+            "max_epochs": 1,
+            "logger": False,
+            "callbacks": [checkpoint, callback_capture],
+        }
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
         return trainer_args
@@ -359,18 +359,18 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
-    trainer_options = dict(
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        callbacks=[checkpoint],
-        logger=logger,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-        default_root_dir=tmpdir,
-    )
+    trainer_options = {
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 2,
+        "limit_val_batches": 2,
+        "callbacks": [checkpoint],
+        "logger": logger,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+        "default_root_dir": tmpdir,
+    }
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -409,16 +409,16 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
-    trainer_options = dict(
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        callbacks=[checkpoint],
-        logger=logger,
-        default_root_dir=tmpdir,
-    )
+    trainer_options = {
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 2,
+        "limit_val_batches": 2,
+        "limit_test_batches": 2,
+        "callbacks": [checkpoint],
+        "logger": logger,
+        "default_root_dir": tmpdir,
+    }
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -440,15 +440,15 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
     model = model_template()
 
-    trainer_options = dict(
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_top_k=-1)],
-        default_root_dir=tmpdir,
-    )
+    trainer_options = {
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 2,
+        "limit_val_batches": 2,
+        "limit_test_batches": 2,
+        "callbacks": [ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_top_k=-1)],
+        "default_root_dir": tmpdir,
+    }
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -463,7 +463,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # Since `BoringModel` has `_save_hparams = True` by default, check that ckpt has hparams
     ckpt = torch.load(last_checkpoint)
-    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), "hyper_parameters missing from checkpoints"
+    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # Ensure that model can be correctly restored from checkpoint
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)

@@ -114,14 +114,15 @@ def test_comet_logger_manual_experiment_key(comet):
         return DEFAULT
 
     # Test api_key given
-    with patch.dict(os.environ, {"COMET_EXPERIMENT_KEY": experiment_key}):
-        with patch("lightning.pytorch.loggers.comet.CometExperiment", side_effect=save_os_environ) as comet_experiment:
-            logger = CometLogger(api_key=api_key)
-            assert logger.version == experiment_key
-            assert logger._experiment is None
+    with patch.dict(os.environ, {"COMET_EXPERIMENT_KEY": experiment_key}), patch(
+        "lightning.pytorch.loggers.comet.CometExperiment", side_effect=save_os_environ
+    ) as comet_experiment:
+        logger = CometLogger(api_key=api_key)
+        assert logger.version == experiment_key
+        assert logger._experiment is None
 
-            _ = logger.experiment
-            comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
+        _ = logger.experiment
+        comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
 
     assert instantiation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
 
