@@ -93,7 +93,7 @@ def test_fit_val_loader_only(tmpdir):
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 
-@pytest.mark.parametrize("dataloader_options", [dict(val_check_interval=10000)])
+@pytest.mark.parametrize("dataloader_options", [{"val_check_interval": 10000}])
 def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
@@ -104,16 +104,16 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
 @pytest.mark.parametrize(
     "dataloader_options",
     [
-        dict(limit_train_batches=-0.1),
-        dict(limit_train_batches=1.2),
-        dict(limit_val_batches=-0.1),
-        dict(limit_val_batches=1.2),
-        dict(limit_test_batches=-0.1),
-        dict(limit_test_batches=1.2),
-        dict(val_check_interval=-0.1),
-        dict(val_check_interval=1.2),
-        dict(overfit_batches=-0.1),
-        dict(overfit_batches=1.2),
+        {"limit_train_batches": -0.1},
+        {"limit_train_batches": 1.2},
+        {"limit_val_batches": -0.1},
+        {"limit_val_batches": 1.2},
+        {"limit_test_batches": -0.1},
+        {"limit_test_batches": 1.2},
+        {"val_check_interval": -0.1},
+        {"val_check_interval": 1.2},
+        {"overfit_batches": -0.1},
+        {"overfit_batches": 1.2},
     ],
 )
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
@@ -154,7 +154,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     model = BoringModel()
     train_loader = model.train_dataloader()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-    fit_options = dict(train_dataloaders=train_loader)
+    fit_options = {"train_dataloaders": train_loader}
     trainer.fit(model, **fit_options)
     assert trainer.num_training_batches == 2
     assert trainer.train_dataloader == train_loader
@@ -467,7 +467,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = MultiEvalDataLoaderModel()
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
+    trainer_options = {"default_root_dir": tmpdir, "max_epochs": 2, "fast_dev_run": fast_dev_run}
 
     if fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match="should be >= 0"):
@@ -505,7 +505,12 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
 
     model = BoringModel()
     eval_dataloader = DataLoader(RandomDataset(32, 64))
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_val_batches": 0.1,
+        "limit_train_batches": 0.2,
+    }
 
     # fit model
     trainer = Trainer(**trainer_options)

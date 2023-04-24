@@ -72,9 +72,8 @@ def _maybe_raise_granular_exception(exception: Exception) -> None:
     if isinstance(exception, asyncio.TimeoutError):
         raise HTTPException(408, "Request timed out") from exception
 
-    if isinstance(exception, Exception):
-        if exception.args[0] == "Server disconnected":
-            raise HTTPException(500, "Worker Server disconnected") from exception
+    if isinstance(exception, Exception) and exception.args[0] == "Server disconnected":
+        raise HTTPException(500, "Worker Server disconnected") from exception
 
     logging.exception(exception)
     raise HTTPException(500, exception.args[0]) from exception
@@ -312,7 +311,7 @@ class _LoadBalancer(LightningWork):
 
         @fastapi_app.middleware("http")
         async def current_request_counter(request: Request, call_next):
-            if not request.scope["path"] == self.endpoint:
+            if request.scope["path"] != self.endpoint:
                 return await call_next(request)
             fastapi_app.global_request_count += 1
             fastapi_app.num_current_requests += 1
@@ -609,10 +608,10 @@ class AutoScaler(LightningFlow):
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         cloud_compute = self._work_kwargs.get("cloud_compute", None)
         self._work_kwargs.update(
-            dict(
-                start_with_flow=False,
-                cloud_compute=cloud_compute.clone() if cloud_compute else None,
-            )
+            {
+                "start_with_flow": False,
+                "cloud_compute": cloud_compute.clone() if cloud_compute else None,
+            }
         )
         return self._work_cls(*self._work_args, **self._work_kwargs)
 

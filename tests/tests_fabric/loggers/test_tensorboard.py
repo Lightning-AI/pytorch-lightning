@@ -169,7 +169,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     ):
         logger.log_graph(model)
 
-    model.example_input_array = dict(x=1, y=2)
+    model.example_input_array = {"x": 1, "y": 2}
     with pytest.warns(
         UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):
