@@ -42,7 +42,7 @@ if _OMEGACONF_AVAILABLE:
 log: logging.Logger = logging.getLogger(__name__)
 
 
-class CheckpointConnector:
+class _CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
         self._ckpt_path: Optional[_PATH] = None
@@ -221,7 +221,7 @@ class CheckpointConnector:
         torch.cuda.empty_cache()
 
         # wait for all to catch up
-        self.trainer.strategy.barrier("CheckpointConnector.resume_end")
+        self.trainer.strategy.barrier("_CheckpointConnector.resume_end")
 
     def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
@@ -486,19 +486,6 @@ class CheckpointConnector:
         call._call_lightning_module_hook(trainer, "on_save_checkpoint", checkpoint)
         return checkpoint
 
-    def save_checkpoint(
-        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
-    ) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        Args:
-            filepath: write-target file's path
-            weights_only: saving model weights only
-            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
-        """
-        _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
-
     def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
         return self.trainer.strategy.lightning_module_state_dict()
 
@@ -545,13 +532,13 @@ class CheckpointConnector:
     def __get_max_ckpt_path_from_folder(folder_path: _PATH) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
 
-        max_suffix = CheckpointConnector.__max_ckpt_version_in_folder(folder_path)
+        max_suffix = _CheckpointConnector.__max_ckpt_version_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
 
     @staticmethod
     def hpc_save_path(folderpath: _PATH) -> str:
-        max_suffix = CheckpointConnector.__max_ckpt_version_in_folder(folderpath)
+        max_suffix = _CheckpointConnector.__max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
         filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
         return filepath

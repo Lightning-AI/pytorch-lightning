@@ -1,7 +1,7 @@
 # Examples
 
 Our most robust examples showing all sorts of implementations
-can be found in our sister library [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html).
+can be found in our sister library [Lightning Bolts](https://lightning.ai/docs/pytorch/latest/ecosystem/bolts.html).
 
 ______________________________________________________________________
 
@@ -13,7 +13,7 @@ ______________________________________________________________________
 
 ## Lightning Fabric Examples
 
-We show how to accelerate your PyTorch code with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/fabric/fabric.html) with minimal code changes.
+We show how to accelerate your PyTorch code with [Lightning Fabric](https://lightning.ai/docs/fabric) with minimal code changes.
 You stay in full control of the training loop.
 
 - [MNIST: Vanilla PyTorch vs. Fabric](fabric/image_classifier/README.md)
@@ -33,5 +33,5 @@ ______________________________________________________________________
 ## Domain Examples
 
 This folder contains older examples. You should instead use the examples
-in [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html)
+in [Lightning Bolts](https://lightning.ai/docs/pytorch/latest/ecosystem/bolts.html)
 for advanced use cases.

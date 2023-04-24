@@ -22,7 +22,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.core.optimizer import do_nothing_closure
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.optimization.closure import OutputResult
-from lightning.pytorch.loops.progress import Progress, ReadyCompletedTracker
+from lightning.pytorch.loops.progress import _Progress, _ReadyCompletedTracker
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -79,8 +79,8 @@ class _ManualOptimization(_Loop):
     def __init__(self, trainer: "pl.Trainer") -> None:
         super().__init__(trainer)
         # since manual optimization does not track lr scheduler or optimizer frequencies, we use a simpler progress than
-        # `OptimizationProgress`
-        self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)
+        # `_OptimizationProgress`
+        self.optim_step_progress = _Progress.from_defaults(_ReadyCompletedTracker)
 
         self._output: _OUTPUTS_TYPE = {}
 

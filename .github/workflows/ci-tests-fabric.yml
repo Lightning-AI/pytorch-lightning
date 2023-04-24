@@ -18,13 +18,13 @@ on:
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-
-env:
-  FREEZE_REQUIREMENTS: 1
 
 defaults:
   run:
@@ -40,14 +40,17 @@ jobs:
         include:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
-          # only run PyTorch latest with Python latest
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13"}
+          # only run PyTorch latest with Python latest
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
           # "oldest" versions tests, only on minimum Python
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11", requires: "oldest"}
@@ -56,15 +59,11 @@ jobs:
           - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13"}
-          # pytorch 2.0 Tests (currently pre-release, change this once it's released)
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.0", release: "pre"}
     timeout-minutes: 25  # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
-      FREEZE_REQUIREMENTS: 1
-      PYPI_CACHE: "_pip-wheels"
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+      PYPI_CACHE_DIR: "_pip-wheels"
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
     steps:
@@ -93,11 +92,11 @@ jobs:
     - name: pip wheels cache
       uses: actions/cache/restore@v3
       with:
-        path: ${{ env.PYPI_CACHE }}
+        path: ${{ env.PYPI_CACHE_DIR }}
         key: pypi_wheels
     - run: |
-        mkdir -p $PYPI_CACHE
-        ls -lh $PYPI_CACHE
+        mkdir -p $PYPI_CACHE_DIR
+        ls -lh $PYPI_CACHE_DIR
 
     - name: Env. variables
       run: |
@@ -109,15 +108,16 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE} --prefer-binary
-        pip install -r requirements/fabric/strategies.txt -f ${PYPI_CACHE} --prefer-binary
+        python -m pip install -q pip -U
+        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        pip install -r requirements/fabric/strategies.txt -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
       uses: ./.github/actions/pip-wheels
       with:
-        wheel-dir: ${{ env.PYPI_CACHE }}
+        wheel-dir: ${{ env.PYPI_CACHE_DIR }}
         torch-url: ${{ env.TORCH_URL }}
         cache-key: "pypi_wheels"
 

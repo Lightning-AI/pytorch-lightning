@@ -47,8 +47,8 @@ test: clean
 	python -m coverage report
 
 docs: clean
-	pip install -e . --quiet -r requirements/app/docs.txt
-	cd docs/source-app && $(MAKE) html
+	pip install -e . --quiet -r requirements/pytorch/docs.txt
+	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:
 	git submodule update --init --recursive --remote

@@ -337,14 +337,14 @@ class WandbLogger(Logger):
             dir = os.fspath(dir)
 
         # set wandb init arguments
-        self._wandb_init: Dict[str, Any] = dict(
-            name=name,
-            project=project,
-            dir=save_dir or dir,
-            id=version or id,
-            resume="allow",
-            anonymous=("allow" if anonymous else None),
-        )
+        self._wandb_init: Dict[str, Any] = {
+            "name": name,
+            "project": project,
+            "dir": save_dir or dir,
+            "id": version or id,
+            "resume": "allow",
+            "anonymous": ("allow" if anonymous else None),
+        }
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")
@@ -599,6 +599,7 @@ class WandbLogger(Logger):
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
             artifact.add_file(p, name="model.ckpt")
-            self.experiment.log_artifact(artifact, aliases=[tag])
+            aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+            self.experiment.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t

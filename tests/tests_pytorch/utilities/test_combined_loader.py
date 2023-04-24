@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, NamedTuple, Sequence
+import pickle
+from typing import Any, get_args, NamedTuple, Sequence
 
 import pytest
 import torch
@@ -26,11 +27,12 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities.combined_loader import (
+    _LITERAL_SUPPORTED_MODES,
     _MaxSize,
     _MaxSizeCycle,
     _MinSize,
     _Sequential,
-    _supported_modes,
+    _SUPPORTED_MODES,
     CombinedLoader,
 )
 from tests_pytorch.helpers.runif import RunIf
@@ -398,8 +400,6 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
     trainer = Trainer(use_distributed_sampler=use_distributed_sampler, strategy="ddp", accelerator="cpu", devices=2)
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
-    trainer.state.fn = "fit"
-    trainer.state.stage = "train"
     trainer.fit_loop.setup_data()
 
     samplers_flattened = tree_flatten(combined_loader.sampler)[0]
@@ -416,7 +416,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
 
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
 @pytest.mark.parametrize("use_distributed_sampler", (False, True))
-def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distributed_sampler):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerator, use_distributed_sampler):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
     trainer = Trainer(
@@ -428,8 +428,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
     )
     trainer.strategy.connect(model)
-    trainer.state.fn = "fit"
-    trainer.state.stage = "train"
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
@@ -448,7 +446,16 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, use_distr
         assert len(combined_loader) == length
 
         trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
-        trainer.fit_loop.setup_data(shuffle=False)
+
+        original_process_dataloader = trainer._data_connector._prepare_dataloader
+
+        def non_shuffle_process_dataloader(dl, shuffle, mode):
+            # avoid shuffling
+            return original_process_dataloader(dl, False, mode)
+
+        monkeypatch.setattr(trainer._data_connector, "_prepare_dataloader", non_shuffle_process_dataloader)
+        trainer.fit_loop.setup_data()
+        monkeypatch.undo()
 
         assert len(combined_loader) == length // 2 if use_distributed_sampler else length
         if use_distributed_sampler:
@@ -507,16 +514,38 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
     )
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model=model, train_dataloaders=dataloader)
-    fn = _supported_modes[mode]["fn"]
+    fn = _SUPPORTED_MODES[mode]["fn"]
     expected_length_before_ddp = fn([n1, n2])
     expected_length_after_ddp = (
         math.ceil(expected_length_before_ddp / trainer.num_devices)
         if use_distributed_sampler
         else expected_length_before_ddp
     )
-    trainer.state.stage = "train"
     trainer.fit_loop.setup_data()
     assert trainer.train_dataloader is not None
     assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)
     assert trainer.fit_loop._combined_loader._mode == mode
     assert trainer.num_training_batches == expected_length_after_ddp
+
+
+def test_supported_modes():
+    assert set(_SUPPORTED_MODES) == set(get_args(_LITERAL_SUPPORTED_MODES))
+
+
+def test_combined_loader_can_be_pickled():
+    dataloader = DataLoader([0, 1, 2, 3])
+
+    # sanity check that and error would be raised. if this ever changes, `_ModeIterator.__getstate__` should be updated
+    iterator = iter(dataloader)
+    with pytest.raises(NotImplementedError, match="cannot be pickled"):
+        pickle.dumps(iterator)
+
+    numbers = list(range(10))
+    cl = CombinedLoader([dataloader, numbers])
+    iter(cl)
+
+    iterator = cl._iterator
+    assert iterator.__getstate__() == {"iterables": [dataloader, numbers], "iterators": [None, iterator.iterators[1]]}
+
+    # no error
+    pickle.dumps(cl)

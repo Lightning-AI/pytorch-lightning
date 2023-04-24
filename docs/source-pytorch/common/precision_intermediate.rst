@@ -76,8 +76,7 @@ BFloat16 Mixed Precision
 
 .. warning::
 
-    BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
-
+    BFloat16 may not provide significant speedups or memory improvements or offer better numerical stability.
     Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
 
 BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintains more of the "dynamic range" that FP32 offers. This means it is able to improve numerical stability than FP16 mixed precision. For more information, see `this TPU performance blogpost <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.

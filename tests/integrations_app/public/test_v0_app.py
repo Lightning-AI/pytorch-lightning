@@ -26,7 +26,7 @@ class LightningAppTestInt(LightningTestApp):
 
 def test_v0_app_example():
     command_line = [
-        os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"),
+        os.path.join(_PATH_EXAMPLES, "v0", "app.py"),
         "--blocking",
         "False",
         "--open-ui",
@@ -53,6 +53,7 @@ def run_v0_app(fetch_logs, view_page):
     has_logs = False
     while not has_logs:
         for log in fetch_logs(["flow"]):
+            print(log)
             if "'a': 'a', 'b': 'b'" in log:
                 has_logs = True
         sleep(1)
@@ -65,7 +66,7 @@ def run_v0_app(fetch_logs, view_page):
 )
 def test_v0_app_example_byoc_cloud() -> None:
     with run_app_in_cloud(
-        os.path.join(_PATH_EXAMPLES, "app_v0"),
+        os.path.join(_PATH_EXAMPLES, "v0"),
         extra_args=["--cluster-id", os.environ.get("LIGHTNING_BYOC_CLUSTER_ID")],
     ) as (_, view_page, fetch_logs, app_name):
         run_v0_app(fetch_logs, view_page)
@@ -73,7 +74,7 @@ def test_v0_app_example_byoc_cloud() -> None:
 
 @pytest.mark.cloud
 def test_v0_app_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_v0")) as (
+    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "v0")) as (
         _,
         view_page,
         fetch_logs,
@@ -87,11 +88,11 @@ def test_v0_app_example_cloud() -> None:
     MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
 )
 def test_load_app_from_file_module_error():
-    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"))
+    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PATH_EXAMPLES, "v0", "app.py"))
     assert isinstance(empty_app, LightningApp)
     assert isinstance(empty_app.root, EmptyFlow)
 
 
 def test_load_app_from_file():
-    app = load_app_from_file(os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"))
+    app = load_app_from_file(os.path.join(_PATH_EXAMPLES, "v0", "app.py"))
     assert isinstance(app, LightningApp)

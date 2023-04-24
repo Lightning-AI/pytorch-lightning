@@ -36,7 +36,7 @@ from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
+from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
@@ -49,19 +49,19 @@ from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
-from lightning.pytorch.trainer.configuration_validator import verify_loop_configurations
+from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
+    _AcceleratorConnector,
     _LITERAL_WARN,
     _PRECISION_INPUT,
     _PRECISION_INPUT_STR,
-    AcceleratorConnector,
 )
-from lightning.pytorch.trainer.connectors.callback_connector import CallbackConnector
-from lightning.pytorch.trainer.connectors.checkpoint_connector import CheckpointConnector
-from lightning.pytorch.trainer.connectors.data_connector import DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector import LoggerConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
+from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
+from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
-from lightning.pytorch.trainer.connectors.signal_connector import SignalConnector
+from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
 from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
@@ -89,19 +89,15 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
-        enable_checkpointing: Optional[bool] = None,
-        callbacks: Optional[Union[List[Callback], Callback]] = None,
-        default_root_dir: Optional[_PATH] = None,
-        gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[str] = None,
-        num_nodes: int = 1,
+        *,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
-        enable_progress_bar: Optional[bool] = None,
-        overfit_batches: Union[int, float] = 0.0,
-        check_val_every_n_epoch: Optional[int] = 1,
+        num_nodes: int = 1,
+        precision: _PRECISION_INPUT = "32-true",
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        callbacks: Optional[Union[List[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: int = 1,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: int = -1,
@@ -111,119 +107,63 @@ class Trainer:
         limit_val_batches: Optional[Union[int, float]] = None,
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
+        overfit_batches: Union[int, float] = 0.0,
         val_check_interval: Optional[Union[int, float]] = None,
-        log_every_n_steps: Optional[int] = None,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        sync_batchnorm: bool = False,
-        precision: _PRECISION_INPUT = "32-true",
-        enable_model_summary: Optional[bool] = None,
+        check_val_every_n_epoch: Optional[int] = 1,
         num_sanity_val_steps: Optional[int] = None,
-        profiler: Optional[Union[Profiler, str]] = None,
-        benchmark: Optional[bool] = None,
+        log_every_n_steps: Optional[int] = None,
+        enable_checkpointing: Optional[bool] = None,
+        enable_progress_bar: Optional[bool] = None,
+        enable_model_summary: Optional[bool] = None,
+        accumulate_grad_batches: int = 1,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
-        reload_dataloaders_every_n_epochs: int = 0,
-        use_distributed_sampler: bool = True,
-        detect_anomaly: bool = False,
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        benchmark: Optional[bool] = None,
         inference_mode: bool = True,
+        use_distributed_sampler: bool = True,
+        profiler: Optional[Union[Profiler, str]] = None,
+        detect_anomaly: bool = False,
         barebones: bool = False,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        sync_batchnorm: bool = False,
+        reload_dataloaders_every_n_epochs: int = 0,
+        default_root_dir: Optional[_PATH] = None,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
 
         Args:
-
             accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
-            accumulate_grad_batches: Accumulates gradients over k batches before stepping the optimizer.
-                Default: 1.
-
-            benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
-                The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
-                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic`
-                is set to ``True``, this will default to ``False``. Override to manually set a different value.
-                Default: ``None``.
-
-            callbacks: Add a callback or list of callbacks.
-                Default: ``None``.
-
-            enable_checkpointing: If ``True``, enable checkpointing.
-                It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.callbacks`.
-                Default: ``True``.
-
-            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
-                validation will be done solely based on the number of training batches, requiring ``val_check_interval``
-                to be an integer value.
-                Default: ``1``.
-
-            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
-                Default: ``os.getcwd()``.
-                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
-
-            detect_anomaly: Enable anomaly detection for the autograd engine.
-                Default: ``False``.
-
-            deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
-                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
-                that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
-                Default: ``None``.
+            strategy: Supports different training strategies with aliases as well custom strategies.
+                Default: ``"auto"``.
 
             devices: The devices to use. Can be set to a positive number (int or str), a sequence of device indices
                 (list or str), the value ``-1`` to indicate all available devices should be used, or ``"auto"`` for
                 automatic selection based on the chosen accelerator. Default: ``"auto"``.
 
-            fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
-                of train, val and test to find any bugs (ie: a sort of unit test).
-                Default: ``False``.
-
-            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
-                gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
-                Default: ``None``.
-
-            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
-                be set to ``"norm"``.
-
-            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
-
-            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
-
-            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
-
-            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
-
-            logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
-                the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
-                ``False`` will disable logging. If multiple loggers are provided, local files
-                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of he first logger.
-                Default: ``True``.
-
-            log_every_n_steps: How often to log within steps.
-                Default: ``50``.
-
-            enable_progress_bar: Whether to enable to progress bar by default.
-                Default: ``True``.
-
-            profiler: To profile individual steps during training and assist in identifying bottlenecks.
-                Default: ``None``.
-
-            overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
-                Default: ``0.0``.
-
-            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
-                Default: ``None``.
+            num_nodes: Number of GPU nodes for distributed training.
+                Default: ``1``.
 
             precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
                 16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
                 Can be used on CPU, GPU, TPUs, HPUs or IPUs.
                 Default: ``'32-true'``.
+
+            logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
+                the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
+                ``False`` will disable logging. If multiple loggers are provided, local files
+                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
+                Default: ``True``.
+
+            callbacks: Add a callback or list of callbacks.
+                Default: ``None``.
+
+            fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+                of train, val and test to find any bugs (ie: a sort of unit test).
+                Default: ``False``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
@@ -242,15 +182,75 @@ class Trainer:
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
-            num_nodes: Number of GPU nodes for distributed training.
+            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
+
+            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
+
+            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
+
+            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
+
+            overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
+                Default: ``0.0``.
+
+            val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
+                after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
+                batches. An ``int`` value can only be higher than the number of training batches when
+                ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
+                across epochs or during iteration-based training.
+                Default: ``1.0``.
+
+            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
+                validation will be done solely based on the number of training batches, requiring ``val_check_interval``
+                to be an integer value.
                 Default: ``1``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
                 Default: ``2``.
 
-            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
-                Default: ``0``.
+            log_every_n_steps: How often to log within steps.
+                Default: ``50``.
+
+            enable_checkpointing: If ``True``, enable checkpointing.
+                It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
+                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.callbacks`.
+                Default: ``True``.
+
+            enable_progress_bar: Whether to enable to progress bar by default.
+                Default: ``True``.
+
+            enable_model_summary: Whether to enable model summarization by default.
+                Default: ``True``.
+
+            accumulate_grad_batches: Accumulates gradients over k batches before stepping the optimizer.
+                Default: 1.
+
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
+                gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
+                Default: ``None``.
+
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
+                be set to ``"norm"``.
+
+            deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
+                Default: ``None``.
+
+            benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
+                The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
+                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic`
+                is set to ``True``, this will default to ``False``. Override to manually set a different value.
+                Default: ``None``.
+
+            inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
+                evaluation (``validate``/``test``/``predict``).
 
             use_distributed_sampler: Whether to wrap the DataLoader's sampler with
                 :class:`torch.utils.data.DistributedSampler`. If not specified this is toggled automatically for
@@ -260,24 +260,11 @@ class Trainer:
                 sampler was already added, Lightning will not replace the existing one. For iterable-style datasets,
                 we don't do this automatically.
 
-            strategy: Supports different training strategies with aliases as well custom strategies.
-                Default: ``"auto"``.
+            profiler: To profile individual steps during training and assist in identifying bottlenecks.
+                Default: ``None``.
 
-            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+            detect_anomaly: Enable anomaly detection for the autograd engine.
                 Default: ``False``.
-
-            val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
-                after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
-                batches. An ``int`` value can only be higher than the number of training batches when
-                ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
-                across epochs or during iteration-based training.
-                Default: ``1.0``.
-
-            enable_model_summary: Whether to enable model summarization by default.
-                Default: ``True``.
-
-            inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
-                evaluation (``validate``/``test``/``predict``).
 
             barebones: Whether to run in "barebones mode", where all features that may impact raw speed are
                 disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular training
@@ -293,6 +280,19 @@ class Trainer:
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
                 :meth:`~lightning.pytorch.core.module.LightningModule.log`,
                 :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
+
+            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
+                Default: ``None``.
+
+            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+                Default: ``False``.
+
+            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: ``0``.
+
+            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
+                Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -388,9 +388,9 @@ class Trainer:
                 num_sanity_val_steps = 2
 
         # init connectors
-        self._data_connector = DataConnector(self)
+        self._data_connector = _DataConnector(self)
 
-        self._accelerator_connector = AcceleratorConnector(
+        self._accelerator_connector = _AcceleratorConnector(
             devices=devices,
             accelerator=accelerator,
             strategy=strategy,
@@ -402,16 +402,18 @@ class Trainer:
             precision=precision,
             plugins=plugins,
         )
-        self._logger_connector = LoggerConnector(self)
-        self._callback_connector = CallbackConnector(self)
-        self._checkpoint_connector = CheckpointConnector(self)
-        self._signal_connector = SignalConnector(self)
+        self._logger_connector = _LoggerConnector(self)
+        self._callback_connector = _CallbackConnector(self)
+        self._checkpoint_connector = _CheckpointConnector(self)
+        self._signal_connector = _SignalConnector(self)
 
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
         self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop(self, inference_mode=inference_mode)
-        self.test_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.validate_loop = _EvaluationLoop(
+            self, TrainerFn.VALIDATING, RunningStage.VALIDATING, inference_mode=inference_mode
+        )
+        self.test_loop = _EvaluationLoop(self, TrainerFn.TESTING, RunningStage.TESTING, inference_mode=inference_mode)
         self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -452,6 +454,11 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
 
+        if detect_anomaly:
+            rank_zero_info(
+                "You have turned on `Trainer(detect_anomaly=True)`. This will significantly slow down compute speed and"
+                " is recommended only for model debugging."
+            )
         self._detect_anomaly: bool = detect_anomaly
 
         setup._log_device_info(self)
@@ -500,17 +507,20 @@ class Trainer:
         Args:
             model: Model to fit.
 
-            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
+            train_dataloaders: An iterable or collection of iterables specifying training samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
-            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
+            val_dataloaders: An iterable or collection of iterables specifying validation samples.
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
                 If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
         """
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
@@ -573,8 +583,9 @@ class Trainer:
         Args:
             model: The model to validate.
 
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
-                or a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying validation samples.
+            dataloaders: An iterable or collection of iterables specifying validation samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -583,7 +594,10 @@ class Trainer:
 
             verbose: If True, prints the validation results.
 
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
@@ -643,6 +657,8 @@ class Trainer:
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=ckpt_path)
+        # remove the tensors from the validation results
+        results = convert_tensors_to_scalars(results)
 
         assert self.state.stopped
         self.validating = False
@@ -664,8 +680,9 @@ class Trainer:
         Args:
             model: The model to test.
 
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
-                or a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying test samples.
+            dataloaders: An iterable or collection of iterables specifying test samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -674,7 +691,10 @@ class Trainer:
 
             verbose: If True, prints the test results.
 
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
@@ -734,6 +754,8 @@ class Trainer:
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=ckpt_path)
+        # remove the tensors from the test results
+        results = convert_tensors_to_scalars(results)
 
         assert self.state.stopped
         self.testing = False
@@ -756,10 +778,12 @@ class Trainer:
         Args:
             model: The model to predict with.
 
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
-                or a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying prediction samples.
+            dataloaders: An iterable or collection of iterables specifying predict samples.
+                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
-            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the `:class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
@@ -768,6 +792,8 @@ class Trainer:
                 If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -861,14 +887,14 @@ class Trainer:
         self._callback_connector._attach_model_callbacks()
         self._callback_connector._attach_model_logging_functions()
 
-        verify_loop_configurations(self)
+        _verify_loop_configurations(self)
 
         # hook
         log.debug(f"{self.__class__.__name__}: preparing data")
         self._data_connector.prepare_data()
 
         # ----------------------------
-        # SET UP TRAINING
+        # SET UP THE TRAINER
         # ----------------------------
         log.debug(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
@@ -884,30 +910,6 @@ class Trainer:
         log.debug(f"{self.__class__.__name__}: configuring sharded model")
         call._call_configure_sharded_model(self)  # allow user to setup in model sharded environment
 
-        # ----------------------------
-        # INSPECT THE CORE LOOPS
-        # ----------------------------
-        rf"""
-             Lightning internal flow looks like this:
-        {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
-                                |                             ||
-                         spawn processes                      ||
-                 {self.strategy.setup_environment}            ||
-                                |                             ||
-                        setup accelerator                     ||
-                           and strategy                       ||  LIGHTNING
-                                |                             ||
-                        {self._run_stage}                     ||  FLOW
-                                |                             ||
-                              loops                           ||  DIRECTION
-                                |                             ||
-                             results                          \/
-        This is used to guide readers to the core loops: train, test, predict.
-        """
-
-        # ----------------------------
-        # TRAIN
-        # ----------------------------
         # reset logger connector
         self._logger_connector.reset_results()
         self._logger_connector.reset_metrics()
@@ -932,15 +934,19 @@ class Trainer:
 
         self._checkpoint_connector.resume_end()
 
-        results = self._run_stage()
+        self._signal_connector.register_signal_handlers()
 
-        log.debug(f"{self.__class__.__name__}: trainer tearing down")
-        self._teardown()
+        # ----------------------------
+        # RUN THE TRAINER
+        # ----------------------------
+        results = self._run_stage()
 
         # ----------------------------
         # POST-Training CLEAN UP
         # ----------------------------
-        # hook
+        log.debug(f"{self.__class__.__name__}: trainer tearing down")
+        self._teardown()
+
         if self.state.fn == TrainerFn.FITTING:
             call._call_callback_hooks(self, "on_fit_end")
             call._call_lightning_module_hook(self, "on_fit_end")
@@ -965,43 +971,20 @@ class Trainer:
         self._signal_connector.teardown()
 
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+        # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
 
         if self.evaluating:
-            return self._run_evaluate()
+            return self._evaluation_loop.run()
         if self.predicting:
             return self.predict_loop.run()
-        self._run_train()
-
-    def _pre_training_routine(self) -> None:
-        # wait for all to join if on distributed
-        self.strategy.barrier("setup_training")
-
-        # register signals
-        self._signal_connector.register_signal_handlers()
-
-    def _run_train(self) -> None:
-        self._pre_training_routine()
-
-        with isolate_rng():
-            self._run_sanity_check()
-
-        # enable train mode
-        assert self.model is not None
-        self.model.train()
-        torch.set_grad_enabled(True)
-
-        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
-            self.fit_loop.run()
-
-    def _run_evaluate(self) -> _EVALUATE_OUTPUT:
-        assert self.evaluating
-
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._evaluation_loop.run()
-
-        # remove the tensors from the eval results
-        return convert_tensors_to_scalars(eval_loop_results)
+        if self.training:
+            with isolate_rng():
+                self._run_sanity_check()
+            with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+                self.fit_loop.run()
+            return None
+        raise RuntimeError(f"Unexpected state {self.state}")
 
     def _run_sanity_check(self) -> None:
         val_loop = self.fit_loop.epoch_loop.val_loop
@@ -1150,6 +1133,14 @@ class Trainer:
 
     @property
     def log_dir(self) -> Optional[str]:
+        """The directory for the current experiment. Use this to save images to, etc...
+
+        .. code-block:: python
+
+            def training_step(self, batch, batch_idx):
+                img = ...
+                save_img(img, self.trainer.log_dir)
+        """
         if len(self.loggers) > 0:
             if not isinstance(self.loggers[0], TensorBoardLogger):
                 dirpath = self.loggers[0].save_dir
@@ -1163,6 +1154,14 @@ class Trainer:
 
     @property
     def is_global_zero(self) -> bool:
+        """Whether this process is the global zero in multi-node training.
+
+        .. code-block:: python
+
+            def training_step(self, batch, batch_idx):
+                if self.trainer.is_global_zero:
+                    print("in node 0, accelerator 0")
+        """
         return self.strategy.is_global_zero
 
     @property
@@ -1216,11 +1215,11 @@ class Trainer:
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        """An instance of :class:`~lightning.pytorch.callbacks.progress.base.ProgressBarBase` found in the
+    def progress_bar_callback(self) -> Optional[ProgressBar]:
+        """An instance of :class:`~lightning.pytorch.callbacks.progress.progress_bar.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
-            if isinstance(c, ProgressBarBase):
+            if isinstance(c, ProgressBar):
                 return c
         return None
 
@@ -1236,7 +1235,7 @@ class Trainer:
     def ckpt_path(self, ckpt_path: Optional[_PATH]) -> None:
         """Allows you to manage which checkpoint is loaded statefully.
 
-        Examples::
+        .. code-block:: python
 
             trainer = Trainer()
             trainer.ckpt_path = "my/checkpoint/file.ckpt"
@@ -1267,7 +1266,9 @@ class Trainer:
                 "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
                 " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
             )
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
+        checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
+        self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+        self.strategy.barrier("Trainer.save_checkpoint")
 
     """
     State properties
@@ -1383,38 +1384,51 @@ class Trainer:
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
-    def train_dataloader(self) -> TRAIN_DATALOADERS:
+    def train_dataloader(self) -> Optional[TRAIN_DATALOADERS]:
+        """The training dataloader(s) used during ``trainer.fit()``."""
         if (combined_loader := self.fit_loop._combined_loader) is not None:
             return combined_loader.iterables
 
     @property
-    def val_dataloaders(self) -> EVAL_DATALOADERS:
+    def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
+        """The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``."""
         if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None:
             return combined_loader.iterables
         elif (combined_loader := self.validate_loop._combined_loader) is not None:
             return combined_loader.iterables
 
     @property
-    def test_dataloaders(self) -> EVAL_DATALOADERS:
+    def test_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
+        """The test dataloader(s) used during ``trainer.test()``."""
         if (combined_loader := self.test_loop._combined_loader) is not None:
             return combined_loader.iterables
 
     @property
-    def predict_dataloaders(self) -> EVAL_DATALOADERS:
+    def predict_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
+        """The prediction dataloader(s) used during ``trainer.predict()``."""
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
 
     @property
     def num_training_batches(self) -> Union[int, float]:
+        """The number of training batches that will be used during ``trainer.fit()``."""
         return self.fit_loop.max_batches
 
     @property
-    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+    def num_sanity_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
+        """The number of validation batches that will be used during the sanity-checking part of
+        ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
-        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+        # re-compute the `min` in case this is called outside of the sanity-checking stage
+        sanity_val_steps = self.num_sanity_val_steps
+        if isinstance(max_batches, list):
+            return [min(sanity_val_steps, batches) for batches in max_batches]
+        return min(sanity_val_steps, max_batches)
 
     @property
-    def num_val_batches(self) -> List[Union[int, float]]:
+    def num_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
+        """The number of validation batches that will be used during ``trainer.fit()`` or
+        ``trainer.validate()``."""
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validate_loop.max_batches
         # if no trainer.fn is set, assume fit's validation
@@ -1422,11 +1436,13 @@ class Trainer:
         return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
-    def num_test_batches(self) -> List[Union[int, float]]:
+    def num_test_batches(self) -> Union[int, float, List[Union[int, float]]]:
+        """The number of test batches that will be used during ``trainer.test()``."""
         return self.test_loop.max_batches
 
     @property
     def num_predict_batches(self) -> List[Union[int, float]]:
+        """The number of prediction batches that will be used during ``trainer.predict()``."""
         return self.predict_loop.max_batches
 
     @property
@@ -1454,6 +1470,7 @@ class Trainer:
 
     @property
     def logger(self) -> Optional[Logger]:
+        """The first :class:`~lightning.pytorch.loggers.logger.Logger` being used."""
         return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
@@ -1465,6 +1482,13 @@ class Trainer:
 
     @property
     def loggers(self) -> List[Logger]:
+        """The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
+
+        ..code-block:: python
+
+            for logger in trainer.loggers:
+                logger.log_metrics({"foo": 1.0})
+        """
         return self._loggers
 
     @loggers.setter
@@ -1473,14 +1497,36 @@ class Trainer:
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
+        """The metrics available to callbacks.
+
+        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+
+        ..code-block:: python
+
+            def training_step(self, batch, batch_idx):
+                self.log("a_val", 2.0)
+
+            callback_metrics = trainer.callback_metrics
+            assert callback_metrics["a_val"] == 2.0
+        """
         return self._logger_connector.callback_metrics
 
     @property
     def logged_metrics(self) -> _OUT_DICT:
+        """The metrics sent to the loggers.
+
+        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+        :paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+        """
         return self._logger_connector.logged_metrics
 
     @property
     def progress_bar_metrics(self) -> _PBAR_DICT:
+        """The metrics sent to the progress bar.
+
+        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+        :paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+        """
         return self._logger_connector.progress_bar_metrics
 
     @property
@@ -1496,18 +1542,18 @@ class Trainer:
     @property
     def estimated_stepping_batches(self) -> Union[int, float]:
         r"""
-        Estimated stepping batches for the complete training inferred from DataLoaders, gradient
-        accumulation factor and distributed setup.
+        The estimated number of batches that will ``optimizer.step()`` during training.
 
-        Examples::
+        This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
+        dataloader if hadn't been set up already.
+
+        ..code-block:: python
 
             def configure_optimizers(self):
                 optimizer = ...
-                scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                    optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
-                )
+                stepping_batches = self.trainer.estimated_stepping_batches
+                scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
                 return [optimizer], [scheduler]
-
         """
         # infinite training
         if self.max_epochs == -1:
@@ -1515,10 +1561,7 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            stage = self.state.stage
-            self.training = True
             self.fit_loop.setup_data()
-            self.state.stage = stage
 
         total_batches = self.num_training_batches
 

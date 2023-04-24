@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** Users looking to save money and run large models faster using single or multiple IPU devices.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 What is an IPU?
@@ -18,9 +20,6 @@ IPUs operate in a different way to conventional accelerators such as CPU/GPUs. I
 IPUs are used to build IPU-PODs, rack-based systems of IPU-Machines for larger workloads. See the `IPU Architecture <https://www.graphcore.ai/products/ipu>`__ for more information.
 
 See the `Graphcore Glossary <https://docs.graphcore.ai/projects/graphcore-glossary/>`__ for the definitions of other IPU-specific terminology.
-
-.. note::
-  IPU support is experimental and a work in progress (see :ref:`known-limitations`). If you run into any problems, please leave an issue.
 
 ----
 
@@ -65,8 +64,7 @@ Currently there are some known limitations that are being addressed in the near 
 
 Please see the `MNIST example <https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/ipu/mnist_sample.py>`__ which displays most of the limitations and how to overcome them till they are resolved.
 
-* ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices. We're actively working on fixing this.
-* Multiple optimizers are not supported. ``training_step`` only supports returning one loss from the ``training_step`` function as a result.
+* ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices.
 * Since the step functions are traced, branching logic or any form of primitive values are traced into constants. Be mindful as this could lead to errors in your custom code.
 * Clipping gradients is not supported.
 * It is not possible to use :class:`torch.utils.data.BatchSampler` in your dataloaders if you are using multiple IPUs.

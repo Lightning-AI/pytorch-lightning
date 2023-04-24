@@ -108,14 +108,14 @@ class TracerPythonScript(LightningWork):
         Even more interesting, this component works for ANY PyTorch Lightning script and
         its state can be used in real time in a UI.
 
-        .. literalinclude:: ../../../examples/app_components/python/component_tracer.py
+        .. literalinclude:: ../../../../examples/app/components/python/component_tracer.py
             :language: python
 
 
         Once implemented, this component can easily be integrated within a larger app
         to execute a specific python script.
 
-        .. literalinclude:: ../../../examples/app_components/python/app.py
+        .. literalinclude:: ../../../../examples/app/components/python/app.py
             :language: python
         """
         super().__init__(**kwargs)

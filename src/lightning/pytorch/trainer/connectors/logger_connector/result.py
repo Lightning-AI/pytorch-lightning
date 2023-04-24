@@ -24,7 +24,7 @@ from typing_extensions import TypedDict
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.distributed import _distributed_available
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.memory import recursive_detach
@@ -110,7 +110,8 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    reduce_fx: Callable = torch.mean
+    # https://github.com/pytorch/pytorch/issues/96197
+    reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -179,7 +180,7 @@ class _Metadata:
         return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
-class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, _DeviceDtypeModuleMixin):  # type: ignore[misc]  # torchmetrics methods should return Self
     """Wraps the value provided to `:meth:`~lightning.pytorch.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
@@ -289,7 +290,10 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
-        self.__dict__.update(apply_to_collection(self.__dict__, (Tensor, Metric), move_data_to_device, *args, **kwargs))
+        d = self.__dict__
+        if _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/96198
+            d = dict(d)
+        self.__dict__.update(apply_to_collection(d, (Tensor, Metric), move_data_to_device, *args, **kwargs))
         return self
 
 
@@ -346,7 +350,8 @@ class _ResultCollection(dict):
         logger: bool = True,
         on_step: bool = False,
         on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
+        # https://github.com/pytorch/pytorch/issues/96197
+        reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
@@ -439,7 +444,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not should and _distributed_available() and result_metric.is_tensor:
+                if not should and result_metric.is_tensor and torch.distributed.is_initialized():
                     warning_cache.warn(
                         f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
                         " when logging on epoch level in distributed setting to accumulate the metric across"

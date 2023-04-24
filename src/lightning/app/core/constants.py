@@ -20,6 +20,9 @@ import lightning_cloud.env
 
 
 def get_lightning_cloud_url() -> str:
+    # detect local development
+    if os.getenv("VSCODE_PROXY_URI", "").startswith("http://localhost:9800"):
+        return "http://localhost:9800"
     # DO NOT CHANGE!
     return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
 
@@ -89,6 +92,11 @@ ENABLE_PUSHING_STATE_ENDPOINT = ENABLE_PULLING_STATE_ENDPOINT and bool(
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "1")))
 ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
 
+# directory where system customization sync files stored
+SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"
+# directory where system customization sync files will be copied to be packed into app tarball
+SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
+
 
 def enable_multiple_works_in_default_container() -> bool:
     return bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
@@ -110,17 +118,5 @@ def enable_interruptible_works() -> bool:
     return bool(int(os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0")))
 
 
-# Get Cluster Driver
-_CLUSTER_DRIVERS = [None, "k8s", "direct"]
-
-
 def get_cluster_driver() -> Optional[str]:
-    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
-    if value is None:
-        if enable_interruptible_works():
-            value = "direct"
-        else:
-            value = None
-    if value not in _CLUSTER_DRIVERS:
-        raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
-    return value
+    return "direct"

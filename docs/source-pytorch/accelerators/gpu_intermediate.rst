@@ -120,7 +120,7 @@ We STRONGLY discourage this use because it has limitations (due to Python and Py
         author="",
         author_email="",
         url="https://github.com/YourSeed",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
-        install_requires=["pytorch-lightning"],
+        install_requires=["lightning"],
         packages=find_packages(),
     )
 

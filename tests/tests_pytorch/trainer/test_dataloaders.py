@@ -23,6 +23,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
+import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, seed_everything, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -33,6 +34,7 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.trainer.connectors.data_connector import _request_dataloader
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
@@ -91,7 +93,7 @@ def test_fit_val_loader_only(tmpdir):
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 
-@pytest.mark.parametrize("dataloader_options", [dict(val_check_interval=10000)])
+@pytest.mark.parametrize("dataloader_options", [{"val_check_interval": 10000}])
 def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
@@ -102,16 +104,16 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
 @pytest.mark.parametrize(
     "dataloader_options",
     [
-        dict(limit_train_batches=-0.1),
-        dict(limit_train_batches=1.2),
-        dict(limit_val_batches=-0.1),
-        dict(limit_val_batches=1.2),
-        dict(limit_test_batches=-0.1),
-        dict(limit_test_batches=1.2),
-        dict(val_check_interval=-0.1),
-        dict(val_check_interval=1.2),
-        dict(overfit_batches=-0.1),
-        dict(overfit_batches=1.2),
+        {"limit_train_batches": -0.1},
+        {"limit_train_batches": 1.2},
+        {"limit_val_batches": -0.1},
+        {"limit_val_batches": 1.2},
+        {"limit_test_batches": -0.1},
+        {"limit_test_batches": 1.2},
+        {"val_check_interval": -0.1},
+        {"val_check_interval": 1.2},
+        {"overfit_batches": -0.1},
+        {"overfit_batches": 1.2},
     ],
 )
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
@@ -152,7 +154,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     model = BoringModel()
     train_loader = model.train_dataloader()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-    fit_options = dict(train_dataloaders=train_loader)
+    fit_options = {"train_dataloaders": train_loader}
     trainer.fit(model, **fit_options)
     assert trainer.num_training_batches == 2
     assert trainer.train_dataloader == train_loader
@@ -258,7 +260,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
 
     num_batches = 128 / batch_size
     for dl in (train_dl, val_dl, test_dl):
-        if has_len_all_ranks(dl, trainer.strategy, model):
+        if has_len_all_ranks(dl, trainer.strategy):
             assert len(dl) == num_batches
         else:
             assert sum(1 for _ in dl) == num_batches
@@ -465,7 +467,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = MultiEvalDataLoaderModel()
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
+    trainer_options = {"default_root_dir": tmpdir, "max_epochs": 2, "fast_dev_run": fast_dev_run}
 
     if fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match="should be >= 0"):
@@ -503,7 +505,12 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
 
     model = BoringModel()
     eval_dataloader = DataLoader(RandomDataset(32, 64))
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_val_batches": 0.1,
+        "limit_train_batches": 0.2,
+    }
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -524,13 +531,11 @@ def test_warning_on_zero_len_dataloader():
     val_dataloader = DataLoader(RandomDataset(32, 0))
     trainer._data_connector.attach_data(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    trainer.training = True
     with pytest.warns(UserWarning, match="Total length of `CombinedLoader` across ranks is zero"):
         trainer.fit_loop.setup_data()
     assert trainer.num_training_batches == 0
 
     trainer.state.fn = "validate"
-    trainer.validating = True
     with pytest.warns(UserWarning, match="Total length of `DataLoader` across ranks is zero"):
         trainer.validate_loop.setup_data()
     assert trainer.num_val_batches == [0]
@@ -555,7 +560,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f'The dataloader, {stage}_dataloader{" 0" if stage != "train" else ""}, does not have many workers',
+        match=f"The dataloader, {stage}_dataloader, does not have many workers",
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
@@ -592,7 +597,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f'The dataloader, {stage}_dataloader{" 0" if stage != "train" else ""}, does not have many workers',
+        match=f"The dataloader, {stage}_dataloader, does not have many workers",
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
@@ -712,7 +717,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     # with __len__ defined
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
     dataloader = DataLoader(IterableWithLen(), batch_size=16)
-    assert has_len_all_ranks(dataloader, trainer.strategy, model)
+    assert has_len_all_ranks(dataloader, trainer.strategy)
     assert has_iterable_dataset(dataloader)
     with pytest.warns(UserWarning, match="Your `IterableDataset` has `__len__` defined."):
         trainer.validate(model, dataloaders=[dataloader])
@@ -726,7 +731,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     # without __len__ defined
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
     dataloader = DataLoader(IterableWithoutLen(), batch_size=16)
-    assert not has_len_all_ranks(dataloader, trainer.strategy, model)
+    assert not has_len_all_ranks(dataloader, trainer.strategy)
     assert has_iterable_dataset(dataloader)
     trainer.validate(model, dataloaders=dataloader)
     trainer.fit(model, train_dataloaders=dataloader, val_dataloaders=[dataloader])
@@ -837,7 +842,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
 
 @pytest.mark.parametrize(
     ["mode", "num_training_batches"],
-    [("min_size", 16), ("max_size_cycle", 64), ("sequential", 64 + 16 * 4)],
+    [("min_size", 16), ("max_size_cycle", 64), ("max_size", 64), ("sequential", 64 + 16 * 4)],
 )
 def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
     """Integration test for multiple train iterables."""
@@ -864,7 +869,7 @@ def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
 
     if mode == "sequential":
-        with pytest.raises(ValueError, match="FitLoop` only supports"):
+        with pytest.raises(ValueError, match="FitLoop` does not support"):
             trainer.fit(model)
     else:
         trainer.fit(model)
@@ -1134,7 +1139,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
 
 
 @pytest.mark.parametrize("sanity_check", (False, True))
-def test_dataloaders_load_only_once_passed_loaders(tmpdir, sanity_check):
+def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity_check):
     model = BoringModel()
     train_dataloader = model.train_dataloader()
     val_dataloader = model.val_dataloader()
@@ -1145,23 +1150,24 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir, sanity_check):
     model.val_dataloader = None
     model.test_dataloader = None
 
+    stages = []
+    original_request_dataloader = _request_dataloader
+
+    def side_effect_request_dataloader(ds):
+        stages.append(trainer.state.stage)
+        return original_request_dataloader(ds)
+
+    request_dataloader_mock = Mock(wraps=side_effect_request_dataloader)
+    monkeypatch.setattr(lightning.pytorch.loops.fit_loop, "_request_dataloader", request_dataloader_mock)
+    monkeypatch.setattr(lightning.pytorch.loops.evaluation_loop, "_request_dataloader", request_dataloader_mock)
+
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=0.3,
         limit_val_batches=0.3,
         max_epochs=3,
         num_sanity_val_steps=1 if sanity_check else 0,
     )
-
-    stages = []
-    original_request_dataloader = trainer._data_connector._request_dataloader
-
-    def mock_request_dataloader():
-        stages.append(trainer.state.stage)
-        return original_request_dataloader()
-
-    request_dataloader_mock = Mock(wraps=mock_request_dataloader)
-    trainer._data_connector._request_dataloader = request_dataloader_mock
 
     trainer.fit(model, train_dataloader, val_dataloader)
     assert request_dataloader_mock.call_count == 2

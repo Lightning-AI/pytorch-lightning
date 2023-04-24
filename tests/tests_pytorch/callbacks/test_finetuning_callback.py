@@ -19,11 +19,10 @@ from torch import nn
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -340,9 +339,13 @@ def test_callbacks_restore(tmpdir):
     model = FinetuningBoringModel()
     callback = TestCallbacksRestoreCallback()
 
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, callbacks=[callback, chk], max_epochs=2
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "callbacks": [callback, chk],
+        "max_epochs": 2,
+    }
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)

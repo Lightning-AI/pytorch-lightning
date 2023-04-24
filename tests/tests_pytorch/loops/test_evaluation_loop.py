@@ -22,6 +22,7 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.utilities import CombinedLoader
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -87,7 +88,7 @@ def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
 
 
 @mock.patch(
-    "lightning.pytorch.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
+    "lightning.pytorch.trainer.connectors.logger_connector.logger_connector._LoggerConnector.log_eval_end_metrics"
 )
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
@@ -446,3 +447,36 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.validate(model)
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_test_batch_end"):
         trainer.test(model)
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected"),
+    (
+        ("max_size_cycle", [{"a": 0, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": 3}]),
+        ("min_size", [{"a": 0, "b": 3}, {"a": 1, "b": 4}]),
+        ("max_size", [{"a": 0, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": None}]),
+    ),
+)
+@pytest.mark.parametrize("fn", ("validate", "test"))
+def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn):
+    iterables = {"a": [0, 1, 2], "b": {3, 4}}
+    cl = CombinedLoader(iterables, mode)
+    seen = []
+
+    class MyModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            seen.append(batch)
+
+        def test_step(self, batch, batch_idx):
+            seen.append(batch)
+
+    model = MyModel()
+    trainer = Trainer(default_root_dir=tmp_path, barebones=True)
+
+    trainer_fn = getattr(trainer, fn)
+    trainer_fn(model, cl)
+
+    assert trainer.num_sanity_val_batches == []  # this is fit-only
+    actual = trainer.num_val_batches if fn == "validate" else trainer.num_test_batches
+    assert actual == (3 if mode != "min_size" else 2)
+    assert seen == expected

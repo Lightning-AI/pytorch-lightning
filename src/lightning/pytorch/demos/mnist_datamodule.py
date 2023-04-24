@@ -39,6 +39,8 @@ class _MNIST(Dataset):
 
     We cannot import the tests as they are not distributed with the package.
     See https://github.com/Lightning-AI/lightning/pull/7614#discussion_r671183652 for more context.
+
+    .. warning::  This is meant for testing/debugging and is experimental.
     """
 
     RESOURCES = (
@@ -196,7 +198,7 @@ class MNISTDataModule(LightningDataModule):
 
     def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
-        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         assert isinstance(dataset, Sized)
         train_length = len(dataset)
@@ -228,7 +230,7 @@ class MNISTDataModule(LightningDataModule):
 
     def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
-        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
         loader = DataLoader(
             dataset,

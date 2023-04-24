@@ -43,7 +43,7 @@ def test_passing_env_variables_only():
 @mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "True", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_defaults():
     """Testing overwriting trainer arguments."""
-    trainer = Trainer(False, max_steps=42)
+    trainer = Trainer(logger=False, max_steps=42)
     assert trainer.logger is None
     assert trainer.max_steps == 42
 

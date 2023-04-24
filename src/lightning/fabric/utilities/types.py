@@ -30,7 +30,7 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
-    RedOpType: TypeAlias = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object  # type: ignore[misc]
+    RedOpType: TypeAlias = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object  # type: ignore[valid-type]
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
     ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
@@ -75,7 +75,7 @@ class LRScheduler(_Stateful[str], Protocol):
 
 
 _TORCH_LRSCHEDULER: TypeAlias = (
-    torch.optim.lr_scheduler.LRScheduler  # type: ignore[misc]
+    torch.optim.lr_scheduler.LRScheduler  # type: ignore[valid-type]
     if _TORCH_GREATER_EQUAL_2_0
     else torch.optim.lr_scheduler._LRScheduler
 )

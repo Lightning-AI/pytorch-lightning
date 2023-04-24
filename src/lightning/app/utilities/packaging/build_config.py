@@ -196,7 +196,7 @@ class BuildConfig:
         return {"__build_config__": asdict(self)}
 
     @classmethod
-    def from_dict(cls, d: Dict) -> Self:  # type: ignore[valid-type]
+    def from_dict(cls, d: Dict) -> Self:
         return cls(**d["__build_config__"])
 
 

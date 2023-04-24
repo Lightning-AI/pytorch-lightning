@@ -15,13 +15,14 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
@@ -30,6 +31,7 @@ from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACh
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
@@ -54,7 +56,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto")
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -74,7 +76,7 @@ def test_resume_training_on_cpu(tmpdir):
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto", default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     out = trainer.test(model)
     assert len(out) == 1
@@ -89,70 +91,69 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
-def test_accelerator_tpu(_, accelerator, devices, tpu_available):
+def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
-    assert trainer.num_devices == 8
+
+
+class ManualOptimizationModel(BoringModel):
+
+    count = 0
+    called = collections.defaultdict(int)
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    @property
+    def should_update(self):
+        return self.count % 2 == 0
+
+    def on_train_batch_start(self, batch, batch_idx):
+        self.called["on_train_batch_start"] += 1
+        self.weight_before = self.layer.weight.clone()
+
+    def training_step(self, batch, batch_idx):
+        self.called["training_step"] += 1
+        opt = self.optimizers()
+        loss = self.step(batch)
+
+        if self.should_update:
+            self.manual_backward(loss)
+            opt.step()
+            opt.zero_grad()
+        return loss
+
+    def on_train_batch_end(self, *_):
+        self.called["on_train_batch_end"] += 1
+        after_before = self.layer.weight.clone()
+        if self.should_update:
+            assert not torch.equal(self.weight_before, after_before), self.count
+        else:
+            assert torch.equal(self.weight_before, after_before)
+        assert_emtpy_grad(self.layer.weight.grad)
+        self.count += 1
+
+    def on_train_start(self):
+        opt = self.optimizers()
+        self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
+        self.opt_step_mock = self.opt_step_patch.start()
+
+    def on_train_end(self):
+        assert self.called["training_step"] == 5
+        assert self.called["on_train_batch_start"] == 5
+        assert self.called["on_train_batch_end"] == 5
+
+        self.opt_step_patch.stop()
+        assert self.opt_step_mock.call_count == 3
 
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_manual_optimization_tpus(tmpdir):
-    class ManualOptimizationModel(BoringModel):
-
-        count = 0
-        called = collections.defaultdict(int)
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        @property
-        def should_update(self):
-            return self.count % 2 == 0
-
-        def on_train_batch_start(self, batch, batch_idx):
-            self.called["on_train_batch_start"] += 1
-            self.weight_before = self.layer.weight.clone()
-
-        def training_step(self, batch, batch_idx):
-            self.called["training_step"] += 1
-            opt = self.optimizers()
-            loss = self.step(batch)
-
-            if self.should_update:
-                self.manual_backward(loss)
-                opt.step()
-                opt.zero_grad()
-            return loss
-
-        def on_train_batch_end(self, *_):
-            self.called["on_train_batch_end"] += 1
-            after_before = self.layer.weight.clone()
-            if self.should_update:
-                assert not torch.equal(self.weight_before, after_before), self.count
-            else:
-                assert torch.equal(self.weight_before, after_before)
-            assert_emtpy_grad(self.layer.weight.grad)
-            self.count += 1
-
-        def on_train_start(self):
-            opt = self.optimizers()
-            self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
-            self.opt_step_mock = self.opt_step_patch.start()
-
-        def on_train_end(self):
-            assert self.called["training_step"] == 5
-            assert self.called["on_train_batch_start"] == 5
-            assert self.called["on_train_batch_end"] == 5
-
-            self.opt_step_patch.stop()
-            assert self.opt_step_mock.call_count == 3
-
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
 
@@ -163,7 +164,7 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         accelerator="tpu",
-        devices=8,
+        devices="auto",
     )
     trainer.fit(model)
 
@@ -185,7 +186,7 @@ def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
 
 @RunIf(tpu=True)
 def test_strategy_choice_tpu_strategy():
-    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices=8)
+    trainer = Trainer(strategy=XLAStrategy(), accelerator="tpu", devices="auto")
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
@@ -198,40 +199,41 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
 
 
+class SubModule(nn.Module):
+    def __init__(self, layer):
+        super().__init__()
+        self.layer = layer
+
+    def forward(self, x):
+        return self.layer(x)
+
+
+class NestedModule(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(32, 10, bias=False)
+        self.net_a = SubModule(self.layer)
+        self.layer_2 = nn.Linear(10, 32, bias=False)
+        self.net_b = SubModule(self.layer)
+
+    def forward(self, x):
+        x = self.net_a(x)
+        x = self.layer_2(x)
+        x = self.net_b(x)
+        return x
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_auto_parameters_tying_tpus_nested_module(tmpdir):
-    class SubModule(nn.Module):
-        def __init__(self, layer):
-            super().__init__()
-            self.layer = layer
-
-        def forward(self, x):
-            return self.layer(x)
-
-    class NestedModule(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer = nn.Linear(32, 10, bias=False)
-            self.net_a = SubModule(self.layer)
-            self.layer_2 = nn.Linear(10, 32, bias=False)
-            self.net_b = SubModule(self.layer)
-
-        def forward(self, x):
-            x = self.net_a(x)
-            x = self.layer_2(x)
-            x = self.net_b(x)
-            return x
-
     model = NestedModule()
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
@@ -298,11 +300,10 @@ def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
 
 
 def test_warning_if_tpus_not_used(tpu_available):
-    with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
+    with pytest.warns(UserWarning, match="TPU available but not used"):
         Trainer(accelerator="cpu")
 
 
-@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
     [
@@ -313,8 +314,21 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_trainer_config_device_ids(devices, expected_device_ids):
+@pytest.mark.parametrize("runtime", ("xrt", "pjrt"))
+@RunIf(min_python="3.9")  # mocking issue
+def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_available, monkeypatch):
+    from torch_xla.experimental import pjrt
+
+    monkeypatch.setattr(pjrt, "using_pjrt", lambda: runtime == "pjrt")
+
+    mock = DeviceMock()
+    monkeypatch.setattr(torch, "device", mock)
+    if _IS_WINDOWS:
+        # simulate fork support on windows
+        monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
     trainer = Trainer(accelerator="tpu", devices=devices)
-    assert trainer.device_ids == expected_device_ids
+    device_offset = int(runtime == "xrt")
+    assert mock.mock_calls == [call("xla", i + device_offset) for i in expected_device_ids]
+    assert len(trainer.device_ids) == len(expected_device_ids)
     assert trainer.num_devices == len(expected_device_ids)

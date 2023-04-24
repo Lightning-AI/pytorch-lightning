@@ -11,7 +11,7 @@ _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning")
 _PATH_REQUIREMENTS = os.path.join(_PROJECT_ROOT, "requirements")
-_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
+_FREEZE_REQUIREMENTS = os.environ.get("FREEZE_REQUIREMENTS", "0").lower() in ("1", "true")
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -32,11 +32,11 @@ def _prepare_extras() -> Dict[str, Any]:
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
-    common_args = dict(unfreeze="none" if _FREEZE_REQUIREMENTS else "major")
+    common_args = {"unfreeze": "none" if _FREEZE_REQUIREMENTS else "major"}
     extras = {
         f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
-        if p.name not in ("docs.txt", "devel.txt", "base.txt")
+        if p.name not in ("docs.txt", "devel.txt", "base.txt") and not p.parts[-2].startswith("_")
     }
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
@@ -64,37 +64,37 @@ def _setup_args() -> Dict[str, Any]:
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
     ) + ["pytorch-lightning"]
 
-    return dict(
-        name="lightning",
-        version=version.version,
-        description=about.__docs__,
-        author=about.__author__,
-        author_email=about.__author_email__,
-        url=about.__homepage__,
-        download_url="https://github.com/Lightning-AI/lightning",
-        license=about.__license__,
-        packages=find_packages(where="src", include=["lightning", "lightning.*"]),
-        package_dir={"": "src"},
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        include_package_data=True,
-        zip_safe=False,
-        keywords=["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
-        python_requires=">=3.8",  # todo: take the lowes based on all packages
-        entry_points={
+    return {
+        "name": "lightning",
+        "version": version.version,
+        "description": about.__docs__,
+        "author": about.__author__,
+        "author_email": about.__author_email__,
+        "url": about.__homepage__,
+        "download_url": "https://github.com/Lightning-AI/lightning",
+        "license": about.__license__,
+        "packages": find_packages(where="src", include=["lightning", "lightning.*"]),
+        "package_dir": {"": "src"},
+        "long_description": long_description,
+        "long_description_content_type": "text/markdown",
+        "include_package_data": True,
+        "zip_safe": False,
+        "keywords": ["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
+        "python_requires": ">=3.8",  # todo: take the lowes based on all packages
+        "entry_points": {
             "console_scripts": [
                 "lightning = lightning.app.cli.lightning_cli:main",
             ],
         },
-        setup_requires=[],
-        install_requires=install_requires,
-        extras_require=_prepare_extras(),
-        project_urls={
+        "setup_requires": [],
+        "install_requires": install_requires,
+        "extras_require": _prepare_extras(),
+        "project_urls": {
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://lightning.ai/lightning-docs",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
-        classifiers=[
+        "classifiers": [
             "Environment :: Console",
             "Natural Language :: English",
             # How mature is this project? Common values are
@@ -113,4 +113,4 @@ def _setup_args() -> Dict[str, Any]:
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
         ],  # todo: consider aggregation/union of tags from particular packages
-    )
+    }

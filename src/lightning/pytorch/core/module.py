@@ -12,21 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
-
 import logging
 import numbers
+import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    Generator,
+    IO,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    overload,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
+from typing_extensions import Self
 
 import lightning.fabric as lf
 import lightning.pytorch as pl
@@ -34,20 +50,20 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.distributed import _distributed_available, _sync_ddp
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.core.saving import ModelIO
+from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
@@ -65,7 +81,6 @@ MODULE_OPTIMIZERS = Union[
 class LightningModule(
     _DeviceDtypeModuleMixin,
     HyperparametersMixin,
-    ModelIO,
     ModelHooks,
     DataHooks,
     CheckpointHooks,
@@ -92,6 +107,10 @@ class LightningModule(
     )
     _jit_is_scripting = False
 
+    CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
+    CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
+    CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -104,7 +123,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
@@ -186,8 +204,9 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-            trainer = weakref.proxy(trainer)
+        if not _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/95857
+            if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+                trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -479,8 +498,8 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and _distributed_available(),
-            sync_dist_fn=trainer.strategy.reduce or _sync_ddp,
+            sync_dist=sync_dist and trainer._accelerator_connector.is_distributed,
+            sync_dist_fn=trainer.strategy.reduce,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -604,10 +623,9 @@ class LightningModule(
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
-        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
-        distributed processes.
+        r"""Gather tensors or collections of tensors from multiple processes.
+
+        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -1099,6 +1117,16 @@ class LightningModule(
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
         """
+
+        if self.fabric is not None:
+            self.fabric.clip_gradients(
+                self,
+                optimizer,
+                clip_val=gradient_clip_val if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else None,
+                max_norm=None if gradient_clip_algorithm == GradClipAlgorithmType.VALUE else gradient_clip_val,
+            )
+            return
+
         if gradient_clip_val is None:
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
@@ -1419,20 +1447,99 @@ class LightningModule(
 
         return torchscript_module
 
-    @contextmanager
-    def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
-        self._should_prevent_trainer_and_dataloaders_deepcopy = True
-        yield
-        self._should_prevent_trainer_and_dataloaders_deepcopy = False
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: Union[_PATH, IO],
+        map_location: _MAP_LOCATION_TYPE = None,
+        hparams_file: Optional[_PATH] = None,
+        strict: bool = True,
+        **kwargs: Any,
+    ) -> Self:
+        r"""
+        Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
+        it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
+
+        Any arguments specified through \*\*kwargs will override args stored in ``"hyper_parameters"``.
+
+        Args:
+            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
+            map_location:
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in :func:`torch.load`.
+            hparams_file: Optional path to a ``.yaml`` or ``.csv`` file with hierarchical structure
+                as in this example::
+
+                    drop_prob: 0.2
+                    dataloader:
+                        batch_size: 32
+
+                You most likely won't need this since Lightning will always save the hyperparameters
+                to the checkpoint.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a ``.yaml`` file with the hparams you'd like to use.
+                These will be converted into a :class:`~dict` and passed into your
+                :class:`LightningModule` for use.
+
+                If your model's ``hparams`` argument is :class:`~argparse.Namespace`
+                and ``.yaml`` file has hierarchical structure, you need to refactor your model to treat
+                ``hparams`` as :class:`~dict`.
+            strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
+                returned by this module's state dict.
+            \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
+                hyperparameter values.
+
+        Return:
+            :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
+
+        Note:
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
+            **class** to call it instead of the :class:`LightningModule` instance.
+
+        Example::
+
+            # load weights without mapping ...
+            model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+
+            # or load weights mapping all weights from GPU 1 to GPU 0 ...
+            map_location = {'cuda:1':'cuda:0'}
+            model = MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                map_location=map_location
+            )
+
+            # or load weights and hyperparameters from separate files.
+            model = MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                hparams_file='/path/to/hparams_file.yaml'
+            )
+
+            # override some of the params with new values
+            model = MyLightningModule.load_from_checkpoint(
+                PATH,
+                num_layers=128,
+                pretrained_ckpt_path=NEW_PATH,
+            )
+
+            # predict
+            pretrained_model.eval()
+            pretrained_model.freeze()
+            y_hat = pretrained_model(x)
+        """
+        loaded = _load_from_checkpoint(
+            cls,
+            checkpoint_path,
+            map_location,
+            hparams_file,
+            strict,
+            **kwargs,
+        )
+        return cast(Self, loaded)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
-        if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["_trainer"] = None
-            state.pop("train_dataloader", None)
-            state.pop("val_dataloader", None)
-            state.pop("test_dataloader", None)
-            state.pop("predict_dataloader", None)
+        state["_trainer"] = None
         return state
 
     def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
@@ -1451,7 +1558,8 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_13:
+        if compare_version("torch", operator.ge, "1.13.0", use_base_version=True):
+            # See https://github.com/Lightning-AI/lightning/issues/16644 for why a base-version check is used here
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy

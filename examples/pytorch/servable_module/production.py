@@ -81,7 +81,7 @@ class Top1:
 class ProductionReadyModel(LitModule, ServableModule):
     def configure_payload(self):
         # 1: Access the train dataloader and load a single sample.
-        image, _ = self.trainer.train_dataloader.iterables.dataset[0]
+        image, _ = self.trainer.train_dataloader.dataset[0]
 
         # 2: Convert the image into a PIL Image to bytes and encode it with base64
         pil_image = T.ToPILImage()(image)
@@ -110,6 +110,7 @@ def cli_main():
         save_config_kwargs={"overwrite": True},
         run=False,
         trainer_defaults={
+            "accelerator": "cpu",
             "callbacks": [ServableModuleValidator()],
             "max_epochs": 1,
             "limit_train_batches": 5,

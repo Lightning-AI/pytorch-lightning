@@ -17,7 +17,6 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
-import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
@@ -91,7 +90,8 @@ class TensorBoardLogger(Logger):
     ):
         if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
             raise ModuleNotFoundError(
-                "Neither `tensorboard` nor `tensorboardX` is available. Try `pip install`ing either."
+                "Neither `tensorboard` nor `tensorboardX` is available. Try `pip install`ing either.\n"
+                f"{str(_TENSORBOARDX_AVAILABLE)}\n{str(_TENSORBOARD_AVAILABLE)}"
             )
         super().__init__()
         root_dir = os.fspath(root_dir)
@@ -302,7 +302,7 @@ class TensorBoardLogger(Logger):
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
-        return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
+        return {k: str(v) if hasattr(v, "ndim") and v.ndim > 1 else v for k, v in params.items()}
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()

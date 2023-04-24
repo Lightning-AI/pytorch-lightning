@@ -1,16 +1,15 @@
+from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Tuple
 
 import torch
 from torch import Tensor
 
 
-class ServableModule(torch.nn.Module):
+class ServableModule(ABC, torch.nn.Module):
 
     """The ServableModule provides a simple API to make your model servable.
 
-    .. warning::
-
-        This is currently an experimental feature and API changes are to be expected.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Here is an example of how to use the ``ServableModule`` module.
 
@@ -56,9 +55,11 @@ class ServableModule(torch.nn.Module):
         assert serve_cb.resp.json() == {"output": [0, 1]}
     """
 
+    @abstractmethod
     def configure_payload(self) -> Dict[str, Any]:
         """Returns a request payload as a dictionary."""
 
+    @abstractmethod
     def configure_serialization(self) -> Tuple[Dict[str, Callable], Dict[str, Callable]]:
         """Returns a tuple of dictionaries.
 
@@ -69,6 +70,7 @@ class ServableModule(torch.nn.Module):
         and the associated serialization function (e.g function to convert a tensors into payload).
         """
 
+    @abstractmethod
     def serve_step(self, *args: Tensor, **kwargs: Tensor) -> Dict[str, Tensor]:
         r"""
         Returns the predictions of your model as a dictionary.
@@ -86,5 +88,6 @@ class ServableModule(torch.nn.Module):
             - ``dict`` - A dictionary with their associated tensors.
         """
 
+    @abstractmethod
     def configure_response(self) -> Dict[str, Any]:
         """Returns a response to validate the server response."""

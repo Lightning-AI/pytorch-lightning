@@ -6,10 +6,6 @@ Common Workflows
 
 Customize and extend Lightning for things like custom hardware or distributed strategies.
 
-.. join_slack::
-   :align: left
-
-----
 
 .. raw:: html
 

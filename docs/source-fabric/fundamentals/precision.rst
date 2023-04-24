@@ -2,6 +2,11 @@
 Save memory with mixed precision
 ################################
 
+.. raw:: html
+
+    <center>
+        <video width="100%" max-width="500px" src="https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/precision.mp4", type="video/mp4" autoplay loop muted></video>
+    </center>
 
 ************************
 What is Mixed Precision?
@@ -106,7 +111,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 
 .. note::
 
-    BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
+    BFloat16 may not provide significant speedups or memory improvements, offering better numerical stability.
     For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
 
 

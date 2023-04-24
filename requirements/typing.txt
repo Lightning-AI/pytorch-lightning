@@ -1,5 +1,4 @@
-mypy==0.982
--f https://download.pytorch.org/whl/test/cpu/torch_test.html --pre
+mypy==1.1.1
 torch==2.0.0
 
 types-Markdown

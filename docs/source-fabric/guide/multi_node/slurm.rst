@@ -133,4 +133,4 @@ The most likely reasons and how to fix it:
 
 
 If you are sick of troubleshooting SLURM settings, give :doc:`Lightning cloud <./cloud>` a try!
-For other questions, please don't hesitate to join the `Lightning Forum <https://lightning.ai/forums/>`_ and the `Community Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1dm4phlc0-84Jv9_8Mp_tWraICOJ467Q>`_.
+For other questions, please don't hesitate to join the `Discord <https://discord.gg/VptPCZkGNa>`_.

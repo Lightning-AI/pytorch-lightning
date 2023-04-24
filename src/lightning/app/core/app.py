@@ -76,7 +76,7 @@ class LightningApp:
         root: Union["LightningFlow", LightningWork],
         flow_cloud_compute: Optional["CloudCompute"] = None,
         log_level: str = "info",
-        info: frontend.AppInfo = None,
+        info: Optional[frontend.AppInfo] = None,
         root_path: str = "",
     ) -> None:
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
@@ -101,18 +101,6 @@ class LightningApp:
                 For instance, if you want to run your app at `https://customdomain.com/myapp`,
                 set `root_path` to `/myapp`.
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
-
-
-        Example:
-
-            >>> from lightning.app import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
-            >>> class RootFlow(LightningFlow):
-            ...     def run(self):
-            ...         self.stop()
-            ...
-            >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
-            >>> MultiProcessRuntime(app).dispatch()
         """
 
         self.root_path = root_path  # when running behind a proxy
