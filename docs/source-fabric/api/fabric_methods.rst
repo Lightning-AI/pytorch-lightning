@@ -2,6 +2,33 @@
 Fabric Methods
 ##############
 
+launch
+======
+
+With :meth:`~lightning.fabric.fabric.Fabric.launch` you can conveniently launch your script or a function
+into multiple processes for distributed training on a single machine.
+
+.. code-block:: python
+
+    # Launch the script on 2 devices and init distributed backend
+    fabric = Fabric(devices=2)
+    fabric.launch()
+
+The same can be done with code inside a function:
+
+.. code-block:: python
+
+    def run(fabric):
+        # Your distributed code here
+        ...
+
+
+    # Launch a function on 2 devices and init distributed backend
+    fabric = Fabric(devices=2)
+    fabric.launch(run)
+
+For example, you can use the latter for multi-GPU training inside a :doc:`Jupyter notebook <../fundamentals/notebooks>`.
+For launching distributed training with the CLI, multi-node cluster, or cloud, see :doc:`../fundamentals/launch`.
 
 setup
 =====
