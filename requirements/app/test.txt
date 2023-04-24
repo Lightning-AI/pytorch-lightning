@@ -1,13 +1,14 @@
-coverage==6.5.0
-pytest==7.2.0
-pytest-timeout==2.1.0
-pytest-cov==4.0.0
+coverage ==6.5.0
+pytest ==7.2.2
+pytest-timeout ==2.1.0
+pytest-cov ==4.0.0
 pytest-doctestplus >=0.9.0
-pytest-asyncio==0.20.3
-playwright==1.30.0
+pytest-asyncio ==0.20.3
+pytest-rerunfailures <=11.1.2
+playwright ==1.30.0
 httpx
-trio<0.22.0  # strict https://github.com/python-trio/trio/pull/2213
+trio <0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
 psutil
-setuptools<67.7.0
+setuptools <67.7.0
 requests-mock
