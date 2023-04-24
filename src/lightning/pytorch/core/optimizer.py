@@ -382,7 +382,7 @@ class _MockOptimizer(Optimizer):
         if closure is not None:
             closure()
 
-    def zero_grad(self, set_to_none: Optional[bool] = False) -> None:
+    def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing
 
     def __repr__(self) -> str:
