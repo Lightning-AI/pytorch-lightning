@@ -31,6 +31,7 @@ ______________________________________________________________________
 [![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/lightning)
 
 [![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
+[![All Contributors](https://img.shields.io/github/all-contributors/lightning-ai/lightning?style=flat-square)](#contributors-)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/lightning-ai/lightning)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
 
