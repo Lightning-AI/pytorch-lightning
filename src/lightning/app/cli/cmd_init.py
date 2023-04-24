@@ -63,9 +63,10 @@ def _make_resource(resource_dir: str, resource_name: str) -> Tuple[str, str]:
         if bad_file.split("/")[-1] in trouble_names:
             continue
         # find the words and replace
-        content = open(bad_file).read().replace("placeholdername", name_for_files)
-        with open(bad_file, "w") as file:
-            file.write(content)
+        with open(bad_file) as fo:
+            content = fo.read().replace("placeholdername", name_for_files)
+        with open(bad_file, "w") as fw:
+            fw.write(content)
 
     # rename files
     for file_name in files:

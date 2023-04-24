@@ -229,11 +229,7 @@ class DDPStrategy(ParallelStrategy):
                 optimizer = optimizer._optimizer
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
-            if (
-                is_distributed_optimizer
-                or isinstance(optimizer, ZeroRedundancyOptimizer)
-                or isinstance(optimizer, PostLocalSGDOptimizer)
-            ):
+            if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
                 raise ValueError(
                     f"Currently model averaging cannot work with a distributed optimizer of type "
                     f"{optimizer.__class__.__name__}."
