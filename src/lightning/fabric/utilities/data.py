@@ -36,10 +36,7 @@ class _WrapAttrTag(LightningEnum):
 
     def __call__(self, *args: Any) -> None:
         fn: Union[Callable[[object, str], None], Callable[[object, str, Any], None]]
-        if self == self.SET:
-            fn = setattr
-        else:
-            fn = delattr
+        fn = setattr if self == self.SET else delattr
         return fn(*args)
 
 
