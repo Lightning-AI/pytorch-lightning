@@ -12,7 +12,7 @@ onnxruntime<1.14.0
 psutil<5.9.5 # for `DeviceStatsMonitor`
 pandas>1.0, <1.5.4  # needed in benchmarks
 fastapi<0.87.0  # for `ServableModuleValidator`
-uvicorn<0.19.1  # for `ServableModuleValidator`
+uvicorn<0.21.2  # for `ServableModuleValidator`
 
 tensorboard >=2.9.1, <2.12.0  # for `TensorBoardLogger`
 protobuf <=3.20.1 # strict  # an extra is updating protobuf, this pin prevents TensorBoard failure
