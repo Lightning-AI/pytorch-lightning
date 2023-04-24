@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from fabric.plugins import HalfPrecision
 from lightning_utilities.test.warning import no_warning_call
 
 import lightning.fabric
@@ -763,6 +764,22 @@ def test_gpu_accelerator_no_gpu_backend_found_error(*_):
 def test_ddp_fork_on_unsupported_platform(_, __, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         _Connector(strategy=strategy)
+
+
+@pytest.mark.parametrize(
+    "precision_str,precision_cls",
+    [
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("bf16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+        ("bf16-mixed", MixedPrecision),
+    ],
+)
+def test_precision_selection(precision_str, precision_cls):
+    connector = _Connector(precision=precision_str)
+    assert isinstance(connector.precision, precision_cls)
 
 
 def test_precision_selection_16_on_cpu_warns():
