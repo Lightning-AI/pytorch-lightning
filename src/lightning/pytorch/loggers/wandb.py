@@ -337,14 +337,14 @@ class WandbLogger(Logger):
             dir = os.fspath(dir)
 
         # set wandb init arguments
-        self._wandb_init: Dict[str, Any] = dict(
-            name=name,
-            project=project,
-            dir=save_dir or dir,
-            id=version or id,
-            resume="allow",
-            anonymous=("allow" if anonymous else None),
-        )
+        self._wandb_init: Dict[str, Any] = {
+            "name": name,
+            "project": project,
+            "dir": save_dir or dir,
+            "id": version or id,
+            "resume": "allow",
+            "anonymous": ("allow" if anonymous else None),
+        }
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")
@@ -479,7 +479,7 @@ class WandbLogger(Logger):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)
 

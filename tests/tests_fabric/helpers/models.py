@@ -37,7 +37,7 @@ class BoringFabric(Fabric):
         return nn.Linear(32, 2)
 
     def get_optimizer(self, module: Module) -> Optimizer:
-        return torch.optim.SGD(module.parameters(), lr=0.1)
+        return torch.optim.Adam(module.parameters(), lr=0.1)
 
     def get_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))

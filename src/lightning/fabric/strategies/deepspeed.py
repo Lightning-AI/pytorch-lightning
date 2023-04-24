@@ -33,7 +33,7 @@ from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
@@ -307,7 +307,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def model(self) -> "deepspeed.DeepSpeedEngine":
@@ -490,7 +490,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
-        for k, v in client_state.copy().items():
+        for k in client_state.copy():
             if k not in state:
                 continue
             state[k] = client_state.pop(k)
@@ -580,7 +580,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
         reset_seed()
         self._set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
