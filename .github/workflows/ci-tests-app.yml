@@ -47,7 +47,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "app", python-version: "3.9", requires: "latest"}
           - {os: "windows-2022", pkg-name: "app", python-version: "3.8", requires: "latest"}
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
