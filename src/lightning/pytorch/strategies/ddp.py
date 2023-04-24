@@ -183,10 +183,7 @@ class DDPStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        if torch.cuda.is_available():
-            ctx = torch.cuda.stream(torch.cuda.Stream())
-        else:
-            ctx = nullcontext()
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if torch.cuda.is_available() else nullcontext()
         with ctx:
             ddp_model = DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
         return ddp_model
