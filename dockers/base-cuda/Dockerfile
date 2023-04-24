@@ -105,7 +105,11 @@ RUN \
     # install rest of strategies
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt \
+    pip install \
+      -r requirements/pytorch/base.txt \
+      -r requirements/pytorch/extra.txt \
+      -r requirements/pytorch/test.txt \
+      -r requirements/pytorch/strategies.txt \
       --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py

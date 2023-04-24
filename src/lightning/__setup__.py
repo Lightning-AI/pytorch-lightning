@@ -37,7 +37,7 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
-        if p.name not in ("docs.txt", "devel.txt", "base.txt") and not p.parent.name.startswith("_")
+        if p.name not in ("docs.txt", "base.txt") and not p.parent.name.startswith("_")
     }
     # project specific extras groups
     extras["fabric-all"] = extras["fabric-strategies"] + extras["fabric-examples"]
