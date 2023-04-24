@@ -150,7 +150,7 @@ class AuthServer:
     @staticmethod
     def get_auth_url(port: int) -> str:
         redirect_uri = f"http://localhost:{port}/login-complete"
-        params = urlencode(dict(redirectTo=redirect_uri))
+        params = urlencode({"redirectTo": redirect_uri})
         return f"{get_lightning_cloud_url()}/sign-in?{params}"
 
     def login_with_browser(self, auth: Auth) -> None:
@@ -200,7 +200,7 @@ class AuthServer:
             logger.info("Login Successful")
 
             # Include the credentials in the redirect so that UI will also be logged in
-            params = urlencode(dict(token=token, key=key, userID=user_id))
+            params = urlencode({"token": token, "key": key, "userID": user_id})
 
             return RedirectResponse(
                 url=f"{get_lightning_cloud_url()}/cli-login-successful?{params}",
