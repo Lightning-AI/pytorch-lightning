@@ -50,12 +50,9 @@ class TPUAccelerator(Accelerator):
         from torch_xla.experimental import pjrt
 
         devices = _parse_tpu_devices(devices)
-        if pjrt.using_pjrt():
-            device_offset = 0
-        else:
-            # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
-            # since the user passes a 0-based index, we need to adjust the indices
-            device_offset = 1
+        # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
+        # since the user passes a 0-based index, we need to adjust the indices
+        device_offset = 0 if pjrt.using_pjrt() else 1
 
         if isinstance(devices, int):
             return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
@@ -140,14 +137,6 @@ def _has_tpu_device() -> bool:
 
 # PJRT support requires this minimum version
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
-
-
-def _tpu_distributed() -> bool:
-    if not TPUAccelerator.is_available():
-        return False
-    import torch_xla.core.xla_model as xm
-
-    return xm.xrt_world_size() > 1
 
 
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:

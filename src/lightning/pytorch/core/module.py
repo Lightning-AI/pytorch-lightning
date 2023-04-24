@@ -50,7 +50,6 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.distributed import _distributed_available
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
@@ -205,9 +204,9 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        if not _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/95857
-            if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-                trainer = weakref.proxy(trainer)
+        # https://github.com/pytorch/pytorch/issues/95857
+        if not _TORCH_GREATER_EQUAL_2_0 and trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -499,7 +498,7 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and _distributed_available(),
+            sync_dist=sync_dist and trainer._accelerator_connector.is_distributed,
             sync_dist_fn=trainer.strategy.reduce,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
