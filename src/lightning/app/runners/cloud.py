@@ -106,7 +106,7 @@ def _to_clean_dict(swagger_object, map_attributes):
     if hasattr(swagger_object, "to_dict"):
         attribute_map = swagger_object.attribute_map
         result = {}
-        for key in attribute_map.keys():
+        for key in attribute_map:
             value = getattr(swagger_object, key)
             value = _to_clean_dict(value, map_attributes)
             if value is not None and value != {}:
@@ -668,7 +668,7 @@ class CloudRuntime(Runtime):
         """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
         to start servers."""
         flow_servers: List[V1Flowserver] = []
-        for flow_name in self.app.frontends.keys():
+        for flow_name in self.app.frontends:
             flow_server = V1Flowserver(name=flow_name)
             flow_servers.append(flow_server)
         return flow_servers

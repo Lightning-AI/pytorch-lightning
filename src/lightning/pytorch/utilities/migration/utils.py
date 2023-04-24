@@ -119,10 +119,8 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
 
     # include the full upgrade command, including the path to the loaded file in the error message,
     # so user can copy-paste and run if they want
-    if not _IS_WINDOWS:  # side-step bug: ValueError: path is on mount 'C:', start on mount 'D:'
-        path_hint = os.path.relpath(checkpoint_path, os.getcwd())
-    else:
-        path_hint = os.path.abspath(checkpoint_path)
+    # side-step bug: ValueError: path is on mount 'C:', start on mount 'D:'
+    path_hint = os.path.relpath(checkpoint_path, os.getcwd()) if not _IS_WINDOWS else os.path.abspath(checkpoint_path)
     _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"

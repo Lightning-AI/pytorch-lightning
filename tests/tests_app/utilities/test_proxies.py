@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pathlib
@@ -147,10 +148,8 @@ def test_work_runner(parallel, cache_calls, *_):
         copy_request_queue,
         copy_response_queue,
     )
-    try:
+    with contextlib.suppress(Empty, Exception):
         work_runner()
-    except (Empty, Exception):
-        pass
 
     assert readiness_queue._queue[0]
     if parallel:
@@ -217,9 +216,8 @@ def _pass_path_argument_to_work_and_test_warning(path, warning_expected):
     proxy_run = ProxyWorkRun(work.run, "some", work, Mock())
 
     warn_ctx = pytest.warns(UserWarning, match="You passed a the value") if warning_expected else pytest.warns(None)
-    with warn_ctx as record:
-        with pytest.raises(CacheMissException):
-            proxy_run(path)
+    with warn_ctx as record, pytest.raises(CacheMissException):
+        proxy_run(path)
 
     assert warning_expected or all("You passed a the value" not in str(msg.message) for msg in record)
 
@@ -349,10 +347,8 @@ def test_path_argument_to_transfer(*_):
         copy_response_queue=_MockQueue(),
     )
 
-    try:
+    with contextlib.suppress(ExitAppException):
         runner()
-    except ExitAppException:
-        pass
 
     path1.exists_remote.assert_called_once()
     path1.get.assert_not_called()
@@ -440,10 +436,8 @@ def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
         copy_response_queue=_MockQueue(),
     )
 
-    try:
+    with contextlib.suppress(ExitAppException):
         runner()
-    except ExitAppException:
-        pass
 
     assert path_mock.get.call_count == expected_get
 
@@ -638,9 +632,8 @@ class FlowState(LightningFlow):
                 self.w.counter = 0
                 self.w.run("")
                 self.counter = 2
-        elif self.counter == 2:
-            if len(self.w.vars) == 10 and self.w.counter == 10:
-                self.stop()
+        elif self.counter == 2 and len(self.w.vars) == 10 and self.w.counter == 10:
+            self.stop()
 
 
 def test_state_observer():
@@ -700,10 +693,8 @@ def test_work_runner_sets_internal_ip(patch_constants, environment, expected_ip_
         work_runner.setup()
         # The internal ip address only becomes available once the hardware is up / the work is running.
         assert work.internal_ip == ""
-        try:
+        with contextlib.suppress(Empty):
             work_runner.run_once()
-        except Empty:
-            pass
         assert work.internal_ip == expected_ip_addr
 
 

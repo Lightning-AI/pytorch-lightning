@@ -21,7 +21,7 @@ from tests_pytorch.checkpointing.test_legacy_checkpoints import (
 )
 def test_imports_standalone(pl_version: str):
     assert any(
-        key.startswith("pytorch_lightning") for key in sys.modules.keys()
+        key.startswith("pytorch_lightning") for key in sys.modules
     ), f"Imported PL, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     path_legacy = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     path_ckpts = sorted(glob.glob(os.path.join(path_legacy, f"*{CHECKPOINT_EXTENSION}")))
@@ -32,10 +32,10 @@ def test_imports_standalone(pl_version: str):
         torch.load(path_ckpt)
 
     assert any(
-        key.startswith("pytorch_lightning") for key in sys.modules.keys()
+        key.startswith("pytorch_lightning") for key in sys.modules
     ), f"Imported PL, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     assert not any(
-        key.startswith("lightning." + "pytorch") for key in sys.modules.keys()
+        key.startswith("lightning." + "pytorch") for key in sys.modules
     ), f"Did not import the unified package, so it should not be in sys.modules: {sorted(sys.modules.keys())}"
 
 
@@ -43,10 +43,10 @@ def test_imports_standalone(pl_version: str):
 @pytest.mark.skipif(not module_available("lightning"), reason="This test is ONLY relevant for the UNIFIED package")
 def test_imports_unified(pl_version: str):
     assert any(
-        key.startswith("lightning." + "pytorch") for key in sys.modules.keys()
+        key.startswith("lightning." + "pytorch") for key in sys.modules
     ), f"Imported unified package, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     assert not any(
-        key.startswith("pytorch_lightning") for key in sys.modules.keys()
+        key.startswith("pytorch_lightning") for key in sys.modules
     ), "Should not import standalone package, all imports should be redirected to the unified package"
 
     path_legacy = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
@@ -63,8 +63,8 @@ def test_imports_unified(pl_version: str):
         torch.load(path_ckpt)
 
     assert any(
-        key.startswith("lightning." + "pytorch") for key in sys.modules.keys()
+        key.startswith("lightning." + "pytorch") for key in sys.modules
     ), f"Imported unified package, so it has to be in sys.modules: {sorted(sys.modules.keys())}"
     assert not any(
-        key.startswith("pytorch_lightning") for key in sys.modules.keys()
+        key.startswith("pytorch_lightning") for key in sys.modules
     ), "Should not import standalone package, all imports should be redirected to the unified package"

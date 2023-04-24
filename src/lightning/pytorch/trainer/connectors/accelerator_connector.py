@@ -305,23 +305,22 @@ class _AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            if hasattr(self._strategy_flag, "parallel_devices"):
-                if self._strategy_flag.parallel_devices:
-                    if self._strategy_flag.parallel_devices[0].type == "cpu":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
-                            raise MisconfigurationException(
-                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-                            )
-                        self._accelerator_flag = "cpu"
-                    if self._strategy_flag.parallel_devices[0].type == "cuda":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
-                            raise MisconfigurationException(
-                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-                            )
-                        self._accelerator_flag = "cuda"
-                    self._parallel_devices = self._strategy_flag.parallel_devices
+            if hasattr(self._strategy_flag, "parallel_devices") and self._strategy_flag.parallel_devices:
+                if self._strategy_flag.parallel_devices[0].type == "cpu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                        raise MisconfigurationException(
+                            f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "cpu"
+                if self._strategy_flag.parallel_devices[0].type == "cuda":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
+                        raise MisconfigurationException(
+                            f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "cuda"
+                self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(
         self,
@@ -547,11 +546,14 @@ class _AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
-        if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in ("16-mixed", "bf16-mixed", "32-true"):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
-                )
+        if isinstance(self.accelerator, HPUAccelerator) and self._precision_flag not in (
+            "16-mixed",
+            "bf16-mixed",
+            "32-true",
+        ):
+            raise MisconfigurationException(
+                f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
+            )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""

@@ -366,7 +366,7 @@ def test_lightning_cli_help():
     assert "--data.help" in out
 
     skip_params = {"self"}
-    for param in inspect.signature(Trainer.__init__).parameters.keys():
+    for param in inspect.signature(Trainer.__init__).parameters:
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
