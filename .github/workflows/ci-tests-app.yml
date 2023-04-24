@@ -82,6 +82,7 @@ jobs:
 
       - name: Install package & dependencies
         run: |
+          python -m pip install -q pip -U
           pip install -e .[dev] --upgrade --find-links ${TORCH_URL}
           pip list
 
