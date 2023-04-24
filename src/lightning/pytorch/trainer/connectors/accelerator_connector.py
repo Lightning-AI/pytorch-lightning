@@ -439,7 +439,7 @@ class _AcceleratorConnector:
                 from lightning_habana import SingleHPUStrategy
 
                 return SingleHPUStrategy(device=torch.device("hpu"))
-        if self._accelerator_flag == "tpu":
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
             else:
@@ -591,7 +591,7 @@ class _AcceleratorConnector:
             else:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
-            self.strategy._num_nodes = self._num_nodes_flag
+            self.strategy.num_nodes = self._num_nodes_flag
         if hasattr(self.strategy, "_layer_sync"):
             self.strategy._layer_sync = self._layer_sync
         if hasattr(self.strategy, "set_world_ranks"):
@@ -630,12 +630,7 @@ class _AcceleratorConnector:
 
     @property
     def is_distributed(self) -> bool:
-        # TODO: deprecate this property
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = [
+        distributed_strategies = [
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
@@ -644,11 +639,13 @@ class _AcceleratorConnector:
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUParallelStrategy
 
-            distributed_strategy.append(HPUParallelStrategy)
-        is_distributed = isinstance(self.strategy, tuple(distributed_strategy))
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed
+            distributed_strategies.append(HPUParallelStrategy)
+        if isinstance(self.strategy, tuple(distributed_strategies)):
+            return True
+        if hasattr(self.strategy, "is_distributed"):
+            # Used for custom plugins. They should implement this property
+            return self.strategy.is_distributed
+        return False
 
 
 def _set_torch_flags(

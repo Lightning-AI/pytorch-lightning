@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-import os
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -81,23 +80,29 @@ class XLAStrategy(ParallelStrategy):
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
 
-    @property
-    def _is_distributed(self) -> bool:
-        import torch_xla.core.xla_env_vars as xenv
-
-        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
-        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
-
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
     def setup_environment(self) -> None:
+        from torch_xla.experimental.pjrt import using_pjrt
+
+        assert self.parallel_devices is not None
+        if using_pjrt() and len(self.parallel_devices) == 1:
+            # spawning only 1 device with PjRT is not supported:
+            # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
+            raise NotImplementedError(
+                "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
+                " Try using all devices or the `SingleTPUStrategy` strategy"
+            )
+
         self._launched = True
-        self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
+        from torch_xla.experimental import pjrt
+
+        pjrt.broadcast_master_param(module)
         return module
 
     def module_to_device(self, module: Module) -> None:
@@ -120,14 +125,22 @@ class XLAStrategy(ParallelStrategy):
         """Function to gather a tensor from several distributed processes.
 
         Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
+            tensor: tensor to all-gather.
+            group: unused.
+            sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
-            A tensor of shape (world_size, batch, ...)
+            A tensor of shape (world_size, ...)
         """
-        if isinstance(tensor, Tensor) and tensor.dim() == 0:
+        if not self._launched:
+            return tensor
+        if not isinstance(tensor, Tensor):
+            raise NotImplementedError(
+                f"`{type(self).__name__}.all_gather` is only implemented for tensors. Given {tensor}"
+            )
+        if tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
+        if tensor.device.type != "xla":
+            tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
@@ -157,23 +170,43 @@ class XLAStrategy(ParallelStrategy):
         return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self._is_distributed:
-            import torch_xla.core.xla_model as xm
-
-            xm.rendezvous(name)
-
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self._is_distributed:
-            return obj
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
+        if not self._launched:
+            return
         import torch_xla.core.xla_model as xm
 
-        data = xm.all_gather(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
+        if name is None:
+            # `None` is not supported: "TypeError: _xla_rendezvous(): incompatible function arguments"
+            name = ""
+        xm.rendezvous(name)
+
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not self._launched:
+            return obj
+
+        import torch_xla.core.xla_model as xm
+
+        is_tensor = isinstance(obj, Tensor)
+        if is_tensor:
+            if obj.dim() == 0:
+                obj = obj.unsqueeze(0)
+            if obj.device.type != "xla":
+                obj = obj.to(self.root_device)
+        else:
+            # support for arbitrary pickle-ables
+            buffer = io.BytesIO()
+            torch.save(obj, buffer)
+            obj = torch.tensor(  # type: ignore[assignment]
+                bytearray(buffer.getbuffer()), device=self.root_device, dtype=torch.float
+            )
+
+        obj = [obj]
+        xm.collective_broadcast(obj, root_ordinal=src)
+        obj = obj[0]
+
+        if not is_tensor:
+            buffer = io.BytesIO(obj.cpu().byte().numpy())
+            obj = torch.load(buffer)
+
         return obj
 
     def save_checkpoint(
@@ -203,8 +236,3 @@ class XLAStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
-
-    def _set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
