@@ -23,6 +23,6 @@ PyYAML <=6.0
 requests <2.28.3
 rich >=12.3.0, <=13.0.1
 urllib3 <=1.26.13
-uvicorn <=0.17.6
+uvicorn <=0.21.1
 websocket-client <1.5.2
 websockets <=10.4
