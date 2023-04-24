@@ -71,6 +71,7 @@ repos:
           #- pep8-naming
           #- flake8-pytest-style
           - flake8-bandit
+          - flake8-simplify
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0

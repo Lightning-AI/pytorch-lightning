@@ -58,13 +58,13 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     model = CurrentTestModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps, max_epochs=2)
-    assert 0 == model.on_before_zero_grad_called
+    assert model.on_before_zero_grad_called == 0
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
 
     model.on_before_zero_grad_called = 0
     trainer.test(model)
-    assert 0 == model.on_before_zero_grad_called
+    assert model.on_before_zero_grad_called == 0
 
 
 def test_on_train_epoch_end_metrics_collection(tmpdir):

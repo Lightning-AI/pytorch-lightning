@@ -59,6 +59,7 @@ select = [
 ]
 extend-select = [
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
+    "SIM",  # see: https://pypi.org/project/flake8-simplify
 ]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def

@@ -19,7 +19,8 @@ if __name__ == "__main__":
     if not os.path.exists(str(hparams.filepath)):
         content = ["The file wasn't transferred"]
     else:
-        content = open(hparams.filepath).readlines()  # read the file received from SourceWork.
+        with open(hparams.filepath) as fo:
+            content = fo.readlines()  # read the file received from SourceWork.
 
     @fastapi_service.get("/file")
     async def get_file_content(request: Request, response_class=HTMLResponse):

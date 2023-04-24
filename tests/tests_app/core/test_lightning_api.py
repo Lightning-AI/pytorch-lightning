@@ -525,7 +525,8 @@ def test_configure_api():
             time_left -= 0.1
 
     # Test Upload File
-    files = {"uploaded_file": open(__file__, "rb")}
+    with open(__file__, "rb") as fo:
+        files = {"uploaded_file": fo}
 
     response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
     assert response.json() == "Successfully uploaded 'test' to the Drive"

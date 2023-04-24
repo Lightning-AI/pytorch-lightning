@@ -1904,10 +1904,8 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
     cloud.LIGHTNING_CLOUD_PRINT_SPECS = print_format
 
     try:
-        with caplog.at_level(logging.INFO):
-            # Expected behaviour
-            with contextlib.suppress(SystemExit):
-                cloud_runtime.dispatch()
+        with caplog.at_level(logging.INFO), contextlib.suppress(SystemExit):
+            cloud_runtime.dispatch()
 
         lines = caplog.text.split("\n")
 

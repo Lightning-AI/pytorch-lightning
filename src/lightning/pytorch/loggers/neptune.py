@@ -489,7 +489,7 @@ class NeptuneLogger(Logger):
 
         # save best k models
         if hasattr(checkpoint_callback, "best_k_models"):
-            for key in checkpoint_callback.best_k_models.keys():
+            for key in checkpoint_callback.best_k_models:
                 model_name = self._get_full_model_name(key, checkpoint_callback)
                 file_names.add(model_name)
                 self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)

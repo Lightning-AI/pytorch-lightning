@@ -150,8 +150,7 @@ def open_python_file(filename):
         # Open file respecting PEP263 encoding. If no encoding header is
         # found, opens as utf-8.
         return tokenize.open(filename)
-    else:
-        return open(filename, encoding="utf-8")
+    return open(filename, encoding="utf-8")  # noqa: SIM115
 
 
 def _create_code(script_path: str):
@@ -260,10 +259,7 @@ def _patch_sys_argv():
         matches = [
             argv_slice.index(opt) for opt in options if opt in argv_slice and argv_slice.index(opt) >= first_index
         ]
-        if not matches:
-            last_index = len(argv_slice)
-        else:
-            last_index = min(matches)
+        last_index = len(argv_slice) if not matches else min(matches)
         # 6: last_index is either the fully command or the latest match from the CLI options.
         new_argv = [argv_slice[0]] + argv_slice[first_index:last_index]
 

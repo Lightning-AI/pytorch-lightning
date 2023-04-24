@@ -216,9 +216,8 @@ def _pass_path_argument_to_work_and_test_warning(path, warning_expected):
     proxy_run = ProxyWorkRun(work.run, "some", work, Mock())
 
     warn_ctx = pytest.warns(UserWarning, match="You passed a the value") if warning_expected else pytest.warns(None)
-    with warn_ctx as record:
-        with pytest.raises(CacheMissException):
-            proxy_run(path)
+    with warn_ctx as record, pytest.raises(CacheMissException):
+        proxy_run(path)
 
     assert warning_expected or all("You passed a the value" not in str(msg.message) for msg in record)
 
@@ -633,9 +632,8 @@ class FlowState(LightningFlow):
                 self.w.counter = 0
                 self.w.run("")
                 self.counter = 2
-        elif self.counter == 2:
-            if len(self.w.vars) == 10 and self.w.counter == 10:
-                self.stop()
+        elif self.counter == 2 and len(self.w.vars) == 10 and self.w.counter == 10:
+            self.stop()
 
 
 def test_state_observer():

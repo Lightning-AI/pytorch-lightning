@@ -122,10 +122,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     for upload_path in upload_paths:
         for cluster in clusters.clusters:
             filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
-            if lit_resource:
-                filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
-            else:
-                filename = "/" + filename
+            filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource) if lit_resource else "/" + filename
 
             response = client.lightningapp_instance_service_upload_project_artifact(
                 project_id=project_id,
@@ -274,10 +271,7 @@ def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
     is_remote = _is_remote(path)
     if is_remote:
         path = _remove_remote(path)
-        if path == ".":
-            path = pwd
-        else:
-            path = os.path.join(pwd, path)
+        path = pwd if path == "." else os.path.join(pwd, path)
     return path, is_remote
 
 

@@ -191,8 +191,8 @@ class ManualOptimizationExtendedModel(BoringModel):
         after_before = self.layer.weight.clone()
         if self.should_update:
             # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
-            # todo: specify the possible exception
             with contextlib.suppress(Exception):
+                # todo: specify the possible exception
                 assert not torch.equal(self.weight_before, after_before), self.count
         else:
             try:
