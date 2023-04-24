@@ -81,7 +81,8 @@ jobs:
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        pip install -e .[dev] -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        extra=$(python -c "print({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
+        pip install -e ".[${extra}dev]" -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
