@@ -5,17 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-04-DD
-
-### Changed
-
--
-
+## [2.0.2] - 2023-04-24
 
 ### Fixed
 
 - Fixed issue where `Model.load_from_checkpoint("checkpoint.ckpt", map_location=map_location)` would always return model on CPU ([#17308](https://github.com/Lightning-AI/lightning/pull/17308))
-
+- Fixed Sync module states during non-fit ([#17370](https://github.com/Lightning-AI/lightning/pull/17370))
 - Fixed an issue that caused `num_nodes` not to be set correctly for `FSDPStrategy` ([#17438](https://github.com/Lightning-AI/lightning/pull/17438))
 
 

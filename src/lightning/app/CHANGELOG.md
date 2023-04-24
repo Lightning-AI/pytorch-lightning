@@ -5,16 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-04-DD
-
-### Changed
-
--
-
+## [2.0.2] - 2023-04-24
 
 ### Fixed
 
--
+- Resolved Lightning App with remote storage ([#17426](https://github.com/Lightning-AI/lightning/pull/17426))
+- Fixed `AppState`, streamlit example ([#17452](https://github.com/Lightning-AI/lightning/pull/17452))
 
 
 
