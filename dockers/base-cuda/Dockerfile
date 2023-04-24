@@ -92,10 +92,10 @@ RUN \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    pip install -r requirements/pytorch/devel.txt \
+    pip install \
+      -r requirements/pytorch/devel.txt \
+      -r requirements/pytorch/strategies.txt \
       --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
-    # install separately because they require torch
-    pip install -r requirements/pytorch/strategies.txt
 
 RUN \
     # Show what we have
