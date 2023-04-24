@@ -1,5 +1,5 @@
 coverage==6.5.0
-pytest==7.2.0
+pytest==7.2.2
 pytest-cov==4.0.0
 pytest-forked==1.4.0
 pytest-rerunfailures==10.3
