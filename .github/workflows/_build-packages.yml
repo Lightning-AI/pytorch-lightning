@@ -21,7 +21,7 @@ defaults:
 jobs:
 
   init:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
     - run: |
@@ -38,7 +38,7 @@ jobs:
 
   build-packages:
     needs: init
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       max-parallel: 1  # run sequential to prevent download/upload collisions
       matrix:
