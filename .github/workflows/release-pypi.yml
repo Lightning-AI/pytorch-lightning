@@ -22,6 +22,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: 1
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  PYTHON_VER: "3.8"
 
 jobs:
 
@@ -32,7 +33,7 @@ jobs:
 
 
   upload-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
     if: github.event_name == 'release'
     steps:
@@ -50,7 +51,7 @@ jobs:
 
 
   pre-publish-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
@@ -84,7 +85,7 @@ jobs:
         time: 10m
 
   publish-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
