@@ -54,7 +54,7 @@ elif _NEPTUNE_CLIENT_AVAILABLE:
     from neptune.new.utils import stringify_unsupported
 else:
     # needed for tests, mocks and function signatures
-    neptune, Run, Handler, stringify_unsupported = None, None, None, None
+    neptune, Run, Handler, File, stringify_unsupported = None, None, None, None, None
 
 log = logging.getLogger(__name__)
 
