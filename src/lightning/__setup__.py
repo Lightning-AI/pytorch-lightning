@@ -45,8 +45,8 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
     extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]
     extras["app-extra"] = extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
-    extras["app-dev"] = extras["app-extra"]
-    extras["app-all"] = extras["app-all"] + extras["app-test"]
+    extras["app-all"] = extras["app-extra"]
+    extras["app-dev"] = extras["app-all"] + extras["app-test"]
     # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
