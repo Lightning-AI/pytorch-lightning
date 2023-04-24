@@ -6,12 +6,14 @@ types-PyYAML
 types-bleach
 types-cachetools
 types-croniter
+types-paramiko
 types-protobuf
 types-python-dateutil
 types-redis
 types-requests
 types-setuptools
 types-six
+types-tabulate
 types-toml
 types-tzlocal
 types-ujson

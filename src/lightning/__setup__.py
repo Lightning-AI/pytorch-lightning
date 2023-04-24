@@ -29,21 +29,28 @@ _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PROJECT_RO
 def _prepare_extras() -> Dict[str, Any]:
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
-    # From remote, use like `pip install pytorch-lightning[dev, docs]`
+    # From remote, use like `pip install "lightning[dev, docs]"`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
     common_args = {"unfreeze": "none" if _FREEZE_REQUIREMENTS else "major"}
+    # per-project extras
     extras = {
         f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
-        if p.name not in ("docs.txt", "devel.txt", "base.txt") and not p.parts[-2].startswith("_")
+        if p.name not in ("docs.txt", "devel.txt", "base.txt") and not p.parent.name.startswith("_")
     }
+    # project specific extras groups
+    extras["fabric-all"] = extras["fabric-strategies"] + extras["fabric-examples"]
+    extras["fabric-dev"] = extras["fabric-all"] + extras["fabric-test"]
+    extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
+    extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]
+    extras["app-extra"] = extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
+    extras["app-all"] = extras["app-extra"]
+    extras["app-dev"] = extras["app-all"] + extras["app-test"]
+    # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
-    extras["extra"] += extras["cloud"] + extras["ui"] + extras["components"]
-    extras["all"] = extras["extra"]
-    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
     print("The extras are: ", extras)
     return extras

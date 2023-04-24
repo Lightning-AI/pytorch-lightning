@@ -32,8 +32,8 @@ def _prepare_extras() -> Dict[str, Any]:
     assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
-    # From remote, use like `pip install pytorch-lightning[dev, docs]`
-    # From local copy of repo, use like `pip install ".[dev, docs]"`
+    # From remote, use like `pip install "pytorch-lightning[dev, docs]"`
+    # From local copy of repo, use like `PACKAGE_NAME=app pip install ".[dev, docs]"`
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
     common_args = {"path_dir": _PATH_REQUIREMENTS, "unfreeze": "none" if _FREEZE_REQUIREMENTS else "major"}
     extras = {
