@@ -154,7 +154,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         def call_forward_module(*args: Any, **kwargs: Any) -> Any:
             # Patch the original_module's forward so we can redirect the arguments back to the real method
             self._original_module.forward = wrapped_forward
-            return self._forward_module(*args, **kwargs)
+            return self.forward(*args, **kwargs)
 
         return call_forward_module
 
