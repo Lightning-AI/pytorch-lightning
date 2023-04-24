@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,8 @@
 import numpy as np
 import torch
 
-from lightning_fabric.utilities.distributed import _AllGather
-from lightning_fabric.utilities.seed import seed_everything
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -30,8 +28,8 @@ def all_gather_ddp_spawn_fn(strategy):
     tensor1 = torch.ones(8, requires_grad=True)
     tensor2 = torch.ones((8, 16, 32), requires_grad=True)
 
-    tensor1_gathered = _AllGather.apply(tensor1)
-    tensor2_gathered = _AllGather.apply(tensor2)
+    tensor1_gathered = strategy.all_gather(tensor1, sync_grads=True)
+    tensor2_gathered = strategy.all_gather(tensor2, sync_grads=True)
 
     tensor1_gathered = tensor1_gathered * rank
     tensor2_gathered = tensor2_gathered * rank
@@ -55,20 +53,19 @@ def test_all_gather_ddp_spawn():
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
 
-        training_epoch_end_called = False
+        on_train_epoch_end_called = False
 
-        def training_epoch_end(self, outputs) -> None:
-            losses = torch.stack([x["loss"] for x in outputs])
+        def on_train_epoch_end(self):
+            losses = torch.rand(2, 2).t()
             gathered_loss = self.all_gather(
                 {
-                    "losses_tensor_int": torch.rand(2, 2).int().t(),
-                    "losses_tensor_float": torch.rand(2, 2).t(),
+                    "losses_tensor_int": losses.int(),
+                    "losses_tensor_float": losses,
+                    "losses_tensor_list": [losses, losses],
                     "losses_np_ndarray": np.array([1, 2, 3]),
                     "losses_bool": [True, False],
                     "losses_float": [0.0, 1.0, 2.0],
                     "losses_int": [0, 1, 2],
-                    "losses": losses,
-                    "losses_list": [losses, losses],
                 }
             )
             assert gathered_loss["losses_tensor_int"][0].dtype == torch.int32
@@ -78,19 +75,22 @@ def test_all_gather_collection(tmpdir):
             assert gathered_loss["losses_bool"][0].dtype == torch.uint8
             assert gathered_loss["losses_float"][0].dtype == torch.float
             assert gathered_loss["losses_int"][0].dtype == torch.int
-            assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
-            assert gathered_loss["losses"].numel() == 2 * len(losses)
-            self.training_epoch_end_called = True
 
-    seed_everything(42)
+            losses_numel = losses.numel()
+            assert gathered_loss["losses_tensor_int"].numel() == 2 * losses_numel
+            assert gathered_loss["losses_tensor_float"].numel() == 2 * losses_numel
+            assert torch.stack(gathered_loss["losses_tensor_list"]).shape == (2, 2, 2, 2)
+            assert gathered_loss["losses_np_ndarray"].numel() == 2 * 3
+            assert torch.stack(gathered_loss["losses_bool"]).shape == (2, 2)
+            assert torch.stack(gathered_loss["losses_float"]).shape == (3, 2)
+            assert torch.stack(gathered_loss["losses_int"]).shape == (3, 2)
+            self.on_train_epoch_end_called = True
 
     model = TestModel()
-
-    limit_train_batches = 8
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        limit_train_batches=8,
+        limit_val_batches=0,
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
@@ -99,10 +99,10 @@ def test_all_gather_collection(tmpdir):
         strategy="ddp",
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
     )
-
     trainer.fit(model)
-    assert model.training_epoch_end_called
+    assert model.on_train_epoch_end_called
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
@@ -116,20 +116,21 @@ def test_all_gather_sync_grads(tmpdir):
             tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
             gathered_tensor = self.all_gather(tensor, sync_grads=True)
             assert gathered_tensor.shape == torch.Size([2, 2, 2])
-
             loss = gathered_tensor.sum()
-
             return loss
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
         accelerator="gpu",
         devices=2,
         strategy="ddp",
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert model.training_step_called

@@ -1,10 +1,10 @@
 from time import sleep
 
 import pytest
-from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 
-from lightning_app.testing.testing import run_app_in_cloud
-from lightning_app.utilities.imports import _is_playwright_available
+from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
+from lightning.app.testing.testing import run_app_in_cloud
+from lightning.app.utilities.imports import _is_playwright_available
 
 if _is_playwright_available():
     import playwright

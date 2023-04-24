@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # ignoring Wills's wild changes
+        exclude: README.md
       - id: check-yaml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
@@ -42,9 +44,8 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
-                src/lightning_app/cli/pl-app-template/ui/yarn.lock|
-                src/pytorch_lightning/CHANGELOG.md|
-                src/lightning_fabric/CHANGELOG.md
+                src/lightning/fabric/CHANGELOG.md|
+                src/lightning/pytorch/CHANGELOG.md
             )$
       - id: detect-private-key
 
@@ -52,7 +53,7 @@ repos:
     rev: v3.3.1
     hooks:
       - id: pyupgrade
-        args: [--py37-plus]
+        args: [--py38-plus]
         name: Upgrade code
 
   - repo: https://github.com/PyCQA/docformatter
@@ -66,6 +67,8 @@ repos:
     hooks:
       - id: yesqa
         name: Unused noqa
+        additional_dependencies:
+          - flake8-simplify
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
@@ -98,13 +101,14 @@ repos:
           - mdformat_frontmatter
         exclude: |
           (?x)^(
-              src/pytorch_lightning/CHANGELOG.md|
-              src/lightning_app/CHANGELOG.md|
-              src/lightning_fabric/CHANGELOG.md
+              src/lightning/app/CHANGELOG.md|
+              src/lightning/fabric/CHANGELOG.md|
+              src/lightning/pytorch/CHANGELOG.md|
+              README.md
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.237'
+    rev: 'v0.0.261'
     hooks:
       - id: ruff
         args: ["--fix"]

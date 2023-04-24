@@ -4,10 +4,10 @@ import sys
 from typing import Callable
 from unittest.mock import MagicMock
 
-import lightning_app
-from lightning_app.frontend import JustPyFrontend
-from lightning_app.frontend.just_py import just_py
-from lightning_app.frontend.just_py.just_py_base import _main, _webpage
+import lightning.app
+from lightning.app.frontend import JustPyFrontend
+from lightning.app.frontend.just_py import just_py
+from lightning.app.frontend.just_py.just_py_base import _main, _webpage
 
 
 def render_fn(get_state: Callable) -> Callable:
@@ -27,7 +27,7 @@ def test_justpy_frontend(monkeypatch):
     frontend.flow = flow
     frontend.start_server("a", 90)
 
-    path = osp.join(osp.dirname(lightning_app.frontend.just_py.__file__), "just_py_base.py")
+    path = osp.join(osp.dirname(lightning.app.frontend.just_py.__file__), "just_py_base.py")
 
     assert popen._mock_call_args[0][0] == f"{sys.executable} {path}"
     env = popen._mock_call_args[1]["env"]

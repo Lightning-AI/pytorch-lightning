@@ -4,12 +4,12 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-from integrations_app.public import _PATH_EXAMPLES
 
-from lightning_app import LightningApp
-from lightning_app.cli.lightning_cli import run_app
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.testing.testing import run_app_in_cloud, wait_for
+from integrations_app.public import _PATH_EXAMPLES
+from lightning.app import LightningApp
+from lightning.app.cli.lightning_cli import run_app
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.testing.testing import run_app_in_cloud, wait_for
 
 
 class QuickStartApp(LightningApp):
@@ -33,7 +33,7 @@ def test_quick_start_example(caplog, monkeypatch):
     monkeypatch.setattr("logging.getLogger", mock.MagicMock(return_value=logging.getLogger()))
 
     with caplog.at_level(logging.INFO):
-        with mock.patch("lightning_app.LightningApp", QuickStartApp):
+        with mock.patch("lightning.app.LightningApp", QuickStartApp):
             runner = CliRunner()
             result = runner.invoke(
                 run_app,

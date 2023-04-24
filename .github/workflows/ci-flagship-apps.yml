@@ -11,110 +11,16 @@ on:
       - ".github/workflows/ci-flagship-apps.yml"
       - "github/actions/prep-apps/action.yml"
       - "tests/integrations_app/flagship/**"
-  workflow_dispatch: {}
-    # TODO: inputs specifying lightning branch and switch prod/staging
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
-  app-flagships:
+  test-flagships:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright/python:v1.29.1-focal
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {app: "flashy", repo: "Lightning-Universe/Flashy-app"}
-          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy"}
-          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component"}
-
-          # TODO:
-          # - Training Studio
-          # - Echo
-          # - StreamLit / Gradio
-          # - All homepage & docs apps
-
-    env:
-      HEADLESS: '1'
-      PACKAGE_LIGHTNING: '1'
-      CLOUD: '1'
-      VIDEO_LOCATION: './videos'
-      HAR_LOCATION: './artifacts/hars'
-      SLOW_MO: '50'
-      LIGHTNING_DEBUG: '1'
-      TORCH_URL: 'https://download.pytorch.org/whl/cpu/torch_stable.html'
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: basic setup
-        run: |
-          mkdir -p tests/_flagships
-          mkdir -p $VIDEO_LOCATION
-          python -m playwright install  # --with-deps
-
-      - name: Adjust testing
-        run: |
-          pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-            --source_import="lightning_app" --target_import="lightning.app"
-
-      - name: Clone the Repo/App
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ matrix.repo }}
-          path: tests/_flagship-app
-
-      - name: Adjust env. for this App
-        uses: ./.github/actions/prep-apps
-        with:
-          name: ${{ matrix.app }}
-
-      - name: Install Lightning package
-        run: pip install -e .[cloud,test] -f $TORCH_URL
-      - name: List pip dependency
-        run: pip --version && pip list
-
-      - name: Run the tests
-        working-directory: tests/
-        env:
-          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID_PROD }}
-          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY_PROD }}
-          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME_PROD }}
-          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL_PROD }}
-        run: |
-          ls -l _flagship-app
-          python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
-            --capture=no -v --color=yes
-
-      - name: Upload recordings
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: flahship-app-${{ matrix.app }}
-          path: ${{ env.VIDEO_LOCATION }}
-
-      - name: Clean Previous Apps
-        if: always()
-        timeout-minutes: 3
-        env:
-          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID_PROD }}
-          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY_PROD }}
-          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME_PROD }}
-          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL_PROD }}
-        run: |
-          time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
+    uses: ./.github/workflows/_flagship-apps.yml
+    secrets: inherit

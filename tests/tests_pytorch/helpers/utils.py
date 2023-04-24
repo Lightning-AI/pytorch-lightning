@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
 import functools
 import os
 
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import TensorBoardLogger
 from tests_pytorch import _TEMP_PATH
 
 
@@ -34,10 +34,7 @@ def get_data_path(expt_logger, path_dir=None):
 
     # the other experiments...
     if not path_dir:
-        if hasattr(expt_logger, "save_dir") and expt_logger.save_dir:
-            path_dir = expt_logger.save_dir
-        else:
-            path_dir = _TEMP_PATH
+        path_dir = expt_logger.save_dir if hasattr(expt_logger, "save_dir") and expt_logger.save_dir else _TEMP_PATH
     path_expt = os.path.join(path_dir, name, "version_%s" % version)
 
     # try if the new sub-folder exists, typical case for test-tube

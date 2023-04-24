@@ -3,12 +3,12 @@ from copy import deepcopy
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.payload import Payload
-from lightning_app.structures import Dict, List
-from lightning_app.testing.helpers import EmptyFlow
-from lightning_app.utilities.enum import CacheCallsKeys, WorkStageStatus
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.payload import Payload
+from lightning.app.structures import Dict, List
+from lightning.app.testing.helpers import EmptyFlow
+from lightning.app.utilities.enum import CacheCallsKeys, WorkStageStatus
 
 
 def test_dict():
@@ -48,7 +48,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -82,7 +82,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -116,7 +116,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -202,7 +202,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -236,7 +236,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -265,7 +265,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -381,10 +381,7 @@ def test_structure_with_iterate_and_fault_tolerance(run_once_iterable, cache_cal
     app.root.restarting = True
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    if run_once_iterable:
-        expected_value = 1
-    else:
-        expected_value = 1 if cache_calls else 2
+    expected_value = 1 if run_once_iterable else 1 if cache_calls else 2
     assert app.root.iter[0 if use_list else "0"].counter == expected_value
     assert app.root.iter[1 if use_list else "1"].counter == expected_value
     assert app.root.iter[2 if use_list else "2"].counter == expected_value

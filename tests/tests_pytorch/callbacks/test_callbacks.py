@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ from unittest.mock import Mock
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 def test_callbacks_configured_in_model(tmpdir):
@@ -34,9 +34,12 @@ def test_callbacks_configured_in_model(tmpdir):
             return [model_callback_mock]
 
     model = TestModel()
-    trainer_options = dict(
-        default_root_dir=tmpdir, enable_checkpointing=False, fast_dev_run=True, enable_progress_bar=False
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_checkpointing": False,
+        "fast_dev_run": True,
+        "enable_progress_bar": False,
+    }
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
         # assert that the rest of calls are the same as for trainer callbacks

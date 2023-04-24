@@ -16,12 +16,12 @@ from lightning_cloud.openapi import (
     V1Membership,
 )
 from lightning_cloud.openapi.rest import ApiException
-from tests_app import _PROJECT_ROOT
 
-import lightning_app.runners.backends.cloud as cloud_backend
-from lightning_app.cli.lightning_cli import run_app
-from lightning_app.runners import cloud
-from lightning_app.runners.cloud import CloudRuntime
+import lightning.app.runners.backends.cloud as cloud_backend
+from lightning.app.cli.lightning_cli import run_app
+from lightning.app.runners import cloud
+from lightning.app.runners.cloud import CloudRuntime
+from tests_app import _PROJECT_ROOT
 
 _FILE_PATH = os.path.join(_PROJECT_ROOT, "tests", "tests_app", "core", "scripts", "app_metadata.py")
 
@@ -117,8 +117,8 @@ class FakeLightningClientCreate(FakeLightningClient):
         return self.create_response
 
 
-@mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
+@mock.patch("lightning.app.core.queues.QueuingSystem", MagicMock())
+@mock.patch("lightning.app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
 @pytest.mark.parametrize("create_response", [RuntimeErrorResponse(), RuntimeErrorResponse2()])
 def test_start_app(create_response, monkeypatch):
 
@@ -143,9 +143,6 @@ def test_start_app(create_response, monkeypatch):
     if isinstance(create_response, RuntimeErrorResponse):
         cloud.V1LightningappInstanceState.FAILED = V1LightningappInstanceState.FAILED
         with pytest.raises(RuntimeError, match="Failed to create the application"):
-            run()
-    elif isinstance(create_response, RuntimeErrorResponse2):
-        with pytest.raises(RuntimeError, match="The source upload url is empty."):
             run()
     elif isinstance(create_response, RuntimeErrorResponse2):
         with pytest.raises(RuntimeError, match="The source upload url is empty."):
@@ -196,8 +193,8 @@ class FakeLightningClientException(FakeLightningClient):
         )
 
 
-@mock.patch("lightning_app.utilities.network.create_swagger_client", MagicMock())
-@mock.patch("lightning_app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
+@mock.patch("lightning.app.utilities.network.create_swagger_client", MagicMock())
+@mock.patch("lightning.app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
 @pytest.mark.parametrize(
     "message",
     [
@@ -217,8 +214,9 @@ def test_start_app_exception(message, monkeypatch, caplog):
     runner = CliRunner()
 
     fake_grid_rest_client = partial(FakeLightningClientException, message=message)
-    with caplog.at_level(logging.ERROR):
-        with mock.patch("lightning_app.runners.backends.cloud.LightningClient", fake_grid_rest_client):
-            result = runner.invoke(run_app, [_FILE_PATH, "--cloud", "--open-ui=False"], catch_exceptions=False)
-            assert result.exit_code == 1
+    with caplog.at_level(logging.ERROR), mock.patch(
+        "lightning.app.runners.backends.cloud.LightningClient", fake_grid_rest_client
+    ):
+        result = runner.invoke(run_app, [_FILE_PATH, "--cloud", "--open-ui=False"], catch_exceptions=False)
+        assert result.exit_code == 1
     assert caplog.messages == [message]

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)
@@ -28,14 +28,14 @@ def test_multiprocessing_launcher_interactive_compatible(start_method):
     assert launcher.is_interactive_compatible == (start_method == "fork")
 
 
-@mock.patch("lightning_fabric.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
 def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
-@mock.patch("lightning_fabric.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
@@ -50,7 +50,7 @@ def test_multiprocessing_launcher_start_method(mp_mock, start_method):
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
-@mock.patch("lightning_fabric.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
     """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""
     mp_mock.get_all_start_methods.return_value = [start_method]
@@ -88,7 +88,7 @@ def test_global_state_snapshot():
 
 @pytest.mark.parametrize("start_method", ["fork", "forkserver"])
 @mock.patch("torch.cuda.is_initialized", return_value=True)
-@mock.patch("lightning_fabric.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_check_for_bad_cuda_fork(mp_mock, _, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)

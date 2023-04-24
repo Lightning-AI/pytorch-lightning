@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ export PL_RUN_STANDALONE_TESTS=1
 can_run_nvprof=$(python -c "import torch; print(torch.cuda.is_available() and torch.cuda.get_device_capability()[0] < 8)")
 if [[ $can_run_nvprof == "True" ]]; then
     echo "Running profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx"
-    nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source pytorch_lightning --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+    nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source lightning.pytorch --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
 # test that a user can manually launch individual processes

@@ -1,16 +1,22 @@
 import collections
+import dataclasses
 
 import torch
 from torch import Tensor
 
-from lightning_fabric.utilities.optimizer import _optimizer_to_device
+from lightning.fabric.utilities.optimizer import _optimizer_to_device
 
 
 def test_optimizer_to_device():
+    @dataclasses.dataclass(frozen=True)
+    class FooState:
+        bar: int
+
     class TestOptimizer(torch.optim.SGD):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.state["dummy"] = torch.tensor(0)
+            self.state["frozen"] = FooState(0)
 
     layer = torch.nn.Linear(32, 2)
     opt = TestOptimizer(layer.parameters(), lr=0.1)

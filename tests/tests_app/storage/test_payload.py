@@ -7,10 +7,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners.multiprocess import MultiProcessRuntime
-from lightning_app.storage.payload import Payload
-from lightning_app.storage.requests import _GetRequest
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.runners.multiprocess import MultiProcessRuntime
+from lightning.app.storage.payload import Payload
+from lightning.app.storage.requests import _GetRequest
 
 
 def test_payload_copy():
@@ -145,7 +145,7 @@ class Flow(LightningFlow):
 
 def test_payload_works(tmpdir):
     """This tests validates the payload api can be used to transfer return values from a work to another."""
-    with mock.patch("lightning_app.storage.path._storage_root_dir", lambda: pathlib.Path(tmpdir)):
+    with mock.patch("lightning.app.storage.path._storage_root_dir", lambda: pathlib.Path(tmpdir)):
         app = LightningApp(Flow(), log_level="debug")
         MultiProcessRuntime(app, start_server=False).dispatch()
 

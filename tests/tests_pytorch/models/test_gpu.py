@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning_fabric.plugins.environments import TorchElasticEnvironment
-from lightning_fabric.utilities.device_parser import _parse_gpu_ids
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.fabric.plugins.environments import TorchElasticEnvironment
+from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -36,15 +36,16 @@ PRETEND_N_OF_GPUS = 16
 @RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
-        accelerator="gpu",
-        devices=2,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.2,
+        "limit_val_batches": 0.2,
+        "accelerator": "gpu",
+        "strategy": "ddp_spawn",
+        "devices": 2,
+    }
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -54,16 +55,16 @@ def test_multi_gpu_none_backend(tmpdir):
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("devices", [1, [0], [1]])
 def test_single_gpu_model(tmpdir, devices):
-    """Make sure single GPU works (DP mode)."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        accelerator="gpu",
-        devices=devices,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.1,
+        "limit_val_batches": 0.1,
+        "accelerator": "gpu",
+        "devices": devices,
+        "strategy": "ddp_spawn",
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -158,16 +158,21 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     '...PyTorch Lightning is just organized PyTorch...'
     """
     path_readme = os.path.join(path_dir, "README.md")
-    text = open(path_readme, encoding="utf-8").read()
+    with open(path_readme, encoding="utf-8") as fo:
+        text = fo.read()
 
     # drop images from readme
-    text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
+    text = text.replace(
+        "![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)", ""
+    )
 
     # https://github.com/Lightning-AI/lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
-    text = text.replace("docs/source/_static/", f"{os.path.join(github_source_url, 'docs/source/_static/')}")
+    text = text.replace(
+        "docs/source-pytorch/_static/", f"{os.path.join(github_source_url, 'docs/source-app/_static/')}"
+    )
 
     # readthedocs badge
     text = text.replace("badge/?version=stable", f"badge/?version={version}")
@@ -236,7 +241,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
         load_requirements(d, unfreeze="none" if freeze_requirements else "major")
         for d in glob.glob(os.path.join(req_dir, "*"))
         # skip empty folder as git artefacts, and resolving Will's special issue
-        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
+        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and not os.path.basename(d).startswith("_")
     ]
     if not requires:
         return
@@ -256,33 +261,58 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
     return all_files
 
 
-def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[str]:
+def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning_by: str = "") -> List[str]:
     """Replace imports of standalone package to lightning.
 
     >>> lns = [
+    ...     '"lightning_app"',
     ...     "lightning_app",
+    ...     "lightning_app/",
     ...     "delete_cloud_lightning_apps",
     ...     "from lightning_app import",
     ...     "lightning_apps = []",
     ...     "lightning_app and pytorch_lightning are ours",
     ...     "def _lightning_app():",
-    ...     ":class:`~lightning_app.core.flow.LightningFlow`"
+    ...     ":class:`~lightning_app.core.flow.LightningFlow`",
+    ...     "http://pytorch_lightning.ai",
+    ...     "from lightning import __version__",
+    ...     "@lightning.ai"
     ... ]
     >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
-    >>> _replace_imports(lns, mapping)  # doctest: +NORMALIZE_WHITESPACE
-    ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
-    'lightning.app and lightning.pytorch are ours', 'def _lightning_app():',\
-    ':class:`~lightning.app.core.flow.LightningFlow`']
+    >>> _replace_imports(lns, mapping, lightning_by="lightning_fabric")  # doctest: +NORMALIZE_WHITESPACE
+    ['"lightning.app"', \
+     'lightning.app', \
+     'lightning_app/', \
+     'delete_cloud_lightning_apps', \
+     'from lightning.app import', \
+     'lightning_apps = []', \
+     'lightning.app and lightning.pytorch are ours', \
+     'def _lightning_app():', \
+     ':class:`~lightning.app.core.flow.LightningFlow`', \
+     'http://pytorch_lightning.ai', \
+     'from lightning_fabric import __version__', \
+     '@lightning.ai']
     """
     out = lines[:]
     for source_import, target_import in mapping:
         for i, ln in enumerate(out):
-            out[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+            out[i] = re.sub(
+                rf"([^_/@]|^){source_import}([^_\w/]|$)",
+                rf"\1{target_import}\2",
+                ln,
+            )
+            if lightning_by:  # in addition, replace base package
+                out[i] = out[i].replace("from lightning import ", f"from {lightning_by} import ")
+                out[i] = out[i].replace("import lightning ", f"import {lightning_by} ")
     return out
 
 
 def copy_replace_imports(
-    source_dir: str, source_imports: List[str], target_imports: List[str], target_dir: Optional[str] = None
+    source_dir: str,
+    source_imports: Sequence[str],
+    target_imports: Sequence[str],
+    target_dir: Optional[str] = None,
+    lightning_by: str = "",
 ) -> None:
     """Copy package content with import adjustments."""
     print(f"Replacing imports: {locals()}")
@@ -312,7 +342,7 @@ def copy_replace_imports(
                 # a binary file, skip
                 print(f"Skipped replacing imports for {fp}")
                 continue
-        lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
+        lines = _replace_imports(lines, list(zip(source_imports, target_imports)), lightning_by=lightning_by)
         os.makedirs(os.path.dirname(fp_new), exist_ok=True)
         with open(fp_new, "w", encoding="utf-8") as fo:
             fo.writelines(lines)
@@ -322,13 +352,16 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
     # replace imports and copy the code
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
-    for new, previous in mapping.items():
+
+    mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
+    for pkg_from, pkg_to in mapping.items():
         copy_replace_imports(
-            source_dir=os.path.join(source_dir, previous),
+            source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=list(mapping.values()),
-            target_imports=[f"lightning.{new}" for new in mapping],
-            target_dir=os.path.join(source_dir, "lightning", new),
+            source_imports=mapping.keys(),
+            target_imports=mapping.values(),
+            target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
+            lightning_by=pkg_from,
         )
 
 
@@ -362,8 +395,10 @@ class AssistantCLI:
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        req = open(fname, encoding="utf-8").read().replace(">=", "==")
-        open(fname, "w", encoding="utf-8").write(req)
+        with open(fname, encoding="utf-8") as fo:
+            req = fo.read().replace(">=", "==")
+        with open(fname, "w", encoding="utf-8") as fw:
+            fw.write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
@@ -373,12 +408,18 @@ class AssistantCLI:
 
     @staticmethod
     def copy_replace_imports(
-        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+        source_dir: str,
+        source_import: str,
+        target_import: str,
+        target_dir: Optional[str] = None,
+        lightning_by: str = "",
     ) -> None:
         """Copy package content with import adjustments."""
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        copy_replace_imports(source_dir, source_imports, target_imports, target_dir=target_dir)
+        copy_replace_imports(
+            source_dir, source_imports, target_imports, target_dir=target_dir, lightning_by=lightning_by
+        )
 
 
 if __name__ == "__main__":

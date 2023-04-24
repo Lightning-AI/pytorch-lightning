@@ -1,9 +1,9 @@
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
-from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 @pytest.mark.parametrize(
@@ -47,7 +47,6 @@ def test_max_epochs_not_set_warning():
     match = "`max_epochs` was not set. Setting it to 1000 epochs."
 
     model = CustomModel()
-    model.training_epoch_end = None
     trainer = Trainer(max_epochs=None, limit_train_batches=1)
     with pytest.warns(PossibleUserWarning, match=match):
         trainer.fit(model)

@@ -6,7 +6,7 @@ Dynamic LightningWork (Work) changes the resources your application uses while t
 
 For example, imagine you want to create a research notebook app for your team. You want every member to be able to create multiple `JupyterLab <https://jupyter.org/>`_ sessions on their hardware of choice.
 
-To allow every notebook to choose hardware, it needs to be set up in it's own :class:`~lightning_app.core.work.LightningWork`, but you can't know the number of notebooks user will need in advance. In this case you'll need to add ``LightningWorks`` dynamically at run time.
+To allow every notebook to choose hardware, it needs to be set up in it's own :class:`~lightning.app.core.work.LightningWork`, but you can't know the number of notebooks user will need in advance. In this case you'll need to add ``LightningWorks`` dynamically at run time.
 
 ----
 
@@ -46,11 +46,11 @@ There are a couple of ways you can add a dynamic Work:
 	        # Run the `Work` component.
             getattr(self,  "work").run()
 
-**OPTION 2:** Use the built-in Lightning classes :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List`
+**OPTION 2:** Use the built-in Lightning classes :class:`~lightning.app.structures.Dict` or :class:`~lightning.app.structures.List`
 
 .. code-block:: python
 
-    from lightning_app.structures import Dict
+    from lightning.app.structures import Dict
 
     class RootFlow(lapp.LightningFlow):
 

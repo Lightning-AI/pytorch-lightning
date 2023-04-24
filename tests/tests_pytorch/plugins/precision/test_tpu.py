@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 from unittest import mock
 from unittest.mock import Mock
 
-from pytorch_lightning.plugins import TPUPrecisionPlugin
+from lightning.pytorch.plugins import TPUPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -23,6 +23,6 @@ def test_optimizer_step_calls_mark_step():
     plugin = TPUPrecisionPlugin()
     optimizer = Mock()
     with mock.patch("torch_xla.core.xla_model") as xm_mock:
-        plugin.optimizer_step(optimizer=optimizer, model=Mock(), optimizer_idx=0, closure=Mock())
+        plugin.optimizer_step(optimizer=optimizer, model=Mock(), closure=Mock())
     optimizer.step.assert_called_once()
     xm_mock.mark_step.assert_called_once()

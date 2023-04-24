@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from io import StringIO
 
 from lightning_utilities.core.rank_zero import _warn, WarningCache
 
-from lightning_fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 if __name__ == "__main__":
     stderr = StringIO()
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     import logging
 
     root_logger = logging.getLogger()
-    lightning_logger = logging.getLogger("lightning_fabric")
+    lightning_logger = logging.getLogger("lightning.fabric")
     # should have a `StreamHandler`
     assert lightning_logger.hasHandlers() and len(lightning_logger.handlers) == 1
     # set our own stream for testing

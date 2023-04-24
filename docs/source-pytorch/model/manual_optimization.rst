@@ -3,11 +3,10 @@ Manual Optimization
 *******************
 
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to
-manually manage the optimization process.
+manually manage the optimization process, especially when dealing with multiple optimizers at the same time.
 
-This is only recommended for experts who need ultimate flexibility.
-Lightning will handle only accelerator, precision and strategy logic.
-The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
+In this mode, Lightning will handle only accelerator, precision and strategy logic.
+The users are left with ``optimizer.zero_grad()``, gradient accumulation, optimizer toggling, etc..
 
 To manually optimize, do the following:
 
@@ -18,12 +17,13 @@ To manually optimize, do the following:
   * ``optimizer.zero_grad()`` to clear the gradients from the previous training step
   * ``self.manual_backward(loss)`` instead of ``loss.backward()``
   * ``optimizer.step()`` to update your model parameters
+  * ``self.toggle_optimizer()`` and ``self.untoggle_optimizer()`` if needed
 
 Here is a minimal example of manual optimization.
 
 .. testcode:: python
 
-    from pytorch_lightning import LightningModule
+    from lightning.pytorch import LightningModule
 
 
     class MyModel(LightningModule):
@@ -39,10 +39,6 @@ Here is a minimal example of manual optimization.
             self.manual_backward(loss)
             opt.step()
 
-.. warning::
-   Before 1.2, ``optimizer.step()`` was calling ``optimizer.zero_grad()`` internally.
-   From 1.2, it is left to the user's expertise.
-
 .. tip::
    Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
    It is good practice to call ``optimizer.zero_grad()`` before ``self.manual_backward(loss)``.
@@ -51,8 +47,8 @@ Here is a minimal example of manual optimization.
 Access your Own Optimizer
 =========================
 
-The provided ``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
-configured in your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`. You can access your own optimizer
+The provided ``optimizer`` is a :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+configured in your :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`. You can access your own optimizer
 with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
 support accelerators, precision and profiling for you.
 
@@ -107,7 +103,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
 .. testcode:: python
 
-    from pytorch_lightning import LightningModule
+    from lightning.pytorch import LightningModule
 
 
     class SimpleModel(LightningModule):
@@ -132,6 +128,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 .. warning::
    * Note that ``configure_gradient_clipping()`` won't be called in Manual Optimization. Instead consider using ``self. clip_gradients()`` manually like in the example above.
 
+
 Use Multiple Optimizers (like GANs)
 ===================================
 
@@ -141,7 +138,7 @@ Here is an example training a simple GAN with multiple optimizers using manual o
 
     import torch
     from torch import Tensor
-    from pytorch_lightning import LightningModule
+    from lightning.pytorch import LightningModule
 
 
     class SimpleGAN(LightningModule):
@@ -212,16 +209,16 @@ Learning Rate Scheduling
 
 Every optimizer you use can be paired with any
 `Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_. Please see the
-documentation of :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` for all the available options
+documentation of :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` for all the available options
 
 You can call ``lr_scheduler.step()`` at arbitrary intervals.
-Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.core.module.LightningModule` to access any learning rate schedulers
-defined in your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`.
+Use ``self.lr_schedulers()`` in  your :class:`~lightning.pytorch.core.module.LightningModule` to access any learning rate schedulers
+defined in your :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`.
 
 .. warning::
-   * ``lr_scheduler.step()`` can be called at arbitrary intervals by the user in case of manual optimization, or by Lightning if ``"interval"`` is defined in :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` in case of automatic optimization.
+   * ``lr_scheduler.step()`` can be called at arbitrary intervals by the user in case of manual optimization, or by Lightning if ``"interval"`` is defined in :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` in case of automatic optimization.
    * Note that the ``lr_scheduler_config`` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
-     your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` during manual optimization.
+     your :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
 
@@ -278,12 +275,40 @@ If you want to call schedulers that require a metric value after each epoch, con
         self.automatic_optimization = False
 
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         sch = self.lr_schedulers()
 
         # If the selected scheduler is a ReduceLROnPlateau scheduler.
         if isinstance(sch, torch.optim.lr_scheduler.ReduceLROnPlateau):
             sch.step(self.trainer.callback_metrics["loss"])
+
+
+Optimizer Steps at Different Frequencies
+========================================
+
+In manual optimization, you are free to ``step()`` one optimizer more often than another one.
+For example, here we step the optimizer for the *discriminator* weights twice as often as the optimizer for the *generator*.
+
+.. testcode:: python
+
+    # Alternating schedule for optimizer steps (e.g. GANs)
+    def training_step(self, batch, batch_idx):
+        g_opt, d_opt = self.optimizers()
+        ...
+
+        # update discriminator every other step
+        d_opt.zero_grad()
+        self.manual_backward(errD)
+        if (batch_idx + 1) % 2 == 0:
+            d_opt.step()
+
+        ...
+
+        # update generator every step
+        g_opt.zero_grad()
+        self.manual_backward(errG)
+        g_opt.step()
+
 
 Use Closure for LBFGS-like Optimizers
 =====================================

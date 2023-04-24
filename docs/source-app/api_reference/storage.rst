@@ -10,7 +10,7 @@ ______________
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.storage
+.. currentmodule:: lightning.app.storage
 
 .. autosummary::
     :toctree: generated/

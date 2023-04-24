@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,23 @@ import logging
 import os
 import sys
 import tempfile
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 import requests
 import torch
+from torch.nn import Module
 
-import lightning as L
-import pytorch_lightning as PL
+from lightning import LightningModule as LLightningModule
+
+# TODO: not sure why `if module_available("pytorch_lightning")` does not work :(
+try:
+    from pytorch_lightning import LightningModule as PLLightningModule
+
+    LightningModules = (LLightningModule, PLLightningModule)
+except ImportError:
+    LightningModules = (LLightningModule,)
+
+
 from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
 from lightning.store.authentication import _authenticate
 from lightning.store.save import (
@@ -179,7 +189,7 @@ def upload_model(
         logging.info(msg)
 
 
-def _load_model(stored, output_dir, *args, **kwargs):
+def _load_model(stored, output_dir, *args: Any, **kwargs: Any):
     if "model" in stored:
         sys.path.insert(0, f"{output_dir}")
         model = torch.load(f"{output_dir}/{stored['model']}", *args, **kwargs)
@@ -191,7 +201,7 @@ def _load_model(stored, output_dir, *args, **kwargs):
         )
 
 
-def _load_weights(model, stored, output_dir, *args, **kwargs):
+def _load_weights(model, stored, output_dir, *args: Any, **kwargs: Any):
     if "weights" in stored:
         model.load_state_dict(torch.load(f"{output_dir}/{stored['weights']}", *args, **kwargs))
         return model
@@ -201,7 +211,7 @@ def _load_weights(model, stored, output_dir, *args, **kwargs):
         )
 
 
-def _load_checkpoint(model, stored, output_dir, *args, **kwargs):
+def _load_checkpoint(model, stored, output_dir, *args: Any, **kwargs: Any):
     if "checkpoint" in stored:
         ckpt = f"{output_dir}/{stored['checkpoint']}"
     else:
@@ -306,9 +316,9 @@ def load_model(
     version: str = "latest",
     load_weights: bool = False,
     load_checkpoint: bool = False,
-    model: Union[PL.LightningModule, L.LightningModule, None] = None,
-    *args,
-    **kwargs,
+    model: Optional[Module] = None,
+    *args: Any,
+    **kwargs: Any,
 ):
     """Load model from lightning cloud.
 
@@ -364,7 +374,7 @@ def load_model(
                     f" load the checkpoint. `load_model({name}, {version},"
                     " load_checkpoint=True, model=...)`"
                 )
-            if not isinstance(model, (PL.LightningModule, L.LightningModule)):
+            if not isinstance(model, LightningModules):
                 raise TypeError(
                     "For loading checkpoints, the model is required to be a LightningModule"
                     f" or a subclass of LightningModule, got type {type(model)}."

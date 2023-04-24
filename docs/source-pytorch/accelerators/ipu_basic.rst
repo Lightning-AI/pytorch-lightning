@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** Users looking to save money and run large models faster using single or multiple IPU devices.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 What is an IPU?
@@ -19,28 +21,28 @@ IPUs are used to build IPU-PODs, rack-based systems of IPU-Machines for larger w
 
 See the `Graphcore Glossary <https://docs.graphcore.ai/projects/graphcore-glossary/>`__ for the definitions of other IPU-specific terminology.
 
-.. note::
-  IPU support is experimental and a work in progress (see :ref:`known-limitations`). If you run into any problems, please leave an issue.
-
 ----
 
-Run on 1 IPU
-------------
-To use a single IPU, set the accelerator and devices argument.
+Run on IPU
+----------
 
-.. code-block:: python
+To enable PyTorch Lightning to utilize the IPU accelerator, simply provide ``accelerator="ipu"`` parameter to the Trainer class.
 
-    trainer = pl.Trainer(accelerator="ipu", devices=1)
-
-----
-
-Run on multiple IPUs
---------------------
 To use multiple IPUs set the devices to a number that is a power of 2 (i.e: 2, 4, 8, 16, ...)
 
 .. code-block:: python
 
-    trainer = pl.Trainer(accelerator="ipu", devices=8)
+    # run on as many IPUs as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
+
+    # run on one IPU
+    trainer = Trainer(accelerator="ipu", devices=1)
+    # run on multiple IPUs
+    trainer = Trainer(accelerator="ipu", devices=8)
+    # choose the number of devices automatically
+    trainer = Trainer(accelerator="ipu", devices="auto")
 
 ----
 
@@ -60,12 +62,11 @@ Known limitations
 
 Currently there are some known limitations that are being addressed in the near future to make the experience seamless when moving from different devices.
 
-Please see the `MNIST example <https://github.com/Lightning-AI/lightning/blob/master/examples/pl_ipu/mnist_sample.py>`__ which displays most of the limitations and how to overcome them till they are resolved.
+Please see the `MNIST example <https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/ipu/mnist_sample.py>`__ which displays most of the limitations and how to overcome them till they are resolved.
 
-* ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices. We're actively working on fixing this.
-* Multiple optimizers are not supported. ``training_step`` only supports returning one loss from the ``training_step`` function as a result.
+* ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices.
 * Since the step functions are traced, branching logic or any form of primitive values are traced into constants. Be mindful as this could lead to errors in your custom code.
 * Clipping gradients is not supported.
 * It is not possible to use :class:`torch.utils.data.BatchSampler` in your dataloaders if you are using multiple IPUs.
-* IPUs handle the data transfer to the device on the host, hence the hooks :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and
-  :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer` do not apply here and if you have overridden any of them, an exception will be raised.
+* IPUs handle the data transfer to the device on the host, hence the hooks :meth:`~lightning.pytorch.core.hooks.ModelHooks.transfer_batch_to_device` and
+  :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_after_batch_transfer` do not apply here and if you have overridden any of them, an exception will be raised.

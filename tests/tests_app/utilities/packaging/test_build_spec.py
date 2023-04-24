@@ -3,10 +3,9 @@ import os
 import sys
 from unittest.mock import Mock
 
+from lightning.app.testing import application_testing, LightningTestApp
+from lightning.app.utilities.packaging.build_config import BuildConfig
 from tests_app import _TESTS_ROOT
-
-from lightning_app.testing import application_testing, LightningTestApp
-from lightning_app.utilities.packaging.build_config import BuildConfig
 
 EXTRAS_ARGS = ["--blocking", "False", "--multiprocess", "--open-ui", "False"]
 

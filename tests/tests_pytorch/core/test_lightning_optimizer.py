@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@ import pytest
 import torch
 from torch.optim import Adam, Optimizer, SGD
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops.optimization.optimizer_loop import Closure
-from pytorch_lightning.tuner.tuning import Tuner
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.optimizer import LightningOptimizer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loops.optimization.automatic import Closure
+from lightning.pytorch.tuner.tuning import Tuner
 
 
 @pytest.mark.parametrize("auto", (True, False))
@@ -108,8 +108,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
             return [optimizer_1, optimizer_2], [lr_scheduler]
 
     model = TestModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
@@ -153,8 +151,7 @@ def test_state():
     lightning_dict = {
         k: v
         for k, v in lightning_optimizer.__dict__.items()
-        if k
-        not in {"_optimizer", "_optimizer_idx", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
+        if k not in {"_optimizer", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
     }
 
     assert lightning_dict == optimizer.__dict__
@@ -166,10 +163,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
-        def training_epoch_end(self, outputs):
-            ...
-
-        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
             if batch_idx % 2 == 0:
                 optimizer.zero_grad()
 
@@ -192,13 +186,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     """Test overriding step works in automatic_optimization."""
 
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs):
-            ...
-
-        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, **_):
             assert isinstance(optimizer_closure, Closure)
             # zero_grad is called inside the closure
             optimizer_closure()
@@ -315,7 +303,7 @@ def test_params_groups_and_state_are_accessible(tmpdir):
         def configure_optimizers(self):
             return SGD(self.layer.parameters(), lr=0.1)
 
-        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **__):
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, **__):
             # check attributes are accessible
             assert all("lr" in pg for pg in optimizer.param_groups)
             assert optimizer.state is optimizer._optimizer.state

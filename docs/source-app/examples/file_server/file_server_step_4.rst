@@ -33,7 +33,7 @@ Clone the Lightning repo and run the following command:
 
 .. code-block:: bash
 
-   pytest docs/source-app/examples/file_server/app.py --capture=no -v
+   pytest docs/source/examples/file_server/app.py --capture=no -v
 
 ----
 

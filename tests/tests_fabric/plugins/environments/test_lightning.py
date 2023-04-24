@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -48,7 +48,7 @@ def test_attributes_from_environment_variables():
 
 
 @pytest.mark.parametrize(
-    "environ, creates_processes_externally", [({}, False), (dict(LOCAL_RANK="2"), True), (dict(NODE_RANK="1"), False)]
+    "environ, creates_processes_externally", [({}, False), ({"LOCAL_RANK": "2"}, True), ({"NODE_RANK": "1"}, False)]
 )
 def test_manual_user_launch(environ, creates_processes_externally):
     """Test that the environment switches to manual user mode when LOCAL_RANK env variable detected."""

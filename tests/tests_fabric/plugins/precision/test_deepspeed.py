@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,19 +15,19 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.plugins.precision.deepspeed import DeepSpeedPrecision
-from lightning_fabric.utilities.types import Steppable
+from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning.fabric.utilities.types import Steppable
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_invalid_precision_with_deepspeed_precision():
     with pytest.raises(ValueError, match="is not supported in DeepSpeed. `precision` must be one of"):
-        DeepSpeedPrecision(precision=64)
+        DeepSpeedPrecision(precision="64-true")
 
 
 def test_deepspeed_precision_backward():
-    precision = DeepSpeedPrecision(precision=32)
+    precision = DeepSpeedPrecision(precision="32-true")
     tensor = Mock()
     model = Mock()
     precision.backward(tensor, model, "positional-arg", keyword="arg")
@@ -45,7 +45,7 @@ def test_deepspeed_engine_is_steppable(engine):
 
 
 def test_deepspeed_precision_optimizer_step():
-    precision = DeepSpeedPrecision(precision=32)
+    precision = DeepSpeedPrecision(precision="32-true")
     optimizer = model = Mock()
-    precision.optimizer_step(optimizer, lr_kwargs=dict())
-    model.step.assert_called_once_with(lr_kwargs=dict())
+    precision.optimizer_step(optimizer, lr_kwargs={})
+    model.step.assert_called_once_with(lr_kwargs={})

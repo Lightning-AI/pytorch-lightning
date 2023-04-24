@@ -56,8 +56,8 @@ To support multiple models, when instantiating ``LightningCLI`` omit the ``model
 .. code:: python
 
     # main.py
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class Model1(DemoModel):
@@ -100,8 +100,8 @@ To support multiple data modules, when instantiating ``LightningCLI`` omit the `
 
     # main.py
     import torch
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import BoringDataModule
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class FakeDataset1(BoringDataModule):
@@ -156,8 +156,8 @@ Furthermore, any custom subclass of :class:`torch.optim.Optimizer` can be used a
 
     # main.py
     import torch
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class LitAdam(torch.optim.Adam):
@@ -207,8 +207,8 @@ Furthermore, any custom subclass of ``torch.optim.lr_scheduler.LRScheduler`` can
 
     # main.py
     import torch
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
@@ -237,7 +237,7 @@ is run. To select classes from any package by using only the class name, import 
 
 .. code:: python
 
-    from pytorch_lightning.cli import LightningCLI
+    from lightning.pytorch.cli import LightningCLI
     import my_code.models  # noqa: F401
     import my_code.data_modules  # noqa: F401
     import my_code.optimizers  # noqa: F401

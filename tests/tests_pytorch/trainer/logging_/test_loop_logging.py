@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@ from unittest.mock import ANY
 
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 
 
 def test_default_level_for_hooks_that_support_logging():
@@ -45,7 +45,7 @@ def test_default_level_for_hooks_that_support_logging():
     all_logging_hooks = {k for k in _FxValidator.functions if _FxValidator.functions[k]}
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result._ResultCollection.log", return_value=None
+        "lightning.pytorch.trainer.connectors.logger_connector.result._ResultCollection.log", return_value=None
     ) as result_mock:
         trainer.state.stage = RunningStage.TRAINING
         hooks = [
@@ -59,7 +59,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_before_zero_grad",
             "optimizer_zero_grad",
             "training_step",
-            "training_step_end",
             "on_train_batch_start",
             "on_train_batch_end",
         ]
@@ -70,7 +69,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_train_start",
             "on_train_epoch_start",
             "on_train_epoch_end",
-            "training_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
@@ -84,8 +82,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_validation_batch_start",
             "on_validation_batch_end",
             "validation_step",
-            "validation_step_end",
-            "validation_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
@@ -99,8 +95,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_test_batch_start",
             "on_test_batch_end",
             "test_step",
-            "test_step_end",
-            "test_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)

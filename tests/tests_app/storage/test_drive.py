@@ -6,11 +6,11 @@ from time import sleep
 import pytest
 from deepdiff import DeepDiff
 
-from lightning_app import LightningFlow, LightningWork
-from lightning_app.core.app import LightningApp
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.component import _set_flow_context
+from lightning.app import LightningFlow, LightningWork
+from lightning.app.core.app import LightningApp
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.drive import _maybe_create_drive, Drive
+from lightning.app.utilities.component import _set_flow_context
 
 
 class SyncWorkLITDriveA(LightningWork):

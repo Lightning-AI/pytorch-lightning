@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,13 +27,14 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.trainer.states import RunningStage
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -103,8 +104,6 @@ def test__training_step__log(tmpdir):
 
 
 def test__training_step__epoch_end__log(tmpdir):
-    """Tests that training_epoch_end can log."""
-
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
@@ -113,9 +112,9 @@ def test__training_step__epoch_end__log(tmpdir):
             self.log_dict({"a1": loss, "a2": loss})
             return out
 
-        def training_epoch_end(self, outputs):
-            self.log("b1", outputs[0]["loss"])
-            self.log("b", outputs[0]["loss"], on_epoch=True, prog_bar=True, logger=True)
+        def on_train_epoch_end(self):
+            self.log("b1", torch.tensor(1.0))
+            self.log("b", torch.tensor(2.0), on_epoch=True, prog_bar=True, logger=True)
 
     model = TestModel()
     model.val_dataloader = None
@@ -137,50 +136,6 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
-    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
-    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
-
-
-@pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
-def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
-    """Tests that training_step_end and training_epoch_end can log."""
-
-    class TestModel(BoringModel):
-        def training_step(self, batch):
-            loss = self.step(batch[0])
-            self.log("a", loss, on_step=True, on_epoch=True)
-            return loss
-
-        def training_step_end(self, out):
-            self.log("b", out, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-            return out
-
-        def training_epoch_end(self, outputs):
-            self.log("c", outputs[0]["loss"], on_epoch=True, prog_bar=True, logger=True)
-            self.log("d/e/f", 2)
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=batches,
-        limit_val_batches=batches,
-        max_epochs=max_epochs,
-        log_every_n_steps=log_interval,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-
-    # make sure all the metrics are available for callbacks
-    logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f"}
-
-    pbar_metrics = set(trainer.progress_bar_metrics)
-    assert pbar_metrics == {"c", "b_epoch", "b_step"}
-
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
     assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
     assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
@@ -409,7 +364,7 @@ def test_logging_sync_dist_true(tmpdir, devices, accelerator):
         limit_train_batches=3,
         limit_val_batches=3,
         enable_model_summary=False,
-        strategy="ddp_spawn" if use_multiple_devices else None,
+        strategy="ddp_spawn" if use_multiple_devices else "auto",
         accelerator=accelerator,
         devices=devices,
     )
@@ -558,7 +513,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
-            self.val_acc = Accuracy()
+            self.val_acc = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
@@ -595,7 +550,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 @pytest.mark.parametrize(
     "value",
-    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
+    [None, {"a": None}, {"a": 1}, {"a": {"b": None}}, {"a": {"b": 1}}, "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
 def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):
@@ -645,7 +600,7 @@ def test_logging_raises(tmpdir):
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
@@ -654,10 +609,10 @@ def test_logging_raises(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.bar = Accuracy()
+            self.bar = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
     model = TestModel()
     with pytest.raises(
@@ -722,33 +677,30 @@ def test_sanity_metrics_are_reset(tmpdir):
 def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     class TestModel(BoringModel):
         def on_train_epoch_end(self):
+            self.log("on_train_epoch_end", 3.0, reduce_fx="mean")
+            assert self.trainer._results["on_train_epoch_end.on_train_epoch_end"].value == 3.0
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
         def on_validation_epoch_end(self):
+            self.log("on_validation_epoch_end", 3.0, reduce_fx="mean")
+            assert self.trainer._results["on_validation_epoch_end.on_validation_epoch_end"].value == 3.0
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
-        def on_train_batch_start(self, batch, batch_idx):
+        def on_train_batch_start(self, *_):
             self.log("on_train_batch_start", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
-        def on_train_batch_end(self, outputs, batch, batch_idx):
+        def on_train_batch_end(self, *_):
             self.log("on_train_batch_end", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
-        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_validation_batch_start(self, *_):
             self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
 
-        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_validation_batch_end(self, *_):
             self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
-
-        def training_epoch_end(self, *_) -> None:
-            self.log("training_epoch_end", 3.0, reduce_fx="mean")
-            assert self.trainer._results["training_epoch_end.training_epoch_end"].value == 3.0
-
-        def validation_epoch_end(self, *_) -> None:
-            self.log("validation_epoch_end", 3.0, reduce_fx="mean")
-            assert self.trainer._results["validation_epoch_end.validation_epoch_end"].value == 3.0
 
     model = TestModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         enable_progress_bar=False,
         limit_train_batches=3,
         limit_val_batches=3,
@@ -760,7 +712,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     """Tests the default epoch and step values logged."""
 
@@ -795,7 +747,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     )
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_on_train_start(mock_log_metrics, tmpdir):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 

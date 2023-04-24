@@ -1,10 +1,10 @@
 import os
 from numbers import Rational
 
-from lightning_app import LightningApp, LightningFlow
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.imports import _is_pytorch_lightning_available
-from lightning_app.utilities.introspection import Scanner
+from lightning.app import LightningApp, LightningFlow
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.imports import _is_pytorch_lightning_available
+from lightning.app.utilities.introspection import Scanner
 
 if _is_pytorch_lightning_available():
     from pytorch_lightning import Trainer

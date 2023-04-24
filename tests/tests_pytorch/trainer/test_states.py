@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 
 
 def test_initialize_state():
@@ -26,7 +26,7 @@ def test_initialize_state():
 
 @pytest.mark.parametrize(
     "extra_params",
-    [pytest.param(dict(fast_dev_run=True), id="Fast-Run"), pytest.param(dict(max_steps=1), id="Single-Step")],
+    [pytest.param({"fast_dev_run": True}, id="Fast-Run"), pytest.param({"max_steps": 1}, id="Single-Step")],
 )
 def test_trainer_fn_while_running(tmpdir, extra_params):
     class TestModel(BoringModel):
@@ -73,7 +73,7 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
 
 @pytest.mark.parametrize(
     "extra_params",
-    [pytest.param(dict(fast_dev_run=True), id="Fast-Run"), pytest.param(dict(max_steps=1), id="Single-Step")],
+    [pytest.param({"fast_dev_run": True}, id="Fast-Run"), pytest.param({"max_steps": 1}, id="Single-Step")],
 )
 def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
     """Tests that state is set to INTERRUPTED on KeyboardInterrupt."""

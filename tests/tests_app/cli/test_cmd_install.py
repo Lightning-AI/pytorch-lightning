@@ -6,11 +6,11 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 
-from lightning_app.cli import cmd_install, lightning_cli
-from lightning_app.testing.helpers import _RunIf
+from lightning.app.cli import cmd_install, lightning_cli
+from lightning.app.testing.helpers import _RunIf
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
     """Valid organization name."""
     runner = CliRunner()
@@ -75,7 +75,7 @@ def test_app_install(tmpdir, monkeypatch):
     assert test_app_pip_name in str(new_env_output), f"{test_app_pip_name} should be in the env"
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_component_name():
     runner = CliRunner()
 
@@ -170,7 +170,7 @@ def test_prompt_actions():
     # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input='')
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_version_arg_component(tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
     runner = CliRunner()
@@ -192,8 +192,8 @@ def test_version_arg_component(tmpdir, monkeypatch):
     assert result.exit_code == 0
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
-@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 def test_version_arg_app(tmpdir):
 
     # Version does not exist
@@ -211,14 +211,14 @@ def test_version_arg_app(tmpdir):
     assert result.exit_code == 0
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
-@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
-@mock.patch("lightning_app.cli.cmd_install._show_install_app_prompt")
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install._show_install_app_prompt")
 def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
 
     app_name = "lightning/invideo"
     runner = CliRunner()
-    with mock.patch("lightning_app.cli.cmd_install.requests.get") as get_api_mock:
+    with mock.patch("lightning.app.cli.cmd_install.requests.get") as get_api_mock:
         get_api_mock.return_value.json.return_value = {
             "apps": [
                 {
@@ -323,8 +323,8 @@ def test_install_app_shows_error(tmpdir):
 
 def test_app_and_component_gallery_app(monkeypatch):
     monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
-    path = cmd_install.gallery_apps_and_components("lightning/lightning-diffusion-component-api", True, "latest")
-    assert path == os.path.join(os.getcwd(), "diffusion2", "app.py")
+    path = cmd_install.gallery_apps_and_components("lightning/flashy", True, "latest")
+    assert path == os.path.join(os.getcwd(), "app.py")
 
 
 def test_app_and_component_gallery_component(monkeypatch):
@@ -355,8 +355,8 @@ def test_private_component_registry():
     assert registry == "https://TODO/other_non_PL_registry"
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess")
-@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess")
+@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @pytest.mark.parametrize(
     "source_url, git_url, git_sha",
     [

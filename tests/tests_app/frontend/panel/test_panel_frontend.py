@@ -8,10 +8,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning_app import LightningFlow
-from lightning_app.frontend.panel import panel_serve_render_fn, PanelFrontend
-from lightning_app.frontend.panel.panel_frontend import _has_panel_autoreload
-from lightning_app.utilities.state import AppState
+from lightning.app import LightningFlow
+from lightning.app.frontend.panel import panel_serve_render_fn, PanelFrontend
+from lightning.app.frontend.panel.panel_frontend import _has_panel_autoreload
+from lightning.app.utilities.state import AppState
 
 
 def test_stop_server_not_running():
@@ -37,7 +37,7 @@ class MockFlow(LightningFlow):
         """Be lazy!"""
 
 
-@mock.patch("lightning_app.frontend.panel.panel_frontend.subprocess")
+@mock.patch("lightning.app.frontend.panel.panel_frontend.subprocess")
 def test_panel_frontend_start_stop_server(subprocess_mock):
     """Test that `PanelFrontend.start_server()` invokes subprocess.Popen with the right parameters."""
     # Given
@@ -100,7 +100,7 @@ def _call_me(state):
 )
 def test_panel_wrapper_calls_entry_point(*_):
     """Run the panel_serve_entry_point."""
-    runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn")
+    runpy.run_module("lightning.app.frontend.panel.panel_serve_render_fn")
 
 
 def test_method_exception():

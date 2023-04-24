@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 import requests
 
-from lightning_app.utilities import login
+from lightning.app.utilities import login
 
 LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
 
@@ -66,7 +66,7 @@ def test_authentication_with_invalid_environment_vars():
         auth.authenticate()
 
 
-@mock.patch("lightning_app.utilities.login.AuthServer.login_with_browser")
+@mock.patch("lightning.app.utilities.login.AuthServer.login_with_browser")
 def test_authentication_with_environment_vars(browser_login: mock.MagicMock):
     os.environ.setdefault("LIGHTNING_USER_ID", "abc")
     os.environ.setdefault("LIGHTNING_API_KEY", "abc")
@@ -93,7 +93,7 @@ def test_get_auth_url():
     )  # E501
 
 
-@mock.patch("lightning_app.utilities.login.find_free_network_port")
+@mock.patch("lightning.app.utilities.login.find_free_network_port")
 @mock.patch("uvicorn.Server.run")
 @mock.patch("requests.head")
 @mock.patch("click.launch")
@@ -108,7 +108,7 @@ def test_login_with_browser(
     run.assert_called_once()
 
 
-@mock.patch("lightning_app.utilities.login.find_free_network_port")
+@mock.patch("lightning.app.utilities.login.find_free_network_port")
 @mock.patch("uvicorn.Server.run")
 @mock.patch("requests.head")
 @mock.patch("click.launch")

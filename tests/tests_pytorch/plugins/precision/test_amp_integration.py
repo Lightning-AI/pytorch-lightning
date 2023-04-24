@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 import torch
 
-from lightning_fabric import seed_everything
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.fabric import seed_everything
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -38,7 +38,7 @@ def test_amp_fused_optimizer_parity(tmpdir):
             default_root_dir=tmpdir,
             accelerator="cuda",
             devices=1,
-            precision=16,
+            precision="16-mixed",
             max_steps=5,
             logger=False,
             enable_checkpointing=False,

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.10
+ARG PYTORCH_VERSION=1.13
 
 FROM pytorchlightning/pytorch_lightning:base-ipu-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 

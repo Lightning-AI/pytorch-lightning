@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ from argparse import Namespace
 import numpy as np
 import torch
 
-from lightning_fabric.utilities.logger import (
+from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_params,
     _flatten_dict,
@@ -30,7 +30,7 @@ def test_convert_params():
     """Test conversion of params to a dict."""
 
     # Test normal dict, make sure it is unchanged
-    params = dict(string="string", int=1, float=0.1, bool=True, none=None)
+    params = {"string": "string", "int": 1, "float": 0.1, "bool": True, "none": None}
     expected = params.copy()
     assert _convert_params(params) == expected
 

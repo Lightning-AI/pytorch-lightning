@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.test.warning import no_warning_call
-from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.plugins.environments import SLURMEnvironment
-from lightning_fabric.utilities.warnings import PossibleUserWarning
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -72,14 +72,14 @@ def test_attributes_from_environment_variables(caplog):
     assert env.node_rank() == 3
     assert env.job_name() == "JOB"
     # setter should be no-op
-    with caplog.at_level(logging.DEBUG, logger="lightning_fabric.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_global_rank(100)
     assert env.global_rank() == 1
     assert "setting global rank is not allowed" in caplog.text
 
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="lightning_fabric.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
@@ -119,6 +119,9 @@ def test_detect():
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
         assert not SLURMEnvironment.detect()
 
+    with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
+        assert not SLURMEnvironment.detect()
+
 
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")
@@ -128,7 +131,7 @@ def test_srun_available_and_not_used(monkeypatch):
     expected = "`srun` .* available .* but is not used. HINT: .* srun python train.py --lr 0.01"
 
     # pretend `srun` is available
-    with mock.patch("lightning_fabric.plugins.environments.slurm.shutil.which", return_value="/usr/bin/srun"):
+    with mock.patch("lightning.fabric.plugins.environments.slurm.shutil.which", return_value="/usr/bin/srun"):
         with pytest.warns(PossibleUserWarning, match=expected):
             SLURMEnvironment()
 
@@ -145,6 +148,7 @@ def test_srun_variable_validation():
     """Test that we raise useful errors when `srun` variables are misconfigured."""
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
         SLURMEnvironment()
-    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
-        with pytest.raises(RuntimeError, match="You set `--ntasks=2` in your SLURM"):
-            SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}), pytest.raises(
+        RuntimeError, match="You set `--ntasks=2` in your SLURM"
+    ):
+        SLURMEnvironment()

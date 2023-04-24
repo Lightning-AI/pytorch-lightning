@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@ import pytest
 import torch
 from torch import optim
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import LearningRateMonitor
+from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -248,7 +248,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
-    model.training_epoch_end = None
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     log_every_n_steps = 2
@@ -306,7 +305,6 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
             return [optimizer1, optimizer2]
 
     model = CustomBoringModel()
-    model.training_epoch_end = None
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     log_every_n_steps = 2
@@ -538,7 +536,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
             self.freeze(pl_module.backbone[1])
             self.freeze(pl_module.layer)
 
-        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+        def finetune_function(self, pl_module, epoch: int, optimizer):
             """Called when the epoch begins."""
             if epoch == 1 and isinstance(optimizer, torch.optim.SGD):
                 self.unfreeze_and_add_param_group(pl_module.backbone[0], optimizer, lr=0.1)
@@ -563,7 +561,6 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         enable_checkpointing=False,
     )
     model = TestModel()
-    model.training_epoch_end = None
     trainer.fit(model)
 
     expected = [0.1, 0.1, 0.1, 0.1, 0.1]

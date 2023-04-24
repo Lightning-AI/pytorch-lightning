@@ -20,41 +20,17 @@ Lightning supports multiple ways of doing distributed training.
 
 |
 
-- Data Parallel (``strategy='dp'``) (multiple-gpus, 1 machine)
 - DistributedDataParallel (multiple-gpus across many machines)
     - Regular (``strategy='ddp'``)
     - Spawn (``strategy='ddp_spawn'``)
     - Notebook/Fork (``strategy='ddp_notebook'``)
-- Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
 .. note::
-    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
+    If you request multiple GPUs or nodes without setting a strategy, DDP will be automatically used.
 
 For a deeper understanding of what Lightning is doing, feel free to read this
 `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
 
-
-Data Parallel
-^^^^^^^^^^^^^
-:class:`~torch.nn.DataParallel` (DP) splits a batch across k GPUs.
-That is, if you have a batch of 32 and use DP with 2 GPUs, each GPU will process 16 samples,
-after which the root node will aggregate the results.
-
-.. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
-    :class:`~torch.nn.DataParallel` wrapper and you may see errors or misbehavior if you assign state to the module
-    in the ``forward()`` or ``*_step()`` methods. For the same reason we cannot fully support
-    :doc:`Manual Optimization <../model/manual_optimization>` with DP. Use DDP which is more stable and at least 3x faster.
-
-.. warning:: DP only supports scattering and gathering primitive collections of tensors like lists, dicts, etc.
-    Therefore :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and
-    :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
-    do not apply in this mode and if you have overridden any of them, an exception will be raised.
-
-.. testcode::
-    :skipif: torch.cuda.device_count() < 2
-
-    # train on 2 GPUs (using DP mode)
-    trainer = Trainer(accelerator="gpu", devices=2, strategy="dp")
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -144,7 +120,7 @@ We STRONGLY discourage this use because it has limitations (due to Python and Py
         author="",
         author_email="",
         url="https://github.com/YourSeed",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
-        install_requires=["pytorch-lightning"],
+        install_requires=["lightning"],
         packages=find_packages(),
     )
 
@@ -190,7 +166,6 @@ The Trainer enables it by default when such environments are detected.
     # can also be used in non-interactive environments
     trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_fork")
 
-Data Parallel (``strategy="dp"``) is the only other strategy supported in interactive environments but is slower, is discouraged by PyTorch and has other limitations.
 Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork/Notebook for its speed and stability but it can only be used with scripts.
 
 
@@ -221,13 +196,9 @@ Comparison of DDP variants and tradeoffs
      - No
      - Yes
      - No
-   * - Is the guard ``if __name__=="__main__"`` required?
-     - Yes
-     - Yes
-     - No
    * - Limitations in the main process
      - None
-     - None
+     - The state of objects is not up-to-date after returning to the main process (`Trainer.fit()` etc). Only the model parameters get transferred over.
      - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
    * - Process creation time
      - Slow
@@ -235,227 +206,31 @@ Comparison of DDP variants and tradeoffs
      - Fast
 
 
-Bagua
-^^^^^
-`Bagua <https://github.com/BaguaSys/bagua>`_ is a deep learning training acceleration framework which supports
-multiple advanced distributed training algorithms including:
-
-- `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_ for centralized synchronous communication, where gradients are averaged among all workers.
-- `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_ for decentralized synchronous communication, where each worker exchanges data with one or a few specific workers.
-- `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_ and `QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ for low precision communication, where data is compressed into low precision before communication.
-- `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for asynchronous communication, where workers are not required to be synchronized in the same iteration in a lock-step style.
-
-By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm implemented in DDP,
-but Bagua can usually produce a higher training throughput due to its backend written in Rust.
-
-.. code-block:: python
-
-    # train on 4 GPUs (using Bagua mode)
-    trainer = Trainer(strategy="bagua", accelerator="gpu", devices=4)
-
-
-By specifying the ``algorithm`` in the ``BaguaStrategy``, you can select more advanced training algorithms featured by Bagua:
-
-
-.. code-block:: python
-
-    # train on 4 GPUs, using Bagua Gradient AllReduce algorithm
-    trainer = Trainer(
-        strategy=BaguaStrategy(algorithm="gradient_allreduce"),
-        accelerator="gpu",
-        devices=4,
-    )
-
-    # train on 4 GPUs, using Bagua ByteGrad algorithm
-    trainer = Trainer(
-        strategy=BaguaStrategy(algorithm="bytegrad"),
-        accelerator="gpu",
-        devices=4,
-    )
-
-    # train on 4 GPUs, using Bagua Decentralized SGD
-    trainer = Trainer(
-        strategy=BaguaStrategy(algorithm="decentralized"),
-        accelerator="gpu",
-        devices=4,
-    )
-
-    # train on 4 GPUs, using Bagua Low Precision Decentralized SGD
-    trainer = Trainer(
-        strategy=BaguaStrategy(algorithm="low_precision_decentralized"),
-        accelerator="gpu",
-        devices=4,
-    )
-
-    # train on 4 GPUs, using Asynchronous Model Average algorithm, with a synchronization interval of 100ms
-    trainer = Trainer(
-        strategy=BaguaStrategy(algorithm="async", sync_interval_ms=100),
-        accelerator="gpu",
-        devices=4,
-    )
-
-To use *QAdam*, we need to initialize
-`QAdamOptimizer <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/q_adam/index.html#bagua.torch_api.algorithms.q_adam.QAdamOptimizer>`_ first:
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import BaguaStrategy
-    from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
-
-
-    class MyModel(pl.LightningModule):
-        ...
-
-        def configure_optimizers(self):
-            # initialize QAdam Optimizer
-            return QAdamOptimizer(self.parameters(), lr=0.05, warmup_steps=100)
-
-
-    model = MyModel()
-    trainer = Trainer(
-        accelerator="gpu",
-        devices=4,
-        strategy=BaguaStrategy(algorithm="qadam"),
-    )
-    trainer.fit(model)
-
-Bagua relies on its own `launcher <https://tutorials.baguasys.com/getting-started/#launch-job>`_ to schedule jobs.
-Below, find examples using ``bagua.distributed.launch`` which follows ``torch.distributed.launch`` API:
-
-.. code-block:: bash
-
-    # start training with 8 GPUs on a single node
-    python -m bagua.distributed.launch --nproc_per_node=8 train.py
-
-If the ssh service is available with passwordless login on each node, you can launch the distributed job on a
-single node with ``baguarun`` which has a similar syntax as ``mpirun``. When staring the job, ``baguarun`` will
-automatically spawn new processes on each of your training node provided by ``--host_list`` option and each node in it
-is described as an ip address followed by a ssh port.
-
-.. code-block:: bash
-
-    # Run on node1 (or node2) to start training on two nodes (node1 and node2), 8 GPUs per node
-    baguarun --host_list hostname1:ssh_port1,hostname2:ssh_port2 --nproc_per_node=8 --master_port=port1 train.py
-
-
-.. note:: You can also start training in the same way as Distributed Data Parallel. However, system optimizations like
-    `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
-    `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
-    launcher. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
-    better performance without modifying the training script.
-
-
-See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details on installation and advanced features.
-
-
-DP caveats
-^^^^^^^^^^
-In DP each GPU within a machine sees a portion of a batch.
-It does roughly the following:
-
-.. testcode::
-
-    def distributed_forward(batch, model):
-        batch = torch.Tensor(32, 8)
-        gpu_0_batch = batch[:8]
-        gpu_1_batch = batch[8:16]
-        gpu_2_batch = batch[16:24]
-        gpu_3_batch = batch[24:]
-
-        y_0 = model_copy_gpu_0(gpu_0_batch)
-        y_1 = model_copy_gpu_1(gpu_1_batch)
-        y_2 = model_copy_gpu_2(gpu_2_batch)
-        y_3 = model_copy_gpu_3(gpu_3_batch)
-
-        return [y_0, y_1, y_2, y_3]
-
-So, when Lightning calls any of the `training_step`, `validation_step`, `test_step`
-you will only be operating on one of those pieces.
-
-.. testcode::
-
-    # the batch here is a portion of the FULL batch
-    def training_step(self, batch, batch_idx):
-        y_0 = batch
-
-For most metrics, this doesn't really matter. However, if you want to add something to your computational graph using
-all batch parts you can use the `training_step_end` step.
-
-.. testcode::
-
-    def training_step_end(self, outputs):
-        # only use when  on dp
-        outputs = torch.cat(outputs, dim=1)
-        softmax = softmax(outputs, dim=1)
-        out = softmax.mean()
-        return out
-
-In pseudocode, the full sequence is:
-
-.. code-block:: python
-
-    # get data
-    batch = next(dataloader)
-
-    # copy model and data to each gpu
-    batch_splits = split_batch(batch, num_gpus)
-    models = copy_model_to_gpus(model)
-
-    # in parallel, operate on each batch chunk
-    all_results = []
-    for gpu_num in gpus:
-        batch_split = batch_splits[gpu_num]
-        gpu_model = models[gpu_num]
-        out = gpu_model(batch_split)
-        all_results.append(out)
-
-    # use the full batch for something like softmax
-    full_out = model.training_step_end(all_results)
-
-If `training_step_end` is defined it will be called regardless of TPU, DP, DDP, etc... which means
-it will behave the same regardless of the backend.
-
-Validation and test step have the same option when using DP.
-
-.. testcode::
-
-    def validation_step_end(self, step_output):
-        ...
-
-
-    def test_step_end(self, step_output):
-        ...
-
-
 Distributed and 16-bit precision
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Below are the possible configurations we support.
 
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DDP  | DP | 16-bit | command                                                               |
-+=======+=========+=====+=====+========+=======================================================================+
-| Y     |         |     |     |        | `Trainer(accelerator="gpu", devices=1)`                               |
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-| Y     |         |     |     | Y      | `Trainer(accelerator="gpu", devices=1, precision=16)`                 |
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   |     |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   |     | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       |     | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='dp')`                |
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       |     | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='dp', precision=16)`  |
-+-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
++-------+---------+-----+--------+-----------------------------------------------------------------------+
+| 1 GPU | 1+ GPUs | DDP | 16-bit | command                                                               |
++=======+=========+=====+========+=======================================================================+
+| Y     |         |     |        | `Trainer(accelerator="gpu", devices=1)`                               |
++-------+---------+-----+--------+-----------------------------------------------------------------------+
+| Y     |         |     | Y      | `Trainer(accelerator="gpu", devices=1, precision=16)`                 |
++-------+---------+-----+--------+-----------------------------------------------------------------------+
+|       | Y       | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
++-------+---------+-----+--------+-----------------------------------------------------------------------+
+|       | Y       | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
++-------+---------+-----+--------+-----------------------------------------------------------------------+
 
-DDP and DP can also be used with 1 GPU, but there's no reason to do so other than debugging distributed-related issues.
+DDP can also be used with 1 GPU, but there's no reason to do so other than debugging distributed-related issues.
 
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.setup_distributed`.
+If you need your own way to init PyTorch DDP you can override :meth:`lightning.pytorch.strategies.ddp.DDPStrategy.setup_distributed`.
 
-If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`lightning.pytorch.strategies.ddp.DDPStrategy.configure_ddp`.
 
 ----------
 
@@ -504,7 +279,7 @@ Lightning allows explicitly specifying the backend via the `process_group_backen
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch.strategies import DDPStrategy
 
     # Explicitly specify the process group backend if you choose to
     ddp = DDPStrategy(process_group_backend="nccl")

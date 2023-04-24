@@ -1,4 +1,4 @@
-from lightning_app import LightningWork
+from lightning.app import LightningWork
 
 
 class AAA(LightningWork):

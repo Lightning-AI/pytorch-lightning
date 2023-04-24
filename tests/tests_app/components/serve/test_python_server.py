@@ -1,7 +1,7 @@
 import multiprocessing as mp
 
-from lightning_app.components import Image, Number, PythonServer
-from lightning_app.utilities.network import _configure_session, find_free_network_port
+from lightning.app.components import Image, Number, PythonServer
+from lightning.app.utilities.network import _configure_session, find_free_network_port
 
 
 class SimpleServer(PythonServer):

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ import logging
 import pytest
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.trainer.trainer import Trainer
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
@@ -101,7 +101,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
 
     assert trainer.current_epoch == 1 if use_infinite_dataset else max_epochs
     assert trainer.global_step == max_opt_steps
-    assert sorted(list(model.validation_called_at_step)) == [3, 6, 9, 12]
+    assert sorted(model.validation_called_at_step) == [3, 6, 9, 12]
 
 
 def test_validation_check_interval_exceed_data_length_wrong():

@@ -1,6 +1,6 @@
 import os
 
-from lightning_app.core import LightningApp, LightningFlow
+from lightning.app.core import LightningApp, LightningFlow
 
 
 class EnvVarTestApp(LightningFlow):

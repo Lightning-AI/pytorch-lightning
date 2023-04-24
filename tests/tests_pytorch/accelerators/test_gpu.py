@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CUDAAccelerator
-from pytorch_lightning.accelerators.cuda import get_nvidia_gpu_stats
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CUDAAccelerator
+from lightning.pytorch.accelerators.cuda import get_nvidia_gpu_stats
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -30,7 +30,7 @@ def test_get_torch_gpu_stats():
     fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @RunIf(min_cuda_gpus=1)
@@ -40,7 +40,7 @@ def test_get_nvidia_gpu_stats():
     fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @RunIf(min_cuda_gpus=1)
@@ -65,7 +65,6 @@ def test_gpu_availability():
     assert CUDAAccelerator.is_available()
 
 
-@RunIf(min_cuda_gpus=1)
-def test_warning_if_gpus_not_used():
-    with pytest.warns(UserWarning, match="GPU available but not used. Set `accelerator` and `devices`"):
-        Trainer()
+def test_warning_if_gpus_not_used(cuda_count_1):
+    with pytest.warns(UserWarning, match="GPU available but not used"):
+        Trainer(accelerator="cpu")

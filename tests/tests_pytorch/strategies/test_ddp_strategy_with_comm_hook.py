@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPSpawnStrategy, DDPStrategy
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 if torch.distributed.is_available():
@@ -115,7 +115,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
-    strategy = DDPSpawnStrategy(ddp_comm_hook=default.fp16_compress_hook)
+    strategy = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook, start_method="spawn")
     trainer = Trainer(
         max_epochs=1,
         accelerator="gpu",

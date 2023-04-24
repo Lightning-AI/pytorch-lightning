@@ -1,11 +1,11 @@
 import pytest
 
-from lightning_app import CloudCompute
-from lightning_app.storage import Mount
+from lightning.app import CloudCompute
+from lightning.app.storage import Mount
 
 
 def test_cloud_compute_names():
-    assert CloudCompute().name == "default"
+    assert CloudCompute().name == "cpu-small"
     assert CloudCompute("cpu-small").name == "cpu-small"
     assert CloudCompute("coconut").name == "coconut"  # the backend is responsible for validation of names
 
@@ -60,7 +60,7 @@ def test_cloud_compute_clone():
 
     assert len(c1_dict) == len(c2_dict)
 
-    for k in c1_dict.keys():
+    for k in c1_dict:
         if k == "_internal_id":
             assert c1_dict[k] != c2_dict[k]
         else:

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ import pytest
 import torch
 from torch import Tensor
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import MixedPrecisionPlugin
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import MixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -54,10 +54,10 @@ class MyAMP(MixedPrecisionPlugin):
 def test_amp_ddp(cuda_count_2, strategy, devices, custom_plugin, plugin_cls):
     plugin = None
     if custom_plugin:
-        plugin = plugin_cls(16, "cpu")
+        plugin = plugin_cls("16-mixed", "cpu")
     trainer = Trainer(
         fast_dev_run=True,
-        precision=16,
+        precision="16-mixed",
         accelerator="gpu",
         devices=devices,
         strategy=strategy,
@@ -110,17 +110,13 @@ class TestPrecisionModel(BoringModel):
         clip_val = self.trainer.gradient_clip_val
         torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
 
-    def log_grad_norm(self, grad_norm_dict):
-        self.check_grads_unscaled()
-        assert len(grad_norm_dict)
-
     def configure_gradient_clipping(self, *args, **kwargs):
         # let lightning clip
         super().configure_gradient_clipping(*args, **kwargs)
         # check clipping worked as expected
         self.check_grads_clipped()
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, closure, **_):
+    def optimizer_step(self, epoch, batch_idx, optimizer, closure, **_):
         # pass self as a kwarg
         optimizer.step(closure, pl_module=self)
 
@@ -141,8 +137,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
-        precision=16,
-        track_grad_norm=2,
+        precision="16-mixed",
         # use a tiny value to make sure it works
         gradient_clip_val=1e-3,
         gradient_clip_algorithm="value",
@@ -184,14 +179,14 @@ def test_amp_skip_optimizer(tmpdir):
                 torch.optim.SGD(self.layer2.parameters(), lr=0.1),
             ]
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision="16-mixed")
     model = CustomBoringModel()
     trainer.fit(model)
 
 
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-    plugin = MixedPrecisionPlugin("bf16", "cpu")
+    plugin = MixedPrecisionPlugin("bf16-mixed", "cpu")
     assert plugin.device == "cpu"
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()

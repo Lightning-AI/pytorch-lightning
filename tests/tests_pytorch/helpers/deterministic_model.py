@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ import torch
 from torch import nn, Tensor
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning.core.module import LightningModule
+from lightning.pytorch.core.module import LightningModule
 
 
 class DeterministicModel(LightningModule):
@@ -23,12 +23,7 @@ class DeterministicModel(LightningModule):
         super().__init__()
 
         self.training_step_called = False
-        self.training_step_end_called = False
-        self.training_epoch_end_called = False
-
         self.validation_step_called = False
-        self.validation_step_end_called = False
-        self.validation_epoch_end_called = False
 
         self.assert_backward = True
 
@@ -63,29 +58,6 @@ class DeterministicModel(LightningModule):
 
         return num_graphs
 
-    def validation_step_end(self, val_step_output):
-        assert len(val_step_output) == 3
-        assert val_step_output["val_loss"] == 171
-        assert val_step_output["log"]["log_acc1"] >= 12
-        assert val_step_output["progress_bar"]["pbar_acc1"] == 17
-        self.validation_step_end_called = True
-
-        val_step_output["val_step_end"] = torch.tensor(1802)
-
-        return val_step_output
-
-    def validation_epoch_end(self, outputs):
-        assert len(outputs) == self.trainer.num_val_batches[0]
-
-        for i, out in enumerate(outputs):
-            assert out["log"]["log_acc1"] >= 12 + i
-
-        self.validation_epoch_end_called = True
-
-        result = outputs[-1]
-        result["val_epoch_end"] = torch.tensor(1233)
-        return result
-
     # -----------------------------
     # DATA
     # -----------------------------
@@ -110,14 +82,14 @@ class DeterministicModel(LightningModule):
         scheduler = {"scheduler": lr_scheduler, "interval": "step", "monitor": "pbar_acc1"}
         return [optimizer], [scheduler]
 
-    def backward(self, loss, optimizer, optimizer_idx):
+    def backward(self, loss, *args, **kwargs):
         if self.assert_backward:
-            if self.trainer.precision == "16":
+            if self.trainer.precision == "16-mixed":
                 assert loss > 171 * 1000
             else:
                 assert loss == 171.0
 
-        super().backward(loss, optimizer, optimizer_idx)
+        return super().backward(loss, *args, **kwargs)
 
 
 class DummyDataset(Dataset):

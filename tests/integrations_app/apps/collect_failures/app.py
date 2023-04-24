@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
+from lightning.app import LightningApp, LightningFlow, LightningWork
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

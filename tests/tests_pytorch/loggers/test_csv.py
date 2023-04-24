@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
 import os
 from unittest.mock import MagicMock
 
+import fsspec
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.saving import load_hparams_from_yaml
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.loggers.csv_logs import ExperimentWriter
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.saving import load_hparams_from_yaml
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.loggers.csv_logs import ExperimentWriter
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -117,6 +118,16 @@ def test_fit_csv_logger(tmpdir):
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert os.path.isfile(metrics_file)
+
+
+def test_csv_logger_remotefs():
+    logger = CSVLogger(save_dir="memory://test_fit_csv_logger_remotefs")
+    fs, _ = fsspec.core.url_to_fs("memory://test_fit_csv_logger_remotefs")
+    exp = logger.experiment
+    exp.log_metrics({"loss": 0.1})
+    exp.save()
+    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    assert fs.isfile(metrics_file)
 
 
 def test_flush_n_steps(tmpdir):

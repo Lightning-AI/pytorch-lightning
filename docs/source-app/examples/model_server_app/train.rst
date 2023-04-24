@@ -6,7 +6,7 @@
 
 In the code below, we create a work which trains a simple `SVC <https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html>`_ model on the digits dataset (classification).
 
-Once the model is trained, it is saved and a reference :class:`~lightning_app.storage.path.Path` with ``best_model_path`` state attribute.
+Once the model is trained, it is saved and a reference :class:`~lightning.app.storage.path.Path` with ``best_model_path`` state attribute.
 
 .. literalinclude:: ./train.py
 

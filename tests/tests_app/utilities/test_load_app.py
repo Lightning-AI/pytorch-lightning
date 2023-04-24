@@ -1,15 +1,15 @@
 import os
+import sys
 from unittest.mock import ANY
 
 import pytest
-import tests_app.core.scripts
 
-from lightning_app.utilities.exceptions import MisconfigurationException
-from lightning_app.utilities.load_app import extract_metadata_from_app, load_app_from_file
+from lightning.app.utilities.exceptions import MisconfigurationException
+from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
 
 
-def test_load_app_from_file():
-    test_script_dir = os.path.join(os.path.dirname(tests_app.core.__file__), "scripts")
+def test_load_app_from_file_errors():
+    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
     with pytest.raises(MisconfigurationException, match="There should not be multiple apps instantiated within a file"):
         load_app_from_file(os.path.join(test_script_dir, "two_apps.py"))
 
@@ -20,8 +20,19 @@ def test_load_app_from_file():
         load_app_from_file(os.path.join(test_script_dir, "script_with_error.py"))
 
 
+@pytest.mark.parametrize("app_path", ["app_metadata.py", "app_with_local_import.py"])
+def test_load_app_from_file(app_path):
+    """Test that apps load without error and that sys.path and main module are set."""
+    original_main = sys.modules["__main__"]
+    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
+    load_app_from_file(os.path.join(test_script_dir, app_path), raise_exception=True)
+
+    assert test_script_dir in sys.path
+    assert sys.modules["__main__"] != original_main
+
+
 def test_extract_metadata_from_component():
-    test_script_dir = os.path.join(os.path.dirname(tests_app.core.__file__), "scripts")
+    test_script_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "scripts")
     app = load_app_from_file(os.path.join(test_script_dir, "app_metadata.py"))
     metadata = extract_metadata_from_app(app)
     assert metadata == [
@@ -41,7 +52,7 @@ def test_extract_metadata_from_component():
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "shm_size": 0,
@@ -65,7 +76,7 @@ def test_extract_metadata_from_component():
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "shm_size": 0,

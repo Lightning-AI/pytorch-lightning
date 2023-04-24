@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import pytest
 import torch
 from torch import nn
 
-from lightning_fabric.strategies import SingleDeviceStrategy
+from lightning.fabric.strategies import SingleDeviceStrategy
 
 
 @pytest.mark.parametrize("is_rank_zero", [True, False])
@@ -28,7 +28,7 @@ def test_save_checkpoint_rank_zero_only(is_rank_zero, tmp_path):
     save_checkpoint_mock = Mock()
     strategy.checkpoint_io.save_checkpoint = save_checkpoint_mock
     with mock.patch(
-        "lightning_fabric.strategies.single_device.SingleDeviceStrategy.is_global_zero",
+        "lightning.fabric.strategies.single_device.SingleDeviceStrategy.is_global_zero",
         new_callable=PropertyMock(return_value=is_rank_zero),
     ):
         strategy.save_checkpoint(tmp_path, {"anything": 1})

@@ -7,12 +7,12 @@ from unittest import mock
 import pytest
 import requests_mock
 
-from lightning_app import LightningFlow
-from lightning_app.core import queues
-from lightning_app.core.constants import HTTP_QUEUE_URL
-from lightning_app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
-from lightning_app.utilities.imports import _is_redis_available
-from lightning_app.utilities.redis import check_if_redis_running
+from lightning.app import LightningFlow
+from lightning.app.core import queues
+from lightning.app.core.constants import HTTP_QUEUE_URL
+from lightning.app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning.app.utilities.imports import _is_redis_available
+from lightning.app.utilities.redis import check_if_redis_running
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
@@ -84,7 +84,7 @@ def test_redis_credential(monkeypatch):
 
 
 @pytest.mark.skipif(not _is_redis_available(), reason="redis isn't installed.")
-@mock.patch("lightning_app.core.queues.redis.Redis")
+@mock.patch("lightning.app.core.queues.redis.Redis")
 def test_redis_queue_read_timeout(redis_mock):
     redis_mock.return_value.blpop.return_value = (b"READINESS_QUEUE", pickle.dumps("test_entry"))
     redis_queue = QueuingSystem.REDIS.get_readiness_queue()
@@ -128,7 +128,7 @@ def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch)
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@mock.patch("lightning_app.core.queues.WARNING_QUEUE_SIZE", 2)
+@mock.patch("lightning.app.core.queues.WARNING_QUEUE_SIZE", 2)
 def test_redis_queue_warning():
     my_queue = QueuingSystem.REDIS.get_api_delta_queue(queue_id="test_redis_queue_warning")
     my_queue.clear()
@@ -139,7 +139,7 @@ def test_redis_queue_warning():
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@mock.patch("lightning_app.core.queues.redis.Redis")
+@mock.patch("lightning.app.core.queues.redis.Redis")
 def test_redis_raises_error_if_failing(redis_mock):
     import redis
 

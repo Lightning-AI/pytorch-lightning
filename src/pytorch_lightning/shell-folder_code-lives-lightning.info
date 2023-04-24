@@ -1,0 +1,2 @@
+This folder serves only for building the `pytorch-lightning` package when you install from source code with env variable `PACKAGE_NAME=pytorch`
+Please do not edit these files - you may see some as they are automatically generated/copied from their current location.

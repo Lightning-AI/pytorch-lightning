@@ -3,8 +3,8 @@ from unittest import mock
 
 import pytest
 
-from lightning_app import __package_name__
-from lightning_app.utilities.imports import _get_extras, requires
+from lightning.app import __package_name__
+from lightning.app.utilities.imports import _get_extras, requires
 
 
 def test_get_extras():
@@ -18,7 +18,7 @@ def test_get_extras():
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "0"})
 def test_requires():
-    @requires("lightning_app")
+    @requires("lightning.app")
     def fn():
         pass
 

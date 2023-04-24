@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@ import os
 
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DeepSpeedStrategy
+from lightning.pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -32,7 +32,7 @@ def test_deepspeed_collate_checkpoint(tmpdir):
         accelerator="gpu",
         devices=2,
         fast_dev_run=True,
-        precision=16,
+        precision="16-mixed",
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -40,7 +40,6 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()
     if trainer.is_global_zero:
         # ensure function call works
         output_path = os.path.join(tmpdir, "single_model.pt")

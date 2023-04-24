@@ -10,12 +10,13 @@ import psutil
 import py
 import pytest
 
-from lightning_app.storage.path import _storage_root_dir
-from lightning_app.utilities.app_helpers import _collect_child_process_pids
-from lightning_app.utilities.component import _set_context
-from lightning_app.utilities.packaging import cloud_compute
-from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
-from lightning_app.utilities.state import AppState
+from lightning.app.core import constants
+from lightning.app.storage.path import _storage_root_dir
+from lightning.app.utilities.app_helpers import _collect_child_process_pids
+from lightning.app.utilities.component import _set_context
+from lightning.app.utilities.packaging import cloud_compute
+from lightning.app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
+from lightning.app.utilities.state import AppState
 
 os.environ["LIGHTNING_DISPATCHED"] = "1"
 
@@ -58,7 +59,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture(scope="function", autouse=True)
 def cleanup():
-    from lightning_app.utilities.app_helpers import _LightningAppRef
+    from lightning.app.utilities.app_helpers import _LightningAppRef
 
     yield
     _LightningAppRef._app_instance = None
@@ -74,10 +75,10 @@ def cleanup():
 def clear_app_state_state_variables():
     """Resets global variables in order to prevent interference between tests."""
     yield
-    import lightning_app.utilities.state
+    import lightning.app.utilities.state
 
-    lightning_app.utilities.state._STATE = None
-    lightning_app.utilities.state._LAST_STATE = None
+    lightning.app.utilities.state._STATE = None
+    lightning.app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
     if hasattr(cloud_compute, "_CLOUD_COMPUTE_STORE"):
         cloud_compute._CLOUD_COMPUTE_STORE.clear()
@@ -105,9 +106,9 @@ def caplog(caplog):
     propagation_dict = {
         name: logging.getLogger(name).propagate
         for name in logging.root.manager.loggerDict
-        if name.startswith("lightning_app")
+        if name.startswith("lightning.app")
     }
-    for name in propagation_dict.keys():
+    for name in propagation_dict:
         logging.getLogger(name).propagate = True
 
     yield caplog
@@ -115,3 +116,26 @@ def caplog(caplog):
     root_logger.propagate = root_propagate
     for name, propagate in propagation_dict.items():
         logging.getLogger(name).propagate = propagate
+
+
+@pytest.fixture
+def patch_constants(request):
+    """This fixture can be used with indirect parametrization to patch values in `lightning.app.core.constants` for
+    the duration of a test.
+
+    Example::
+
+        @pytest.mark.parametrize("patch_constants", [{"LIGHTNING_CLOUDSPACE_HOST": "any"}], indirect=True)
+        def test_my_stuff(patch_constants):
+            ...
+    """
+    # Set constants
+    old_constants = {}
+    for constant, value in request.param.items():
+        old_constants[constant] = getattr(constants, constant)
+        setattr(constants, constant, value)
+
+    yield
+
+    for constant, value in old_constants.items():
+        setattr(constants, constant, value)

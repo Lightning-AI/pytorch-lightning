@@ -6,13 +6,13 @@ from unittest import mock
 import click
 import pytest
 from click.testing import CliRunner
-from tests_app import _PROJECT_ROOT
 
-import lightning_app.core.constants as constants
-from lightning_app import LightningApp
-from lightning_app.cli.lightning_cli import _run_app, run_app
-from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.utilities.app_helpers import convert_print_to_logger_info
+import lightning.app.core.constants as constants
+from lightning.app import LightningApp
+from lightning.app.cli.lightning_cli import _run_app, run_app
+from lightning.app.runners.runtime_type import RuntimeType
+from lightning.app.utilities.app_helpers import convert_print_to_logger_info
+from tests_app import _PROJECT_ROOT
 
 
 @mock.patch("click.launch")
@@ -20,7 +20,7 @@ from lightning_app.utilities.app_helpers import convert_print_to_logger_info
 def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypatch):
     """This test validates the command is runned properly and the LightningApp method is being executed."""
 
-    monkeypatch.setattr("lightning_app._logger", logging.getLogger())
+    monkeypatch.setattr("lightning.app._logger", logging.getLogger())
 
     original_method = LightningApp._run
 
@@ -31,19 +31,23 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
         print(self)
 
     with caplog.at_level(logging.INFO):
-        with mock.patch("lightning_app.LightningApp._run", _lightning_app_run_and_logging):
+        with mock.patch("lightning.app.LightningApp._run", _lightning_app_run_and_logging):
             runner = CliRunner()
-            result = runner.invoke(
-                run_app,
-                [
-                    os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
-                    "--blocking",
-                    "False",
-                    "--open-ui",
-                    str(open_ui),
-                ],
-                catch_exceptions=False,
-            )
+            pytest_env = os.environ.pop("PYTEST_CURRENT_TEST")
+            try:
+                result = runner.invoke(
+                    run_app,
+                    [
+                        os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+                        "--blocking",
+                        "False",
+                        "--open-ui",
+                        str(open_ui),
+                    ],
+                    catch_exceptions=False,
+                )
+            finally:
+                os.environ["PYTEST_CURRENT_TEST"] = pytest_env
             # capture logs.
             if open_ui:
 
@@ -60,7 +64,7 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
 
 def test_lightning_run_cluster_without_cloud(monkeypatch):
     """This test validates that running apps only supports --cluster-id if --cloud argument is passed."""
-    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+    monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
     with pytest.raises(click.exceptions.ClickException):
         _run_app(
             file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
@@ -79,7 +83,7 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
-@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+@mock.patch("lightning.app.cli.lightning_cli.dispatch")
 @pytest.mark.parametrize("open_ui", (True, False))
 def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
     """This test validates the command has ran properly when --cloud argument is passed.
@@ -87,7 +91,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
     call to `dispatch` for the right arguments.
     """
-    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+    monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
     with caplog.at_level(logging.INFO):
         _run_app(
@@ -129,7 +133,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
-@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+@mock.patch("lightning.app.cli.lightning_cli.dispatch")
 @pytest.mark.parametrize("open_ui", (True, False))
 def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
     """This test validates the command has ran properly when --cloud argument is passed.
@@ -137,7 +141,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
     call to `dispatch` for the right arguments.
     """
-    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+    monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
     with caplog.at_level(logging.INFO):
         _run_app(
@@ -180,7 +184,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
 
 def test_lightning_run_app_secrets(monkeypatch):
     """Validates that running apps only supports the `--secrets` argument if the `--cloud` argument is passed."""
-    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+    monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
     with pytest.raises(click.exceptions.ClickException):
         _run_app(
@@ -200,13 +204,13 @@ def test_lightning_run_app_secrets(monkeypatch):
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
-@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+@mock.patch("lightning.app.cli.lightning_cli.dispatch")
 def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMock, caplog, monkeypatch):
     """This test just validates the command has ran properly when --enable-basic-auth argument is passed.
 
     It checks the call to `dispatch` for the right arguments.
     """
-    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+    monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
     with caplog.at_level(logging.INFO):
         _run_app(

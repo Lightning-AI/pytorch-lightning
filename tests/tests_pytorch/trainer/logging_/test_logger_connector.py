@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,18 +20,20 @@ import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import Accuracy
+from torchmetrics import AveragePrecision as AvgPre
+from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch import LightningModule
+from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.models.test_hooks import get_members
 
 
@@ -261,97 +263,6 @@ def test_fx_validator_integration(tmpdir):
     trainer.predict(model)
 
 
-@RunIf(min_cuda_gpus=2)
-def test_epoch_results_cache_dp(tmpdir):
-
-    root_device = torch.device("cuda", 0)
-
-    class TestModel(BoringModel):
-        def training_step(self, *args, **kwargs):
-            result = super().training_step(*args, **kwargs)
-            self.log("train_loss_epoch", result["loss"], on_step=False, on_epoch=True)
-            return result
-
-        def training_step_end(self, training_step_outputs):  # required for dp
-            loss = training_step_outputs["loss"].mean()
-            return loss
-
-        def training_epoch_end(self, outputs):
-            assert all(out["loss"].device == root_device for out in outputs)
-            assert self.trainer.callback_metrics["train_loss_epoch"].device == root_device
-
-        def validation_step(self, *args, **kwargs):
-            val_loss = torch.rand(1, device=torch.device("cuda", 1))
-            self.log("val_loss_epoch", val_loss, on_step=False, on_epoch=True)
-            return val_loss
-
-        def validation_epoch_end(self, outputs):
-            assert all(loss.device == root_device for loss in outputs)
-            assert self.trainer.callback_metrics["val_loss_epoch"].device == root_device
-
-        def test_step(self, *args, **kwargs):
-            test_loss = torch.rand(1, device=torch.device("cuda", 1))
-            self.log("test_loss_epoch", test_loss, on_step=False, on_epoch=True)
-            return test_loss
-
-        def test_epoch_end(self, outputs):
-            assert all(loss.device == root_device for loss in outputs)
-            assert self.trainer.callback_metrics["test_loss_epoch"].device == root_device
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=4)
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=4)
-
-        def test_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=4)
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="dp",
-        accelerator="gpu",
-        devices=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-    )
-    trainer.fit(model)
-    trainer.test(model)
-
-
-def test_can_return_tensor_with_more_than_one_element(tmpdir):
-    """Ensure {validation,test}_step return values are not included as callback metrics.
-
-    #6623
-    """
-
-    class TestModel(BoringModel):
-        def validation_step(self, batch, *args, **kwargs):
-            return {"val": torch.tensor([0, 1])}
-
-        def validation_epoch_end(self, outputs):
-            # ensure validation step returns still appear here
-            assert len(outputs) == 2
-            assert all(list(d) == ["val"] for d in outputs)  # check keys
-            assert all(torch.equal(d["val"], torch.tensor([0, 1])) for d in outputs)  # check values
-
-        def test_step(self, batch, *args, **kwargs):
-            return {"test": torch.tensor([0, 1])}
-
-        def test_epoch_end(self, outputs):
-            assert len(outputs) == 2
-            assert all(list(d) == ["test"] for d in outputs)  # check keys
-            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-
-
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     """test that auto_add_dataloader_idx argument works."""
@@ -363,16 +274,12 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args[:-1], **kwargs)
-            if add_dataloader_idx:
-                name = "val_loss"
-            else:
-                name = f"val_loss_custom_naming_{args[-1]}"
+            name = "val_loss" if add_dataloader_idx else f"val_loss_custom_naming_{args[-1]}"
 
             self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
             return output
 
     model = TestModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
@@ -396,9 +303,9 @@ def test_metrics_reset(tmpdir):
             self.layer = torch.nn.Linear(32, 1)
 
         def _create_metrics(self):
-            acc = Accuracy()
+            acc = Accuracy(task="binary") if _TM_GE_0_11 else Accuracy()
             acc.reset = mock.Mock(side_effect=acc.reset)
-            ap = AveragePrecision(num_classes=1, pos_label=1)
+            ap = AvgPre(task="binary") if _TM_GE_0_11 else AvgPre(num_classes=1, pos_label=1)
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 
@@ -586,16 +493,16 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    log_kwargs = dict(
-                        fx="training_step",
-                        name=name,
-                        value=v,
-                        on_step=on_step,
-                        on_epoch=on_epoch,
-                        batch_size=batches[i],
-                        prog_bar=prog_bar,
-                        logger=logger,
-                    )
+                    log_kwargs = {
+                        "fx": "training_step",
+                        "name": name,
+                        "value": v,
+                        "on_step": on_step,
+                        "on_epoch": on_epoch,
+                        "batch_size": batches[i],
+                        "prog_bar": prog_bar,
+                        "logger": logger,
+                    }
                     if not on_step and not on_epoch:
                         with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
                             result_collection.log(**log_kwargs)
@@ -674,9 +581,13 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=1, logger=False
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": 2,
+        "limit_val_batches": 0,
+        "max_epochs": 1,
+        "logger": False,
+    }
     if logger:
         trainer_kwargs["logger"] = CSVLogger(tmpdir)
     trainer = Trainer(**trainer_kwargs)

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning.utilities.seed import isolate_rng
+from lightning.pytorch.utilities.seed import isolate_rng
 from tests_pytorch.helpers.runif import RunIf
 
 

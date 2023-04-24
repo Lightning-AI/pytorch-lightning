@@ -2,7 +2,7 @@ import tarfile
 import uuid
 from pathlib import Path
 
-from lightning_app.source_code import LocalSourceCodeDir
+from lightning.app.source_code import LocalSourceCodeDir
 
 
 def test_repository_checksum(tmp_path):

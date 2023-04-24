@@ -6,10 +6,23 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
+  pull_request:  # this shall test only the part of workflow before publishing
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - '.github/actions/pkg-publish/*'
+      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_build-packages.yml"
+      - ".github/workflows/release-pypi.yml"
 
 defaults:
   run:
     shell: bash
+
+env:
+  FREEZE_REQUIREMENTS: 1
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  PYTHON_VER: "3.8"
 
 jobs:
 
@@ -20,7 +33,7 @@ jobs:
 
 
   upload-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
     if: github.event_name == 'release'
     steps:
@@ -38,22 +51,25 @@ jobs:
 
 
   release-version:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
     - name: install Package
-      env:
-        PACKAGE_NAME: "lightning"
-      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      run: |
+        pip install . -f ${TORCH_URL}
+        pip list
     - name: package Version
       id: lai-package
-      run: python -c "import lightning as L; print(f'version={L.__version__}')" >> $GITHUB_OUTPUT
+      run: python -c "import lightning ; print(f'version={lightning.__version__}')" >> $GITHUB_OUTPUT
 
 
   signaling:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [release-version]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     env:
@@ -61,7 +77,7 @@ jobs:
     steps:
     - uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: ${{ env.PYTHON_VER }}
     - uses: actions/checkout@v3
       with:
         repository: gridai/base-images
@@ -90,7 +106,7 @@ jobs:
 
 
   waiting:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [release-version, signaling]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
@@ -99,7 +115,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: ${{ env.PYTHON_VER }}
     - run: pip install gitpython
     - name: Delay releasing
       run: |
@@ -118,7 +134,7 @@ jobs:
 
 
   pre-publish-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
@@ -143,7 +159,7 @@ jobs:
 
 
   publish-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
@@ -169,10 +185,8 @@ jobs:
 
   legacy-checkpoints:
     needs: [build-packages]
-    uses: ./.github/workflows/legacy-checkpoints.yml
+    uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
+    secrets: inherit

@@ -5,15 +5,13 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
-    dict(torch="1.14.0", torchvision="0.15.0"),  # nightly
-    dict(torch="1.13.1", torchvision="0.14.1"),  # stable
-    dict(torch="1.13.0", torchvision="0.14.0"),
-    dict(torch="1.12.1", torchvision="0.13.1"),
-    dict(torch="1.12.0", torchvision="0.13.0"),
-    dict(torch="1.11.0", torchvision="0.12.0"),
-    dict(torch="1.10.2", torchvision="0.11.3"),
-    dict(torch="1.10.1", torchvision="0.11.2"),
-    dict(torch="1.10.0", torchvision="0.11.1"),
+    {"torch": "2.1.0", "torchvision": "0.16.0"},  # nightly
+    {"torch": "2.0.0", "torchvision": "0.15.1"},  # stable
+    {"torch": "1.13.1", "torchvision": "0.14.1"},
+    {"torch": "1.13.0", "torchvision": "0.14.0"},
+    {"torch": "1.12.1", "torchvision": "0.13.1"},
+    {"torch": "1.12.0", "torchvision": "0.13.0"},
+    {"torch": "1.11.0", "torchvision": "0.12.0"},
 ]
 
 
@@ -22,7 +20,7 @@ def find_latest(ver: str) -> Dict[str, str]:
     ver = re.search(r"([\.\d]+)", ver).groups()[0]
     # in case there remaining dot at the end - e.g "1.9.0.dev20210504"
     ver = ver[:-1] if ver[-1] == "." else ver
-    print(f"finding ecosystem versions for: {ver}")
+    print(f"\n\n\nfinding ecosystem versions for: {ver}")
 
     # find first match
     for option in VERSIONS:

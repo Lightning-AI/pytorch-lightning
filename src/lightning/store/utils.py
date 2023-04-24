@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,10 +30,7 @@ def _check_version(version: str) -> bool:
     allowed_chars = "0123456789."
     if version == "latest":
         return True
-    for version_char in version:
-        if version_char not in allowed_chars:
-            return False
-    return True
+    return all(version_char in allowed_chars for version_char in version)
 
 
 def _split_name(name: str, version: str, l_stage: stage) -> Tuple[str, str, str]:

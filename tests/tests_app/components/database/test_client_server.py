@@ -10,11 +10,11 @@ from uuid import uuid4
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.components.database import Database, DatabaseClient
-from lightning_app.components.database.utilities import _GeneralModel, _pydantic_column_type
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.utilities.imports import _is_sqlmodel_available
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.components.database import Database, DatabaseClient
+from lightning.app.components.database.utilities import _GeneralModel, _pydantic_column_type
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
     from sqlalchemy import Column

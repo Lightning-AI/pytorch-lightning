@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@ import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@mock.patch("lightning_fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
+@mock.patch("lightning.fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
 def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     model = BoringModel()
@@ -107,16 +107,15 @@ def test_early_stopping_cpu_model(tmpdir):
             return output
 
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
-    trainer_options = dict(
-        callbacks=[stopping],
-        default_root_dir=tmpdir,
-        gradient_clip_val=1.0,
-        track_grad_norm=2,
-        enable_progress_bar=False,
-        accumulate_grad_batches=2,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-    )
+    trainer_options = {
+        "callbacks": [stopping],
+        "default_root_dir": tmpdir,
+        "gradient_clip_val": 1.0,
+        "enable_progress_bar": False,
+        "accumulate_grad_batches": 2,
+        "limit_train_batches": 0.1,
+        "limit_val_batches": 0.1,
+    }
 
     model = ModelTrainVal()
     tpipes.run_model_test(trainer_options, model)
@@ -129,16 +128,16 @@ def test_early_stopping_cpu_model(tmpdir):
 @RunIf(skip_windows=True, sklearn=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accelerator="cpu",
-        devices=2,
-        strategy="ddp_spawn",
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.2,
+        "accelerator": "cpu",
+        "devices": 2,
+        "strategy": "ddp_spawn",
+    }
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -158,13 +157,13 @@ def test_lbfgs_cpu_model(tmpdir):
             self.learning_rate = learning_rate
             self.save_hyperparameters()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        enable_progress_bar=False,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "enable_progress_bar": False,
+        "limit_train_batches": 0.2,
+        "limit_val_batches": 0.2,
+    }
 
     model = ModelSpecifiedOptimizer(optimizer_name="LBFGS", learning_rate=0.004)
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
@@ -172,15 +171,15 @@ def test_lbfgs_cpu_model(tmpdir):
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        enable_progress_bar=False,
-        limit_train_batches=0.01,
-        limit_val_batches=0.01,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "gradient_clip_val": 1.0,
+        "overfit_batches": 0.20,
+        "enable_progress_bar": False,
+        "limit_train_batches": 0.01,
+        "limit_val_batches": 0.01,
+    }
 
     model = BoringModel()
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
@@ -240,13 +239,12 @@ def test_running_test_no_val(tmpdir):
     """
 
     class ModelTrainTest(BoringModel):
-        def val_dataloader(self):
-            pass
-
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
             self.log("test_loss", output["y"])
             return output
+
+        val_dataloader = None
 
     model = ModelTrainTest()
 
@@ -291,9 +289,13 @@ def test_simple_cpu(tmpdir):
 
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir, enable_progress_bar=False, max_epochs=1, limit_train_batches=4, limit_val_batches=4
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
@@ -301,17 +303,16 @@ def test_cpu_model(tmpdir):
 
 def test_all_features_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        track_grad_norm=2,
-        enable_progress_bar=False,
-        accumulate_grad_batches=2,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "gradient_clip_val": 1.0,
+        "overfit_batches": 0.20,
+        "enable_progress_bar": False,
+        "accumulate_grad_batches": 2,
+        "max_epochs": 1,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.4,
+    }
 
     model = BoringModel()
 

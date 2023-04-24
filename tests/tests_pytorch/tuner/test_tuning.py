@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,10 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import BatchSizeFinder, LearningRateFinder
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.tuner.tuning import Tuner
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import BatchSizeFinder, LearningRateFinder
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.tuner.tuning import Tuner
 
 
 def test_tuner_with_distributed_strategies():
@@ -25,7 +25,7 @@ def test_tuner_with_distributed_strategies():
     tuner = Tuner(trainer)
     model = BoringModel()
 
-    with pytest.raises(ValueError, match=r"not supported with `Trainer\(strategy='ddp'\)`"):
+    with pytest.raises(ValueError, match=r"not supported with distributed strategies"):
         tuner.scale_batch_size(model)
 
 

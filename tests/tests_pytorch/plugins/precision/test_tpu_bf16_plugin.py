@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 import os
 from unittest.mock import Mock
 
-from pytorch_lightning.plugins import TPUBf16PrecisionPlugin
+from lightning.pytorch.plugins import TPUBf16PrecisionPlugin
 
 
 def test_teardown(xla_available):

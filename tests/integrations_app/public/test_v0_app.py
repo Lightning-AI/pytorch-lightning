@@ -5,14 +5,14 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 
-from lightning_app import LightningApp
-from lightning_app.runners import CloudRuntime
-from lightning_app.testing import EmptyFlow
-from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
-from lightning_app.utilities.enum import AppStage
-from lightning_app.utilities.load_app import load_app_from_file
+from integrations_app.public import _PATH_EXAMPLES
+from lightning.app import LightningApp
+from lightning.app.runners import CloudRuntime
+from lightning.app.testing import EmptyFlow
+from lightning.app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
+from lightning.app.utilities.enum import AppStage
+from lightning.app.utilities.load_app import load_app_from_file
 
 
 class LightningAppTestInt(LightningTestApp):
@@ -26,7 +26,7 @@ class LightningAppTestInt(LightningTestApp):
 
 def test_v0_app_example():
     command_line = [
-        os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"),
+        os.path.join(_PATH_EXAMPLES, "v0", "app.py"),
         "--blocking",
         "False",
         "--open-ui",
@@ -53,6 +53,7 @@ def run_v0_app(fetch_logs, view_page):
     has_logs = False
     while not has_logs:
         for log in fetch_logs(["flow"]):
+            print(log)
             if "'a': 'a', 'b': 'b'" in log:
                 has_logs = True
         sleep(1)
@@ -65,19 +66,15 @@ def run_v0_app(fetch_logs, view_page):
 )
 def test_v0_app_example_byoc_cloud() -> None:
     with run_app_in_cloud(
-        os.path.join(_PATH_EXAMPLES, "app_v0"),
+        os.path.join(_PATH_EXAMPLES, "v0"),
         extra_args=["--cluster-id", os.environ.get("LIGHTNING_BYOC_CLUSTER_ID")],
-    ) as (
-        _,
-        view_page,
-        fetch_logs,
-    ):
+    ) as (_, view_page, fetch_logs, app_name):
         run_v0_app(fetch_logs, view_page)
 
 
 @pytest.mark.cloud
 def test_v0_app_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_v0")) as (
+    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "v0")) as (
         _,
         view_page,
         fetch_logs,
@@ -87,15 +84,15 @@ def test_v0_app_example_cloud() -> None:
 
 
 @mock.patch(
-    "lightning_app.runners.cloud.load_app_from_file",
+    "lightning.app.runners.cloud.load_app_from_file",
     MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
 )
 def test_load_app_from_file_module_error():
-    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"))
+    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PATH_EXAMPLES, "v0", "app.py"))
     assert isinstance(empty_app, LightningApp)
     assert isinstance(empty_app.root, EmptyFlow)
 
 
 def test_load_app_from_file():
-    app = load_app_from_file(os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"))
+    app = load_app_from_file(os.path.join(_PATH_EXAMPLES, "v0", "app.py"))
     assert isinstance(app, LightningApp)

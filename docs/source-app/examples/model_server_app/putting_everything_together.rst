@@ -17,7 +17,7 @@ To run the app, simply open a terminal and execute this command:
 
 .. code-block:: bash
 
-    lightning run app docs/source-app/examples/model_deploy_app/app.py
+    lightning run app docs/source/examples/model_deploy_app/app.py
 
 Here is a gif of the UI.
 

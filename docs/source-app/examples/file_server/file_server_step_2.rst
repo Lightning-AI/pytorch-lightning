@@ -12,7 +12,7 @@ Implement the upload method
 
 In this method, we are creating a stream between the uploaded file and the uploaded file stored on the file server disk.
 
-Once the file is uploaded, we are putting the file into the :class:`~lightning_app.storage.drive.Drive`, so it becomes persistent and accessible to all Components.
+Once the file is uploaded, we are putting the file into the :class:`~lightning.app.storage.drive.Drive`, so it becomes persistent and accessible to all Components.
 
 .. literalinclude:: ./app.py
     :lines: 12, 51-99

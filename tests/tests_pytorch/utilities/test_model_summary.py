@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.model_summary.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.model_summary.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -251,7 +251,7 @@ def test_summary_with_scripted_modules(max_depth):
         ([], UNKNOWN_SIZE),
         ((1, 2, 3), [UNKNOWN_SIZE] * 3),
         (torch.tensor(0), UNKNOWN_SIZE),
-        (dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
+        ({"tensor": torch.zeros(1, 2, 3)}, UNKNOWN_SIZE),
         (torch.zeros(2, 3, 4), [2, 3, 4]),
         ([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
         ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
@@ -292,7 +292,7 @@ def test_empty_model_size(max_depth):
     """Test empty model size is zero."""
     model = EmptyModule()
     summary = summarize(model, max_depth=max_depth)
-    assert 0.0 == summary.model_size
+    assert summary.model_size == 0.0
 
 
 @pytest.mark.parametrize(

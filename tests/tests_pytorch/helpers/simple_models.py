@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@ import torch.nn.functional as F
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
 
-from pytorch_lightning import LightningModule
+from lightning.pytorch import LightningModule
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 
 
 class ClassificationModel(LightningModule):
@@ -29,9 +30,10 @@ class ClassificationModel(LightningModule):
             setattr(self, f"layer_{i}a", torch.nn.ReLU())
         setattr(self, "layer_end", nn.Linear(num_features, 3))
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
-        self.test_acc = Accuracy()
+        acc = Accuracy(task="multiclass", num_classes=num_classes) if _TM_GE_0_11 else Accuracy()
+        self.train_acc = acc.clone()
+        self.valid_acc = acc.clone()
+        self.test_acc = acc.clone()
 
     def forward(self, x):
         x = self.layer_0(x)

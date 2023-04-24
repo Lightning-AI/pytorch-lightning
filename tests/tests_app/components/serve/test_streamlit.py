@@ -2,8 +2,8 @@ import os
 import sys
 from unittest import mock
 
-import lightning_app
-from lightning_app.components.serve.streamlit import _build_model, _PatchedWork, ServeStreamlit
+import lightning.app
+from lightning.app.components.serve.streamlit import _build_model, _PatchedWork, ServeStreamlit
 
 
 class ServeStreamlitTest(ServeStreamlit):
@@ -30,7 +30,7 @@ class ServeStreamlitTest(ServeStreamlit):
         pass
 
 
-@mock.patch("lightning_app.components.serve.streamlit.subprocess")
+@mock.patch("lightning.app.components.serve.streamlit.subprocess")
 def test_streamlit_start_stop_server(subprocess_mock):
     """Test that `ServeStreamlit.run()` invokes subprocess.Popen with the right parameters."""
     work = ServeStreamlitTest()
@@ -49,7 +49,7 @@ def test_streamlit_start_stop_server(subprocess_mock):
         "-m",
         "streamlit",
         "run",
-        lightning_app.components.serve.streamlit.__file__,
+        lightning.app.components.serve.streamlit.__file__,
         "--server.address",
         "hostname",
         "--server.port",

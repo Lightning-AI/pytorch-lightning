@@ -5,13 +5,13 @@ from subprocess import Popen
 
 import psutil
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 
-from lightning_app.storage.path import _storage_root_dir
-from lightning_app.utilities.component import _set_context
-from lightning_app.utilities.packaging import cloud_compute
-from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
-from lightning_app.utilities.state import AppState
+from integrations_app.public import _PATH_EXAMPLES
+from lightning.app.storage.path import _storage_root_dir
+from lightning.app.utilities.component import _set_context
+from lightning.app.utilities.packaging import cloud_compute
+from lightning.app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
+from lightning.app.utilities.state import AppState
 
 GITHUB_APP_URLS = {
     "template_react_ui": "https://github.com/Lightning-AI/lightning-template-react.git",
@@ -57,7 +57,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture(scope="function", autouse=True)
 def cleanup():
-    from lightning_app.utilities.app_helpers import _LightningAppRef
+    from lightning.app.utilities.app_helpers import _LightningAppRef
 
     yield
     _LightningAppRef._app_instance = None
@@ -73,10 +73,10 @@ def cleanup():
 def clear_app_state_state_variables():
     """Resets global variables in order to prevent interference between tests."""
     yield
-    import lightning_app.utilities.state
+    import lightning.app.utilities.state
 
-    lightning_app.utilities.state._STATE = None
-    lightning_app.utilities.state._LAST_STATE = None
+    lightning.app.utilities.state._STATE = None
+    lightning.app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
     if hasattr(cloud_compute, "_CLOUD_COMPUTE_STORE"):
         cloud_compute._CLOUD_COMPUTE_STORE.clear()

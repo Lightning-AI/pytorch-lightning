@@ -22,8 +22,8 @@ from lightning_cloud.openapi import (
     V1Membership,
 )
 
-from lightning_app.cli import cmd_clusters
-from lightning_app.cli.cmd_clusters import AWSClusterManager
+from lightning.app.cli import cmd_clusters
+from lightning.app.cli.cmd_clusters import AWSClusterManager
 
 
 @pytest.fixture(params=[True, False])
@@ -61,7 +61,7 @@ class FakeLightningClient:
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_create_cluster")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_create_cluster")
 def test_create_cluster_api(api: mock.MagicMock, async_or_interrupt):
     cluster_manager = AWSClusterManager()
     cluster_manager.create(
@@ -93,7 +93,7 @@ def test_create_cluster_api(api: mock.MagicMock, async_or_interrupt):
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_list_clusters")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_list_clusters")
 def test_list_clusters(api: mock.MagicMock):
     cluster_manager = AWSClusterManager()
     cluster_manager.list()
@@ -107,10 +107,10 @@ def fixture_list_instances_empty():
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
-@mock.patch("lightning_app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_delete_cluster")
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
+@mock.patch("lightning.app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning.app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_delete_cluster")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_get_cluster")
 def test_delete_cluster_api(
     api_get: mock.MagicMock,
     api_delete: mock.MagicMock,
@@ -131,10 +131,10 @@ def test_delete_cluster_api(
 
 @mock.patch("click.confirm")
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
-@mock.patch("lightning_app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_delete_cluster")
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
+@mock.patch("lightning.app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning.app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_delete_cluster")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_get_cluster")
 def test_delete_cluster_with_stopped_apps(
     api_get: mock.MagicMock,
     api_delete: mock.MagicMock,
@@ -167,9 +167,9 @@ def test_delete_cluster_with_stopped_apps(
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
-@mock.patch("lightning_app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
-@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
+@mock.patch("lightning.app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning.app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
+@mock.patch("lightning.app.utilities.network.LightningClient.cluster_service_get_cluster")
 def test_delete_cluster_with_running_apps(
     api_get: mock.MagicMock,
     api_list_instances: mock.MagicMock,

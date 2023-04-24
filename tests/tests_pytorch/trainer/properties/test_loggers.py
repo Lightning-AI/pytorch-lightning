@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch import Trainer
+from lightning.pytorch.loggers import TensorBoardLogger
 from tests_pytorch.loggers.test_logger import CustomLogger
 
 
@@ -80,7 +80,6 @@ def test_trainer_loggers_setters():
 @pytest.mark.parametrize(
     "logger_value",
     [
-        None,
         False,
         [],
     ],

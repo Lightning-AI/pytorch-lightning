@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ and replace ``loss.backward()`` with ``self.backward(loss)``.
 
 Accelerate your training loop by setting the ``--accelerator``, ``--strategy``, ``--devices`` options directly from
 the command line. See ``lightning run model --help`` or learn more from the documentation:
-https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html.
+https://lightning.ai/docs/fabric.
 """
 
 import argparse
@@ -105,7 +105,7 @@ def run(hparams):
     scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
 
     # use torchmetrics instead of manually computing the accuracy
-    test_acc = Accuracy().to(fabric.device)
+    test_acc = Accuracy(task="multiclass", num_classes=10).to(fabric.device)
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):

@@ -1,12 +1,12 @@
 import os
 
 import pytest
-from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 
-import pytorch_lightning as pl
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.store import download_model, load_model, upload_model
 from lightning.store.save import __STORAGE_DIR_NAME
-from pytorch_lightning.demos.boring_classes import BoringModel
+from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 
 
 @pytest.mark.parametrize("pbar", [True, False])
@@ -22,7 +22,7 @@ def test_model(lit_home, pbar, model_name: str = "boring_model", version: str = 
 
 def test_only_weights(lit_home, model_name: str = "boring_model_only_weights", version: str = "latest"):
     model = BoringModel()
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
     upload_model(model_name, model=model, weights_only=True, api_key=_API_KEY, project_id=_PROJECT_ID)
 
@@ -36,7 +36,7 @@ def test_only_weights(lit_home, model_name: str = "boring_model_only_weights", v
 
 def test_checkpoint_path(lit_home, model_name: str = "boring_model_only_checkpoint_path", version: str = "latest"):
     model = BoringModel()
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
     trainer.save_checkpoint("tmp.ckpt")
     upload_model(model_name, checkpoint_path="tmp.ckpt", api_key=_API_KEY, project_id=_PROJECT_ID)

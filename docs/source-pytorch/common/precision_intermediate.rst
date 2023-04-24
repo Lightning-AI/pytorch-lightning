@@ -63,7 +63,7 @@ Since computation happens in FP16, there is a chance of numerical instability du
 
 .. note::
 
-    When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported half precision type on TPUs.
+    When using TPUs, setting ``precision='16-mixed'`` will enable bfloat16, the only supported half precision type on TPUs.
 
 .. testcode::
     :skipif: not torch.cuda.is_available()
@@ -76,8 +76,7 @@ BFloat16 Mixed Precision
 
 .. warning::
 
-    BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
-
+    BFloat16 may not provide significant speedups or memory improvements or offer better numerical stability.
     Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
 
 BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintains more of the "dynamic range" that FP32 offers. This means it is able to improve numerical stability than FP16 mixed precision. For more information, see `this TPU performance blogpost <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.
@@ -107,6 +106,7 @@ Lightning doesn't support it out of the box yet but you can still use it by conf
 .. code-block:: python
 
     import bitsandbytes as bnb
+
 
     # in your LightningModule, return the 8-bit optimizer
     def configure_optimizers(self):

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.profilers import XLAProfiler
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.profilers import XLAProfiler
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -27,7 +27,7 @@ from tests_pytorch.helpers.runif import RunIf
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_profiler_instance(tmpdir):
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", accelerator="tpu", devices=8)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", accelerator="tpu", devices="auto")
 
     assert isinstance(trainer.profiler, XLAProfiler)
     trainer.fit(model)

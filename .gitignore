@@ -7,6 +7,8 @@ lightning_logs/
 .vscode/
 
 # Documentations
+docs/venv*/
+docs/build*/
 docs/source-app/generated
 docs/source-app/*/generated
 docs/source-pytorch/api
@@ -16,6 +18,8 @@ docs/source-pytorch/*/generated
 docs/source-pytorch/notebooks
 docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
+
+docs/source-fabric/*/generated
 
 # C extensions
 *.so
@@ -49,9 +53,17 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning/app/
-src/lightning/fabric/
-src/lightning/pytorch/
+src/lightning_app/
+src/lightning_fabric/
+src/pytorch_lightning/
+!src/*/__about__.py
+!src/*/__main__.py
+!src/*/__setup__.py
+!src/*/__version__.py
+!src/*/MANIFEST.in
+!src/*/py.typed
+!src/*/README.md
+!src/*/*.info
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -166,6 +178,7 @@ cifar-10-batches-py
 tags
 .tags
 src/lightning_app/ui/*
+src/lightning/app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*
@@ -180,5 +193,15 @@ data/
 .lightning
 node_modules/
 
+# examples
+**/events.out.tfevents.*
+examples/**/*.png
+
 # instalation artifacts
 requirements/base.txt
+
+# CI
+.wheels/
+
+# sourced notebooks from tutorials
+_notebooks/.notebooks/

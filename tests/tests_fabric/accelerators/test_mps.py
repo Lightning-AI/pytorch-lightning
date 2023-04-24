@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,10 @@
 # limitations under the License.
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.accelerators.mps import MPSAccelerator
-from lightning_fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.utilities.exceptions import MisconfigurationException
+from tests_fabric.helpers.runif import RunIf
 
 _MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"  # torch.device(mps) only works on torch>=1.12
 

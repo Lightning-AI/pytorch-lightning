@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, DistributedSampler
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from lightning.pytorch import LightningModule, seed_everything, Trainer
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -60,12 +60,12 @@ def test_sync_batchnorm_parity(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
-        strategy="ddp",
+        strategy="ddp_find_unused_parameters_true",
         devices=2,
         max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
-        replace_sampler_ddp=False,
+        use_distributed_sampler=False,
         deterministic=True,
         benchmark=False,
         enable_progress_bar=False,

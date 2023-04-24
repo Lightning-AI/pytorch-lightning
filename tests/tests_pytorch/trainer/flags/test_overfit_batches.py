@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.trainer.states import RunningStage
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -74,8 +74,8 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
     with pytest.warns(UserWarning, match="requested to overfit but enabled train dataloader shuffling"):
         trainer.fit(model)
 
-    assert isinstance(trainer.train_dataloader.loaders.sampler, SequentialSampler)
-    assert isinstance(trainer.val_dataloaders[0].sampler, SequentialSampler)
+    assert isinstance(trainer.train_dataloader.sampler, SequentialSampler)
+    assert isinstance(trainer.val_dataloaders.sampler, SequentialSampler)
 
 
 @pytest.mark.parametrize(
@@ -91,18 +91,24 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     eval_loader = getattr(dm, f"{mode}_dataloader")()
     trainer = Trainer(overfit_batches=overfit_batches)
     model.trainer = trainer
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_datamodule(model, datamodule=dm)
 
-    loader_num_batches, dataloaders = trainer._data_connector._reset_eval_dataloader(stage, model=model)
     if stage == RunningStage.VALIDATING:
+        trainer.fit_loop.epoch_loop.val_loop.setup_data()
         assert (
-            loader_num_batches[0] == overfit_batches
+            trainer.num_val_batches[0] == overfit_batches
             if isinstance(overfit_batches, int)
             else len(dm.val_dataloader()) * overfit_batches
         )
-    else:
-        assert loader_num_batches[0] == len(eval_loader)
-        assert isinstance(dataloaders[0].sampler, SequentialSampler)
+    elif stage == RunningStage.TESTING:
+        trainer.test_loop.setup_data()
+        assert trainer.num_test_batches[0] == len(eval_loader)
+        assert isinstance(trainer.test_dataloaders.sampler, SequentialSampler)
+    elif stage == RunningStage.PREDICTING:
+        trainer.predict_loop.setup_data()
+        assert trainer.num_predict_batches[0] == len(eval_loader)
+        assert isinstance(trainer.predict_dataloaders.sampler, SequentialSampler)
 
 
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
@@ -135,8 +141,9 @@ def test_overfit_batch_limits_train(overfit_batches):
     # test train loader applies correct limits
     trainer = Trainer(overfit_batches=overfit_batches)
     model.trainer = trainer
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model=model)
-    trainer.reset_train_dataloader(model)
+    trainer.fit_loop.setup_data()
     expected_batches = (
         int(overfit_batches * full_train_samples) if isinstance(overfit_batches, float) else overfit_batches
     )
@@ -158,9 +165,9 @@ def test_distributed_sampler_with_overfit_batches():
         strategy="ddp_spawn",
     )
     model.trainer = trainer
-    trainer.strategy._lightning_module = model
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_dataloaders(model)
-    trainer.reset_train_dataloader()
-    train_sampler = trainer.train_dataloader.loaders.sampler
+    trainer.fit_loop.setup_data()
+    train_sampler = trainer.train_dataloader.sampler
     assert isinstance(train_sampler, DistributedSampler)
     assert train_sampler.shuffle is False

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 
-from lightning_fabric.plugins import TPUBf16Precision
+from lightning.fabric.plugins import TPUBf16Precision
 
 
 def test_teardown():

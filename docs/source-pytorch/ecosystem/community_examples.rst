@@ -4,7 +4,7 @@ Community Examples
 ==================
 
 
-- `Lightning Bolts: Deep Learning components for extending PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html>`_.
+- `Lightning Bolts: Deep Learning components for extending PyTorch Lightning <https://lightning.ai/docs/pytorch/latest/ecosystem/bolts.html>`_.
 - `Lightning Flash: Your PyTorch AI Factory - Flash enables you to easily configure and run complex AI recipes <https://github.com/Lightning-AI/lightning-flash>`_.
 - `Contextual Emotion Detection (DoubleDistilBert) <https://github.com/juliusberner/emotion_transformer>`_
 - `Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>`_
@@ -33,4 +33,4 @@ PyTorch Ecosystem Examples
 ==========================
 
 - `PyTorch Geometric: Deep learning on graphs and other irregular structures <https://github.com/rusty1s/pytorch_geometric/tree/master/examples/pytorch_lightning>`_.
-- `TorchIO, MONAI and Lightning for 3D medical image segmentation <https://colab.research.google.com/github/fepegar/torchio-notebooks/blob/main/notebooks/TorchIO_MONAI_PyTorch_Lightning.ipynb>`_.
+- `TorchIO, MONAI and Lightning for 3D medical image segmentation <https://colab.research.google.com/github/fepegar/torchio-notebooks/blob/main/notebooks/TorchIO_MONAI_lightning.pytorch.ipynb>`_.

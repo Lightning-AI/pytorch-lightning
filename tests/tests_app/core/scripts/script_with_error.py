@@ -1,4 +1,4 @@
-from lightning_app import LightningApp, LightningFlow
+from lightning.app import LightningApp, LightningFlow
 
 
 class EmptyFlow(LightningFlow):
