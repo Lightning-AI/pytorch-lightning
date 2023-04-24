@@ -157,7 +157,8 @@ def _tar_path_python(source_path: str, target_file: str, compression: bool = Fal
             tar.add(str(source_path), arcname=".")
         elif os.path.isfile(source_path):
             file_info = tarfile.TarInfo(os.path.basename(str(source_path)))
-            tar.addfile(file_info, open(source_path))
+            with open(source_path) as fo:
+                tar.addfile(file_info, fo)
 
 
 def _tar_path_subprocess(source_path: str, target_file: str, compression: bool = False) -> None:

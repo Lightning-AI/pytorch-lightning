@@ -405,11 +405,14 @@ class _LRCallback(Callback):
         smoothed_loss = self.avg_loss / (1 - self.beta ** (current_step + 1))
 
         # Check if we diverging
-        if self.early_stop_threshold is not None:
-            if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.should_stop = True  # stop signal
-                if self.progress_bar:
-                    self.progress_bar.close()
+        if (
+            self.early_stop_threshold is not None
+            and current_step > 1
+            and smoothed_loss > self.early_stop_threshold * self.best_loss
+        ):
+            trainer.should_stop = True  # stop signal
+            if self.progress_bar:
+                self.progress_bar.close()
 
         trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
