@@ -1,4 +1,3 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
-
-deepspeed >=0.6.0, <0.8.0  # TODO: Include 0.8.x after https://github.com/microsoft/DeepSpeed/commit/b587c7e85470329ac25df7c7c2521ff9b2833db7 gets released
+deepspeed >=0.6.3, !=0.7.0, <0.8.0; platform_system != "Windows"  # TODO: Include 0.8.x after https://github.com/microsoft/DeepSpeed/commit/b587c7e85470329ac25df7c7c2521ff9b2833db7 gets released
