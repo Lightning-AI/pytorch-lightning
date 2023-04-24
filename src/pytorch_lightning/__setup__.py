@@ -35,7 +35,7 @@ def _prepare_extras() -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all")
+    common_args = {"path_dir": _PATH_REQUIREMENTS, "unfreeze": "none" if _FREEZE_REQUIREMENTS else "all"}
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
     extras = {
         p.stem: assistant.load_requirements(file_name=p.name, **common_args)
@@ -56,16 +56,16 @@ def _setup_args() -> Dict[str, Any]:
     long_description = assistant.load_readme_description(
         _PACKAGE_ROOT, homepage=about.__homepage__, version=version.version
     )
-    return dict(
-        name="pytorch-lightning",
-        version=version.version,
-        description=about.__docs__,
-        author=about.__author__,
-        author_email=about.__author_email__,
-        url=about.__homepage__,
-        download_url="https://github.com/Lightning-AI/lightning",
-        license=about.__license__,
-        packages=find_packages(
+    return {
+        "name": "pytorch-lightning",
+        "version": version.version,
+        "description": about.__docs__,
+        "author": about.__author__,
+        "author_email": about.__author_email__,
+        "url": about.__homepage__,
+        "download_url": "https://github.com/Lightning-AI/lightning",
+        "license": about.__license__,
+        "packages": find_packages(
             where="src",
             include=[
                 "pytorch_lightning",
@@ -74,26 +74,26 @@ def _setup_args() -> Dict[str, Any]:
                 "lightning_fabric.*",
             ],
         ),
-        package_dir={"": "src"},
-        include_package_data=True,
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        zip_safe=False,
-        keywords=["deep learning", "pytorch", "AI"],
-        python_requires=">=3.8",
-        setup_requires=["wheel"],
+        "package_dir": {"": "src"},
+        "include_package_data": True,
+        "long_description": long_description,
+        "long_description_content_type": "text/markdown",
+        "zip_safe": False,
+        "keywords": ["deep learning", "pytorch", "AI"],
+        "python_requires": ">=3.8",
+        "setup_requires": ["wheel"],
         # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
         # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
-        install_requires=assistant.load_requirements(
+        "install_requires": assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
         ),
-        extras_require=_prepare_extras(),
-        project_urls={
+        "extras_require": _prepare_extras(),
+        "project_urls": {
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
-        classifiers=[
+        "classifiers": [
             "Environment :: Console",
             "Natural Language :: English",
             "Development Status :: 5 - Production/Stable",
@@ -111,4 +111,4 @@ def _setup_args() -> Dict[str, Any]:
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
         ],
-    )
+    }

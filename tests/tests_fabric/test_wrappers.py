@@ -16,6 +16,7 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
@@ -59,7 +60,6 @@ def test_fabric_module_attribute_lookup():
     fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
     assert fabric_module.attribute == 1
     assert fabric_module.layer is original_module.layer
-    assert fabric_module.method() == 2
     assert fabric_module.forward.__self__.__class__ == _FabricModule
 
     with pytest.raises(AttributeError):
@@ -94,6 +94,37 @@ def test_fabric_module_setattr():
     # Set an attribute that already exists on the fabric_module and check if it's updated on the original_module
     fabric_module.attribute = 100
     assert original_module.attribute == 100
+
+
+def test_fabric_module_method_lookup():
+    """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
+    from lightning.fabric.wrappers import warning_cache
+
+    class OriginalModule(torch.nn.Module):
+        def method(self):
+            return 100
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self, module):
+            super().__init__()
+            self.wrapped = module
+
+    # Regular case: forward_module == original_module -> no warnings
+    original_module = OriginalModule()
+    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    warning_cache.clear()
+    with no_warning_call(UserWarning):
+        assert fabric_module.method() == 100
+    assert not warning_cache
+
+    # Special case: original module wrapped by forward module: -> warn
+    original_module = OriginalModule()
+    wrapped_module = ModuleWrapper(original_module)
+    fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
+    warning_cache.clear()
+    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method\(\)` from outside the"):
+        assert fabric_module.method() == 100
+    warning_cache.clear()
 
 
 def test_fabric_module_state_dict_access():
@@ -383,3 +414,68 @@ def test_is_wrapped():
     assert not is_wrapped(dataloader)
     wrapped = _FabricDataLoader(dataloader)
     assert is_wrapped(wrapped)
+
+
+def test_step_method_redirection():
+    """Test that the FabricModule redirects the special `LightningModule.*_step` methods through the forward-
+    module."""
+
+    class DDP(torch.nn.Module):
+        def __init__(self, module):
+            super().__init__()
+            self.module = module
+
+        def forward(self, *args, **kwargs):
+            return self.module(*args, **kwargs)
+
+    class LightningModule(torch.nn.Module):
+        def forward(self):
+            return "forward_return"
+
+        def training_step(self, arg, kwarg=None):
+            assert self() == "forward_return"
+            assert arg == "train_arg"
+            assert kwarg == "train_kwarg"
+            return "training_step_return"
+
+        def validation_step(self, arg, kwarg=None):
+            assert self() == "forward_return"
+            assert arg == "val_arg"
+            assert kwarg == "val_kwarg"
+            return "validation_step_return"
+
+        def normal_method(self):
+            pass
+
+    original_module = LightningModule()
+    forward_module = DDP(original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, precision=Mock(), original_module=original_module)
+
+    # Regular methods on the original_module are visible and identical on the fabric_module ...
+    assert fabric_module.normal_method == original_module.normal_method
+
+    # ... but special methods like training_step get redirected to the forward_module
+    assert fabric_module.training_step.__name__ == "call_forward_module"
+    assert fabric_module.validation_step.__name__ == "call_forward_module"
+    assert fabric_module.test_step.__name__ == "call_forward_module"
+    assert fabric_module.predict_step.__name__ == "call_forward_module"
+
+    with pytest.raises(AttributeError, match="has no attribute 'predict_step'"):
+        # A special method that does not exist will raise its AttributeError when being called
+        fabric_module.predict_step()
+
+    # The forward method on the original module remains untouched
+    assert original_module.forward.__name__ == "forward"
+
+    # The special methods get redirected correctly to produce the expected output
+    assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
+    assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
+    assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
+
+    # The forward method remains untouched/unpatched after the special methods have been called
+    assert original_module.forward.__name__ == "forward"
+
+    # Special case: forward_module == original_module -> no special treatment applied
+    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    assert fabric_module.training_step == original_module.training_step
+    assert fabric_module.validation_step == original_module.validation_step

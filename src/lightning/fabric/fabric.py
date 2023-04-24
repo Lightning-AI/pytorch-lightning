@@ -205,7 +205,7 @@ class Fabric:
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        module.to(self.device if move_to_device else next(module.parameters()).device)
+        module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
 
@@ -217,7 +217,7 @@ class Fabric:
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return tuple((module, *optimizers))
+            return (module, *optimizers)
         return module
 
     def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
@@ -249,7 +249,7 @@ class Fabric:
 
         if not isinstance(self._strategy, FSDPStrategy):
             # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters()).device)
+            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
@@ -363,7 +363,7 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._precision.backward(tensor, module, *args, **kwargs)
+        self._strategy.backward(tensor, module, *args, **kwargs)
 
     def clip_gradients(
         self,
@@ -755,7 +755,7 @@ class Fabric:
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
-        initial_device = next(model.parameters()).device
+        initial_device = next(model.parameters(), torch.tensor(0)).device
         if any(param.device != initial_device for param in model.parameters()):
             rank_zero_warn(
                 "The model passed to `Fabric.setup()` has parameters on different devices. Since `move_to_device=True`,"
