@@ -24,7 +24,6 @@ from typing_extensions import TypedDict
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.distributed import _distributed_available
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -428,7 +427,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not should and _distributed_available() and result_metric.is_tensor:
+                if not should and result_metric.is_tensor and torch.distributed.is_initialized():
                     warning_cache.warn(
                         f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
                         " when logging on epoch level in distributed setting to accumulate the metric across"
