@@ -123,18 +123,12 @@ class GradientAccumulationScheduler(Callback):
         # local import to avoid circular import
         from lightning.pytorch.strategies import DeepSpeedStrategy
 
-        unsupported_accelerators = set()
         unsupported_strategies = [DeepSpeedStrategy]
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIStrategy
 
             unsupported_strategies.append(ColossalAIStrategy)
 
-        if isinstance(trainer.accelerator, unsupported_accelerators):
-            raise RuntimeError(
-                f"The `{type(trainer.accelerator).__name__}` does not support `accumulate_grad_batches` changing"
-                " between epochs."
-            )
         if isinstance(trainer.strategy, tuple(unsupported_strategies)):
             raise RuntimeError(
                 f"The `{type(trainer.strategy).__name__}` does not support `accumulate_grad_batches` changing"
