@@ -847,13 +847,15 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     verification_callback = VerificationCallback()
+    strategy = DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer)
+    strategy.config["zero_force_ds_cpu_optimizer"] = False
     trainer = Trainer(
         default_root_dir=tmpdir,
         # TODO: this test fails with max_epochs >1 as there are leftover batches per epoch.
         # there's divergence in how Lightning handles the last batch of the epoch with how DeepSpeed does it.
         # we step the optimizers on the last batch but DeepSpeed keeps the accumulation for the next epoch
         max_epochs=1,
-        strategy=DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer),
+        strategy=strategy,
         accelerator="gpu",
         devices=2,
         limit_train_batches=5,
