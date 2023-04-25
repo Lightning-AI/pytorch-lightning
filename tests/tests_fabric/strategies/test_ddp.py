@@ -56,9 +56,8 @@ def test_ddp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
-    ):
-        with strategy._backward_sync_control.no_backward_sync(Mock()):
-            pass
+    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+        pass
 
     module = MagicMock(spec=DistributedDataParallel)
     with strategy._backward_sync_control.no_backward_sync(module):
@@ -120,9 +119,6 @@ def test_ddp_module_state_dict():
 )
 @RunIf(standalone=True)
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
-    if clip_type == "norm":
-        clipping_test_cls = _MyFabricGradNorm
-    else:
-        clipping_test_cls = _MyFabricGradVal
+    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
     fabric.run()

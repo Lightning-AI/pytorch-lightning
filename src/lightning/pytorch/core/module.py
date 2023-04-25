@@ -204,9 +204,9 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        if not _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/95857
-            if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-                trainer = weakref.proxy(trainer)
+        # https://github.com/pytorch/pytorch/issues/95857
+        if not _TORCH_GREATER_EQUAL_2_0 and trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -607,11 +607,7 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
-        value = (
-            value.clone().detach().to(self.device)
-            if isinstance(value, Tensor)
-            else torch.tensor(value, device=self.device)
-        )
+        value = value.clone().detach() if isinstance(value, Tensor) else torch.tensor(value, device=self.device)
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."

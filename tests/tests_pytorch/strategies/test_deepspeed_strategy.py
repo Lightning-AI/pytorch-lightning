@@ -688,10 +688,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
-    if automatic_optimization:
-        model = ModelParallelClassificationModel()
-    else:
-        model = ManualModelParallelClassificationModel()
+    model = ModelParallelClassificationModel() if automatic_optimization else ManualModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
@@ -712,10 +709,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results == results
 
-    if automatic_optimization:
-        model = ModelParallelClassificationModel()
-    else:
-        model = ManualModelParallelClassificationModel()
+    model = ModelParallelClassificationModel() if automatic_optimization else ManualModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
@@ -847,13 +841,15 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     verification_callback = VerificationCallback()
+    strategy = DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer)
+    strategy.config["zero_force_ds_cpu_optimizer"] = False
     trainer = Trainer(
         default_root_dir=tmpdir,
         # TODO: this test fails with max_epochs >1 as there are leftover batches per epoch.
         # there's divergence in how Lightning handles the last batch of the epoch with how DeepSpeed does it.
         # we step the optimizers on the last batch but DeepSpeed keeps the accumulation for the next epoch
         max_epochs=1,
-        strategy=DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer),
+        strategy=strategy,
         accelerator="gpu",
         devices=2,
         limit_train_batches=5,
