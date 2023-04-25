@@ -48,7 +48,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -82,7 +82,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -116,7 +116,7 @@ def test_dict():
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -202,7 +202,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -236,7 +236,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -265,7 +265,7 @@ def test_list():
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
@@ -381,10 +381,7 @@ def test_structure_with_iterate_and_fault_tolerance(run_once_iterable, cache_cal
     app.root.restarting = True
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    if run_once_iterable:
-        expected_value = 1
-    else:
-        expected_value = 1 if cache_calls else 2
+    expected_value = 1 if run_once_iterable else 1 if cache_calls else 2
     assert app.root.iter[0 if use_list else "0"].counter == expected_value
     assert app.root.iter[1 if use_list else "1"].counter == expected_value
     assert app.root.iter[2 if use_list else "2"].counter == expected_value

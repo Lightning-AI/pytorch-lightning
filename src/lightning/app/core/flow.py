@@ -122,7 +122,7 @@ class LightningFlow:
         self._paths: dict = {}
         self._backend: Optional["Backend"] = None
         # tuple instead of a list so that it cannot be modified without using the setter
-        self._lightningignore: Tuple[str, ...] = tuple()
+        self._lightningignore: Tuple[str, ...] = ()
 
     @property
     def name(self) -> str:
@@ -629,7 +629,7 @@ class LightningFlow:
             </div>
             <br />
         """
-        return [dict(name=name, content=component) for (name, component) in self.flows.items()]
+        return [{"name": name, "content": component} for (name, component) in self.flows.items()]
 
     def experimental_iterate(self, iterable: Iterable, run_once: bool = True, user_key: str = "") -> Generator:
         """This method should always be used with any kind of iterable to ensure its fault tolerant.

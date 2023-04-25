@@ -178,7 +178,7 @@ class LightningWork:
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
         # tuple instead of a list so that it cannot be modified without using the setter
-        self._lightningignore: Tuple[str, ...] = tuple()
+        self._lightningignore: Tuple[str, ...] = ()
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()
@@ -383,7 +383,7 @@ class LightningWork:
     def num_successes(self) -> int:
         """Returns the number of successful runs."""
         # FIXME: Resolve this within  single process runtime.
-        run_keys = [key for key in self._calls.keys() if key.startswith("run:")]
+        run_keys = [key for key in self._calls if key.startswith("run:")]
         if not run_keys:
             return 0
 
@@ -491,10 +491,9 @@ class LightningWork:
         if isinstance(attr, ProxyWorkRun):
             return attr
 
-        if callable(attr) and getattr(attr, "__name__", "") == "run":
+        if callable(attr) and getattr(attr, "__name__", "") == "run" and getattr(self, "_cache_calls", False):
             # disable while building the class.
-            if getattr(self, "_cache_calls", False):
-                return self._wrap_run_for_caching(attr)
+            return self._wrap_run_for_caching(attr)
         return attr
 
     def __getattr__(self, item: str) -> Any:

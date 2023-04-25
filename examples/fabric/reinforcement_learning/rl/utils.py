@@ -47,6 +47,14 @@ def parse_args():
 
     # Distributed arguments
     parser.add_argument("--num-envs", type=int, default=2, help="the number of parallel game environments")
+    parser.add_argument(
+        "--share-data",
+        type=lambda x: bool(strtobool(x)),
+        default=False,
+        nargs="?",
+        const=True,
+        help="Toggle sharing data between processes",
+    )
     parser.add_argument("--per-rank-batch-size", type=int, default=64, help="the batch size for each rank")
 
     # Environment arguments
@@ -141,11 +149,10 @@ def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Op
     def thunk():
         env = gym.make(env_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        if capture_video:
-            if idx == 0 and run_name is not None:
-                env = gym.wrappers.RecordVideo(
-                    env, os.path.join(run_name, prefix + "_videos" if prefix else "videos"), disable_logger=True
-                )
+        if capture_video and idx == 0 and run_name is not None:
+            env = gym.wrappers.RecordVideo(
+                env, os.path.join(run_name, prefix + "_videos" if prefix else "videos"), disable_logger=True
+            )
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
         return env

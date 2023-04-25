@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from typing import Any, Dict, Generator, List, Literal, Optional, Union
 
@@ -31,7 +31,6 @@ from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessS
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
 from lightning.fabric.utilities.distributed import (
-    _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -95,7 +94,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -114,7 +113,12 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-        return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if torch.cuda.is_available() else nullcontext()
+        with ctx:
+            return DistributedDataParallel(
+                module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs
+            )
 
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
@@ -138,7 +142,7 @@ class DDPStrategy(ParallelStrategy):
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_available():
+        if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
@@ -146,11 +150,10 @@ class DDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_available():
+        if not torch.distributed.is_initialized():
             return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
@@ -193,9 +196,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
 
     def _determine_ddp_device_ids(self) -> Optional[List[int]]:
-        if self.root_device.type == "cpu":
-            return None
-        return [self.root_device.index]
+        return None if self.root_device.type == "cpu" else [self.root_device.index]
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
