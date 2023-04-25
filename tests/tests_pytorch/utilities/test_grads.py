@@ -71,7 +71,7 @@ def test_grad_norm(norm_type, expected):
     norms = grad_norm(model, norm_type)
 
     assert norms.keys() == expected.keys()
-    for k in norms.keys():
+    for k in norms:
         assert norms[k] == approx(expected[k])
 
 

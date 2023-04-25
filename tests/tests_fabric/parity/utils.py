@@ -36,9 +36,9 @@ def is_cuda_memory_close(memory_stats_torch, memory_stats_fabric):
     return memory_stats_torch["allocated_bytes.all.peak"] >= memory_stats_fabric["allocated_bytes.all.peak"]
 
 
-def make_deterministic():
+def make_deterministic(warn_only=False):
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    torch.use_deterministic_algorithms(True)
+    torch.use_deterministic_algorithms(True, warn_only=warn_only)
     torch.backends.cudnn.benchmark = False
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
