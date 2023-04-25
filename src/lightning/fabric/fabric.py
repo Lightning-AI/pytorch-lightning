@@ -585,9 +585,8 @@ class Fabric:
     def init_module(self) -> Generator:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
-        The parameters get created on the device and with the right data type right away without wasting memory
-        being allocated unnecessarily.
-
+        The parameters get created on the device and with the right data type right away without wasting memory being
+        allocated unnecessarily.
         """
         with self._strategy.module_init_context():
             yield
