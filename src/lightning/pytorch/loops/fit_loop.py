@@ -309,8 +309,6 @@ class _FitLoop(_Loop):
 
         self._data_fetcher = _select_data_fetcher(trainer)
 
-        self._results.to(device=trainer.lightning_module.device)
-
         call._call_callback_hooks(trainer, "on_train_start")
         call._call_lightning_module_hook(trainer, "on_train_start")
         call._call_strategy_hook(trainer, "on_train_start")
