@@ -93,7 +93,9 @@ RUN \
     done && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     pip install \
-      -r requirements/pytorch/devel.txt \
+      -r requirements/pytorch/base.txt \
+      -r requirements/pytorch/extra.txt \
+      -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
       --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
