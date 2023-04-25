@@ -95,7 +95,7 @@ RUN \
     pip install \
       -r requirements/pytorch/devel.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 RUN \
     # Show what we have
