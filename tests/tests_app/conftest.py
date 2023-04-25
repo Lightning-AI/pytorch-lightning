@@ -108,7 +108,7 @@ def caplog(caplog):
         for name in logging.root.manager.loggerDict
         if name.startswith("lightning.app")
     }
-    for name in propagation_dict.keys():
+    for name in propagation_dict:
         logging.getLogger(name).propagate = True
 
     yield caplog

@@ -162,10 +162,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
     import torch.distributed.run as torchrun
 
-    if args.strategy == "dp":
-        num_processes = 1
-    else:
-        num_processes = _get_num_processes(args.accelerator, args.devices)
+    num_processes = 1 if args.strategy == "dp" else _get_num_processes(args.accelerator, args.devices)
 
     torchrun_args = [
         f"--nproc_per_node={num_processes}",
