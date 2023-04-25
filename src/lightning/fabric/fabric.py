@@ -674,10 +674,7 @@ class Fabric:
                 f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
                 " that contains the code to launch in processes."
             )
-        function = partial(self._run_with_setup, function)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(function, self, *args, **kwargs)
-        return function(self, *args, **kwargs)
+        return self._run_impl(function, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
@@ -756,10 +753,9 @@ class Fabric:
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         run_method = partial(self._run_with_setup, run_method)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(run_method, *args, **kwargs)
-        else:
-            return run_method(*args, **kwargs)
+        if (launcher := self._strategy.launcher) is not None:
+            return launcher.launch(run_method, *args, **kwargs)
+        return run_method(*args, **kwargs)
 
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
