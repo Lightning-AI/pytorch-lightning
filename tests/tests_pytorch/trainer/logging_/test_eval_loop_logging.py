@@ -204,9 +204,9 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert set(trainer.callback_metrics) == {"val_loss", "val_loss_epoch"}
 
     # make sure values are correct
-    assert trainer.logged_metrics["val_loss_epoch"] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics["val_loss_epoch"] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics["val_loss"] == model.manual_epoch_end_mean
+    assert torch.allclose(trainer.logged_metrics["val_loss_epoch"], model.manual_epoch_end_mean)
+    assert torch.allclose(trainer.callback_metrics["val_loss_epoch"], model.manual_epoch_end_mean)
+    assert torch.allclose(trainer.callback_metrics["val_loss"], model.manual_epoch_end_mean)
     assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 

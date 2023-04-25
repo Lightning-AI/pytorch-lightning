@@ -74,8 +74,9 @@ jobs:
 
     - name: Install Lightning package & dependencies
       run: |
+        extra=$(python -c "print({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
         # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
-        pip install .[dev] -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        pip install ".[${extra}dev]" -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
