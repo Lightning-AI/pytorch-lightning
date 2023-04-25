@@ -8,7 +8,7 @@ pytest-random-order ==1.1.0
 pytest-rerunfailures <=11.1.2
 
 playwright ==1.30.0
-httpx <=0.24.0
+httpx ==0.24.0
 trio <0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
 psutil <=5.9.5
