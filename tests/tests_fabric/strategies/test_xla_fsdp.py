@@ -23,6 +23,8 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
+import lightning as L
+
 from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
@@ -210,3 +212,8 @@ def test_xla_fsdp_grad_clipping_value_error():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+@RunIf(tpu=True)
+def test_xla_automatic_strategy_selection():
+    fabric = L.Fabric(strategy='fsdp')
+    assert isinstance(fabric.strategy, XLAFSDPStrategy)

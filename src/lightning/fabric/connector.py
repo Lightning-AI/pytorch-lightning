@@ -56,8 +56,8 @@ from lightning.fabric.strategies import (
     SingleTPUStrategy,
     Strategy,
     STRATEGY_REGISTRY,
-    XLAFSDPStrategy,
     XLAStrategy,
+    XLAFSDPStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
@@ -155,6 +155,11 @@ class _Connector:
         # 4. Instantiate Strategy - Part 1
         if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
+
+        # Change fsdp to xla_fsdp if using TPU
+        if self._strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
+            self._strategy_flag = "xla_fsdp"
+
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
         self._init_strategy()
