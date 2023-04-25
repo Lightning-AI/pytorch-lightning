@@ -200,7 +200,9 @@ def _submit_data_to_url(url: str, tmpdir: str, progress_bar: bool) -> None:
 
     def upload_from_file(src, dst):
         file_size = os.path.getsize(src)
-        with open(src, "rb") as fd, tqdm(desc="Uploading", total=file_size, unit="B", unit_scale=True, unit_divisor=1024) as t:
+        with open(src, "rb") as fd, tqdm(
+            desc="Uploading", total=file_size, unit="B", unit_scale=True, unit_divisor=1024
+        ) as t:
             reader_wrapper = CallbackIOWrapper(t.update, fd, "read")
             response = requests.put(dst, data=reader_wrapper)
             response.raise_for_status()
