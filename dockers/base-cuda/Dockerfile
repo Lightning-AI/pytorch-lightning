@@ -76,8 +76,8 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements/pytorch/ ./requirements/pytorch/
-COPY ./.actions/assistant.py assistant.py
+COPY requirements/pytorch/ requirements/pytorch/
+COPY requirements/_integrations/ requirements/_integrations/
 
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
@@ -85,31 +85,17 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
-    pip install -q fire && \
     # Disable cache \
-    export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
-
-    rm assistant.py && \
-    # Install base requirements \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    pip install -r requirements/pytorch/base.txt \
-      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
-
-
-RUN \
-    # install rest of strategies
-    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt \
-      --no-cache-dir --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
-
-COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
-COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
+    pip install \
+      -r requirements/pytorch/devel.txt \
+      -r requirements/pytorch/strategies.txt \
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 RUN \
     # Show what we have
