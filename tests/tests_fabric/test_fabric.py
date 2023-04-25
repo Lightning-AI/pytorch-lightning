@@ -616,17 +616,17 @@ def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
     fabric = Fabric(devices=1)
     model = nn.Linear(3, 3)
-    with pytest.raises(TypeError, match="You need to set up the model first"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.raises(TypeError, match="You need to set up the model first"), fabric.no_backward_sync(model):
+        pass
 
     model = fabric.setup(model)
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.warns(
+        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
+    ), fabric.no_backward_sync(model):
+        pass
 
     # for single-device strategies, it becomes a no-op without warning
     fabric._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
@@ -648,11 +648,10 @@ def test_no_backward_sync():
 
 def test_launch_without_function():
     """Test the various ways `Fabric.launch()` can be called."""
-
     # default: no launcher, single process
     fabric = Fabric()
-    with mock.patch("lightning.fabric.fabric._do_nothing") as nothing:
-        fabric.launch()
+    nothing = Mock()
+    fabric.launch(nothing)
     nothing.assert_called()
 
     # with a launcher on the strategy
@@ -669,7 +668,7 @@ def test_launch_with_function():
         pass
 
     fabric = Fabric()
-    with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
+    with pytest.raises(TypeError, match="needs to take at least one argument"):
         fabric.launch(fn_without_args)
 
     def fn_with_one_arg(arg):
@@ -680,11 +679,23 @@ def test_launch_with_function():
     fabric.launch(fn_with_one_arg)
     assert fn_with_one_arg.called
 
+    # common user mistake
+    fabric = Fabric()
+    with pytest.raises(TypeError, match="needs to be a callable"):
+        fabric.launch(fn_with_one_arg(fabric))
+
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
     fabric = Fabric(devices=1)
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
+        fabric.launch()
+
+
+@pytest.mark.parametrize("strategy", ("xla", "ddp_spawn"))
+def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
+    fabric = Fabric(strategy=strategy)
+    with pytest.raises(TypeError, match=r"launch\(\)` needs to be called with a function"):
         fabric.launch()
 
 

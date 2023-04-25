@@ -272,10 +272,7 @@ class LearningRateMonitor(Callback):
         seen_optimizer_types: DefaultDict[Type[Optimizer], int] = defaultdict(int)
         for config in lr_scheduler_configs:
             sch = config.scheduler
-            if config.name is not None:
-                name = config.name
-            else:
-                name = "lr-" + sch.optimizer.__class__.__name__
+            name = config.name if config.name is not None else "lr-" + sch.optimizer.__class__.__name__
 
             updated_names = self._check_duplicates_and_update_name(
                 sch.optimizer, name, seen_optimizers, seen_optimizer_types, config
@@ -318,9 +315,7 @@ class LearningRateMonitor(Callback):
     ) -> List[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
-        if lr_scheduler_config is not None and lr_scheduler_config.name is None:
-            seen_optimizer_types[optimizer_cls] += 1
-        elif lr_scheduler_config is None:
+        if lr_scheduler_config is None or lr_scheduler_config.name is None:
             seen_optimizer_types[optimizer_cls] += 1
 
         # Multiple param groups for the same optimizer
