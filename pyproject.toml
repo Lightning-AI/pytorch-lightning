@@ -76,8 +76,13 @@ ignore-init-module-imports = true
 ".actions/*" = ["S101", "S310"]
 "setup.py" = ["S101"]
 "examples/**" = [
-    "S101",
-    "S113",  # todo: Probable use of requests call without timeout
+    "S101",  # Use of `assert` detected
+    "S113",  # todo: Probable use of requests call without
+    "S104",  # Possible binding to all interface
+    "F821",  # Undefined name `...`
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S501",  # Probable use of `requests` call with `verify=False` disabling SSL certificate checks
+    "S108",  # Probable insecure usage of temporary file or directory: "/tmp/data/MNIST"
 ]
 "src/**" = [
     "S101",  # todo: Use of `assert` detected

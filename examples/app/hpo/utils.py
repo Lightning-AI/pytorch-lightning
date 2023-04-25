@@ -22,7 +22,7 @@ def download_data(url: str, path: str = "data/", verbose: bool = False) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
     local_filename = os.path.join(path, url.split("/")[-1])
-    r = requests.get(url, stream=True, verify=False)  # noqa: S501
+    r = requests.get(url, stream=True, verify=False)
     file_size = int(r.headers["Content-Length"]) if "Content-Length" in r.headers else 0
     chunk_size = 1024
     num_bars = int(file_size / chunk_size)
