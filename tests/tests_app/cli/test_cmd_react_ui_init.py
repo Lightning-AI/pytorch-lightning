@@ -38,13 +38,15 @@ def test_copy_and_setup_react_ui(tmpdir):
     assert len(files) == 3, "should only be 3 objects: readme.md, example_app.py and ui dir"
 
     # make sure index.html has the vite app placeholder
-    index_content = open(dest_dir + "/ui/dist/index.html").read()
+    with open(dest_dir + "/ui/dist/index.html") as fo:
+        index_content = fo.read()
     assert "<title>Vite App</title>" in index_content
 
     # read the compiled js file
     js_file = [x for x in os.listdir(os.path.join(dest_dir, "ui", "dist", "assets")) if ".js" in x]
     js_file = os.path.join(dest_dir, f"ui/dist/assets/{js_file[0]}")
-    index_content = open(js_file).read()
+    with open(js_file) as fo:
+        index_content = fo.read()
 
     # if this is in the compiled file, the compilation worked and the app will work
     assert "Total number of prints in your terminal:" in index_content, "react app was not compiled properly"

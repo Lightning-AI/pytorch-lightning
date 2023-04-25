@@ -26,16 +26,16 @@ from tests_pytorch.strategies.test_ddp_strategy import UnusedParametersModel
 
 @RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor="train_acc")],
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "callbacks": [EarlyStopping(monitor="train_acc")],
+        "max_epochs": 50,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+    }
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -44,16 +44,16 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-        enable_progress_bar=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+        "enable_progress_bar": False,
+    }
 
     model = BoringModel()
 

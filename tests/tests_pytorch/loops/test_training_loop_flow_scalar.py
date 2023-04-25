@@ -151,7 +151,7 @@ def test_train_step_no_return(tmpdir):
             self.validation_step_called = True
 
     model = TestModel()
-    trainer_args = dict(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer_args = {"default_root_dir": tmpdir, "fast_dev_run": 2}
     trainer = Trainer(**trainer_args)
 
     Closure.warning_cache.clear()
@@ -217,10 +217,7 @@ def test_training_step_none_batches(tmpdir):
             self.counter = 0
 
         def collate_none_when_even(self, batch):
-            if self.counter % 2 == 0:
-                result = None
-            else:
-                result = default_collate(batch)
+            result = None if self.counter % 2 == 0 else default_collate(batch)
             self.counter += 1
             return result
 
