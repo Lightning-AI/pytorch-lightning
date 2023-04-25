@@ -33,7 +33,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy, XLAFSDPStrategy
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
@@ -824,7 +824,7 @@ class Fabric:
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)) and not isinstance(self._strategy, XLAFSDPStrategy):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."
