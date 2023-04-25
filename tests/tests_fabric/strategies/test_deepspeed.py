@@ -19,11 +19,11 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 from torch.optim import Optimizer
 
 from lightning.fabric.accelerators import CPUAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
+from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.fixture
@@ -321,3 +321,25 @@ def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_reque
         load_lr_scheduler_states=False,
         load_module_strict=True,
     )
+
+
+@RunIf(deepspeed=True)
+def test_errors_grad_clipping():
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        ),
+    ):
+        strategy.clip_gradients_norm(Mock(), Mock(), Mock(), Mock(), Mock())
+
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        ),
+    ):
+        strategy.clip_gradients_value(Mock(), Mock(), Mock())

@@ -6,8 +6,8 @@
     import torch
     from unittest import mock
     from typing import List
-    import pytorch_lightning.cli as pl_cli
-    from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
+    import lightning.pytorch.cli as pl_cli
+    from lightning.pytorch import LightningModule, LightningDataModule, Trainer, Callback
 
 
     class NoFitTrainer(Trainer):

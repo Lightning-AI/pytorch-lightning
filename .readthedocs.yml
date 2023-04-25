@@ -26,17 +26,7 @@ submodules:
 # Build documentation in the docs/ directory with Sphinx
 # reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
-  configuration: docs/source-pytorch/conf.py
   fail_on_warning: true
-
-# Build documentation with MkDocs
-#mkdocs:
-#  configuration: mkdocs.yml
-
-# Optionally build your docs in additional formats such as PDF and ePub
-formats:
-  - htmlzip
-  #- pdf
 
 build:
   os: ubuntu-20.04
@@ -46,11 +36,14 @@ build:
     - texlive-latex-extra
     - dvipng
     - texlive-pictures
-
-# Optionally set the version of Python and requirements required to build your docs
-python:
-  install:
-    - requirements: requirements/pytorch/docs.txt
-    #- requirements: requirements.txt
-    - method: pip
-      path: .
+  commands:
+    - printenv
+    - pwd ; ls -lh
+    - >
+      pip install -U pip ;
+      pip install -e . -q -r requirements/pytorch/docs.txt \
+          -f 'https://download.pytorch.org/whl/cpu/torch_stable.html' ;
+      pip list
+    # this need to be split so `sphinx-build` is picked from previous installation
+    - bash docs/rtfd-build.sh
+    - mkdir -p _readthedocs ; mv docs/build/html _readthedocs/html

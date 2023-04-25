@@ -27,7 +27,8 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from lightning.pytorch.strategies import DDPSpawnStrategy, Strategy
+from lightning.pytorch.strategies import Strategy
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -129,7 +130,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         assert trainer.accumulate_grad_batches == 2
         assert trainer.num_training_batches == 5
 
-        if not isinstance(trainer.strategy, DDPSpawnStrategy):
+        if not isinstance(trainer.strategy.launcher, _MultiProcessingLauncher):
             # check backward call count. the batchnorm update epoch should not backward
             assert trainer.strategy.backward.call_count == (
                 (trainer.max_epochs - self.first_epoch) * trainer.limit_train_batches
@@ -144,7 +145,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 def train_with_swa(
     tmpdir,
     batchnorm=True,
-    strategy=None,
+    strategy="auto",
     accelerator="cpu",
     devices=1,
     interval="epoch",
@@ -295,7 +296,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         "default_root_dir": tmpdir,
         "max_epochs": 5,
         "accelerator": "cpu",
-        "strategy": "ddp_spawn" if ddp else None,
+        "strategy": "ddp_spawn" if ddp else "auto",
         "devices": 2 if ddp else 1,
         "limit_train_batches": 5,
         "limit_val_batches": 0,
@@ -345,7 +346,7 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_on_epoch):
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3])
 def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_on_epoch):
-    # Reproduces the bug reported in https://github.com/PyTorchLightning/pytorch-lightning/issues/11665
+    # Reproduces the bug reported in https://github.com/Lightning-AI/lightning/issues/11665
     model = CustomSchedulerModel(crash_on_epoch=crash_on_epoch)
     resume_model = CustomSchedulerModel()
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)

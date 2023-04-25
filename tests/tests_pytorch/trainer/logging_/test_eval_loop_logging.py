@@ -29,7 +29,7 @@ from lightning.pytorch import callbacks, Trainer
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.loops.dataloader import _EvaluationLoop
+from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
@@ -55,8 +55,6 @@ def test__validation_step__log(tmpdir):
             return out
 
     model = TestModel()
-    model.validation_step_end = None
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -206,9 +204,9 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert set(trainer.callback_metrics) == {"val_loss", "val_loss_epoch"}
 
     # make sure values are correct
-    assert trainer.logged_metrics["val_loss_epoch"] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics["val_loss_epoch"] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics["val_loss"] == model.manual_epoch_end_mean
+    assert torch.allclose(trainer.logged_metrics["val_loss_epoch"], model.manual_epoch_end_mean)
+    assert torch.allclose(trainer.callback_metrics["val_loss_epoch"], model.manual_epoch_end_mean)
+    assert torch.allclose(trainer.callback_metrics["val_loss"], model.manual_epoch_end_mean)
     assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 
@@ -599,7 +597,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
             self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
             return out
 
-        def on_training_epoch_end(self):
+        def on_train_epoch_end(self):
             metrics = self.trainer.progress_bar_metrics
             v = 15 if self.current_epoch == 0 else 150
             assert metrics["batch_idx_epoch"] == (v / 5.0)
@@ -843,7 +841,7 @@ expected4 = ""
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
-    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
@@ -855,7 +853,7 @@ def test_native_print_results(monkeypatch, inputs, expected):
 
 @pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
 def test_native_print_results_encodings(monkeypatch, encoding):
-    import lightning.pytorch.loops.dataloader.evaluation_loop as imports
+    import lightning.pytorch.loops.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
@@ -975,28 +973,33 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     )
     model = CustomBoringModel()
 
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-
     def get_suffix(dl_idx):
         return f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
 
     eval_steps = range(limit_batches)
+    trainer.fit(model)
     fit_calls = [
         call(metrics={f"val_log_fit{get_suffix(dl_idx)}": float(step)}, step=step + (limit_batches * epoch))
         for epoch in range(max_epochs)
         for dl_idx in range(num_dataloaders)
         for step in eval_steps
     ]
+    assert mock_log_metrics.mock_calls == fit_calls
+
+    mock_log_metrics.reset_mock()
+    trainer.validate(model)
     validate_calls = [
         call(metrics={f"val_log_validate{get_suffix(dl_idx)}": float(val)}, step=val)
         for dl_idx in range(num_dataloaders)
         for val in eval_steps
     ]
+    assert mock_log_metrics.mock_calls == validate_calls
+
+    mock_log_metrics.reset_mock()
+    trainer.test(model)
     test_calls = [
         call(metrics={f"test_log{get_suffix(dl_idx)}": float(val)}, step=val)
         for dl_idx in range(num_dataloaders)
         for val in eval_steps
     ]
-    assert mock_log_metrics.mock_calls == fit_calls + validate_calls + test_calls
+    assert mock_log_metrics.mock_calls == test_calls

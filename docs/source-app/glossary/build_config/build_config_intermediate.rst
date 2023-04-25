@@ -10,13 +10,13 @@ Build Configuration (Intermediate)
 
 When a LightningWork machine starts up in the cloud, it uses a lightweight operating system with essential packages pre-installed.
 If you need to install additional system packages or run other configuration steps before your code executes on that machine, it is possible to do so by createing a custom
-:class:`~lightning_app.utilities.packaging.build_config.BuildConfig`:
+:class:`~lightning.app.utilities.packaging.build_config.BuildConfig`:
 
-1.  Subclass :class:`~lightning_app.utilities.packaging.build_config.BuildConfig`:
+1.  Subclass :class:`~lightning.app.utilities.packaging.build_config.BuildConfig`:
 
     .. code-block:: python
 
-        from lightning_app import BuildConfig
+        from lightning.app import BuildConfig
 
 
         @dataclass
@@ -29,7 +29,7 @@ If you need to install additional system packages or run other configuration ste
 
     .. code-block:: python
 
-        from lightning_app import LightningWork
+        from lightning.app import LightningWork
 
 
         class MyWork(LightningWork):

@@ -318,7 +318,7 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
 def _delta_to_app_state_delta(root: "LightningFlow", component: "Component", delta: Delta) -> Delta:
     delta_dict = delta.to_dict()
     for changed in delta_dict.values():
-        for delta_key in changed.copy().keys():
+        for delta_key in changed.copy():
             val = changed[delta_key]
 
             new_prefix = "root"
@@ -373,7 +373,7 @@ def _collect_child_process_pids(pid: int) -> List[int]:
     return [int(child) for child, parent in processes if parent == str(pid) and child != str(pid)]
 
 
-def _print_to_logger_info(*args, **kwargs):
+def _print_to_logger_info(*args: Any, **kwargs: Any):
     # TODO Find a better way to re-direct print to loggers.
     lightning.app._logger.info(" ".join([str(v) for v in args]))
 
@@ -427,18 +427,18 @@ class Logger:
         self.logger = logging.getLogger(name)
         self.level = None
 
-    def info(self, msg, *args, **kwargs):
+    def info(self, msg, *args: Any, **kwargs: Any):
         self.logger.info(msg, *args, **kwargs)
 
-    def warn(self, msg, *args, **kwargs):
+    def warn(self, msg, *args: Any, **kwargs: Any):
         self._set_level()
         self.logger.warn(msg, *args, **kwargs)
 
-    def debug(self, msg, *args, **kwargs):
+    def debug(self, msg, *args: Any, **kwargs: Any):
         self._set_level()
         self.logger.debug(msg, *args, **kwargs)
 
-    def error(self, msg, *args, **kwargs):
+    def error(self, msg, *args: Any, **kwargs: Any):
         self._set_level()
         self.logger.error(msg, *args, **kwargs)
 

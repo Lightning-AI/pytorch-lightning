@@ -65,7 +65,7 @@ def test_sync_batchnorm_parity(tmpdir):
         max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
-        replace_sampler_ddp=False,
+        use_distributed_sampler=False,
         deterministic=True,
         benchmark=False,
         enable_progress_bar=False,

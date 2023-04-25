@@ -15,7 +15,7 @@
 import os
 import re
 import shutil
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from lightning.app.utilities.app_helpers import Logger
 
@@ -63,9 +63,10 @@ def _make_resource(resource_dir: str, resource_name: str) -> Tuple[str, str]:
         if bad_file.split("/")[-1] in trouble_names:
             continue
         # find the words and replace
-        content = open(bad_file).read().replace("placeholdername", name_for_files)
-        with open(bad_file, "w") as file:
-            file.write(content)
+        with open(bad_file) as fo:
+            content = fo.read().replace("placeholdername", name_for_files)
+        with open(bad_file, "w") as fw:
+            fw.write(content)
 
     # rename files
     for file_name in files:
@@ -85,7 +86,7 @@ def _ls_recursively(dir_name: str) -> List[str]:
     return fname
 
 
-def _capture_valid_app_component_name(value: str = None, resource_type: str = "app") -> str:
+def _capture_valid_app_component_name(value: Optional[str] = None, resource_type: str = "app") -> str:
     prompt = f"""
     ⚡ Creating Lightning {resource_type} ⚡
     """

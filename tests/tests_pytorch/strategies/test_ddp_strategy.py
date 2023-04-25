@@ -14,6 +14,7 @@
 import os
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -24,6 +25,7 @@ from lightning.fabric.plugins.environments import ClusterEnvironment, LightningE
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
@@ -115,7 +117,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp():
+def test_ddp_configure_ddp(mps_count_0):
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
@@ -225,7 +227,13 @@ def test_configure_launcher_create_processes_externally():
     ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment())
     assert ddp_strategy.launcher is None
     ddp_strategy._configure_launcher()
-    assert ddp_strategy.launcher is None
+    assert isinstance(ddp_strategy.launcher, _SubprocessScriptLauncher)
+
+    ddp_strategy.launcher._call_children_scripts = Mock()
+    launch_fn = Mock()
+    ddp_strategy.launcher.launch(launch_fn)
+    ddp_strategy.launcher._call_children_scripts.assert_not_called()
+    launch_fn.assert_called_once()
 
 
 @mock.patch("torch.distributed.init_process_group")
@@ -236,10 +244,10 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     ddp_strategy = DDPStrategy(timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
+        accelerator="cpu",
         strategy=ddp_strategy,
     )
     # test wrap the model if fitting
-    trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
@@ -270,9 +278,27 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     # need to broadcast because tmpdir is different on each process
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
     for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
+
+
+class UnusedParametersModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.intermediate_layer = torch.nn.Linear(32, 32)
+
+    def training_step(self, batch, batch_idx):
+        with torch.no_grad():
+            batch = self.intermediate_layer(batch)
+        return super().training_step(batch, batch_idx)
+
+
+def test_ddp_strategy_find_unused_parameters_exception():
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
+    users."""
+    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
+    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
+        trainer.fit(UnusedParametersModel())

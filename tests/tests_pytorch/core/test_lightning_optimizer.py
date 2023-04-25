@@ -108,7 +108,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
             return [optimizer_1, optimizer_2], [lr_scheduler]
 
     model = TestModel()
-    model.training_step_end = None
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )

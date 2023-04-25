@@ -27,6 +27,10 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class RandomDictDataset(Dataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
@@ -41,6 +45,10 @@ class RandomDictDataset(Dataset):
 
 
 class RandomDataset(Dataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
@@ -53,6 +61,10 @@ class RandomDataset(Dataset):
 
 
 class RandomIterableDataset(IterableDataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, count: int):
         self.count = count
         self.size = size
@@ -63,6 +75,10 @@ class RandomIterableDataset(IterableDataset):
 
 
 class RandomIterableDatasetWithLen(IterableDataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, count: int):
         self.count = count
         self.size = size
@@ -76,28 +92,22 @@ class RandomIterableDatasetWithLen(IterableDataset):
 
 
 class BoringModel(LightningModule):
+    """Testing PL Module.
+
+    Use as follows:
+    - subclass
+    - modify the behavior for what you want
+
+    .. warning::  This is meant for testing/debugging and is experimental.
+
+    Example::
+
+        class TestModel(BoringModel):
+            def training_step(self, ...):
+                ...  # do your own thing
+    """
+
     def __init__(self) -> None:
-        """Testing PL Module.
-
-        Use as follows:
-        - subclass
-        - modify the behavior for what you want
-
-        Example::
-
-            class TestModel(BoringModel):
-                def training_step(self, ...):
-                    ...  # do your own thing
-
-                training_step_end = None  # disable hook
-
-        or
-
-        Example::
-
-            model = BoringModel()
-            model.training_step_end = None  # disable hook
-        """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
@@ -116,9 +126,6 @@ class BoringModel(LightningModule):
 
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
-
-    def training_step_end(self, training_step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return training_step_output
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"x": self.step(batch)}
@@ -145,6 +152,10 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.random_full = RandomDataset(32, 64 * 4)
@@ -176,6 +187,10 @@ class BoringDataModule(LightningDataModule):
 
 
 class ManualOptimBoringModel(BoringModel):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
@@ -191,6 +206,10 @@ class ManualOptimBoringModel(BoringModel):
 
 
 class DemoModel(LightningModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, out_dim: int = 10, learning_rate: float = 0.02):
         super().__init__()
         self.l1 = torch.nn.Linear(32, out_dim)
@@ -210,6 +229,10 @@ class DemoModel(LightningModule):
 
 
 class Net(nn.Module):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)

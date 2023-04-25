@@ -31,14 +31,12 @@ from torch import Tensor
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.utilities.logger import _scan_checkpoints
+from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_FULL_AVAILABLE = RequirementCache("mlflow>=1.0.0")
-_MLFLOW_SKINNY_AVAILABLE = RequirementCache("mlflow-skinny>=1.0.0")
-_MLFLOW_AVAILABLE = _MLFLOW_FULL_AVAILABLE or _MLFLOW_SKINNY_AVAILABLE
+_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
 if _MLFLOW_AVAILABLE:
     from mlflow.entities import Metric, Param
     from mlflow.tracking import context, MlflowClient
@@ -149,9 +147,7 @@ class MLFlowLogger(Logger):
         run_id: Optional[str] = None,
     ):
         if not _MLFLOW_AVAILABLE:
-            raise ModuleNotFoundError(
-                f"{_MLFLOW_FULL_AVAILABLE!s}. You can also try {_MLFLOW_SKINNY_AVAILABLE.requirement!r}"
-            )
+            raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
         super().__init__()
         if not tracking_uri:
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"

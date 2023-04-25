@@ -19,7 +19,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-import numpy as np
+import torch
 
 from lightning.pytorch.profilers.profiler import Profiler
 
@@ -79,16 +79,28 @@ class SimpleProfiler(Profiler):
 
     def _make_report_extended(self) -> Tuple[_TABLE_DATA_EXTENDED, float, float]:
         total_duration = time.monotonic() - self.start_time
-        report = [
-            (a, np.mean(d), len(d), np.sum(d), 100.0 * np.sum(d) / total_duration)
-            for a, d in self.recorded_durations.items()
-        ]
+        report = []
+
+        for a, d in self.recorded_durations.items():
+            d_tensor = torch.tensor(d)
+            len_d = len(d)
+            sum_d = torch.sum(d_tensor).item()
+            percentage_d = 100.0 * sum_d / total_duration
+
+            report.append((a, sum_d / len_d, len_d, sum_d, percentage_d))
+
         report.sort(key=lambda x: x[4], reverse=True)
         total_calls = sum(x[2] for x in report)
         return report, total_calls, total_duration
 
     def _make_report(self) -> _TABLE_DATA:
-        report = [(action, np.mean(d), np.sum(d)) for action, d in self.recorded_durations.items()]
+        report = []
+        for action, d in self.recorded_durations.items():
+            d_tensor = torch.tensor(d)
+            sum_d = torch.sum(d_tensor).item()
+
+            report.append((action, sum_d / len(d), sum_d))
+
         report.sort(key=lambda x: x[1], reverse=True)
         return report
 
@@ -102,7 +114,7 @@ class SimpleProfiler(Profiler):
         if self.extended:
 
             if len(self.recorded_durations) > 0:
-                max_key = max(len(k) for k in self.recorded_durations.keys())
+                max_key = max(len(k) for k in self.recorded_durations)
 
                 def log_row_extended(action: str, mean: str, num_calls: str, total: str, per: str) -> str:
                     row = f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|"

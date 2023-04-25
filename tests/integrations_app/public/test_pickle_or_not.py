@@ -2,8 +2,8 @@ import os
 
 import pytest
 from click.testing import CliRunner
-from integrations_app.public import _PATH_EXAMPLES
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.cli.lightning_cli import run_app
 
 
@@ -15,7 +15,7 @@ def test_pickle_or_not_example():
     result = runner.invoke(
         run_app,
         [
-            os.path.join(_PATH_EXAMPLES, "app_pickle_or_not", "app.py"),
+            os.path.join(_PATH_EXAMPLES, "pickle_or_not", "app.py"),
             "--blocking",
             "False",
             "--open-ui",

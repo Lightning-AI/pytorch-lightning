@@ -27,6 +27,8 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # ignoring Wills's wild changes
+        exclude: README.md
       - id: check-yaml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
@@ -65,6 +67,8 @@ repos:
     hooks:
       - id: yesqa
         name: Unused noqa
+        additional_dependencies:
+          - flake8-simplify
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
@@ -99,11 +103,12 @@ repos:
           (?x)^(
               src/lightning/app/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
-              src/lightning/pytorch/CHANGELOG.md
+              src/lightning/pytorch/CHANGELOG.md|
+              README.md
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.237'
+    rev: 'v0.0.261'
     hooks:
       - id: ruff
         args: ["--fix"]

@@ -45,20 +45,6 @@ class DeviceAssertCallback(Callback):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_submodules_multi_gpu_dp(tmpdir):
-    model = TopModule()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="dp",
-        accelerator="gpu",
-        devices=2,
-        callbacks=[DeviceAssertCallback()],
-        max_steps=1,
-    )
-    trainer.fit(model)
-
-
-@RunIf(min_cuda_gpus=2)
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(

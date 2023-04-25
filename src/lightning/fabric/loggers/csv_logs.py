@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Union
 from torch import Tensor
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
@@ -62,10 +63,12 @@ class CSVLogger(Logger):
         flush_logs_every_n_steps: int = 100,
     ):
         super().__init__()
-        self._root_dir = os.fspath(root_dir)
+        root_dir = os.fspath(root_dir)
+        self._root_dir = root_dir
         self._name = name or ""
         self._version = version
         self._prefix = prefix
+        self._fs = get_filesystem(root_dir)
         self._experiment: Optional[_ExperimentWriter] = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
@@ -150,14 +153,15 @@ class CSVLogger(Logger):
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
-        if not os.path.isdir(root_dir):
+        if not self._fs.isdir(root_dir):
             log.warning("Missing logger folder: %s", root_dir)
             return 0
 
         existing_versions = []
-        for d in os.listdir(root_dir):
-            if os.path.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
-                existing_versions.append(int(d.split("_")[1]))
+        for d in self._fs.listdir(root_dir, detail=False):
+            name = d[len(root_dir) + 1 :]  # removes parent directories
+            if self._fs.isdir(d) and name.startswith("version_"):
+                existing_versions.append(int(name.split("_")[1]))
 
         if len(existing_versions) == 0:
             return 0
@@ -178,13 +182,14 @@ class _ExperimentWriter:
     def __init__(self, log_dir: str) -> None:
         self.metrics: List[Dict[str, float]] = []
 
+        self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
-        if os.path.exists(self.log_dir) and os.listdir(self.log_dir):
+        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
             rank_zero_warn(
                 f"Experiment logs directory {self.log_dir} exists and is not empty."
                 " Previous log files in this directory will be deleted when the new ones are saved!"
             )
-        os.makedirs(self.log_dir, exist_ok=True)
+        self._fs.makedirs(self.log_dir, exist_ok=True)
 
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
@@ -213,7 +218,7 @@ class _ExperimentWriter:
             last_m.update(m)
         metrics_keys = list(last_m.keys())
 
-        with open(self.metrics_file_path, "w", newline="") as f:
+        with self._fs.open(self.metrics_file_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=metrics_keys)
             writer.writeheader()
             writer.writerows(self.metrics)

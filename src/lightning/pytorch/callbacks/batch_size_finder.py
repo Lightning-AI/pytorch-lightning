@@ -34,6 +34,8 @@ class BatchSizeFinder(Callback):
     ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial``
     times for each batch size until one of the batch sizes generates an OOM error.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Args:
         mode: search strategy to update the batch size:
 
@@ -128,13 +130,8 @@ class BatchSizeFinder(Callback):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if trainer._accelerator_connector.is_distributed:
             raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
-
-        running_stage = trainer.state.stage
-        assert running_stage is not None
-        dl_source = getattr(trainer._data_connector, f"_{running_stage.dataloader_prefix}_dataloader_source")
-
         # TODO: check if this can be enabled (#4040)
-        if not trainer._data_connector._train_dataloader_source.is_module():
+        if not trainer.fit_loop._data_source.is_module():
             raise MisconfigurationException(
                 "The Batch size finder cannot be used with dataloaders passed directly to `.fit()`. Please disable"
                 " the feature or incorporate the dataloader into your LightningModule or LightningDataModule."
@@ -142,10 +139,16 @@ class BatchSizeFinder(Callback):
 
         # TODO: Add support for multiple eval dataloader
         if stage != "fit":
-            dataloaders = dl_source.dataloader()
-            if isinstance(dataloaders, list) and len(dataloaders) > 1:
+            loop = trainer._active_loop
+            assert loop is not None
+            loop.setup_data()
+            combined_loader = loop._combined_loader
+            assert combined_loader is not None
+            if len(combined_loader.flattened) > 1:
+                stage = trainer.state.stage
+                assert stage is not None
                 raise MisconfigurationException(
-                    f"The Batch size finder cannot be used with multiple {running_stage.dataloader_prefix} dataloaders."
+                    f"The Batch size finder cannot be used with multiple {stage.dataloader_prefix} dataloaders."
                 )
 
         if not lightning_hasattr(pl_module, self._batch_arg_name):
@@ -167,7 +170,6 @@ class BatchSizeFinder(Callback):
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         new_size = _scale_batch_size(
             trainer,
-            pl_module,
             self._mode,
             self._steps_per_trial,
             self._init_val,

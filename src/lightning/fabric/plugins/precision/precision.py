@@ -14,17 +14,17 @@
 import contextlib
 from typing import Any, Dict, Generator, Literal, Optional, Union
 
-import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import _PARAMETERS, Optimizable
 
 _PRECISION_INPUT_INT = Literal[64, 32, 16]
-_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+_PRECISION_INPUT_STR_ALIAS_CONVERSION = {"64": "64-true", "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"}
+_PRECISION_INPUT_STR_ALIAS = Literal["64", "32", "16", "bf16"]
+_PRECISION_INPUT_STR = Literal["16-mixed", "bf16-mixed", "32-true", "64-true"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS]
 
 
 class Precision:
@@ -33,7 +33,7 @@ class Precision:
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
 
-    precision: _PRECISION_INPUT_STR = "32"
+    precision: _PRECISION_INPUT_STR = "32-true"
 
     def convert_module(self, module: Module) -> Module:
         """Convert the module parameters to the precision type this plugin handles.
@@ -47,12 +47,21 @@ class Precision:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
-    def convert_input(self, data: Tensor) -> Tensor:
+    def convert_input(self, data: Any) -> Any:
         """Convert model inputs (forward) to the floating point precision type of this plugin.
 
-        This is a no-op for tensors that are not of floating-point type or already have the desired type.
+        This is a no-op in the base precision plugin, since we assume the data already has the desired type (default is
+        torch.float32).
         """
-        return _convert_fp_tensor(data, torch.float32)
+        return data
+
+    def convert_output(self, data: Any) -> Any:
+        """Convert outputs to the floating point precision type expected after model's forward.
+
+        This is a no-op in the base precision plugin, since we assume the data already has the desired type (default is
+        torch.float32).
+        """
+        return data
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.
@@ -94,6 +103,9 @@ class Precision:
         """
         for group in optimizer.param_groups:
             yield from group["params"]
+
+    def unscale_gradients(self, optimizer: Optimizer) -> None:
+        return
 
     def state_dict(self) -> Dict[str, Any]:
         """Called when saving a checkpoint, implement to generate precision plugin state_dict.

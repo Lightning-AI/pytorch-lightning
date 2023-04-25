@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
+from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_11_0
 
 
 class SIGTERMException(SystemExit):
@@ -27,3 +30,13 @@ class SIGTERMException(SystemExit):
 
 class _TunerExitException(Exception):
     """Exception used to exit early while tuning."""
+
+
+def _augment_message(exception: BaseException, pattern: str, new_message: str) -> None:
+    if _PYTHON_GREATER_EQUAL_3_11_0 and any(re.match(pattern, message, re.DOTALL) for message in exception.args):
+        exception.add_note(new_message)
+    else:
+        # Remove this when Python 3.11 becomes the minimum supported version
+        exception.args = tuple(
+            new_message if re.match(pattern, message, re.DOTALL) else message for message in exception.args
+        )

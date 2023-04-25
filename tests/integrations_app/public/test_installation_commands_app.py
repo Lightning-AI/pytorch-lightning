@@ -1,8 +1,8 @@
 import os
 
 import pytest
-from integrations_app.public import _PATH_EXAMPLES
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.testing.testing import run_app_in_cloud
 
 
@@ -10,7 +10,7 @@ from lightning.app.testing.testing import run_app_in_cloud
 def test_installation_commands_app_example_cloud() -> None:
     # This is expected to pass, since the "setup" flag is passed
     with run_app_in_cloud(
-        os.path.join(_PATH_EXAMPLES, "app_installation_commands"),
+        os.path.join(_PATH_EXAMPLES, "installation_commands"),
         app_name="app.py",
         extra_args=["--setup"],
         debug=True,

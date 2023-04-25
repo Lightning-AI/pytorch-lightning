@@ -16,9 +16,9 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)

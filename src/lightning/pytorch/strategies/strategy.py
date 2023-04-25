@@ -20,7 +20,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
@@ -396,16 +395,7 @@ class Strategy(ABC):
             assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
+    def process_dataloader(self, dataloader: object) -> object:
         """Wraps the dataloader if necessary.
 
         Args:
@@ -481,7 +471,7 @@ class Strategy(ABC):
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
         if self.lightning_module is not None:
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            log.debug(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
         assert self.accelerator is not None
@@ -526,6 +516,10 @@ class Strategy(ABC):
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
+        pass
+
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the trainer execution is interrupted by an exception."""
         pass
 
     def __getstate__(self) -> Dict:

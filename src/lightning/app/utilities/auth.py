@@ -14,6 +14,29 @@
 
 from typing import Dict
 
+from lightning_cloud.openapi import ApiClient, AuthServiceApi, V1LoginRequest
+
+from lightning.app.utilities.login import Auth
+
+
+# This class joins common things for reading logs,
+# initialization and getting API token
+class _AuthTokenGetter:
+    def __init__(self, api_client: ApiClient):
+        self.api_client = api_client
+        self._auth = Auth()
+        self._auth.authenticate()
+        self._auth_service = AuthServiceApi(api_client)
+
+    def _get_api_token(self) -> str:
+        token_resp = self._auth_service.auth_service_login(
+            body=V1LoginRequest(
+                username=self._auth.username,
+                api_key=self._auth.api_key,
+            )
+        )
+        return token_resp.token
+
 
 def _credential_string_to_basic_auth_params(credential_string: str) -> Dict[str, str]:
     """Returns the name/ID pair for each given Secret name.

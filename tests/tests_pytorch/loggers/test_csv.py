@@ -14,6 +14,7 @@
 import os
 from unittest.mock import MagicMock
 
+import fsspec
 import pytest
 import torch
 
@@ -117,6 +118,16 @@ def test_fit_csv_logger(tmpdir):
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert os.path.isfile(metrics_file)
+
+
+def test_csv_logger_remotefs():
+    logger = CSVLogger(save_dir="memory://test_fit_csv_logger_remotefs")
+    fs, _ = fsspec.core.url_to_fs("memory://test_fit_csv_logger_remotefs")
+    exp = logger.experiment
+    exp.log_metrics({"loss": 0.1})
+    exp.save()
+    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    assert fs.isfile(metrics_file)
 
 
 def test_flush_n_steps(tmpdir):

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional
+import queue
+from typing import Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
 
@@ -22,7 +22,6 @@ from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
-    _FakeQueue,
     _GlobalStateSnapshot,
     _MultiProcessingLauncher,
     _WorkerOutput,
@@ -47,7 +46,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
+    def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
@@ -69,16 +68,29 @@ class _XLALauncher(_MultiProcessingLauncher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._start_method)
-        return_queue = context.SimpleQueue()
+        from torch_xla.experimental import pjrt
+
+        using_pjrt = pjrt.using_pjrt()
+        # pjrt requires that the queue is serializable
+        return_queue: Union[queue.Queue, mp.SimpleQueue] = (
+            mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
+        )
+
         import torch_xla.distributed.xla_multiprocessing as xmp
+
+        spawn_kwargs = {}
+        nprocs = self._strategy.num_processes
+        if not using_pjrt or nprocs == 1:
+            # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
+            # otherwise it will use all devices
+            spawn_kwargs["nprocs"] = nprocs
 
         process_context = xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
             join=False,  # we will join ourselves to get the process references
+            **spawn_kwargs,
         )
         # xla will not actually create processes if only 1 device
         if process_context is not None:
@@ -95,24 +107,35 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     def _wrapping_function(
         self,
+        # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
+        # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
         process_idx: int,
         trainer: Optional["pl.Trainer"],
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: SimpleQueue,
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._local_rank = process_idx
+        import torch_xla.core.xla_model as xm
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
+            # so when there's more than one (multithreading), objects need to be deep-copied
+            import copy
+
+            trainer, function, args, kwargs = copy.deepcopy((trainer, function, args, kwargs))
+
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if process_idx == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-        _rank_teardown(process_idx)
+        _rank_teardown(self._strategy.local_rank)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
@@ -136,8 +159,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         if self._strategy.local_rank != 0:
             return None
 
-        # adds the `callback_metrics` to the queue
-        extra = _FakeQueue()
-        self.add_to_queue(trainer, extra)
+        # add extra result data from trainer to send to main process
+        extra = self.get_extra_results(trainer)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)

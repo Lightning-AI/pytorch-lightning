@@ -21,7 +21,7 @@ from rich.spinner import Spinner
 from rich.text import Text
 
 from lightning.app.cli.commands import ls
-from lightning.app.cli.commands.connection import _LIGHTNING_CONNECTION_FOLDER
+from lightning.app.cli.connect.app import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
 
@@ -115,8 +115,5 @@ def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
 def _apply_double_dots(root: str, path: str) -> str:
     splits = [split for split in path.split("/") if split != ""]
     for split in splits:
-        if split == "..":
-            root = "/" + os.path.join(*root.split("/")[:-1])
-        else:
-            root = os.path.join(root, split)
+        root = "/" + os.path.join(*root.split("/")[:-1]) if split == ".." else os.path.join(root, split)
     return root

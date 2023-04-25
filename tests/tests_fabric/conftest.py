@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from typing import List
+from unittest.mock import Mock
 
 import pytest
 import torch.distributed
@@ -72,20 +74,42 @@ def teardown_process_group():
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
+    os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture
+def reset_cudnn_benchmark():
+    """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
+    yield
+    torch.backends.cudnn.benchmark = False
+
+
+def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.single_tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    mock_xla_available(monkeypatch)
+
+
+def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
+    mock_xla_available(monkeypatch, value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
 @pytest.fixture(scope="function")
-def tpu_available(xla_available, monkeypatch) -> None:
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+def tpu_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    mock_tpu_available(monkeypatch)
 
 
 @pytest.fixture
@@ -109,12 +133,12 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     conditions = []
     filtered, skipped = 0, 0
 
-    options = dict(
-        standalone="PL_RUN_STANDALONE_TESTS",
-        min_cuda_gpus="PL_RUN_CUDA_TESTS",
-        ipu="PL_RUN_IPU_TESTS",
-        tpu="PL_RUN_TPU_TESTS",
-    )
+    options = {
+        "standalone": "PL_RUN_STANDALONE_TESTS",
+        "min_cuda_gpus": "PL_RUN_CUDA_TESTS",
+        "ipu": "PL_RUN_IPU_TESTS",
+        "tpu": "PL_RUN_TPU_TESTS",
+    }
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
         # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.
         # by deleting the key, we avoid filtering out the CPU tests

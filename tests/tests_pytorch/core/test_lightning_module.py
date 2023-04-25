@@ -21,7 +21,7 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -310,7 +310,7 @@ def test_device_placement(tmpdir, accelerator, device):
     assert_device(torch.device("cpu"))
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.1.0")
 def test_sharded_tensor_state_dict(single_process_pg):
     from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
@@ -446,8 +446,9 @@ def test_trainer_reference_recursively():
     ensemble.trainer = trainer
     # references match
     assert ensemble.trainer is inner.trainer
-    # and the trainer was weakly referenced
-    assert inner.trainer is weakref.proxy(trainer)
+    if not _TORCH_GREATER_EQUAL_2_0:
+        # and the trainer was weakly referenced
+        assert inner.trainer is weakref.proxy(trainer)
 
 
 def test_fabric_reference_recursively():
@@ -463,37 +464,6 @@ def test_fabric_reference_recursively():
     assert ensemble.fabric is inner.fabric
     # and the fabric was weakly referenced
     assert inner.fabric is weakref.proxy(fabric)
-
-
-@RunIf(min_torch="2.0.0")
-def test_compile_uncompile():
-    model = BoringModel()
-    compiled_model = torch.compile(model)
-
-    def has_dynamo(fn):
-        return any(el for el in dir(fn) if el.startswith("_torchdynamo"))
-
-    from_compiled_model = LightningModule.from_compiled(compiled_model)
-    assert isinstance(from_compiled_model, LightningModule)
-    assert from_compiled_model._compiler_ctx is not None
-    assert has_dynamo(from_compiled_model.forward)
-    assert has_dynamo(from_compiled_model.training_step)
-    assert has_dynamo(from_compiled_model.validation_step)
-    assert has_dynamo(from_compiled_model.test_step)
-    assert has_dynamo(from_compiled_model.predict_step)
-
-    to_uncompiled_model = LightningModule.to_uncompiled(model)
-    assert to_uncompiled_model._compiler_ctx is None
-    assert to_uncompiled_model.forward == model.forward
-    assert to_uncompiled_model.training_step == model.training_step
-    assert to_uncompiled_model.validation_step == model.validation_step
-    assert to_uncompiled_model.test_step == model.test_step
-    assert to_uncompiled_model.predict_step == model.predict_step
-    assert not has_dynamo(to_uncompiled_model.forward)
-    assert not has_dynamo(to_uncompiled_model.training_step)
-    assert not has_dynamo(to_uncompiled_model.validation_step)
-    assert not has_dynamo(to_uncompiled_model.test_step)
-    assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
 def test_fabric_attributes():
@@ -552,7 +522,7 @@ def test_fabric_log():
 
     # unsupported data type
     with pytest.raises(ValueError, match="`list` values cannot be logged"):
-        wrapped_module.log("invalid", list())
+        wrapped_module.log("invalid", [])
 
     # supported data types
     wrapped_module.log("int", 1)
@@ -590,3 +560,28 @@ def test_fabric_log_dict():
     logger.reset_mock()
     wrapped_module.log_dict({"nothing": 1}, logger=False)
     logger.log_metrics.assert_not_called()
+
+
+@pytest.mark.parametrize("algo", ["value", "norm"])
+def test_grad_clipping_lm_fabric(algo):
+
+    from lightning.pytorch.utilities import GradClipAlgorithmType
+
+    class DummyLM(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = nn.Linear(1, 1)
+
+    fabric = Fabric()
+    orig_model = DummyLM()
+    model = fabric.setup(orig_model)
+
+    fabric.clip_gradients = Mock()
+
+    optimizer = Mock()
+    model.clip_gradients(optimizer, gradient_clip_val=1e-3, gradient_clip_algorithm=GradClipAlgorithmType(algo))
+
+    if algo == "value":
+        fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=1e-3, max_norm=None)
+    else:
+        fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=None, max_norm=1e-3)

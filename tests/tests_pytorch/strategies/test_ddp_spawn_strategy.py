@@ -20,7 +20,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.strategies import DDPSpawnStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
@@ -45,36 +45,34 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
-    """Tests if device is set correctly when training for DDPSpawnStrategy."""
-    trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
+    """Tests if device is set correctly when training for DDPStrategy."""
+    trainer = Trainer(devices=2, strategy="ddp_spawn", accelerator="cpu", fast_dev_run=True)
     # assert strategy attributes for device setting
-
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
-
     model = BoringModelDDPCPU()
-
     trainer.fit(model)
 
 
 class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
-    def add_to_queue(self, trainer, queue) -> None:
-        queue.put("test_val")
-        return super().add_to_queue(trainer, queue)
+    def get_extra_results(self, trainer):
+        extra = super().get_extra_results(trainer)
+        extra["test_val"] = "test_val"
+        return extra
 
-    def get_from_queue(self, trainer: Trainer, queue) -> None:
-        trainer.strategy.test_val = queue.get()
-        return super().get_from_queue(trainer, queue)
+    def update_main_process_results(self, trainer, extra) -> None:
+        trainer.strategy.test_val = extra.pop("test_val")
+        return super().update_main_process_results(trainer, extra)
 
 
-class TestDDPSpawnStrategy(DDPSpawnStrategy):
+class TestDDPSpawnStrategy(DDPStrategy):
     def _configure_launcher(self):
         self._launcher = CustomMultiProcessingLauncher(self)
 
 
 @RunIf(skip_windows=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
-    """Tests add_to_queue/get_from_queue with DDPSpawnStrategy."""
+    """Tests get_extra_results/update_main_process_results with DDPSpawnStrategy."""
 
     ddp_spawn_strategy = TestDDPSpawnStrategy()
     trainer = Trainer(
@@ -129,9 +127,10 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
-    ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
+    ddp_spawn_strategy = DDPStrategy(start_method="spawn", timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
+        accelerator="cpu",
         strategy=ddp_spawn_strategy,
     )
     # test wrap the model if fitting

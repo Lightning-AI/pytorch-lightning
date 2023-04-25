@@ -32,12 +32,11 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
-from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
-# check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed") and RequirementCache("packaging>=20.0")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -97,7 +96,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         billion parameter models. `For more information: https://pytorch-
         lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
-        .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
@@ -105,8 +104,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is compatible with either ``precision=16`` or
-                ``precision="bf16"``.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either ``precision="16-mixed"`` or
+                ``precision="bf16-mixed"``.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
@@ -297,7 +296,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def model(self) -> "deepspeed.DeepSpeedEngine":
@@ -350,9 +349,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == "16":
+            if self.precision.precision == "16-mixed":
                 dtype = torch.float16
-            elif self.precision.precision == "bf16":
+            elif self.precision.precision == "bf16-mixed":
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -480,11 +479,32 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
-        for k, v in client_state.copy().items():
+        for k in client_state.copy():
             if k not in state:
                 continue
             state[k] = client_state.pop(k)
         return client_state
+
+    def clip_gradients_norm(
+        self,
+        module: "deepspeed.DeepSpeedEngine",
+        optimizer: Optimizer,
+        max_norm: Union[float, int],
+        norm_type: Union[float, int] = 2.0,
+        error_if_nonfinite: bool = True,
+    ) -> torch.Tensor:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
+
+    def clip_gradients_value(
+        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
+    ) -> None:
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -549,7 +569,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
         reset_seed()
         self._set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
@@ -596,7 +615,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.config is None:
             raise ValueError(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
 
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
@@ -604,7 +623,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == "16":
+        if self.precision.precision == "16-mixed":
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -616,7 +635,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == "bf16":
+        elif "bf16" not in self.config and self.precision.precision == "bf16-mixed":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

@@ -40,7 +40,7 @@ In simple words, the Lightning Path augments :class:`pathlib.Path` object by tra
 When to use Path storage ?
 **************************
 
-In the cloud, every :class:`~lightning_app.core.work.LightningWork` runs in a separate machine with its own filesystem.
+In the cloud, every :class:`~lightning.app.core.work.LightningWork` runs in a separate machine with its own filesystem.
 This means files in one Work cannot be directly accessed in another like you would be able to when running the app locally.
 But with Lightning Storage, this is easy: Simply declare which files need to be shared and Lightning will take care of the rest.
 
@@ -60,8 +60,8 @@ Convert every filesystem path you want to share with other LightningWorks to by 
 
 .. code-block:: python
 
-    from lightning_app import LightningWork
-    from lightning_app.storage import Path
+    from lightning.app import LightningWork
+    from lightning.app.storage import Path
 
 
     class SourceWork(LightningWork):
@@ -97,7 +97,7 @@ For example, share a directory by passing it as an input to the run method of th
 .. code-block:: python
     :emphasize-lines: 12
 
-    from lightning_app import LightningFlow
+    from lightning.app import LightningFlow
 
 
     class Flow(LightningFlow):
@@ -189,7 +189,7 @@ Lightning makes sure all Paths that are part of the state get stored and made ac
 
 .. code-block:: python
 
-    from lightning_app.storage import Path
+    from lightning.app.storage import Path
 
 
     class Work(LightningWork):
@@ -215,8 +215,8 @@ First, define a component that saves a checkpoint:
 .. code:: python
     :emphasize-lines: 14-18
 
-    from lightning_app import LightningFlow, LightningWork
-    from lightning_app.storage import Path
+    from lightning.app import LightningFlow, LightningWork
+    from lightning.app.storage import Path
     import torch
     import os
 

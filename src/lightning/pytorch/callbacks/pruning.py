@@ -83,7 +83,7 @@ class ModelPruning(Callback):
         To learn more about pruning with PyTorch, please take a look at
         `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
 
-        .. warning:: ``ModelPruning`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. code-block:: python
 
@@ -410,7 +410,7 @@ class ModelPruning(Callback):
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
-        map_pruned_params = {k.replace("_mask", "") for k in state_dict.keys() if k.endswith("_mask")}
+        map_pruned_params = {k.replace("_mask", "") for k in state_dict if k.endswith("_mask")}
         for tensor_name in map_pruned_params:
             orig = state_dict.pop(tensor_name + "_orig")
             mask = state_dict.pop(tensor_name + "_mask")

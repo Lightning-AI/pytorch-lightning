@@ -9,7 +9,7 @@ lightning.app.core
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.core
+.. currentmodule:: lightning.app.core
 
 Core APIs
 ___________________

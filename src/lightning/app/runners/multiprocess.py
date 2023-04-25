@@ -66,10 +66,17 @@ class MultiProcessRuntime(Runtime):
 
             _set_frontend_context()
             for frontend in self.app.frontends.values():
-                host = "localhost"
                 port = find_free_network_port()
-                frontend.start_server(host="localhost", port=port)
-                frontend.flow._layout["target"] = f"http://{host}:{port}/{frontend.flow.name}"
+
+                server_host = "0.0.0.0" if in_cloudspace else "localhost"
+                server_target = (
+                    f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+                    if in_cloudspace
+                    else f"http://localhost:{port}"
+                )
+
+                frontend.start_server(host=server_host, port=port)
+                frontend.flow._layout["target"] = f"{server_target}/{frontend.flow.name}"
 
             _set_flow_context()
 
@@ -98,17 +105,17 @@ class MultiProcessRuntime(Runtime):
                     commands = _prepare_commands(self.app)
                     apis += _commands_to_api(commands, info=self.app.info)
 
-                kwargs = dict(
-                    apis=apis,
-                    host=self.host,
-                    port=self.port,
-                    api_response_queue=self.app.api_response_queue,
-                    api_publish_state_queue=self.app.api_publish_state_queue,
-                    api_delta_queue=self.app.api_delta_queue,
-                    has_started_queue=has_started_queue,
-                    spec=extract_metadata_from_app(self.app),
-                    root_path=self.app.root_path,
-                )
+                kwargs = {
+                    "apis": apis,
+                    "host": self.host,
+                    "port": self.port,
+                    "api_response_queue": self.app.api_response_queue,
+                    "api_publish_state_queue": self.app.api_publish_state_queue,
+                    "api_delta_queue": self.app.api_delta_queue,
+                    "has_started_queue": has_started_queue,
+                    "spec": extract_metadata_from_app(self.app),
+                    "root_path": self.app.root_path,
+                }
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)
                 self.processes["server"] = server_proc
                 server_proc.start()
@@ -117,7 +124,14 @@ class MultiProcessRuntime(Runtime):
                 # wait for server to be ready
                 has_started_queue.get()
 
-            if open_ui and not _is_headless(self.app) and constants.LIGHTNING_CLOUDSPACE_HOST is None:
+            if all(
+                [
+                    open_ui,
+                    "PYTEST_CURRENT_TEST" not in os.environ,
+                    not _is_headless(self.app),
+                    constants.LIGHTNING_CLOUDSPACE_HOST is None,
+                ]
+            ):
                 click.launch(self._get_app_url())
 
             # Connect the runtime to the application.

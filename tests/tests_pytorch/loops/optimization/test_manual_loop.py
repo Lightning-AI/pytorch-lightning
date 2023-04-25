@@ -41,5 +41,5 @@ def test_warning_invalid_trainstep_output(tmpdir):
     model = InvalidTrainStepModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
-    with pytest.raises(MisconfigurationException, match="return a Tensor, a dict with extras .* or have no return"):
+    with pytest.raises(MisconfigurationException, match="return a Tensor or have no return"):
         trainer.fit(model)

@@ -18,6 +18,7 @@ from torch.optim import LBFGS, Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -34,15 +35,18 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self,
+        precision: Literal["16-mixed", "bf16-mixed"],
+        device: str,
+        scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
-        self.precision = cast(Literal["16", "bf16"], str(precision))
-        if scaler is None and self.precision == "16":
+        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
-        if scaler is not None and self.precision == "bf16":
-            raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
+        if scaler is not None and self.precision == "bf16-mixed":
+            raise MisconfigurationException(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
         self.scaler = scaler
 
@@ -97,7 +101,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def autocast_context_manager(self) -> torch.autocast:
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16-mixed" else torch.half)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
@@ -113,13 +117,3 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-
-def _optimizer_handles_unscaling(optimizer: Any) -> bool:
-    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
-    :class:`torch.cuda.amp.GradScaler`.
-
-    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
-    value will only be reliable for built-in PyTorch optimizers.
-    """
-    return getattr(optimizer, "_step_supports_amp_scaling", False)

@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import arrow
 import click
@@ -34,16 +34,19 @@ from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
 from lightning.app.cli.commands.cd import cd
-from lightning.app.cli.commands.connection import (
-    _list_app_commands,
-    _retrieve_connection_to_an_app,
-    connect,
-    disconnect,
-)
 from lightning.app.cli.commands.cp import cp
 from lightning.app.cli.commands.logs import logs
 from lightning.app.cli.commands.ls import ls
 from lightning.app.cli.commands.pwd import pwd
+from lightning.app.cli.commands.rm import rm
+from lightning.app.cli.connect.app import (
+    _list_app_commands,
+    _retrieve_connection_to_an_app,
+    connect_app,
+    disconnect_app,
+)
+from lightning.app.cli.connect.data import connect_data
+from lightning.app.cli.connect.maverick import connect_maverick, disconnect_maverick
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -73,11 +76,21 @@ def main() -> None:
     # Check environment and versions if not in the cloud and not testing
     is_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
     if not is_testing and "LIGHTNING_APP_STATE_URL" not in os.environ:
-        # Enforce running in PATH Python
-        _check_environment_and_redirect()
+        try:
+            # Enforce running in PATH Python
+            _check_environment_and_redirect()
 
-        # Check for newer versions and upgrade
-        _check_version_and_upgrade()
+            # Check for newer versions and upgrade
+            _check_version_and_upgrade()
+        except SystemExit:
+            raise
+        except Exception:
+            # Note: We intentionally ignore all exceptions here so that we never panic if one of the above calls fails.
+            # If they fail for some reason users should still be able to continue with their command.
+            click.echo(
+                "We encountered an unexpected problem while checking your environment."
+                "We will still proceed with the command, however, there is a chance that errors may occur."
+            )
 
     # 1: Handle connection to a Lightning App.
     if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
@@ -121,12 +134,28 @@ def show() -> None:
     pass
 
 
-_main.command()(connect)
-_main.command()(disconnect)
-_main.command()(ls)
-_main.command()(cd)
-_main.command()(cp)
-_main.command()(pwd)
+@_main.group()
+def connect() -> None:
+    """Connect apps and data."""
+    pass
+
+
+@_main.group()
+def disconnect() -> None:
+    """Disconnect apps."""
+    pass
+
+
+connect.command("app")(connect_app)
+disconnect.command("app")(disconnect_app)
+connect.command("maverick", hidden=True)(connect_maverick)
+disconnect.command("maverick", hidden=True)(disconnect_maverick)
+connect.command("data", hidden=True)(connect_data)
+_main.command(hidden=True)(ls)
+_main.command(hidden=True)(cd)
+_main.command(hidden=True)(cp)
+_main.command(hidden=True)(pwd)
+_main.command(hidden=True)(rm)
 show.command()(logs)
 
 
@@ -240,7 +269,7 @@ def login() -> None:
 def logout() -> None:
     """Log out of your lightning.ai account."""
     Auth().clear()
-    disconnect(logout=True)
+    disconnect_app(logout=True)
 
 
 def _run_app(
@@ -283,9 +312,8 @@ def _run_app(
                 "Secrets can only be used for apps running in cloud. "
                 "Using the option --secret in local execution is not supported."
             )
-        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands:
-            if file is not None:
-                run_app_commands(str(file))
+        if (ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands) and file is not None:
+            run_app_commands(str(file))
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
@@ -445,7 +473,7 @@ _main.add_command(cmd_install.install)
     default=None,
     help="Specify which component to SSH into",
 )
-def ssh(app_name: str = None, component_name: str = None) -> None:
+def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) -> None:
     """SSH into a Lightning App."""
 
     app_manager = _AppManager()

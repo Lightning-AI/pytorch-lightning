@@ -6,9 +6,7 @@
 Installation
 ############
 
-.. warning:: pip install pytorch-lightning has been deprecated and will stop being updated June 2023. Use pip install lightning instead.
 
-----
 
 *****************************
 Apple Silicon (M1/M2/M3) Macs
@@ -47,14 +45,14 @@ Lightning can be installed with `conda <https://anaconda.org/conda-forge/pytorch
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 You can also use `Conda Environments <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_:
 
 .. code-block:: bash
 
     conda activate my_env
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 ----
 
@@ -84,7 +82,7 @@ If you are deploying models built with Lightning in production and require few d
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 ^^^^^^^^^^^^^^^^^^^^^^
 Custom PyTorch Version

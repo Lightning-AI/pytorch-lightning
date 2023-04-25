@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.accelerators.tpu import TPUAccelerator
+from tests_fabric.helpers.runif import RunIf
 
 
+@RunIf(tpu=True)
 def test_auto_device_count():
-    assert TPUAccelerator.auto_device_count() == 8
+    # this depends on the chip used, e.g. with v4-8 we expect 4
+    # there's no easy way to test it without copying the `auto_device_count` so just check that its greater than 1
+    assert TPUAccelerator.auto_device_count() > 1
 
 
 @RunIf(tpu=True)
@@ -26,15 +30,16 @@ def test_availability():
     assert TPUAccelerator.is_available()
 
 
-@pytest.mark.parametrize(
-    "devices,expected",
-    [
-        (0, []),  # TODO(fabric): This should raise an exception
-        (1, [0]),
-        (2, [0, 1]),
-        (3, [0, 1, 2]),
-        ("anything-else", "anything-else"),  # TODO(fabric): This should raise an exception
-    ],
-)
-def test_get_parallel_devices(devices, expected):
-    assert TPUAccelerator.get_parallel_devices(devices) == expected
+@pytest.mark.parametrize("devices", (1, 8))
+def test_get_parallel_devices(devices, tpu_available):
+    expected = TPUAccelerator.get_parallel_devices(devices)
+    assert len(expected) == devices
+
+
+def test_get_parallel_devices_raises(tpu_available):
+    with pytest.raises(ValueError, match="devices` can only be"):
+        TPUAccelerator.get_parallel_devices(0)
+    with pytest.raises(ValueError, match="devices` can only be"):
+        TPUAccelerator.get_parallel_devices(5)
+    with pytest.raises(ValueError, match="Could not parse.*anything-else'"):
+        TPUAccelerator.get_parallel_devices("anything-else")

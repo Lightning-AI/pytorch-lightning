@@ -121,7 +121,7 @@ class ProxyWorkRun:
     def __post_init__(self):
         self.work_state = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         self.has_sent = False
 
         self._validate_call_args(args, kwargs)
@@ -135,22 +135,16 @@ class ProxyWorkRun:
 
         data = {"args": args, "kwargs": kwargs, "call_hash": call_hash}
 
-        # The if/else conditions are left un-compressed to simplify readability
-        # for the readers.
-        if self.work.cache_calls:
-            if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
-            else:
-                if returned:
-                    return
+        # The if/else conditions are left un-compressed to simplify readability for the readers.
+        if not entered or stopped_on_sigterm:
+            _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         else:
-            if not entered or stopped_on_sigterm:
+            if self.work.cache_calls and returned:
+                return
+            elif returned or stopped_on_sigterm:
+                # the previous task has completed and we can re-queue the next one.
+                # overriding the return value for next loop iteration.
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
-            else:
-                if returned or stopped_on_sigterm:
-                    # the previous task has completed and we can re-queue the next one.
-                    # overriding the return value for next loop iteration.
-                    _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
@@ -573,9 +567,8 @@ class WorkRunner:
             return
 
         # 13. Destroy the state observer.
-        if self.run_executor_cls.enable_start_observer:
-            if self.state_observer.started:
-                self.state_observer.join(0)
+        if self.run_executor_cls.enable_start_observer and self.state_observer.started:
+            self.state_observer.join(0)
         self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down

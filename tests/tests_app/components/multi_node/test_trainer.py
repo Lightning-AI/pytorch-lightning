@@ -93,4 +93,4 @@ def test_trainer_run_executor_arguments_choices(
 @pytest.mark.skipif(not module_available("lightning"), reason="lightning not available")
 def test_trainer_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPSpawnStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPStrategy(start_method="spawn"))

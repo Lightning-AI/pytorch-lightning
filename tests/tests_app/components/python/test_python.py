@@ -2,7 +2,6 @@ import os
 import tarfile
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning.app.components.python import PopenPythonScript, TracerPythonScript
 from lightning.app.components.python.tracer import Code
@@ -11,6 +10,7 @@ from lightning.app.testing.helpers import _RunIf
 from lightning.app.testing.testing import run_work_isolated
 from lightning.app.utilities.component import _set_work_context
 from lightning.app.utilities.enum import CacheCallsKeys
+from tests_app import _PROJECT_ROOT
 
 COMPONENTS_SCRIPTS_FOLDER = str(os.path.join(_PROJECT_ROOT, "tests/tests_app/components/python/scripts/"))
 

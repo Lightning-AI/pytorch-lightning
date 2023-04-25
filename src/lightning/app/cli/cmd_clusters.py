@@ -17,7 +17,7 @@ import re
 import time
 from datetime import datetime
 from textwrap import dedent
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 import click
 import lightning_cloud
@@ -64,7 +64,7 @@ class ClusterState(StrEnum):
     @classmethod
     def from_api(cls, status: V1ClusterState) -> "ClusterState":
         parsed = str(status).lower().split("_", maxsplit=2)[-1]
-        return cls.from_str(parsed)
+        return cls(super().from_str(parsed))
 
 
 class ClusterList(Formatable):
@@ -118,10 +118,10 @@ class AWSClusterManager:
     def create(
         self,
         cost_savings: bool = False,
-        cluster_id: str = None,
-        role_arn: str = None,
+        cluster_id: Optional[str] = None,
+        role_arn: Optional[str] = None,
         region: str = "us-east-1",
-        external_id: str = None,
+        external_id: Optional[str] = None,
         edit_before_creation: bool = False,
         do_async: bool = True,
     ) -> None:
@@ -374,10 +374,9 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
 
     duration = _format_elapsed_seconds(elapsed)
 
-    if current_state == V1ClusterState.FAILED:
-        if not _is_retryable_error(current_reason):
-            return dedent(
-                f"""\
+    if current_state == V1ClusterState.FAILED and not _is_retryable_error(current_reason):
+        return dedent(
+            f"""\
                 The requested cluster operation for cluster {cluster_id} has errors:
 
                 {current_reason}
@@ -392,7 +391,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
 
                 Contact support@lightning.ai for additional help
                 """
-            )
+        )
 
     if desired_state == current_state == V1ClusterState.RUNNING:
         return dedent(

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to model weights summary."""
+
 import contextlib
 import logging
+import math
 from collections import OrderedDict
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -120,9 +121,7 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(
-            cast(int, np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
-        )
+        return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary:
@@ -238,7 +237,6 @@ class ModelSummary:
 
     @property
     def model_size(self) -> float:
-        # todo: seems it does not work with quantized models - it returns 0.0
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
@@ -393,8 +391,8 @@ def get_human_readable_count(number: int) -> str:
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS
-    num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
-    num_groups = int(np.ceil(num_digits / 3))
+    num_digits = int(math.floor(math.log10(number)) + 1 if number > 0 else 1)
+    num_groups = int(math.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
     number = number * (10**shift)

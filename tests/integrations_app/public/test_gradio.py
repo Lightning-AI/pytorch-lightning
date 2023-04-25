@@ -13,7 +13,7 @@ def test_serve_gradio(gradio_mock):
 
         inputs = gradio_mock.inputs.Image(type="pil")
         outputs = gradio_mock.outputs.Image(type="pil")
-        examples = [["./examples/app_components/serve/gradio/beyonce.png"]]
+        examples = [["./examples/app/components/serve/gradio/beyonce.png"]]
 
         def build_model(self):
             super().build_model()
@@ -28,5 +28,5 @@ def test_serve_gradio(gradio_mock):
     assert comp.model == "model"
     assert comp.predict() == "prediction"
     gradio_mock.Interface.assert_called_once_with(
-        fn=ANY, inputs=ANY, outputs=ANY, examples=ANY, title=None, description=None
+        fn=ANY, inputs=ANY, outputs=ANY, examples=ANY, title=None, description=None, theme=ANY
     )

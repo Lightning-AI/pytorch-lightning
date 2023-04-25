@@ -13,12 +13,11 @@
 # limitations under the License.
 import logging
 import os
+import queue
 import tempfile
-from collections import UserList
 from contextlib import suppress
 from dataclasses import dataclass
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional, Union
 
 import numpy as np
 import torch
@@ -64,7 +63,7 @@ class _MultiProcessingLauncher(_Launcher):
     """
 
     def __init__(
-        self, strategy: "pl.strategies.DDPSpawnStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+        self, strategy: "pl.strategies.ParallelStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
     ) -> None:
         self._strategy = strategy
         self._start_method = start_method
@@ -139,12 +138,12 @@ class _MultiProcessingLauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: SimpleQueue,
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:
             global_states.restore()
-        self._strategy._local_rank = process_idx
+        os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
         if trainer is not None:
@@ -170,7 +169,7 @@ class _MultiProcessingLauncher(_Launcher):
         trainer.state = worker_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        self.get_from_queue(trainer, worker_output.extra)
+        self.update_main_process_results(trainer, worker_output.extra)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
@@ -194,9 +193,8 @@ class _MultiProcessingLauncher(_Launcher):
             weights_path = os.path.join(tempfile.mkdtemp(), ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
-        # adds the `callback_metrics` to the queue
-        extra = _FakeQueue()
-        self.add_to_queue(trainer, extra)
+        # add extra result data from trainer to send to main process
+        extra = self.get_extra_results(trainer)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
@@ -207,32 +205,36 @@ class _MultiProcessingLauncher(_Launcher):
             if _is_deferred(self._strategy.lightning_module):
                 raise NotImplementedError(
                     f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                    f" initialization."
+                    f" initialization when `start_method='spawn'`."
                 )
 
-    def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
+    def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
+        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.
+        To avoid issues with memory sharing, we cast the data to numpy.
 
         Args:
             trainer: reference to the Trainer.
-            queue: the instance of the queue to append the data.
+
+        Returns:
+            A dictionary with items to send back to the main process where :meth:`update_main_process_results` will
+            process this output.
         """
         callback_metrics: dict = apply_to_collection(
             trainer.callback_metrics, Tensor, lambda x: x.cpu().numpy()
         )  # send as numpy to avoid issues with memory sharing
-        queue.put(callback_metrics)
+        return {"callback_metrics": callback_metrics}
 
-    def get_from_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
+    def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
         Args:
             trainer: reference to the Trainer.
-            queue: the instance of the queue from where to get the data.
+            extra: A dictionary with trainer state that was sent from the worker process and needs to be restored
+                on the current trainer.
         """
-        # NOTE: `add_to_queue` needs to be called before
-        callback_metrics: dict = queue.get()
+        # NOTE: `get_extra_results` needs to be called before
+        callback_metrics = extra["callback_metrics"]
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
     def kill(self, signum: _SIGNUM) -> None:
@@ -248,25 +250,12 @@ class _MultiProcessingLauncher(_Launcher):
         return state
 
 
-class _FakeQueue(UserList):
-    """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
-
-    def get(self) -> Any:
-        return self.pop(0)
-
-    def put(self, item: Any) -> None:
-        self.append(item)
-
-    def empty(self) -> bool:
-        return len(self) == 0
-
-
 class _WorkerOutput(NamedTuple):
     best_model_path: Optional[_PATH]
     weights_path: Optional[_PATH]
     trainer_state: TrainerState
     trainer_results: Any
-    extra: _FakeQueue
+    extra: Dict[str, Any]
 
 
 @dataclass

@@ -80,7 +80,6 @@ def test_trainer_loggers_setters():
 @pytest.mark.parametrize(
     "logger_value",
     [
-        None,
         False,
         [],
     ],

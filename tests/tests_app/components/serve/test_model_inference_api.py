@@ -4,11 +4,12 @@ import os
 from unittest.mock import ANY, MagicMock
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning.app.components.serve import serve
+from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.imports import _is_numpy_available, _is_torch_available
 from lightning.app.utilities.network import _configure_session, find_free_network_port
+from tests_app import _PROJECT_ROOT
 
 if _is_numpy_available():
     import numpy as np
@@ -33,6 +34,9 @@ def target_fn(port, workers):
 
 @pytest.mark.skipif(not (_is_torch_available() and _is_numpy_available()), reason="Missing torch and numpy")
 @pytest.mark.parametrize("workers", [0])
+# avoid the error: Failed to establish a new connection: [WinError 10061] No connection could be made because the
+# target machine actively refused it
+@_RunIf(skip_windows=True)
 def test_model_inference_api(workers):
 
     port = find_free_network_port()

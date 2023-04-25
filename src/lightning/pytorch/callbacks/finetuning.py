@@ -40,6 +40,8 @@ class BaseFinetuning(Callback):
     r"""
     This class implements the base logic for writing your own Finetuning Callback.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Override ``freeze_before_training`` and ``finetune_function`` methods with your own logic.
 
     ``freeze_before_training``: This method is called before ``configure_optimizers``
@@ -90,7 +92,7 @@ class BaseFinetuning(Callback):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._restarting = True
-        if "internal_optimizer_metadata" in state_dict:
+        if "internal_optimizer_metadata" in state_dict:  # noqa: SIM401
             self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
         else:
             # compatibility to load from old checkpoints before PR #11887

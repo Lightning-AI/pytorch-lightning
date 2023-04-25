@@ -4,7 +4,7 @@
 Add an API Route to your App
 ############################
 
-In order to add a new route, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_api` hook and return a list of :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.HttpMethod` such as :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Get`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Post`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Put`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Delete`.
+In order to add a new route, you need to override the :class:`~lightning.app.core.flow.LightningFlow.configure_api` hook and return a list of :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.HttpMethod` such as :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Get`, :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Post`, :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Put`, :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Delete`.
 
 ----
 

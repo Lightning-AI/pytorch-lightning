@@ -217,10 +217,7 @@ def _check_lr_find_configuration(trainer: "pl.Trainer") -> None:
 
 def _check_scale_batch_size_configuration(trainer: "pl.Trainer") -> None:
     if trainer._accelerator_connector.is_distributed:
-        raise ValueError(
-            "Tuning the batch size is currently not supported with"
-            f" `Trainer(strategy={trainer.strategy.strategy_name!r})`."
-        )
+        raise ValueError("Tuning the batch size is currently not supported with distributed strategies.")
 
     # local import to avoid circular import
     from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder

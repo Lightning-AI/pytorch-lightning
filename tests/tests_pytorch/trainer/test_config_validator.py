@@ -25,7 +25,6 @@ from lightning.pytorch.trainer.configuration_validator import (
     __verify_train_val_loop_configuration,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.conftest import mock_cuda_count
 
 
 def test_wrong_train_setting(tmpdir):
@@ -141,14 +140,11 @@ def test_trainer_manual_optimization_config():
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}, {"accelerator": "gpu", "strategy": "dp"}])
+@pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}])
 @pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
 def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks."""
-    if trainer_kwargs.get("accelerator") == "gpu":
-        match_pattern = rf"Overriding `{hook}` is not .* in DP mode."
-        mock_cuda_count(monkeypatch, 2)
-    elif trainer_kwargs.get("accelerator") == "ipu":
+    if trainer_kwargs.get("accelerator") == "ipu":
         match_pattern = rf"Overriding `{hook}` is not .* with IPUs"
         monkeypatch.setattr(pl.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
         monkeypatch.setattr(pl.strategies.ipu, "_IPU_AVAILABLE", lambda: True)

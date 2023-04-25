@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from copy import deepcopy
 from unittest.mock import patch
@@ -73,10 +74,10 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
         assert model.batch_size == new_batch_size
         if dm_bs == -1:
             # datamodule batch size takes precedence
-            assert trainer.train_dataloader.loaders.batch_size == new_batch_size
+            assert trainer.train_dataloader.batch_size == new_batch_size
     if dm_bs not in (-1, None):
         assert datamodule.batch_size == new_batch_size
-        assert trainer.train_dataloader.loaders.batch_size == new_batch_size
+        assert trainer.train_dataloader.batch_size == new_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
@@ -112,7 +113,7 @@ def test_trainer_reset_correctly(tmpdir, trainer_fn):
     assert actual == expected
 
     after_state_dict = model.state_dict()
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after scaling batch size"
@@ -254,7 +255,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 def test_auto_scale_batch_size_with_amp(tmpdir):
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, accelerator="gpu", devices=1, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, accelerator="gpu", devices=1, precision="16-mixed")
     tuner = Tuner(trainer)
     tuner.scale_batch_size(model)
     after_batch_size = model.batch_size
@@ -293,11 +294,11 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 
 
 @pytest.mark.parametrize("scale_method", ["power", "binsearch"])
-def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
+@pytest.mark.parametrize("init_batch_size", (8, 17, 64))
+def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, init_batch_size):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
-    max_trials = 5
-    init_batch_size = 4
+    max_trials = 2
     scale_batch_size_kwargs = {
         "max_trials": max_trials,
         "steps_per_trial": 2,
@@ -305,15 +306,19 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
         "mode": scale_method,
     }
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
     tuner = Tuner(trainer)
 
-    with patch.object(model, "on_train_epoch_end") as advance_mocked:
+    with caplog.at_level(logging.INFO):
         new_batch_size = tuner.scale_batch_size(model, **scale_batch_size_kwargs)
-        assert advance_mocked.call_count == max_trials
 
-    assert trainer.train_dataloader.loaders.batch_size == new_batch_size
-    assert trainer.val_dataloaders[0].batch_size == init_batch_size
+    dataset_len = len(trainer.train_dataloader.dataset)
+    assert dataset_len == 64
+    assert caplog.text.count("trying batch size") == (max_trials if init_batch_size < dataset_len else 0)
+    assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
+
+    assert trainer.train_dataloader.batch_size == new_batch_size
+    assert trainer.val_dataloaders.batch_size == init_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
@@ -333,8 +338,7 @@ def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
 
     assert trainer.global_step == 0
     assert trainer.current_epoch == 0
-    assert loop.dataloader_progress.current.completed == 0
-    assert loop.epoch_loop.batch_progress.current.completed == 0
+    assert loop.batch_progress.current.completed == 0
     assert expected_scaled_batch_size == after_batch_size
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
 
@@ -357,23 +361,22 @@ def test_batch_size_finder_callback(tmpdir, trainer_fn):
     loop = getattr(trainer, f"{trainer_fn}_loop")
 
     if trainer_fn == "fit":
-        expected_steps = trainer.train_dataloader.loaders.dataset.len // after_batch_size
+        expected_steps = trainer.train_dataloader.dataset.len // after_batch_size
         assert trainer.global_step == expected_steps * max_epochs
         assert trainer.current_epoch == max_epochs
         assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
     else:
         if trainer_fn == "validate":
-            dl = trainer.val_dataloaders[0]
+            dl = trainer.val_dataloaders
         elif trainer_fn == "test":
-            dl = trainer.test_dataloaders[0]
+            dl = trainer.test_dataloaders
         elif trainer_fn == "predict":
-            dl = trainer.predict_dataloaders[0]
+            dl = trainer.predict_dataloaders
 
         expected_steps = dl.dataset.len // after_batch_size
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
-        assert loop.dataloader_progress.current.completed == 1
-        assert loop.epoch_loop.batch_progress.current.completed == expected_steps
+        assert loop.batch_progress.current.completed == expected_steps
 
     assert expected_scaled_batch_size == after_batch_size
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
@@ -466,4 +469,4 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
     new_batch_size = tuner.scale_batch_size(model, **scale_batch_size_kwargs)
     assert new_batch_size == model.batch_size
     assert new_batch_size == expected_batch_size
-    assert trainer.train_dataloader.loaders.batch_size == expected_batch_size
+    assert trainer.train_dataloader.batch_size == expected_batch_size

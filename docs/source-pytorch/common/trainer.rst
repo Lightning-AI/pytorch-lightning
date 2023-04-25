@@ -4,31 +4,23 @@
 .. testsetup:: *
 
     import os
-    from pytorch_lightning import Trainer, LightningModule, seed_everything
+    from lightning.pytorch import Trainer, LightningModule, seed_everything
 
 .. _trainer:
 
 Trainer
 =======
 
-Once you've organized your PyTorch code into a LightningModule,
-the Trainer automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.module.LightningModule`, the ``Trainer`` automates everything else.
 
-.. raw:: html
+The ``Trainer`` achieves the following:
 
-    <video width="100%" max-width="800px" controls autoplay
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
-
-|
-
-This abstraction achieves the following:
-
-1. You maintain control over all aspects via PyTorch code without an added abstraction.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.module.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-3. The trainer allows overriding any key part that you don't want automated.
+3. The trainer allows disabling any key part that you don't want automated.
 
 |
 
@@ -50,7 +42,8 @@ This is the basic use of the trainer:
 
 Under the hood
 --------------
-Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
+
+The Lightning ``Trainer`` does much more than just "training". Under the hood, it handles all loop details for you, some examples include:
 
 - Automatically enabling/disabling grads
 - Running the training, validation and test dataloaders
@@ -118,45 +111,21 @@ So you can run it like so:
 
 .. note::
 
-    Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
-
-.. code-block:: python
-
-    from argparse import ArgumentParser
+    Pro-tip: You don't need to define all flags manually.
+    You can let the :doc:`LightningCLI <../cli/lightning_cli>` create the Trainer and model with arguments supplied from the CLI.
 
 
-    def main(args):
-        model = LightningModule()
-        trainer = Trainer.from_argparse_args(args)
-        trainer.fit(model)
-
-
-    if __name__ == "__main__":
-        parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(parser)
-        args = parser.parse_args()
-
-        main(args)
-
-So you can run it like so:
-
-.. code-block:: bash
-
-    python main.py --accelerator 'gpu' --devices 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
-
-.. note::
-    If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
-    The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
-    running accelerator callback ``on_train_end`` to clean up memory. The trainer object will also set
-    an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
-    resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
+If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
+The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown. The trainer object will also set
+an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
+resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs by overriding :meth:`lightning.pytorch.Callback.on_exception`.
 
 ------------
 
 Validation
 ----------
 You can perform an evaluation epoch over the validation set, outside of the training loop,
-using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+using :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`. This might be
 useful if you want to collect new metrics from a model right at its initialization
 or after it has already been trained.
 
@@ -185,7 +154,7 @@ and set ``deterministic`` flag in ``Trainer``.
 
 Example::
 
-    from pytorch_lightning import Trainer, seed_everything
+    from lightning.pytorch import Trainer, seed_everything
 
     seed_everything(42, workers=True)
     # sets seeds for numpy, torch and python.random.
@@ -193,7 +162,7 @@ Example::
     trainer = Trainer(deterministic=True)
 
 
-By setting ``workers=True`` in :func:`~pytorch_lightning.seed_everything`, Lightning derives
+By setting ``workers=True`` in :func:`~lightning.pytorch.seed_everything`, Lightning derives
 unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
 :mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
@@ -224,7 +193,7 @@ as well as custom accelerator instances.
     # Training with GPU Accelerator using the DistributedDataParallel strategy
     trainer = Trainer(devices=4, accelerator="gpu", strategy="ddp")
 
-.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the respective ``Accelerator``.
+.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the appropriate ``Accelerator``.
 
 .. code-block:: python
 
@@ -263,16 +232,7 @@ Example::
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/accumulate_grad_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/accumulate_grad_batches.mp4"></video>
-
-|
-
-Accumulates grads every k batches or as set up in the dict.
-Trainer also calls ``optimizer.step()`` for the last indivisible step number.
+Accumulates gradients over k batches before stepping the optimizer.
 
 .. testcode::
 
@@ -284,8 +244,7 @@ Example::
     # accumulate every 4 batches (effective batch size is batch*4)
     trainer = Trainer(accumulate_grad_batches=4)
 
-    # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
-    trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation schedules.
 
 
 benchmark
@@ -301,7 +260,7 @@ benchmark
 
 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
 ``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
-If :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
 You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
@@ -342,27 +301,22 @@ Example::
 callbacks
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
-
-|
-
-Add a list of :class:`~pytorch_lightning.callbacks.callback.Callback`. Callbacks run sequentially in the order defined here
-with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
+This argument can be used to add a :class:`~lightning.pytorch.callbacks.callback.Callback` or a list of them.
+Callbacks run sequentially in the order defined here
+with the exception of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
 after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
 
+    # single callback
+    trainer = Trainer(callbacks=PrintCallback())
+
     # a list of callbacks
-    callbacks = [PrintCallback()]
-    trainer = Trainer(callbacks=callbacks)
+    trainer = Trainer(callbacks=[PrintCallback()])
 
 Example::
 
-    from pytorch_lightning.callbacks import Callback
+    from lightning.pytorch.callbacks import Callback
 
     class PrintCallback(Callback):
         def on_train_start(self, trainer, pl_module):
@@ -372,10 +326,10 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~pytorch_lightning.core.module.LightningModule.configure_callbacks`.
+:meth:`~lightning.pytorch.core.module.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
-:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+:class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
 
 
 check_val_every_n_epoch
@@ -412,10 +366,10 @@ default_root_dir
 |
 
 Default path for logs and weights when no logger or
-:class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.  On
+:class:`lightning.pytorch.callbacks.ModelCheckpoint` callback passed.  On
 certain clusters you might want to separate where logs and checkpoints are
 stored. If you don't then use this argument for convenience. Paths can be local
-paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
+paths or remote paths such as ``s3://bucket/path`` or ``hdfs://path/``. Credentials
 will need to be set up to use remote filepaths.
 
 .. testcode::
@@ -443,7 +397,7 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
 
 .. code-block:: python
 
-    # If your machine has GPUs, it will use all the available GPUs for training
+    # Use whatever hardware your machine has available
     trainer = Trainer(devices="auto", accelerator="auto")
 
     # Training with CPU Accelerator using 1 process
@@ -478,14 +432,6 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
-
-|
-
 By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
 Checkpoints capture the exact value of all parameters used by a model.
 To disable automatic checkpointing, set this to `False`.
@@ -499,13 +445,13 @@ To disable automatic checkpointing, set this to `False`.
     trainer = Trainer(enable_checkpointing=False)
 
 
-You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
-callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
+You can override the default behavior by initializing the :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~lightning.pytorch.trainer.trainer.Trainer.callbacks` list.
 See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
-    from pytorch_lightning.callbacks import ModelCheckpoint
+    from lightning.pytorch.callbacks import ModelCheckpoint
 
     # Init ModelCheckpoint callback, monitoring 'val_loss'
     checkpoint_callback = ModelCheckpoint(monitor="val_loss")
@@ -551,10 +497,10 @@ impact to subsequent runs. These are the changes enabled:
 - Sets ``Trainer(check_every_n_epoch=1)``.
 - Disables all loggers.
 - Disables passing logged metrics to loggers.
-- The :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
-- The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
+- The :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
+- The :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
-- Disables the tuning callbacks (:class:`~pytorch_lightning.callbacks.batch_size_finder.BatchSizeFinder`, :class:`~pytorch_lightning.callbacks.lr_finder.LearningRateFinder`).
+- Disables the tuning callbacks (:class:`~lightning.pytorch.callbacks.batch_size_finder.BatchSizeFinder`, :class:`~lightning.pytorch.callbacks.lr_finder.LearningRateFinder`).
 - If using the CLI, the configuration file is not saved.
 
 
@@ -571,12 +517,10 @@ gradient_clip_val
 
 Gradient clipping value
 
-- 0 means don't clip.
-
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(gradient_clip_val=0.0)
+    trainer = Trainer(gradient_clip_val=None)
 
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
@@ -689,20 +633,12 @@ See Also:
 logger
 ^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/logger.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/logger.mp4"></video>
-
-|
-
 :doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
     :skipif: not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE
 
-    from pytorch_lightning.loggers import TensorBoardLogger
+    from lightning.pytorch.loggers import TensorBoardLogger
 
     # default logger used by trainer (if tensorboard is installed)
     logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
@@ -798,7 +734,7 @@ max_time
 ^^^^^^^^
 
 Set the maximum amount of time for training. Training will get interrupted mid-epoch.
-For customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
+For customizable options use the :class:`~lightning.pytorch.callbacks.timer.Timer` callback.
 
 .. testcode::
 
@@ -895,14 +831,6 @@ Useful for quickly debugging or trying to overfit on purpose.
 plugins
 ^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
-
-|
-
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
 - :ref:`Checkpoint IO <checkpointing_expert>`
@@ -910,11 +838,11 @@ plugins
 - :ref:`Precision Plugins <precision_expert>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
-:class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
+:class:`~lightning.pytorch.plugins.environments.ClusterEnvironment`.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.environments import ClusterEnvironment
+    from lightning.pytorch.plugins.environments import ClusterEnvironment
 
 
     class MyCluster(ClusterEnvironment):
@@ -933,14 +861,6 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 precision
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/precision.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/precision.mp4"></video>
-
-|
-
 Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
 
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
@@ -952,10 +872,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, accelerator="gpu", devices=1)  # works only on CUDA
+    trainer = Trainer(precision="16-mixed", accelerator="gpu", devices=1)  # works only on CUDA
 
     # bfloat16 precision
-    trainer = Trainer(precision="bf16")
+    trainer = Trainer(precision="bf16-mixed")
 
     # 64-bit precision
     trainer = Trainer(precision=64)
@@ -980,7 +900,7 @@ See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
 
 .. testcode::
 
-    from pytorch_lightning.profilers import SimpleProfiler, AdvancedProfiler
+    from lightning.pytorch.profilers import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)
@@ -1040,29 +960,15 @@ The pseudocode applies also to the ``val_dataloader``.
 
 .. _replace-sampler-ddp:
 
-replace_sampler_ddp
-^^^^^^^^^^^^^^^^^^^
+use_distributed_sampler
+^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/replace_sampler_ddp.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/replace_sampler_ddp.mp4"></video>
-
-|
-
-Enables auto adding of :class:`~torch.utils.data.distributed.DistributedSampler`. In PyTorch, you must use it in
-distributed settings such as TPUs or multi-node. The sampler makes sure each GPU sees the appropriate part of your data.
-By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
-If you already use a custom sampler, Lightning will wrap it in a way that it samples from your sampler in a distributed manner.
-If you want to customize it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
-If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
-Lightning will not replace the existing one.
+See :paramref:`lightning.pytorch.trainer.Trainer.params.use_distributed_sampler`.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(replace_sampler_ddp=True)
+    trainer = Trainer(use_distributed_sampler=True)
 
 By setting to False, you have to add your own distributed sampler:
 
@@ -1070,48 +976,39 @@ By setting to False, you have to add your own distributed sampler:
 
     # in your LightningModule or LightningDataModule
     def train_dataloader(self):
+        dataset = ...
         # default used by the Trainer
-        sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
+        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
         dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
         return dataloader
-
-.. note:: For iterable datasets, we don't do this automatically.
 
 
 strategy
 ^^^^^^^^
 
-Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom strategies.
+Supports passing different training strategies with aliases (ddp, fsdp, etc) as well as configured strategies.
 
 .. code-block:: python
 
-    # Training with the DistributedDataParallel strategy on 4 GPUs
+    # Data-parallel training with the DDP strategy on 4 GPUs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
-    # Training with the DDP Spawn strategy using 4 cpu processes
-    trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
+    # Model-parallel training with the FSDP strategy on 4 GPUs
+    trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=4)
 
-.. note:: Additionally, you can pass your custom strategy to the ``strategy`` argument.
+Additionally, you can pass a strategy object.
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch.strategies import DDPStrategy
 
-
-    class CustomDDPStrategy(DDPStrategy):
-        def configure_ddp(self):
-            self._model = MyCustomDistributedDataParallel(
-                self.model,
-                device_ids=...,
-            )
-
-
-    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=DDPStrategy(static_graph=True), accelerator="gpu", devices=2)
 
 See Also:
     - :ref:`Multi GPU Training <multi_gpu>`.
     - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
+
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
@@ -1129,28 +1026,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
-
-track_grad_norm
-^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/track_grad_norm.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/track_grad_norm.mp4"></video>
-
-|
-
-- no tracking (-1)
-- Otherwise tracks that norm (2 for 2-norm)
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(track_grad_norm=-1)
-
-    # track the 2-norm
-    trainer = Trainer(track_grad_norm=2)
 
 
 val_check_interval
@@ -1220,7 +1095,7 @@ Whether to enable or disable the model summarization. Defaults to True.
     trainer = Trainer(enable_model_summary=False)
 
     # enable custom summarization
-    from pytorch_lightning.callbacks import ModelSummary
+    from lightning.pytorch.callbacks import ModelSummary
 
     trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
@@ -1268,31 +1143,31 @@ Methods
 init
 ****
 
-.. automethod:: pytorch_lightning.trainer.Trainer.__init__
+.. automethod:: lightning.pytorch.trainer.Trainer.__init__
    :noindex:
 
 fit
 ****
 
-.. automethod:: pytorch_lightning.trainer.Trainer.fit
+.. automethod:: lightning.pytorch.trainer.Trainer.fit
    :noindex:
 
 validate
 ********
 
-.. automethod:: pytorch_lightning.trainer.Trainer.validate
+.. automethod:: lightning.pytorch.trainer.Trainer.validate
    :noindex:
 
 test
 ****
 
-.. automethod:: pytorch_lightning.trainer.Trainer.test
+.. automethod:: lightning.pytorch.trainer.Trainer.test
    :noindex:
 
 predict
 *******
 
-.. automethod:: pytorch_lightning.trainer.Trainer.predict
+.. automethod:: lightning.pytorch.trainer.Trainer.predict
    :noindex:
 
 
@@ -1302,27 +1177,38 @@ Properties
 callback_metrics
 ****************
 
-The metrics available to callbacks. These are automatically set when you log via `self.log`
+The metrics available to callbacks.
 
-.. code-block:: python
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+
+..code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log("a_val", 2)
-
+        self.log("a_val", 2.0)
 
     callback_metrics = trainer.callback_metrics
-    assert callback_metrics["a_val"] == 2
+    assert callback_metrics["a_val"] == 2.0
+
+logged_metrics
+**************
+
+The metrics sent to the loggers.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+
+progress_bar_metrics
+********************
+
+The metrics sent to the progress bar.
+
+This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************
 
-The number of epochs run.
-
-.. code-block:: python
-
-    if trainer.current_epoch >= 10:
-        ...
-
+The current epoch, updated after the epoch end hooks are run.
 
 datamodule
 **********
@@ -1336,64 +1222,33 @@ The current datamodule, which is used by the trainer.
 is_last_batch
 *************
 
-Whether trainer is executing last batch in the current epoch.
-
-.. code-block:: python
-
-    if trainer.is_last_batch:
-        ...
+Whether trainer is executing the last batch.
 
 global_step
 ***********
 
 The number of optimizer steps taken (does not reset each epoch).
+
 This includes multiple optimizers (if enabled).
-
-.. code-block:: python
-
-    if trainer.global_step >= 100:
-        ...
 
 logger
 *******
 
-The current logger being used. Here's an example using tensorboard
-
-.. code-block:: python
-
-    logger = trainer.logger
-    tensorboard = logger.experiment
-
+The first :class:`~lightning.pytorch.loggers.logger.Logger` being used.
 
 loggers
 ********
 
-The list of loggers currently being used by the Trainer.
+The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
 
-.. code-block:: python
+..code-block:: python
 
-    # List of Logger objects
-    loggers = trainer.loggers
-    for logger in loggers:
+    for logger in trainer.loggers:
         logger.log_metrics({"foo": 1.0})
-
-
-logged_metrics
-**************
-
-The metrics sent to the logger (visualizer).
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        self.log("a_val", 2, logger=True)
-
-
-    logged_metrics = trainer.logged_metrics
-    assert logged_metrics["a_val"] == 2
 
 log_dir
 *******
+
 The directory for the current experiment. Use this to save images to, etc...
 
 .. code-block:: python
@@ -1402,12 +1257,10 @@ The directory for the current experiment. Use this to save images to, etc...
         img = ...
         save_img(img, self.trainer.log_dir)
 
-
-
 is_global_zero
 **************
 
-Whether this process is the global zero in multi-node training
+Whether this process is the global zero in multi-node training.
 
 .. code-block:: python
 
@@ -1415,36 +1268,21 @@ Whether this process is the global zero in multi-node training
         if self.trainer.is_global_zero:
             print("in node 0, accelerator 0")
 
-progress_bar_metrics
-********************
-
-The metrics sent to the progress bar.
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        self.log("a_val", 2, prog_bar=True)
-
-
-    progress_bar_metrics = trainer.progress_bar_metrics
-    assert progress_bar_metrics["a_val"] == 2
-
-
-predict_dataloaders
-*******************
-
-The current predict dataloaders of the trainer.
-Note that property returns a list of predict dataloaders.
-
-.. code-block:: python
-
-    used_predict_dataloaders = trainer.predict_dataloaders
-
-
 estimated_stepping_batches
 **************************
 
-Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
+The estimated number of batches that will ``optimizer.step()`` during training.
+
+This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
+dataloader if hadn't been set up already.
+
+..code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        stepping_batches = self.trainer.estimated_stepping_batches
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
+        return [optimizer], [scheduler]
 
 state
 *****
@@ -1522,35 +1360,47 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     trainer.fit(model)
 
 
+num_training_batches
+********************
+
+The number of training batches that will be used during ``trainer.fit()``.
+
+num_sanity_val_batches
+**********************
+
+The number of validation batches that will be used during the sanity-checking part of ``trainer.fit()``.
+
+num_val_batches
+***************
+
+The number of validation batches that will be used during ``trainer.fit()`` or ``trainer.validate()``.
+
+num_test_batches
+****************
+
+The number of test batches that will be used during ``trainer.test()``.
+
+num_predict_batches
+*******************
+
+The number of prediction batches that will be used during ``trainer.predict()``.
+
 train_dataloader
 ****************
 
-The current train dataloader of the trainer.
-
-.. code-block:: python
-
-    used_train_dataloader = trainer.train_dataloader
-
-
-test_dataloaders
-****************
-
-The current test dataloaders of the trainer.
-Note that property returns a list of test dataloaders.
-
-
-.. code-block:: python
-
-    used_test_dataloaders = trainer.test_dataloaders
+The training dataloader(s) used during ``trainer.fit()``.
 
 val_dataloaders
 ***************
 
+The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``.
 
-The current val dataloaders of the trainer.
-Note that property returns a list of val dataloaders.
+test_dataloaders
+****************
 
+The test dataloader(s) used during ``trainer.test()``.
 
-.. code-block:: python
+predict_dataloaders
+*******************
 
-    used_val_dataloaders = trainer.val_dataloaders
+The prediction dataloader(s) used during ``trainer.predict()``.

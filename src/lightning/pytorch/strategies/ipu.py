@@ -38,7 +38,10 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class IPUStrategy(ParallelStrategy):
-    """Plugin for training on IPU devices."""
+    """Plugin for training on IPU devices.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     strategy_name = "ipu_strategy"
 
@@ -100,9 +103,6 @@ class IPUStrategy(ParallelStrategy):
         self._optimizer_zero_grad_original: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        # set the `accumulate_grad_batches` property as early as possible
-        self._handle_gradient_accumulation_steps()
-
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
@@ -212,23 +212,6 @@ class IPUStrategy(ParallelStrategy):
         )
         return dataloader
 
-    def _handle_gradient_accumulation_steps(self) -> None:
-        """Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient
-        accumulation has been set.
-
-        ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
-        """
-        assert self.lightning_module is not None
-        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
-            )
-
-        # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
-        accumulation_scheduler.scheduling.update({0: 1})
-
     @property
     def _n_replicate(self) -> int:
         assert self.lightning_module is not None
@@ -299,7 +282,9 @@ class IPUStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         if self._optimizer_zero_grad_original is not None:
             # re-enable `optimizer_zero_grad`
-            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
+            self.lightning_module.optimizer_zero_grad = (  # type: ignore[method-assign]
+                self._optimizer_zero_grad_original
+            )
 
         for model in self.poptorch_models.values():
             model.destroy()
@@ -357,7 +342,8 @@ class IPUStrategy(ParallelStrategy):
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
-    def root_device(self) -> torch.device:
+    def root_device(self) -> torch.device:  # type: ignore[empty-body]
+        # TODO: this should return `self.parallel_devices[self.local_rank]`
         pass
 
     def model_to_device(self) -> None:

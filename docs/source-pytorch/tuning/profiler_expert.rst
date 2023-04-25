@@ -12,12 +12,12 @@ Find bottlenecks in your code (expert)
 ***********************
 Build your own profiler
 ***********************
-To build your own profiler, subclass :class:`~pytorch_lightning.profilers.profiler.Profiler`
+To build your own profiler, subclass :class:`~lightning.pytorch.profilers.profiler.Profiler`
 and override some of its methods. Here is a simple example that profiles the first occurrence and total calls of each action:
 
 .. code-block:: python
 
-    from pytorch_lightning.profilers import Profiler
+    from lightning.pytorch.profilers import Profiler
     from collections import defaultdict
     import time
 
@@ -69,7 +69,7 @@ To profile a specific action of interest, reference a profiler in the LightningM
 
 .. code-block:: python
 
-    from pytorch_lightning.profilers import SimpleProfiler, PassThroughProfiler
+    from lightning.pytorch.profilers import SimpleProfiler, PassThroughProfiler
 
 
     class MyModel(LightningModule):
@@ -90,7 +90,7 @@ Here's the full code:
 
 .. code-block:: python
 
-    from pytorch_lightning.profilers import SimpleProfiler, PassThroughProfiler
+    from lightning.pytorch.profilers import SimpleProfiler, PassThroughProfiler
 
 
     class MyModel(LightningModule):

@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
+from unittest.mock import Mock
 
+import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.strategies import SingleDeviceStrategy
+from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -75,3 +79,56 @@ def test_strategy_pickle():
     strategy_reloaded = pickle.loads(state)
     # loading restores the lightning optimizers
     assert isinstance(strategy_reloaded._lightning_optimizers[0], LightningOptimizer)
+
+
+class BoringModelNoDataloaders(BoringModel):
+    def train_dataloader(self):
+        raise NotImplementedError
+
+    def val_dataloader(self):
+        raise NotImplementedError
+
+    def test_dataloader(self):
+        raise NotImplementedError
+
+    def predict_dataloader(self):
+        raise NotImplementedError
+
+
+_loader = DataLoader(RandomDataset(32, 64))
+_loader_no_len = CustomNotImplementedErrorDataloader(_loader)
+
+
+@pytest.mark.parametrize(
+    ("keyword", "value"),
+    (
+        ("train_dataloaders", _loader_no_len),
+        ("val_dataloaders", _loader_no_len),
+        ("test_dataloaders", _loader_no_len),
+        ("predict_dataloaders", _loader_no_len),
+        ("val_dataloaders", [_loader, _loader_no_len]),
+    ),
+)
+def test_process_dataloader_gets_called_as_expected(keyword, value, monkeypatch):
+    trainer = Trainer()
+    model = BoringModelNoDataloaders()
+    strategy = SingleDeviceStrategy(accelerator=Mock())
+    strategy.connect(model)
+    trainer._accelerator_connector.strategy = strategy
+    process_dataloader_mock = Mock()
+    monkeypatch.setattr(strategy, "process_dataloader", process_dataloader_mock)
+
+    if "train" in keyword:
+        fn = trainer.fit_loop.setup_data
+    elif "val" in keyword:
+        fn = trainer.validate_loop.setup_data
+    elif "test" in keyword:
+        fn = trainer.test_loop.setup_data
+    else:
+        fn = trainer.predict_loop.setup_data
+
+    trainer._data_connector.attach_dataloaders(model, **{keyword: value})
+    fn()
+
+    expected = len(value) if isinstance(value, list) else 1
+    assert process_dataloader_mock.call_count == expected

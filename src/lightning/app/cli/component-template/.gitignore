@@ -58,8 +58,8 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
-docs/source-app/api/
-docs/source-app/*.md
+docs/source/api/
+docs/source/*.md
 
 # PyBuilder
 target/
@@ -132,9 +132,9 @@ coverage.*
 # Frontend build artifacts
 *lightning/app/ui*
 gradio_cached_examples
-/docs/source-app/api_reference/generated/*
+/docs/source/api_reference/generated/*
 examples/my_own_leaderboard/submissions/*
-docs/source-app/api_reference/generated/*
+docs/source/api_reference/generated/*
 *.ckpt
 redis-stable
 node_modules

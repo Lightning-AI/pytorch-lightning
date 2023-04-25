@@ -13,17 +13,18 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Optional, OrderedDict, Union
+from typing import Any, Callable, Dict, Optional, OrderedDict
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
-from lightning.pytorch.core.optimizer import LightningOptimizer
+import lightning.pytorch as pl
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.optimization.closure import AbstractClosure, OutputResult
-from lightning.pytorch.loops.progress import OptimizationProgress
+from lightning.pytorch.loops.progress import _OptimizationProgress
 from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
+from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -60,7 +61,6 @@ class ClosureResult(OutputResult):
         closure_loss, extra = None, {}
 
         if isinstance(training_step_output, dict):
-            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
             if closure_loss is None:
                 raise MisconfigurationException(
@@ -149,9 +149,9 @@ class _AutomaticOptimization(_Loop):
 
     output_result_cls = ClosureResult
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.optim_progress: OptimizationProgress = OptimizationProgress()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
+        self.optim_progress: _OptimizationProgress = _OptimizationProgress()
         self._skip_backward: bool = False
 
     def run(self, optimizer: Optimizer, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
@@ -182,7 +182,7 @@ class _AutomaticOptimization(_Loop):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            self._optimizer_step(optimizer, kwargs.get("batch_idx", 0), closure)
+            self._optimizer_step(kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
         if result.loss is None:
@@ -230,37 +230,38 @@ class _AutomaticOptimization(_Loop):
             return None
 
         def backward_fn(loss: Tensor) -> None:
-            self.trainer._call_strategy_hook("backward", loss, optimizer)
+            call._call_strategy_hook(self.trainer, "backward", loss, optimizer)
 
         return backward_fn
 
     def _optimizer_step(
         self,
-        optimizer: Union[Optimizer, LightningOptimizer],
         batch_idx: int,
         train_step_and_backward_closure: Callable[[], Optional[Tensor]],
     ) -> None:
         """Performs the optimizer step and some sanity checking.
 
         Args:
-            optimizer: the optimizer to perform the step with
             batch_idx: the index of the current batch
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default, called by the optimizer (if possible)
         """
+        trainer = self.trainer
+
         # wraps into LightningOptimizer only for running step
-        optimizer = self.trainer.strategy._lightning_optimizers[0]
+        optimizer = trainer.strategy._lightning_optimizers[0]
 
         # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
         # need to check again if `should_accumulate` before increasing the counters
-        should_accumulate = self.trainer.fit_loop._should_accumulate()
+        should_accumulate = trainer.fit_loop._should_accumulate()
         if not should_accumulate:
             self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
-        self.trainer._call_lightning_module_hook(
+        call._call_lightning_module_hook(
+            trainer,
             "optimizer_step",
-            self.trainer.current_epoch,
+            trainer.current_epoch,
             batch_idx,
             optimizer,
             train_step_and_backward_closure,
@@ -275,9 +276,10 @@ class _AutomaticOptimization(_Loop):
         Args:
             optimizer: the current optimizer
         """
+        trainer = self.trainer
         self.optim_progress.optimizer.zero_grad.increment_ready()
-        self.trainer._call_callback_hooks("on_before_zero_grad", optimizer)
-        self.trainer._call_lightning_module_hook("on_before_zero_grad", optimizer)
+        call._call_callback_hooks(trainer, "on_before_zero_grad", optimizer)
+        call._call_lightning_module_hook(trainer, "on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer) -> None:
@@ -287,9 +289,8 @@ class _AutomaticOptimization(_Loop):
             batch_idx: the index of the current batch
             optimizer: the current optimizer
         """
-        self.trainer._call_lightning_module_hook(
-            "optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer
-        )
+        trainer = self.trainer
+        call._call_lightning_module_hook(trainer, "optimizer_zero_grad", trainer.current_epoch, batch_idx, optimizer)
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
     def _training_step(self, kwargs: OrderedDict) -> ClosureResult:
@@ -301,15 +302,11 @@ class _AutomaticOptimization(_Loop):
         Returns:
             A ``ClosureResult`` containing the training step output.
         """
+        trainer = self.trainer
+
         # manually capture logged metrics
-        training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
+        training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()
 
-        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-        strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
-        training_step_output = strategy_output if model_output is None else model_output
-
-        result = self.output_result_cls.from_training_step_output(
-            training_step_output, self.trainer.accumulate_grad_batches
-        )
+        result = self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)
         return result

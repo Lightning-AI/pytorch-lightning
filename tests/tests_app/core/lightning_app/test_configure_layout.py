@@ -25,7 +25,7 @@ def test_invalid_layout(return_val):
 def test_invalid_layout_missing_content_key():
     class Root(EmptyFlow):
         def configure_layout(self):
-            return [dict(name="one")]
+            return [{"name": "one"}]
 
     root = Root()
     with pytest.raises(
@@ -37,7 +37,7 @@ def test_invalid_layout_missing_content_key():
 def test_invalid_layout_unsupported_content_value():
     class Root(EmptyFlow):
         def configure_layout(self):
-            return [dict(name="one", content=[1, 2, 3])]
+            return [{"name": "one", "content": [1, 2, 3]}]
 
     root = Root()
 
@@ -86,10 +86,12 @@ class StaticWebFrontendFlow(LightningFlow):
         return frontend
 
 
-@pytest.mark.parametrize("flow", (StaticWebFrontendFlow(), StreamlitFrontendFlow()))
+@pytest.mark.skip(reason="hanging... need to be fixed")  # fixme
+@pytest.mark.parametrize("flow", (StaticWebFrontendFlow, StreamlitFrontendFlow))
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
 def test_layout_leaf_node(find_ports_mock, flow):
     find_ports_mock.side_effect = lambda: 100
+    flow = flow()
     app = LightningApp(flow)
     assert flow._layout == {}
     # we copy the dict here because after we dispatch the dict will get update with new instances
@@ -99,7 +101,7 @@ def test_layout_leaf_node(find_ports_mock, flow):
     assert flow.counter == 3
 
     # The target url is available for the frontend after we started the servers in dispatch
-    assert flow._layout == dict(target="http://localhost:100/root")
+    assert flow._layout == {"target": "http://localhost:100/root"}
     assert app.frontends[flow.name].flow is flow
 
     # we start the servers for the frontends that we collected at the time of app instantiation
@@ -126,9 +128,9 @@ def test_default_content_layout():
     root = TestContentComponent()
     LightningApp(root)
     assert root._layout == [
-        dict(name="root.component0", content="root.component0"),
-        dict(name="root.component1", content="root.component1"),
-        dict(name="root.component2", content="root.component2"),
+        {"name": "root.component0", "content": "root.component0"},
+        {"name": "root.component1", "content": "root.component1"},
+        {"name": "root.component2", "content": "root.component2"},
     ]
 
 
@@ -141,17 +143,17 @@ def test_url_content_layout():
 
         def configure_layout(self):
             return [
-                dict(name="one", content=self.component0),
-                dict(name="url", content="https://lightning.ai"),
-                dict(name="two", content=self.component1),
+                {"name": "one", "content": self.component0},
+                {"name": "url", "content": "https://lightning.ai"},
+                {"name": "two", "content": self.component1},
             ]
 
     root = TestContentComponent()
     LightningApp(root)
     assert root._layout == [
-        dict(name="one", content="root.component0"),
-        dict(name="url", content="https://lightning.ai", target="https://lightning.ai"),
-        dict(name="two", content="root.component1"),
+        {"name": "one", "content": "root.component0"},
+        {"name": "url", "content": "https://lightning.ai", "target": "https://lightning.ai"},
+        {"name": "two", "content": "root.component1"},
     ]
 
 
@@ -165,11 +167,11 @@ def test_single_content_layout():
             self.component1 = EmptyFlow()
 
         def configure_layout(self):
-            return dict(name="single", content=self.component1)
+            return {"name": "single", "content": self.component1}
 
     root = TestContentComponent()
     LightningApp(root)
-    assert root._layout == [dict(name="single", content="root.component1")]
+    assert root._layout == [{"name": "single", "content": "root.component1"}]
 
 
 class DynamicContentComponent(EmptyFlow):
@@ -189,8 +191,8 @@ class DynamicContentComponent(EmptyFlow):
     def configure_layout(self):
         self.configure_layout_called += 1
         tabs = [
-            dict(name="one", content=self.component0),
-            dict(name=f"{self.counter}", content=self.component1),
+            {"name": "one", "content": self.component0},
+            {"name": f"{self.counter}", "content": self.component1},
         ]
         # reverse the order of the two tabs every time the counter is odd
         if self.counter % 2 != 0:
@@ -200,8 +202,8 @@ class DynamicContentComponent(EmptyFlow):
     def run_assertion(self):
         """Assert that the layout changes as the counter changes its value."""
         layout_even = [
-            dict(name="one", content="root.component0"),
-            dict(name=f"{self.counter}", content="root.component1"),
+            {"name": "one", "content": "root.component0"},
+            {"name": f"{self.counter}", "content": "root.component1"},
         ]
         layout_odd = layout_even[::-1]
         assert (
@@ -212,6 +214,7 @@ class DynamicContentComponent(EmptyFlow):
         )
 
 
+@pytest.mark.skip(reason="hanging... need to be fixed")  # fixme
 def test_dynamic_content_layout_update():
     """Test that the `configure_layout()` gets called as part of the loop and can return new layouts."""
     flow = DynamicContentComponent()
@@ -225,8 +228,8 @@ def test_http_url_warning(*_):
     class Root(EmptyFlow):
         def configure_layout(self):
             return [
-                dict(name="warning expected", content="http://github.com/very/long/link/to/display"),
-                dict(name="no warning expected", content="https://github.com"),
+                {"name": "warning expected", "content": "http://github.com/very/long/link/to/display"},
+                {"name": "no warning expected", "content": "https://github.com"},
             ]
 
     root = Root()

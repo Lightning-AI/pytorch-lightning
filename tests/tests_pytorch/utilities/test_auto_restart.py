@@ -47,7 +47,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
     def validation_step(self, batch, batch_idx):
         should_signal = (
-            self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.is_last_batch
+            self.trainer.fit_loop.epoch_loop.val_loop.batch_progress.is_last_batch
             if self.on_last_batch
             else batch_idx == 2
         )
@@ -117,12 +117,12 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
             if failure_on_training:
                 # Breaking on first validation batch.
                 # This is done to capture the random state of the validation dataloader.
-                status = "_EvaluationEpochLoop:advance"
+                status = "_EvaluationLoop:_evaluation_step"
             else:
                 # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
                 status = "_FitLoop:on_advance_end" if val_check_interval == 1.0 else "_TrainingEpochLoop:on_advance_end"
         else:
-            status = "_TrainingEpochLoop:on_advance_end" if failure_on_training else "_EvaluationEpochLoop:advance"
+            status = "_TrainingEpochLoop:on_advance_end" if failure_on_training else "_EvaluationLoop:_evaluation_step"
     else:
         if val_check_interval == 1.0:
             status = "_FitLoop:on_advance_end"

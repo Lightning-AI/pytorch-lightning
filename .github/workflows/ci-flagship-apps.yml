@@ -11,6 +11,9 @@ on:
       - ".github/workflows/ci-flagship-apps.yml"
       - "github/actions/prep-apps/action.yml"
       - "tests/integrations_app/flagship/**"
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

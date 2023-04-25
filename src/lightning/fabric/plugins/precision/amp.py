@@ -15,9 +15,10 @@ from contextlib import contextmanager
 from typing import Any, cast, Dict, Generator, Literal, Optional
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
@@ -29,33 +30,39 @@ class MixedPrecision(Precision):
     """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
-        precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
+        precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
 
     def __init__(
-        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self,
+        precision: Literal["16-mixed", "bf16-mixed"],
+        device: str,
+        scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
-        self.precision = cast(Literal["16", "bf16"], str(precision))
-        if scaler is None and self.precision == "16":
+        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
-        if scaler is not None and self.precision == "bf16":
-            raise ValueError(f"`precision='bf16'` does not use a scaler, found {scaler}.")
+        if scaler is not None and self.precision == "bf16-mixed":
+            raise ValueError(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
         self.scaler = scaler
+
+        self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         with self._autocast_context_manager():
             yield
 
-    def convert_input(self, data: Tensor) -> Tensor:
-        precision_to_type = {"bf16": torch.bfloat16, "16": torch.float16}
-        dst_type = precision_to_type[self.precision]
-        return _convert_fp_tensor(data, dst_type)
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
@@ -89,4 +96,21 @@ class MixedPrecision(Precision):
     def _autocast_context_manager(self) -> torch.autocast:
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return torch.autocast(self.device, dtype=self._desired_input_dtype)
+
+    def unscale_gradients(self, optimizer: Optimizer) -> None:
+        scaler = self.scaler
+        if scaler is not None:
+            if _optimizer_handles_unscaling(optimizer):
+                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
+            scaler.unscale_(optimizer)
+
+
+def _optimizer_handles_unscaling(optimizer: Any) -> bool:
+    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
+    :class:`torch.cuda.amp.GradScaler`.
+
+    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
+    value will only be reliable for built-in PyTorch optimizers.
+    """
+    return getattr(optimizer, "_step_supports_amp_scaling", False)

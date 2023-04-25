@@ -18,8 +18,10 @@ from argparse import Namespace
 from typing import Any, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -28,7 +30,6 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
-_SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
 
 def _get_supported_strategies() -> List[str]:
@@ -44,9 +45,9 @@ if _CLICK_AVAILABLE:
 
     @click.command(
         "model",
-        context_settings=dict(
-            ignore_unknown_options=True,
-        ),
+        context_settings={
+            "ignore_unknown_options": True,
+        },
     )
     @click.argument(
         "script",
@@ -55,7 +56,7 @@ if _CLICK_AVAILABLE:
     @click.option(
         "--accelerator",
         type=click.Choice(_SUPPORTED_ACCELERATORS),
-        default="cpu",
+        default=None,
         help="The hardware accelerator to run on.",
     )
     @click.option(
@@ -106,11 +107,11 @@ if _CLICK_AVAILABLE:
     )
     @click.option(
         "--precision",
-        type=click.Choice(_SUPPORTED_PRECISION),
-        default="32",
+        type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
+        default=None,
         help=(
-            "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
-            " (``'bf16'``)"
+            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``64``), "
+            "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
         ),
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
@@ -132,12 +133,14 @@ def _set_env_variables(args: Namespace) -> None:
     The Fabric connector will parse the arguments set here.
     """
     os.environ["LT_CLI_USED"] = "1"
-    os.environ["LT_ACCELERATOR"] = str(args.accelerator)
+    if args.accelerator is not None:
+        os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
     os.environ["LT_DEVICES"] = str(args.devices)
     os.environ["LT_NUM_NODES"] = str(args.num_nodes)
-    os.environ["LT_PRECISION"] = str(args.precision)
+    if args.precision is not None:
+        os.environ["LT_PRECISION"] = str(args.precision)
 
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
@@ -159,10 +162,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
     import torch.distributed.run as torchrun
 
-    if args.strategy == "dp":
-        num_processes = 1
-    else:
-        num_processes = _get_num_processes(args.accelerator, args.devices)
+    num_processes = 1 if args.strategy == "dp" else _get_num_processes(args.accelerator, args.devices)
 
     torchrun_args = [
         f"--nproc_per_node={num_processes}",

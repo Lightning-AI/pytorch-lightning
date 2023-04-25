@@ -12,11 +12,11 @@ Track and Visualize Experiments (advanced)
 ****************************
 Change progress bar defaults
 ****************************
-To change the default values (ie: version number) shown in the progress bar, override the :meth:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase.get_metrics` method in your logger.
+To change the default values (ie: version number) shown in the progress bar, override the :meth:`~lightning.pytorch.callbacks.progress.progress_bar.ProgressBar.get_metrics` method in your logger.
 
 .. code-block:: python
 
-    from pytorch_lightning.callbacks.progress import Tqdm
+    from lightning.pytorch.callbacks.progress import Tqdm
 
 
     class CustomProgressBar(Tqdm):
@@ -37,7 +37,7 @@ Modify logging frequency
 ========================
 
 Logging a metric on every single batch can slow down training. By default, Lightning logs every 50 rows, or 50 training steps.
-To change this behaviour, set the *log_every_n_steps* :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+To change this behaviour, set the *log_every_n_steps* :class:`~lightning.pytorch.trainer.trainer.Trainer` flag.
 
 .. testcode::
 
@@ -113,7 +113,7 @@ logger
 ======
 **Default:** True
 
-Send logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
+Send logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~lightning.pytorch.trainer.trainer.Trainer` (Default: ``True``).
 
 .. code-block:: python
 
@@ -314,7 +314,7 @@ To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_
 
 .. code-block:: python
 
-    from pytorch_lightning.loggers import TensorBoardLogger
+    from lightning.pytorch.loggers import TensorBoardLogger
 
     logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
 
@@ -355,10 +355,10 @@ In LightningModule
    * - Method
      - on_step
      - on_epoch
-   * - on_after_backward, on_before_backward, on_before_optimizer_step, optimizer_step, configure_gradient_clipping, on_before_zero_grad, training_step, training_step_end
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, optimizer_step, configure_gradient_clipping, on_before_zero_grad, training_step
      - True
      - False
-   * - test_step, test_step_end, validation_step, validation_step_end
+   * - test_step, validation_step
      - False
      - True
 

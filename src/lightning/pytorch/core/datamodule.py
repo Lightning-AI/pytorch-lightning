@@ -13,9 +13,9 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from argparse import ArgumentParser, Namespace
-from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, cast, Dict, IO, Iterable, Optional, Union
 
+from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
 
@@ -24,13 +24,7 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
-from lightning.pytorch.utilities.argparse import (
-    add_argparse_args,
-    from_argparse_args,
-    get_init_arguments_and_types,
-    parse_argparser,
-)
-from lightning.pytorch.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class LightningDataModule(DataHooks, HyperparametersMixin):
@@ -39,27 +33,35 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     Example::
 
-        class MyDataModule(LightningDataModule):
-            def __init__(self):
-                super().__init__()
+        import lightning as L
+        import torch.utils.data as data
+        from lightning.pytorch.demos.boring_classes import RandomDataset
+
+        class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
-                # download, split, etc...
+                # download, IO, etc. Useful with shared filesystems
                 # only called on 1 GPU/TPU in distributed
+                ...
+
             def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
+                dataset = RandomDataset(1, 100)
+                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
+
             def train_dataloader(self):
-                train_split = Dataset(...)
-                return DataLoader(train_split)
+                return data.DataLoader(self.train)
+
             def val_dataloader(self):
-                val_split = Dataset(...)
-                return DataLoader(val_split)
+                return data.DataLoader(self.val)
+
             def test_dataloader(self):
-                test_split = Dataset(...)
-                return DataLoader(test_split)
+                return data.DataLoader(self.test)
+
             def teardown(self):
-                # clean up after fit or test
+                # clean up state after the trainer stops, delete files...
                 # called on every process in DDP
+                ...
     """
 
     name: Optional[str] = None
@@ -73,55 +75,12 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         self.trainer: Optional["pl.Trainer"] = None
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> _ADD_ARGPARSE_RETURN:
-        """Extends existing argparse by default `LightningDataModule` attributes.
-
-        Example::
-
-            parser = ArgumentParser(add_help=False)
-            parser = LightningDataModule.add_argparse_args(parser)
-        """
-        return add_argparse_args(cls, parent_parser, **kwargs)
-
-    @classmethod
-    def from_argparse_args(
-        cls, args: Union[Namespace, ArgumentParser], **kwargs: Any
-    ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
-        """Create an instance from CLI arguments.
-
-        Args:
-            args: The parser or namespace to take arguments from. Only known arguments will be
-                parsed and passed to the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
-            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-                These must be valid DataModule arguments.
-
-        Example::
-
-            module = LightningDataModule.from_argparse_args(args)
-        """
-        return from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return parse_argparser(cls, arg_parser)
-
-    @classmethod
-    def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-        r"""Scans the DataModule signature and returns argument names, types and default values.
-
-        Returns:
-            List with tuples of 3 values:
-            (argument name, set with argument types, argument default value).
-        """
-        return get_init_arguments_and_types(cls)
-
-    @classmethod
     def from_datasets(
         cls,
-        train_dataset: Optional[Union[Dataset, Sequence[Dataset], Mapping[str, Dataset]]] = None,
-        val_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
-        test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
-        predict_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
+        train_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        val_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        test_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        predict_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
         **datamodule_kwargs: Any,
@@ -130,10 +89,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         Create an instance from torch.utils.data.Dataset.
 
         Args:
-            train_dataset: Optional dataset to be used for train_dataloader()
-            val_dataset: Optional dataset or list of Dataset to be used for val_dataloader()
-            test_dataset: Optional dataset or list of Dataset to be used for test_dataloader()
-            predict_dataset: Optional dataset or list of Dataset to be used for predict_dataloader()
+            train_dataset: Optional dataset or iterable of datasets to be used for train_dataloader()
+            val_dataset: Optional dataset or iterable of datasets to be used for val_dataloader()
+            test_dataset: Optional dataset or iterable of datasets to be used for test_dataloader()
+            predict_dataset: Optional dataset or iterable of datasets to be used for predict_dataloader()
             batch_size: Batch size to use for each dataloader. Default is 1. This parameter gets forwarded to the
                 ``__init__`` if the datamodule has such a name defined in its signature.
             num_workers: Number of subprocesses to use for data loading. 0 means that the
@@ -147,36 +106,18 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
         def train_dataloader() -> TRAIN_DATALOADERS:
-            assert train_dataset
-
-            if isinstance(train_dataset, Mapping):
-                return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
-            if isinstance(train_dataset, Sequence):
-                return [dataloader(ds, shuffle=True) for ds in train_dataset]
-            return dataloader(train_dataset, shuffle=True)
+            return apply_to_collection(train_dataset, Dataset, dataloader, shuffle=True)
 
         def val_dataloader() -> EVAL_DATALOADERS:
-            assert val_dataset
-
-            if isinstance(val_dataset, Sequence):
-                return [dataloader(ds) for ds in val_dataset]
-            return dataloader(val_dataset)
+            return apply_to_collection(val_dataset, Dataset, dataloader)
 
         def test_dataloader() -> EVAL_DATALOADERS:
-            assert test_dataset
-
-            if isinstance(test_dataset, Sequence):
-                return [dataloader(ds) for ds in test_dataset]
-            return dataloader(test_dataset)
+            return apply_to_collection(test_dataset, Dataset, dataloader)
 
         def predict_dataloader() -> EVAL_DATALOADERS:
-            assert predict_dataset
+            return apply_to_collection(predict_dataset, Dataset, dataloader)
 
-            if isinstance(predict_dataset, Sequence):
-                return [dataloader(ds) for ds in predict_dataset]
-            return dataloader(predict_dataset)
-
-        candidate_kwargs = dict(batch_size=batch_size, num_workers=num_workers)
+        candidate_kwargs = {"batch_size": batch_size, "num_workers": num_workers}
         accepted_params = inspect.signature(cls.__init__).parameters
         accepts_kwargs = any(param.kind == param.VAR_KEYWORD for param in accepted_params.values())
         if accepts_kwargs:
@@ -188,13 +129,13 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         datamodule = cls(**datamodule_kwargs, **special_kwargs)
         if train_dataset is not None:
-            datamodule.train_dataloader = train_dataloader  # type: ignore[assignment]
+            datamodule.train_dataloader = train_dataloader  # type: ignore[method-assign]
         if val_dataset is not None:
-            datamodule.val_dataloader = val_dataloader  # type: ignore[assignment]
+            datamodule.val_dataloader = val_dataloader  # type: ignore[method-assign]
         if test_dataset is not None:
-            datamodule.test_dataloader = test_dataloader  # type: ignore[assignment]
+            datamodule.test_dataloader = test_dataloader  # type: ignore[method-assign]
         if predict_dataset is not None:
-            datamodule.predict_dataloader = predict_dataloader  # type: ignore[assignment]
+            datamodule.predict_dataloader = predict_dataloader  # type: ignore[method-assign]
         return datamodule
 
     def state_dict(self) -> Dict[str, Any]:
@@ -203,7 +144,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         Returns:
             A dictionary containing datamodule state.
         """
-        return dict()
+        return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.
@@ -219,7 +160,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
+    ) -> Self:
         r"""
         Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
@@ -273,7 +214,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             )
 
         """
-        return _load_from_checkpoint(
+        loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
             map_location=None,
@@ -281,3 +222,4 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             strict=None,
             **kwargs,
         )
+        return cast(Self, loaded)

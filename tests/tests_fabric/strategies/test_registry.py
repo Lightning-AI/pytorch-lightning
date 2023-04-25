@@ -55,7 +55,6 @@ def test_available_strategies_in_registry():
         "ddp_fork",
         "ddp_notebook",
         "single_tpu",
-        "tpu_spawn",
         "xla",
         "dp",
     }

@@ -9,7 +9,11 @@ inputs:
   wheel-dir:
     description: local path for export wheels
     required: false
-    default: ".wheels/"
+    default: "_pip-wheels/"
+  cache-key:
+    description: update this cache
+    required: false
+    default: "pypi_wheels"
 
 runs:
   using: "composite"
@@ -38,9 +42,39 @@ runs:
 
   - name: Dump wheels
     run: |
-      cat requirements.dump
+      # cat requirements.dump
       pip wheel -r requirements.dump --prefer-binary \
-        --wheel-dir=${{ inputs.wheel-dir }} \
-        -f ${{ inputs.torch-url }}
-      ls -lh ${{ inputs.wheel-dir }}
+        --wheel-dir=.wheels \
+        -f ${{ inputs.torch-url }} -f ${{ inputs.wheel-dir }}
+      ls -lh .wheels/
     shell: bash
+
+  - name: Find diff
+    id: wheels-diff
+    run: |
+      import os, glob
+      wheels = [os.path.basename(p) for p in glob.glob(".wheels/*")]
+      pkgs = [os.path.basename(p) for p in glob.glob("${{ inputs.wheel-dir }}/*")]
+      diff = [w for w in wheels if w not in pkgs]
+      print(diff)
+      with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+          print(f'count-new={len(diff)}', file=fh)
+    shell: python
+
+  - name: Cache pull
+    if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
+    uses: actions/cache/restore@v3
+    with:
+      path: ${{ inputs.wheel-dir }}
+      key: ${{ inputs.cache-key }}
+
+  - run: cp .wheels/* ${{ inputs.wheel-dir }}
+    if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
+    shell: bash
+
+  - name: Cache push
+    if: ${{ steps.wheels-diff.outputs.count-new != 0 }}
+    uses: actions/cache/save@v3
+    with:
+      path: ${{ inputs.wheel-dir }}
+      key: ${{ inputs.cache-key }}

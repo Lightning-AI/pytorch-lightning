@@ -29,7 +29,7 @@ class AMPTestModel(BoringModel):
     def step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
-        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16-mixed"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         loss = self.loss(output)
         return loss
@@ -37,7 +37,7 @@ class AMPTestModel(BoringModel):
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()
         output = self(batch)
-        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16-mixed"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return output
 
@@ -52,10 +52,10 @@ class AMPTestModel(BoringModel):
 @pytest.mark.parametrize(
     ("strategy", "precision", "devices"),
     (
-        ("single_device", 16, 1),
-        ("single_device", "bf16", 1),
-        ("ddp_spawn", 16, 2),
-        ("ddp_spawn", "bf16", 2),
+        ("single_device", "16-mixed", 1),
+        ("single_device", "bf16-mixed", 1),
+        ("ddp_spawn", "16-mixed", 2),
+        pytest.param("ddp_spawn", "bf16-mixed", 2, marks=RunIf(skip_windows=True)),
     ),
 )
 def test_amp_cpus(tmpdir, strategy, precision, devices):
@@ -82,19 +82,18 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
-@pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
+@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize(
     "devices", (pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2)))
 )
-def test_amp_gpus(tmpdir, strategy, precision, devices):
+def test_amp_gpus(tmpdir, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         accelerator="gpu",
         devices=devices,
-        strategy=strategy,
+        strategy=("ddp_spawn" if devices > 1 else "auto"),
         precision=precision,
     )
 
@@ -135,7 +134,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         accelerator="gpu",
         devices=[0],
         strategy="ddp_spawn",
-        precision=16,
+        precision="16-mixed",
         callbacks=[checkpoint],
         logger=logger,
     )
@@ -153,7 +152,7 @@ def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
         enable_progress_bar=False,
         max_epochs=1,
         devices=1,
-        precision=16,
+        precision="16-mixed",
         limit_train_batches=4,
         limit_val_batches=0,
         gradient_clip_val=clip_val,

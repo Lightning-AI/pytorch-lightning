@@ -74,7 +74,7 @@ class pl_legacy_patch:
     unpickling old checkpoints. The following patches apply.
 
         1. ``lightning.pytorch.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
-           version 1.2.8. See: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
+           version 1.2.8. See: https://github.com/Lightning-AI/lightning/pull/6898
         2. ``lightning.pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
            but still needs to be available for import for legacy checkpoints.
 
@@ -119,14 +119,12 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
 
     # include the full upgrade command, including the path to the loaded file in the error message,
     # so user can copy-paste and run if they want
-    if not _IS_WINDOWS:  # side-step bug: ValueError: path is on mount 'C:', start on mount 'D:'
-        path_hint = os.path.relpath(checkpoint_path, os.getcwd())
-    else:
-        path_hint = os.path.abspath(checkpoint_path)
+    # side-step bug: ValueError: path is on mount 'C:', start on mount 'D:'
+    path_hint = os.path.relpath(checkpoint_path, os.getcwd()) if not _IS_WINDOWS else os.path.abspath(checkpoint_path)
     _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"
-        f" `python -m lightning.pytorch.utilities.upgrade_checkpoint --file {str(path_hint)}`"
+        f" `python -m lightning.pytorch.utilities.upgrade_checkpoint {str(path_hint)}`"
     )
     return checkpoint
 

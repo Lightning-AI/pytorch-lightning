@@ -2,7 +2,6 @@
 
 import logging
 import os
-from typing import Any
 
 from lightning_utilities import module_available
 
@@ -13,19 +12,6 @@ if "__version__" not in locals():
         from lightning.pytorch.__version__ import version as __version__
     elif module_available("lightning"):
         from lightning import __version__  # noqa: F401
-
-_DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
-
-
-def _detail(self: Any, message: str, *args: Any, **kwargs: Any) -> None:
-    if self.isEnabledFor(_DETAIL):
-        # logger takes its '*args' as 'args'
-        self._log(_DETAIL, message, args, **kwargs)
-
-
-logging.addLevelName(_DETAIL, "DETAIL")
-logging.detail = _detail
-logging.Logger.detail = _detail
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
