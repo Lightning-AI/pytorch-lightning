@@ -575,7 +575,7 @@ class Fabric:
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
-        .. deprecated::     This context manager is deprecated in favor of :meth:`init_module`, use it instead.
+        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
         rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
         with _old_sharded_model_context(self._strategy):
