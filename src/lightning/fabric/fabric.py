@@ -588,8 +588,6 @@ class Fabric:
         The parameters get created on the device and with the right data type right away without wasting memory
         being allocated unnecessarily.
 
-        This context manager also replaces :meth:`sharded_model` and allows for instantly sharding the model
-        for strategies that support it.
         """
         with self._strategy.module_init_context():
             yield
