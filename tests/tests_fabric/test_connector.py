@@ -20,7 +20,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
-from fabric.plugins import HalfPrecision
 from lightning_utilities.test.warning import no_warning_call
 
 import lightning.fabric
@@ -31,7 +30,7 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, MixedPrecision, Precision, TPUPrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
