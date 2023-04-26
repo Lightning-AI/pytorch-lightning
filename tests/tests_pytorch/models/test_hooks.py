@@ -296,13 +296,13 @@ class HookedModel(BoringModel):
                     },
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
                     # the actual call to `PrecisionPlugin.optimizer_step`
-                    dict(
-                        name="optimizer_step",
-                        args=(current_epoch, i, ANY, ANY),
-                    ),
-                    *([dict(name="lr_scheduler_step", args=ANY)] if i == (trainer.num_training_batches - 1) else []),
-                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
-                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
+                    {
+                        "name": "optimizer_step",
+                        "args": (current_epoch, i, ANY, ANY),
+                    },
+                    *([{"name": "lr_scheduler_step", "args": ANY}] if i == (trainer.num_training_batches - 1) else []),
+                    {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
+                    {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
                 ]
             )
         return out
