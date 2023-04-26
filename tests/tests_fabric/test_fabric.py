@@ -692,6 +692,7 @@ def test_launch_and_cli_not_allowed():
         fabric.launch()
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize("strategy", ("xla", "ddp_spawn"))
 def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
     fabric = Fabric(strategy=strategy)
@@ -724,13 +725,24 @@ def test_module_sharding_context():
     fabric._strategy.module_sharded_context.assert_called_once()
 
 
-def test_init_module_context():
+def test_init_module_context(monkeypatch):
     """Test that the stratey returns the context manager for initializing the module."""
-    fabric = Fabric()
-    fabric._strategy = MagicMock(spec=Strategy, module_init_context=MagicMock())
+    import lightning.fabric
+
+    fabric = Fabric(accelerator="cpu")
+    strategy = MagicMock(spec=Strategy, module_init_context=MagicMock(), root_device=torch.device("cuda", 0))
+    fabric._strategy = strategy
     with fabric.init_module():
         pass
-    fabric._strategy.module_init_context.assert_called_once()
+    strategy.module_init_context.assert_called_once()
+    strategy.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device directly"):
+        with fabric.init_module():
+            pass
+    strategy.module_init_context.assert_called_once()
 
 
 def test_callbacks_input():
