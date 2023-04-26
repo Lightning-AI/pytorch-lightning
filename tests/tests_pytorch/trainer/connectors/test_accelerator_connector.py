@@ -578,6 +578,11 @@ def mock_hpu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning_habana.plugins.precision, "_HPU_AVAILABLE", value)
 
 
+def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
+    mock_xla_available(monkeypatch, False)
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.num_devices == 1
+
 @pytest.mark.parametrize(
     ["parallel_devices", "accelerator"],
     [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
