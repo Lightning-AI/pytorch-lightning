@@ -113,7 +113,7 @@ def test_trainer_reset_correctly(tmpdir, trainer_fn):
     assert actual == expected
 
     after_state_dict = model.state_dict()
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after scaling batch size"

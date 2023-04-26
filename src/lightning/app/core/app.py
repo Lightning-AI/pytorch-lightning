@@ -101,18 +101,6 @@ class LightningApp:
                 For instance, if you want to run your app at `https://customdomain.com/myapp`,
                 set `root_path` to `/myapp`.
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
-
-
-        Example:
-
-            >>> from lightning.app import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
-            >>> class RootFlow(LightningFlow):
-            ...     def run(self):
-            ...         self.stop()
-            ...
-            >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
-            >>> MultiProcessRuntime(app).dispatch()
         """
 
         self.root_path = root_path  # when running behind a proxy
@@ -631,7 +619,8 @@ class LightningApp:
         elif len(available_checkpoints) > 1:
             raise Exception(f"Found 2 checkpoints `{available_checkpoints}`with the same version.")
         checkpoint_path = os.path.join(checkpoints_dir, available_checkpoints[0])
-        state = pickle.load(open(checkpoint_path, "rb"))
+        with open(checkpoint_path, "rb") as fo:
+            state = pickle.load(fo)
         self.load_state_dict(state)
 
     def _dump_checkpoint(self) -> Optional[str]:
@@ -646,11 +635,7 @@ class LightningApp:
             int(f.split("_")[1]) for f in os.listdir(checkpoints_dir) if f.startswith("v_") and f.endswith(".json")
         )
 
-        if checkpoint_versions:
-            previous_version = checkpoint_versions[-1]
-        else:
-            # initialization
-            previous_version = -1
+        previous_version = checkpoint_versions[-1] if checkpoint_versions else -1
 
         checkpoint_path = os.path.join(checkpoints_dir, f"v_{previous_version + 1}_{time()}.json")
 

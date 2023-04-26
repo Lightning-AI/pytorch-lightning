@@ -115,7 +115,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         'namespace': 'Namespace(foo=3)',
         'string': 'abc'}
     """
-    for k in params.keys():
+    for k in params:
         # convert relevant np scalars to python types first (instead of str)
         if isinstance(params[k], (np.bool_, np.integer, np.floating)):
             params[k] = params[k].item()

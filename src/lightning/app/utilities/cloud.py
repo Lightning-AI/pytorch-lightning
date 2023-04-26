@@ -41,9 +41,8 @@ def _get_project(client: LightningClient, project_id: Optional[str] = None, verb
 
     if len(projects.memberships) == 0:
         raise ValueError("No valid projects found. Please reach out to lightning.ai team to create a project")
-    if len(projects.memberships) > 1:
-        if verbose:
-            print(f"Defaulting to the project: {projects.memberships[0].name}")
+    if len(projects.memberships) > 1 and verbose:
+        print(f"Defaulting to the project: {projects.memberships[0].name}")
     return projects.memberships[0]
 
 

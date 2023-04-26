@@ -89,7 +89,10 @@ RUN \
       python requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     # install PL dependencies
-    pip install --requirement requirements/pytorch/devel.txt && \
+    pip install \
+      -r requirements/pytorch/base.txt \
+      -r requirements/pytorch/extra.txt \
+      -r requirements/pytorch/test.txt && \
     cd .. && \
     rm -rf lightning && \
     rm -rf /root/.cache \

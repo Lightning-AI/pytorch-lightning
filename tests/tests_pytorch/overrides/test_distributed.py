@@ -14,11 +14,39 @@
 from typing import Iterable
 
 import pytest
+import torch
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from lightning.fabric.utilities.data import has_len
-from lightning.pytorch import seed_everything
+from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from tests_pytorch.helpers.runif import RunIf
+
+
+class MyModel(LightningModule):
+    def setup(self, stage: str) -> None:
+        self.layer = torch.nn.Linear(1, 1)
+        weights = self.layer.weight.item(), self.layer.bias.item()
+        self.rank_0_weights = self.trainer.strategy.broadcast(weights)
+
+    def test_step(self, batch, batch_idx):
+        current = self.layer.weight.item(), self.layer.bias.item()
+        assert self.rank_0_weights == current
+        gathered = self.all_gather(current)
+        # the weights have been synced
+        assert all(torch.all(t == t[0]) for t in gathered), gathered
+
+
+@RunIf(standalone=True)
+def test_params_synced_during_nonfit():
+    model = MyModel()
+    trainer = Trainer(
+        barebones=True,
+        devices=2,
+        accelerator="cpu",
+        strategy="ddp",
+    )
+    trainer.test(model, [0])
 
 
 @pytest.mark.parametrize("shuffle", [False, True])

@@ -115,8 +115,9 @@ jobs:
 
     - name: Install package & dependencies
       run: |
-        pip install -q pip -U
-        pip install .[extra,test] -U \
+        python -m pip install -q pip -U
+        extra=$(python -c "print({'lightning': 'pytorch-'}.get('${{ matrix.pkg-name }}', ''))")
+        pip install ".[${extra}extra,${extra}test]" -U \
           "pytest-timeout" -r requirements/_integrations/accelerators.txt \
           -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
@@ -149,9 +150,6 @@ jobs:
           --target_import="lightning_fabric,pytorch_lightning"
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
         pip uninstall -y lightning
-
-    - name: Prevent using raw source
-      run: rm -rf src/
 
     - name: Prevent using raw source
       run: rm -rf src/
