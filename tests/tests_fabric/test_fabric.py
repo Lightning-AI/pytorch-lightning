@@ -691,6 +691,7 @@ def test_launch_and_cli_not_allowed():
         fabric.launch()
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize("strategy", ("xla", "ddp_spawn"))
 def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
     fabric = Fabric(strategy=strategy)
@@ -713,14 +714,34 @@ def test_module_sharding_context():
     otherwise."""
     fabric = Fabric()
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_called_once()
+
+
+def test_init_module_context(monkeypatch):
+    """Test that the stratey returns the context manager for initializing the module."""
+    import lightning.fabric
+
+    fabric = Fabric(accelerator="cpu")
+    strategy = MagicMock(spec=Strategy, module_init_context=MagicMock(), root_device=torch.device("cuda", 0))
+    fabric._strategy = strategy
+    with fabric.init_module():
+        pass
+    strategy.module_init_context.assert_called_once()
+    strategy.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
+        with fabric.init_module():
+            pass
+    strategy.module_init_context.assert_called_once()
 
 
 def test_callbacks_input():

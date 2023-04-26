@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -382,9 +382,8 @@ class Fabric:
         """Clip the gradients of the model to a given max value or max norm.
 
         Args:
-            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
-            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
-                optimizer is referencing.
+            module: The module whose parameters should be clipped.
+            optimizer: The optimizer referencing the parameters to be clipped.
             clip_val: If passed, gradients will be clipped to this value.
             max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
                 no larger than the given value.
@@ -574,19 +573,30 @@ class Fabric:
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
-        Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
-
-        Example::
-
-            with self.sharded_model():
-                model = MyModel()
-
-        The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
-        if isinstance(self._strategy, _Sharded):
-            with self._strategy.module_sharded_context():
-                yield
-        else:
+        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
+        with _old_sharded_model_context(self._strategy):
+            yield
+
+    @contextmanager
+    def init_module(self) -> Generator:
+        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+
+        The parameters get created on the device and with the right data type right away without wasting memory being
+        allocated unnecessarily.
+
+        Note:
+            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
+                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
+                " utilize the features in `init_module()`.",
+                category=PossibleUserWarning,
+            )
+        with self._strategy.module_init_context():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -763,9 +773,9 @@ class Fabric:
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -864,3 +874,12 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
+
+
+@contextmanager
+def _old_sharded_model_context(strategy: Strategy) -> Generator:
+    if isinstance(strategy, _Sharded):
+        with strategy.module_sharded_context():
+            yield
+    else:
+        yield
