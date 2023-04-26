@@ -68,7 +68,6 @@ def _RunIf(
         min_python: Require that Python is greater or equal than this version.
         bf16_cuda: Require that CUDA device supports bf16.
         tpu: Require that TPU is available.
-        ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
