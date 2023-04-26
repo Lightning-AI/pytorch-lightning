@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -34,6 +34,7 @@ from lightning.fabric.plugins import Precision  # avoid circular imports: # isor
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
@@ -48,6 +49,10 @@ from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
+
+
+def _do_nothing(*_: Any) -> None:
+    pass
 
 
 class Fabric:
@@ -377,9 +382,8 @@ class Fabric:
         """Clip the gradients of the model to a given max value or max norm.
 
         Args:
-            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
-            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
-                optimizer is referencing.
+            module: The module whose parameters should be clipped.
+            optimizer: The optimizer referencing the parameters to be clipped.
             clip_val: If passed, gradients will be clipped to this value.
             max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
                 no larger than the given value.
@@ -570,12 +574,30 @@ class Fabric:
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
-        This context manager gets replaced by :meth:`sharded_model`, use it instead.
+        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
-        if isinstance(self._strategy, _Sharded):
-            with self._strategy.module_sharded_context():
-                yield
-        else:
+        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
+        with _old_sharded_model_context(self._strategy):
+            yield
+
+    @contextmanager
+    def init_module(self) -> Generator:
+        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+
+        The parameters get created on the device and with the right data type right away without wasting memory being
+        allocated unnecessarily.
+
+        Note:
+            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
+                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
+                " utilize the features in `init_module()`.",
+                category=PossibleUserWarning,
+            )
+        with self._strategy.module_init_context():
             yield
 
     @contextmanager
@@ -635,7 +657,7 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
-    def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Callable[["Fabric"], Any] = _do_nothing, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
 
         Args:
@@ -659,16 +681,26 @@ class Fabric:
                 "This script was launched through the CLI, and processes have already been created. Calling "
                 " `.launch()` again is not allowed."
             )
-        if function is not None and not inspect.signature(function).parameters:
+        if function is not _do_nothing:
+            if not callable(function):
+                raise TypeError(
+                    f"`Fabric.launch(...)` needs to be a callable, but got {function}."
+                    " HINT: do `.launch(your_fn)` instead of `.launch(your_fn())`"
+                )
+            if not inspect.signature(function).parameters:
+                raise TypeError(
+                    f"`Fabric.launch(function={function})` needs to take at least one argument. The launcher will"
+                    " pass in the `Fabric` object so you can use it inside the function."
+                )
+        elif isinstance(self.strategy.launcher, (_MultiProcessingLauncher, _XLALauncher)):
             raise TypeError(
-                "The function passed to `Fabric.launch()` needs to take at least one argument. The launcher will pass"
-                " in the `Fabric` object so you can use it inside the function."
+                f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
+                " that contains the code to launch in processes."
             )
-        function = partial(self._run_with_setup, function or _do_nothing)
-        args = [self, *args]
+        function = partial(self._run_with_setup, function)
         if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(function, *args, **kwargs)
-        return function(*args, **kwargs)
+            return self._strategy.launcher.launch(function, self, *args, **kwargs)
+        return function(self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
@@ -755,9 +787,9 @@ class Fabric:
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -858,5 +890,10 @@ def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
 
 
-def _do_nothing(*_: Any) -> None:
-    pass
+@contextmanager
+def _old_sharded_model_context(strategy: Strategy) -> Generator:
+    if isinstance(strategy, _Sharded):
+        with strategy.module_sharded_context():
+            yield
+    else:
+        yield

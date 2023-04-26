@@ -123,10 +123,7 @@ class AppState:
         return f"{self._host}:{self._port}" if self._use_localhost else self._host
 
     def _attach_plugin(self, plugin: Optional[BaseStatePlugin]) -> None:
-        if plugin is not None:
-            plugin = plugin
-        else:
-            plugin = AppStatePlugin()
+        plugin = plugin if plugin is not None else AppStatePlugin()
         self._plugin = plugin
 
     @staticmethod

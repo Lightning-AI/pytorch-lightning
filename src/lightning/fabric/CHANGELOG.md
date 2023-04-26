@@ -32,6 +32,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `Fabric.init_module()` context manager to instantiate large models efficiently ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
 
+- Added `lightning.fabric.strategies.Strategy.module_init_context()` context manager to control the model instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+  * Creates the model parameters in the desired dtype (`torch.float32`, `torch.float64`, `torch.float16`, or `torch.bfloat16`) depending on the 'true' precision choice in `Fabric(precision='32-true'|'64-true'|'16-true'|'bf16-true')`
+  * Initializes empty weights on the meta device for FSDP models and handles the Zero stage 3 initialization for DeepSpeed before sharding
+
+- Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
+
 
 - Added support for true half-precision as `L.Fabric(precision="16-true"|"bf16-true")` ([#17287](https://github.com/Lightning-AI/lightning/pull/17287))
 

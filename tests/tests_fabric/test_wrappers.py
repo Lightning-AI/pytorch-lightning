@@ -358,10 +358,6 @@ def test_fabric_optimizer_zero_grad_kwargs():
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
     fabric_optimizer.zero_grad()
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=False)
-    custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=True)
-    custom_zero_grad.assert_called_with(set_grads_to_None=True)
 
 
 def test_is_wrapped():

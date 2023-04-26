@@ -71,11 +71,11 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
         inconsistent_keys = []
         for key in lightning_hparams.keys() & datamodule_hparams.keys():
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-            if type(lm_val) != type(dm_val):
-                inconsistent_keys.append(key)
-            elif isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val):
-                inconsistent_keys.append(key)
-            elif lm_val != dm_val:
+            if (
+                type(lm_val) != type(dm_val)
+                or (isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val))
+                or lm_val != dm_val
+            ):
                 inconsistent_keys.append(key)
         if inconsistent_keys:
             raise RuntimeError(
