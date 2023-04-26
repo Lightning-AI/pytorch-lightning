@@ -382,9 +382,8 @@ class Fabric:
         """Clip the gradients of the model to a given max value or max norm.
 
         Args:
-            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
-            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
-                optimizer is referencing.
+            module: The module whose parameters should be clipped.
+            optimizer: The optimizer referencing the parameters to be clipped.
             clip_val: If passed, gradients will be clipped to this value.
             max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
                 no larger than the given value.
