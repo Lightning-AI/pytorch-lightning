@@ -60,8 +60,6 @@ class XLAFSDPStrategy(XLAStrategy):
             precision=precision,
         )
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
-        self._checkpoint_io: Optional[CheckpointIO]
-        self._launched = False
         self._fsdp_kwargs = kwargs
 
     def setup_environment(self) -> None:

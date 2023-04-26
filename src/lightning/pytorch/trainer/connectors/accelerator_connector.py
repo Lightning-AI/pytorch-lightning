@@ -61,6 +61,7 @@ from lightning.pytorch.strategies import (
     Strategy,
     StrategyRegistry,
     XLAStrategy,
+    XLAFSDPStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -162,6 +163,11 @@ class _AcceleratorConnector:
         # 4. Instantiate Strategy - Part 1
         if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
+
+        # Change fsdp to xla_fsdp if using TPU
+        if self._strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
+            self._strategy_flag = "xla_fsdp"
+
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
         self._init_strategy()
@@ -474,6 +480,12 @@ class _AcceleratorConnector:
             raise MisconfigurationException(
                 f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
             )
+        if (
+            strategy_flag in XLAFSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, XLAFSDPStrategy)
+        ) and self._accelerator_flag not in ("tpu"):
+            raise MisconfigurationException(
+                f"You selected strategy to be `{XLAFSDPStrategy.strategy_name}`, but TPU accelerator is not used."
+            )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
@@ -610,10 +622,10 @@ class _AcceleratorConnector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy)
+            self.strategy, (SingleTPUStrategy, XLAStrategy, XLAFSDPStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
+                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy`, `XLAStrategy`, or `XLAFSDPStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

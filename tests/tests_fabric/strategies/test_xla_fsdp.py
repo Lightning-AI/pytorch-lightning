@@ -159,6 +159,7 @@ def test_tpu_all_gather():
 
 @RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
+@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
 def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
@@ -214,6 +215,7 @@ def test_xla_fsdp_grad_clipping_value_error():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
 def test_xla_automatic_strategy_selection():
     fabric = L.Fabric(strategy='fsdp')
     assert isinstance(fabric.strategy, XLAFSDPStrategy)
