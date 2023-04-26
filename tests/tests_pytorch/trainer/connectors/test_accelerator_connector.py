@@ -583,6 +583,7 @@ def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
 
+
 @pytest.mark.parametrize(
     ["parallel_devices", "accelerator"],
     [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
