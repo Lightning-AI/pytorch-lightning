@@ -48,6 +48,4 @@ def _patch_classes() -> None:
 _patch_sys_modules()
 _patch_classes()
 
-
-# register these
 SingleTPUStrategy.register_strategies(pl.strategies.StrategyRegistry)
