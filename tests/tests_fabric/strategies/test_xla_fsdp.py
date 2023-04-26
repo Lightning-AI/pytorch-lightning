@@ -216,6 +216,6 @@ def test_xla_fsdp_grad_clipping_value_error():
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
-def test_xla_automatic_strategy_selection():
+def test_xla_fsdp_automatic_strategy_selection():
     fabric = L.Fabric(strategy='fsdp')
     assert isinstance(fabric.strategy, XLAFSDPStrategy)

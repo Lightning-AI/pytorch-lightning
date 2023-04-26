@@ -141,7 +141,6 @@ class XLAFSDPStrategy(XLAStrategy):
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
-
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         try:
             super().setup_optimizers(trainer)

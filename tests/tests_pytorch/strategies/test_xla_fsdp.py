@@ -55,13 +55,7 @@ class EmptyParametersModel(BoringModelTPU):
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=1e-2)
 
-
-class NoFlatParametersModel(BoringModelTPU):
-    def configure_optimizers(self):
-        layer = torch.nn.Linear(4, 5)
-        return torch.optim.Adam(layer.parameters(), lr=1e-2)
-
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_fsdp_strategy_debug_state():
     """Tests if device/debug flag is set correctly when training and after teardown for XLAStrategy."""
@@ -79,7 +73,8 @@ def test_xla_fsdp_strategy_debug_state():
     assert "PT_XLA_DEBUG" not in os.environ
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_fsdp_strategy():
     """Tests basic training for XLAStrategy."""
     model = BoringModelTPU()
@@ -95,8 +90,9 @@ def test_xla_fsdp_strategy():
     trainer.fit(model)
 
     
-@RunIf(tpu=True, standalone=True)
-def test_invalid_parameters_in_optimizer():
+@RunIf(tpu=True)
+@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+def test_xla_fsdp_invalid_parameters_in_optimizer():
     trainer = Trainer(
         strategy=XLAFSDPStrategy(),
         fast_dev_run=True,
@@ -112,7 +108,17 @@ def test_invalid_parameters_in_optimizer():
     with error_context:
         trainer.fit(model)
 
-    model = NoFlatParametersModel()
-    # with error_context:
+
+@RunIf(tpu=True)
+@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+def test_xla_fsdp_basic_checkpointing():
+    trainer = Trainer(strategy='xla_fsdp', enable_checkpointing=True, max_epochs=1)
+    model = BoringModelTPU()
     trainer.fit(model)
 
+
+@RunIf(tpu=True)
+@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+def test_xla_fsdp_automatic_strategy_selection():
+    trainer = Trainer(strategy='fsdp')
+    assert isinstance(trainer.strategy, XLAFSDPStrategy)
