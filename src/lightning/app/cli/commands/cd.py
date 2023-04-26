@@ -34,9 +34,7 @@ _CD_FILE = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "cd.txt")
 @click.argument("path", nargs=-1)
 def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
     """Change the current directory within the Lightning Cloud filesystem."""
-
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
         root = "/"
 
         if isinstance(path, Tuple) and len(path) > 0:
@@ -115,8 +113,5 @@ def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
 def _apply_double_dots(root: str, path: str) -> str:
     splits = [split for split in path.split("/") if split != ""]
     for split in splits:
-        if split == "..":
-            root = "/" + os.path.join(*root.split("/")[:-1])
-        else:
-            root = os.path.join(root, split)
+        root = "/" + os.path.join(*root.split("/")[:-1]) if split == ".." else os.path.join(root, split)
     return root

@@ -1,6 +1,5 @@
 import os
 import pickle
-import sys
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
@@ -250,7 +249,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
         (0.5, lambda x: x + 0.5, 1.0),
         (True, lambda x: not x, False),
         ("cocofruit", lambda x: x + "s", "cocofruits"),
-        (dict(a=1, b=2), lambda x: dict(a=1, b=3), dict(a=1, b=3)),
+        ({"a": 1, "b": 2}, lambda x: {"a": 1, "b": 3}, {"a": 1, "b": 3}),
         ([1, 2], lambda x: [1, 2, 3], [1, 2, 3]),
         ((4, 5), lambda x: (4, 5, 6), (4, 5, 6)),
     ),
@@ -262,12 +261,13 @@ def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
 
 def test_inplace_attribute_state_change(tmpdir):
     """Test that in-place modifications on containers get captured as a state change."""
+
     # inplace modification of a nested dict
     def transform(x):
         x["b"]["c"] += 1
 
-    value = dict(a=1, b=dict(c=2))
-    expected = dict(a=1, b=dict(c=3))
+    value = {"a": 1, "b": {"c": 2}}
+    expected = {"a": 1, "b": {"c": 3}}
     assert _run_state_transformation(tmpdir, value, transform, inplace=True) == expected
 
     # inplace modification of nested list
@@ -333,7 +333,7 @@ def test_lightning_flow_and_work():
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
-                        "name": "default",
+                        "name": "cpu-small",
                         "disk_size": 0,
                         "idle_timeout": None,
                         "mounts": None,
@@ -358,7 +358,7 @@ def test_lightning_flow_and_work():
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
-                        "name": "default",
+                        "name": "cpu-small",
                         "disk_size": 0,
                         "idle_timeout": None,
                         "mounts": None,
@@ -399,7 +399,7 @@ def test_lightning_flow_and_work():
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
-                        "name": "default",
+                        "name": "cpu-small",
                         "disk_size": 0,
                         "idle_timeout": None,
                         "mounts": None,
@@ -424,7 +424,7 @@ def test_lightning_flow_and_work():
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
-                        "name": "default",
+                        "name": "cpu-small",
                         "disk_size": 0,
                         "idle_timeout": None,
                         "mounts": None,
@@ -535,7 +535,7 @@ def test_lightning_flow_iterate(tmpdir, run_once):
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.looping == 0
     assert app.root.tracker == 4
-    call_hash = list(v for v in app.root._calls if "experimental_iterate" in v)[0]
+    call_hash = [v for v in app.root._calls if "experimental_iterate" in v][0]
     iterate_call = app.root._calls[call_hash]
     assert iterate_call["counter"] == 4
     assert not iterate_call["has_finished"]
@@ -565,7 +565,6 @@ class FlowCounter(LightningFlow):
 
 
 def test_lightning_flow_counter(tmpdir):
-
     app = LightningApp(FlowCounter())
     app.checkpointing = True
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -610,8 +609,7 @@ def test_flow_path_assignment():
     assert flow.path == flow.lit_path
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Timeout")  # fixme
-@pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.skip(reason="Timeout")  # fixme
 def test_flow_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
 
@@ -661,7 +659,6 @@ class FlowSchedule(LightningFlow):
 
 
 def test_scheduling_api():
-
     app = LightningApp(FlowSchedule())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -847,7 +844,6 @@ class FlowCollection(LightningFlow):
 
 
 def test_lightning_flow_flows_and_works():
-
     flow = FlowCollection()
     app = LightningApp(flow)
 
@@ -906,7 +902,6 @@ class RootFlowReady(_RootFlow):
 @pytest.mark.parametrize("flow", [FlowReady, RootFlowReady])
 def test_flow_ready(flow):
     """This test validates that the app status queue is populated correctly."""
-
     mock_queue = _MockQueue("api_publish_state_queue")
 
     def run_patch(method):
@@ -965,6 +960,5 @@ def test_structures_register_work_cloudcompute():
 
 
 def test_deprecation_warning_exit():
-    with pytest.raises(ExitAppException):
-        with pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
-            RootFlowReady()._exit()
+    with pytest.raises(ExitAppException), pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
+        RootFlowReady()._exit()

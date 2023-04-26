@@ -32,22 +32,11 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
-_DEEPSPEED_AVAILABLE = (
-    # DeepSpeed fails under 0.8.2 with torch 2.0: https://github.com/microsoft/DeepSpeed/pull/2863
-    RequirementCache("deepspeed>=0.8.2")
-    or (
-        not _TORCH_GREATER_EQUAL_2_0
-        and RequirementCache("deepspeed")
-        # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
-        # remove the packaging check when min version is >=0.8.1
-        and RequirementCache("packaging>=20.0")
-    )
-)
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -307,7 +296,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def model(self) -> "deepspeed.DeepSpeedEngine":
@@ -348,6 +337,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
         """
         raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        with super().module_init_context(), self.module_sharded_context():
+            yield
 
     @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:

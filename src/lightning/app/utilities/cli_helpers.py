@@ -47,7 +47,6 @@ def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
             key: env variable name
             value: env variable value
     """
-
     env_vars_dict = {}
     for env_str in env_list:
         var_parts = env_str.split("=")
@@ -198,7 +197,6 @@ class _LightningAppOpenAPIRetriever:
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""
-
         if _is_url(self.app_id_or_name_or_url):
             self.url = self.app_id_or_name_or_url
             assert self.url
@@ -249,14 +247,6 @@ def _arrow_time_callback(
             raise click.ClickException(f"cannot parse time {value}")
 
 
-def _is_valid_release(release):
-    version, release = release
-    version = packaging.version.parse(version)
-    if any(r["yanked"] for r in release) or version.is_devrelease or version.is_prerelease:
-        return False
-    return True
-
-
 @functools.lru_cache(maxsize=1)
 def _get_newer_version() -> Optional[str]:
     """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current
@@ -265,16 +255,15 @@ def _get_newer_version() -> Optional[str]:
         return None
     try:
         response = requests.get(f"https://pypi.org/pypi/{__package_name__}/json")
-        releases = response.json()["releases"]
+        response_json = response.json()
+        releases = response_json["releases"]
         if __version__ not in releases:
             # Always return None if not installed from PyPI (e.g. dev versions)
             return None
-        releases = {version: release for version, release in filter(_is_valid_release, releases.items())}
-        sorted_releases = sorted(
-            releases.items(), key=lambda release: release[1][0]["upload_time_iso_8601"], reverse=True
-        )
-        latest_version = sorted_releases[0][0]
-        return None if __version__ == latest_version else latest_version
+        latest_version = response_json["info"]["version"]
+        parsed_version = packaging.version.parse(latest_version)
+        is_invalid = response_json["info"]["yanked"] or parsed_version.is_devrelease or parsed_version.is_prerelease
+        return None if __version__ == latest_version or is_invalid else latest_version
     except Exception:
         # Return None if any exception occurs
         return None

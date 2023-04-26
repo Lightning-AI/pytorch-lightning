@@ -28,7 +28,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled."""
-
     try:
         pickle.dumps(obj)
         return True
@@ -94,7 +93,7 @@ def _get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any
     filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
     exclude_argnames = (*filtered_vars, "__class__", "frame", "frame_args")
     # only collect variables that appear in the signature
-    local_args = {k: local_vars[k] for k in init_parameters.keys()}
+    local_args = {k: local_vars[k] for k in init_parameters}
     # kwargs_var might be None => raised an error by mypy
     if kwargs_var:
         local_args.update(local_args.get(kwargs_var, {}))

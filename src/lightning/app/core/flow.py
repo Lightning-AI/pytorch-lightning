@@ -36,7 +36,6 @@ if TYPE_CHECKING:
 
 
 class LightningFlow:
-
     _INTERNAL_STATE_VARS = {
         # Internal protected variables that are still part of the state (even though they are prefixed with "_")
         "_paths",
@@ -110,7 +109,6 @@ class LightningFlow:
             >>> assert flow.counter == 1
             >>> assert flow.state["vars"]["counter"] == 1
         """
-
         self._state: set = set()
         self._name: str = ""
         self._flows: set = set()
@@ -122,7 +120,7 @@ class LightningFlow:
         self._paths: dict = {}
         self._backend: Optional["Backend"] = None
         # tuple instead of a list so that it cannot be modified without using the setter
-        self._lightningignore: Tuple[str, ...] = tuple()
+        self._lightningignore: Tuple[str, ...] = ()
 
     @property
     def name(self) -> str:
@@ -154,7 +152,6 @@ class LightningFlow:
             value = Path(value)
 
         if self._is_state_attribute(name):
-
             if hasattr(self, name):
                 if name in self._flows and value != getattr(self, name):
                     raise AttributeError(f"Cannot set attributes as the flow can't be changed once defined: {name}")
@@ -629,7 +626,7 @@ class LightningFlow:
             </div>
             <br />
         """
-        return [dict(name=name, content=component) for (name, component) in self.flows.items()]
+        return [{"name": name, "content": component} for (name, component) in self.flows.items()]
 
     def experimental_iterate(self, iterable: Iterable, run_once: bool = True, user_key: str = "") -> Generator:
         """This method should always be used with any kind of iterable to ensure its fault tolerant.

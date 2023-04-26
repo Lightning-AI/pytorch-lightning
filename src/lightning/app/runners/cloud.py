@@ -78,7 +78,6 @@ from lightning.app.core.constants import (
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     get_cloud_queue_type,
-    get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
     SYS_CUSTOMIZATIONS_SYNC_ROOT,
@@ -104,11 +103,10 @@ logger = Logger(__name__)
 
 def _to_clean_dict(swagger_object, map_attributes):
     """Returns the swagger object properties as a dict with correct object names."""
-
     if hasattr(swagger_object, "to_dict"):
         attribute_map = swagger_object.attribute_map
         result = {}
-        for key in attribute_map.keys():
+        for key in attribute_map:
             value = getattr(swagger_object, key)
             value = _to_clean_dict(value, map_attributes)
             if value is not None and value != {}:
@@ -396,7 +394,6 @@ class CloudRuntime(Runtime):
     @classmethod
     def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
-
         # Pretend we are running in the cloud when loading the app locally
         os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
 
@@ -466,7 +463,7 @@ class CloudRuntime(Runtime):
             work_lightningignores = [work.lightningignore for work in self.app.works]
             lightningignores = flow_lightningignores + work_lightningignores
             if lightningignores:
-                merged = sum(lightningignores, tuple())
+                merged = sum(lightningignores, ())
                 logger.debug(f"Found the following lightningignores: {merged}")
                 patterns = _parse_lightningignore(merged)
                 ignore_functions = [*ignore_functions, partial(_filter_ignored, root, patterns)]
@@ -539,7 +536,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = cloudspace_name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_cloudspaces])
+                name_exists = any(app.name == random_name for app in existing_cloudspaces)
 
             cloudspace_name = random_name
         return cloudspace_name
@@ -554,7 +551,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_instances])
+                name_exists = any(app.name == random_name for app in existing_instances)
 
             name = random_name
         return name
@@ -671,7 +668,7 @@ class CloudRuntime(Runtime):
         """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
         to start servers."""
         flow_servers: List[V1Flowserver] = []
-        for flow_name in self.app.frontends.keys():
+        for flow_name in self.app.frontends:
             flow_server = V1Flowserver(name=flow_name)
             flow_servers.append(flow_server)
         return flow_servers
@@ -873,12 +870,6 @@ class CloudRuntime(Runtime):
 
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
-
-        if get_cloud_queue_type():
-            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_QUEUE_TYPE", value=get_cloud_queue_type()))
-
-        if get_cluster_driver():
-            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLUSTER_DRIVER", value=get_cluster_driver()))
 
         if enable_interruptible_works():
             v1_env_vars.append(

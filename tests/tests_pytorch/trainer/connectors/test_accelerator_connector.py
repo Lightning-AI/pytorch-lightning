@@ -380,7 +380,6 @@ def test_device_type_when_strategy_instance_gpu_passed(cuda_count_2, mps_count_0
 
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
-
     with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
@@ -558,6 +557,7 @@ def test_unsupported_tpu_choice(tpu_available):
 def mock_ipu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning.pytorch.accelerators.ipu, "_IPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.trainer.setup, "_IPU_AVAILABLE", value)
 
 
 def test_unsupported_ipu_choice(monkeypatch):
@@ -815,6 +815,20 @@ class DeviceMock(Mock):
         return True
 
 
+@RunIf(skip_windows=True)
+def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
+    accelerator = TPUAccelerator()
+    trainer = Trainer(accelerator=accelerator, devices=1)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, SingleTPUStrategy)
+
+    trainer = Trainer(accelerator=accelerator)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, XLAStrategy)
+
+
 @pytest.mark.parametrize("is_interactive", (False, True))
 @RunIf(min_python="3.9")  # mocking issue
 def test_connector_auto_selection(monkeypatch, is_interactive):
@@ -977,3 +991,17 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        "ddp",
+        "ddp_spawn",
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+        pytest.param("fsdp", marks=RunIf(min_torch="1.12.0")),
+    ],
+)
+def test_connector_sets_num_nodes(strategy, cuda_count_2):
+    trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    assert trainer.strategy.num_nodes == 2
