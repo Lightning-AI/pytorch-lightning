@@ -315,6 +315,7 @@ def run_app_in_cloud(
                 "false",
                 *cmd_extra_args,
             ]
+            print(f"Command: {cmd}")
             process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
             process.wait()
 
