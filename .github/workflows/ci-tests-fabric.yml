@@ -109,7 +109,8 @@ jobs:
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        extra=$(python -c "print({'lightning': 'fabric-'}.get('${{ matrix.pkg-name }}', ''))")
+        pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip install -r requirements/fabric/strategies.txt -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
