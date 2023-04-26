@@ -86,7 +86,7 @@ def reset_cudnn_benchmark():
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.single_xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
@@ -100,8 +100,8 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())

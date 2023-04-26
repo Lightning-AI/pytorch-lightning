@@ -17,19 +17,21 @@ from typing import Any
 
 import lightning.pytorch as pl
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
+from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.strategies.single_xla import SingleDeviceXLAStrategy
+from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
 
 
 def _patch_sys_modules() -> None:
     self = sys.modules[__name__]
     sys.modules["lightning.pytorch.strategies.single_tpu"] = self
+    sys.modules["lightning.pytorch.accelerators.tpu"] = self
 
 
 class SingleTPUStrategy(SingleDeviceXLAStrategy):
     """Legacy class.
 
-    Use `SingleDeviceXLAStrategy` instead.
+    Use :class:`~lightning.pytorch.strategies.single_xla.SingleDeviceXLAStrategy` instead.
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -41,8 +43,22 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
         strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
 
 
+class TPUAccelerator(XLAAccelerator):
+    """Legacy class.
+
+    Use :class:`~lightning.pytorch.accelerators.xla.XLAAccelerator` instead.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        rank_zero_deprecation(
+            "The `TPUAccelerator` class is deprecated. Use `lightning.pytorch.accelerators.XLAAccelerator` instead."
+        )
+        super().__init__(*args, **kwargs)
+
+
 def _patch_classes() -> None:
     setattr(pl.strategies, "SingleTPUStrategy", SingleTPUStrategy)
+    setattr(pl.accelerators, "TPUAccelerator", TPUAccelerator)
 
 
 _patch_sys_modules()

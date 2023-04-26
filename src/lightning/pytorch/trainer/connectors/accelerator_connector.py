@@ -36,7 +36,7 @@ from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
@@ -349,7 +349,7 @@ class _AcceleratorConnector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability."""
-        if TPUAccelerator.is_available():
+        if XLAAccelerator.is_available():
             return "tpu"
         if IPUAccelerator.is_available():
             return "ipu"
@@ -438,7 +438,7 @@ class _AcceleratorConnector:
                 from lightning_habana import SingleHPUStrategy
 
                 return SingleHPUStrategy(device=torch.device("hpu"))
-        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
             else:
@@ -504,7 +504,7 @@ class _AcceleratorConnector:
 
             if isinstance(self.accelerator, HPUAccelerator):
                 return HPUPrecisionPlugin(self._precision_flag)
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_flag == "32-true":
                 return TPUPrecisionPlugin()
             elif self._precision_flag in ("16-mixed", "bf16-mixed"):
@@ -550,7 +550,7 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_flag == "64-true":
                 raise MisconfigurationException(
                     "`Trainer(accelerator='tpu', precision='64-true')` is not implemented."
@@ -561,7 +561,7 @@ class _AcceleratorConnector:
                 self._precision_plugin_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin)
             ):
                 raise ValueError(
-                    f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                    f"The `XLAAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
         if _LIGHTNING_HABANA_AVAILABLE:
@@ -611,11 +611,11 @@ class _AcceleratorConnector:
 
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
-        if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
+        if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
             self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

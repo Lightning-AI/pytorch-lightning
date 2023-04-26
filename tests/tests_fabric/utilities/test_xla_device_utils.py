@@ -16,20 +16,20 @@ import time
 
 import pytest
 
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE, TPUAccelerator
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
 from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check `is_available` returns True when TPU is available."""
-    assert not TPUAccelerator.is_available()
+    assert not XLAAccelerator.is_available()
 
 
 @RunIf(tpu=True)
 def test_tpu_device_presence():
     """Check `is_available` returns True when TPU is available."""
-    assert TPUAccelerator.is_available()
+    assert XLAAccelerator.is_available()
 
 
 def _t1_5():
@@ -48,11 +48,11 @@ def test_result_returns_within_timeout_seconds(monkeypatch):
     monkeypatch.setattr(tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(tpu, "TPU_CHECK_TIMEOUT", timeout)
     monkeypatch.setattr(tpu, "_has_tpu_device", _t1_5)
-    tpu.TPUAccelerator.is_available.cache_clear()
+    tpu.XLAAccelerator.is_available.cache_clear()
 
     start = time.monotonic()
 
-    result = tpu.TPUAccelerator.is_available()
+    result = tpu.XLAAccelerator.is_available()
 
     end = time.monotonic()
     elapsed_time = end - start
@@ -61,7 +61,7 @@ def test_result_returns_within_timeout_seconds(monkeypatch):
     assert 1 < elapsed_time < 2, elapsed_time
     assert result
 
-    tpu.TPUAccelerator.is_available.cache_clear()
+    tpu.XLAAccelerator.is_available.cache_clear()
 
 
 def _t3():
@@ -77,12 +77,12 @@ def test_timeout_triggered(monkeypatch):
     monkeypatch.setattr(tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(tpu, "TPU_CHECK_TIMEOUT", timeout)
     monkeypatch.setattr(tpu, "_has_tpu_device", _t3)
-    tpu.TPUAccelerator.is_available.cache_clear()
+    tpu.XLAAccelerator.is_available.cache_clear()
 
     start = time.monotonic()
 
     with pytest.raises(TimeoutError, match="Timed out waiting"):
-        tpu.TPUAccelerator.is_available()
+        tpu.XLAAccelerator.is_available()
 
     end = time.monotonic()
     elapsed_time = end - start
@@ -90,4 +90,4 @@ def test_timeout_triggered(monkeypatch):
     # around 1.5 but definitely not 3 (fn time)
     assert 1 < elapsed_time < 2, elapsed_time
 
-    tpu.TPUAccelerator.is_available.cache_clear()
+    tpu.XLAAccelerator.is_available.cache_clear()

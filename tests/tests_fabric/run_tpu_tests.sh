@@ -30,8 +30,8 @@ fi
 
 echo "--- Sanity check TPU availability ---"
 python3 -c "import torch_xla; print(torch_xla)"
-python3 -c "from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE; print(str(_XLA_AVAILABLE))"
-python3 -c "from lightning.fabric.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
+python3 -c "from lightning.fabric.accelerators.xla import _XLA_AVAILABLE; print(str(_XLA_AVAILABLE))"
+python3 -c "from lightning.fabric.accelerators import XLAAccelerator; assert XLAAccelerator.is_available()"
 echo "Sanity check passed!"
 
 echo "--- Running Fabric tests ---"

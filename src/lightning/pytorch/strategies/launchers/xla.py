@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional, Union
 import torch.multiprocessing as mp
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (

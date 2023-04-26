@@ -14,7 +14,7 @@ accelerators
     CPUAccelerator
     CUDAAccelerator
     IPUAccelerator
-    TPUAccelerator
+    XLAAccelerator
 
 callbacks
 ---------

@@ -24,8 +24,7 @@ from torch.utils.data import DataLoader
 
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators.cpu import CPUAccelerator
-from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
@@ -84,7 +83,7 @@ def test_if_test_works_after_train(tmpdir):
 
 @RunIf(skip_windows=True)
 def test_accelerator_cpu_when_tpu_available(tpu_available):
-    assert TPUAccelerator.is_available()
+    assert XLAAccelerator.is_available()
     trainer = Trainer(accelerator="cpu", devices=8)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
@@ -92,10 +91,10 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
 def test_accelerator_tpu(accelerator, devices, tpu_available):
-    assert TPUAccelerator.is_available()
+    assert XLAAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
@@ -173,7 +172,7 @@ def test_manual_optimization_tpus(tmpdir):
 
 
 def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
 
@@ -240,25 +239,25 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises(tpu_available, mps_count_0):
-    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
+    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision_plugin=PrecisionPlugin())
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
 
-    strategy = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=TPUPrecisionPlugin())
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy=strategy, devices=8)
 
 
 def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
+    with pytest.raises(ValueError, match="`XLAAccelerator` can only be used with a `TPUPrecisionPlugin`"):
         Trainer(strategy=strategy, devices=8)
 
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="The `TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
+        ValueError, match="The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
     ):
         Trainer(strategy=strategy, devices=8)
 

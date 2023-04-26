@@ -17,7 +17,7 @@ from typing import Optional
 import torch
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE

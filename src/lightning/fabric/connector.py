@@ -22,7 +22,7 @@ from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
-from lightning.fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
@@ -311,7 +311,7 @@ class _Connector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if TPUAccelerator.is_available():
+        if XLAAccelerator.is_available():
             return "tpu"
         if MPSAccelerator.is_available():
             return "mps"
@@ -373,7 +373,7 @@ class _Connector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
             else:
@@ -434,7 +434,7 @@ class _Connector:
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
 
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "32-true":
                 return TPUPrecision()
             elif self._precision_input in ("16-mixed", "bf16-mixed"):
@@ -475,7 +475,7 @@ class _Connector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "64-true":
                 raise NotImplementedError(
                     "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
@@ -484,7 +484,7 @@ class _Connector:
                 )
             if self._precision_instance and not isinstance(self._precision_instance, (TPUPrecision, TPUBf16Precision)):
                 raise ValueError(
-                    f"The `TPUAccelerator` can only be used with a `TPUPrecision` plugin,"
+                    f"The `XLAAccelerator` can only be used with a `TPUPrecision` plugin,"
                     f" found: {self._precision_instance}."
                 )
 
@@ -521,11 +521,11 @@ class _Connector:
 
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
-        if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
+        if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
             self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

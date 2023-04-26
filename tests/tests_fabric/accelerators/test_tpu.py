@@ -14,7 +14,7 @@
 
 import pytest
 
-from lightning.fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.xla import XLAAccelerator
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -22,24 +22,24 @@ from tests_fabric.helpers.runif import RunIf
 def test_auto_device_count():
     # this depends on the chip used, e.g. with v4-8 we expect 4
     # there's no easy way to test it without copying the `auto_device_count` so just check that its greater than 1
-    assert TPUAccelerator.auto_device_count() > 1
+    assert XLAAccelerator.auto_device_count() > 1
 
 
 @RunIf(tpu=True)
 def test_availability():
-    assert TPUAccelerator.is_available()
+    assert XLAAccelerator.is_available()
 
 
 @pytest.mark.parametrize("devices", (1, 8))
 def test_get_parallel_devices(devices, tpu_available):
-    expected = TPUAccelerator.get_parallel_devices(devices)
+    expected = XLAAccelerator.get_parallel_devices(devices)
     assert len(expected) == devices
 
 
 def test_get_parallel_devices_raises(tpu_available):
     with pytest.raises(ValueError, match="devices` can only be"):
-        TPUAccelerator.get_parallel_devices(0)
+        XLAAccelerator.get_parallel_devices(0)
     with pytest.raises(ValueError, match="devices` can only be"):
-        TPUAccelerator.get_parallel_devices(5)
+        XLAAccelerator.get_parallel_devices(5)
     with pytest.raises(ValueError, match="Could not parse.*anything-else'"):
-        TPUAccelerator.get_parallel_devices("anything-else")
+        XLAAccelerator.get_parallel_devices("anything-else")

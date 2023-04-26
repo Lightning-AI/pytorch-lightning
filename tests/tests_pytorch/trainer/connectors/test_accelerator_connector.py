@@ -32,7 +32,7 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import IPUAccelerator, TPUAccelerator
+from lightning.pytorch.accelerators import IPUAccelerator, XLAAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -71,7 +71,7 @@ def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch
         monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
 
     connector = _AcceleratorConnector(accelerator=accelerator, devices=devices)
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     if devices == "auto" or (isinstance(devices, int) and devices > 1):
         assert isinstance(connector.strategy, XLAStrategy)
         assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
@@ -550,7 +550,7 @@ def test_unsupported_tpu_choice(tpu_available):
 
     # if user didn't set strategy, AcceleratorConnector will choose "single_xla" or "xla"
     with pytest.raises(
-        ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
+        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
     ), pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"):
         Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
@@ -820,7 +820,7 @@ class DeviceMock(Mock):
 def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
 
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     trainer = Trainer(accelerator=accelerator, devices=1)
     assert trainer.accelerator is accelerator
     assert isinstance(trainer.strategy, SingleDeviceXLAStrategy)
@@ -905,10 +905,10 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         mock_ipu_available(monkeypatch, False)
         _mock_tpu_available(True)
-        monkeypatch.setattr(lightning.pytorch.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
+        monkeypatch.setattr(lightning.pytorch.accelerators.XLAAccelerator, "auto_device_count", lambda *_: 1)
         monkeypatch.setattr(torch, "device", DeviceMock())
         connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
     assert connector._devices_flag == 1
 
@@ -922,7 +922,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         _mock_tpu_available(True)
         mock_ipu_available(monkeypatch, False)
         connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
@@ -986,7 +986,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         _mock_tpu_available(True)
         mock_ipu_available(monkeypatch, False)
         connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
