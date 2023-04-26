@@ -66,16 +66,13 @@ def convert_zero_checkpoint_to_fp32_state_dict(
         tag: checkpoint tag used as a unique identifier for checkpoint. If not provided will attempt
             to load tag in the file named ``latest`` in the checkpoint folder, e.g., ``global_step14``
 
-    Examples:
+    Examples::
 
-        >>> from lightning.pytorch.utilities.deepspeed import (
-        ...     convert_zero_checkpoint_to_fp32_state_dict
-        ... )
-        >>> # Lightning deepspeed has saved a directory instead of a file
-        >>> save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/" # doctest: +SKIP
-        >>> output_path = "lightning_model.pt" # doctest: +SKIP
-        >>> convert_zero_checkpoint_to_fp32_state_dict(save_path, output_path) # doctest: +SKIP
-        Saving fp32 state dict to lightning_model.pt
+        # Lightning deepspeed has saved a directory instead of a file
+        convert_zero_checkpoint_to_fp32_state_dict(
+            "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/",
+            "lightning_model.pt"
+        )
     """
 
     state_dict = get_fp32_state_dict_from_zero_checkpoint(checkpoint_dir, tag)
