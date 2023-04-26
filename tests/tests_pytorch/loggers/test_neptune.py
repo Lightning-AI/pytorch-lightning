@@ -200,7 +200,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
-    @patch("lightning.pytorch.loggers.neptune.File")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock)
     def test_neptune_leave_open_experiment_after_fit(self, neptune):
         """Verify that neptune experiment was NOT closed after training."""
         # given
@@ -216,7 +216,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert run_instance_mock.stop.call_count == 0
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
-    @patch("lightning.pytorch.loggers.neptune.File")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock)
     def test_neptune_log_metrics_on_trained_model(self, neptune):
         """Verify that trained models do log data."""
         # given
@@ -305,7 +305,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
-    @patch("lightning.pytorch.loggers.neptune.File")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock)
     def test_after_save_checkpoint(self, neptune):
         test_variants = [
             ({}, "training/model"),
