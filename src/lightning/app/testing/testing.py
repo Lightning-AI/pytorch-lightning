@@ -298,7 +298,7 @@ def run_app_in_cloud(
         cmd_extra_args = []
 
         cloud_url = os.getenv("LIGHTNING_CLOUD_URL", "")
-        print(cloud_url)
+        raise Exception(cloud_url)
         if "ci-" or "staging" in cloud_url:
             cmd_extra_args = ["--cluster-id", "test-7"]
 
