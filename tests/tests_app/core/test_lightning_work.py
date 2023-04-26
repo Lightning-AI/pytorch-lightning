@@ -20,7 +20,6 @@ from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 def test_lightning_work_run_method_required():
     """Test that a helpful exception is raised when the user did not implement the `LightningWork.run()` method."""
-
     with pytest.raises(TypeError, match=escape("The work `LightningWork` is missing the `run()` method")):
         LightningWork()
 
@@ -305,7 +304,6 @@ def test_lightning_work_calls():
 
 
 def test_work_cloud_build_config_provided():
-
     assert isinstance(LightningWork.cloud_build_config, property)
     assert LightningWork.cloud_build_config.fset is not None
 
@@ -322,7 +320,6 @@ def test_work_cloud_build_config_provided():
 
 
 def test_work_local_build_config_provided():
-
     assert isinstance(LightningWork.local_build_config, property)
     assert LightningWork.local_build_config.fset is not None
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import os
-from contextlib import _GeneratorContextManager, contextmanager
+from contextlib import _GeneratorContextManager, contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -242,6 +242,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     def module_to_device(self, module: Module) -> None:
         pass
+
+    @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        device_context = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        with device_context, self.precision.module_init_context(), self.module_sharded_context():
+            yield
 
     @contextmanager
     def module_sharded_context(self) -> Generator:

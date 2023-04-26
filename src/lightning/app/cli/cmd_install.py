@@ -109,7 +109,6 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
 def gallery_apps_and_components(
     name: str, yes_arg: bool, version_arg: str, cwd: Optional[str] = None, overwrite: bool = False
 ) -> Optional[str]:
-
     try:
         org, app_or_component = name.split("/")
     except Exception:
@@ -439,7 +438,6 @@ def _resolve_entry(name, version_arg) -> Tuple[Optional[Dict], Optional[str]]:
     entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app", raise_error=False)
 
     if not entry:
-
         registry_url = _resolve_component_registry()
 
         # load the component resource
