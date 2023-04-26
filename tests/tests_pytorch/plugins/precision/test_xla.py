@@ -11,21 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from unittest import mock
+from unittest.mock import Mock
 
-from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.utilities.types import Optimizable
+from lightning.pytorch.plugins import XLAPrecisionPlugin
+from tests_pytorch.helpers.runif import RunIf
 
 
-class TPUPrecision(Precision):
-    """Precision plugin for TPU integration."""
-
-    def optimizer_step(
-        self,
-        optimizer: Optimizable,
-        **kwargs: Any,
-    ) -> Any:
-
-        import torch_xla.core.xla_model as xm
-
-        return xm.optimizer_step(optimizer, optimizer_args=kwargs)
+@RunIf(tpu=True)
+def test_optimizer_step_calls_mark_step():
+    plugin = XLAPrecisionPlugin()
+    optimizer = Mock()
+    with mock.patch("torch_xla.core.xla_model") as xm_mock:
+        plugin.optimizer_step(optimizer=optimizer, model=Mock(), closure=Mock())
+    optimizer.step.assert_called_once()
+    xm_mock.mark_step.assert_called_once()

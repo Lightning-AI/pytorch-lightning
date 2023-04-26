@@ -30,7 +30,7 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
+from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, XLAPrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -654,11 +654,11 @@ def test_unsupported_tpu_choice(_, tpu_available):
 
     # wrong precision plugin type
     strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `TPUPrecision` plugin"):
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecision` plugin"):
         _Connector(strategy=strategy)
 
     # wrong strategy type
-    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=TPUPrecision())
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision())
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         _Connector(strategy=strategy)
 

@@ -45,8 +45,8 @@ from lightning.pytorch.plugins import (
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    TPUBf16PrecisionPlugin,
-    TPUPrecisionPlugin,
+    XLABf16PrecisionPlugin,
+    XLAPrecisionPlugin,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
@@ -506,14 +506,14 @@ class _AcceleratorConnector:
                 return HPUPrecisionPlugin(self._precision_flag)
         if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_flag == "32-true":
-                return TPUPrecisionPlugin()
+                return XLAPrecisionPlugin()
             elif self._precision_flag in ("16-mixed", "bf16-mixed"):
                 if self._precision_flag == "16-mixed":
                     rank_zero_warn(
                         "You passed `Trainer(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
                         " is not supported on TPUs. Using `precision='bf16-mixed'` instead."
                     )
-                return TPUBf16PrecisionPlugin()
+                return XLABf16PrecisionPlugin()
 
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
@@ -558,10 +558,10 @@ class _AcceleratorConnector:
                     " requesting this feature."
                 )
             if self._precision_plugin_flag and not isinstance(
-                self._precision_plugin_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin)
+                self._precision_plugin_flag, (XLAPrecisionPlugin, XLABf16PrecisionPlugin)
             ):
                 raise ValueError(
-                    f"The `XLAAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                    f"The `XLAAccelerator` can only be used with a `XLAPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
         if _LIGHTNING_HABANA_AVAILABLE:

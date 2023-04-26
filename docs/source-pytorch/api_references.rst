@@ -119,8 +119,8 @@ precision
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    TPUBf16PrecisionPlugin
-    TPUPrecisionPlugin
+    XLABf16PrecisionPlugin
+    XLAPrecisionPlugin
 
 environments
 """"""""""""

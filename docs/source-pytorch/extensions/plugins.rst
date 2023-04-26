@@ -58,8 +58,8 @@ The full list of built-in precision plugins is listed below.
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    TPUBf16PrecisionPlugin
-    TPUPrecisionPlugin
+    XLABf16PrecisionPlugin
+    XLAPrecisionPlugin
 
 More information regarding precision with Lightning can be found :ref:`here <precision>`
 

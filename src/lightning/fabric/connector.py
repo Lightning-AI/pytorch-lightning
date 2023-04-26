@@ -28,8 +28,8 @@ from lightning.fabric.plugins import (
     DeepSpeedPrecision,
     MixedPrecision,
     Precision,
-    TPUBf16Precision,
-    TPUPrecision,
+    XLABf16Precision,
+    XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
@@ -436,14 +436,14 @@ class _Connector:
 
         if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "32-true":
-                return TPUPrecision()
+                return XLAPrecision()
             elif self._precision_input in ("16-mixed", "bf16-mixed"):
                 if self._precision_input == "16-mixed":
                     rank_zero_warn(
                         "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
                         " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
-                return TPUBf16Precision()
+                return XLABf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
@@ -482,9 +482,9 @@ class _Connector:
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
-            if self._precision_instance and not isinstance(self._precision_instance, (TPUPrecision, TPUBf16Precision)):
+            if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
                 raise ValueError(
-                    f"The `XLAAccelerator` can only be used with a `TPUPrecision` plugin,"
+                    f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
                     f" found: {self._precision_instance}."
                 )
 

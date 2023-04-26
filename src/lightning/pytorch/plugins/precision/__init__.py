@@ -17,8 +17,8 @@ from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.plugins.precision.ipu import IPUPrecisionPlugin
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
-from lightning.pytorch.plugins.precision.tpu import TPUPrecisionPlugin
-from lightning.pytorch.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
+from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
+from lightning.pytorch.plugins.precision.xlabf16 import XLABf16PrecisionPlugin
 
 __all__ = [
     "DeepSpeedPrecisionPlugin",
@@ -27,6 +27,6 @@ __all__ = [
     "IPUPrecisionPlugin",
     "MixedPrecisionPlugin",
     "PrecisionPlugin",
-    "TPUPrecisionPlugin",
-    "TPUBf16PrecisionPlugin",
+    "XLAPrecisionPlugin",
+    "XLABf16PrecisionPlugin",
 ]

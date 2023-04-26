@@ -26,7 +26,7 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
+from lightning.pytorch.plugins import PrecisionPlugin, XLACheckpointIO, XLAPrecisionPlugin
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
@@ -240,10 +240,10 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 def test_tpu_invalid_raises(tpu_available, mps_count_0):
     strategy = XLAStrategy(accelerator=XLAAccelerator(), precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `TPUPrecisionPlugin"):
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
 
-    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=TPUPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=XLAPrecisionPlugin())
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy=strategy, devices=8)
 
@@ -251,11 +251,11 @@ def test_tpu_invalid_raises(tpu_available, mps_count_0):
 def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
     accelerator = XLAAccelerator()
     strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="`XLAAccelerator` can only be used with a `TPUPrecisionPlugin`"):
+    with pytest.raises(ValueError, match="`XLAAccelerator` can only be used with a `XLAPrecisionPlugin`"):
         Trainer(strategy=strategy, devices=8)
 
     accelerator = XLAAccelerator()
-    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecisionPlugin())
     with pytest.raises(
         ValueError, match="The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
     ):
