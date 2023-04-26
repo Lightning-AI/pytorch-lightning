@@ -149,6 +149,23 @@ Make your code reproducible by calling this method at the beginning of your run.
 This covers PyTorch, NumPy, and Python random number generators. In addition, Fabric takes care of properly initializing
 the seed of data loader worker processes (can be turned off by passing ``workers=False``).
 
+init_module
+===========
+
+Instantiating a ``nn.Module`` in PyTorch creates all parameters on CPU in float32 precision by default.
+To speed up initialization, you can force PyTorch to create the model directly on the target device and with the desired precision without changing your model code.
+
+.. code-block:: python
+
+    fabric = Fabric(accelerator="cuda", precision="16-true")
+
+    with fabric.init_module():
+        # models created here will be on GPU and in float16
+        model = MyModel()
+
+This eliminates the waiting time to transfer the model parameters from the CPU to the device.
+For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.fabric.fabric.Fabric.init_module` method will allocate the model parameters on the meta device first before sharding.
+This makes it possible to work with models that are larger than the memory of a single device.
 
 autocast
 ========
