@@ -28,7 +28,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled."""
-
     try:
         pickle.dumps(obj)
         return True

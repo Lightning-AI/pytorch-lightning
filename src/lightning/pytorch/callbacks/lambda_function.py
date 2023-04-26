@@ -11,12 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-Lambda Callback
-^^^^^^^^^^^^^^^
+r"""Lambda Callback ^^^^^^^^^^^^^^^
 
 Create a simple callback on the fly using lambda functions.
-
 """
 
 from typing import Callable, Optional
@@ -25,8 +22,7 @@ from lightning.pytorch.callbacks.callback import Callback
 
 
 class LambdaCallback(Callback):
-    r"""
-    Create a simple callback on the fly using lambda functions.
+    r"""Create a simple callback on the fly using lambda functions.
 
     Args:
         **kwargs: hooks supported by :class:`~lightning.pytorch.callbacks.callback.Callback`

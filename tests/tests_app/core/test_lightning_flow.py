@@ -261,6 +261,7 @@ def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
 
 def test_inplace_attribute_state_change(tmpdir):
     """Test that in-place modifications on containers get captured as a state change."""
+
     # inplace modification of a nested dict
     def transform(x):
         x["b"]["c"] += 1
@@ -564,7 +565,6 @@ class FlowCounter(LightningFlow):
 
 
 def test_lightning_flow_counter(tmpdir):
-
     app = LightningApp(FlowCounter())
     app.checkpointing = True
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -659,7 +659,6 @@ class FlowSchedule(LightningFlow):
 
 
 def test_scheduling_api():
-
     app = LightningApp(FlowSchedule())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -845,7 +844,6 @@ class FlowCollection(LightningFlow):
 
 
 def test_lightning_flow_flows_and_works():
-
     flow = FlowCollection()
     app = LightningApp(flow)
 
@@ -904,7 +902,6 @@ class RootFlowReady(_RootFlow):
 @pytest.mark.parametrize("flow", [FlowReady, RootFlowReady])
 def test_flow_ready(flow):
     """This test validates that the app status queue is populated correctly."""
-
     mock_queue = _MockQueue("api_publish_state_queue")
 
     def run_patch(method):

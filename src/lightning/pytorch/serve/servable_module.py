@@ -6,7 +6,6 @@ from torch import Tensor
 
 
 class ServableModule(ABC, torch.nn.Module):
-
     """The ServableModule provides a simple API to make your model servable.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -72,8 +71,7 @@ class ServableModule(ABC, torch.nn.Module):
 
     @abstractmethod
     def serve_step(self, *args: Tensor, **kwargs: Tensor) -> Dict[str, Tensor]:
-        r"""
-        Returns the predictions of your model as a dictionary.
+        r"""Returns the predictions of your model as a dictionary.
 
         .. code-block:: python
 
