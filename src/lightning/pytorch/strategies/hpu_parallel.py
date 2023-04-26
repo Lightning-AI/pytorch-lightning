@@ -58,7 +58,6 @@ class HPUParallelStrategy(DDPStrategy):
         process_group_backend: Optional[str] = "hccl",
         **kwargs: Any,
     ) -> None:
-
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("`HPUParallelStrategy` requires HPU devices to run")
 
@@ -90,7 +89,6 @@ class HPUParallelStrategy(DDPStrategy):
         self._checkpoint_io = io
 
     def setup_environment(self) -> None:
-
         os.environ["ID"] = str(self.local_rank)
         if self._process_group_backend == "hccl":
             # this env is used in overrides to check the backend initiated

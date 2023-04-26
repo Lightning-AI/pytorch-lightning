@@ -19,7 +19,6 @@ from lightning.app.cli.commands import cd, ls, rm
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_rm(monkeypatch):
     """This test validates rm behaves as expected."""
-
     if os.path.exists(cd._CD_FILE):
         os.remove(cd._CD_FILE)
 

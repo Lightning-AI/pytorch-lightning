@@ -825,7 +825,6 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-
             missing_keys: List[str] = []
             unexpected_keys: List[str] = []
             error_msgs: List[str] = []

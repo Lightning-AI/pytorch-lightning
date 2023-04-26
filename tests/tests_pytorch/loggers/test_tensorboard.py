@@ -62,7 +62,6 @@ def test_tensorboard_hparams_reload(tmpdir):
 
 def test_tensorboard_automatic_versioning(tmpdir):
     """Verify that automatic versioning works."""
-
     root_dir = tmpdir / "tb_versioning"
     root_dir.mkdir()
     (root_dir / "version_0").mkdir()
@@ -74,7 +73,6 @@ def test_tensorboard_automatic_versioning(tmpdir):
 
 def test_tensorboard_manual_versioning(tmpdir):
     """Verify that manual versioning works."""
-
     root_dir = tmpdir / "tb_versioning"
     root_dir.mkdir()
     (root_dir / "version_0").mkdir()
@@ -88,7 +86,6 @@ def test_tensorboard_manual_versioning(tmpdir):
 
 def test_tensorboard_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     name = "tb_versioning"
     (tmpdir / name).mkdir()
     expected_version = "2020-02-05-162402"
@@ -333,7 +330,6 @@ def test_tensorboard_with_symlink(log, tmpdir):
 
 def test_tensorboard_missing_folder_warning(tmpdir, caplog):
     """Verify that the logger throws a warning for invalid directory."""
-
     name = "fake_dir"
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
 

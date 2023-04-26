@@ -32,7 +32,6 @@ logger = Logger(__name__)
 @click.option("--recursive", required=False, hidden=True)
 def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
     """Delete files on the Lightning Cloud filesystem."""
-
     root = _pwd()
 
     if rm_path in (".", ".."):
@@ -70,7 +69,6 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
     lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == splits[1]]
 
     if len(lit_ressources) == 0:
-
         lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == splits[1]]
 
         if len(lit_ressources) == 0:

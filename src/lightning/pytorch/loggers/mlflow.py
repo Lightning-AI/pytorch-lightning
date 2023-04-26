@@ -181,7 +181,6 @@ class MLFlowLogger(Logger):
             self.logger.experiment.some_mlflow_function()
 
         """
-
         if self._initialized:
             return self._mlflow_client
 

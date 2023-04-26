@@ -234,11 +234,9 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
 @pytest.mark.parametrize("refresh_rate", [0, 1, 50])
 def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
-
     model = BoringModel()
 
     class CurrentProgressBar(TQDMProgressBar):
-
         train_batches_seen = 0
         val_batches_seen = 0
         test_batches_seen = 0

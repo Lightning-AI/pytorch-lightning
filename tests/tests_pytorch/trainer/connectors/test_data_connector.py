@@ -314,7 +314,6 @@ class LoaderTestModel(BoringModel):
 
 def test_loader_detaching():
     """Checks that the loader has been reset after the entrypoint."""
-
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 
     model = LoaderTestModel()
@@ -535,7 +534,6 @@ def test_invalid_hook_passed_in_datahook_selector():
 @pytest.mark.parametrize("devices, warn_context", [(1, no_warning_call), (2, pytest.warns)])
 def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
-
     model = BoringModel()
     trainer = Trainer(strategy="ddp", devices=devices, accelerator="cpu")
     trainer.strategy.connect(model)

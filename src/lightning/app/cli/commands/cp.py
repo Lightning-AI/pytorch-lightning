@@ -54,13 +54,11 @@ logger = Logger(__name__)
 @click.option("--zip", required=False, is_flag=True, default=False)
 def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False, zip: bool = False) -> None:
     """Copy files between your local filesystem and the Lightning Cloud filesystem."""
-
     if sys.platform == "win32":
         print("`cp` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
         pwd = _pwd()
 
         client = LightningClient(retry=False)
@@ -308,11 +306,9 @@ def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1Lightni
     lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == resource_name]
 
     if len(lit_ressources) == 0:
-
         lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == resource_name]
 
         if len(lit_ressources) == 0:
-
             print(f"ERROR: There isn't any Lightning Ressource matching the name {resource_name}.")
             sys.exit(0)
 

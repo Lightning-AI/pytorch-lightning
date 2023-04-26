@@ -149,7 +149,6 @@ def test_multiple_eval_dataloader(tmpdir, ckpt_path):
 
 def test_train_dataloader_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit."""
-
     # only train passed to fit
     model = BoringModel()
     train_loader = model.train_dataloader()
@@ -166,7 +165,6 @@ def test_train_dataloader_passed_to_fit(tmpdir):
 @pytest.mark.parametrize("n", (1, 2))
 def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
     """Verify that dataloaders can be passed."""
-
     train_dataloaders = DataLoader(RandomDataset(32, 64))
     if n == 1:
         model = BoringModel()
@@ -240,7 +238,6 @@ class Counter(Callback):
 
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent."""
-
     epoch_cb = Counter()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -288,7 +285,6 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
 )
 def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
-
     epoch_cb = Counter()
     max_epochs = 2
     trainer = Trainer(
@@ -321,7 +317,6 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
 )
 def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
-
     epoch_cb = Counter()
     callbacks = [epoch_cb]
     enable_checkpointing = False
@@ -360,7 +355,6 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
 )
 def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
-
     epoch_cb = Counter()
     max_epochs = 2
     limit_batches = 10
@@ -424,7 +418,6 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
 @pytest.mark.parametrize(["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(1, 2, 3), (1, 2, 1e50)])
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit as number."""
-
     model = MultiEvalDataLoaderModel()
 
     # train, multiple val and multiple test passed with percent_check
@@ -502,7 +495,6 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     """Verify that dataloaders can be passed to fit."""
-
     model = BoringModel()
     eval_dataloader = DataLoader(RandomDataset(32, 64))
     trainer_options = {
@@ -550,7 +542,6 @@ def test_warning_on_zero_len_dataloader():
 @patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
-
     model = BoringModel()
 
     train_dl = model.train_dataloader()
@@ -1090,7 +1081,6 @@ def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
 
 @pytest.mark.parametrize("n", ["test", -1])
 def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
-
     with pytest.raises(MisconfigurationException, match="should be an int >"):
         Trainer(default_root_dir=tmpdir, reload_dataloaders_every_n_epochs=n)
 

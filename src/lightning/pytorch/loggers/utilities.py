@@ -37,7 +37,6 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
     """
-
     # get checkpoints to be saved with associated score
     checkpoints = {}
     if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):

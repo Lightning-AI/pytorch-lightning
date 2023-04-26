@@ -162,7 +162,6 @@ def test_stages_correct(tmpdir):
 
 @RunIf(hpu=True)
 def test_accelerator_hpu():
-
     trainer = Trainer(accelerator="hpu", devices=1)
     assert isinstance(trainer.accelerator, HPUAccelerator)
     assert trainer.num_devices == 1
@@ -178,7 +177,6 @@ def test_accelerator_hpu():
 
 @RunIf(hpu=True)
 def test_accelerator_hpu_with_single_device():
-
     trainer = Trainer(accelerator="hpu", devices=1)
 
     assert isinstance(trainer.strategy, SingleHPUStrategy)
@@ -187,7 +185,6 @@ def test_accelerator_hpu_with_single_device():
 
 @RunIf(hpu=True)
 def test_accelerator_hpu_with_multiple_devices():
-
     trainer = Trainer(accelerator="hpu", devices=8)
 
     assert isinstance(trainer.strategy, HPUParallelStrategy)
@@ -196,7 +193,6 @@ def test_accelerator_hpu_with_multiple_devices():
 
 @RunIf(hpu=True)
 def test_accelerator_auto_with_devices_hpu():
-
     trainer = Trainer(accelerator="auto", devices=8)
 
     assert isinstance(trainer.strategy, HPUParallelStrategy)
@@ -305,7 +301,6 @@ def test_multi_optimizers_with_hpu(tmpdir):
 
 @RunIf(hpu=True)
 def test_hpu_device_stats_monitor():
-
     hpu_stats = HPUAccelerator().get_device_stats("hpu")
     fields = [
         "Limit",

@@ -456,7 +456,6 @@ class ModelCheckpoint(Checkpoint):
         every_n_epochs: Optional[int],
         train_time_interval: Optional[timedelta],
     ) -> None:
-
         # Default to running once after each validation epoch if neither
         # every_n_train_steps nor every_n_epochs is set
         if every_n_train_steps is None and every_n_epochs is None and train_time_interval is None:

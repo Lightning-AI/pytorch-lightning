@@ -401,6 +401,7 @@ class _CheckpointConnector:
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
+
         Args:
             weights_only: saving model weights only
         Return:
@@ -520,7 +521,6 @@ class _CheckpointConnector:
         Returns:
             None if no-corresponding-file else maximum suffix number
         """
-
         # check directory existence
         fs, uri = url_to_fs(str(dir_path))
         if not fs.exists(dir_path):
@@ -544,7 +544,6 @@ class _CheckpointConnector:
     @staticmethod
     def __get_max_ckpt_path_from_folder(folder_path: _PATH) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
-
         max_suffix = _CheckpointConnector.__max_ckpt_version_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"

@@ -9,7 +9,6 @@ from lightning.app.cli import cmd_init
 
 
 def test_validate_init_name():
-
     # test that a good name works (mix chars)
     value = cmd_init._capture_valid_app_component_name("abc1-cde")
     assert value == "abc1-cde"

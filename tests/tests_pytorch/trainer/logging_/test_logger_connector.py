@@ -448,7 +448,6 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             self.layer = torch.nn.Linear(32, 10)
 
         def training_step(self, batch):
-
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
             self.metrics._is_currently_logging = True
             self.log_dict(self.metrics, on_step=True, on_epoch=True)
