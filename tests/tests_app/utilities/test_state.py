@@ -15,7 +15,6 @@ from lightning.app.utilities.state import AppState
 
 @mock.patch("lightning.app.utilities.state._configure_session", return_value=requests)
 def test_app_state_not_connected(_):
-
     """Test an error message when a disconnected AppState tries to access attributes."""
     state = AppState(port=8000)
     with pytest.raises(AttributeError, match="Failed to connect and fetch the app state"):
@@ -250,7 +249,6 @@ class MockResponse:
 
 
 def test_get_send_request(monkeypatch):
-
     app = LightningApp(Flow())
     monkeypatch.setattr(lightning.app.utilities.state, "_configure_session", mock.MagicMock())
 

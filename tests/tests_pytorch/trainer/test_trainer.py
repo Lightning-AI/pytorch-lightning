@@ -881,7 +881,6 @@ def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 
     class CurrentModel(BoringModel):
-
         training_step_invoked = False
 
         def training_step(self, *args, **kwargs):
@@ -936,7 +935,6 @@ def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
     class CurrentModel(BoringModel):
-
         validation_step_invoked = False
 
         def validation_step(self, *args, **kwargs):
@@ -975,7 +973,6 @@ def test_disabled_validation(tmpdir):
 
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
-
     model = BoringModel()
 
     class InterruptCallback(Callback):
@@ -1261,7 +1258,6 @@ class TestLightningDataModule(LightningDataModule):
 
 
 class CustomPredictionWriter(BasePredictionWriter):
-
     write_on_batch_end_called = False
     write_on_epoch_end_called = False
 
@@ -1403,7 +1399,6 @@ def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
 def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
-
     ds = dataset_cls(32, 8)
     loader = DataLoader(ds)
     is_iterable_dataset = isinstance(ds, IterableDataset)
@@ -1487,7 +1482,6 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     ],
 )
 def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
-
     """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
 
     class TestModel(BoringModel):
@@ -1594,7 +1588,6 @@ def test_train_loop_system(tmpdir):
 
 
 def test_check_val_every_n_epoch_exception(tmpdir):
-
     with pytest.raises(MisconfigurationException, match="should be an integer."):
         Trainer(default_root_dir=tmpdir, max_epochs=1, check_val_every_n_epoch=1.2)
 
@@ -1669,7 +1662,6 @@ class CustomCallbackOnLoadCheckpoint(Callback):
 
 def test_on_load_checkpoint_missing_callbacks(tmpdir):
     """Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming."""
-
     model = BoringModel()
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 

@@ -141,7 +141,6 @@ def run(hparams):
 
     # loop over epochs
     for epoch in range(1, hparams.epochs + 1):
-
         # loop over folds
         epoch_acc = 0
         for fold, (train_ids, val_ids) in enumerate(kfold.split(dataset)):

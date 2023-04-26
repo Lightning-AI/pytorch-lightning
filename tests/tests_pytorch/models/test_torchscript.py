@@ -135,7 +135,6 @@ def test_torchscript_save_load(tmpdir, modelclass):
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     """Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems."""
-
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
 

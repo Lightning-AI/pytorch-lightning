@@ -341,7 +341,6 @@ class LightningApp:
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
-
             # TODO: Fetch all available deltas at once to reduce queue calls.
             delta: Optional[
                 Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
@@ -531,7 +530,6 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
-
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
