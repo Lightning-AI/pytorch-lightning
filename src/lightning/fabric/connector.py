@@ -53,7 +53,7 @@ from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-    SingleTPUStrategy,
+    SingleDeviceXLAStrategy,
     Strategy,
     STRATEGY_REGISTRY,
     XLAStrategy,
@@ -377,8 +377,8 @@ class _Connector:
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
             else:
-                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])
+                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_xla"
+                return SingleDeviceXLAStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
@@ -522,10 +522,10 @@ class _Connector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy)
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
+                "The `TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

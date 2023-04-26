@@ -45,7 +45,7 @@ from lightning.fabric.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
-    SingleTPUStrategy,
+    SingleDeviceXLAStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
@@ -74,7 +74,7 @@ def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch
         assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
         assert isinstance(connector.cluster_environment, XLAEnvironment)
     else:
-        assert isinstance(connector.strategy, SingleTPUStrategy)
+        assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
@@ -645,7 +645,9 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
+    with pytest.raises(
+        ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
+    ), pytest.warns(
         UserWarning, match=r"accelerator='tpu', precision='16-mixed'\)` but AMP with fp16 is not supported"
     ):
         _Connector(accelerator="tpu", precision="16-mixed", strategy="ddp")
@@ -657,7 +659,7 @@ def test_unsupported_tpu_choice(_, tpu_available):
 
     # wrong strategy type
     strategy = DDPStrategy(accelerator=TPUAccelerator(), precision=TPUPrecision())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         _Connector(strategy=strategy)
 
 
@@ -668,7 +670,7 @@ def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
     accelerator = TPUAccelerator()
     connector = _Connector(accelerator=accelerator, devices=1)
     assert connector.accelerator is accelerator
-    assert isinstance(connector.strategy, SingleTPUStrategy)
+    assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
 
     connector = _Connector(accelerator=accelerator)
     assert connector.accelerator is accelerator
@@ -967,7 +969,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         monkeypatch.setattr(torch, "device", DeviceMock())
         connector = _Connector()
     assert isinstance(connector.accelerator, TPUAccelerator)
-    assert isinstance(connector.strategy, SingleTPUStrategy)
+    assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly

@@ -66,10 +66,6 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
 
-    @property
-    def is_distributed(self) -> bool:
-        return False
-
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.model, "self.model must be set before find_shared_parameters(self.model)"
         shared_params = find_shared_parameters(self.model)

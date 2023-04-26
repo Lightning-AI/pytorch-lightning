@@ -93,9 +93,9 @@ The below table lists all relevant strategies available in Lightning with their 
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`
-   * - single_tpu
-     - :class:`~lightning.pytorch.strategies.SingleTPUStrategy`
-     - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
+   * - single_xla
+     - :class:`~lightning.pytorch.strategies.SingleXLAStrategy`
+     - Strategy for training on a single XLA device, like TPUs. :doc:`Learn more. <../accelerators/tpu>`
 
 ----
 

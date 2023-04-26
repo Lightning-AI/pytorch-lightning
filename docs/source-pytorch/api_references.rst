@@ -215,7 +215,7 @@ strategies
     IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
-    SingleTPUStrategy
+    SingleDeviceXLAStrategy
     Strategy
     XLAStrategy
 

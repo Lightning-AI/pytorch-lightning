@@ -23,4 +23,4 @@ Strategies
     FSDPStrategy
     ParallelStrategy
     SingleDeviceStrategy
-    SingleTPUStrategy
+    SingleDeviceXLAStrategy

@@ -173,7 +173,7 @@ def test_manual_optimization_tpus(tmpdir):
 
 
 def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
 
@@ -245,7 +245,7 @@ def test_tpu_invalid_raises(tpu_available, mps_count_0):
         Trainer(strategy=strategy, devices=8)
 
     strategy = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy=strategy, devices=8)
 
 
@@ -258,7 +258,7 @@ def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count
     accelerator = TPUAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy"
+        ValueError, match="The `TPUAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
     ):
         Trainer(strategy=strategy, devices=8)
 
