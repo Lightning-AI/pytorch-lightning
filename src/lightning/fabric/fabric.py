@@ -752,12 +752,12 @@ class Fabric:
         return seed_everything(seed=seed, workers=workers)
 
     def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
-        to_run = partial(self._run_with_setup, to_run)
+        to_run = partial(self._wrap_with_setup, to_run)
         if (launcher := self._strategy.launcher) is not None:
             return launcher.launch(to_run, *args, **kwargs)
         return to_run(*args, **kwargs)
 
-    def _run_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
         with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
