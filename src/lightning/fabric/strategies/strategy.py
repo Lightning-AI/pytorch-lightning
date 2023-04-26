@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union
 
 import torch
@@ -28,6 +28,7 @@ from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -110,6 +111,17 @@ class Strategy(ABC):
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return dataloader
+
+    @contextmanager
+    def module_init_context(self) -> Generator:
+        """A context manager wrapping the model instantiation.
+
+        Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
+        patches to the model.
+        """
+        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        with device_context, self.precision.module_init_context():
+            yield
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]

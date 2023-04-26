@@ -366,7 +366,7 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
 
     checkpoint_path = fabric.broadcast(tmp_path / "deepspeed-checkpoint")
 
-    with fabric.sharded_model():
+    with fabric.init_module():
         model = BoringModel()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
@@ -390,7 +390,7 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
     # re-init all objects and resume
     fabric = Fabric(accelerator="cuda", devices=2, strategy=DeepSpeedStrategy(stage=stage), precision="bf16")
     fabric.launch()
-    with fabric.sharded_model():
+    with fabric.init_module():
         model = BoringModel()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
