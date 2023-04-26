@@ -11,11 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import sys
 from typing import Any
 
+import lightning.pytorch as pl
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.pytorch.strategies.single_xla import SingleDeviceXLAStrategy
+
+
+def _patch_sys_modules() -> None:
+    self = sys.modules[__name__]
+    sys.modules["lightning.pytorch.strategies.single_tpu"] = self
 
 
 class SingleTPUStrategy(SingleDeviceXLAStrategy):
@@ -31,3 +39,15 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
+
+
+def _patch_classes() -> None:
+    setattr(pl.strategies, "SingleTPUStrategy", SingleTPUStrategy)
+
+
+_patch_sys_modules()
+_patch_classes()
+
+
+# register these
+SingleTPUStrategy.register_strategies(pl.strategies.StrategyRegistry)

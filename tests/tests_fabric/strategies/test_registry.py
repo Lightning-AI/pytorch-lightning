@@ -55,7 +55,7 @@ def test_available_strategies_in_registry():
         "ddp_fork",
         "ddp_notebook",
         "single_tpu",  # legacy
-        "single_xlu",
+        "single_xla",
         "xla",
         "dp",
     }
