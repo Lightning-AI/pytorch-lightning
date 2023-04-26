@@ -1,6 +1,8 @@
 import sys
 from typing import Any
 
+import lightning.pytorch as pl
+
 
 def _patch_sys_modules() -> None:
     self = sys.modules[__name__]
@@ -44,13 +46,10 @@ class IPUPrecisionPlugin:
 
 
 def _patch_classes() -> None:
-    setattr(pl.accelerators, "HPUAccelerator", HPUAccelerator)
-    setattr(pl.strategies, "HPUParallelStrategy", HPUParallelStrategy)
-    setattr(pl.strategies, "SingleHPUStrategy", SingleHPUStrategy)
-    setattr(pl.plugins, "HPUCheckpointIO", HPUCheckpointIO)
-    setattr(pl.plugins.io, "HPUCheckpointIO", HPUCheckpointIO)
-    setattr(pl.plugins, "HPUPrecisionPlugin", HPUPrecisionPlugin)
-    setattr(pl.plugins.precision, "HPUPrecisionPlugin", HPUPrecisionPlugin)
+    setattr(pl.accelerators, "IPUAccelerator", IPUAccelerator)
+    setattr(pl.strategies, "IPUStrategy", IPUStrategy)
+    setattr(pl.plugins, "IPUPrecisionPlugin", IPUPrecisionPlugin)
+    setattr(pl.plugins.precision, "IPUPrecisionPlugin", IPUPrecisionPlugin)
 
 
 _patch_sys_modules()
