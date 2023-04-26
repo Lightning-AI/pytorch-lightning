@@ -143,6 +143,7 @@ def test_copy_files_with_exception(tmpdir):
     pathlib.Path(src, "file.txt").touch()
     dst = pathlib.Path(tmpdir, "dest")
 
-    with mock.patch("lightning.app.storage.copier._filesystem", fs_mock):
-        with pytest.raises(ValueError, match="error from thread"):
-            _copy_files(src, dst)
+    with mock.patch("lightning.app.storage.copier._filesystem", fs_mock), pytest.raises(
+        ValueError, match="error from thread"
+    ):
+        _copy_files(src, dst)

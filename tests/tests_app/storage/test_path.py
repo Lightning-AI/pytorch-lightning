@@ -2,7 +2,6 @@ import json
 import os
 import pathlib
 import pickle
-import sys
 from re import escape
 from time import sleep
 from unittest import mock, TestCase
@@ -330,7 +329,8 @@ def test_path_in_flow_and_work(cls, tmpdir):
     else:
         assert root.path_component.path_one._origin is None
         assert root.path_component.path_one._consumer is None
-    assert open(root.path_component.path_two).readlines() == ["Hello"]
+    with open(root.path_component.path_two) as fo:
+        assert fo.readlines() == ["Hello"]
 
 
 class SourceWork(LightningWork):
@@ -400,8 +400,7 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
-@pytest.mark.skipif(sys.platform in ("linux", "win32"), reason="hanging...")
-@pytest.mark.xfail(sys.platform == "darwin", strict=False, reason="Timeout >300.0s")  # fixme
+@pytest.mark.skip(reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
     app = LightningApp(root)
@@ -559,9 +558,10 @@ def test_path_get_overwrite(tmpdir):
 
 
 def test_path_get_error_in_flow_context():
-    with pytest.raises(RuntimeError, match=escape("`Path.get()` can only be called from within the `run()`")):
-        with _context("flow"):
-            Path().get()
+    with pytest.raises(RuntimeError, match=escape("`Path.get()` can only be called from within the `run()`")), _context(
+        "flow"
+    ):
+        Path().get()
 
 
 def test_path_response_with_exception(tmpdir):
@@ -584,9 +584,10 @@ def test_path_response_with_exception(tmpdir):
         )
     )
 
-    with pytest.raises(RuntimeError, match="An exception was raised while trying to transfer the contents at"):
-        with _context("work"):
-            path.get()
+    with pytest.raises(
+        RuntimeError, match="An exception was raised while trying to transfer the contents at"
+    ), _context("work"):
+        path.get()
 
 
 def test_path_response_not_matching_reqeuest(tmpdir):

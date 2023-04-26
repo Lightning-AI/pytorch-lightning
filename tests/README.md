@@ -74,7 +74,7 @@ There are certain standalone tests, which you can run using:
 Make sure to run coverage on a GPU machine with at least 2 GPUs.
 
 ```bash
-# generate coverage (coverage is also installed as part of dev dependencies under requirements/pytorch/devel.txt)
+# generate coverage (coverage is also installed as part of dev dependencies)
 coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
 
 # print coverage stats
