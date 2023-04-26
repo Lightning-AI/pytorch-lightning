@@ -297,8 +297,8 @@ def run_app_in_cloud(
 
         cmd_extra_args = []
 
-        if "GRID_CLUSTER_ID" in os.environ:
-            cmd_extra_args = ["--cluster-id", os.getenv("GRID_CLUSTER_ID")]
+        if "ci-" in os.getenv("LIGHTNING_CLOUD_URL"):
+            cmd_extra_args = ["--cluster-id", "test-7"]
 
         with open(stdout_path, "w") as stdout:
             cmd = [
