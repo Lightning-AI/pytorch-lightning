@@ -45,6 +45,7 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
@@ -245,8 +246,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
-        device_context = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.module_init_context(), self.module_sharded_context():
+        if not _TORCH_GREATER_EQUAL_2_0 and self.root_device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
+                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
+                " utilize the features in `init_module()`.",
+                category=PossibleUserWarning,
+            )
+            device_context = nullcontext()
+        else:
+            device_context = torch.device("meta")
+        with device_context, self.precision.module_init_context():
             yield
 
     @contextmanager

@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -572,17 +572,14 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Shard the parameters of the model instantly when instantiating the layers.
-
-        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
-        """
-        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
-        with _old_sharded_model_context(self._strategy):
+        """Shard the parameters of the model instantly when instantiating the layers."""
+        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        with context:
             yield
 
     @contextmanager
-    def init_module(self) -> Generator:
-        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+    def efficient_init(self) -> Generator:
+        """Instantiate the under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
         allocated unnecessarily.
@@ -590,14 +587,13 @@ class Fabric:
         Note:
             The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
         """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
-                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
-                " utilize the features in `init_module()`.",
-                category=PossibleUserWarning,
-            )
         with self._strategy.module_init_context():
+            yield
+
+    @contextmanager
+    def init_module(self) -> Generator:
+        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`."""
+        with self.efficient_init(), self.sharded_model():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -773,10 +769,11 @@ class Fabric:
 
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
+        # TODO: remove sharded_context from here as users are meant to enable it manually
         # apply sharded context to prevent OOM
-        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
+        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+            BatchSampler
+        ):
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -875,12 +872,3 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
-
-
-@contextmanager
-def _old_sharded_model_context(strategy: Strategy) -> Generator:
-    if isinstance(strategy, _Sharded):
-        with strategy.module_sharded_context():
-            yield
-    else:
-        yield

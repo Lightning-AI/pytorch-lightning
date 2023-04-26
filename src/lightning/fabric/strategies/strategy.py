@@ -29,7 +29,9 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -119,7 +121,16 @@ class Strategy(ABC):
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
         """
-        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        if not _TORCH_GREATER_EQUAL_2_0 and self.root_device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
+                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
+                " utilize the features in `init_module()`.",
+                category=PossibleUserWarning,
+            )
+            device_context = nullcontext()
+        else:
+            device_context = self.root_device
         with device_context, self.precision.module_init_context():
             yield
 
