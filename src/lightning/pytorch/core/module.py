@@ -1402,11 +1402,10 @@ class LightningModule(
 
             model = SimpleModel()
             model.to_torchscript(file_path="model.pt")
-            os.path.isfile("model.pt")
+
             torch.jit.save(model.to_torchscript(
                 file_path="model_trace.pt", method='trace', example_inputs=torch.randn(1, 64))
             )
-            os.path.isfile("model_trace.pt")
 
         Return:
             This LightningModule as a torchscript, regardless of whether `file_path` is

@@ -32,11 +32,6 @@ def load_requirements(
     path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
 ) -> List[str]:
     """Load requirements from a file.
-
-    >>> from lightning.app import _PROJECT_ROOT
-    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
-    >>> load_requirements(path_req, "docs.txt")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE +SKIP
-    ['sphinx>=4.0', ...]
     """
     path = os.path.join(path_dir, file_name)
     if not os.path.isfile(path):
