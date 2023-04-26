@@ -52,7 +52,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
--
+
+- Deprecated the `Fabric.sharded_model()` context manager in favor of `Fabric.init_module()` ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
 
 
 ### Removed
