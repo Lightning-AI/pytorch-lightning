@@ -7,7 +7,7 @@ on:
     tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
-  pull_request_target:
+  pull_request:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
@@ -68,7 +68,8 @@ jobs:
 
       - name: Install this package
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+          pip install -e .[extra,cloud,ui] -U \
+            -r requirements/${{ matrix.pkg-name }}/docs.txt \
             -f pypi_pkgs/ -f ${TORCH_URL}
           pip list
 
