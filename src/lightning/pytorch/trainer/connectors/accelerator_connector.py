@@ -502,7 +502,7 @@ class _AcceleratorConnector:
             from lightning_graphcore import IPUAccelerator, IPUPrecision
 
             if isinstance(self.accelerator, IPUAccelerator):
-                return IPUPrecision(self._precision_flag)  # type: ignore
+                return IPUPrecision(self._precision_flag)
 
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
