@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 
 from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringDoubleModule(nn.Module):
@@ -50,6 +51,7 @@ class DoublePrecisionBoringFabric(BoringFabric):
         assert model.layer.weight.grad.dtype == torch.float64
 
 
+@RunIf(mps=False)  # MPS doesn't support float64
 def test_double_precision():
     fabric = DoublePrecisionBoringFabric(devices=1, precision="64-true")
     fabric.run()
