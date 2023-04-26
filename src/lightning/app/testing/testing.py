@@ -452,6 +452,8 @@ def run_app_in_cloud(
             if debug:
                 process.kill()
 
+            delete_cloud_lightning_apps()
+
             context.close()
             browser.close()
             Popen("lightning disconnect", shell=True).wait()
