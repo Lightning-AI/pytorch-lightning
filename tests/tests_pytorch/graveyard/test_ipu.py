@@ -14,7 +14,7 @@ import pytest
         ("lightning.pytorch.plugins.precision.ipu", "IPUPrecisionPlugin"),
     ],
 )
-def test_extracted_hpu(import_path, name):
+def test_extracted_ipu(import_path, name):
     module = import_module(import_path)
     cls = getattr(module, name)
     with pytest.raises(NotImplementedError, match=f"{name}` class has been moved to an external package.*"):
