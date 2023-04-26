@@ -674,7 +674,7 @@ class Fabric:
                 f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
                 " that contains the code to launch in processes."
             )
-        return self._wrap_and_launch(function, *args, **kwargs)
+        return self._wrap_and_launch(function, self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
