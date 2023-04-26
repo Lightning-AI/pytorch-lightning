@@ -600,19 +600,6 @@ class Fabric:
         with self._strategy.module_init_context():
             yield
 
-    @contextmanager
-    def init_module(self) -> Generator:
-        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
-
-        The parameters get created on the device and with the right data type right away without wasting memory
-        being allocated unnecessarily.
-
-        This context manager also replaces :meth:`sharded_model` and allows for instantly sharding the model
-        for strategies that support it.
-        """
-        with self._strategy.module_init_context():
-            yield
-
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
         """Save checkpoint contents to a file.
 
