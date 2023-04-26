@@ -294,6 +294,12 @@ def run_app_in_cloud(
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         stdout_path = get_logfile(f"run_app_in_cloud_{name}")
+
+        cmd_extra_args = []
+
+        if "GRID_CLUSTER_ID" in os.environ:
+            cmd_extra_args = ["--cluster-id", os.getenv("GRID_CLUSTER_ID")]
+
         with open(stdout_path, "w") as stdout:
             cmd = [
                 sys.executable,
@@ -307,6 +313,7 @@ def run_app_in_cloud(
                 name,
                 "--open-ui",
                 "false",
+                *cmd_extra_args,
             ]
             process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
             process.wait()
