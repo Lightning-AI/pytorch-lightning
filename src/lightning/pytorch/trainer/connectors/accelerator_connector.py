@@ -142,9 +142,8 @@ class _AcceleratorConnector:
             plugins=plugins,
             sync_batchnorm=sync_batchnorm,
         )
-        # 2. Instantiate Accelerator
-        self._set_accelerator_if_ipu_strategy_is_passed()
 
+        # 2. Instantiate Accelerator
         # handle `auto`, `None` and `gpu`
         if self._accelerator_flag == "auto":
             self._accelerator_flag = self._choose_auto_accelerator()
@@ -338,21 +337,6 @@ class _AcceleratorConnector:
                 f"`Trainer(devices={self._devices_flag!r})` value is not a valid input"
                 f" using {accelerator_name} accelerator."
             )
-
-    def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
-        if not _LIGHTNING_GRAPHCORE_AVAILABLE:
-            raise ImportError(
-                "You have asked for IPU but you miss install related integration."
-                " Please run `pip install lightning-graphcore` or see for further instructions"
-                " in https://github.com/Lightning-AI/lightning-Graphcore/."
-            )
-
-        from lightning_graphcore import IPUStrategy
-
-        # current logic only apply to object config
-        # TODO this logic should apply to both str and object config
-        if isinstance(self._strategy_flag, IPUStrategy):
-            self._accelerator_flag = "ipu"
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability."""
