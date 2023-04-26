@@ -624,7 +624,6 @@ class Trainer:
 
             RuntimeError:
                 If a compiled ``model`` is passed and the strategy is not supported.
-
         """
         if model is None:
             # do we still have a reference from a previous call?
