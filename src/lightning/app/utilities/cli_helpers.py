@@ -47,7 +47,6 @@ def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
             key: env variable name
             value: env variable value
     """
-
     env_vars_dict = {}
     for env_str in env_list:
         var_parts = env_str.split("=")
@@ -198,7 +197,6 @@ class _LightningAppOpenAPIRetriever:
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""
-
         if _is_url(self.app_id_or_name_or_url):
             self.url = self.app_id_or_name_or_url
             assert self.url

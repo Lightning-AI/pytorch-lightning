@@ -49,9 +49,7 @@ class _FabricOptimizer:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__ = {
-            k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "zero_grad", "__del__")
-        }
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
@@ -74,10 +72,6 @@ class _FabricOptimizer:
             optimizer,
             **kwargs,
         )
-
-    def zero_grad(self, **kwargs: Any) -> None:
-        kwargs = _process_optimizer_zero_grad_kwargs(self.optimizer, kwargs)
-        self.optimizer.zero_grad(**kwargs)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
@@ -218,13 +212,6 @@ class _FabricDataLoader:
         else:
             for item in self._dataloader:
                 yield move_data_to_device(item, self._device)
-
-
-def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    if "set_to_none" in kwargs and "set_grads_to_None" in inspect.signature(optimizer.zero_grad).parameters:
-        # Some optimizers out there, for example DeepSpeedZeroOptimizer, use a different name than PyTorch
-        kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
-    return kwargs
 
 
 def _unwrap_objects(collection: Any) -> Any:

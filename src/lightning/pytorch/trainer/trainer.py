@@ -18,7 +18,6 @@
 # WE FAVOR READABILITY OVER ENGINEERING-CONSTRUCTS BY DESIGN
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
-
 """Trainer to automate the training."""
 import logging
 import math
@@ -130,8 +129,7 @@ class Trainer:
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
     ) -> None:
-        r"""
-        Customize every aspect of training via flags.
+        r"""Customize every aspect of training via flags.
 
         Args:
             accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
@@ -508,8 +506,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[str] = None,
     ) -> None:
-        r"""
-        Runs the full optimization routine.
+        r"""Runs the full optimization routine.
 
         Args:
             model: Model to fit.
@@ -591,8 +588,7 @@ class Trainer:
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""
-        Perform one evaluation epoch over the validation set.
+        r"""Perform one evaluation epoch over the validation set.
 
         Args:
             model: The model to validate.
@@ -699,9 +695,8 @@ class Trainer:
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""
-        Perform one evaluation epoch over the test set.
-        It's separated from fit to make sure you never run on your test set until you want to.
+        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on
+        your test set until you want to.
 
         Args:
             model: The model to test.
@@ -807,10 +802,8 @@ class Trainer:
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
-        r"""
-        Run inference on your data.
-        This will call the model forward function to compute predictions. Useful to perform distributed
-        and batched predictions. Logging is disabled in the predict hooks.
+        r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
+        perform distributed and batched predictions. Logging is disabled in the predict hooks.
 
         Args:
             model: The model to predict with.
@@ -1300,8 +1293,7 @@ class Trainer:
     def save_checkpoint(
         self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
     ) -> None:
-        r"""
-        Runs routine to create a checkpoint.
+        r"""Runs routine to create a checkpoint.
 
         Args:
             filepath: Path where checkpoint is saved.

@@ -67,7 +67,7 @@ def result_reduce_ddp_fn(strategy):
     metric_b = metric_b.to(f"cuda:{rank}")
     metric_c = metric_c.to(f"cuda:{rank}")
 
-    result = _ResultCollection(True, torch.device(f"cuda:{rank}"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -107,7 +107,7 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -148,7 +148,6 @@ def test_result_metric_integration():
     assert repr(result) == (
         "{"
         "True, "
-        "device(type='cpu'), "
         "{'h.a': _ResultMetric('a', value=DummyMetric()), "
         "'h.b': _ResultMetric('b', value=DummyMetric()), "
         "'h.c': _ResultMetric('c', value=DummyMetric())"
@@ -157,7 +156,7 @@ def test_result_metric_integration():
 
 
 def test_result_collection_simple_loop():
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     current_fx_name = None
     batch_idx = None
 
@@ -205,7 +204,7 @@ def my_sync_dist(x, *_, **__):
 def test_result_collection_restoration(tmpdir):
     """This test make sure metrics are properly reloaded on failure."""
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     metric_a = DummyMetric()
     metric_b = DummyMetric()
     metric_c = DummyMetric()
@@ -221,11 +220,9 @@ def test_result_collection_restoration(tmpdir):
         current_fx_name = fx
 
     for epoch in range(2):
-
         cumulative_sum = 0
 
         for i in range(3):
-
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)

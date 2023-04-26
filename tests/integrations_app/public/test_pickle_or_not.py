@@ -10,7 +10,6 @@ from lightning.app.cli.lightning_cli import run_app
 # TODO: Investigate why it doesn't work
 @pytest.mark.skip(reason="test has been ignored for a while and seems not to be working :(")
 def test_pickle_or_not_example():
-
     runner = CliRunner()
     result = runner.invoke(
         run_app,

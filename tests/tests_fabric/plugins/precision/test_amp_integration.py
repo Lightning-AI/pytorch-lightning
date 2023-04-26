@@ -39,7 +39,6 @@ class MixedPrecisionModule(nn.Module):
 
 
 class MixedPrecisionBoringFabric(BoringFabric):
-
     expected_dtype: torch.dtype
 
     def get_model(self):
