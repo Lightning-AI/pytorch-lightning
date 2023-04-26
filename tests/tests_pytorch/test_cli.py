@@ -26,6 +26,8 @@ import pytest
 import torch
 import yaml
 from lightning_utilities.test.warning import no_warning_call
+from tensorboard.backend.event_processing import event_accumulator
+from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
@@ -312,6 +314,37 @@ def test_lightning_cli_save_config_only_once(cleandir):
     assert os.path.isfile(config_path)
     assert save_config_callback.already_saved
     cli.trainer.test(cli.model)  # Should not fail because config already saved
+
+
+def test_lightning_cli_extra_save_config(cleandir):
+    class ExtraSaveConfigCallback(SaveConfigCallback):
+        def extra_save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+            nonlocal config
+            config = self.parser.dump(self.config)
+            trainer.logger.log_hyperparams({"config": config})
+
+    config = None
+    cli_args = [
+        "fit",
+        "--trainer.max_epochs=1",
+        "--trainer.logger=TensorBoardLogger",
+        f"--trainer.logger.save_dir={os.getcwd()}",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(
+            BoringModel,
+            save_config_callback=ExtraSaveConfigCallback,
+        )
+
+    events_file = glob.glob(os.path.join(cli.trainer.log_dir, "events.out.tfevents.*"))
+    assert len(events_file) == 1
+    ea = event_accumulator.EventAccumulator(events_file[0])
+    ea.Reload()
+    data = ea._plugin_to_tag_to_content["hparams"]["_hparams_/session_start_info"]
+    hparam_data = HParamsPluginData.FromString(data).session_start_info.hparams
+    assert hparam_data.get("config") is not None
+    assert hparam_data["config"].string_value == config
 
 
 def test_lightning_cli_config_and_subclass_mode(cleandir):

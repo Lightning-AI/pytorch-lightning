@@ -60,6 +60,26 @@ with ``save_config_callback=None``.
 
         cli = LightningCLI(..., save_config_kwargs={"config_filename": "name.yaml"})
 
+It is also possible to extend the :class:`~lightning.pytorch.cli.SaveConfigCallback` class, for instance to additionally
+save the config in a logger. An example of this is:
+
+    .. code:: python
+
+        class LoggerSaveConfigCallback(SaveConfigCallback):
+            def extra_save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+                if isinstance(trainer.logger, Logger):
+                    config = self.parser.dump(self.config)  # Required for proper reproducibility
+                    trainer.logger.log_hyperparams({"config": config})
+
+
+        cli = LightningCLI(..., save_config_callback=LoggerSaveConfigCallback)
+
+-- note::
+
+    The ``extra_save_config`` method is only run on rank zero. If you need to broadcast to other ranks, then implement
+    the ``save_config`` method instead. In this case you need to take care that only one of the ranks saves the config
+    and avoid race conditions.
+
 
 ----
 

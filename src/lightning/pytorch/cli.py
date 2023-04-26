@@ -228,6 +228,17 @@ class SaveConfigCallback(Callback):
         if self.already_saved:
             return
 
+        self.save_config(trainer, pl_module, stage)
+        if trainer.is_global_zero:
+            # save only on rank zero to avoid race conditions.
+            self.extra_save_config(trainer, pl_module, stage)
+            self.already_saved = True
+
+        # broadcast so that all ranks are in sync on future calls to .setup()
+        self.already_saved = trainer.strategy.broadcast(self.already_saved)
+
+    def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        """Saves the config to the log_dir only on rank zero."""
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
@@ -246,7 +257,6 @@ class SaveConfigCallback(Callback):
                     ' or set `LightningCLI(save_config_kwargs={"overwrite": True})` to overwrite the config file.'
                 )
 
-        # save the file on rank 0
         if trainer.is_global_zero:
             # save only on rank zero to avoid race conditions.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
@@ -255,10 +265,16 @@ class SaveConfigCallback(Callback):
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
-            self.already_saved = True
 
-        # broadcast so that all ranks are in sync on future calls to .setup()
-        self.already_saved = trainer.strategy.broadcast(self.already_saved)
+    def extra_save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        """Implement to save the config in some other place additional to log_dir.
+
+        Example:
+            def extra_save_config(self, trainer, pl_module, stage):
+                if isinstance(trainer.logger, Logger):
+                    config = self.parser.dump(self.config)  # Required for proper reproducibility
+                    trainer.logger.log_hyperparams({"config": config})
+        """
 
 
 class LightningCLI:
