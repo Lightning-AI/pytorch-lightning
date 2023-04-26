@@ -769,9 +769,9 @@ class Fabric:
     def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
