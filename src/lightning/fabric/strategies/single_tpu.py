@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict
+from typing import Any
 
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.single_xla import SingleDeviceXLAStrategy
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 
 
 class SingleTPUStrategy(SingleDeviceXLAStrategy):
@@ -22,6 +24,9 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
     Use `SingleDeviceXLAStrategy` instead.
     """
 
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        # legacy
+    def __init__(self, *args: Any, **kwargs: Any):
+        rank_zero_deprecation("The 'single_tpu' strategy is deprecated. Use 'single_xla' instead.")
+        super().__init__(*args, **kwargs)
+
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")

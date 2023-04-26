@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Dict, Optional
+from typing import Optional
 
 import torch
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
@@ -80,7 +81,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("single_xla", cls, description=cls.__class__.__name__)
 
     def teardown(self) -> None:
