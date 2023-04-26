@@ -471,8 +471,8 @@ class _Connector:
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)
-            return MixedPrecision(precision=self._precision_input, device=device)
+                return FSDPPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
+            return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 
