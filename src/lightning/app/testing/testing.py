@@ -297,8 +297,7 @@ def run_app_in_cloud(
 
         cmd_extra_args = []
 
-        cloud_url = os.getenv("LIGHTNING_CLOUD_URL", "")
-        if "ci-" or "staging" in cloud_url:
+        if not os.getenv("LIGHTNING_CLOUD_URL", "").startswith("https://lightning.ai"):
             cmd_extra_args = ["--cluster-id", "test-7"]
 
         with open(stdout_path, "w") as stdout:
