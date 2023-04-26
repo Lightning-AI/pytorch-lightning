@@ -321,7 +321,6 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
 def test_logger_default_name(tmpdir, monkeypatch):
     """Test that the default logger name is lightning_logs."""
-
     # CSV
     logger = CSVLogger(save_dir=tmpdir)
     assert logger.name == "lightning_logs"

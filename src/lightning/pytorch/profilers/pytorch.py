@@ -216,7 +216,6 @@ class ScheduleWrapper:
 
 
 class PyTorchProfiler(Profiler):
-
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     AVAILABLE_SORT_KEYS = {
         "cpu_time",

@@ -192,7 +192,6 @@ def test_update_publish_state_and_maybe_refresh_ui():
     - receives the state from the `publish_state_queue` and populates the app_state_store
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
     """
-
     app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
@@ -241,7 +240,6 @@ async def test_start_server(x_lightning_type, monkeypatch):
     headers = headers_for({"type": x_lightning_type})
 
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
-
         with pytest.raises(Exception, match="X-Lightning-Session-UUID"):
             await client.get("/api/v1/spec")
 

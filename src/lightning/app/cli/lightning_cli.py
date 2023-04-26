@@ -190,26 +190,22 @@ def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, 
 
     Example uses:
 
-        Print cluster logs:
+    Print cluster logs:
 
-            $ lightning show cluster logs my-cluster
+    $ lightning show cluster logs my-cluster
 
+    Print cluster logs and wait for new logs:
 
-        Print cluster logs and wait for new logs:
+    $ lightning show cluster logs my-cluster --follow
 
-            $ lightning show cluster logs my-cluster --follow
+    Print cluster logs, from 48 hours ago to now:
 
+    $ lightning show cluster logs my-cluster --from "48 hours ago"
 
-        Print cluster logs, from 48 hours ago to now:
+    Print cluster logs, 10 most recent lines:
 
-            $ lightning show cluster logs my-cluster --from "48 hours ago"
-
-
-        Print cluster logs, 10 most recent lines:
-
-            $ lightning show cluster logs my-cluster --limit 10
+    $ lightning show cluster logs my-cluster --limit 10
     """
-
     client = LightningClient(retry=False)
     cluster_manager = AWSClusterManager()
     existing_cluster_list = cluster_manager.get_clusters()
@@ -286,7 +282,6 @@ def _run_app(
     run_app_comment_commands: bool,
     enable_basic_auth: str,
 ) -> None:
-
     if not os.path.exists(file):
         original_file = file
         file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # noqa E501
@@ -444,7 +439,6 @@ if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1
 @click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
 def open(path: str, cluster_id: str, name: str) -> None:
     """Open files or folders from your machine in a Lightning CloudSpace."""
-
     if not os.path.exists(path):
         click.echo(f"The provided path `{path}` doesn't exist.")
         sys.exit(1)
@@ -476,7 +470,6 @@ _main.add_command(cmd_install.install)
 )
 def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) -> None:
     """SSH into a Lightning App."""
-
     app_manager = _AppManager()
     apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
     if len(apps) == 0:

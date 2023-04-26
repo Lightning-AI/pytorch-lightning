@@ -30,7 +30,6 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
 def test_overfit_basic(tmpdir, overfit_batches):
     """Tests that only training_step can be used when overfitting."""
-
     model = BoringModel()
     model.validation_step = None
     total_train_samples = len(BoringModel().train_dataloader())

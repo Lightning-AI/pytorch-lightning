@@ -1914,7 +1914,7 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
 
         expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
         expected = "INFO(.*)works: " + expected
-        assert any([re.fullmatch(expected, line) for line in lines])
+        assert any(re.fullmatch(expected, line) for line in lines)
     finally:
         cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 

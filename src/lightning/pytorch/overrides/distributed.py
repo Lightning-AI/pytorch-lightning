@@ -194,8 +194,8 @@ class UnrepeatedDistributedSampler(DistributedSampler):
     one of the processes runs one fewer batch. During prediction, buffers are only synced on the first batch, so
     this is safe to use as long as each process runs at least one batch. We verify this in an assert.
 
-    Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py
-    and https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
+    Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py and
+    https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

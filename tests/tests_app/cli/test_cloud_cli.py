@@ -121,7 +121,6 @@ class FakeLightningClientCreate(FakeLightningClient):
 @mock.patch("lightning.app.runners.runtime_type.CloudRuntime", CloudRuntimePatch)
 @pytest.mark.parametrize("create_response", [RuntimeErrorResponse(), RuntimeErrorResponse2()])
 def test_start_app(create_response, monkeypatch):
-
     monkeypatch.setattr(cloud, "V1LightningappInstanceState", MagicMock())
     monkeypatch.setattr(cloud, "CloudspaceIdRunsBody", MagicMock())
     monkeypatch.setattr(cloud, "V1Flowserver", MagicMock())
@@ -205,7 +204,6 @@ class FakeLightningClientException(FakeLightningClient):
     ],
 )
 def test_start_app_exception(message, monkeypatch, caplog):
-
     monkeypatch.setattr(cloud, "V1LightningappInstanceState", MagicMock())
     monkeypatch.setattr(cloud, "CloudspaceIdRunsBody", MagicMock())
     monkeypatch.setattr(cloud, "V1Flowserver", MagicMock())

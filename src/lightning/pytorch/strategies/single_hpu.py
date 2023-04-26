@@ -46,7 +46,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
 

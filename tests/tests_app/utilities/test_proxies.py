@@ -247,7 +247,6 @@ class FlowTimeout(LightningFlow):
 
 
 class WorkRunnerPatch(WorkRunner):
-
     counter = 0
 
     def __call__(self):
@@ -645,7 +644,6 @@ class FlowState(LightningFlow):
 
 
 def test_state_observer():
-
     app = LightningApp(FlowState())
     MultiProcessRuntime(app, start_server=False).dispatch()
 

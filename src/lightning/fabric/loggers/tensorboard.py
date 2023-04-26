@@ -42,8 +42,7 @@ if TYPE_CHECKING:
 
 
 class TensorBoardLogger(Logger):
-    r"""
-    Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+    r"""Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
     Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
     ``os.path.join(root_dir, name, version)``. This is the recommended logger in Lightning Fabric.

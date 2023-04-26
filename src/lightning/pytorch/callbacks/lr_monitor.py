@@ -33,8 +33,7 @@ from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 
 class LearningRateMonitor(Callback):
-    r"""
-    Automatically monitor and logs learning rate for learning rate schedulers during training.
+    r"""Automatically monitor and logs learning rate for learning rate schedulers during training.
 
     Args:
         logging_interval: set to ``'epoch'`` or ``'step'`` to log ``lr`` of all optimizers
@@ -84,7 +83,6 @@ class LearningRateMonitor(Callback):
             )
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
             return [optimizer], [lr_scheduler]
-
     """
 
     def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False) -> None:

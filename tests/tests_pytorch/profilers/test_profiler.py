@@ -56,7 +56,6 @@ def simple_profiler():
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
-
     for duration in expected:
         with simple_profiler.profile(action):
             time.sleep(duration)
@@ -78,7 +77,6 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
-
     action = "test"
     with pytest.raises(ValueError):
         simple_profiler.stop(action)
@@ -266,7 +264,6 @@ def advanced_profiler(tmpdir):
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
-
     for duration in expected:
         with advanced_profiler.profile(action):
             time.sleep(duration)
@@ -305,7 +302,6 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
 
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
-
     action = "test"
     with pytest.raises(ValueError):
         advanced_profiler.stop(action)
@@ -435,7 +431,6 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
 
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context."""
-
     pytorch_profiler = PyTorchProfiler(use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
@@ -493,7 +488,6 @@ def test_pytorch_profiler_nested_emit_nvtx():
 
 
 def test_register_record_function(tmpdir):
-
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
@@ -609,7 +603,6 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
 
 def test_profile_callbacks(tmpdir):
     """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
-
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(

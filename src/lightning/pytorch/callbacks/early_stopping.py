@@ -11,12 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-Early Stopping
-^^^^^^^^^^^^^^
+r"""Early Stopping ^^^^^^^^^^^^^^
 
 Monitor a metric and stop training when it stops improving.
-
 """
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -35,8 +32,7 @@ log = logging.getLogger(__name__)
 
 
 class EarlyStopping(Callback):
-    r"""
-    Monitor a metric and stop training when it stops improving.
+    r"""Monitor a metric and stop training when it stops improving.
 
     Args:
         monitor: quantity to be monitored.

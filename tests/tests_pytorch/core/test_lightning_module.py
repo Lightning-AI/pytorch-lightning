@@ -291,7 +291,6 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     ],
 )
 def test_device_placement(tmpdir, accelerator, device):
-
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
@@ -348,7 +347,6 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
     """Test custom gradient clipping inside `configure_gradient_clipping` hook."""
 
     class TestModel(BoringModel):
-
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
@@ -564,7 +562,6 @@ def test_fabric_log_dict():
 
 @pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm_fabric(algo):
-
     from lightning.pytorch.utilities import GradClipAlgorithmType
 
     class DummyLM(LightningModule):

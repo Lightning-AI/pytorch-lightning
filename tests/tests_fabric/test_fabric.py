@@ -56,7 +56,6 @@ def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
     class RunFabric(Fabric):
-
         run_args = ()
         run_kwargs = {}
 
@@ -776,7 +775,6 @@ def test_loggers_input():
 
 def test_log():
     """Test that `fabric.log` sends the metrics to each logger."""
-
     logger0 = Mock()
     logger1 = Mock()
     fabric = Fabric(loggers=[logger0, logger1])
@@ -792,7 +790,6 @@ def test_log():
 
 def test_log_dict():
     """Test that `fabric.log_dict` sends the metrics dict to each logger."""
-
     logger0 = Mock()
     logger1 = Mock()
     fabric = Fabric(loggers=[logger0, logger1])

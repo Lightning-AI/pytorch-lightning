@@ -794,7 +794,6 @@ def test_hooks_with_different_argument_names(tmpdir):
 
 def test_trainer_datamodule_hook_system(tmpdir):
     """Test the LightningDataModule hook system."""
-
     model = BoringModel()
     batches = 2
     trainer = Trainer(
