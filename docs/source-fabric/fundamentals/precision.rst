@@ -118,6 +118,41 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 ----
 
 
+*******************
+True Half Precision
+*******************
+
+As mentioned before, for numerical stability mixed precision keeps the model weights in full float32 precision while casting only supported operations to lower bit precision.
+However, in some cases it is indeed possible to train completely in half precision. Similarly, for inference the model weights can often be cast to half precision without a loss in accuracy (even when trained with mixed precision).
+
+.. code-block:: python
+
+    # Select FP16 precision
+    fabric = Fabric(precision="16-true")
+    model = MyModel()
+    model = fabric.setup(model)  # model gets cast to torch.float16
+
+    # Select BF16 precision
+    fabric = Fabric(precision="bf16-true")
+    model = MyModel()
+    model = fabric.setup(model)  # model gets cast to torch.bfloat16
+
+Tipp: For faster initialization, you can create model parameters with the desired dtype directly on the device:
+
+.. code-block:: python
+
+    fabric = Fabric(precision="bf16-true")
+
+    # init the model directly on the device and with parameters in half-precision
+    with fabric.init_module():
+        model = MyModel()
+
+    model = fabric.setup(model)
+
+
+----
+
+
 ************************************
 Control where precision gets applied
 ************************************
