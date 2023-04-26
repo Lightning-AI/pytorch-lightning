@@ -729,5 +729,5 @@ def _register_external_accelerators_and_strategies() -> None:
         # TODO: Prevent registering multiple times
         if "ipu" not in AcceleratorRegistry:
             IPUAccelerator.register_accelerators(AcceleratorRegistry)
-        if "ipu" not in StrategyRegistry:
+        if "ipu_strategy" not in StrategyRegistry:
             IPUStrategy.register_strategies(StrategyRegistry)
