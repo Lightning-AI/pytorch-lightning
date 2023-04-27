@@ -16,7 +16,7 @@ import os
 from lightning.fabric.plugins import XLABf16Precision
 
 
-def test_teardown():
+def test_teardown(xla_available):
     plugin = XLABf16Precision()
     assert os.environ.get("XLA_USE_BF16") == "1"
     plugin.teardown()
