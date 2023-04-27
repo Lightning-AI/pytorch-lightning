@@ -1,3 +1,4 @@
+import contextlib
 import os
 import pickle
 from collections import Counter
@@ -374,11 +375,9 @@ def test_lightning_flow_and_work():
         "changes": {},
     }
     assert flow_a.state == state
-    try:
+    with contextlib.suppress(ExitAppException):
         while True:
             flow_a.run()
-    except ExitAppException:
-        pass
 
     state = {
         "vars": {"counter": 5, "_layout": ANY, "_paths": {}},

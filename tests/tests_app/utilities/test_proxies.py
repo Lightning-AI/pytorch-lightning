@@ -267,9 +267,9 @@ class WorkRunnerPatch(WorkRunner):
                     ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
                 )
                 self.counter += 1
-            except Exception as e:
+            except Exception as ex:
                 logger.error(traceback.format_exc())
-                self.error_queue.put(e)
+                self.error_queue.put(ex)
                 raise ExitAppException
 
 
@@ -435,7 +435,6 @@ def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
         copy_request_queue=_MockQueue(),
         copy_response_queue=_MockQueue(),
     )
-
     with contextlib.suppress(ExitAppException):
         runner()
 
@@ -645,7 +644,7 @@ def test_state_observer():
     "patch_constants, environment, expected_ip_addr",
     [
         ({}, {}, "127.0.0.1"),
-        ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "0.0.0.0"),
+        ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "0.0.0.0"),  # noqa: S104
         ({}, {"LIGHTNING_NODE_IP": "10.10.10.5"}, "10.10.10.5"),
     ],
     indirect=["patch_constants"],

@@ -113,10 +113,11 @@ def _capture_valid_app_component_name(value: Optional[str] = None, resource_type
             raise SystemExit(m)
 
     except KeyboardInterrupt:
-        m = f"""
+        raise SystemExit(
+            f"""
         ⚡ {resource_type} init aborted! ⚡
         """
-        raise SystemExit(m)
+        )
 
     return value
 
