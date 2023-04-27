@@ -258,5 +258,5 @@ def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: boo
     logger.debug(f"Creating the following tables {models}")
     try:
         SQLModel.metadata.create_all(engine)
-    except Exception as e:
-        logger.debug(e)
+    except Exception as ex:
+        logger.debug(ex)

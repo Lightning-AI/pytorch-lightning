@@ -161,13 +161,13 @@ class AuthServer:
         try:
             # check if server is reachable or catch any network errors
             requests.head(url)
-        except requests.ConnectionError as e:
+        except requests.ConnectionError as ex:
             raise requests.ConnectionError(
-                f"No internet connection available. Please connect to a stable internet connection \n{e}"  # E501
+                f"No internet connection available. Please connect to a stable internet connection \n{ex}"  # E501
             )
-        except requests.RequestException as e:
+        except requests.RequestException as ex:
             raise requests.RequestException(
-                f"An error occurred with the request. Please report this issue to Lightning Team \n{e}"  # E501
+                f"An error occurred with the request. Please report this issue to Lightning Team \n{ex}"  # E501
             )
 
         logger.info(

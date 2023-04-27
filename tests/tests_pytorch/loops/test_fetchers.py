@@ -369,7 +369,6 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
 
 
 def test_transfer_hooks_with_unpacking(tmpdir):
-
     """This test asserts the `transfer_batch` hooks are called only once per batch."""
 
     class RandomDictDataset(RandomDataset):
@@ -377,7 +376,6 @@ def test_transfer_hooks_with_unpacking(tmpdir):
             return {"x": self.data[index], "y_true": torch.ones((2,)), "other": torch.ones((1,))}
 
     class BoringDataModule(LightningDataModule):
-
         count_called_on_before_batch_transfer = 0
         count_called_transfer_batch_to_device = 0
         count_called_on_after_batch_transfer = 0

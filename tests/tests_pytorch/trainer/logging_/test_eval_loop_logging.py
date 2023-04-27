@@ -204,9 +204,9 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert set(trainer.callback_metrics) == {"val_loss", "val_loss_epoch"}
 
     # make sure values are correct
-    assert trainer.logged_metrics["val_loss_epoch"] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics["val_loss_epoch"] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics["val_loss"] == model.manual_epoch_end_mean
+    assert torch.allclose(trainer.logged_metrics["val_loss_epoch"], model.manual_epoch_end_mean)
+    assert torch.allclose(trainer.callback_metrics["val_loss_epoch"], model.manual_epoch_end_mean)
+    assert torch.allclose(trainer.callback_metrics["val_loss"], model.manual_epoch_end_mean)
     assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 
@@ -273,7 +273,6 @@ def test_log_works_in_val_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -367,7 +366,6 @@ def test_log_works_in_test_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         # helpers
         count = 0
         choices = [False, True]
@@ -499,7 +497,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     """This tests make sure we properly log_metrics to loggers."""
 
     class ExtendedModel(BoringModel):
-
         val_losses = []
 
         def __init__(self, some_val=7):

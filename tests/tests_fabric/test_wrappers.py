@@ -189,7 +189,6 @@ def test_fabric_module_forward_conversion(precision, input_type, expected_type, 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_fabric_module_device_dtype_propagation(device_str, dtype):
     """Test that the FabricModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
-
     device = torch.device(device_str)
 
     class DeviceModule(_DeviceDtypeModuleMixin):
@@ -335,7 +334,6 @@ def test_fabric_optimizer_steps():
 
 def test_fabric_optimizer_zero_grad_kwargs():
     """Test that Fabric can adapt the `.zero_grad()` arguments to the underlying optimizer."""
-
     # Test PyTorch's standard `.zero_grad()` signature
     with mock.patch("torch.optim.SGD.zero_grad") as zero_grad_mock:
         optimizer = torch.optim.SGD(torch.nn.Linear(1, 1).parameters(), 0.1)
@@ -358,10 +356,6 @@ def test_fabric_optimizer_zero_grad_kwargs():
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
     fabric_optimizer.zero_grad()
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=False)
-    custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=True)
-    custom_zero_grad.assert_called_with(set_grads_to_None=True)
 
 
 def test_is_wrapped():

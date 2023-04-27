@@ -15,7 +15,6 @@ def test_drive_example_cloud() -> None:
         fetch_logs,
         _,
     ):
-
         has_logs = False
         while not has_logs:
             for log in fetch_logs(["flow"]):
