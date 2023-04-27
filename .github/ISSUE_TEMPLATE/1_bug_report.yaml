@@ -32,11 +32,11 @@ body:
       description: select all version where you have experienced this issue
       multiple: true
       options:
-        - "v16"
-        - "v17"
-        - "v18"
-        - "v19"
-        - "v20"
+        - "v1.6.x"
+        - "v1.7.x"
+        - "v1.8.x"
+        - "v1.9.x"
+        - "v2.0.x"
         - "master"
     validations:
       required: true
