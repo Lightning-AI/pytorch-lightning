@@ -26,6 +26,21 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: versions
+    attributes:
+      label: What version are you seeing the problem on?
+      id: versions
+      description: select all version where you have experienced this issue
+      multiple: true
+      options:
+        - "ver: 1.6.x"
+        - "ver: 1.7.x"
+        - "ver: 1.8.x"
+        - "ver: 1.9.x"
+        - "ver: 2.0.x"
+        - "ver: master"
+
   - type: markdown
     attributes:
       value: "**Note: The rest of this form is optional, but filling it out may help us to provide better support.**"
