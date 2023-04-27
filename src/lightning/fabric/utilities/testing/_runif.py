@@ -45,10 +45,12 @@ def _RunIf(
 ) -> Any:  # not the real return because it would require that pytest is available
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
-    @RunIf(min_torch="0.0")
-    @pytest.mark.parametrize("arg1", [1, 2.0])
-    def test_wrapper(arg1):
-        assert arg1 > 0.0
+    Example::
+    
+        @RunIf(min_torch="0.0")
+        @pytest.mark.parametrize("arg1", [1, 2.0])
+        def test_wrapper(arg1):
+            assert arg1 > 0.0
 
     Args:
         *args: Any :class:`pytest.mark.skipif` arguments.
