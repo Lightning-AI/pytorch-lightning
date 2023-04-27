@@ -193,26 +193,14 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     if TPUAccelerator.is_available() and not isinstance(trainer.accelerator, TPUAccelerator):
         rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
-    if _IPU_AVAILABLE:
-        if not _LIGHTNING_GRAPHCORE_AVAILABLE:
-            raise ModuleNotFoundError(
-                "You are running on IPU machine but you have not installed `lightning-graphcore`"
-                f" extension is {str(_LIGHTNING_GRAPHCORE_AVAILABLE)}."
-            )
-
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
         from lightning_graphcore import IPUAccelerator
 
-        if not isinstance(trainer.accelerator, IPUAccelerator):
+        if IPUAccelerator.is_available() and not isinstance(trainer.accelerator, IPUAccelerator):
             rank_zero_warn("IPU available but not used. You can set it by doing `Trainer(accelerator='ipu')`.")
 
-    if _HPU_AVAILABLE:
-        if not _LIGHTNING_HABANA_AVAILABLE:
-            raise ModuleNotFoundError(
-                "You are running on HPU machine but you have not installed `lightning-habana`"
-                f" extension is  {str(_LIGHTNING_HABANA_AVAILABLE)}."
-            )
-
+    if _LIGHTNING_HABANA_AVAILABLE:
         from lightning_habana import HPUAccelerator
 
-        if not isinstance(trainer.accelerator, HPUAccelerator):
+        if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
             rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")
