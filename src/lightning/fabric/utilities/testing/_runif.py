@@ -29,7 +29,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
 def _RunIf(
-    *args,
+    *args: Any,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,
     max_torch: Optional[str] = None,
@@ -41,7 +41,7 @@ def _RunIf(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> Any:  # not the real return because it would require that pytest is available
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
@@ -150,4 +150,5 @@ def _RunIf(
         reasons.append("torch.dynamo")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
+    assert "condition" not in kwargs
     return pytest.mark.skipif(*args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
