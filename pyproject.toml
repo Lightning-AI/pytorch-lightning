@@ -55,6 +55,7 @@ line-length = 120
 select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
+    "S",  # see: https://pypi.org/project/flake8-bandit
 ]
 extend-select = [
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
@@ -70,6 +71,34 @@ exclude = [
     "_notebooks"
 ]
 ignore-init-module-imports = true
+
+[tool.ruff.per-file-ignores]
+".actions/*" = ["S101", "S310"]
+"setup.py" = ["S101"]
+"examples/**" = [
+    "S101",  # Use of `assert` detected
+    "S113",  # todo: Probable use of requests call without
+    "S104",  # Possible binding to all interface
+    "F821",  # Undefined name `...`
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S501",  # Probable use of `requests` call with `verify=False` disabling SSL certificate checks
+    "S108",  # Probable insecure usage of temporary file or directory: "/tmp/data/MNIST"
+]
+"src/**" = [
+    "S101",  # todo: Use of `assert` detected
+    "S105", "S106", "S107",  # todo: Possible hardcoded password: ...
+    "S113",  # todo: Probable use of requests call without timeout
+    "S301",  # todo: `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S324",  # todo: Probable use of insecure hash functions in `hashlib`
+]
+"tests/**" = [
+    "S101",  # Use of `assert` detected
+    "S105", "S106",  # todo: Possible hardcoded password: ...
+    "S301",  # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S113",  # todo: Probable use of requests call without timeout
+    "S311",  # todo: Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S108",  # todo: Probable insecure usage of temporary file or directory: "/tmp/sys-customizations-sync"
+]
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
