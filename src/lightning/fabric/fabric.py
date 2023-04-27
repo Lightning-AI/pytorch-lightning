@@ -573,27 +573,27 @@ class Fabric:
     @contextmanager
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers."""
-        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        context = self._strategy.init_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
         with context:
             yield
 
     @contextmanager
-    def efficient_init(self) -> Generator:
-        """Instantiate the under this context manager to reduce peak memory usage.
+    def init(self) -> Generator:
+        """Instantiate under this context manager to apply improvements based on your configuration.
 
-        The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily.
-
-        Note:
-            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
+        without wasting memory being allocated unnecessarily.
         """
-        with self._strategy.module_init_context():
+        with self._strategy.init_context():
             yield
 
     @contextmanager
     def init_module(self) -> Generator:
-        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`."""
-        with self.efficient_init(), self.sharded_model():
+        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`.
+
+        It is recommended to instantiate your modules under this.
+        """
+        with self.init(), self.sharded_model():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:

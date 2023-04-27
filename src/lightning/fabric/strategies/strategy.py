@@ -115,23 +115,23 @@ class Strategy(ABC):
         return dataloader
 
     @contextmanager
-    def module_init_context(self) -> Generator:
-        """A context manager wrapping the model instantiation.
+    def init_context(self) -> Generator:
+        """A context manager for improved tensor and module instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.root_device.type != "cpu":
             rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
-                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
-                " utilize the features in `init_module()`.",
+                "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly with"
+                " PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
+                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
             device_context = nullcontext()
         else:
             device_context = self.root_device
-        with device_context, self.precision.module_init_context():
+        with device_context, self.precision.init():
             yield
 
     def setup_module_and_optimizers(
@@ -394,7 +394,7 @@ class _Sharded(ABC):
 
     @abstractmethod
     @contextmanager
-    def module_sharded_context(self) -> Generator:
+    def init_sharded_context(self) -> Generator:
         """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
         of parameters on creation.
 

@@ -32,7 +32,7 @@ class DoublePrecision(Precision):
         return module.double()
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
+    def init(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type when initializing the parameters in a module.
 
         See: :meth:`torch.set_default_tensor_type`

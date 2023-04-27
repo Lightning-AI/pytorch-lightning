@@ -245,22 +245,23 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
+    def init_context(self) -> Generator[None, None, None]:
         if not _TORCH_GREATER_EQUAL_2_0 and self.root_device.type != "cpu":
             rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
-                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
-                " utilize the features in `init_module()`.",
+                "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly with"
+                " PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
+                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
             device_context = nullcontext()
         else:
+            # this could check whether we are sharding and then select meta only in that case
             device_context = torch.device("meta")
-        with device_context, self.precision.module_init_context():
+        with device_context, self.precision.init():
             yield
 
     @contextmanager
-    def module_sharded_context(self) -> Generator:
+    def init_sharded_context(self) -> Generator:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
