@@ -24,7 +24,7 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 
 
 class HalfPrecision(Precision):
-    """Plugin for training with half (``torch.bfloat16``) precision.
+    """Plugin for training with half precision.
 
     Args:
         precision: Whether to use ``torch.float16`` (``'16-true'``) or ``torch.bfloat16`` (``'bf16-true'``).
