@@ -523,18 +523,20 @@ def delete_cloud_lightning_apps():
     project_id = _get_project(client).project_id
     list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
 
-    for lit_app in list_apps.lightningapps:
-        if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
-            continue
-        _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
-        _delete_cloud_space(
-            client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
-        )
+    if pr_number:
+        for lit_app in list_apps.lightningapps:
+            if pr_number in lit_app.name and app_name in lit_app.name:
+                _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
+                _delete_cloud_space(
+                    client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
+                )
 
     print("deleting apps that were created more than 1 hour ago.")
 
     for lit_app in list_apps.lightningapps:
-        if lit_app.created_at < datetime.datetime.now(lit_app.created_at.tzinfo) - datetime.timedelta(hours=1):
+        created_at = datetime.datetime.now(lit_app.created_at.tzinfo)
+        time_diff = datetime.now() - created_at
+        if time_diff > datetime.timedelta(hours=1):
             _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
             _delete_cloud_space(
                 client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
