@@ -17,7 +17,6 @@ from lightning.app.plugin.plugin import _Run, _start_plugin_server
 @mock.patch("lightning.app.plugin.plugin.uvicorn")
 def mock_plugin_server(mock_uvicorn) -> TestClient:
     """This fixture returns a `TestClient` for the plugin server."""
-
     test_client = {}
 
     def create_test_client(app, **_):
@@ -25,7 +24,7 @@ def mock_plugin_server(mock_uvicorn) -> TestClient:
 
     mock_uvicorn.run.side_effect = create_test_client
 
-    _start_plugin_server("0.0.0.0", 8888)
+    _start_plugin_server("0.0.0.0", 8888)  # noqa: S104
 
     return test_client["client"]
 

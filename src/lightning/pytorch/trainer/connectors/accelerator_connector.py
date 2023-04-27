@@ -544,7 +544,7 @@ class _AcceleratorConnector:
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPMixedPrecisionPlugin(self._precision_flag, device)
-            return MixedPrecisionPlugin(self._precision_flag, device)
+            return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 

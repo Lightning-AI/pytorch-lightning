@@ -41,9 +41,9 @@ if _COMET_AVAILABLE:
 
     try:
         from comet_ml.api import API
-    except ModuleNotFoundError:  # pragma: no-cover
+    except ModuleNotFoundError:
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
-        from comet_ml.papi import API  # pragma: no-cover
+        from comet_ml.papi import API
 else:
     # needed for test mocks, these tests shall be updated
     comet_ml = None
@@ -52,9 +52,8 @@ else:
 
 
 class CometLogger(Logger):
-    r"""
-    Track your parameters, metrics, source code and more using
-    `Comet <https://www.comet.com/?utm_source=lightning.pytorch&utm_medium=referral>`_.
+    r"""Track your parameters, metrics, source code and more using `Comet
+    <https://www.comet.com/?utm_source=lightning.pytorch&utm_medium=referral>`_.
 
     Install it with pip:
 
