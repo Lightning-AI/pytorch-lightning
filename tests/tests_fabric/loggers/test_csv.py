@@ -42,7 +42,6 @@ def test_file_logger_manual_versioning(tmpdir):
 
 def test_file_logger_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"
