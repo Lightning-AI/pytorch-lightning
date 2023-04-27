@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import ast
+import contextlib
 import csv
 import inspect
 import logging
@@ -272,10 +273,8 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
         hparams = yaml.full_load(fp)
 
     if _OMEGACONF_AVAILABLE and use_omegaconf:
-        try:
+        with contextlib.suppress(UnsupportedValueType, ValidationError):
             return OmegaConf.create(hparams)
-        except (UnsupportedValueType, ValidationError):
-            pass
     return hparams
 
 

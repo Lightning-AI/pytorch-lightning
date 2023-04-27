@@ -419,7 +419,6 @@ class HTTPQueue(BaseQueue):
                 # than the default timeout
                 if timeout > self.default_timeout:
                     time.sleep(0.05)
-                pass
 
     def _get(self) -> Any:
         try:

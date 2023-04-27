@@ -81,7 +81,7 @@ def test_list_all_apps_paginated(list_memberships: mock.MagicMock, list_instance
     list_memberships.assert_called_once()
     assert list_instances.mock_calls == [
         mock.call(project_id="default-project", limit=100, phase_in=[]),
-        mock.call(project_id="default-project", page_token="page-2", limit=100, phase_in=[]),
+        mock.call(project_id="default-project", page_token="page-2", limit=100, phase_in=[]),  # noqa: S106
     ]
 
 
