@@ -33,12 +33,14 @@ body:
       description: select all version where you have experienced this issue
       multiple: true
       options:
-        - "ver: 1.6.x"
-        - "ver: 1.7.x"
-        - "ver: 1.8.x"
-        - "ver: 1.9.x"
-        - "ver: 2.0.x"
-        - "ver: master"
+        - "v1_6"
+        - "v1_7"
+        - "v1_8"
+        - "v1_9"
+        - "v2_0"
+        - "master"
+    validations:
+      required: true
 
   - type: markdown
     attributes:
