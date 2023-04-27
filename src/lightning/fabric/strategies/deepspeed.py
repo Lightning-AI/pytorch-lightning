@@ -32,20 +32,11 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
-_DEEPSPEED_AVAILABLE = (
-    # DeepSpeed fails under 0.8.2 with torch 2.0: https://github.com/microsoft/DeepSpeed/pull/2863
-    RequirementCache("deepspeed>=0.8.2")
-    or not _TORCH_GREATER_EQUAL_2_0
-    # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
-    # remove the packaging check when min version is >=0.8.1
-    and RequirementCache("deepspeed")
-    and RequirementCache("packaging>=20.0")
-)
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -305,7 +296,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def model(self) -> "deepspeed.DeepSpeedEngine":
@@ -348,9 +339,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        with super().module_init_context(), self.module_sharded_context():
+            yield
+
+    @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
-        # manager, which happens at the start of `Fabric.run()`. Later modificatoins through e.g. `Fabric.setup()`
+        # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
 
         import deepspeed
@@ -488,7 +484,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
-        for k, v in client_state.copy().items():
+        for k in client_state.copy():
             if k not in state:
                 continue
             state[k] = client_state.pop(k)
@@ -578,7 +574,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
         reset_seed()
         self._set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()

@@ -43,7 +43,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -326,7 +326,6 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup_distributed(self) -> None:
         reset_seed()
         self.set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
@@ -568,7 +567,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -825,7 +824,6 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-
             missing_keys: List[str] = []
             unexpected_keys: List[str] = []
             error_msgs: List[str] = []

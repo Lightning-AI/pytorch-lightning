@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import torch
 
@@ -51,7 +52,7 @@ def ds_checkpoint_dir(checkpoint_dir: _PATH, tag: str | None = None) -> str:
 # Modified script from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py
 def convert_zero_checkpoint_to_fp32_state_dict(
     checkpoint_dir: _PATH, output_file: _PATH, tag: str | None = None
-) -> None:
+) -> dict[str, Any]:
     """Convert ZeRO 2 or 3 checkpoint into a single fp32 consolidated ``state_dict`` file that can be loaded with
     ``torch.load(file)`` + ``load_state_dict()`` and used for training without DeepSpeed. It gets copied into the
     top level checkpoint dir, so the user can easily do the conversion at any point in the future. Once extracted,
@@ -66,16 +67,13 @@ def convert_zero_checkpoint_to_fp32_state_dict(
         tag: checkpoint tag used as a unique identifier for checkpoint. If not provided will attempt
             to load tag in the file named ``latest`` in the checkpoint folder, e.g., ``global_step14``
 
-    Examples:
+    Examples::
 
-        >>> from lightning.pytorch.utilities.deepspeed import (
-        ...     convert_zero_checkpoint_to_fp32_state_dict
-        ... )
-        >>> # Lightning deepspeed has saved a directory instead of a file
-        >>> save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/" # doctest: +SKIP
-        >>> output_path = "lightning_model.pt" # doctest: +SKIP
-        >>> convert_zero_checkpoint_to_fp32_state_dict(save_path, output_path) # doctest: +SKIP
-        Saving fp32 state dict to lightning_model.pt
+        # Lightning deepspeed has saved a directory instead of a file
+        convert_zero_checkpoint_to_fp32_state_dict(
+            "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/",
+            "lightning_model.pt"
+        )
     """
 
     state_dict = get_fp32_state_dict_from_zero_checkpoint(checkpoint_dir, tag)
@@ -100,8 +98,10 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     client_state = {key: value for key, value in client_state.items() if key not in deepspeed_states}
     # State dict keys will include reference to wrapper _LightningModuleWrapperBase
     # Delete `module` prefix before saving.
-    state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict.keys()}
+    state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict}
     client_state["state_dict"] = state_dict
 
     print(f"Saving fp32 state dict to {output_file}")
     torch.save(client_state, output_file)
+
+    return client_state

@@ -21,9 +21,8 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.accelerators.hpu import _HPU_AVAILABLE
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
@@ -43,7 +42,6 @@ def _RunIf(
     bf16_cuda: bool = False,
     tpu: bool = False,
     ipu: bool = False,
-    hpu: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
@@ -53,6 +51,7 @@ def _RunIf(
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
+    dynamo: bool = False,
 ) -> Any:  # not the real return because it would require that pytest is available
     """Wrapper around ``pytest.mark.skipif`` with specific conditions.
 
@@ -71,7 +70,6 @@ def _RunIf(
         bf16_cuda: Require that CUDA device supports bf16.
         tpu: Require that TPU is available.
         ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
-        hpu: Require that HPU is available.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
@@ -83,6 +81,7 @@ def _RunIf(
         psutil: Require that psutil is installed.
         sklearn: Require that scikit-learn is installed.
         onnx: Require that onnx is installed.
+        dynamo: Require that `torch.dynamo` is supported.
     """
     import pytest
 
@@ -114,12 +113,12 @@ def _RunIf(
     if bf16_cuda:
         try:
             cond = not (torch.cuda.is_available() and torch.cuda.is_bf16_supported())
-        except (AssertionError, RuntimeError) as e:
+        except (AssertionError, RuntimeError) as ex:
             # AssertionError: Torch not compiled with CUDA enabled
             # RuntimeError: Found no NVIDIA driver on your system.
-            is_unrelated = "Found no NVIDIA driver" not in str(e) or "Torch not compiled with CUDA" not in str(e)
+            is_unrelated = "Found no NVIDIA driver" not in str(ex) or "Torch not compiled with CUDA" not in str(ex)
             if is_unrelated:
-                raise e
+                raise ex
             cond = True
 
         conditions.append(cond)
@@ -140,10 +139,6 @@ def _RunIf(
         reasons.append("IPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["ipu"] = True
-
-    if hpu:
-        conditions.append(not _HPU_AVAILABLE)
-        reasons.append("HPU")
 
     if mps is not None:
         if mps:
@@ -183,6 +178,19 @@ def _RunIf(
     if onnx:
         conditions.append(_TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE)
         reasons.append("onnx")
+
+    if dynamo:
+        if _TORCH_GREATER_EQUAL_2_1:
+            from torch._dynamo.eval_frame import is_dynamo_supported
+
+            cond = not is_dynamo_supported()
+        else:
+            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
+
+        # set use_base_version for nightly support
+        cond |= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
+        conditions.append(cond)
+        reasons.append("torch.dynamo")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
     kwargs.pop("condition", None)

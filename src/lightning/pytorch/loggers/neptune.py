@@ -19,6 +19,7 @@ __all__ = [
     "NeptuneLogger",
 ]
 
+import contextlib
 import logging
 import os
 from argparse import Namespace
@@ -35,8 +36,9 @@ from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 # neptune is available with two names on PyPI : `neptune` and `neptune-client`
-_NEPTUNE_AVAILABLE = RequirementCache("neptune")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
 _NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
+
 if _NEPTUNE_AVAILABLE:
     # >1.0 package structure
     import neptune
@@ -59,8 +61,7 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
 class NeptuneLogger(Logger):
-    r"""
-    Log using `Neptune <https://neptune.ai>`_.
+    r"""Log using `Neptune <https://neptune.ai>`_.
 
     Install it with pip:
 
@@ -280,10 +281,8 @@ class NeptuneLogger(Logger):
     def _neptune_init_args(self) -> Dict:
         args: Dict = {}
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             args = self._neptune_run_kwargs
-        except AttributeError:
-            pass
 
         if self._project_name is not None:
             args["project"] = self._project_name
@@ -295,11 +294,9 @@ class NeptuneLogger(Logger):
             args["run"] = self._run_short_id
 
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             if self._run_name is not None:
                 args["name"] = self._run_name
-        except AttributeError:
-            pass
 
         return args
 
@@ -382,8 +379,7 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
-        r"""
-        Log hyperparameters to the run.
+        r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
 
@@ -491,7 +487,7 @@ class NeptuneLogger(Logger):
 
         # save best k models
         if hasattr(checkpoint_callback, "best_k_models"):
-            for key in checkpoint_callback.best_k_models.keys():
+            for key in checkpoint_callback.best_k_models:
                 model_name = self._get_full_model_name(key, checkpoint_callback)
                 file_names.add(model_name)
                 self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)

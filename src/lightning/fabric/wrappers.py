@@ -15,6 +15,7 @@ import inspect
 from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
 
 import torch
+from lightning_utilities import WarningCache
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn as nn
 from torch import Tensor
@@ -28,8 +29,11 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.types import Optimizable
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 
+warning_cache = WarningCache()
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
+_LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
 
 class _FabricOptimizer:
@@ -45,9 +49,7 @@ class _FabricOptimizer:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__ = {
-            k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "zero_grad", "__del__")
-        }
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
@@ -60,7 +62,7 @@ class _FabricOptimizer:
         return self._strategy.get_optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None) -> Any:
-        kwargs = dict(closure=closure) if closure is not None else {}
+        kwargs = {"closure": closure} if closure is not None else {}
         if hasattr(self._strategy, "model") and isinstance(self._strategy.model, Optimizable):
             # only DeepSpeed defines this
             optimizer = self._strategy.model
@@ -70,10 +72,6 @@ class _FabricOptimizer:
             optimizer,
             **kwargs,
         )
-
-    def zero_grad(self, **kwargs: Any) -> None:
-        kwargs = _process_optimizer_zero_grad_kwargs(self.optimizer, kwargs)
-        self.optimizer.zero_grad(**kwargs)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
@@ -132,7 +130,42 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
 
+    def _redirection_through_forward(self, method_name: str) -> Callable:
+        assert method_name != "forward"
+        original_forward = self._original_module.forward
+
+        def wrapped_forward(*args: Any, **kwargs: Any) -> Any:
+            # Unpatch ourselves immediately before calling the method `method_name`
+            # because itself may want to call the real `forward`
+            self._original_module.forward = original_forward
+            # Call the actual method e.g. `.training_step(...)`
+            method = getattr(self._original_module, method_name)
+            return method(*args, **kwargs)
+
+        # We make the caller "unknowingly" send their arguments through the forward_module's `__call__`.
+        # We expect that the `forward_module` will eventually call `original_module.forward`, which we
+        # have patched to redirect back to `original_module.method_name()`.
+        def call_forward_module(*args: Any, **kwargs: Any) -> Any:
+            # Patch the original_module's forward so we can redirect the arguments back to the real method
+            self._original_module.forward = wrapped_forward
+            return self.forward(*args, **kwargs)
+
+        return call_forward_module
+
+    def _validate_method_access(self, name: str, attribute: Any) -> None:
+        if inspect.ismethod(attribute) and self._forward_module != self._original_module:
+            warning_cache.warn(
+                f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
+                " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
+                f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
+                category=PossibleUserWarning,
+            )
+
     def __getattr__(self, item: Any) -> Any:
+        if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
+            # Special support for `LightningModule`, to prevent bypassing DDP's forward
+            return self._redirection_through_forward(item)
+
         try:
             # __getattr__ gets called as a last resort if the attribute does not exist
             # call nn.Module's implementation first
@@ -140,7 +173,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         except AttributeError:
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
-            return getattr(original_module, item)
+            attr = getattr(original_module, item)
+            self._validate_method_access(item, attr)
+            return attr
 
 
 class _FabricDataLoader:
@@ -177,13 +212,6 @@ class _FabricDataLoader:
         else:
             for item in self._dataloader:
                 yield move_data_to_device(item, self._device)
-
-
-def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    if "set_to_none" in kwargs and "set_grads_to_None" in inspect.signature(optimizer.zero_grad).parameters:
-        # Some optimizers out there, for example DeepSpeedZeroOptimizer, use a different name than PyTorch
-        kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
-    return kwargs
 
 
 def _unwrap_objects(collection: Any) -> Any:

@@ -230,10 +230,11 @@ class _FitLoop(_Loop):
             _resolve_overfit_batches(combined_loader, mode=RunningStage.TRAINING)
 
         trainer_fn = TrainerFn.FITTING
+        stage = RunningStage.TRAINING
         dataloaders = []
         for dl in combined_loader.flattened:
             _check_dataloader_iterable(dl, source, trainer_fn)
-            dl = _process_dataloader(trainer, dl)
+            dl = _process_dataloader(trainer, trainer_fn, stage, dl)
             dataloaders.append(dl)
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
@@ -247,7 +248,6 @@ class _FitLoop(_Loop):
         if self.max_batches == 0:
             return
 
-        stage = RunningStage.TRAINING
         self.max_batches = _parse_num_batches(stage, self.max_batches, trainer.limit_train_batches)
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
@@ -303,14 +303,11 @@ class _FitLoop(_Loop):
 
         # reload the evaluation dataloaders too for proper display in the progress bar
         if self.epoch_loop._should_check_val_epoch() and trainer.val_dataloaders is None:
-            # TODO(carmocca): avoid having to set validating
             trainer.validating = True
             self.epoch_loop.val_loop.setup_data()
             trainer.training = True
 
         self._data_fetcher = _select_data_fetcher(trainer)
-
-        self._results.to(device=trainer.lightning_module.device)
 
         call._call_callback_hooks(trainer, "on_train_start")
         call._call_lightning_module_hook(trainer, "on_train_start")

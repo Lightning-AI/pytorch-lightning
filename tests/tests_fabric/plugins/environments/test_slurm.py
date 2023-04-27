@@ -148,6 +148,7 @@ def test_srun_variable_validation():
     """Test that we raise useful errors when `srun` variables are misconfigured."""
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
         SLURMEnvironment()
-    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
-        with pytest.raises(RuntimeError, match="You set `--ntasks=2` in your SLURM"):
-            SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}), pytest.raises(
+        RuntimeError, match="You set `--ntasks=2` in your SLURM"
+    ):
+        SLURMEnvironment()

@@ -212,7 +212,6 @@ def test_log_works_in_train_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -352,7 +351,6 @@ class LoggingSyncDistModel(BoringModel):
     ],
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
-
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -550,7 +548,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 @pytest.mark.parametrize(
     "value",
-    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
+    [None, {"a": None}, {"a": 1}, {"a": {"b": None}}, {"a": {"b": 1}}, "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
 def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):
