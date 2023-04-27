@@ -531,7 +531,7 @@ def delete_cloud_lightning_apps(name=None):
                     client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
                 )
 
-    print("deleting apps that were created more than 1 hour ago.")
+    print("deleting apps that were created more than 20 minutes ago.")
 
     for lit_app in list_apps.lightningapps:
         time_diff = datetime.datetime.now(lit_app.created_at.tzinfo) - lit_app.created_at
