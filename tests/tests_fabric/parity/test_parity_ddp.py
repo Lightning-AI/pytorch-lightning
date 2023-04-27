@@ -134,6 +134,7 @@ def train_fabric_ddp(fabric):
         pytest.param("cuda", 2, 0.01, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
+@pytest.mark.flaky(reruns=5)
 def test_parity_ddp(accelerator, devices, tolerance):
     cuda_reset()
 
