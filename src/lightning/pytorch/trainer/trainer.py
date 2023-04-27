@@ -278,7 +278,6 @@ class Trainer:
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
                 :meth:`~lightning.pytorch.core.module.LightningModule.log`,
                 :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
-
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
@@ -291,6 +290,14 @@ class Trainer:
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+        Raises:
+            TypeError:
+                If ``gradient_clip_val`` is not an int or float.
+
+            MisconfigurationException:
+                If ``gradient_clip_algorithm`` is invalid.
+                If ``track_grad_norm`` is not a positive number or inf.
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -507,8 +514,15 @@ class Trainer:
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
                 If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
+            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
+        Raises:
+            TypeError:
+                If ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` for torch version less than
+                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` or
+                :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
         """
@@ -592,6 +606,17 @@ class Trainer:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
             like :meth:`~lightning.pytorch.LightningModule.validation_step` etc.
             The length of the list corresponds to the number of validation dataloaders used.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -688,6 +713,17 @@ class Trainer:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
             like :meth:`~lightning.pytorch.LightningModule.test_step` etc.
             The length of the list corresponds to the number of test dataloaders used.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -783,6 +819,17 @@ class Trainer:
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
@@ -1243,6 +1290,10 @@ class Trainer:
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+
+        Raises:
+            AttributeError:
+                If the model is not attached to the Trainer before calling this method.
         """
         if self.model is None:
             raise AttributeError(
@@ -1531,6 +1582,11 @@ class Trainer:
                 stepping_batches = self.trainer.estimated_stepping_batches
                 scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
                 return [optimizer], [scheduler]
+
+        Raises:
+            MisconfigurationException:
+                If estimated stepping batches cannot be computed due to different `accumulate_grad_batches`
+                at different epochs.
         """
         # infinite training
         if self.max_epochs == -1:
