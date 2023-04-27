@@ -26,7 +26,6 @@ def test_commands_and_api_example_cloud() -> None:
         cmd_5 = "lightning logout"
         process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4, cmd_5]), shell=True)
         process.wait()
-
         "/".join(view_page.url.split("/")[:-2])
 
         # Validate the logs.

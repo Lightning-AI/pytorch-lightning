@@ -50,4 +50,4 @@ Step 2: Define the scheduling
 *****************************
 
 .. literalinclude:: ../../../../examples/app/dag/app.py
-    :lines: 103-132
+    :lines: 103-131

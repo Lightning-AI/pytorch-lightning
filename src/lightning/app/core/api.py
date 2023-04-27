@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import contextlib
 import json
 import os
 import queue
@@ -124,23 +125,19 @@ class UIRefresher(Thread):
             raise ex
 
     def run_once(self) -> None:
-        try:
+        with contextlib.suppress(queue.Empty):
             global app_status
             state, app_status = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
-        except queue.Empty:
-            pass
 
-        try:
+        with contextlib.suppress(queue.Empty):
             responses = self.api_response_queue.get(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
                 for response in responses:
                     responses_store[response["id"]] = response["response"]
-        except queue.Empty:
-            pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -179,7 +176,7 @@ fastapi_service.add_middleware(
 )
 
 if _is_starsessions_available():
-    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)
+    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)  # noqa: S106
 
 
 # General sequence is:
@@ -490,7 +487,7 @@ def start_server(
 
     if uvicorn_run:
         host = host.split("//")[-1] if "//" in host else host
-        if host == "0.0.0.0":
+        if host == "0.0.0.0":  # noqa: S104
             logger.info("Your app has started.")
         else:
             logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
