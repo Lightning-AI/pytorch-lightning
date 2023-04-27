@@ -30,7 +30,6 @@ body:
     id: versions
     attributes:
       label: What version are you seeing the problem on?
-      id: versions
       description: select all version where you have experienced this issue
       multiple: true
       options:
