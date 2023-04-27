@@ -25,8 +25,8 @@ from torch.utils.data.distributed import DistributedSampler
 
 from lightning.fabric.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.parity.models import ConvNet
-from tests_fabric.parity.utils import (
+from benchmarks_fabric.models import ConvNet
+from benchmarks_fabric.utils import (
     cuda_reset,
     is_cuda_memory_close,
     is_state_dict_equal,
