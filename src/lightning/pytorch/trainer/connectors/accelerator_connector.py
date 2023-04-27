@@ -418,7 +418,7 @@ class _AcceleratorConnector:
         if self._accelerator_flag == "ipu":
             if not _LIGHTNING_GRAPHCORE_AVAILABLE:
                 raise ImportError(
-                    "You have passed `accelerator="ipu"` but the IPU integration  is not installed."
+                    "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
                     " Please run `pip install lightning-graphcore` or check out"
                     " https://github.com/Lightning-AI/lightning-Graphcore for instructions"
                 )
