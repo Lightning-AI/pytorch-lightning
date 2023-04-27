@@ -104,24 +104,15 @@ subprojects:
   #  checks:
   #    - "pytorch-lightning (IPUs)"
 
-  # TODO: since this job has intermittent availability, it cannot be required
-  #- id: "pytorch-lightning: TPU workflow"
-  #  paths:
-  #    - ".actions/**"
-  #    - ".github/workflows/tpu-tests.yml"
-  #    - "dockers/base-xla/*"
-  #    - "requirements/fabric/**"
-  #    - "src/lightning_fabric/**"
-  #    - "tests/tests_fabric/**"
-  #    - "requirements/pytorch/**"
-  #    - "src/pytorch_lightning/**"
-  #    - "tests/tests_pytorch/**"
-  #    - "pyproject.toml"  # includes pytest config
-  #    - "!requirements/*/docs.txt"
-  #    - "!*.md"
-  #    - "!**/*.md"
-  #  checks:
-  #    - "test-on-tpus"
+  - id: "pytorch-lightning: TPU workflow"
+    paths:
+      # tpu CI availability is very limited, so we only require tpu tests
+      # to pass when their configurations are modified
+      - ".github/workflows/tpu-tests.yml"
+      - "tests/tests_pytorch/run_tpu_tests.sh"
+    checks:
+      #- "test-on-tpus (pytorch, xrt)"
+      - "test-on-tpus (pytorch, pjrt)"
 
   - id: "fabric: Docs"
     paths:
@@ -179,7 +170,6 @@ subprojects:
       - "build-pl (3.9, 1.12, 11.6.1)"
       - "build-pl (3.9, 1.13, 11.7.1)"
       - "build-pl (3.10, 2.0, 11.7.1)"
-      - "build-xla (3.8, 1.12)"
 
   # SECTION: lightning_fabric
 
@@ -238,6 +228,16 @@ subprojects:
       - "!**/*.md"
     checks:
       - "lightning-fabric (GPUs)"
+
+  - id: "lightning_fabric: TPU workflow"
+    paths:
+      # tpu CI availability is very limited, so we only require tpu tests
+      # to pass when their configurations are modified
+      - ".github/workflows/tpu-tests.yml"
+      - "tests/tests_fabric/run_tpu_tests.sh"
+    checks:
+      - "test-on-tpus (fabric, xrt)"
+      - "test-on-tpus (pytorch, pjrt)"
 
   # SECTION: lightning_app
 

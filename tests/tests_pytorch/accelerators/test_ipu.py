@@ -31,6 +31,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests_pytorch.trainer.connectors.test_accelerator_connector import mock_ipu_available
 
 if _IPU_AVAILABLE:
     import poptorch
@@ -98,9 +99,9 @@ def test_accelerator_selected(tmpdir):
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
-@RunIf(ipu=True)
-def test_warning_if_ipus_not_used():
-    with pytest.warns(UserWarning, match="IPU available but not used. Set `accelerator` and `devices`"):
+def test_warning_if_ipus_not_used(monkeypatch, cuda_count_0):
+    mock_ipu_available(monkeypatch)
+    with pytest.warns(UserWarning, match="IPU available but not used"):
         Trainer(accelerator="cpu")
 
 
@@ -508,7 +509,6 @@ def test_replication_factor(tmpdir):
 @RunIf(ipu=True)
 def test_default_opts(tmpdir):
     """Ensure default opts are set correctly in the IPUStrategy."""
-
     model = IPUModel()
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, fast_dev_run=True)
@@ -544,7 +544,6 @@ def test_multi_optimizers_fails(tmpdir):
 @RunIf(ipu=True)
 def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
-
     plugin = IPUPrecisionPlugin(precision="16-mixed")
     assert plugin.precision == "16-mixed"
 

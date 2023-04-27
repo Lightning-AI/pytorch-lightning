@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import threading
@@ -38,7 +39,7 @@ def pytest_sessionfinish(session, exitstatus):
     # TODO this isn't great. We should have each tests doing it's own cleanup
     current_process = psutil.Process()
     for child in current_process.children(recursive=True):
-        try:
+        with contextlib.suppress(psutil.NoSuchProcess):
             params = child.as_dict() or {}
             cmd_lines = params.get("cmdline", [])
             # we shouldn't kill the resource tracker from multiprocessing. If we do,
@@ -46,8 +47,6 @@ def pytest_sessionfinish(session, exitstatus):
             if cmd_lines and "resource_tracker" in cmd_lines[-1]:
                 continue
             child.kill()
-        except psutil.NoSuchProcess:
-            pass
 
     main_thread = threading.current_thread()
     for t in threading.enumerate():

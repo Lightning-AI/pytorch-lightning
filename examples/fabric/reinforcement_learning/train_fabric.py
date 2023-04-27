@@ -24,13 +24,12 @@ from datetime import datetime
 from typing import Dict
 
 import gymnasium as gym
-import numpy as np
 import torch
 import torchmetrics
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch import Tensor
-from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 
 from lightning.fabric import Fabric
 from lightning.fabric.loggers import TensorBoardLogger
@@ -44,17 +43,18 @@ def train(
     global_step: int,
     args: argparse.Namespace,
 ):
-    sampler = DistributedSampler(
-        list(range(data["obs"].shape[0])),
-        num_replicas=fabric.world_size,
-        rank=fabric.global_rank,
-        shuffle=True,
-        seed=args.seed,
-    )
+    indexes = list(range(data["obs"].shape[0]))
+    if args.share_data:
+        sampler = DistributedSampler(
+            indexes, num_replicas=fabric.world_size, rank=fabric.global_rank, shuffle=True, seed=args.seed
+        )
+    else:
+        sampler = RandomSampler(indexes)
     sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
 
     for epoch in range(args.update_epochs):
-        sampler.sampler.set_epoch(epoch)
+        if args.share_data:
+            sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
             loss = agent.training_step({k: v[batch_idxes] for k, v in data.items()})
             optimizer.zero_grad(set_to_none=True)
@@ -128,7 +128,7 @@ def main(args: argparse.Namespace):
     num_updates = args.total_timesteps // single_global_rollout
 
     # Get the first environment observation and start the optimization
-    next_obs = Tensor(envs.reset(seed=args.seed)[0]).to(device)
+    next_obs = torch.tensor(envs.reset(seed=args.seed)[0], device=device)
     next_done = torch.zeros(args.num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing
@@ -150,14 +150,16 @@ def main(args: argparse.Namespace):
 
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
-            done = np.logical_or(done, truncated)
+            done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = Tensor(next_obs).to(device), Tensor(done).to(device)
+            next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
-                for agent_final_info in info["final_info"]:
+                for i, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        fabric.print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
+                        fabric.print(
+                            f"Rank-0: global_step={global_step}, reward_env_{i}={agent_final_info['episode']['r'][0]}"
+                        )
                         rew_avg(agent_final_info["episode"]["r"][0])
                         ep_len_avg(agent_final_info["episode"]["l"][0])
 
@@ -186,15 +188,18 @@ def main(args: argparse.Namespace):
             "values": values.reshape(-1),
         }
 
-        # Gather all the tensors from all the world and reshape them
-        gathered_data = fabric.all_gather(local_data)
-        for k, v in gathered_data.items():
-            if k == "obs":
-                gathered_data[k] = v.reshape((-1,) + envs.single_observation_space.shape)
-            elif k == "actions":
-                gathered_data[k] = v.reshape((-1,) + envs.single_action_space.shape)
-            else:
-                gathered_data[k] = v.reshape(-1)
+        if args.share_data:
+            # Gather all the tensors from all the world and reshape them
+            gathered_data = fabric.all_gather(local_data)
+            for k, v in gathered_data.items():
+                if k == "obs":
+                    gathered_data[k] = v.reshape((-1,) + envs.single_observation_space.shape)
+                elif k == "actions":
+                    gathered_data[k] = v.reshape((-1,) + envs.single_action_space.shape)
+                else:
+                    gathered_data[k] = v.reshape(-1)
+        else:
+            gathered_data = local_data
 
         # Train the agent
         train(fabric, agent, optimizer, gathered_data, global_step, args)

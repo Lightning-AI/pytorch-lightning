@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import concurrent
+import contextlib
 import os
 import sys
 from functools import partial
@@ -54,13 +55,11 @@ logger = Logger(__name__)
 @click.option("--zip", required=False, is_flag=True, default=False)
 def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False, zip: bool = False) -> None:
     """Copy files between your local filesystem and the Lightning Cloud filesystem."""
-
     if sys.platform == "win32":
         print("`cp` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
         pwd = _pwd()
 
         client = LightningClient(retry=False)
@@ -121,10 +120,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     for upload_path in upload_paths:
         for cluster in clusters.clusters:
             filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
-            if lit_resource:
-                filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
-            else:
-                filename = "/" + filename
+            filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource) if lit_resource else "/" + filename
 
             response = client.lightningapp_instance_service_upload_project_artifact(
                 project_id=project_id,
@@ -258,8 +254,8 @@ def _download_file(path: str, url: str, progress: Progress, task_id: TaskID) -> 
     # Disable warning about making an insecure request
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    try:
-        request = requests.get(url, stream=True, verify=False)
+    with contextlib.suppress(ConnectionError):
+        request = requests.get(url, stream=True, verify=False)  # noqa: S501
 
         chunk_size = 1024
 
@@ -267,18 +263,13 @@ def _download_file(path: str, url: str, progress: Progress, task_id: TaskID) -> 
             for chunk in request.iter_content(chunk_size=chunk_size):
                 fp.write(chunk)  # type: ignore
                 progress.update(task_id, advance=len(chunk))
-    except ConnectionError:
-        pass
 
 
 def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
     is_remote = _is_remote(path)
     if is_remote:
         path = _remove_remote(path)
-        if path == ".":
-            path = pwd
-        else:
-            path = os.path.join(pwd, path)
+        path = pwd if path == "." else os.path.join(pwd, path)
     return path, is_remote
 
 
@@ -308,11 +299,9 @@ def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1Lightni
     lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == resource_name]
 
     if len(lit_ressources) == 0:
-
         lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == resource_name]
 
         if len(lit_ressources) == 0:
-
             print(f"ERROR: There isn't any Lightning Ressource matching the name {resource_name}.")
             sys.exit(0)
 

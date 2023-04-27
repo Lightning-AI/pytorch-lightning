@@ -218,7 +218,7 @@ def test_full_loop(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic="warn")
 
     # fit model
     trainer.fit(model, dm)

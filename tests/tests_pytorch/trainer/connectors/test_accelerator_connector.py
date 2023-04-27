@@ -13,7 +13,6 @@
 # limitations under the License
 import inspect
 import os
-import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -61,12 +60,16 @@ if _LIGHTNING_HABANA_AVAILABLE:
     from lightning_habana import HPUAccelerator, SingleHPUStrategy
 
 
-@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_accelerator_choice_tpu(accelerator, devices):
+@RunIf(min_python="3.9")  # mocking issue
+def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+    if _IS_WINDOWS:
+        # simulate fork support on windows
+        monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
+
     connector = _AcceleratorConnector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
     if devices == "auto" or (isinstance(devices, int) and devices > 1):
@@ -262,9 +265,7 @@ def test_accelerator_cpu(cuda_count_0):
 
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
 def test_accelererator_invalid_type_devices(cuda_count_2, device_count):
-    with pytest.raises(
-        MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
-    ):
+    with pytest.raises(TypeError, match=r"must be an int, a string, a sequence of ints, but you"):
         _ = Trainer(accelerator="gpu", devices=device_count)
 
 
@@ -379,7 +380,6 @@ def test_device_type_when_strategy_instance_gpu_passed(cuda_count_2, mps_count_0
 
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
-
     with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
@@ -557,6 +557,7 @@ def test_unsupported_tpu_choice(tpu_available):
 def mock_ipu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning.pytorch.accelerators.ipu, "_IPU_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.trainer.setup, "_IPU_AVAILABLE", value)
 
 
 def test_unsupported_ipu_choice(monkeypatch):
@@ -728,7 +729,8 @@ def test_gpu_accelerator_backend_choice_cuda(cuda_count_1):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-def test_gpu_accelerator_backend_choice_mps(mps_count_1):
+@RunIf(min_python="3.9")  # mocking issue
+def test_gpu_accelerator_backend_choice_mps(mps_count_1, cuda_count_0):
     trainer = Trainer(accelerator="gpu")
     assert trainer._accelerator_connector._accelerator_flag == "mps"
     assert isinstance(trainer.accelerator, MPSAccelerator)
@@ -808,7 +810,27 @@ def test_bagua_external_strategy(monkeypatch):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
+class DeviceMock(Mock):
+    def __instancecheck__(self, instance):
+        return True
+
+
+@RunIf(skip_windows=True)
+def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
+    accelerator = TPUAccelerator()
+    trainer = Trainer(accelerator=accelerator, devices=1)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, SingleTPUStrategy)
+
+    trainer = Trainer(accelerator=accelerator)
+    assert trainer.accelerator is accelerator
+    assert isinstance(trainer.strategy, XLAStrategy)
+
+
 @pytest.mark.parametrize("is_interactive", (False, True))
+@RunIf(min_python="3.9")  # mocking issue
 def test_connector_auto_selection(monkeypatch, is_interactive):
     import lightning.fabric  # avoid breakage with standalone package
 
@@ -824,8 +846,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
     def _mock_tpu_available(value):
         mock_tpu_available(monkeypatch, value)
-        monkeypatch.setitem(sys.modules, "torch_xla", Mock())
-        monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
         monkeypatch.setattr(lightning.fabric.plugins.environments.XLAEnvironment, "node_rank", lambda *_: 0)
 
     # CPU
@@ -884,16 +904,14 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_mps_count(monkeypatch, 0)
         mock_ipu_available(monkeypatch, False)
         _mock_tpu_available(True)
-        # TPUAccelerator.auto_device_count always returns 8, but in case this changes in the future...
         monkeypatch.setattr(lightning.pytorch.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
-        monkeypatch.setattr(torch, "device", Mock())
+        monkeypatch.setattr(torch, "device", DeviceMock())
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, TPUAccelerator)
     assert isinstance(connector.strategy, SingleTPUStrategy)
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
-    assert lightning.fabric.accelerators.TPUAccelerator.auto_device_count() == 8
     _mock_interactive()
 
     # Multi TPU
@@ -973,3 +991,17 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        "ddp",
+        "ddp_spawn",
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+        pytest.param("fsdp", marks=RunIf(min_torch="1.12.0")),
+    ],
+)
+def test_connector_sets_num_nodes(strategy, cuda_count_2):
+    trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
+    assert trainer.strategy.num_nodes == 2

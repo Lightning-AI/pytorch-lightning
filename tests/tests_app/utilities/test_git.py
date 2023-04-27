@@ -14,7 +14,6 @@ from lightning.app.utilities.git import (
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Don't run on windows")
 def test_execute_git_command():
-
     res = execute_git_command(["pull"])
     assert res
 
