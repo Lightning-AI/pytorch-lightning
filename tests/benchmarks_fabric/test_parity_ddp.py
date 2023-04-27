@@ -19,12 +19,6 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
-from lightning.fabric.fabric import Fabric
-from tests_fabric.helpers.runif import RunIf
 from benchmarks_fabric.models import ConvNet
 from benchmarks_fabric.utils import (
     cuda_reset,
@@ -33,6 +27,12 @@ from benchmarks_fabric.utils import (
     is_timing_close,
     make_deterministic,
 )
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+from lightning.fabric.fabric import Fabric
+from tests_fabric.helpers.runif import RunIf
 
 
 def train_torch_ddp(
