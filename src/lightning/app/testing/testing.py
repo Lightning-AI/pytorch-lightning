@@ -298,7 +298,7 @@ def run_app_in_cloud(
         cmd_extra_args = []
 
         if not os.getenv("LIGHTNING_CLOUD_URL", "").startswith("https://lightning.ai"):
-            cmd_extra_args = ["--cluster-id", "test-7"]
+            cmd_extra_args = ["--cluster-id", "staging"]
 
         with open(stdout_path, "w") as stdout:
             cmd = [
