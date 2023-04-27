@@ -197,7 +197,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         if not _LIGHTNING_GRAPHCORE_AVAILABLE:
             raise ModuleNotFoundError(
                 "You are running on IPU machine but you have not installed `lightning-graphcore`"
-                f" extension is  {str(_LIGHTNING_GRAPHCORE_AVAILABLE)}."
+                f" extension is {str(_LIGHTNING_GRAPHCORE_AVAILABLE)}."
             )
 
         from lightning_graphcore import IPUAccelerator

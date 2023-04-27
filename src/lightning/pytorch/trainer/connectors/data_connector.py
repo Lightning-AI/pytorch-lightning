@@ -193,14 +193,13 @@ class _DataConnector:
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
             from lightning_graphcore import IPUAccelerator
 
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
+            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
             is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
         else:
             is_ipu = False
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
             or is_ipu
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
