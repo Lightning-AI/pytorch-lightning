@@ -75,13 +75,13 @@ class _MyFabricGradNorm(BoringFabric):
             try:
                 super().run()
                 break
-            except RuntimeError as e:
+            except RuntimeError as ex:
                 # nonfinite grads -> skip and continue
                 # this may repeat until the scaler finds a factor where overflow is avoided,
                 # so the while loop should eventually break
                 # stop after a max of 10 tries
-                if i > 10 or not str(e).startswith("The total norm"):
-                    raise e
+                if i > 10 or not str(ex).startswith("The total norm"):
+                    raise ex
 
                 # unscale was already called by last attempt,
                 # but no update afterwards since optimizer step was missing.
@@ -115,13 +115,13 @@ class _MyFabricGradVal(BoringFabric):
             try:
                 super().run()
                 break
-            except RuntimeError as e:
+            except RuntimeError as ex:
                 # nonfinite grads -> skip and continue
                 # this may repeat until the scaler finds a factor where overflow is avoided,
                 # so the while loop should eventually break
                 # stop after a max of 10 tries
-                if i > 10 or not str(e).startswith("Nonfinite grads"):
-                    raise e
+                if i > 10 or not str(ex).startswith("Nonfinite grads"):
+                    raise ex
 
                 # unscale was already called by last attempt,
                 # but no update afterwards since optimizer step was missing.

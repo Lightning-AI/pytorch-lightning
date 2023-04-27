@@ -367,7 +367,7 @@ def _walk_to_component(
 
 def _collect_child_process_pids(pid: int) -> List[int]:
     """Function to return the list of child process pid's of a process."""
-    processes = os.popen("ps -ej | grep -i 'python' | grep -v 'grep' | awk '{ print $2,$3 }'").read()
+    processes = os.popen("ps -ej | grep -i 'python' | grep -v 'grep' | awk '{ print $2,$3 }'").read()  # noqa: S605
     processes = [p.split(" ") for p in processes.split("\n")[:-1]]
     return [int(child) for child, parent in processes if parent == str(pid) and child != str(pid)]
 
@@ -549,7 +549,7 @@ def _using_debugger() -> bool:
         return True
 
     # Collect the information about the process.
-    parent_process = os.popen(f"ps -ax | grep -i {os.getpid()} | grep -v grep").read()
+    parent_process = os.popen(f"ps -ax | grep -i {os.getpid()} | grep -v grep").read()  # noqa: S605
 
     # Detect whether VSCode or PyCharm debugger are used
     use_debugger = "debugpy" in parent_process or "pydev" in parent_process

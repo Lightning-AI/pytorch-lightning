@@ -51,7 +51,7 @@ class DockerRunner:
         shutil.copy(container_base, destination_path)
 
         # 3. Build the docker image.
-        os.system("docker build . --tag thomaschaton/base")
+        os.system("docker build . --tag thomaschaton/base")  # noqa: S605
 
         # 4. Clean the copied base Dockerfile.
         os.remove(destination_path)
@@ -84,7 +84,7 @@ class DockerRunner:
 
         # 4. Build the container.
         self.image = f"work-{self.work.__class__.__qualname__.lower()}"
-        os.system(f"docker build . --tag {self.image}")
+        os.system(f"docker build . --tag {self.image}")  # noqa: S605
 
         # 5. Clean the leftover files.
         os.remove(destination_path)

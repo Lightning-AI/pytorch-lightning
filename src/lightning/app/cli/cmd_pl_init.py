@@ -119,14 +119,14 @@ def download_frontend(destination: Path) -> None:
     url = "https://storage.googleapis.com/grid-packages/pytorch-lightning-app/v0.0.0/build.tar.gz"
     build_dir_name = "build"
     with TemporaryDirectory() as download_dir:
-        response = urllib.request.urlopen(url)
+        response = urllib.request.urlopen(url)  # noqa: S310
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
         shutil.move(str(Path(download_dir, build_dir_name)), destination)
 
 
 def project_file_from_template(template_dir: Path, destination_dir: Path, template_name: str, **kwargs: Any) -> None:
-    env = Environment(loader=FileSystemLoader(template_dir))
+    env = Environment(loader=FileSystemLoader(template_dir))  # noqa: S701
     template = env.get_template(template_name)
     rendered_template = template.render(**kwargs)
     with open(destination_dir / template_name, "w") as file:

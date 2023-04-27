@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from collections.abc import Iterable
 from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
@@ -151,11 +152,9 @@ class _MaxSize(_ModeIterator[List]):
         out = [None] * n
         all_exhausted = True
         for i in range(n):
-            try:
+            with contextlib.suppress(StopIteration):
                 out[i] = next(self.iterators[i])
                 all_exhausted = False
-            except StopIteration:
-                pass
         if all_exhausted:
             raise StopIteration
         return out
