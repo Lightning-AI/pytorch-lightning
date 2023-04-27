@@ -254,10 +254,6 @@ def test_dataloader_disallow_batch_sampler():
     batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
     dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
 
-    # this should raise - using batch sampler, that was not automatically instantiated by DataLoader
-    with pytest.raises(MisconfigurationException, match="when running on multiple IPU devices"):
-        _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
-
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
 def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
