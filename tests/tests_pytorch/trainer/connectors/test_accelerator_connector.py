@@ -700,7 +700,7 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
         Trainer(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu", "ipu"))
+@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu"))
 @pytest.mark.parametrize("devices", ("0", 0, []))
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
