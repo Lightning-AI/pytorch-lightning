@@ -40,7 +40,8 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
+        if "single_tpu" not in strategy_registry:
+            strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
 
 
 class TPUAccelerator(XLAAccelerator):
@@ -59,6 +60,7 @@ class TPUAccelerator(XLAAccelerator):
 def _patch_classes() -> None:
     setattr(pl.strategies, "SingleTPUStrategy", SingleTPUStrategy)
     setattr(pl.accelerators, "TPUAccelerator", TPUAccelerator)
+    # FIXME: precision plugins here and fabric
 
 
 _patch_sys_modules()

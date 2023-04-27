@@ -39,7 +39,8 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
+        if "single_tpu" not in strategy_registry:
+            strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")
 
 
 class TPUAccelerator(XLAAccelerator):
