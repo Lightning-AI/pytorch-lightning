@@ -517,7 +517,7 @@ def delete_cloud_lightning_apps():
         # Failed when the PR is running master or 'PR_NUMBER' isn't defined.
         pr_number = ""
 
-    app_name = os.getenv("TEST_APP_NAME", "")
+    app_name = os.getenv("TEST_APP_NAME", "").replace("_", "-")
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project_id = _get_project(client).project_id
