@@ -79,7 +79,6 @@ def _app_logs_reader(
     follow: bool,
     on_error_callback: Optional[Callable] = None,
 ) -> Iterator[_LogEvent]:
-
     read_queue = queue.PriorityQueue()
 
     # We will use a socket per component

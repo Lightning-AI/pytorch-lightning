@@ -173,8 +173,9 @@ class SLURMEnvironment(ClusterEnvironment):
         """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
         message.
 
-        Right now, we only check for the most common user errors. See `the srun docs
-        <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
+        Right now, we only check for the most common user errors. See
+        `the srun docs <https://slurm.schedmd.com/srun.html>`_
+        for a complete list of supported srun variables.
         """
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
         if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:

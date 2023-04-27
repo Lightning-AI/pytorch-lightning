@@ -75,7 +75,6 @@ def run(hparams):
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):
-
         # TRAINING LOOP
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):

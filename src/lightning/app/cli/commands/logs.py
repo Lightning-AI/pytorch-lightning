@@ -35,19 +35,17 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     Example uses:
 
-        Print all application logs:
+    Print all application logs:
 
-            $ lightning show logs my-application
+    $ lightning show logs my-application
 
+    Print logs only from the flow (no work):
 
-        Print logs only from the flow (no work):
+    $ lightning show logs my-application flow
 
-            $ lightning show logs my-application flow
+    Print logs only from selected works:
 
-
-        Print logs only from selected works:
-
-            $ lightning show logs my-application root.work_a root.work_b
+    $ lightning show logs my-application root.work_a root.work_b
     """
     _show_logs(app_name, components, follow)
 

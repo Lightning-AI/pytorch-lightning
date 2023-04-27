@@ -25,7 +25,6 @@ class TPUPrecision(Precision):
         optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
-
         import torch_xla.core.xla_model as xm
 
         return xm.optimizer_step(optimizer, optimizer_args=kwargs)
