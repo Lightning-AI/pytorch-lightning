@@ -121,21 +121,21 @@ RUN \
     pip install --no-cache-dir -r requirements/pytorch/horovod.txt "setuptools==59.5.0" && \
     horovodrun --check-build
 
-RUN \
-    # CUDA 10.2 doesn't support ampere architecture (8.0).
-    if [[ "$CUDA_VERSION" < "11.0" ]]; then \
-      export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; \
-      echo $TORCH_CUDA_ARCH_LIST; \
-    fi && \
-    # install NVIDIA apex
-    pip install -v \
-      --disable-pip-version-check \
-      --no-cache-dir \
-      --global-option="--cpp_ext" \
-      --global-option="--cuda_ext" \
-      https://github.com/NVIDIA/apex/archive/refs/heads/master.zip  \
-      "setuptools==59.5.0" && \
-    python -c "from apex import amp"
+#RUN \
+#    # CUDA 10.2 doesn't support ampere architecture (8.0).
+#    if [[ "$CUDA_VERSION" < "11.0" ]]; then \
+#      export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; \
+#      echo $TORCH_CUDA_ARCH_LIST; \
+#    fi && \
+#    # install NVIDIA apex
+#    pip install -v \
+#      --disable-pip-version-check \
+#      --no-cache-dir \
+#      --global-option="--cpp_ext" \
+#      --global-option="--cuda_ext" \
+#      https://github.com/NVIDIA/apex/archive/refs/heads/master.zip  \
+#      "setuptools==59.5.0" && \
+#    python -c "from apex import amp"
 
 RUN \
     # install Bagua

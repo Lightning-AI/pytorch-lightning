@@ -75,9 +75,6 @@ MODULE_OPTIMIZERS = Union[
     Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]
 ]
 
-if not _ONNX_AVAILABLE:
-    __doctest_skip__ = ["LightningModule.to_onnx"]
-
 
 class LightningModule(
     _DeviceDtypeModuleMixin,
@@ -1871,7 +1868,7 @@ class LightningModule(
 
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
-        """Saves the model in ONNX format.
+        r"""Saves the model in ONNX format.
 
         Args:
             file_path: The path of the file the onnx model should be saved to.
@@ -1879,7 +1876,7 @@ class LightningModule(
             **kwargs: Will be passed to torch.onnx.export function.
 
 
-        .. testcode::
+        Example::
 
             class SimpleModel(LightningModule):
                 def __init__(self):
@@ -1889,13 +1886,8 @@ class LightningModule(
                 def forward(self, x):
                     return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-
-            import os, tempfile
-
             model = SimpleModel()
-            with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
-                model.to_onnx(tmpfile.name, torch.randn((1, 64)), export_params=True)
-                os.path.isfile(tmpfile.name)
+            model.to_onnx("my-model.onnx", torch.randn((1, 64)), export_params=True)
         """
         if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(
@@ -1948,27 +1940,25 @@ class LightningModule(
               to use this feature without limitations. See also the :mod:`torch.jit`
               documentation for supported features.
 
-        Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
-            ...
-            >>> import os
-            >>> model = SimpleModel()
-            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
-            >>> os.path.isfile("model.pt")  # doctest: +SKIP
-            >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
-            ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
-            >>> os.path.isfile("model_trace.pt")  # doctest: +SKIP
-            True
+        Example::
+
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                   return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+            model = SimpleModel()
+            model.to_torchscript(file_path="model.pt")
+
+            torch.jit.save(model.to_torchscript(
+                file_path="model_trace.pt", method='trace', example_inputs=torch.randn(1, 64))
+            )
 
         Return:
-            This LightningModule as a torchscript, regardless of whether `file_path` is
-            defined or not.
+            This LightningModule as a torchscript, regardless of whether `file_path` is defined or not.
         """
         mode = self.training
 

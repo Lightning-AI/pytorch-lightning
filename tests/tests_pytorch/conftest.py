@@ -147,8 +147,13 @@ def cuda_count_4(monkeypatch):
 
 def mock_mps_count(monkeypatch, n: int) -> None:
     if n > 0 and not _TORCH_GREATER_EQUAL_1_12:
+
+        class MpsDeviceMock:
+            def __new__(cls, self, *args, **kwargs):
+                return "mps"
+
         # torch doesn't allow creation of mps devices on older versions
-        monkeypatch.setattr("torch.device", lambda *_: "mps")
+        monkeypatch.setattr("torch.device", MpsDeviceMock)
     monkeypatch.setattr(lightning_fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
     monkeypatch.setattr(lightning_fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 

@@ -53,6 +53,7 @@ def run_v0_app(fetch_logs, view_page):
     has_logs = False
     while not has_logs:
         for log in fetch_logs(["flow"]):
+            print(log)
             if "'a': 'a', 'b': 'b'" in log:
                 has_logs = True
         sleep(1)

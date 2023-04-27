@@ -388,7 +388,7 @@ ______________________________________________________________________
 The lightning community is maintained by
 
 - [10+ core contributors](https://lightning.ai/docs/pytorch/LTS/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
-- 590+ active community contributors.
+- 800+ community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://lightning.ai/docs/pytorch/LTS/generated/CONTRIBUTING.html)
 

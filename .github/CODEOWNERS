@@ -11,19 +11,19 @@
 /.actions/      @borda @carmocca @akihironitta
 /.github/       @borda @carmocca @akihironitta
 /.azure/        @borda @carmocca @akihironitta
+/.azure/app-cloud-e2e.yml   @awaelchli @ethanwharris @lantiga
 /dockers/       @borda @carmocca @akihironitta
 *.yml           @borda @carmocca @akihironitta
 
 # Docs
 /docs/                                      @edenlightning @lantiga @borda @awaelchli @RobertLaurella
+/docs/*/conf.py                             @borda @awaelchli @carmocca
 /.github/*.md                               @edenlightning @williamfalcon @lantiga @borda
 /.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
-/docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
 /docs/source-app/                           @williamfalcon @RobertLaurella @tchaton @awaelchli
-/docs/source-app/conf.py                    @borda @awaelchli @carmocca
 /docs/source-app/index.rst                  @williamfalcon @lantiga
 /docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
 

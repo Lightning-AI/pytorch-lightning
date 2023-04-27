@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+
+## [1.9.6] - 2023-04-DD
+
+### Fixed
+
+- Fixed issue where `Model.load_from_checkpoint("checkpoint.ckpt", map_location=map_location)` would always return model on CPU ([#17308](https://github.com/Lightning-AI/lightning/pull/17308))
+
+
 ## [1.9.5] - 2023-03-30
 
 ### Changed
@@ -13,6 +21,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * It now accepts a namespace `Handler` as an alternative to `Run` for the `run` argument. This means that you can call it like `NeptuneLogger(run=run["some/namespace"])` to log everything to the `some/namespace/` location of the run.
 - Allow `sys.argv` and args in `LightningCLI` ([#16808](https://github.com/Lightning-AI/lightning/pull/16808))
 - Moveed HPU broadcast override to the HPU strategy file ([#17011](https://github.com/Lightning-AI/lightning/pull/17011))
+
+- Changed the `is_picklable` util function to handle the edge case that throws a `TypeError` ([#17270](https://github.com/Lightning-AI/lightning/pull/17270))
 
 ### Depercated
 

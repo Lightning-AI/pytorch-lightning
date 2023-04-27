@@ -136,6 +136,7 @@ jobs:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
         FREEZE_REQUIREMENTS: 1
       run: |
+        python -m pip install -q pip -U
         pip install -e .[extra,test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
         # TODO: installing the strategies from file as deepspeed expects already installed PyTorch and extras do not install base first
         # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}

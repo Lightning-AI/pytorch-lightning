@@ -1,5 +1,5 @@
 # deps required by components in the lightning app repository (src/lightning_app/components)
 lightning_api_access >=0.0.3  # serve
-aiohttp >=3.8.0, <=3.8.3  # auto_scaler
+aiohttp >=3.8.0, <=3.8.4  # auto_scaler
 # lightning-fabric>=1.9.0  # multinode  # uncomment when released. it's okay to comment for now because pl includes it
 pytorch-lightning >1.8.0, <2.0.0 # multinode

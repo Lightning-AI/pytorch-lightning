@@ -89,7 +89,7 @@ def is_picklable(obj: object) -> bool:
     try:
         pickle.dumps(obj)
         return True
-    except (pickle.PickleError, AttributeError, RuntimeError):
+    except (pickle.PickleError, AttributeError, RuntimeError, TypeError):
         return False
 
 

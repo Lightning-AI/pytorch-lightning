@@ -7,6 +7,7 @@ from unittest.mock import ANY, MagicMock
 import pytest
 
 from lightning_app.components.serve import serve
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.imports import _is_numpy_available, _is_torch_available
 from lightning_app.utilities.network import _configure_session, find_free_network_port
 from tests_app import _PROJECT_ROOT
@@ -37,6 +38,9 @@ def target_fn(port, workers):
     sys.platform == "win32", reason="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1"
 )
 @pytest.mark.parametrize("workers", [0])
+# avoid the error: Failed to establish a new connection: [WinError 10061] No connection could be made because the
+# target machine actively refused it
+@_RunIf(skip_windows=True)
 def test_model_inference_api(workers):
 
     port = find_free_network_port()
