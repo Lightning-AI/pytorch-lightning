@@ -488,8 +488,7 @@ class _AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         else:
-            # TODO(fabric): remove ignore after merging Fabric and PL strategies
-            self.strategy = self._strategy_flag  # type: ignore[assignment]
+            self.strategy = self._strategy_flag
 
     def _check_and_init_precision(self) -> PrecisionPlugin:
         self._validate_precision_choice()
@@ -522,7 +521,7 @@ class _AcceleratorConnector:
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag)
+            return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
 
         if self._precision_flag == "32-true":
             return PrecisionPlugin()
@@ -544,7 +543,7 @@ class _AcceleratorConnector:
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPMixedPrecisionPlugin(self._precision_flag, device)
-            return MixedPrecisionPlugin(self._precision_flag, device)
+            return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 

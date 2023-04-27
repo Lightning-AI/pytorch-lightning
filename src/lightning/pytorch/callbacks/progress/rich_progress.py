@@ -101,7 +101,6 @@ if _RICH_AVAILABLE:
             return new_task_index
 
     class CustomTimeColumn(ProgressColumn):
-
         # Only refresh twice a second to prevent jitter
         max_refresh = 0.5
 

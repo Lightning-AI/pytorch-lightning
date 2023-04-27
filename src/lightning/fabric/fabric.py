@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -547,7 +547,6 @@ class Fabric:
             enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
                 skip.
         """
-
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
@@ -574,19 +573,30 @@ class Fabric:
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
-        Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
-
-        Example::
-
-            with self.sharded_model():
-                model = MyModel()
-
-        The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
-        if isinstance(self._strategy, _Sharded):
-            with self._strategy.module_sharded_context():
-                yield
-        else:
+        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
+        with _old_sharded_model_context(self._strategy):
+            yield
+
+    @contextmanager
+    def init_module(self) -> Generator:
+        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+
+        The parameters get created on the device and with the right data type right away without wasting memory being
+        allocated unnecessarily.
+
+        Note:
+            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
+                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
+                " utilize the features in `init_module()`.",
+                category=PossibleUserWarning,
+            )
+        with self._strategy.module_init_context():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -673,10 +683,7 @@ class Fabric:
                 f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
                 " that contains the code to launch in processes."
             )
-        function = partial(self._run_with_setup, function)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(function, self, *args, **kwargs)
-        return function(self, *args, **kwargs)
+        return self._wrap_and_launch(function, self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
@@ -753,20 +760,19 @@ class Fabric:
             workers = True
         return seed_everything(seed=seed, workers=workers)
 
-    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        run_method = partial(self._run_with_setup, run_method)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(run_method, *args, **kwargs)
-        else:
-            return run_method(*args, **kwargs)
+    def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
+        to_run = partial(self._wrap_with_setup, to_run)
+        if (launcher := self._strategy.launcher) is not None:
+            return launcher.launch(to_run, *args, **kwargs)
+        return to_run(*args, **kwargs)
 
-    def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
-            return run_function(*args, **kwargs)
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
+            return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters(), torch.tensor(0)).device
@@ -817,7 +823,7 @@ class Fabric:
                 " or change your code to directly call `fabric = Fabric(...); fabric.setup(...)` etc."
             )
         # wrap the run method, so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", partial(self._run_impl, self.run))
+        setattr(self, "run", partial(self._wrap_and_launch, self.run))
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(module, _FabricModule):
@@ -864,3 +870,12 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
+
+
+@contextmanager
+def _old_sharded_model_context(strategy: Strategy) -> Generator:
+    if isinstance(strategy, _Sharded):
+        with strategy.module_sharded_context():
+            yield
+    else:
+        yield

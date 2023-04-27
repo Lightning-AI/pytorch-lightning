@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """The watch_app_state function enables us to trigger a callback function when ever the app state changes."""
 # Todo: Refactor with Streamlit
 # Note: It would be nice one day to just watch changes within the Flow scope instead of whole app
