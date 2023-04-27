@@ -38,6 +38,8 @@ body:
         - "ver: 1.9.x"
         - "ver: 2.0.x"
         - "ver: master"
+    validations:
+      required: true
 
   - type: markdown
     attributes:
