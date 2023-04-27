@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
@@ -70,7 +71,7 @@ class MPSAccelerator(Accelerator):
         return _MPSAccelerator.is_available()
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "mps",
             cls,
