@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
@@ -20,6 +21,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -259,3 +261,19 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     model2 = Mock(spec=FullyShardedDataParallel)
     with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(init_process_group_mock):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    strategy = FSDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+    process_group_backend = strategy._get_process_group_backend()
+    global_rank = strategy.cluster_environment.global_rank()
+    world_size = strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )
