@@ -130,7 +130,7 @@ class Strategy(ABC):
             )
             device_context = nullcontext()
         else:
-            device_context = self.root_device
+            device_context = self.root_device  # type: ignore[assignment]
         with device_context, self.precision.init_context():
             yield
 

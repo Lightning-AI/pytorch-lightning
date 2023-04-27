@@ -256,7 +256,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             device_context = nullcontext()
         else:
             # this could check whether we are sharding and then select meta only in that case
-            device_context = torch.device("meta")
+            device_context = torch.device("meta")  # type: ignore[assignment]
         with device_context, self.precision.init_context():
             yield
 
