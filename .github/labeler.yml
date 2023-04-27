@@ -31,6 +31,3 @@ ci:
   - '.github/**'
   - 'dockers/**'
   - '.pre-commit-config.yml'
-
-docs:
-  - 'docs/**'
