@@ -530,7 +530,7 @@ def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) ->
         raise click.ClickException(
             "Unable to find the ssh binary. You must install ssh first to use this functionality."
         )
-    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])  # noqa: S606
+    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
 
 
 @_main.group()
