@@ -325,8 +325,8 @@ def _wait_for_cluster_state(
                 break
             time.sleep(poll_duration_seconds)
             elapsed = int(time.time() - start)
-        except lightning_cloud.openapi.rest.ApiException as e:
-            if e.status == 404 and target_state == V1ClusterState.DELETED:
+        except lightning_cloud.openapi.rest.ApiException as ex:
+            if ex.status == 404 and target_state == V1ClusterState.DELETED:
                 return
             raise
     else:

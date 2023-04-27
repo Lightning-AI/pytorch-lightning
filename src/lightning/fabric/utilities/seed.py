@@ -63,7 +63,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
 
 
 def _select_seed_randomly(min_seed_value: int = min_seed_value, max_seed_value: int = max_seed_value) -> int:
-    return random.randint(min_seed_value, max_seed_value)
+    return random.randint(min_seed_value, max_seed_value)  # noqa: S311
 
 
 def reset_seed() -> None:
