@@ -263,6 +263,7 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""

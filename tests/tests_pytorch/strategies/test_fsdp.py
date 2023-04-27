@@ -431,6 +431,7 @@ def test_fsdp_use_orig_params():
         assert not strategy.kwargs["use_orig_params"]
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
