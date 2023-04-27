@@ -13,12 +13,18 @@
 # limitations under the License.
 from typing import Any
 
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.utilities.types import Optimizable
 
 
 class XLAPrecision(Precision):
     """Precision plugin with XLA."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        super().__init__(*args, **kwargs)
 
     def optimizer_step(
         self,

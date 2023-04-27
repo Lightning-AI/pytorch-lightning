@@ -24,9 +24,15 @@ def test_graveyard_single_tpu(import_path, name):
     [
         ("lightning.pytorch.accelerators", "TPUAccelerator"),
         ("lightning.pytorch.accelerators.tpu", "TPUAccelerator"),
+        ("lightning.pytorch.plugins", "TPUPrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision", "TPUPrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision.tpu", "TPUPrecisionPlugin"),
+        ("lightning.pytorch.plugins", "TPUBf16PrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision", "TPUBf16PrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision.tpu_bf16", "TPUBf16PrecisionPlugin"),
     ],
 )
-def test_graveyard_tpuaccelerator(import_path, name):
+def test_graveyard_no_device(import_path, name):
     module = import_module(import_path)
     cls = getattr(module, name)
     with pytest.deprecated_call(match="is deprecated"), pytest.raises(ModuleNotFoundError, match="torch_xla"):
