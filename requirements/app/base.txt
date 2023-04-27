@@ -12,6 +12,7 @@ beautifulsoup4 >=4.8.0, <4.11.2
 inquirer >=2.10.0, <=3.1.3
 psutil <5.9.5
 click <=8.1.3
+python-multipart>=0.0.5, <=0.0.6
 
 fastapi >=0.69.0, <0.89.0  # strict; TODO: broken serializations
 starlette  # https://fastapi.tiangolo.com/deployment/versions/#about-starlette
