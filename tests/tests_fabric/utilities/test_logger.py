@@ -28,7 +28,6 @@ from lightning.fabric.utilities.logger import (
 
 def test_convert_params():
     """Test conversion of params to a dict."""
-
     # Test normal dict, make sure it is unchanged
     params = {"string": "string", "int": 1, "float": 0.1, "bool": True, "none": None}
     expected = params.copy()
@@ -45,7 +44,6 @@ def test_convert_params():
 
 def test_flatten_dict():
     """Validate flatten_dict can handle nested dictionaries and argparse Namespace."""
-
     # Test basic dict flattening with custom delimiter
     params = {"a": {"b": "c"}}
     params = _flatten_dict(params, "--")
@@ -106,7 +104,6 @@ def test_sanitize_callable_params():
 
 def test_sanitize_params():
     """Verify sanitize params converts various types to loggable strings."""
-
     params = {
         "float": 0.3,
         "int": 1,
@@ -137,7 +134,6 @@ def test_sanitize_params():
 
 def test_add_prefix():
     """Verify add_prefix modifies the dict keys correctly."""
-
     metrics = {"metric1": 1, "metric2": 2}
     metrics = _add_prefix(metrics, "prefix", "-")
 

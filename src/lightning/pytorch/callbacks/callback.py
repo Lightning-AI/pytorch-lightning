@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-Base class used to build new callbacks.
-
-"""
+r"""Base class used to build new callbacks."""
 
 from typing import Any, Dict, Optional, Type
 
@@ -26,8 +23,7 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class Callback:
-    r"""
-    Abstract base class used to build new callbacks.
+    r"""Abstract base class used to build new callbacks.
 
     Subclass this class and override any of the relevant hooks
     """
@@ -247,8 +243,7 @@ class Callback:
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> None:
-        r"""
-        Called when saving a checkpoint to give you a chance to store anything else you might want to save.
+        r"""Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
             trainer: the current :class:`~lightning.pytorch.trainer.Trainer` instance.
@@ -259,8 +254,7 @@ class Callback:
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> None:
-        r"""
-        Called when loading a model checkpoint, use to reload state.
+        r"""Called when loading a model checkpoint, use to reload state.
 
         Args:
             trainer: the current :class:`~lightning.pytorch.trainer.Trainer` instance.

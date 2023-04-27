@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Here are 4 easy steps to use Fabric in your PyTorch code.
 
 1. Create the Lightning Fabric object at the beginning of your script.
@@ -109,7 +108,6 @@ def run(hparams):
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):
-
         # TRAINING LOOP
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):

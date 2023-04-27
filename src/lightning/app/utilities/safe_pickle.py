@@ -56,7 +56,6 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
             └── bar
                 └── app.py
     """
-
     # If the work object not taken from the app ref, there is a thread lock reference
     # somewhere thats preventing it from being pickled. Investigate it later. We
     # shouldn't be fetching the work object from the app ref. TODO @sherin

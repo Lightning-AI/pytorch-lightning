@@ -18,7 +18,6 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 def test_strategy_registry_with_new_strategy():
     class TestStrategy:
-
         strategy_name = "test_strategy"
 
         def __init__(self, param1, param2):
