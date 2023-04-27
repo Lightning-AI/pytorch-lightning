@@ -86,7 +86,6 @@ def connect_app(app_name_or_id: str):
             connect_app(app_name_or_id)
 
     elif app_name_or_id.startswith("localhost"):
-
         with Progress() as progress_bar:
             connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=1.0)
 
@@ -143,7 +142,6 @@ def connect_app(app_name_or_id: str):
         ).wait()
 
     elif matched_connection_path:
-
         matched_connected_file = os.path.join(matched_connection_path, "connect.txt")
         matched_commands = os.path.join(matched_connection_path, "commands")
         if os.path.isdir(matched_commands):

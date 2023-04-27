@@ -31,8 +31,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class GradientAccumulationScheduler(Callback):
-    r"""
-    Change gradient accumulation factor according to scheduling.
+    r"""Change gradient accumulation factor according to scheduling.
 
     Args:
         scheduling: scheduling in format {epoch: accumulation_factor}

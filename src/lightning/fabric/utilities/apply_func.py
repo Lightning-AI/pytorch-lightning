@@ -82,7 +82,6 @@ def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
     """
-
     if isinstance(device, str):
         device = torch.device(device)
 
