@@ -285,7 +285,6 @@ class PPOLightning(LightningModule):
         Yield:
            Tuple of Lists containing tensors for states, actions, log probs, qvals and advantage
         """
-
         for step in range(self.steps_per_epoch):
             self.state = self.state.to(device=self.device)
 

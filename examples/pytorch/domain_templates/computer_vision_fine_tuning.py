@@ -192,7 +192,6 @@ class TransferLearningModel(LightningModule):
 
     def __build_model(self):
         """Define model layers & loss."""
-
         # 1. Load pre-trained network:
         backbone = get_torchvision_model(self.backbone, weights="DEFAULT")
 
@@ -211,7 +210,6 @@ class TransferLearningModel(LightningModule):
 
         Returns logits.
         """
-
         # 1. Feature extraction:
         x = self.feature_extractor(x)
         x = x.squeeze(-1).squeeze(-1)

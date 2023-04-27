@@ -37,7 +37,6 @@ def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, r
 @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_exists(client, _, tmpdir):
     """Test launching three independent loggers with either same or different experiment name."""
-
     run1 = MagicMock()
     run1.info.run_id = "run-id-1"
     run1.info.experiment_id = "exp-id-1"
@@ -91,7 +90,6 @@ def test_mlflow_logger_exists(client, _, tmpdir):
 @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 def test_mlflow_run_name_setting(client, _, tmpdir):
     """Test that the run_name argument makes the MLFLOW_RUN_NAME tag."""
-
     tags = resolve_tags({MLFLOW_RUN_NAME: "run-name-1"})
 
     # run_name is appended to tags
@@ -118,7 +116,6 @@ def test_mlflow_run_name_setting(client, _, tmpdir):
 @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 def test_mlflow_run_id_setting(client, _, tmpdir):
     """Test that the run_id argument uses the provided run_id."""
-
     run = MagicMock()
     run.info.run_id = "run-id"
     run.info.experiment_id = "experiment-id"
@@ -139,7 +136,6 @@ def test_mlflow_run_id_setting(client, _, tmpdir):
 @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 def test_mlflow_log_dir(client, _, tmpdir):
     """Test that the trainer saves checkpoints in the logger's save dir."""
-
     # simulate experiment creation with mlflow client mock
     run = MagicMock()
     run.info.run_id = "run-id"

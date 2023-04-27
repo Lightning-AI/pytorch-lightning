@@ -26,6 +26,7 @@ from lightning.fabric.accelerators.tpu import TPUAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
+    HalfPrecision,
     MixedPrecision,
     Precision,
     TPUBf16Precision,
@@ -107,7 +108,6 @@ class _Connector:
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
-
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
         strategy = self._argument_from_env("strategy", strategy, default="auto")
@@ -447,6 +447,8 @@ class _Connector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
+        if self._precision_input in ("16-true", "bf16-true"):
+            return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":
@@ -468,8 +470,8 @@ class _Connector:
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)
-            return MixedPrecision(precision=self._precision_input, device=device)
+                return FSDPPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
+            return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 
