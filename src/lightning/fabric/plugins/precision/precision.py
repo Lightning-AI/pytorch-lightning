@@ -43,8 +43,8 @@ class Precision:
         return module
 
     @contextmanager
-    def init(self) -> Generator[None, None, None]:
-        """Instantiate the module parameters in the precision type this plugin handles.
+    def init_context(self) -> Generator[None, None, None]:
+        """Instantiate module parameters or tensors in the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.
         """
