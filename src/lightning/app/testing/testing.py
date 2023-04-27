@@ -297,7 +297,7 @@ def run_app_in_cloud(
 
         cmd_extra_args = []
 
-        if os.getenv("LIGHTNING_CLOUD_URL", "") == "https://staging.gridai.dev":
+        if "staging.gridai.dev" in os.getenv("LIGHTNING_CLOUD_URL", ""):
             cmd_extra_args = ["--cluster-id", "staging"]
 
         with open(stdout_path, "w") as stdout:
