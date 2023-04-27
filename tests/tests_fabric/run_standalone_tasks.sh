@@ -20,5 +20,5 @@ export PL_RUN_STANDALONE_TESTS=1
 
 echo "Run parity tests manually"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-python parity/test_parity_ddp.py --accelerator "cpu" --devices 2
-python parity/test_parity_ddp.py --accelerator "cuda" --devices 2
+python -m parity.test_parity_ddp --accelerator "cpu" --devices 2
+python -m parity.test_parity_ddp --accelerator "cuda" --devices 2
