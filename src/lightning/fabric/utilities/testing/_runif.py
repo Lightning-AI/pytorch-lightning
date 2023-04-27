@@ -46,7 +46,7 @@ def _RunIf(
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
     Example::
-    
+
         @RunIf(min_torch="0.0")
         @pytest.mark.parametrize("arg1", [1, 2.0])
         def test_wrapper(arg1):
