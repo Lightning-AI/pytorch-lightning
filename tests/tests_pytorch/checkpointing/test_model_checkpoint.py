@@ -324,7 +324,8 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
     checkpoint.to_yaml(path_yaml)
-    d = yaml.full_load(open(path_yaml))
+    with open(path_yaml) as fo:
+        d = yaml.full_load(fo)
     best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
@@ -618,7 +619,6 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
 
 def test_ckpt_every_n_train_steps(tmpdir):
     """Tests that the checkpoints are saved every n training steps."""
-
     model = LogInTwoMethods()
     every_n_train_steps = 16
     max_epochs = 2
@@ -924,15 +924,15 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     checkpoint_cb = ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)
     epochs = 2
     limit_train_batches = 2
-    trainer_config = dict(
-        default_root_dir=tmpdir,
-        max_epochs=epochs,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=3,
-        limit_test_batches=4,
-        callbacks=[checkpoint_cb],
-        logger=TensorBoardLogger(tmpdir),
-    )
+    trainer_config = {
+        "default_root_dir": tmpdir,
+        "max_epochs": epochs,
+        "limit_train_batches": limit_train_batches,
+        "limit_val_batches": 3,
+        "limit_test_batches": 4,
+        "callbacks": [checkpoint_cb],
+        "logger": TensorBoardLogger(tmpdir),
+    }
     trainer = Trainer(**trainer_config)
     assert_trainer_init(trainer)
 
@@ -982,7 +982,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
 def test_configure_model_checkpoint(tmpdir):
     """Test all valid and invalid ways a checkpoint callback can be passed to the Trainer."""
-    kwargs = dict(default_root_dir=tmpdir)
+    kwargs = {"default_root_dir": tmpdir}
     callback1 = ModelCheckpoint(monitor="foo")
     callback2 = ModelCheckpoint(monitor="bar")
 

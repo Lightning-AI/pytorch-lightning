@@ -31,19 +31,19 @@ def test_trainer_flag(caplog):
         def on_fit_start(self):
             raise SystemExit()
 
-    trainer = Trainer(max_time=dict(seconds=1337))
+    trainer = Trainer(max_time={"seconds": 1337})
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1337
 
-    trainer = Trainer(max_time=dict(seconds=1337), callbacks=[Timer()])
+    trainer = Trainer(max_time={"seconds": 1337}, callbacks=[Timer()])
     with pytest.raises(SystemExit), caplog.at_level(level=logging.INFO):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
     # Make sure max_time still honored even if max_epochs == -1
-    trainer = Trainer(max_time=dict(seconds=1), max_epochs=-1)
+    trainer = Trainer(max_time={"seconds": 1}, max_epochs=-1)
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
@@ -59,7 +59,7 @@ def test_trainer_flag(caplog):
         ("00:00:00:22", timedelta(seconds=22)),
         ("12:34:56:65", timedelta(days=12, hours=34, minutes=56, seconds=65)),
         (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
-        (dict(weeks=52, days=1), timedelta(weeks=52, days=1)),
+        ({"weeks": 52, "days": 1}, timedelta(weeks=52, days=1)),
     ],
 )
 def test_timer_parse_duration(duration, expected):

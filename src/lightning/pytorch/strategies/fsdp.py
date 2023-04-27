@@ -99,7 +99,6 @@ class FSDPStrategy(ParallelStrategy):
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
-
     """
 
     strategy_name = "fsdp"
@@ -191,7 +190,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     def setup_environment(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
@@ -283,8 +282,8 @@ class FSDPStrategy(ParallelStrategy):
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
-        except ValueError as e:
-            if "optimizer got an empty parameter list" not in str(e):
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
                 raise
             invalid_params_error = True
 
@@ -313,7 +312,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not _distributed_available:
+        if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -321,9 +320,10 @@ class FSDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not torch.distributed.is_initialized():
+            return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 

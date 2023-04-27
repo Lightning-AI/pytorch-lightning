@@ -14,7 +14,6 @@ from lightning.pytorch.tuner.tuning import Tuner
 
 def test_skip_on_fast_dev_run_tuner(tmpdir):
     """Test that tuner algorithms are skipped if fast dev run is enabled."""
-
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
     model.batch_size = 8
@@ -69,14 +68,14 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     checkpoint_callback.save_checkpoint = Mock()
     early_stopping_callback = EarlyStopping(monitor="foo")
     early_stopping_callback._evaluate_stopping_criteria = Mock()
-    trainer_config = dict(
-        default_root_dir=tmpdir,
-        fast_dev_run=fast_dev_run,
-        val_check_interval=2,
-        logger=TensorBoardLogger(tmpdir),
-        log_every_n_steps=1,
-        callbacks=[checkpoint_callback, early_stopping_callback],
-    )
+    trainer_config = {
+        "default_root_dir": tmpdir,
+        "fast_dev_run": fast_dev_run,
+        "val_check_interval": 2,
+        "logger": TensorBoardLogger(tmpdir),
+        "log_every_n_steps": 1,
+        "callbacks": [checkpoint_callback, early_stopping_callback],
+    }
 
     def _make_fast_dev_run_assertions(trainer, model):
         # check the call count for train/val/test step/epoch
