@@ -107,7 +107,6 @@ def test_hpc_max_ckpt_version(tmpdir):
 
 def test_ckpt_for_fsspec():
     """Test that the _CheckpointConnector is able to write to fsspec file systems."""
-
     model = BoringModel()
     # hardcoding dir since `tmpdir` can be windows path
     trainer = Trainer(

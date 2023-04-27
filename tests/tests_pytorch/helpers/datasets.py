@@ -103,7 +103,7 @@ class MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data, trials: int = 30, delta: float = 1.0):
@@ -115,8 +115,8 @@ class MNIST(Dataset):
             try:
                 res = torch.load(path_data)
             # todo: specify the possible exception
-            except Exception as e:
-                exception = e
+            except Exception as ex:
+                exception = ex
                 time.sleep(delta * random.random())
             else:
                 break

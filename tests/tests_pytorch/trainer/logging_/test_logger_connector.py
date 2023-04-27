@@ -445,7 +445,6 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             self.layer = torch.nn.Linear(32, 10)
 
         def training_step(self, batch):
-
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
             self.metrics._is_currently_logging = True
             self.log_dict(self.metrics, on_step=True, on_epoch=True)
@@ -605,7 +604,7 @@ def test_result_collection_batch_size_extraction():
     fx_name = "training_step"
     log_val = torch.tensor(7.0)
 
-    results = _ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
     train_mse = MeanSquaredError()
     train_mse(torch.randn(4, 5), torch.randn(4, 5))
@@ -615,7 +614,7 @@ def test_result_collection_batch_size_extraction():
     assert isinstance(results["training_step.mse"].value, MeanSquaredError)
     assert results["training_step.log_val"].value == log_val
 
-    results = _ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
     results.log(fx_name, "train_log", log_val, on_step=False, on_epoch=True)
     assert results.batch_size == 1
@@ -624,7 +623,7 @@ def test_result_collection_batch_size_extraction():
 
 
 def test_result_collection_no_batch_size_extraction():
-    results = _ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
     fx_name = "training_step"
     batch_size = 10

@@ -48,14 +48,13 @@ class Work(LightningWork):
 
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_client_server():
-
     database_path = Path("database.db").resolve()
     if database_path.exists():
         os.remove(database_path)
 
     secrets = [Secret(name="example", value="secret")]
 
-    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")
+    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")  # noqa: S106
     assert general.cls_name == "TestConfig"
     assert general.data == '{"id": null, "name": "name", "secrets": [{"name": "example", "value": "secret"}]}'
 
@@ -122,7 +121,6 @@ def test_client_server():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_restart():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):
@@ -166,7 +164,6 @@ def test_work_database_restart():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_periodic_store():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):
