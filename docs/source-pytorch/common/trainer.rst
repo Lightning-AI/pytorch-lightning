@@ -995,10 +995,10 @@ Supports passing different training strategies with aliases (ddp, fsdp, etc) as 
 
     # Model-parallel training with the FSDP strategy on 4 GPUs
     trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=4)
-    
+
     # Model-parallel training with the DeepSpeed strategy on 4 GPUs
     trainer = Trainer(strategy="deepspeed", accelerator="gpu", devices=4)
-   
+
     # Auto will resolve to single device strategy if a single device is detected
     # or ddp if multiple nodes/devices are detected, and ddp_fork if running interactively
     trainer = Trainer(strategy="auto", accelerator="gpu")
