@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pickle
@@ -555,12 +556,11 @@ class CheckpointLightningApp(LightningApp):
 
 
 def test_snap_shotting():
-    try:
+    with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
         app.checkpointing = True
         MultiProcessRuntime(app, start_server=False).dispatch()
-    except SuccessException:
-        pass
+
     checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     checkpoints = os.listdir(checkpoint_dir)
     assert len(checkpoints) == 1

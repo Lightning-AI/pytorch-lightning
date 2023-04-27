@@ -200,8 +200,9 @@ class TensorBoardLogger(Logger):
                     self.experiment.add_scalar(k, v, step)
                 # TODO(fabric): specify the possible exception
                 except Exception as ex:
-                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    raise ValueError(m) from ex
+                    raise ValueError(
+                        f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
+                    ) from ex
 
     @rank_zero_only
     def log_hyperparams(

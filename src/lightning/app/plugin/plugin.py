@@ -128,28 +128,28 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
 
             with open(download_path, "wb") as f:
                 f.write(response.content)
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error downloading plugin source: {str(e)}.",
+                detail=f"Error downloading plugin source: {str(ex)}.",
             )
 
         # Extract
         try:
             with tarfile.open(download_path, "r:gz") as tf:
                 tf.extractall(source_path)
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error extracting plugin source: {str(e)}.",
+                detail=f"Error extracting plugin source: {str(ex)}.",
             )
 
         # Import the plugin
         try:
             plugin = _load_plugin_from_file(os.path.join(source_path, run.plugin_entrypoint))
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(e)}."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(ex)}."
             )
 
         # Ensure that apps are dispatched from the temp directory
@@ -165,9 +165,9 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             )
             actions = plugin.run(**run.plugin_arguments) or []
             return {"actions": [action.to_spec().to_dict() for action in actions]}
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(e)}."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(ex)}."
             )
         finally:
             os.chdir(cwd)

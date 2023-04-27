@@ -186,8 +186,8 @@ class CloudRuntime(Runtime):
             if "PYTEST_CURRENT_TEST" not in os.environ:
                 click.launch(self._get_cloudspace_url(project, cloudspace_name, "code", needs_credits))
 
-        except ApiException as e:
-            logger.error(e.body)
+        except ApiException as ex:
+            logger.error(ex.body)
             sys.exit(1)
 
     def cloudspace_dispatch(
@@ -384,8 +384,8 @@ class CloudRuntime(Runtime):
             if bool(int(os.getenv("LIGHTING_TESTING", "0"))):
                 print(f"APP_LOGS_URL: {self._get_app_url(project, run_instance, 'logs')}")
 
-        except ApiException as e:
-            logger.error(e.body)
+        except ApiException as ex:
+            logger.error(ex.body)
             sys.exit(1)
         finally:
             if cleanup_handle:
@@ -399,8 +399,8 @@ class CloudRuntime(Runtime):
 
         try:
             app = load_app_from_file(filepath, raise_exception=True, mock_imports=True, env_vars=env_vars)
-        except FileNotFoundError as e:
-            raise e
+        except FileNotFoundError as ex:
+            raise ex
         except Exception:
             from lightning.app.testing.helpers import EmptyFlow
 
@@ -770,7 +770,7 @@ class CloudRuntime(Runtime):
             if cloudspace is not None and cloudspace.code_config is not None:
                 data_connection_mounts = cloudspace.code_config.data_connection_mounts
 
-            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
             work_spec = V1LightningworkSpec(
                 build_spec=build_spec,
                 drives=drives + mounts,
