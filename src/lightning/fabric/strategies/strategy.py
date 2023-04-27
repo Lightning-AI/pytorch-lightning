@@ -27,6 +27,7 @@ from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
@@ -327,7 +328,7 @@ class Strategy(ABC):
         return torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         pass
 
     def _err_msg_joint_setup_required(self) -> str:

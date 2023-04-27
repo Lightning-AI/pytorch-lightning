@@ -29,6 +29,7 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
 from lightning.fabric.utilities.distributed import (
     _distributed_available,
@@ -160,7 +161,7 @@ class DDPStrategy(ParallelStrategy):
         return super().get_module_state_dict(module)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
             ("ddp", "popen"),
             ("ddp_spawn", "spawn"),

@@ -21,6 +21,7 @@ from torch.nn import Module
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
     _init_cpu_offload,
     _optimizer_has_flat_params,
@@ -362,7 +363,7 @@ class FSDPStrategy(ParallelStrategy):
         return cls._registered_strategies
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not _fsdp_available:
             return
         strategy_registry.register(
