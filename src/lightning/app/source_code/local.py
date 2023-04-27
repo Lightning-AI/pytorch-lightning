@@ -31,7 +31,7 @@ class LocalSourceCodeDir:
     def __init__(self, path: Path, ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None) -> None:
         if "LIGHTNING_VSCODE_WORKSPACE" in os.environ:
             # Don't use home to store the tar ball. This won't play nice with symlinks
-            self.cache_location: Path = Path(os.path.join("/tmp", ".lightning", "cache", "repositories"))
+            self.cache_location: Path = Path("/tmp", ".lightning", "cache", "repositories")
         else:
             self.cache_location: Path = Path.home() / ".lightning" / "cache" / "repositories"
 
