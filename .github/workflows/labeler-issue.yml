@@ -1,4 +1,4 @@
-name: Issue labeler
+name: Label Issue
 on:
   issues:
     types: [opened, edited]
