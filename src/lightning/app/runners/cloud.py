@@ -103,7 +103,6 @@ logger = Logger(__name__)
 
 def _to_clean_dict(swagger_object, map_attributes):
     """Returns the swagger object properties as a dict with correct object names."""
-
     if hasattr(swagger_object, "to_dict"):
         attribute_map = swagger_object.attribute_map
         result = {}
@@ -395,7 +394,6 @@ class CloudRuntime(Runtime):
     @classmethod
     def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
-
         # Pretend we are running in the cloud when loading the app locally
         os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
 
@@ -538,7 +536,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = cloudspace_name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_cloudspaces])
+                name_exists = any(app.name == random_name for app in existing_cloudspaces)
 
             cloudspace_name = random_name
         return cloudspace_name
@@ -553,7 +551,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_instances])
+                name_exists = any(app.name == random_name for app in existing_instances)
 
             name = random_name
         return name
