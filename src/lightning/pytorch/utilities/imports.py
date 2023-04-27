@@ -30,6 +30,7 @@ _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 _LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
+_LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
 
 if _POPTORCH_AVAILABLE:
     import poptorch

@@ -33,7 +33,7 @@ You can also use pure 16-bit training, where the weights are also in 16-bit prec
 .. code-block:: python
 
     import lightning.pytorch as pl
-    from lightning.pytorch.strategies import IPUStrategy
+    from lightning_graphcore import IPUStrategy
 
     model = MyLightningModule()
     model = model.half()
@@ -56,7 +56,7 @@ Lightning supports dumping all reports to a directory to open using the tool.
 .. code-block:: python
 
     import lightning.pytorch as pl
-    from lightning.pytorch.strategies import IPUStrategy
+    from lightning_graphcore import IPUStrategy
 
     model = MyLightningModule()
     trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(autoreport_dir="report_dir/"))
