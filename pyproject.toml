@@ -62,6 +62,7 @@ extend-select = [
 ]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
+    "S108",
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [
