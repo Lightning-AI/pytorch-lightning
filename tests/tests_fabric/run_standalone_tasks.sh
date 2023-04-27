@@ -15,12 +15,9 @@
 set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_fabric DIRECTORY
 
-# this environment variable allows special tests to run
-export PL_RUN_STANDALONE_TESTS=1
-
-echo "Run parity tests manually"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 
+echo "Run parity tests manually"
 python -m parity.test_parity_ddp "cpu" 2
 python -m parity.test_parity_ddp "cuda" 2
