@@ -37,7 +37,7 @@ class HalfPrecision(Precision):
         self._desired_input_dtype = torch.bfloat16 if precision == "bf16-true" else torch.float16
 
     def convert_module(self, module: Module) -> Module:
-        return module.bfloat16() if self.precision == "bf16-true" else module.half()
+        return module.to(dtype=self._desired_input_dtype)
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
