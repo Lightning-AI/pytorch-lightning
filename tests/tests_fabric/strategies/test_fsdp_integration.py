@@ -198,6 +198,8 @@ def test_compile(compile_after_setup):
     "precision,expected_dtype",
     [
         ("32-true", torch.float32),
+        ("16-true", torch.float16),
+        pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
         ("64-true", torch.float64),
     ],
 )
