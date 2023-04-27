@@ -22,7 +22,6 @@ class IPUAccelerator:
 
 
 class IPUStrategy:
-    """Strategy for training on single IPU device."""
 
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
@@ -34,7 +33,6 @@ class IPUStrategy:
 
 
 class IPUPrecisionPlugin:
-    """Plugin that enables bfloat/half support on IPUs."""
 
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
