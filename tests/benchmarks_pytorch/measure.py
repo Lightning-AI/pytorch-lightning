@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 
 
-def measure_loops(cls_model, kind: str, loop:Callable, num_runs: int =10, num_epochs: int =10):
+def measure_loops(cls_model, kind: str, loop: Callable, num_runs: int = 10, num_epochs: int = 10):
     """Returns an array with the last loss from each epoch for each run."""
     hist_losses = []
     hist_durations = []

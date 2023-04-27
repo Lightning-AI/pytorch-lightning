@@ -16,8 +16,8 @@ import os
 import numpy as np
 import pytest
 import torch
-
 from benchmarks_pytorch.measure import measure_loops
+
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from tests_pytorch.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
 
@@ -58,7 +58,9 @@ def test_pytorch_parity(
     cls_model: LightningModule, max_diff_speed: float, max_diff_memory: float, num_epochs: int, num_runs: int
 ):
     """Verify that the same  pytorch and lightning models achieve the same results."""
-    lightning = measure_loops(cls_model, kind="PT Lightning", loop=lightning_loop, num_epochs=num_epochs, num_runs=num_runs)
+    lightning = measure_loops(
+        cls_model, kind="PT Lightning", loop=lightning_loop, num_epochs=num_epochs, num_runs=num_runs
+    )
     vanilla = measure_loops(cls_model, kind="Vanilla PT", loop=vanilla_loop, num_epochs=num_epochs, num_runs=num_runs)
 
     # make sure the losses match exactly  to 5 decimal places
