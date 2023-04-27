@@ -124,6 +124,8 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
             from lightning_graphcore import IPUAccelerator
 
+            # TODO: This code could be done in a hook in the IPUAccelerator as it's a simple error check
+            #  through the Trainer. It doesn't need to stay in Lightning
             if isinstance(trainer.accelerator, IPUAccelerator) and (
                 is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
             ):

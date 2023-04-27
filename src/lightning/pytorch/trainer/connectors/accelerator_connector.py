@@ -416,6 +416,9 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
+            # TODO: Why would we block someone from using a IPU capable machine without graphcore?
+            #  Don't these machines also have a regular CPU?
+
             if not _LIGHTNING_GRAPHCORE_AVAILABLE:
                 raise ImportError(
                     "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
@@ -499,6 +502,10 @@ class _AcceleratorConnector:
 
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
             from lightning_graphcore import IPUAccelerator, IPUPrecision
+
+            # TODO: For the strategies that have a fixed precision class, we don't really need this logic
+            #  in the accelerator. Since the strategy owns the precision plugin, the strategy.precision_plugin
+            #  could be a no-op and then we wouldn't need this.
 
             if isinstance(self.accelerator, IPUAccelerator):
                 return IPUPrecision(self._precision_flag)
