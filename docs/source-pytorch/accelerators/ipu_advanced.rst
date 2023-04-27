@@ -22,7 +22,7 @@ IPUs provide further optimizations to speed up training. By using the ``IPUStrat
 .. code-block:: python
 
     import lightning.pytorch as pl
-    from lightning.pytorch.strategies import IPUStrategy
+    from lightning_graphcore import IPUStrategy
 
     model = MyLightningModule()
     trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(device_iterations=32))
@@ -34,7 +34,7 @@ Note that by default we return the last device iteration loss. You can override 
 
     import poptorch
     import lightning.pytorch as pl
-    from lightning.pytorch.strategies import IPUStrategy
+    from lightning_graphcore import IPUStrategy
 
     model = MyLightningModule()
     inference_opts = poptorch.Options()

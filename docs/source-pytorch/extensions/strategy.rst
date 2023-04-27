@@ -88,7 +88,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - ``SingleHPUStrategy``
      - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
    * - ipu_strategy
-     - :class:`~lightning.pytorch.strategies.IPUStrategy`
+     - ``IPUStrategy``
      - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`

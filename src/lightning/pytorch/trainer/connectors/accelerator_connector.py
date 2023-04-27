@@ -34,14 +34,12 @@ from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
-    IPUPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
@@ -54,7 +52,6 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    IPUStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
@@ -67,6 +64,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_BAGUA_AVAILABLE,
     _LIGHTNING_COLOSSALAI_AVAILABLE,
+    _LIGHTNING_GRAPHCORE_AVAILABLE,
     _LIGHTNING_HABANA_AVAILABLE,
 )
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -144,9 +142,8 @@ class _AcceleratorConnector:
             plugins=plugins,
             sync_batchnorm=sync_batchnorm,
         )
-        # 2. Instantiate Accelerator
-        self._set_accelerator_if_ipu_strategy_is_passed()
 
+        # 2. Instantiate Accelerator
         # handle `auto`, `None` and `gpu`
         if self._accelerator_flag == "auto":
             self._accelerator_flag = self._choose_auto_accelerator()
@@ -341,18 +338,15 @@ class _AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
-        # current logic only apply to object config
-        # TODO this logic should apply to both str and object config
-        if isinstance(self._strategy_flag, IPUStrategy):
-            self._accelerator_flag = "ipu"
-
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability."""
         if XLAAccelerator.is_available():
             return "tpu"
-        if IPUAccelerator.is_available():
-            return "ipu"
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            if IPUAccelerator.is_available():
+                return "ipu"
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUAccelerator
 
@@ -422,6 +416,17 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
+            # TODO: Why would we block someone from using a IPU capable machine without graphcore?
+            #  Don't these machines also have a regular CPU?
+
+            if not _LIGHTNING_GRAPHCORE_AVAILABLE:
+                raise ImportError(
+                    "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
+                    " Please run `pip install lightning-graphcore` or check out"
+                    " https://github.com/Lightning-AI/lightning-Graphcore for instructions"
+                )
+            from lightning_graphcore import IPUStrategy
+
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
             if not _LIGHTNING_HABANA_AVAILABLE:
@@ -495,8 +500,15 @@ class _AcceleratorConnector:
         if isinstance(self._precision_plugin_flag, PrecisionPlugin):
             return self._precision_plugin_flag
 
-        if isinstance(self.accelerator, IPUAccelerator):
-            return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator, IPUPrecision
+
+            # TODO: For the strategies that have a fixed precision class, we don't really need this logic
+            #  in the accelerator. Since the strategy owns the precision plugin, the strategy.precision_plugin
+            #  could be a no-op and then we wouldn't need this.
+
+            if isinstance(self.accelerator, IPUAccelerator):
+                return IPUPrecision(self._precision_flag)
 
         if _LIGHTNING_HABANA_AVAILABLE:
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
@@ -542,7 +554,7 @@ class _AcceleratorConnector:
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPMixedPrecisionPlugin(self._precision_flag, device)
+                return FSDPMixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
             return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
@@ -700,3 +712,12 @@ def _register_external_accelerators_and_strategies() -> None:
             HPUParallelStrategy.register_strategies(StrategyRegistry)
         if "hpu_single" not in StrategyRegistry:
             SingleHPUStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        from lightning_graphcore import IPUAccelerator, IPUStrategy
+
+        # TODO: Prevent registering multiple times
+        if "ipu" not in AcceleratorRegistry:
+            IPUAccelerator.register_accelerators(AcceleratorRegistry)
+        if "ipu_strategy" not in StrategyRegistry:
+            IPUStrategy.register_strategies(StrategyRegistry)
