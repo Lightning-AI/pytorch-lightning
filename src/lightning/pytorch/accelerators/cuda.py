@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import lightning.pytorch as pl
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cuda import _check_cuda_matmul_precision, _clear_cuda_memory, num_cuda_devices
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
@@ -94,7 +95,7 @@ class CUDAAccelerator(Accelerator):
         return num_cuda_devices() > 0
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",
             cls,
