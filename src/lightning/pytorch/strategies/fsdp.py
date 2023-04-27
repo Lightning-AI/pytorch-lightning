@@ -99,7 +99,6 @@ class FSDPStrategy(ParallelStrategy):
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
-
     """
 
     strategy_name = "fsdp"
@@ -283,8 +282,8 @@ class FSDPStrategy(ParallelStrategy):
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
-        except ValueError as e:
-            if "optimizer got an empty parameter list" not in str(e):
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
                 raise
             invalid_params_error = True
 
