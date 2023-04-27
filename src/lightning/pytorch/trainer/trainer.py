@@ -292,10 +292,12 @@ class Trainer:
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
         Raises:
-            TypeError: If ``gradient_clip_val`` is not an int or float.
+            TypeError:
+                If ``gradient_clip_val`` is not an int or float.
+
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid.
-                If ``track_grad_norm` is not a positive number or inf.
+                If ``track_grad_norm`` is not a positive number or inf.
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
