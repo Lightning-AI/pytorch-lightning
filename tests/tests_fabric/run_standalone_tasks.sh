@@ -20,5 +20,5 @@ export PL_RUN_STANDALONE_TESTS=1
 
 echo "Run parity tests manually"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-py.test -v parity/test_parity_ddp.py::test_parity_ddp
+py.test -v -s parity/test_parity_ddp.py::test_parity_ddp
 #py.test -v parity/test_parity_simple::test_parity_single_device
