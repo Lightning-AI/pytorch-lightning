@@ -521,7 +521,7 @@ class _AcceleratorConnector:
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag)
+            return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
 
         if self._precision_flag == "32-true":
             return PrecisionPlugin()
