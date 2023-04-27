@@ -1,8 +1,11 @@
 import os
+import sys
 import tarfile
 import uuid
 from pathlib import Path
 from unittest import mock
+
+import pytest
 
 from lightning.app.source_code import LocalSourceCodeDir
 
@@ -30,6 +33,7 @@ def test_repository_checksum(tmp_path):
     assert checksum_a != checksum_c
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="this runs only on linux")
 @mock.patch.dict(os.environ, {"LIGHTNING_VSCODE_WORKSPACE": "something"})
 def test_local_cache_path_tmp(tmp_path):
     """LocalRepository.cache_location is under tmp."""
