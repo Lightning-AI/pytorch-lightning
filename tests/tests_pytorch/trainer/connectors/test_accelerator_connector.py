@@ -579,6 +579,8 @@ def mock_hpu_available(monkeypatch, value=True):
 
 
 def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
+    mock_hpu_available(monkeypatch, False)
+    mock_ipu_available(monkeypatch, False)
     mock_xla_available(monkeypatch, False)
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
