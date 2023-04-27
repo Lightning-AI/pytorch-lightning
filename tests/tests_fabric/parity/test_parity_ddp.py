@@ -15,7 +15,6 @@ import os
 import time
 from copy import deepcopy
 
-import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
@@ -24,7 +23,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from lightning.fabric.fabric import Fabric
-from tests_fabric.helpers.runif import RunIf
 from tests_fabric.parity.models import ConvNet
 from tests_fabric.parity.utils import (
     cuda_reset,
@@ -125,15 +123,6 @@ def train_fabric_ddp(fabric):
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-# @RunIf(standalone=True)
-# @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
-# @pytest.mark.parametrize(
-#     "accelerator, devices, tolerance",
-#     [
-#         ("cpu", 2, 0.02),
-#         pytest.param("cuda", 2, 0.01, marks=RunIf(min_cuda_gpus=2)),
-#     ],
-# )
 def run_parity_test(accelerator: str, devices: int, tolerance: float = 0.02):
     cuda_reset()
 
