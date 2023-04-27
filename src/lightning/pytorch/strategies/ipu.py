@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader, Sampler
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
@@ -371,7 +372,7 @@ class IPUStrategy(ParallelStrategy):
         return obj
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
             cls.strategy_name,
             cls,
