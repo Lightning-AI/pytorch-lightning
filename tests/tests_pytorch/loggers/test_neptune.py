@@ -190,6 +190,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock())
     def test_neptune_leave_open_experiment_after_fit(self, neptune):
         """Verify that neptune experiment was NOT closed after training."""
         # given
@@ -205,6 +206,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert run_instance_mock.stop.call_count == 0
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock())
     def test_neptune_log_metrics_on_trained_model(self, neptune):
         """Verify that trained models do log data."""
 
@@ -293,6 +295,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
+    @patch("builtins.open", mock.mock_open(read_data="test"))
     def test_after_save_checkpoint(self, neptune):
         test_variants = [
             ({}, "training/model"),
@@ -317,26 +320,24 @@ class TestNeptuneLogger(unittest.TestCase):
                 best_model_score=None,
             )
 
-            # when: save checkpoint
-            logger.after_save_checkpoint(cb_mock)
+            with patch("lightning.pytorch.loggers.neptune.File", side_effect=mock.Mock()) as mock_file:
+                # when: save checkpoint
+                logger.after_save_checkpoint(cb_mock)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 4)
-            self.assertEqual(run_attr_mock.upload.call_count, 4)
-            run_instance_mock.__setitem__.assert_called_once_with(
-                f"{model_key_prefix}/best_model_path", os.path.join(models_root_dir, "best_model")
-            )
-            run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 3)
+            self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
+            self.assertEqual(run_attr_mock.upload.call_count, 2)
+
+            self.assertEqual(mock_file.from_stream.call_count, 2)
+
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
-            run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/best_model")
+
             run_attr_mock.upload.assert_has_calls(
                 [
-                    call(os.path.join(models_root_dir, "last")),
                     call(os.path.join(models_root_dir, "model1")),
                     call(os.path.join(models_root_dir, "model2/with/slashes")),
-                    call(os.path.join(models_root_dir, "best_model")),
                 ]
             )
 

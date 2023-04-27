@@ -38,9 +38,10 @@ _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     from neptune import new as neptune
     from neptune.new.run import Run
+    from neptune.new.types import File
 else:
     # needed for test mocks, and function signatures
-    neptune, Run = None, None
+    neptune, Run, File = None, None, None
 
 log = logging.getLogger(__name__)
 
@@ -466,7 +467,8 @@ class NeptuneLogger(Logger):
         if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
             model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
             file_names.add(model_last_name)
-            self.run[f"{checkpoints_namespace}/{model_last_name}"].upload(checkpoint_callback.last_model_path)
+            with open(checkpoint_callback.last_model_path, "rb") as fp:
+                self.run[f"{checkpoints_namespace}/{model_last_name}"] = File.from_stream(fp)
 
         # save best k models
         if hasattr(checkpoint_callback, "best_k_models"):
@@ -481,7 +483,8 @@ class NeptuneLogger(Logger):
 
             model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
             file_names.add(model_name)
-            self.run[f"{checkpoints_namespace}/{model_name}"].upload(checkpoint_callback.best_model_path)
+            with open(checkpoint_callback.best_model_path, "rb") as fp:
+                self.run[f"{checkpoints_namespace}/{model_name}"] = File.from_stream(fp)
 
         # remove old models logged to experiment if they are not part of best k models at this point
         if self.run.exists(checkpoints_namespace):
