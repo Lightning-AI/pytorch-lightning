@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 import torch
 from lightning_utilities.core.imports import package_available
 
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
 
@@ -68,7 +69,7 @@ class IPUAccelerator(Accelerator):
         return _IPU_AVAILABLE
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "ipu",
             cls,

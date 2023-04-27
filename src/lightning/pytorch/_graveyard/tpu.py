@@ -100,4 +100,4 @@ def _patch_classes() -> None:
 _patch_sys_modules()
 _patch_classes()
 
-SingleTPUStrategy.register_strategies(pl.strategies.StrategyRegistry)
+SingleTPUStrategy.register_strategies(pl.strategies.StrategyRegistry)  # type: ignore[has-type]

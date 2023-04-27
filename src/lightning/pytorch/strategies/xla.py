@@ -23,6 +23,7 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
@@ -291,7 +292,7 @@ class XLAStrategy(DDPStrategy):
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
         strategy_registry.register(
             cls.strategy_name,
