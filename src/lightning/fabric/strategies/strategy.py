@@ -131,7 +131,7 @@ class Strategy(ABC):
             device_context = nullcontext()
         else:
             device_context = self.root_device
-        with device_context, self.precision.init():
+        with device_context, self.precision.init_context():
             yield
 
     def setup_module_and_optimizers(
