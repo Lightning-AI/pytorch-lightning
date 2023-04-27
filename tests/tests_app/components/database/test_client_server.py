@@ -48,7 +48,6 @@ class Work(LightningWork):
 
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_client_server():
-
     database_path = Path("database.db").resolve()
     if database_path.exists():
         os.remove(database_path)
@@ -122,7 +121,6 @@ def test_client_server():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_restart():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):
@@ -166,7 +164,6 @@ def test_work_database_restart():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_periodic_store():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):

@@ -195,7 +195,6 @@ class Agent:
         Returns:
             reward, done
         """
-
         action = self.get_action(net, epsilon, device)
 
         # do step in the environment

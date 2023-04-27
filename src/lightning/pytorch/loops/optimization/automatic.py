@@ -206,7 +206,6 @@ class _AutomaticOptimization(_Loop):
 
         Returns ``None`` in the case backward needs to be skipped.
         """
-
         if self._skip_backward:
             return None
 

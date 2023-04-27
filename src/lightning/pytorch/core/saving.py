@@ -112,7 +112,6 @@ def _load_state(
     cls_kwargs_loaded = {}
     # pass in the values we saved automatically
     if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-
         if issubclass(cls, pl.LightningModule):
             # TODO: make this a migration:
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys

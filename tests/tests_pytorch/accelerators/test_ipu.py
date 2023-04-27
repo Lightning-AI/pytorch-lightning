@@ -509,7 +509,6 @@ def test_replication_factor(tmpdir):
 @RunIf(ipu=True)
 def test_default_opts(tmpdir):
     """Ensure default opts are set correctly in the IPUStrategy."""
-
     model = IPUModel()
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, fast_dev_run=True)
@@ -545,7 +544,6 @@ def test_multi_optimizers_fails(tmpdir):
 @RunIf(ipu=True)
 def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
-
     plugin = IPUPrecisionPlugin(precision="16-mixed")
     assert plugin.precision == "16-mixed"
 
