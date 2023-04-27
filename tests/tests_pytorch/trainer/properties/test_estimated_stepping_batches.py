@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
-from lightning.pytorch.strategies.ipu import IPUStrategy
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -155,17 +154,3 @@ def test_num_stepping_batches_with_tpu_multi():
     trainer = Trainer(accelerator="tpu", devices="auto", max_epochs=1)
     model = MultiprocessModel()
     trainer.fit(model)
-
-
-@mock.patch("lightning.pytorch.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_num_stepping_batches_with_ipu(mock_ipu_acc_avail, monkeypatch):
-    """Test stepping batches with IPU training which acts like DP."""
-    import lightning.pytorch.strategies.ipu as ipu
-
-    monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    trainer = Trainer(accelerator="ipu", devices=2, max_epochs=1)
-    model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
-    assert isinstance(trainer.strategy, IPUStrategy)
-    assert trainer.estimated_stepping_batches == 64
