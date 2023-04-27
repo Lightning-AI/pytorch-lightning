@@ -137,7 +137,7 @@ However, in some cases it is indeed possible to train completely in half precisi
     model = MyModel()
     model = fabric.setup(model)  # model gets cast to torch.bfloat16
 
-Tipp: For faster initialization, you can create model parameters with the desired dtype directly on the device:
+Tip: For faster initialization, you can create model parameters with the desired dtype directly on the device:
 
 .. code-block:: python
 
