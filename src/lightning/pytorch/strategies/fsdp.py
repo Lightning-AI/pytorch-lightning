@@ -21,6 +21,7 @@ from torch.nn import Module
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
     _init_cpu_offload,
     _optimizer_has_flat_params,
@@ -282,8 +283,8 @@ class FSDPStrategy(ParallelStrategy):
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
-        except ValueError as e:
-            if "optimizer got an empty parameter list" not in str(e):
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
                 raise
             invalid_params_error = True
 
@@ -395,7 +396,7 @@ class FSDPStrategy(ParallelStrategy):
         return cls._registered_strategies
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not _fsdp_available:
             return
         strategy_registry.register(

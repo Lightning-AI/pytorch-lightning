@@ -29,13 +29,16 @@ body:
     id: versions
     attributes:
       label: What version are you seeing the problem on?
+      id: versions
+      description: select all version where you have experienced this issue
       multiple: true
       options:
-        - 1.6.x
-        - 1.7.x
-        - 1.8.x
-        - 1.9.x
-        - 2.0+
+        - "ver: 1.6.x"
+        - "ver: 1.7.x"
+        - "ver: 1.8.x"
+        - "ver: 1.9.x"
+        - "ver: 2.0.x"
+        - "ver: master"
 
   - type: markdown
     attributes:

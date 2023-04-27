@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import os
 import sys
 from contextlib import nullcontext
@@ -224,7 +224,9 @@ def _collect_artifacts(
         if page_token in tokens:
             return
 
-        try:
+        # Note: This is triggered when the request is wrong.
+        # This is currently happening due to looping through the user clusters.
+        with contextlib.suppress(lightning_cloud.openapi.rest.ApiException):
             response = client.lightningapp_instance_service_list_project_artifacts(
                 project_id,
                 prefix=prefix,
@@ -248,10 +250,6 @@ def _collect_artifacts(
                     page_token=response.next_page_token,
                     tokens=tokens,
                 )
-        except lightning_cloud.openapi.rest.ApiException:
-            # Note: This is triggered when the request is wrong.
-            # This is currently happening due to looping through the user clusters.
-            pass
 
 
 def _add_resource_prefix(prefix: str, resource_path: str):
