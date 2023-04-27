@@ -32,12 +32,12 @@ body:
       description: select all version where you have experienced this issue
       multiple: true
       options:
-        - "ver: 1.6.x"
-        - "ver: 1.7.x"
-        - "ver: 1.8.x"
-        - "ver: 1.9.x"
-        - "ver: 2.0.x"
-        - "ver: master"
+        - "v1.6.x"
+        - "v1.7.x"
+        - "v1.8.x"
+        - "v1.9.x"
+        - "v2.0.x"
+        - "master"
     validations:
       required: true
 
