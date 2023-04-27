@@ -525,6 +525,7 @@ def delete_cloud_lightning_apps():
 
     if pr_number and app_name:
         for lit_app in list_apps.lightningapps:
+            print(lit_app.name)
             if str(pr_number) in lit_app.name and app_name in lit_app.name:
                 _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
                 _delete_cloud_space(
