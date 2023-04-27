@@ -19,5 +19,5 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 
 echo "Run parity tests manually"
-python -m parity.test_parity_ddp "cpu" 2
-python -m parity.test_parity_ddp "cuda" 2
+python -m parity.test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02
+python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01

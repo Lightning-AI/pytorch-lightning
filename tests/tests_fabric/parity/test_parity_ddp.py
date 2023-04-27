@@ -123,7 +123,7 @@ def train_fabric_ddp(fabric):
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-def run_parity_test(accelerator: str, devices: int, tolerance: float = 0.02):
+def run_parity_test(accelerator: str = "cpu", devices: int = 2, tolerance: float = 0.02):
     cuda_reset()
 
     # Launch processes with Fabric and re-use them for the PyTorch training for convenience
