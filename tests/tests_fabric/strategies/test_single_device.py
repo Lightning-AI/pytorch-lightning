@@ -16,7 +16,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning.fabric.plugins import DoublePrecision, Precision
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricModule, _FabricOptimizer
@@ -77,13 +77,13 @@ class _MyFabricGradNorm(BoringFabric):
             try:
                 super().run()
                 break
-            except RuntimeError as e:
+            except RuntimeError as ex:
                 # nonfinite grads -> skip and continue
                 # this may repeat until the scaler finds a factor where overflow is avoided,
                 # so the while loop should eventually break
                 # stop after a max of 10 tries
-                if i > 10 or not str(e).startswith("The total norm"):
-                    raise e
+                if i > 10 or not str(ex).startswith("The total norm"):
+                    raise ex
 
                 # unscale was already called by last attempt,
                 # but no update afterwards since optimizer step was missing.
@@ -117,13 +117,13 @@ class _MyFabricGradVal(BoringFabric):
             try:
                 super().run()
                 break
-            except RuntimeError as e:
+            except RuntimeError as ex:
                 # nonfinite grads -> skip and continue
                 # this may repeat until the scaler finds a factor where overflow is avoided,
                 # so the while loop should eventually break
                 # stop after a max of 10 tries
-                if i > 10 or not str(e).startswith("Nonfinite grads"):
-                    raise e
+                if i > 10 or not str(ex).startswith("Nonfinite grads"):
+                    raise ex
 
                 # unscale was already called by last attempt,
                 # but no update afterwards since optimizer step was missing.
@@ -163,6 +163,8 @@ def test_single_device_grad_clipping(clip_type, precision):
     "precision,dtype",
     [
         (Precision(), torch.float32),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(mps=False)),
         pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
     ],
 )

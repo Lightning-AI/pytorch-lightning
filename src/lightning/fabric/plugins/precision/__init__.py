@@ -15,6 +15,7 @@ from lightning.fabric.plugins.precision.amp import MixedPrecision
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
+from lightning.fabric.plugins.precision.half import HalfPrecision
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.xla import XLAPrecision
 from lightning.fabric.plugins.precision.xlabf16 import XLABf16Precision
@@ -22,6 +23,7 @@ from lightning.fabric.plugins.precision.xlabf16 import XLABf16Precision
 __all__ = [
     "DeepSpeedPrecision",
     "DoublePrecision",
+    "HalfPrecision",
     "MixedPrecision",
     "Precision",
     "XLAPrecision",

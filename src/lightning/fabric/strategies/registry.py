@@ -81,7 +81,7 @@ class _StrategyRegistry(dict):
 
         return do_register
 
-    def get(self, name: str, default: Optional[Any] = None) -> Any:  # type: ignore[override]
+    def get(self, name: str, default: Optional[Any] = None) -> Any:
         """Calls the registered strategy with the required parameters and returns the strategy object.
 
         Args:

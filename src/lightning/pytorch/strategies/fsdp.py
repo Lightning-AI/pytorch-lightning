@@ -283,8 +283,8 @@ class FSDPStrategy(ParallelStrategy):
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
-        except ValueError as e:
-            if "optimizer got an empty parameter list" not in str(e):
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
                 raise
             invalid_params_error = True
 
