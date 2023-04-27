@@ -25,7 +25,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 def environment_combinations():
-    expected = dict(global_rank=3, local_rank=1, node_rank=1, world_size=4)
+    expected = {"global_rank": 3, "local_rank": 1, "node_rank": 1, "world_size": 4}
     # Lightning
     variables = {"CUDA_VISIBLE_DEVICES": "0,1,2,4", "LOCAL_RANK": "1", "NODE_RANK": "1", "WORLD_SIZE": "8"}
     environment = LightningEnvironment()
@@ -81,10 +81,10 @@ def test_ranks_available_manual_strategy_selection(_, strategy_cls):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(strategy="ddp", accelerator="cpu", devices=2),
-        dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
-        pytest.param(dict(strategy="ddp", accelerator="gpu", devices=[1, 2]), marks=RunIf(mps=False)),
-        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]), marks=RunIf(mps=False)),
+        {"strategy": "ddp", "accelerator": "cpu", "devices": 2},
+        {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
+        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": [1, 2]}, marks=RunIf(mps=False)),
+        pytest.param({"strategy": "ddp_spawn", "accelerator": "gpu", "devices": [1, 2]}, marks=RunIf(mps=False)),
     ],
 )
 def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwargs):

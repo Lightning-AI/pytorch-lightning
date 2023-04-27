@@ -73,46 +73,84 @@ def test_arrow_time_callback():
 
 
 @pytest.mark.parametrize(
-    "releases, current_version, newer_version",
+    "response, current_version, newer_version",
     [
         (
             {
-                "1.0.0": [{"upload_time_iso_8601": "2022-09-10", "yanked": False}],
-                "2.0.0": [{"upload_time_iso_8601": "2022-11-01", "yanked": False}],
+                "info": {
+                    "version": "2.0.0",
+                    "yanked": False,
+                },
+                "releases": {
+                    "1.0.0": {},
+                    "2.0.0": {},
+                },
             },
             "1.0.0",
             "2.0.0",
         ),
         (
             {
-                "1.0.0": [{"upload_time_iso_8601": "2022-09-10", "yanked": False}],
-                "2.0.0": [{"upload_time_iso_8601": "2022-11-01", "yanked": True}],
+                "info": {
+                    "version": "2.0.0",
+                    "yanked": True,
+                },
+                "releases": {
+                    "1.0.0": {},
+                    "2.0.0": {},
+                },
             },
             "1.0.0",
             None,
         ),
         (
             {
-                "1.0.0": [{"upload_time_iso_8601": "2022-09-10", "yanked": False}],
-                "2.0.0rc0": [{"upload_time_iso_8601": "2022-11-01", "yanked": False}],
+                "info": {
+                    "version": "1.0.0",
+                    "yanked": False,
+                },
+                "releases": {
+                    "1.0.0": {},
+                },
             },
             "1.0.0",
             None,
         ),
         (
             {
-                "2.0.0": [{"upload_time_iso_8601": "2022-11-01", "yanked": False}],
+                "info": {
+                    "version": "2.0.0rc0",
+                    "yanked": False,
+                },
+                "releases": {
+                    "1.0.0": {},
+                    "2.0.0": {},
+                },
+            },
+            "1.0.0",
+            None,
+        ),
+        (
+            {
+                "info": {
+                    "version": "2.0.0",
+                    "yanked": False,
+                },
+                "releases": {
+                    "1.0.0": {},
+                    "2.0.0": {},
+                },
             },
             "1.0.0dev",
             None,
         ),
-        ({"1.0.0": "this wil trigger an error"}, "1.0.0", None),
+        ({"this wil trigger an error": True}, "1.0.0", None),
         ({}, "1.0.0rc0", None),
     ],
 )
 @patch("lightning.app.utilities.cli_helpers.requests")
-def test_get_newer_version(mock_requests, releases, current_version, newer_version):
-    mock_requests.get().json.return_value = {"releases": releases}
+def test_get_newer_version(mock_requests, response, current_version, newer_version):
+    mock_requests.get().json.return_value = response
 
     lightning.app.utilities.cli_helpers.__version__ = current_version
 

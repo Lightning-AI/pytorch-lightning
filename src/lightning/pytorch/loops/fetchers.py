@@ -53,9 +53,9 @@ class _DataFetcher(Iterator):
         assert self.iterator is not None
         try:
             data = next(self.iterator)
-        except StopIteration as e:
+        except StopIteration as ex:
             self.done = True
-            raise e
+            raise ex
         finally:
             self._stop_profiler()
         self.fetched += 1
@@ -128,9 +128,9 @@ class _PrefetchDataFetcher(_DataFetcher):
                 self._fetch_next_batch(self.iterator)
                 # consume the batch we just fetched
                 batch = self.batches.pop(0)
-            except StopIteration as e:
+            except StopIteration as ex:
                 self.done = True
-                raise e
+                raise ex
         else:
             # the iterator is empty
             raise StopIteration

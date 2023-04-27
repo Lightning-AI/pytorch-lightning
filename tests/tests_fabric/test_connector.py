@@ -277,7 +277,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
-@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         _Connector(accelerator=accelerator, strategy=strategy)
@@ -661,6 +661,20 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(strategy=strategy)
 
 
+@RunIf(skip_windows=True)
+def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
+    monkeypatch.setattr(torch, "device", DeviceMock())
+
+    accelerator = TPUAccelerator()
+    connector = _Connector(accelerator=accelerator, devices=1)
+    assert connector.accelerator is accelerator
+    assert isinstance(connector.strategy, SingleTPUStrategy)
+
+    connector = _Connector(accelerator=accelerator)
+    assert connector.accelerator is accelerator
+    assert isinstance(connector.strategy, XLAStrategy)
+
+
 @RunIf(mps=True)
 def test_devices_auto_choice_mps():
     connector = _Connector(accelerator="auto", devices="auto")
@@ -842,25 +856,30 @@ def test_devices_from_environment(*_):
 
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
-    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
-        with pytest.raises(ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"):
-            _Connector(accelerator="cuda")
+    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}), pytest.raises(
+        ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"
+    ):
+        _Connector(accelerator="cuda")
 
-    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}):
-        with pytest.raises(ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"):
-            _Connector(strategy="ddp_spawn")
+    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}), pytest.raises(
+        ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"
+    ):
+        _Connector(strategy="ddp_spawn")
 
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}):
-        with pytest.raises(ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"):
-            _Connector(devices=3)
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}), pytest.raises(
+        ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"
+    ):
+        _Connector(devices=3)
 
-    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
-        with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
-            _Connector(num_nodes=2)
+    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}), pytest.raises(
+        ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"
+    ):
+        _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}):
-        with pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"):
-            _Connector(precision="64-true")
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}), pytest.raises(
+        ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"
+    ):
+        _Connector(precision="64-true")
 
 
 @RunIf(min_torch="1.12")

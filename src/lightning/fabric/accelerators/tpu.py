@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-import queue as q
-import traceback
 from multiprocessing import Process, Queue
 from typing import Any, Callable, Dict, List, Union
 
@@ -49,14 +47,18 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
+        from torch_xla.experimental import pjrt
+
         devices = _parse_tpu_devices(devices)
-        # In XLA index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
+        # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
         # since the user passes a 0-based index, we need to adjust the indices
+        device_offset = 0 if pjrt.using_pjrt() else 1
+
         if isinstance(devices, int):
-            return [torch.device("xla", i) for i in range(1, devices + 1)]
+            return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
         else:
             # list of devices is not supported, just a specific index, fine to access [0]
-            return [torch.device("xla", devices[0] + 1)]
+            return [torch.device("xla", devices[0] + device_offset)]
         # we cannot create `xla_device` here because processes have not been spawned yet (this is called in the
         # accelerator connector init). However, there doesn't seem to be a problem with instantiating `torch.device`.
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
@@ -68,15 +70,33 @@ class TPUAccelerator(Accelerator):
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.experimental import pjrt, tpu
         from torch_xla.utils.utils import getenv_as
 
-        return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
+        if pjrt.using_pjrt():
+            device_count_on_version = {2: 8, 3: 8, 4: 4}
+            return device_count_on_version.get(tpu.version(), 8)
+        else:
+            return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        # check `_XLA_AVAILABLE` again to avoid launching processes
-        return bool(_XLA_AVAILABLE) and _is_device_tpu()
+        if not _XLA_AVAILABLE:
+            return False
+        queue: Queue = Queue()
+        proc = Process(target=_inner_f, args=(queue, _has_tpu_device))
+        proc.start()
+        proc.join(TPU_CHECK_TIMEOUT)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join()
+            # if the timeout is triggered, fail to avoid silently running on a different accelerator
+            raise TimeoutError(
+                "Timed out waiting to check whether a TPU is available. You can increase the TPU_CHECK_TIMEOUT value."
+                f" Currently {TPU_CHECK_TIMEOUT}"
+            )
+        return queue.get_nowait()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
@@ -91,33 +111,13 @@ class TPUAccelerator(Accelerator):
 TPU_CHECK_TIMEOUT = 60
 
 
-def _inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
-    try:
-        queue.put(func(*args, **kwargs))
-    except Exception:
-        traceback.print_exc()
-        queue.put(None)
+def _inner_f(queue: Queue, func: Callable) -> None:
+    res = func()
+    queue.put(res)
 
 
-def _multi_process(func: Callable) -> Callable:
-    @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Any]:
-        queue: Queue = Queue()
-        proc = Process(target=_inner_f, args=(queue, func, *args), kwargs=kwargs)
-        proc.start()
-        proc.join(TPU_CHECK_TIMEOUT)
-        try:
-            return queue.get_nowait()
-        except q.Empty:
-            traceback.print_exc()
-            return False
-
-    return wrapper
-
-
-@_multi_process
-def _is_device_tpu() -> bool:
-    """Check if TPU devices are available. Runs XLA device check within a separate process.
+def _has_tpu_device() -> bool:
+    """Check if TPU devices are available.
 
     Return:
         A boolean value indicating if TPU devices are available
@@ -125,25 +125,18 @@ def _is_device_tpu() -> bool:
     if not _XLA_AVAILABLE:
         return False
     import torch_xla.core.xla_model as xm
+    from torch_xla.experimental import pjrt
 
-    # For the TPU Pod training process, for example, if we have
-    # TPU v3-32 with 4 VMs, the world size would be 4 and as
-    # we would have to use `torch_xla.distributed.xla_dist` for
-    # multiple VMs and TPU_CONFIG won't be available, running
+    if pjrt.using_pjrt():
+        return bool(xm.get_xla_supported_devices("TPU"))
+    # For the TPU Pod training process, for example, if we have TPU v3-32 with 4 VMs, the world size would be 4 and as
+    # we would have to use `torch_xla.distributed.xla_dist` for multiple VMs and TPU_CONFIG won't be available, running
     # `xm.get_xla_supported_devices("TPU")` won't be possible.
     return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
 
 
 # PJRT support requires this minimum version
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
-
-
-def _tpu_distributed() -> bool:
-    if not TPUAccelerator.is_available():
-        return False
-    import torch_xla.core.xla_model as xm
-
-    return xm.xrt_world_size() > 1
 
 
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
