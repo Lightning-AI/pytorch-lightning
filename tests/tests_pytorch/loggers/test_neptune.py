@@ -330,7 +330,7 @@ class TestNeptuneLogger(unittest.TestCase):
                 best_model_score=None,
             )
 
-            with patch("lightning.pytorch.loggers.neptune.File.from_stream", side_effect=mock.Mock()) as mock_file:
+            with patch("lightning.pytorch.loggers.neptune.File", side_effect=mock.Mock()) as mock_file:
                 # when: save checkpoint
                 logger.after_save_checkpoint(cb_mock)
 
@@ -339,7 +339,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
             self.assertEqual(run_attr_mock.upload.call_count, 2)
 
-            self.assertEqual(mock_file.call_count, 2)
+            self.assertEqual(mock_file.from_stream.call_count, 2)
 
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
