@@ -456,7 +456,7 @@ def run_app_in_cloud(
             browser.close()
             Popen("lightning disconnect", shell=True).wait()
 
-            delete_cloud_lightning_apps()
+            delete_cloud_lightning_apps(name=name)
 
 
 def wait_for(page, callback: Callable, *args: Any, **kwargs: Any) -> Any:
@@ -503,7 +503,7 @@ def _delete_cloud_space(client, project_id, cloud_space_id, app_name):
         print(f"Failed to delete {app_name}. Exception {ex}")
 
 
-def delete_cloud_lightning_apps():
+def delete_cloud_lightning_apps(name=None):
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
@@ -525,8 +525,7 @@ def delete_cloud_lightning_apps():
 
     if pr_number and app_name:
         for lit_app in list_apps.lightningapps:
-            print(lit_app.name)
-            if str(pr_number) in lit_app.name and app_name in lit_app.name:
+            if name == lit_app.name or (str(pr_number) in lit_app.name and app_name in lit_app.name):
                 _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
                 _delete_cloud_space(
                     client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
