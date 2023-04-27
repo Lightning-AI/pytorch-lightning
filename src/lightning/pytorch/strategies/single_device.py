@@ -20,6 +20,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.strategy import Strategy, TBroadcast
@@ -84,9 +85,9 @@ class SingleDeviceStrategy(Strategy):
         return obj
 
     @classmethod
-    def register_strategies(cls, strategy_registry: dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )

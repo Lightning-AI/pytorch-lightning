@@ -1027,8 +1027,7 @@ class Trainer:
 
     @property
     def strategy(self) -> Strategy:
-        # TODO(fabric): remove ignore after merging Fabric and PL strategies
-        return self._accelerator_connector.strategy  # type: ignore[return-value]
+        return self._accelerator_connector.strategy
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
