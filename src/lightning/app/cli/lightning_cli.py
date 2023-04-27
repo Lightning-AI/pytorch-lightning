@@ -244,8 +244,8 @@ def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, 
             rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
     except LogLinesLimitExceeded:
         raise click.ClickException(f"Read {limit} log lines, but there may be more. Use --limit param to read more")
-    except Exception as error:
-        logger.error(f"⚡ Error while reading logs ({type(error)}), {error}", exc_info=DEBUG)
+    except Exception as ex:
+        logger.error(f"⚡ Error while reading logs ({type(ex)}), {ex}", exc_info=DEBUG)
 
 
 @_main.command()
@@ -529,7 +529,7 @@ def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) ->
         raise click.ClickException(
             "Unable to find the ssh binary. You must install ssh first to use this functionality."
         )
-    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
+    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])  # noqa: S606
 
 
 @_main.group()

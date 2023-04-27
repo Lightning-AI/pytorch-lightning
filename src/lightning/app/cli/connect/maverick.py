@@ -102,9 +102,9 @@ def connect_maverick(name: str, project_name: str = "") -> None:
     with Live(Spinner("point", text=Text("Registering maverick...", style="white")), transient=True) as live:
         try:
             register_to_cloud(name, project_name)
-        except Exception as e:
+        except Exception as ex:
             live.stop()
-            rich.print(f"[red]Failed[/red]: Registering maverick failed with error {e}")
+            rich.print(f"[red]Failed[/red]: Registering maverick failed with error {ex}")
             return
 
         live.update(Spinner("point", text=Text("Setting up ...", style="white")))
@@ -209,8 +209,8 @@ def disconnect_maverick(name: str) -> None:
     with Live(Spinner("point", text=Text("disconnecting maverick...", style="white")), transient=True):
         try:
             deregister_from_cloud(name)
-        except Exception as e:
-            rich.print(f"[red]Failed[/red]: Disconnecting machine failed with error: {e}")
+        except Exception as ex:
+            rich.print(f"[red]Failed[/red]: Disconnecting machine failed with error: {ex}")
             return
         subprocess.run(f"docker stop {CODE_SERVER_CONTAINER}", shell=True, capture_output=True)
         subprocess.run(f"docker stop {LIGHTNING_DAEMON_CONTAINER}", shell=True, capture_output=True)

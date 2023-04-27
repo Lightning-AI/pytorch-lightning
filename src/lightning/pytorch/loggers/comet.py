@@ -41,9 +41,9 @@ if _COMET_AVAILABLE:
 
     try:
         from comet_ml.api import API
-    except ModuleNotFoundError:  # pragma: no-cover
+    except ModuleNotFoundError:
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
-        from comet_ml.papi import API  # pragma: no-cover
+        from comet_ml.papi import API
 else:
     # needed for test mocks, these tests shall be updated
     comet_ml = None

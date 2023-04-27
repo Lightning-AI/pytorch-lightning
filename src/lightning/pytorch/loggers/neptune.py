@@ -277,11 +277,9 @@ class NeptuneLogger(Logger):
             args["run"] = self._run_short_id
 
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             if self._run_name is not None:
                 args["name"] = self._run_name
-        except AttributeError:
-            pass
 
         return args
 
