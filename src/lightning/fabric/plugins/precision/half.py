@@ -30,9 +30,9 @@ class HalfPrecision(Precision):
         precision: Whether to use ``torch.float16`` (``'16-true'``) or ``torch.bfloat16`` (``'bf16-true'``).
     """
 
-    precision: Literal["bf16-true", "16-true"] = "bf16-true"
+    precision: Literal["bf16-true", "16-true"] = "16-true"
 
-    def __init__(self, precision: Literal["bf16-true", "16-true"]) -> None:
+    def __init__(self, precision: Literal["bf16-true", "16-true"] = "16-true") -> None:
         self.precision = precision
         self._desired_input_dtype = torch.bfloat16 if precision == "bf16-true" else torch.float16
 
