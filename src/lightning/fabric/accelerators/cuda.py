@@ -15,12 +15,13 @@ import os
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import cast, Dict, Generator, List, Optional, Union
+from typing import cast, Generator, List, Optional, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 
 
@@ -63,7 +64,7 @@ class CUDAAccelerator(Accelerator):
         return num_cuda_devices() > 0
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",
             cls,
