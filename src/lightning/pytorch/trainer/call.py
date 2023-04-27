@@ -28,9 +28,8 @@ log = logging.getLogger(__name__)
 
 
 def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
-    r"""
-    Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
-    as all errors should funnel through them
+    r"""Error handling, intended to be used only for main trainer function entry points (fit, validate, test,
+    predict) as all errors should funnel through them.
 
     Args:
         trainer_fn: one of (fit, validate, test, predict)

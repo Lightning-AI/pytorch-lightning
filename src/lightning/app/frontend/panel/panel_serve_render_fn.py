@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """This file gets run by Python to launch a Panel Server with Lightning.
 
 We will call the ``render_fn`` that the user provided to the PanelFrontend.

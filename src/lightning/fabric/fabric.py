@@ -547,7 +547,6 @@ class Fabric:
             enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
                 skip.
         """
-
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
@@ -684,10 +683,7 @@ class Fabric:
                 f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
                 " that contains the code to launch in processes."
             )
-        function = partial(self._run_with_setup, function)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(function, self, *args, **kwargs)
-        return function(self, *args, **kwargs)
+        return self._wrap_and_launch(function, self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
@@ -764,20 +760,19 @@ class Fabric:
             workers = True
         return seed_everything(seed=seed, workers=workers)
 
-    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        run_method = partial(self._run_with_setup, run_method)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(run_method, *args, **kwargs)
-        else:
-            return run_method(*args, **kwargs)
+    def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
+        to_run = partial(self._wrap_with_setup, to_run)
+        if (launcher := self._strategy.launcher) is not None:
+            return launcher.launch(to_run, *args, **kwargs)
+        return to_run(*args, **kwargs)
 
-    def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
         with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
-            return run_function(*args, **kwargs)
+            return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters(), torch.tensor(0)).device
@@ -828,7 +823,7 @@ class Fabric:
                 " or change your code to directly call `fabric = Fabric(...); fabric.setup(...)` etc."
             )
         # wrap the run method, so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", partial(self._run_impl, self.run))
+        setattr(self, "run", partial(self._wrap_and_launch, self.run))
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(module, _FabricModule):
