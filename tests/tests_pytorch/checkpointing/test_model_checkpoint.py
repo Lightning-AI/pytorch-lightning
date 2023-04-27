@@ -324,7 +324,8 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
     checkpoint.to_yaml(path_yaml)
-    d = yaml.full_load(open(path_yaml))
+    with open(path_yaml) as fo:
+        d = yaml.full_load(fo)
     best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
@@ -618,7 +619,6 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
 
 def test_ckpt_every_n_train_steps(tmpdir):
     """Tests that the checkpoints are saved every n training steps."""
-
     model = LogInTwoMethods()
     every_n_train_steps = 16
     max_epochs = 2

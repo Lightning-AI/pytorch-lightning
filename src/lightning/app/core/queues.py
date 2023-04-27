@@ -287,7 +287,6 @@ class RedisQueue(BaseQueue):
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
         """
-
         if timeout is None:
             # this means it's blocking in redis
             timeout = 0
@@ -420,7 +419,6 @@ class HTTPQueue(BaseQueue):
                 # than the default timeout
                 if timeout > self.default_timeout:
                     time.sleep(0.05)
-                pass
 
     def _get(self) -> Any:
         try:

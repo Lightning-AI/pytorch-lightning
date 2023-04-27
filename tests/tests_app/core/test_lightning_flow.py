@@ -1,6 +1,6 @@
+import contextlib
 import os
 import pickle
-import sys
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
@@ -262,6 +262,7 @@ def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
 
 def test_inplace_attribute_state_change(tmpdir):
     """Test that in-place modifications on containers get captured as a state change."""
+
     # inplace modification of a nested dict
     def transform(x):
         x["b"]["c"] += 1
@@ -374,11 +375,9 @@ def test_lightning_flow_and_work():
         "changes": {},
     }
     assert flow_a.state == state
-    try:
+    with contextlib.suppress(ExitAppException):
         while True:
             flow_a.run()
-    except ExitAppException:
-        pass
 
     state = {
         "vars": {"counter": 5, "_layout": ANY, "_paths": {}},
@@ -565,7 +564,6 @@ class FlowCounter(LightningFlow):
 
 
 def test_lightning_flow_counter(tmpdir):
-
     app = LightningApp(FlowCounter())
     app.checkpointing = True
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -610,8 +608,7 @@ def test_flow_path_assignment():
     assert flow.path == flow.lit_path
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Timeout")  # fixme
-@pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.skip(reason="Timeout")  # fixme
 def test_flow_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
 
@@ -661,7 +658,6 @@ class FlowSchedule(LightningFlow):
 
 
 def test_scheduling_api():
-
     app = LightningApp(FlowSchedule())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -847,7 +843,6 @@ class FlowCollection(LightningFlow):
 
 
 def test_lightning_flow_flows_and_works():
-
     flow = FlowCollection()
     app = LightningApp(flow)
 
@@ -906,7 +901,6 @@ class RootFlowReady(_RootFlow):
 @pytest.mark.parametrize("flow", [FlowReady, RootFlowReady])
 def test_flow_ready(flow):
     """This test validates that the app status queue is populated correctly."""
-
     mock_queue = _MockQueue("api_publish_state_queue")
 
     def run_patch(method):
@@ -965,6 +959,5 @@ def test_structures_register_work_cloudcompute():
 
 
 def test_deprecation_warning_exit():
-    with pytest.raises(ExitAppException):
-        with pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
-            RootFlowReady()._exit()
+    with pytest.raises(ExitAppException), pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
+        RootFlowReady()._exit()

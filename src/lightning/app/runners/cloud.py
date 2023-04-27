@@ -103,11 +103,10 @@ logger = Logger(__name__)
 
 def _to_clean_dict(swagger_object, map_attributes):
     """Returns the swagger object properties as a dict with correct object names."""
-
     if hasattr(swagger_object, "to_dict"):
         attribute_map = swagger_object.attribute_map
         result = {}
-        for key in attribute_map.keys():
+        for key in attribute_map:
             value = getattr(swagger_object, key)
             value = _to_clean_dict(value, map_attributes)
             if value is not None and value != {}:
@@ -187,8 +186,8 @@ class CloudRuntime(Runtime):
             if "PYTEST_CURRENT_TEST" not in os.environ:
                 click.launch(self._get_cloudspace_url(project, cloudspace_name, "code", needs_credits))
 
-        except ApiException as e:
-            logger.error(e.body)
+        except ApiException as ex:
+            logger.error(ex.body)
             sys.exit(1)
 
     def cloudspace_dispatch(
@@ -385,8 +384,8 @@ class CloudRuntime(Runtime):
             if bool(int(os.getenv("LIGHTING_TESTING", "0"))):
                 print(f"APP_LOGS_URL: {self._get_app_url(project, run_instance, 'logs')}")
 
-        except ApiException as e:
-            logger.error(e.body)
+        except ApiException as ex:
+            logger.error(ex.body)
             sys.exit(1)
         finally:
             if cleanup_handle:
@@ -395,14 +394,13 @@ class CloudRuntime(Runtime):
     @classmethod
     def load_app_from_file(cls, filepath: str, env_vars: Dict[str, str] = {}) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
-
         # Pretend we are running in the cloud when loading the app locally
         os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
 
         try:
             app = load_app_from_file(filepath, raise_exception=True, mock_imports=True, env_vars=env_vars)
-        except FileNotFoundError as e:
-            raise e
+        except FileNotFoundError as ex:
+            raise ex
         except Exception:
             from lightning.app.testing.helpers import EmptyFlow
 
@@ -538,7 +536,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = cloudspace_name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_cloudspaces])
+                name_exists = any(app.name == random_name for app in existing_cloudspaces)
 
             cloudspace_name = random_name
         return cloudspace_name
@@ -553,7 +551,7 @@ class CloudRuntime(Runtime):
             name_exists = True
             while name_exists:
                 random_name = name + "-" + "".join(random.sample(string.ascii_letters, 4))
-                name_exists = any([app.name == random_name for app in existing_instances])
+                name_exists = any(app.name == random_name for app in existing_instances)
 
             name = random_name
         return name
@@ -670,7 +668,7 @@ class CloudRuntime(Runtime):
         """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
         to start servers."""
         flow_servers: List[V1Flowserver] = []
-        for flow_name in self.app.frontends.keys():
+        for flow_name in self.app.frontends:
             flow_server = V1Flowserver(name=flow_name)
             flow_servers.append(flow_server)
         return flow_servers
@@ -772,7 +770,7 @@ class CloudRuntime(Runtime):
             if cloudspace is not None and cloudspace.code_config is not None:
                 data_connection_mounts = cloudspace.code_config.data_connection_mounts
 
-            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
             work_spec = V1LightningworkSpec(
                 build_spec=build_spec,
                 drives=drives + mounts,

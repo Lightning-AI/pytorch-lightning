@@ -79,7 +79,6 @@ def _app_logs_reader(
     follow: bool,
     on_error_callback: Optional[Callable] = None,
 ) -> Iterator[_LogEvent]:
-
     read_queue = queue.PriorityQueue()
 
     # We will use a socket per component
@@ -117,9 +116,8 @@ def _app_logs_reader(
                 start_timestamps[log_event.component_name] = log_event.timestamp
 
             timestamp = start_timestamps.get(log_event.component_name, None)
-            if timestamp and log_event.timestamp >= timestamp:
-                if "launcher" not in log_event.message:
-                    yield log_event
+            if timestamp and log_event.timestamp >= timestamp and "launcher" not in log_event.message:
+                yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.

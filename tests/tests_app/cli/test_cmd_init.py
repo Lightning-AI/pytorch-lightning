@@ -1,3 +1,4 @@
+import contextlib
 import os
 import re
 import shutil
@@ -9,7 +10,6 @@ from lightning.app.cli import cmd_init
 
 
 def test_validate_init_name():
-
     # test that a good name works (mix chars)
     value = cmd_init._capture_valid_app_component_name("abc1-cde")
     assert value == "abc1-cde"
@@ -32,10 +32,8 @@ def test_make_app_template():
 
     # remove the template if there
     template_dir = os.path.join(os.getcwd(), template_name)
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass
 
     # create template
     subprocess.check_output(f"lightning init app {template_name}", shell=True)
@@ -56,10 +54,8 @@ def test_make_app_template():
     # TODO: verify output
 
     # clean up the template dir
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass
 
 
 @pytest.mark.skip(reason="need component fast_dev_run to work via CLI")
@@ -69,10 +65,8 @@ def test_make_component_template():
 
     # remove the template if there
     template_dir = os.path.join(os.getcwd(), template_name)
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass
 
     # create template
     subprocess.check_output(f"lightning init component {template_name}", shell=True)
@@ -93,7 +87,5 @@ def test_make_component_template():
     # TODO: verify output
 
     # clean up the template dir
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass

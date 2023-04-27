@@ -388,7 +388,6 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_media(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-
     wandb.run = None
 
     # test log_text with columns and data
@@ -465,7 +464,6 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_download_artifact(wandb, tmpdir):
     """Test that download_artifact works."""
-
     wandb.run = wandb.init()
     logger = WandbLogger()
     logger.download_artifact("test_artifact", str(tmpdir), "model", True)
