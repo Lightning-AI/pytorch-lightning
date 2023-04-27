@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from typing import Any, Dict, Generator, List, Literal, Optional, Union
 
@@ -113,7 +113,12 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-        return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if torch.cuda.is_available() else nullcontext()
+        with ctx:
+            return DistributedDataParallel(
+                module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs
+            )
 
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)

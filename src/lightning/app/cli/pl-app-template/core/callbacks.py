@@ -158,10 +158,7 @@ class PLAppProgressTracker(Callback):
         return trainer.fit_loop.epoch_loop.batch_progress.current.processed
 
     def _val_batch_idx(self, trainer: "pl.Trainer") -> int:
-        if trainer.state.fn == "fit":
-            loop = trainer.fit_loop.epoch_loop.val_loop
-        else:
-            loop = trainer.validate_loop
+        loop = trainer.fit_loop.epoch_loop.val_loop if trainer.state.fn == "fit" else trainer.validate_loop
 
         current_batch_idx = loop.epoch_loop.batch_progress.current.processed
         return current_batch_idx

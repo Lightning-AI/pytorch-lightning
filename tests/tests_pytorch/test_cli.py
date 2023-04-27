@@ -121,7 +121,6 @@ def _trainer_builder(
 @pytest.mark.parametrize(["trainer_class", "model_class"], [(Trainer, Model), (_trainer_builder, _model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
-
     expected_model = {"model_param": 7}
     expected_trainer = {"limit_train_batches": 100}
 
@@ -151,7 +150,6 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
 
 
 def test_lightning_cli_args_callbacks(cleandir):
-
     callbacks = [
         {
             "class_path": "lightning.pytorch.callbacks.LearningRateMonitor",
@@ -278,7 +276,6 @@ def test_lightning_env_parse(cleandir):
 
 
 def test_lightning_cli_save_config_cases(cleandir):
-
     config_path = "config.yaml"
     cli_args = ["fit", "--trainer.logger=false", "--trainer.fast_dev_run=1"]
 
@@ -369,7 +366,7 @@ def test_lightning_cli_help():
     assert "--data.help" in out
 
     skip_params = {"self"}
-    for param in inspect.signature(Trainer.__init__).parameters.keys():
+    for param in inspect.signature(Trainer.__init__).parameters:
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
@@ -947,7 +944,6 @@ def test_lightning_cli_datamodule_short_arguments():
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_callbacks_append(use_class_path_callbacks):
-
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
         "--optimizer",

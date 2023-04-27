@@ -73,7 +73,6 @@ class TestDDPSpawnStrategy(DDPStrategy):
 @RunIf(skip_windows=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests get_extra_results/update_main_process_results with DDPSpawnStrategy."""
-
     ddp_spawn_strategy = TestDDPSpawnStrategy()
     trainer = Trainer(
         default_root_dir=tmpdir, fast_dev_run=True, accelerator="cpu", devices=2, strategy=ddp_spawn_strategy

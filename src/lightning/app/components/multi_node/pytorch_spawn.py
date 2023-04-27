@@ -81,7 +81,6 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-
         import torch
 
         # 1. Setting distributed environment

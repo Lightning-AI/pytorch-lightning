@@ -290,7 +290,6 @@ class MyCustomTrainer:
         iterable = self.progbar_wrapper(val_loader, total=min(len(val_loader), limit_batches), desc="Validation")
 
         for batch_idx, batch in enumerate(iterable):
-
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
                 self.fabric.call("on_validation_epoch_end")
@@ -377,11 +376,11 @@ class MyCustomTrainer:
 
         try:
             monitor = possible_monitor_vals[cast(Optional[str], scheduler_cfg["monitor"])]
-        except KeyError as e:
+        except KeyError as ex:
             possible_keys = list(possible_monitor_vals.keys())
             raise KeyError(
                 f"monitor {scheduler_cfg['monitor']} is invalid. Possible values are {possible_keys}."
-            ) from e
+            ) from ex
 
         # rely on model hook for actual step
         model.lr_scheduler_step(scheduler_cfg["scheduler"], monitor)
@@ -478,9 +477,7 @@ class MyCustomTrainer:
 
         # list or tuple
         elif isinstance(configure_optim_output, (list, tuple)):
-            if all(
-                [isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output]
-            ):
+            if all(isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output):
                 # single optimizer in list
                 if len(configure_optim_output) == 1:
                     return configure_optim_output[0][0], None
@@ -488,12 +485,9 @@ class MyCustomTrainer:
                 raise NotImplementedError("BYOT only supports a single optimizer")
 
             elif all(
-                [
-                    isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
-                    for _lr_cand in configure_optim_output
-                ]
+                isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
+                for _lr_cand in configure_optim_output
             ):
-
                 # single scheduler in list
                 if len(configure_optim_output) == 1:
                     return None, self._parse_optimizers_schedulers(configure_optim_output[0])[1]

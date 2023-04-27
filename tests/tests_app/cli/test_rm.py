@@ -19,7 +19,6 @@ from lightning.app.cli.commands import cd, ls, rm
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_rm(monkeypatch):
     """This test validates rm behaves as expected."""
-
     if os.path.exists(cd._CD_FILE):
         os.remove(cd._CD_FILE)
 
@@ -94,7 +93,7 @@ def test_rm(monkeypatch):
     monkeypatch.setattr(ls, "LightningClient", MagicMock(return_value=client))
 
     assert ls.ls() == ["project-0", "project-1", "project 2"]
-    assert "/project-0" == cd.cd("project-0", verify=False)
+    assert cd.cd("project-0", verify=False) == "/project-0"
 
     assert f"/project-0{os.sep}app-name-1" == cd.cd("app-name-1", verify=False)
 

@@ -1,3 +1,4 @@
+import contextlib
 from queue import Empty
 from re import escape
 from unittest.mock import MagicMock, Mock
@@ -19,7 +20,6 @@ from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 def test_lightning_work_run_method_required():
     """Test that a helpful exception is raised when the user did not implement the `LightningWork.run()` method."""
-
     with pytest.raises(TypeError, match=escape("The work `LightningWork` is missing the `run()` method")):
         LightningWork()
 
@@ -197,10 +197,8 @@ def test_lightning_status(enable_exception, raise_exception):
         copy_request_queue,
         copy_response_queue,
     )
-    try:
+    with contextlib.suppress(Exception, Empty):
         work_runner()
-    except (Exception, Empty):
-        pass
 
     res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
     L = len(delta_queue._queue) - 1
@@ -306,7 +304,6 @@ def test_lightning_work_calls():
 
 
 def test_work_cloud_build_config_provided():
-
     assert isinstance(LightningWork.cloud_build_config, property)
     assert LightningWork.cloud_build_config.fset is not None
 
@@ -323,7 +320,6 @@ def test_work_cloud_build_config_provided():
 
 
 def test_work_local_build_config_provided():
-
     assert isinstance(LightningWork.local_build_config, property)
     assert LightningWork.local_build_config.fset is not None
 
