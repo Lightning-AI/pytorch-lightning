@@ -199,7 +199,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         if IPUAccelerator.is_available() and not isinstance(trainer.accelerator, IPUAccelerator):
             rank_zero_warn("IPU available but not used. You can set it by doing `Trainer(accelerator='ipu')`.")
 
-    if  _LIGHTNING_HABANA_AVAILABLE:
+    if _LIGHTNING_HABANA_AVAILABLE:
         from lightning_habana import HPUAccelerator
 
         if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):

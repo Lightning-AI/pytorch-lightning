@@ -22,7 +22,6 @@ class IPUAccelerator:
 
 
 class IPUStrategy:
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `IPUStrategy` class has been moved to an external package."
@@ -33,7 +32,6 @@ class IPUStrategy:
 
 
 class IPUPrecisionPlugin:
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `IPUPrecisionPlugin` class has been moved to an external package."
