@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,21 +24,21 @@ from lightning.pytorch.utilities.upgrade_checkpoint import main as upgrade_main
 def test_upgrade_checkpoint_file_missing(tmp_path, caplog):
     # path to single file (missing)
     file = tmp_path / "checkpoint.ckpt"
-    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]):
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(SystemExit):
-                upgrade_main()
-            assert f"The path {file} does not exist" in caplog.text
+    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]), caplog.at_level(logging.ERROR):
+        with pytest.raises(SystemExit):
+            upgrade_main()
+        assert f"The path {file} does not exist" in caplog.text
 
     caplog.clear()
 
     # path to non-empty directory, but no checkpoints with matching extension
     file.touch()
-    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(tmp_path), "--extension", ".other"]):
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(SystemExit):
-                upgrade_main()
-            assert "No checkpoint files with extension .other were found" in caplog.text
+    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(tmp_path), "--extension", ".other"]), caplog.at_level(
+        logging.ERROR
+    ):
+        with pytest.raises(SystemExit):
+            upgrade_main()
+        assert "No checkpoint files with extension .other were found" in caplog.text
 
 
 @mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.save")

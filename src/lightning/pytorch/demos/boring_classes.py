@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -23,10 +23,14 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import LightningDataModule, LightningModule
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class RandomDictDataset(Dataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
@@ -41,6 +45,10 @@ class RandomDictDataset(Dataset):
 
 
 class RandomDataset(Dataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
@@ -53,6 +61,10 @@ class RandomDataset(Dataset):
 
 
 class RandomIterableDataset(IterableDataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, count: int):
         self.count = count
         self.size = size
@@ -63,6 +75,10 @@ class RandomIterableDataset(IterableDataset):
 
 
 class RandomIterableDatasetWithLen(IterableDataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, size: int, count: int):
         self.count = count
         self.size = size
@@ -76,28 +92,22 @@ class RandomIterableDatasetWithLen(IterableDataset):
 
 
 class BoringModel(LightningModule):
+    """Testing PL Module.
+
+    Use as follows:
+    - subclass
+    - modify the behavior for what you want
+
+    .. warning::  This is meant for testing/debugging and is experimental.
+
+    Example::
+
+        class TestModel(BoringModel):
+            def training_step(self, ...):
+                ...  # do your own thing
+    """
+
     def __init__(self) -> None:
-        """Testing PL Module.
-
-        Use as follows:
-        - subclass
-        - modify the behavior for what you want
-
-        Example::
-
-            class TestModel(BoringModel):
-                def training_step(self, ...):
-                    ...  # do your own thing
-
-                training_epoch_end = None  # disable hook
-
-        or
-
-        Example::
-
-            model = BoringModel()
-            model.training_epoch_end = None  # disable hook
-        """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
@@ -117,26 +127,11 @@ class BoringModel(LightningModule):
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
-    def training_step_end(self, training_step_outputs: STEP_OUTPUT) -> STEP_OUTPUT:
-        return training_step_outputs
-
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        outputs = cast(List[Dict[str, Tensor]], outputs)
-        torch.stack([x["loss"] for x in outputs]).mean()
-
     def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"x": self.step(batch)}
 
-    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        outputs = cast(List[Dict[str, Tensor]], outputs)
-        torch.stack([x["x"] for x in outputs]).mean()
-
     def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"y": self.step(batch)}
-
-    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        outputs = cast(List[Dict[str, Tensor]], outputs)
-        torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -157,6 +152,10 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.random_full = RandomDataset(32, 64 * 4)
@@ -188,6 +187,10 @@ class BoringDataModule(LightningDataModule):
 
 
 class ManualOptimBoringModel(BoringModel):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
@@ -203,6 +206,10 @@ class ManualOptimBoringModel(BoringModel):
 
 
 class DemoModel(LightningModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self, out_dim: int = 10, learning_rate: float = 0.02):
         super().__init__()
         self.l1 = torch.nn.Linear(32, out_dim)
@@ -222,6 +229,10 @@ class DemoModel(LightningModule):
 
 
 class Net(nn.Module):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)

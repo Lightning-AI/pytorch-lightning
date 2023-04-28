@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -189,7 +189,7 @@ def upload_model(
         logging.info(msg)
 
 
-def _load_model(stored, output_dir, *args, **kwargs):
+def _load_model(stored, output_dir, *args: Any, **kwargs: Any):
     if "model" in stored:
         sys.path.insert(0, f"{output_dir}")
         model = torch.load(f"{output_dir}/{stored['model']}", *args, **kwargs)
@@ -201,7 +201,7 @@ def _load_model(stored, output_dir, *args, **kwargs):
         )
 
 
-def _load_weights(model, stored, output_dir, *args, **kwargs):
+def _load_weights(model, stored, output_dir, *args: Any, **kwargs: Any):
     if "weights" in stored:
         model.load_state_dict(torch.load(f"{output_dir}/{stored['weights']}", *args, **kwargs))
         return model
@@ -211,7 +211,7 @@ def _load_weights(model, stored, output_dir, *args, **kwargs):
         )
 
 
-def _load_checkpoint(model, stored, output_dir, *args, **kwargs):
+def _load_checkpoint(model, stored, output_dir, *args: Any, **kwargs: Any):
     if "checkpoint" in stored:
         ckpt = f"{output_dir}/{stored['checkpoint']}"
     else:
@@ -317,8 +317,8 @@ def load_model(
     load_weights: bool = False,
     load_checkpoint: bool = False,
     model: Optional[Module] = None,
-    *args,
-    **kwargs,
+    *args: Any,
+    **kwargs: Any,
 ):
     """Load model from lightning cloud.
 

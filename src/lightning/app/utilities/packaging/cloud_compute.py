@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -111,6 +111,11 @@ class CloudCompute:
             if "gpu" not in self.name:
                 raise ValueError("CloudCompute `interruptible=True` is supported only with GPU.")
 
+        # FIXME: Clean the mess on the platform side
+        if self.name == "default" or self.name == "cpu":
+            self.name = "cpu-small"
+            self._internal_id = "default"
+
         # TODO: Remove from the platform first.
         self.preemptible = self.interruptible
 
@@ -147,7 +152,7 @@ class CloudCompute:
         return self._internal_id
 
     def is_default(self) -> bool:
-        return self.name == "default"
+        return self.name in ("default", "cpu-small")
 
     def _generate_id(self):
         return "default" if self.name == "default" else uuid4().hex[:7]
@@ -166,7 +171,7 @@ def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], T
 
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
-    if state and __CLOUD_COMPUTE_IDENTIFIER__ == state.get("type", None):
+    if state and state.get("type", None) == __CLOUD_COMPUTE_IDENTIFIER__:
         cloud_compute = CloudCompute.from_dict(state)
         return cloud_compute
     return state

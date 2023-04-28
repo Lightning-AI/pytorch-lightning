@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -258,5 +258,5 @@ def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: boo
     logger.debug(f"Creating the following tables {models}")
     try:
         SQLModel.metadata.create_all(engine)
-    except Exception as e:
-        logger.debug(e)
+    except Exception as ex:
+        logger.debug(ex)

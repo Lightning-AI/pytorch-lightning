@@ -24,11 +24,11 @@ needed distributed storage.
 ************
 Write a file
 ************
-To write a file, first create a reference to the file with the :class:`~lightning_app.storage.Path` class, then write to it:
+To write a file, first create a reference to the file with the :class:`~lightning.app.storage.Path` class, then write to it:
 
 .. code:: python
 
-    from lightning_app.storage import Path
+    from lightning.app.storage import Path
 
     # file reference
     boring_file_reference = Path("boring_file.txt")
@@ -91,7 +91,7 @@ Run the app above with the following command:
 
 .. code-block:: bash
 
-    lightning run app docs/source-app/workflows/share_files_between_components/app.py
+    lightning run app docs/source/workflows/share_files_between_components/app.py
 
 .. code-block:: console
 
@@ -105,7 +105,7 @@ For example, here we save a file on one component and use it in another componen
 
 .. code:: python
 
-    from lightning_app.storage import Path
+    from lightning.app.storage import Path
 
 
     class ComponentA(LightningWork):

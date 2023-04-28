@@ -8,7 +8,7 @@ body:
         Before you go any further. Is this really a **🐛 bug**?
 
         If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
-        or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
+        or ask a question on our [Community Discord](https://discord.gg/VptPCZkGNa).
 
   - type: textarea
     attributes:
@@ -22,7 +22,22 @@ body:
         ```
         The error message you got, with the full traceback if available.
         ```
+    validations:
+      required: true
 
+  - type: dropdown
+    id: versions
+    attributes:
+      label: What version are you seeing the problem on?
+      description: select all version where you have experienced this issue
+      multiple: true
+      options:
+        - "v1_6"
+        - "v1_7"
+        - "v1_8"
+        - "v1_9"
+        - "v2_0"
+        - "master"
     validations:
       required: true
 
@@ -35,7 +50,7 @@ body:
       label: How to reproduce the bug
       description: >
         Provide steps and example code here.
-        You can also paste a link to Google Colab (see our [Colab bug report template](https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)) or adapt this minimal [snippet](https://github.com/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.py).
+        You can also paste a link to Google Colab (see our [Colab bug report template](https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pytorch/bug_report/bug_report_model.ipynb)) or adapt this minimal [snippet](https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/bug_report/bug_report_model.py).
       placeholder: |
         ```python
         # Sample code to reproduce the problem

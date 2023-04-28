@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from lightning.fabric.utilities.types import _DEVICE
 class Accelerator(_Accelerator, ABC):
     """The Accelerator base class for Lightning PyTorch.
 
-    An Accelerator is meant to deal with one type of hardware.
+    .. warning::  Writing your own accelerator is an :ref:`experimental <versioning:Experimental API>` feature.
     """
 
     def setup(self, trainer: "pl.Trainer") -> None:

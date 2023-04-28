@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ class Backend(ABC):
         work.run = partial(self._dynamic_run_wrapper, app=app, work=work, work_run=unwrap(work.run))
 
     def _prepare_queues(self, app: "lightning.app.LightningApp"):
-        kw = dict(queue_id=self.queue_id)
+        kw = {"queue_id": self.queue_id}
         app.delta_queue = self.queues.get_delta_queue(**kw)
         app.readiness_queue = self.queues.get_readiness_queue(**kw)
         app.api_response_queue = self.queues.get_api_response_queue(**kw)
@@ -111,7 +111,7 @@ class Backend(ABC):
         app.flow_to_work_delta_queues = {}
 
     def _register_queues(self, app, work):
-        kw = dict(queue_id=self.queue_id, work_name=work.name)
+        kw = {"queue_id": self.queue_id, "work_name": work.name}
         app.request_queues.update({work.name: self.queues.get_orchestrator_request_queue(**kw)})
         app.response_queues.update({work.name: self.queues.get_orchestrator_response_queue(**kw)})
         app.copy_request_queues.update({work.name: self.queues.get_orchestrator_copy_request_queue(**kw)})

@@ -14,7 +14,7 @@ on:
       - "src/lightning_app/*"
       - "tests/integrations_app/**"
       - "!tests/integrations_app/flagship/**"
-      - "examples/app_*/**"
+      - "examples/app/**"
       - "requirements/app/**"
       - "setup.py"
       - "!requirements/*/docs.txt"
@@ -41,104 +41,98 @@ jobs:
         python-version: ["3.9"]
         requires: ["oldest", "latest"]
         include:
-          # "lightning" installs the monolithic package
+          # "app" installs the standalone package
           - {os: "macOS-11", pkg-name: "app", python-version: "3.9", requires: "latest"}
           - {os: "ubuntu-20.04", pkg-name: "app", python-version: "3.9", requires: "latest"}
           - {os: "windows-2022", pkg-name: "app", python-version: "3.9", requires: "latest"}
-
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
-
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      FREEZE_REQUIREMENTS: 1
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      PYPI_CACHE_DIR: "_pip-wheels"
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+    - name: basic setup
+      run: pip install -q -r .actions/requirements.txt
 
-      - name: Set min. dependencies
-        if: ${{ matrix.requires == 'oldest' }}
-        run: python .actions/assistant.py replace_oldest_ver
+    - name: Set min. dependencies
+      if: ${{ matrix.requires == 'oldest' }}
+      run: python .actions/assistant.py replace_oldest_ver
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+    - name: pip wheels cache
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.PYPI_CACHE_DIR }}
+        key: pypi_wheels
 
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: pip-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: pip-${{ matrix.pkg-name }}-
-          enableCrossOsArchive: true
+    - name: Install Lightning package & dependencies
+      run: |
+        extra=$(python -c "print({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
+        # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
+        pip install ".[${extra}dev]" -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        pip list
+    - name: Dump handy wheels
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      continue-on-error: true
+      uses: ./.github/actions/pip-wheels
+      with:
+        wheel-dir: ${{ env.PYPI_CACHE_DIR }}
+        torch-url: ${{ env.TORCH_URL }}
+        cache-key: "pypi_wheels"
 
-      - name: Install Lightning package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
-        run: |
-          # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
-          pip install .[dev] --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+    - name: Install Yarn
+      run: npm install -g yarn
 
-      - name: Install Yarn
-        run: npm install -g yarn
+    - name: Adjust imports -> App
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      run: |
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+          --source_import="lightning.app,lightning.fabric,lightning.pytorch" \
+          --target_import="lightning_app,lightning_fabric,pytorch_lightning" \
+          --lightning_by="lightning_app"
+        python .actions/assistant.py copy_replace_imports --source_dir="./examples" \
+          --source_import="lightning.app,lightning.fabric,lightning.pytorch,lightning" \
+          --target_import="lightning_app,lightning_fabric,pytorch_lightning,lightning_app"
 
-      - name: Adjust imports -> App
-        if: ${{ matrix.pkg-name != 'lightning' }}
-        run: |
-          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-            --source_import="lightning.app,lightning.fabric,lightning.pytorch" \
-            --target_import="lightning_app,lightning_fabric,pytorch_lightning" \
-            --lightning_by="lightning_app"
-          python .actions/assistant.py copy_replace_imports --source_dir="./examples" \
-            --source_import="lightning.app,lightning.fabric,lightning.pytorch,lightning" \
-            --target_import="lightning_app,lightning_fabric,pytorch_lightning,lightning_app"
+    - name: Switch coverage scope
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
-      - name: Switch coverage scope
-        run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
+    - name: Tests
+      working-directory: ./tests
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
+      run: |
+        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
+          -m pytest -m "not cloud" integrations_app \
+          --timeout=300 --durations=0 -vvvv
 
-      - name: Tests
-        working-directory: ./tests
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
-          PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        run: |
-          python -m coverage run --source ${COVERAGE_SCOPE} \
-            -m pytest -m "not cloud" integrations_app \
-            --timeout=300 --durations=0 -vvvv \
-            --junitxml=$PYTEST_ARTIFACT
+    - name: Statistics
+      if: success()
+      working-directory: ./tests
+      run: |
+        coverage xml -i
+        coverage report -i
 
-      - name: Upload pytest test results
-        uses: actions/upload-artifact@v3
-        with:
-          name: unittest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
-          path: tests/results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        if: failure()
-
-      - name: Statistics
-        if: success()
-        working-directory: ./tests
-        run: |
-          coverage xml -i
-          coverage report -i
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: tests/coverage.xml
-          flags: cpu,pytest,app,examples
-          env_vars: OS,PYTHON
-          name: codecov-umbrella
-          fail_ci_if_error: false
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: tests/coverage.xml
+        flags: cpu,pytest,app,examples
+        env_vars: OS,PYTHON
+        name: codecov-umbrella
+        fail_ci_if_error: false

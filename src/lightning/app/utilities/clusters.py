@@ -1,6 +1,6 @@
 import random
 
-from lightning_cloud.openapi import V1ClusterType, V1ProjectClusterBinding
+from lightning_cloud.openapi import ProjectIdProjectclustersbindingsBody, V1ClusterType
 from lightning_cloud.openapi.rest import ApiException
 
 from lightning.app.utilities.network import LightningClient
@@ -17,7 +17,7 @@ def _ensure_cluster_project_binding(client: LightningClient, project_id: str, cl
 
     client.projects_service_create_project_cluster_binding(
         project_id=project_id,
-        body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
+        body=ProjectIdProjectclustersbindingsBody(cluster_id=cluster_id),
     )
 
 
@@ -48,4 +48,4 @@ def _get_default_cluster(client: LightningClient, project_id: str) -> str:
     if len(clusters) == 0:
         raise RuntimeError(f"No clusters found on `{client.api_client.configuration.host}`.")
 
-    return random.choice(clusters).id
+    return random.choice(clusters).id  # noqa: S311

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from lightning.pytorch.plugins.precision import TPUPrecisionPlugin
 class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
     """Plugin that enables bfloats on TPUs."""
 
-    precision: Literal["bf16"] = "bf16"
+    precision: Literal["bf16-mixed"] = "bf16-mixed"
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]

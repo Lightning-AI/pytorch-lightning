@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,6 +46,9 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("lightning.pytorch.loggers.mlflow.Metric"),
     mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
+    mock.patch("lightning.pytorch.loggers.neptune.Run", new=mock.Mock),
+    mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock),
+    mock.patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock()),
     mock.patch("lightning.pytorch.loggers.wandb.wandb"),
     mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock),
 )
@@ -97,13 +100,11 @@ def _test_loggers_fit_test(tmpdir, logger_class):
             self.log("train_some_val", loss)
             return {"loss": loss}
 
-        def validation_epoch_end(self, outputs) -> None:
-            avg_val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss**0.5})
+        def on_validation_epoch_end(self):
+            self.log_dict({"early_stop_on": torch.tensor(1), "val_loss": torch.tensor(0.5)})
 
-        def test_epoch_end(self, outputs) -> None:
-            avg_test_loss = torch.stack([x["y"] for x in outputs]).mean()
-            self.log("test_loss", avg_test_loss)
+        def on_test_epoch_end(self):
+            self.log("test_loss", torch.tensor(2))
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs) -> None:
@@ -291,13 +292,13 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # Neptune
     with mock.patch("lightning.pytorch.loggers.neptune.neptune"), mock.patch(
         "lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True
-    ):
+    ), mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
-        assert logger.experiment.__getitem__.call_count == 2
+        assert logger.experiment.__getitem__.call_count == 0
         logger.log_metrics({"test": 1.0}, step=0)
-        assert logger.experiment.__getitem__.call_count == 3
+        assert logger.experiment.__getitem__.call_count == 1
         logger.experiment.__getitem__.assert_called_with("tmp/test")
-        logger.experiment.__getitem__().log.assert_called_once_with(1.0)
+        logger.experiment.__getitem__().append.assert_called_once_with(1.0)
 
     # TensorBoard
     if _TENSORBOARD_AVAILABLE:
@@ -323,7 +324,6 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
 def test_logger_default_name(tmpdir, monkeypatch):
     """Test that the default logger name is lightning_logs."""
-
     # CSV
     logger = CSVLogger(save_dir=tmpdir)
     assert logger.name == "lightning_logs"

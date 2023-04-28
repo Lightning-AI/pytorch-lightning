@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,12 +27,3 @@ if TYPE_CHECKING:
 
 else:
     LightningEnum = StrEnum
-
-
-class _AcceleratorType(LightningEnum):
-    """Define Accelerator type by its nature."""
-
-    CPU = "CPU"
-    CUDA = "CUDA"
-    TPU = "TPU"
-    MPS = "MPS"

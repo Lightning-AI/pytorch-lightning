@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ def test_disabled_checkpointing(tmpdir):
     ["epochs", "val_check_interval", "expected"], [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)]
 )
 def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
-
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -96,7 +95,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
             self.log("my_loss", batch_idx * (1 + local_rank), on_epoch=True)
             return super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs) -> None:
+        def on_train_epoch_end(self):
             local_rank = int(os.getenv("LOCAL_RANK"))
             if self.trainer.is_global_zero:
                 self.log("my_loss_2", (1 + local_rank), on_epoch=True, rank_zero_only=True)

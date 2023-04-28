@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ def test_deepspeed_summary(tmpdir):
         accelerator="gpu",
         fast_dev_run=True,
         devices=2,
-        precision=16,
+        precision="16-mixed",
         enable_model_summary=True,
         callbacks=[TestCallback()],
     )

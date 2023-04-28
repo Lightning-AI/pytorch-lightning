@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,6 @@ def test_file_logger_manual_versioning(tmpdir):
 
 def test_file_logger_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"

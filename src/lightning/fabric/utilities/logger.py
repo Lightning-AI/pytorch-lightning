@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -115,7 +115,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         'namespace': 'Namespace(foo=3)',
         'string': 'abc'}
     """
-    for k in params.keys():
+    for k in params:
         # convert relevant np scalars to python types first (instead of str)
         if isinstance(params[k], (np.bool_, np.integer, np.floating)):
             params[k] = params[k].item()

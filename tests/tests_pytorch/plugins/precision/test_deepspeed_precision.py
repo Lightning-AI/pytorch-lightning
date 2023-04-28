@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,4 +19,4 @@ from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlug
 
 def test_invalid_precision_with_deepspeed_precision():
     with pytest.raises(ValueError, match="is not supported. `precision` must be one of"):
-        DeepSpeedPrecisionPlugin(precision=64)
+        DeepSpeedPrecisionPlugin(precision="64-true")

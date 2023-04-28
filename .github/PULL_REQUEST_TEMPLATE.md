@@ -12,33 +12,43 @@ The following links the related issue to the PR (https://docs.github.com/en/free
 
 Fixes #\<issue_number>
 
-### Does your PR introduce any breaking changes? If yes, please list them.
+<!-- Does your PR introduce any breaking changes? If yes, please list them. -->
 
-<!-- FILL IN or None -->
+<details>
+  <summary><b>Before submitting</b></summary>
 
-## Before submitting
-
-- [ ] Was this **discussed/approved** via a GitHub issue? (not for typos and docs)
+- Was this **discussed/agreed** via a GitHub issue? (not for typos and docs)
 - [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/lightning/blob/master/.github/CONTRIBUTING.md), **Pull Request** section?
 - [ ] Did you make sure your **PR does only one thing**, instead of bundling different changes together?
-- [ ] Did you make sure to **update the documentation** with your changes? (if necessary)
-- [ ] Did you write any **new necessary tests**? (not for typos and docs)
+- Did you make sure to **update the documentation** with your changes? (if necessary)
+- Did you write any **new necessary tests**? (not for typos and docs)
 - [ ] Did you verify new and **existing tests pass** locally with your changes?
-- [ ] Did you list all the **breaking changes** introduced by this pull request?
-- [ ] Did you **update the CHANGELOG**? (not for typos, docs, test updates, or minor internal changes/refactors)
+- Did you list all the **breaking changes** introduced by this pull request?
+- Did you **update the CHANGELOG**? (not for typos, docs, test updates, or minor internal changes/refactors)
 
 <!-- In the CHANGELOG, separate each item in the unreleased section by a blank line to reduce collisions -->
+
+</details>
 
 ## PR review
 
 Anyone in the community is welcome to review the PR.
 Before you start reviewing, make sure you have read the [review guidelines](https://github.com/Lightning-AI/lightning/wiki/Review-guidelines). In short, see the following bullet-list:
 
+<details>
+  <summary>Reviewer checklist</summary>
+
 - [ ] Is this pull request ready for review? (if not, please submit in draft mode)
 - [ ] Check that all items from **Before submitting** are resolved
 - [ ] Make sure the title is self-explanatory and the description concisely explains the PR
 - [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified
 
-## Did you have fun?
+</details>
+
+<!--
+
+Did you have fun?
 
 Make sure you had fun coding 🙃
+
+-->

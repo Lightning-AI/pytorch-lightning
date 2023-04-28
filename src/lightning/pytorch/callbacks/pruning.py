@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-ModelPruning
-^^^^^^^^^^^^
-"""
+r"""ModelPruning ^^^^^^^^^^^^"""
 import inspect
 import logging
 from copy import deepcopy
@@ -83,7 +80,7 @@ class ModelPruning(Callback):
         To learn more about pruning with PyTorch, please take a look at
         `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
 
-        .. warning:: ``ModelPruning`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. code-block:: python
 
@@ -279,8 +276,7 @@ class ModelPruning(Callback):
         dst.data = src.data.to(dst.device)
 
     def apply_lottery_ticket_hypothesis(self) -> None:
-        r"""
-        Lottery ticket hypothesis algorithm (see page 2 of the paper):
+        r"""Lottery ticket hypothesis algorithm (see page 2 of the paper):
 
             1. Randomly initialize a neural network :math:`f(x; \theta_0)` (where :math:`\theta_0 \sim \mathcal{D}_\theta`).
             2. Train the network for :math:`j` iterations, arriving at parameters :math:`\theta_j`.
@@ -410,7 +406,7 @@ class ModelPruning(Callback):
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
-        map_pruned_params = {k.replace("_mask", "") for k in state_dict.keys() if k.endswith("_mask")}
+        map_pruned_params = {k.replace("_mask", "") for k in state_dict if k.endswith("_mask")}
         for tensor_name in map_pruned_params:
             orig = state_dict.pop(tensor_name + "_orig")
             mask = state_dict.pop(tensor_name + "_mask")

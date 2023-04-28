@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,7 +135,6 @@ def test_torchscript_save_load(tmpdir, modelclass):
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     """Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems."""
-
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
 

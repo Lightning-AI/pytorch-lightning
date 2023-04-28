@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _fla
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.logger import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
@@ -46,8 +46,7 @@ _WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
-    r"""
-    Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
+    r"""Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
 
     **Installation and set-up**
 
@@ -281,7 +280,6 @@ class WandbLogger(Logger):
             If required WandB package is not installed on the device.
         MisconfigurationException:
             If both ``log_model`` and ``offline`` is set to ``True``.
-
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -340,14 +338,14 @@ class WandbLogger(Logger):
             project = os.environ["WANDB_PROJECT"]
 
         # set wandb init arguments
-        self._wandb_init: Dict[str, Any] = dict(
-            name=name,
-            project=project,
-            dir=save_dir or dir,
-            id=version or id,
-            resume="allow",
-            anonymous=("allow" if anonymous else None),
-        )
+        self._wandb_init: Dict[str, Any] = {
+            "name": name,
+            "project": project,
+            "dir": save_dir or dir,
+            "id": version or id,
+            "resume": "allow",
+            "anonymous": ("allow" if anonymous else None),
+        }
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")
@@ -441,8 +439,8 @@ class WandbLogger(Logger):
     def log_table(
         self,
         key: str,
-        columns: List[str] = None,
-        data: List[List[Any]] = None,
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[Any]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
@@ -458,8 +456,8 @@ class WandbLogger(Logger):
     def log_text(
         self,
         key: str,
-        columns: List[str] = None,
-        data: List[List[str]] = None,
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[str]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
@@ -482,7 +480,7 @@ class WandbLogger(Logger):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)
 
@@ -602,6 +600,7 @@ class WandbLogger(Logger):
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
             artifact.add_file(p, name="model.ckpt")
-            self.experiment.log_artifact(artifact, aliases=[tag])
+            aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+            self.experiment.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t

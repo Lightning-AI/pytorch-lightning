@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,7 +75,6 @@ def run(hparams):
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):
-
         # TRAINING LOOP
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):

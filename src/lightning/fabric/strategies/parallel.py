@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -94,7 +94,10 @@ class ParallelStrategy(Strategy, ABC):
             bool: The reduced boolean decision.
         """
         decision = torch.tensor(int(decision), device=self.root_device)
-        decision = self.all_reduce(decision, reduce_op=ReduceOp.SUM)
+        decision = self.all_reduce(
+            decision,
+            reduce_op=ReduceOp.SUM,  # type: ignore[arg-type]
+        )
         decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
 

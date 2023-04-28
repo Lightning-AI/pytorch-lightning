@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ For the Lightning developer: How to add a new migration?
 3. You can test the migration on a checkpoint (backup your files first) by running:
 
    cp model.ckpt model.ckpt.backup
-   python -m lightning.pytorch.utilities.upgrade_checkpoint --file model.ckpt
+   python -m lightning.pytorch.utilities.upgrade_checkpoint model.ckpt
 """
 import re
 from typing import Any, Callable, Dict, List
@@ -50,6 +50,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
             _drop_apex_amp_state,
             _migrate_loop_structure_after_tbptt_removal,
             _migrate_loop_structure_after_optimizer_loop_removal,
+            _migrate_loop_structure_after_dataloader_loop_removal,
         ],
     }
 
@@ -236,7 +237,8 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
     """
     if "loops" not in checkpoint:
         return checkpoint
-
+    if "fit_loop" not in checkpoint["loops"]:
+        return checkpoint
     fit_loop = checkpoint["loops"]["fit_loop"]
 
     # remap `x.batch_loop.y` to `x.y`
@@ -273,8 +275,10 @@ def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT
     """
     if "loops" not in checkpoint:
         return checkpoint
-
+    if "fit_loop" not in checkpoint["loops"]:
+        return checkpoint
     fit_loop = checkpoint["loops"]["fit_loop"]
+
     # optimizer_position is no longer used
     if "epoch_loop.optimizer_loop.optim_progress" in fit_loop:
         fit_loop["epoch_loop.optimizer_loop.optim_progress"].pop("optimizer_position", None)
@@ -290,4 +294,26 @@ def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT
         fit_loop["epoch_loop.manual_optimization.optim_step_progress"] = fit_loop.pop(
             "epoch_loop.manual_loop.optim_step_progress"
         )
+    return checkpoint
+
+
+def _migrate_loop_structure_after_dataloader_loop_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """The dataloader loops (``_DataLoaderLoop``, ``_PredictionLoop`, and ``_EvaluationLoop``) were flattened into
+    the ``_EvaluationEpochLoop`` (now ``_EvaluationLoop``) and ``_PredictionEpochLoop`` (now ``_PredictionLoop``).
+
+    Version: 2.0.0
+    Commit: ec4f592ecfe238edd83185f6c6905fb1e2406d61
+    PR: #16726
+    """
+    if "loops" not in checkpoint:
+        return checkpoint
+    loops = checkpoint["loops"]
+    for loop_key in ("predict_loop", "validate_loop", "test_loop"):
+        if loop_key not in loops:
+            continue
+        loop = loops[loop_key]
+        loop.pop("dataloader_progress", None)  # no longer used
+        epoch_loop_key = "epoch_loop."
+        epoch_loop_dict = {k[len(epoch_loop_key) :]: loop.pop(k) for k in list(loop) if k.startswith(epoch_loop_key)}
+        loop.update(epoch_loop_dict)
     return checkpoint

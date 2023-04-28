@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,11 +22,9 @@ if TYPE_CHECKING:
 
 
 class LightningVisitor(ast.NodeVisitor):
-    """
-    Base class for visitor that finds class definitions based on
-    class inheritance.
-    Derived classes are expected to define class_name and implement
-    the analyze_class_def method.
+    """Base class for visitor that finds class definitions based on class inheritance. Derived classes are expected
+    to define class_name and implement the analyze_class_def method.
+
     Attributes
     ----------
     class_name: str
@@ -55,8 +53,8 @@ class LightningVisitor(ast.NodeVisitor):
 
 
 class LightningModuleVisitor(LightningVisitor):
-    """
-    Finds Lightning modules based on class inheritance.
+    """Finds Lightning modules based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
@@ -79,16 +77,13 @@ class LightningModuleVisitor(LightningVisitor):
         "save_hyperparameters",
         "test_step",
         "test_step_end",
-        "test_epoch_end",
         "to_onnx",
         "to_torchscript",
         "training_step",
         "training_step_end",
-        "training_epoch_end",
         "unfreeze",
         "validation_step",
         "validation_step_end",
-        "validation_epoch_end",
     }
 
     hooks: Set[str] = {
@@ -129,8 +124,8 @@ class LightningModuleVisitor(LightningVisitor):
 
 
 class LightningDataModuleVisitor(LightningVisitor):
-    """
-    Finds Lightning data modules based on class inheritance.
+    """Finds Lightning data modules based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
@@ -152,8 +147,8 @@ class LightningDataModuleVisitor(LightningVisitor):
 
 
 class LightningLoggerVisitor(LightningVisitor):
-    """
-    Finds Lightning loggers based on class inheritance.
+    """Finds Lightning loggers based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
@@ -168,8 +163,8 @@ class LightningLoggerVisitor(LightningVisitor):
 
 
 class LightningCallbackVisitor(LightningVisitor):
-    """
-    Finds Lightning callbacks based on class inheritance.
+    """Finds Lightning callbacks based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
@@ -220,8 +215,8 @@ class LightningCallbackVisitor(LightningVisitor):
 
 
 class LightningStrategyVisitor(LightningVisitor):
-    """
-    Finds Lightning callbacks based on class inheritance.
+    """Finds Lightning callbacks based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
@@ -274,8 +269,8 @@ class LightningProfilerVisitor(LightningVisitor):
 
 
 class Scanner:
-    """
-    Finds relevant Lightning objects in files in the file system.
+    """Finds relevant Lightning objects in files in the file system.
+
     Attributes
     ----------
     visitor_classes: List[Type]
@@ -327,7 +322,6 @@ class Scanner:
                 continue
 
             for node in ast.walk(module):
-
                 if isinstance(node, ast.ImportFrom):
                     for import_from_cls in node.names:
                         classes.append(import_from_cls.name)
@@ -340,9 +334,8 @@ class Scanner:
         return cls.__name__ in classes
 
     def scan(self) -> List[Dict[str, str]]:
-        """
-        Finds Lightning modules in files, returning importable
-        objects.
+        """Finds Lightning modules in files, returning importable objects.
+
         Returns
         -------
         List[Dict[str, Any]]

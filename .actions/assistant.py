@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -158,16 +158,21 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     '...PyTorch Lightning is just organized PyTorch...'
     """
     path_readme = os.path.join(path_dir, "README.md")
-    text = open(path_readme, encoding="utf-8").read()
+    with open(path_readme, encoding="utf-8") as fo:
+        text = fo.read()
 
     # drop images from readme
-    text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
+    text = text.replace(
+        "![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)", ""
+    )
 
     # https://github.com/Lightning-AI/lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
-    text = text.replace("docs/source/_static/", f"{os.path.join(github_source_url, 'docs/source/_static/')}")
+    text = text.replace(
+        "docs/source-pytorch/_static/", f"{os.path.join(github_source_url, 'docs/source-app/_static/')}"
+    )
 
     # readthedocs badge
     text = text.replace("badge/?version=stable", f"badge/?version={version}")
@@ -236,7 +241,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
         load_requirements(d, unfreeze="none" if freeze_requirements else "major")
         for d in glob.glob(os.path.join(req_dir, "*"))
         # skip empty folder as git artefacts, and resolving Will's special issue
-        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
+        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and not os.path.basename(d).startswith("_")
     ]
     if not requires:
         return
@@ -390,8 +395,10 @@ class AssistantCLI:
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        req = open(fname, encoding="utf-8").read().replace(">=", "==")
-        open(fname, "w", encoding="utf-8").write(req)
+        with open(fname, encoding="utf-8") as fo:
+            req = fo.read().replace(">=", "==")
+        with open(fname, "w", encoding="utf-8") as fw:
+            fw.write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:

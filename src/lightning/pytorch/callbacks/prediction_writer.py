@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -136,16 +136,14 @@ class BasePredictionWriter(Callback):
         outputs: Any,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if not self.interval.on_batch:
             return
-        batch_indices = trainer.predict_loop.epoch_loop.current_batch_indices
+        batch_indices = trainer.predict_loop.current_batch_indices
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
-    def on_predict_epoch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: Sequence[Any]
-    ) -> None:
+    def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self.interval.on_epoch:
             return
         epoch_batch_indices = trainer.predict_loop.epoch_batch_indices

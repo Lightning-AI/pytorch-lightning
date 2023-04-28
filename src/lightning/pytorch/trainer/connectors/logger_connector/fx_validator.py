@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -134,24 +134,6 @@ class _FxValidator:
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
         ),
         "predict_step": None,
-        "training_step_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
-        ),
-        "validation_step_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
-        ),
-        "test_step_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
-        ),
-        "training_epoch_end": _LogOptions(
-            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
-        ),
-        "validation_epoch_end": _LogOptions(
-            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
-        ),
-        "test_epoch_end": _LogOptions(
-            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
-        ),
         "configure_optimizers": None,
         "train_dataloader": None,
         "val_dataloader": None,

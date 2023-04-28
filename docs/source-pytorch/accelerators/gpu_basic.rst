@@ -14,30 +14,31 @@ A Graphics Processing Unit (GPU), is a specialized hardware accelerator designed
 
 ----
 
-Train on 1 GPU
---------------
-
-Make sure you're running on a machine with at least one GPU. There's no need to specify any NVIDIA flags
-as Lightning will do it for you.
-
-.. testcode::
-    :skipif: torch.cuda.device_count() < 1
-
-    trainer = Trainer(accelerator="gpu", devices=1)
-
-----------------
-
-
 .. _multi_gpu:
 
-Train on multiple GPUs
-----------------------
+Train on GPUs
+-------------
 
-To use multiple GPUs, set the number of devices in the Trainer or the index of the GPUs.
+The Trainer will run on all available GPUs by default. Make sure you're running on a machine with at least one GPU.
+There's no need to specify any NVIDIA flags as Lightning will do it for you.
 
-.. code::
+.. code-block:: python
 
-    trainer = Trainer(accelerator="gpu", devices=4)
+    # run on as many GPUs as available by default
+    trainer = Trainer(accelerator="auto", devices="auto", strategy="auto")
+    # equivalent to
+    trainer = Trainer()
+
+    # run on one GPU
+    trainer = Trainer(accelerator="gpu", devices=1)
+    # run on multiple GPUs
+    trainer = Trainer(accelerator="gpu", devices=8)
+    # choose the number of devices automatically
+    trainer = Trainer(accelerator="gpu", devices="auto")
+
+.. note::
+    Setting ``accelerator="gpu"`` will also automatically choose the "mps" device on Apple sillicon GPUs.
+    If you want to avoid this, you can set ``accelerator="cuda"`` instead.
 
 Choosing GPU devices
 ^^^^^^^^^^^^^^^^^^^^
@@ -65,7 +66,7 @@ a comma separated list of GPU ids:
     Trainer(accelerator="gpu", devices="0, 1")
 
     # To use all available GPUs put -1 or '-1'
-    # equivalent to list(range(torch.cuda.device_count()))
+    # equivalent to `list(range(torch.cuda.device_count())) and `"auto"`
     Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
@@ -79,11 +80,11 @@ The table below lists examples of possible input formats and how they are interp
 +------------------+-----------+---------------------+---------------------------------+
 | [0]              | list      | [0]                 | GPU 0                           |
 +------------------+-----------+---------------------+---------------------------------+
-| [1, 3]           | list      | [1, 3]              | GPUs 1 and 3                    |
+| [1, 3]           | list      | [1, 3]              | GPU index 1 and 3 (0-based)     |
 +------------------+-----------+---------------------+---------------------------------+
 | "3"              | str       | [0, 1, 2]           | first 3 GPUs                    |
 +------------------+-----------+---------------------+---------------------------------+
-| "1, 3"           | str       | [1, 3]              | GPUs 1 and 3                    |
+| "1, 3"           | str       | [1, 3]              | GPU index 1 and 3 (0-based)     |
 +------------------+-----------+---------------------+---------------------------------+
 | "-1"             | str       | [0, 1, 2, ...]      | all available GPUs              |
 +------------------+-----------+---------------------+---------------------------------+

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,10 +26,9 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.strategies import DDPSpawnStrategy
 from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.trainer.supporters import CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -90,7 +89,6 @@ def test_replace_distributed_sampler(tmpdir, mode):
             return [self.create_dataset()] * self._numbers_test_dataloaders
 
     model = TestModel(2, mode)
-    model.test_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -117,7 +115,7 @@ class TestSpawnBoringModel(BoringModel):
 
     def on_train_end(self):
         def _get_warning_msg():
-            dl = self.trainer.train_dataloader.loaders
+            dl = self.trainer.train_dataloader
             if hasattr(dl, "persistent_workers"):
                 if self.num_workers == 0:
                     warn_str = "Consider setting num_workers>0 and persistent_workers=True"
@@ -139,7 +137,6 @@ class TestSpawnBoringModel(BoringModel):
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -212,7 +209,7 @@ def test_dataloaders_with_missing_keyword_arguments():
 
 
 def test_update_dataloader_with_multiprocessing_context():
-    """This test verifies that replace_sampler conserves multiprocessing context."""
+    """This test verifies that `use_distributed_sampler` conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
@@ -254,21 +251,24 @@ def test_dataloader_reinit_for_subclass():
             self.something_unrelated = 1
 
     trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn")
+    mode = RunningStage.TRAINING
 
     class CustomDummyObj:
         sampler = None
 
-    result = trainer._data_connector._prepare_dataloader(CustomDummyObj(), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDummyObj(), shuffle=True, mode=mode)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(10))
-    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset), shuffle=True, mode=mode)
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
 
     # Shuffled DataLoader should also work
-    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset, shuffle=True), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(
+        CustomDataLoader(dataset, shuffle=True), shuffle=True, mode=mode
+    )
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
@@ -286,7 +286,7 @@ def test_dataloader_reinit_for_subclass():
 
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
-    result = trainer._data_connector._prepare_dataloader(dataloader)
+    result = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False, mode=mode)
     result_dataset = list(result)
     assert len(result_dataset) == 5
     assert result_dataset == [Tensor([x]) for x in [0, 2, 4, 6, 8]]
@@ -296,25 +296,24 @@ def test_dataloader_reinit_for_subclass():
 
 class LoaderTestModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        assert len(self.trainer.train_dataloader.loaders) == 10
+        assert len(self.trainer.train_dataloader) == 10
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
-        assert len(self.trainer.val_dataloaders[0]) == 10
+        assert len(self.trainer.val_dataloaders) == 10
         return super().validation_step(batch, batch_idx)
 
     def test_step(self, batch, batch_idx):
-        assert len(self.trainer.test_dataloaders[0]) == 10
+        assert len(self.trainer.test_dataloaders) == 10
         return super().test_step(batch, batch_idx)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        assert len(self.trainer.predict_dataloaders[0]) == 10
+        assert len(self.trainer.predict_dataloaders) == 10
         return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
 
 def test_loader_detaching():
     """Checks that the loader has been reset after the entrypoint."""
-
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 
     model = LoaderTestModel()
@@ -368,12 +367,13 @@ def test_error_raised_with_float_limited_eval_batches():
     dl_size = len(model.val_dataloader())
     limit_val_batches = 1 / (dl_size + 2)
     trainer = Trainer(limit_val_batches=limit_val_batches)
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
     with pytest.raises(
         MisconfigurationException,
         match=rf"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
-        trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
+        trainer.validate_loop.setup_data()
 
 
 @pytest.mark.parametrize(
@@ -402,10 +402,11 @@ def test_error_raised_with_float_limited_eval_batches():
 def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, warns):
     trainer = Trainer()
     model = BoringModel()
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
     context = pytest.warns if warns else no_warning_call
-    with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
-        trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
+    with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test"):
+        trainer.validate_loop.setup_data()
 
 
 class NoDataLoaderModel(BoringModel):
@@ -529,18 +530,18 @@ def test_invalid_hook_passed_in_datahook_selector():
 @pytest.mark.parametrize("devices, warn_context", [(1, no_warning_call), (2, pytest.warns)])
 def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
-
     model = BoringModel()
     trainer = Trainer(strategy="ddp", devices=devices, accelerator="cpu")
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
 
     trainer.state.fn = TrainerFn.VALIDATING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
-        trainer.reset_val_dataloader(model)
+        trainer.validate_loop.setup_data()
 
     trainer.state.fn = TrainerFn.TESTING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
-        trainer.reset_test_dataloader(model)
+        trainer.test_loop.setup_data()
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
@@ -553,9 +554,10 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
 
     trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp")
     model = CustomModel()
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
-    trainer.reset_val_dataloader(model)
-    assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
+    trainer.fit_loop.epoch_loop.val_loop.setup_data()
+    assert trainer.val_dataloaders.sampler.shuffle == shuffle
 
 
 def test_error_raised_with_insufficient_float_limit_train_dataloader():
@@ -563,13 +565,15 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
     dl = DataLoader(RandomDataset(32, batch_size * 9), batch_size=batch_size)
     trainer = Trainer(limit_train_batches=0.1)
     model = BoringModel()
-
+    trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model=model, train_dataloaders=dl)
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.state.stage = RunningStage.TRAINING
     with pytest.raises(
         MisconfigurationException,
         match="Please increase the `limit_train_batches` argument. Try at least",
     ):
-        trainer.reset_train_dataloader(model)
+        trainer.fit_loop.setup_data()
 
 
 @pytest.mark.parametrize(
@@ -600,8 +604,41 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
     datamodule.test_dataloader = None
     datamodule.predict_dataloader = None
 
-    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(TypeError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
 
-    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(TypeError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=None)
+
+
+@pytest.mark.parametrize(
+    "trainer_fn_name, dataloader_name, stage",
+    [
+        ("fit", "train_dataloaders", RunningStage.TRAINING),
+        ("validate", "dataloaders", RunningStage.VALIDATING),
+        ("test", "dataloaders", RunningStage.TESTING),
+        ("predict", "dataloaders", RunningStage.PREDICTING),
+    ],
+)
+@pytest.mark.parametrize("dataloader", [None, object(), [1, object()]])
+def test_non_iterables_raise(tmp_path, trainer_fn_name, dataloader_name, stage, dataloader):
+    model = BoringModel()
+
+    # Pretend that these methods are not implemented
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+    model.predict_dataloader = None
+
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
+    trainer_fn = getattr(trainer, trainer_fn_name)
+
+    with pytest.raises(
+        TypeError, match=rf"invalid dataloader was passed to `Trainer.{trainer_fn_name}\({dataloader_name}"
+    ):
+        trainer_fn(model, **{dataloader_name: dataloader})
+
+    dl_method = stage.dataloader_prefix + "_dataloader"
+    setattr(model, dl_method, lambda: dataloader)
+    with pytest.raises(TypeError, match=f"invalid dataloader was returned from `BoringModel.{dl_method}"):
+        trainer_fn(model)

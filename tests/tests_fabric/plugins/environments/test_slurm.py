@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.test.warning import no_warning_call
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -119,6 +119,9 @@ def test_detect():
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
         assert not SLURMEnvironment.detect()
 
+    with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
+        assert not SLURMEnvironment.detect()
+
 
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")
@@ -145,6 +148,7 @@ def test_srun_variable_validation():
     """Test that we raise useful errors when `srun` variables are misconfigured."""
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
         SLURMEnvironment()
-    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
-        with pytest.raises(RuntimeError, match="You set `--ntasks=2` in your SLURM"):
-            SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}), pytest.raises(
+        RuntimeError, match="You set `--ntasks=2` in your SLURM"
+    ):
+        SLURMEnvironment()

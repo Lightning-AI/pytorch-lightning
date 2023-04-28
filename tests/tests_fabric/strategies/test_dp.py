@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,12 @@
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
+import pytest
 import torch
 
 from lightning.fabric.strategies import DataParallelStrategy
+from tests_fabric.helpers.runif import RunIf
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
 
 def test_data_parallel_root_device():
@@ -68,3 +71,19 @@ def test_dp_module_state_dict():
     with mock.patch("lightning.fabric.strategies.dp.DataParallel", DataParallelMock):
         wrapped_module = strategy.setup_module(original_module)
         assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
+
+
+@pytest.mark.parametrize(
+    "precision",
+    [
+        "32-true",
+        "16-mixed",
+        pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
+    ],
+)
+@pytest.mark.parametrize("clip_type", ["norm", "val"])
+@RunIf(min_cuda_gpus=2)
+def test_dp_grad_clipping(clip_type, precision):
+    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
+    fabric = clipping_test_cls(accelerator="cuda", devices=2, precision=precision, strategy="dp")
+    fabric.run()

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+from typing import Any
 
 
 class BaseType(abc.ABCMeta):
@@ -23,7 +24,7 @@ class BaseType(abc.ABCMeta):
         """Serialize the incoming data to send it through the network."""
 
     @abc.abstractmethod
-    def deserialize(self, *args, **kwargs):  # pragma: no cover
+    def deserialize(self, *args: Any, **kwargs: Any):  # pragma: no cover
         """Take the inputs from the network and deserilize/convert them them.
 
         Output from this method will go to the exposed method as arguments.

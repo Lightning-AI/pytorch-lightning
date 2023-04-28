@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,19 @@
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
-from lightning.pytorch.strategies import DataParallelStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
-def verify_loop_configurations(trainer: "pl.Trainer") -> None:
-    r"""
-    Checks that the model is configured correctly before the run is started.
+def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
+    r"""Checks that the model is configured correctly before the run is started.
 
     Args:
         trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
-
     """
     model = trainer.lightning_module
 
@@ -50,19 +47,13 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
-    # -----------------------------------
-    # verify model has a training step
-    # -----------------------------------
+    # verify minimum training requirements
     has_training_step = is_overridden("training_step", model)
     if not has_training_step:
         raise MisconfigurationException(
             "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
-
-    # -----------------------------------
-    # verify model has optimizer
-    # -----------------------------------
     has_optimizers = is_overridden("configure_optimizers", model)
     if not has_optimizers:
         raise MisconfigurationException(
@@ -70,26 +61,9 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
-    overridden_optimizer_step = is_overridden("optimizer_step", model)
-    overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
-    automatic_optimization = model.automatic_optimization
-    going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
-
-    has_overridden_optimization_functions = overridden_optimizer_step or overridden_optimizer_zero_grad
-    if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
-        rank_zero_warn(
-            "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
-            " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
-            " (rather, they are called on every optimization step)."
-        )
-
-    # -----------------------------------
-    # verify model for val loop
-    # -----------------------------------
-
-    has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
+    # verify minimum validation requirements
+    has_val_loader = trainer.fit_loop.epoch_loop.val_loop._data_source.is_defined()
     has_val_step = is_overridden("validation_step", model)
-
     if has_val_loader and not has_val_step:
         rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
     if has_val_step and not has_val_loader:
@@ -98,11 +72,25 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             category=PossibleUserWarning,
         )
 
+    # check legacy hooks are not present
+    if callable(getattr(model, "training_epoch_end", None)):
+        raise NotImplementedError(
+            f"Support for `training_epoch_end` has been removed in v2.0.0. `{type(model).__name__}` implements this"
+            " method. You can use the `on_train_epoch_end` hook instead. To access outputs, save them in-memory as"
+            " instance attributes."
+            " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+        )
+    if callable(getattr(model, "validation_epoch_end", None)):
+        raise NotImplementedError(
+            f"Support for `validation_epoch_end` has been removed in v2.0.0. `{type(model).__name__}` implements this"
+            " method. You can use the `on_validation_epoch_end` hook instead. To access outputs, save them in-memory as"
+            " instance attributes."
+            " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+        )
+
 
 def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) -> None:
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
-    trainer_method = "validate" if stage == "val" else stage
-
     has_step = is_overridden(step_name, model)
 
     # predict_step is not required to be overridden
@@ -112,30 +100,36 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
         elif not has_step and not is_overridden("forward", model):
             raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
     else:
-        # -----------------------------------
-        # verify model has an eval_step
-        # -----------------------------------
+        # verify minimum evaluation requirements
         if not has_step:
+            trainer_method = "validate" if stage == "val" else stage
             raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
+
+        # check legacy hooks are not present
+        epoch_end_name = "validation_epoch_end" if stage == "val" else "test_epoch_end"
+        if callable(getattr(model, epoch_end_name, None)):
+            raise NotImplementedError(
+                f"Support for `{epoch_end_name}` has been removed in v2.0.0. `{type(model).__name__}` implements this"
+                f" method. You can use the `on_{epoch_end_name}` hook instead. To access outputs, save them in-memory"
+                " as instance attributes."
+                " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+            )
 
 
 def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
-    """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
     batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
-
     for hook in batch_transfer_hooks:
-        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        if isinstance(trainer.strategy, DataParallelStrategy) and (
-            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
-        ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
 
-        if isinstance(trainer.accelerator, IPUAccelerator) and (
-            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
-        ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
+            # TODO: This code could be done in a hook in the IPUAccelerator as it's a simple error check
+            #  through the Trainer. It doesn't need to stay in Lightning
+            if isinstance(trainer.accelerator, IPUAccelerator) and (
+                is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+            ):
+                raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,9 +42,9 @@ def _get_render_fn_from_environment() -> Callable:
 
 
 def _main() -> None:
+    """Run the render_fn with the current flow_state."""
     import justpy as jp
 
-    """Run the render_fn with the current flow_state."""
     # Fetch the information of which flow attaches to this justpy instance
     flow_name = os.environ["LIGHTNING_FLOW_NAME"]
 

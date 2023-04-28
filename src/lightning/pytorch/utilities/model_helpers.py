@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,10 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
             parent = pl.Callback
         if parent is None:
             raise ValueError("Expected a parent")
-    from lightning_utilities.core.overrides import is_overridden
 
-    return is_overridden(method_name, instance, parent)
+    from lightning_utilities.core.overrides import is_overridden as _is_overridden
+
+    return _is_overridden(method_name, instance, parent)
 
 
 def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:

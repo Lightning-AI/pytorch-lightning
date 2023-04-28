@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ class TPUPrecision(Precision):
         optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
-
         import torch_xla.core.xla_model as xm
 
         return xm.optimizer_step(optimizer, optimizer_args=kwargs)

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.parallel import ParallelStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import TBroadcast, TReduce
 from lightning.fabric.utilities.apply_func import apply_to_collection
 from lightning.fabric.utilities.distributed import ReduceOp
@@ -89,5 +90,5 @@ class DataParallelStrategy(ParallelStrategy):
         return super().get_module_state_dict(module)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("dp", cls, description=cls.__class__.__name__)

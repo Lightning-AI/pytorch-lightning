@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ from typing import Any, Union
 import click
 
 from lightning.app.api.http_methods import _add_tags_to_api, _validate_api
+from lightning.app.core import constants
 from lightning.app.core.api import start_server
-from lightning.app.core.constants import APP_SERVER_IN_CLOUD
 from lightning.app.runners.backends import Backend
 from lightning.app.runners.runtime import Runtime
 from lightning.app.storage.orchestrator import StorageOrchestrator
@@ -50,7 +50,8 @@ class MultiProcessRuntime(Runtime):
             _set_flow_context()
 
             # Note: In case the runtime is used in the cloud.
-            self.host = "0.0.0.0" if APP_SERVER_IN_CLOUD else self.host
+            in_cloudspace = constants.LIGHTNING_CLOUDSPACE_HOST is not None
+            self.host = "0.0.0.0" if constants.APP_SERVER_IN_CLOUD or in_cloudspace else self.host  # noqa: S104
 
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
@@ -65,10 +66,17 @@ class MultiProcessRuntime(Runtime):
 
             _set_frontend_context()
             for frontend in self.app.frontends.values():
-                host = "localhost"
                 port = find_free_network_port()
-                frontend.start_server(host="localhost", port=port)
-                frontend.flow._layout["target"] = f"http://{host}:{port}/{frontend.flow.name}"
+
+                server_host = "0.0.0.0" if in_cloudspace else "localhost"  # noqa: S104
+                server_target = (
+                    f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+                    if in_cloudspace
+                    else f"http://localhost:{port}"
+                )
+
+                frontend.start_server(host=server_host, port=port)
+                frontend.flow._layout["target"] = f"{server_target}/{frontend.flow.name}"
 
             _set_flow_context()
 
@@ -97,17 +105,17 @@ class MultiProcessRuntime(Runtime):
                     commands = _prepare_commands(self.app)
                     apis += _commands_to_api(commands, info=self.app.info)
 
-                kwargs = dict(
-                    apis=apis,
-                    host=self.host,
-                    port=self.port,
-                    api_response_queue=self.app.api_response_queue,
-                    api_publish_state_queue=self.app.api_publish_state_queue,
-                    api_delta_queue=self.app.api_delta_queue,
-                    has_started_queue=has_started_queue,
-                    spec=extract_metadata_from_app(self.app),
-                    root_path=self.app.root_path,
-                )
+                kwargs = {
+                    "apis": apis,
+                    "host": self.host,
+                    "port": self.port,
+                    "api_response_queue": self.app.api_response_queue,
+                    "api_publish_state_queue": self.app.api_publish_state_queue,
+                    "api_delta_queue": self.app.api_delta_queue,
+                    "has_started_queue": has_started_queue,
+                    "spec": extract_metadata_from_app(self.app),
+                    "root_path": self.app.root_path,
+                }
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)
                 self.processes["server"] = server_proc
                 server_proc.start()
@@ -116,7 +124,14 @@ class MultiProcessRuntime(Runtime):
                 # wait for server to be ready
                 has_started_queue.get()
 
-            if open_ui and not _is_headless(self.app):
+            if all(
+                [
+                    open_ui,
+                    "PYTEST_CURRENT_TEST" not in os.environ,
+                    not _is_headless(self.app),
+                    constants.LIGHTNING_CLOUDSPACE_HOST is None,
+                ]
+            ):
                 click.launch(self._get_app_url())
 
             # Connect the runtime to the application.
@@ -134,7 +149,7 @@ class MultiProcessRuntime(Runtime):
                 self.terminate()
 
     def terminate(self):
-        if APP_SERVER_IN_CLOUD:
+        if constants.APP_SERVER_IN_CLOUD:
             # Close all the ports open for the App within the App.
             ports = [self.port] + getattr(self.backend, "ports", [])
             for port in ports:

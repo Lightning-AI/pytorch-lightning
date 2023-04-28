@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import arrow
 import click
@@ -33,13 +33,20 @@ from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning.app.cli.cmd_apps import _AppManager
 from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
-from lightning.app.cli.commands.connection import (
+from lightning.app.cli.commands.cd import cd
+from lightning.app.cli.commands.cp import cp
+from lightning.app.cli.commands.logs import logs
+from lightning.app.cli.commands.ls import ls
+from lightning.app.cli.commands.pwd import pwd
+from lightning.app.cli.commands.rm import rm
+from lightning.app.cli.connect.app import (
     _list_app_commands,
     _retrieve_connection_to_an_app,
-    connect,
-    disconnect,
+    connect_app,
+    disconnect_app,
 )
-from lightning.app.cli.commands.logs import logs
+from lightning.app.cli.connect.data import connect_data
+from lightning.app.cli.connect.maverick import connect_maverick, disconnect_maverick
 from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list
@@ -69,11 +76,21 @@ def main() -> None:
     # Check environment and versions if not in the cloud and not testing
     is_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
     if not is_testing and "LIGHTNING_APP_STATE_URL" not in os.environ:
-        # Enforce running in PATH Python
-        _check_environment_and_redirect()
+        try:
+            # Enforce running in PATH Python
+            _check_environment_and_redirect()
 
-        # Check for newer versions and upgrade
-        _check_version_and_upgrade()
+            # Check for newer versions and upgrade
+            _check_version_and_upgrade()
+        except SystemExit:
+            raise
+        except Exception:
+            # Note: We intentionally ignore all exceptions here so that we never panic if one of the above calls fails.
+            # If they fail for some reason users should still be able to continue with their command.
+            click.echo(
+                "We encountered an unexpected problem while checking your environment."
+                "We will still proceed with the command, however, there is a chance that errors may occur."
+            )
 
     # 1: Handle connection to a Lightning App.
     if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
@@ -117,8 +134,28 @@ def show() -> None:
     pass
 
 
-_main.command()(connect)
-_main.command()(disconnect)
+@_main.group()
+def connect() -> None:
+    """Connect apps and data."""
+    pass
+
+
+@_main.group()
+def disconnect() -> None:
+    """Disconnect apps."""
+    pass
+
+
+connect.command("app")(connect_app)
+disconnect.command("app")(disconnect_app)
+connect.command("maverick", hidden=True)(connect_maverick)
+disconnect.command("maverick", hidden=True)(disconnect_maverick)
+connect.command("data", hidden=True)(connect_data)
+_main.command(hidden=True)(ls)
+_main.command(hidden=True)(cd)
+_main.command(hidden=True)(cp)
+_main.command(hidden=True)(pwd)
+_main.command(hidden=True)(rm)
 show.command()(logs)
 
 
@@ -153,26 +190,22 @@ def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, 
 
     Example uses:
 
-        Print cluster logs:
+    Print cluster logs:
 
-            $ lightning show cluster logs my-cluster
+    $ lightning show cluster logs my-cluster
 
+    Print cluster logs and wait for new logs:
 
-        Print cluster logs and wait for new logs:
+    $ lightning show cluster logs my-cluster --follow
 
-            $ lightning show cluster logs my-cluster --follow
+    Print cluster logs, from 48 hours ago to now:
 
+    $ lightning show cluster logs my-cluster --from "48 hours ago"
 
-        Print cluster logs, from 48 hours ago to now:
+    Print cluster logs, 10 most recent lines:
 
-            $ lightning show cluster logs my-cluster --from "48 hours ago"
-
-
-        Print cluster logs, 10 most recent lines:
-
-            $ lightning show cluster logs my-cluster --limit 10
+    $ lightning show cluster logs my-cluster --limit 10
     """
-
     client = LightningClient(retry=False)
     cluster_manager = AWSClusterManager()
     existing_cluster_list = cluster_manager.get_clusters()
@@ -211,8 +244,8 @@ def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, 
             rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
     except LogLinesLimitExceeded:
         raise click.ClickException(f"Read {limit} log lines, but there may be more. Use --limit param to read more")
-    except Exception as error:
-        logger.error(f"⚡ Error while reading logs ({type(error)}), {error}", exc_info=DEBUG)
+    except Exception as ex:
+        logger.error(f"⚡ Error while reading logs ({type(ex)}), {ex}", exc_info=DEBUG)
 
 
 @_main.command()
@@ -232,7 +265,7 @@ def login() -> None:
 def logout() -> None:
     """Log out of your lightning.ai account."""
     Auth().clear()
-    disconnect(logout=True)
+    disconnect_app(logout=True)
 
 
 def _run_app(
@@ -249,7 +282,6 @@ def _run_app(
     run_app_comment_commands: bool,
     enable_basic_auth: str,
 ) -> None:
-
     if not os.path.exists(file):
         original_file = file
         file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # noqa E501
@@ -275,9 +307,8 @@ def _run_app(
                 "Secrets can only be used for apps running in cloud. "
                 "Using the option --secret in local execution is not supported."
             )
-        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands:
-            if file is not None:
-                run_app_commands(str(file))
+        if (ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands) and file is not None:
+            run_app_commands(str(file))
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
@@ -407,7 +438,6 @@ if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1
 @click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
 def open(path: str, cluster_id: str, name: str) -> None:
     """Open files or folders from your machine in a Lightning CloudSpace."""
-
     if not os.path.exists(path):
         click.echo(f"The provided path `{path}` doesn't exist.")
         sys.exit(1)
@@ -437,9 +467,8 @@ _main.add_command(cmd_install.install)
     default=None,
     help="Specify which component to SSH into",
 )
-def ssh(app_name: str = None, component_name: str = None) -> None:
+def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) -> None:
     """SSH into a Lightning App."""
-
     app_manager = _AppManager()
     apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
     if len(apps) == 0:
@@ -500,7 +529,7 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
         raise click.ClickException(
             "Unable to find the ssh binary. You must install ssh first to use this functionality."
         )
-    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
+    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])  # noqa: S606
 
 
 @_main.group()

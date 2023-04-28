@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
             )
 
     @staticmethod
-    def dispatch_run(local_rank, cls, work, delta_queue, *args, **kwargs):
+    def dispatch_run(local_rank, cls, work, delta_queue, *args: Any, **kwargs: Any):
         if local_rank == 0:
             if isinstance(delta_queue, dict):
                 delta_queue = cls.process_queue(delta_queue)
@@ -81,7 +81,6 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-
         import torch
 
         # 1. Setting distributed environment

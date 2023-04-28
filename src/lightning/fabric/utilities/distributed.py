@@ -85,12 +85,6 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> L
     return gathered_result
 
 
-def _distributed_available() -> bool:
-    from lightning.fabric.accelerators.tpu import _tpu_distributed
-
-    return torch.distributed.is_available() and torch.distributed.is_initialized() or _tpu_distributed()
-
-
 def _sync_ddp_if_available(
     result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> Tensor:
@@ -105,7 +99,7 @@ def _sync_ddp_if_available(
     Return:
         reduced value
     """
-    if _distributed_available():
+    if torch.distributed.is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
@@ -130,7 +124,7 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
         if reduce_op.lower() in ("avg", "mean"):
-            op = ReduceOp.SUM
+            op = ReduceOp.SUM  # type: ignore[assignment]
             divide_by_world_size = True
         else:
             op = getattr(ReduceOp, reduce_op.upper())
@@ -203,7 +197,7 @@ def _all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    if not _distributed_available():
+    if not torch.distributed.is_initialized():
         return tensor
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
@@ -257,7 +251,6 @@ def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
 
 
-# TODO(fabric): The error messages refer to 'replace_sampler_ddp' in PL but Fabric has it named 'replace_sampler'
 class _DatasetSamplerWrapper(Dataset):
     """Dataset to create indexes from `Sampler` or `Iterable`"""
 
@@ -266,19 +259,19 @@ class _DatasetSamplerWrapper(Dataset):
             raise TypeError(
                 "You seem to have configured a sampler in your DataLoader which"
                 " does not provide `__len__` method. The sampler was about to be"
-                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " replaced by `DistributedSamplerWrapper` since `use_distributed_sampler`"
                 " is True and you are using distributed training. Either provide `__len__`"
-                " method in your sampler, remove it from DataLoader or set `replace_sampler_ddp=False`"
+                " method in your sampler, remove it from DataLoader or set `use_distributed_sampler=False`"
                 " if you want to handle distributed sampling yourself."
             )
         if len(sampler) == float("inf"):
             raise TypeError(
                 "You seem to have configured a sampler in your DataLoader which"
                 " does not provide finite `__len__` method. The sampler was about to be"
-                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " replaced by `DistributedSamplerWrapper` since `use_distributed_sampler`"
                 " is True and you are using distributed training. Either provide `__len__`"
                 " method in your sampler which returns a finite number, remove it from DataLoader"
-                " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
+                " or set `use_distributed_sampler=False` if you want to handle distributed sampling yourself."
             )
         self._sampler = sampler
         # defer materializing an iterator until it is necessary

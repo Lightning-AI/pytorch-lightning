@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ import lightning_cloud.env
 
 
 def get_lightning_cloud_url() -> str:
+    # detect local development
+    if os.getenv("VSCODE_PROXY_URI", "").startswith("http://localhost:9800"):
+        return "http://localhost:9800"
     # DO NOT CHANGE!
     return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
 
@@ -67,6 +70,9 @@ LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 LIGHTNING_MODELS_PUBLIC_REGISTRY = "https://lightning.ai/v1/models"
 
+LIGHTNING_CLOUDSPACE_HOST = os.getenv("LIGHTNING_CLOUDSPACE_HOST")
+LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT = int(os.getenv("LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT", "0"))
+
 # EXPERIMENTAL: ENV VARIABLES TO ENABLE MULTIPLE WORKS IN THE SAME MACHINE
 DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
 ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
@@ -83,8 +89,13 @@ ENABLE_PULLING_STATE_ENDPOINT = bool(int(os.getenv("ENABLE_PULLING_STATE_ENDPOIN
 ENABLE_PUSHING_STATE_ENDPOINT = ENABLE_PULLING_STATE_ENDPOINT and bool(
     int(os.getenv("ENABLE_PUSHING_STATE_ENDPOINT", "1"))
 )
-ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
+ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "1")))
 ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
+
+# directory where system customization sync files stored
+SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"  # noqa: S108 # todo
+# directory where system customization sync files will be copied to be packed into app tarball
+SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
 
 def enable_multiple_works_in_default_container() -> bool:
@@ -107,17 +118,5 @@ def enable_interruptible_works() -> bool:
     return bool(int(os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0")))
 
 
-# Get Cluster Driver
-_CLUSTER_DRIVERS = [None, "k8s", "direct"]
-
-
 def get_cluster_driver() -> Optional[str]:
-    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
-    if value is None:
-        if enable_interruptible_works():
-            value = "direct"
-        else:
-            value = None
-    if value not in _CLUSTER_DRIVERS:
-        raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
-    return value
+    return "direct"

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ log = logging.getLogger(__name__)
 
 
 class XLAProfiler(Profiler):
-
     STEP_FUNCTIONS = {"validation_step", "test_step", "predict_step"}
     RECORD_FUNCTIONS = {
         "training_step",

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 def test_model_summary_callback_present_trainer():
-
     trainer = Trainer()
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 

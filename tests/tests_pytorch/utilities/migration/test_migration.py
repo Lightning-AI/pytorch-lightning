@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -226,4 +226,53 @@ def test_migrate_loop_structure_after_optimizer_loop_removal():
             "epoch_loop.manual_optimization.state_dict": state_manual,
             "epoch_loop.manual_optimization.optim_step_progress": optim_progress_manual,
         }
+    }
+
+
+def test_migrate_loop_structure_after_dataloader_loop_removal():
+    """Test the loop state migration after the dataloader loops were removed in 2.0.0."""
+    old_dataloader_loop_state_dict = {
+        "state_dict": {},
+        "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
+        "epoch_loop.state_dict": {},
+        "epoch_loop.batch_progress": {
+            "total": {"ready": 123, "started": 0, "processed": 0, "completed": 0},
+            "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            "is_last_batch": False,
+        },
+    }
+    old_checkpoint = {
+        "loops": {
+            "predict_loop": old_dataloader_loop_state_dict,
+            "validate_loop": dict(old_dataloader_loop_state_dict),  # copy
+            "test_loop": dict(old_dataloader_loop_state_dict),  # copy
+        }
+    }
+    _set_version(old_checkpoint, "1.9.0")  # pretend a checkpoint prior to 2.0.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy(), target_version="2.0.0")
+    assert updated_checkpoint["loops"] == {
+        "predict_loop": {
+            "batch_progress": {
+                "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+                "is_last_batch": False,
+                "total": {"completed": 0, "processed": 0, "ready": 123, "started": 0},
+            },
+            "state_dict": {},
+        },
+        "test_loop": {
+            "batch_progress": {
+                "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+                "is_last_batch": False,
+                "total": {"completed": 0, "processed": 0, "ready": 123, "started": 0},
+            },
+            "state_dict": {},
+        },
+        "validate_loop": {
+            "batch_progress": {
+                "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+                "is_last_batch": False,
+                "total": {"completed": 0, "processed": 0, "ready": 123, "started": 0},
+            },
+            "state_dict": {},
+        },
     }

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ from tests_pytorch.helpers.runif import RunIf
 def test_amp_gpus_ddp_fork():
     """Ensure the use of AMP with `ddp_fork` (or associated alias strategies) does not generate CUDA initialization
     errors."""
-    _ = MixedPrecisionPlugin(precision=16, device="cuda")
+    _ = MixedPrecisionPlugin(precision="16-mixed", device="cuda")
     with multiprocessing.get_context("fork").Pool(1) as pool:
         in_bad_fork = pool.apply(torch.cuda._is_in_bad_fork)
     assert not in_bad_fork

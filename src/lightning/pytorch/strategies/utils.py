@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,17 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
             mod.register_strategies(registry)
 
 
-def _fp_to_half(tensor: Tensor, precision: Literal["64", 64, "32", 32, "16", 16, "bf16"]) -> Tensor:
-    if str(precision) == "16":
+def _fp_to_half(
+    tensor: Tensor,
+    precision: Literal[
+        "64-true",
+        "32-true",
+        "16-mixed",
+        "bf16-mixed",
+    ],
+) -> Tensor:
+    if str(precision) == "16-mixed":
         return _convert_fp_tensor(tensor, torch.half)
-    if precision == "bf16":
+    if precision == "bf16-mixed":
         return _convert_fp_tensor(tensor, torch.bfloat16)
     return tensor

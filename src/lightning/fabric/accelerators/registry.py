@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@ import importlib
 from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
 
-from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.registry import _is_register_method_overridden
 
@@ -114,6 +113,8 @@ class _AcceleratorRegistry(dict):
 
 def call_register_accelerators(registry: _AcceleratorRegistry, base_module: str) -> None:
     module = importlib.import_module(base_module)
+    from lightning.fabric.accelerators.accelerator import Accelerator
+
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Accelerator) and _is_register_method_overridden(mod, Accelerator, "register_accelerators"):
             mod.register_accelerators(registry)

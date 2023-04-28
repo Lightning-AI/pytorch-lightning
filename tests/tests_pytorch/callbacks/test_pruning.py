@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ def train_with_pruning_callback(
     use_global_unstructured=False,
     pruning_fn="l1_unstructured",
     use_lottery_ticket_hypothesis=False,
-    strategy=None,
+    strategy="auto",
     accelerator="cpu",
     devices=1,
 ):

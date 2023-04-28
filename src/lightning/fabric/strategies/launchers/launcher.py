@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@ from typing import Any, Callable
 
 
 class _Launcher(ABC):
-    r"""
-    Abstract base class for all Launchers.
+    r"""Abstract base class for all Launchers.
 
     Launchers are responsible for the creation and instrumentation of new processes so that the
     :class:`~lightning.fabric.strategies.strategy.Strategy` can set up communication between all them.

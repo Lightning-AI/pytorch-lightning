@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,29 +14,15 @@
 from typing import Dict, Optional
 
 import lightning.pytorch as pl
-from lightning.pytorch.loops.progress import BaseProgress
+from lightning.pytorch.loops.progress import _BaseProgress
 
 
 class _Loop:
     """Basic Loops interface."""
 
-    def __init__(self) -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self._restarting = False
-        self._trainer: Optional["pl.Trainer"] = None
-
-    @property
-    def trainer(self) -> "pl.Trainer":
-        if self._trainer is None:
-            raise RuntimeError("The loop is not attached to a Trainer.")
-        return self._trainer
-
-    @trainer.setter
-    def trainer(self, trainer: "pl.Trainer") -> None:
-        """Connects this loop's trainer and its children."""
-        self._trainer = trainer
-        for v in self.__dict__.values():
-            if isinstance(v, _Loop):
-                v.trainer = trainer
+        self.trainer = trainer
 
     @property
     def restarting(self) -> bool:
@@ -77,7 +63,7 @@ class _Loop:
 
         for k, v in self.__dict__.items():
             key = prefix + k
-            if isinstance(v, BaseProgress):
+            if isinstance(v, _BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, _Loop):
                 v.state_dict(destination, key + ".")
@@ -101,7 +87,7 @@ class _Loop:
             if key not in state_dict:
                 # compatibility with old checkpoints
                 continue
-            if isinstance(v, BaseProgress):
+            if isinstance(v, _BaseProgress):
                 v.load_state_dict(state_dict[key])
         if prefix + "state_dict" in state_dict:  # compatibility with old checkpoints
             self.on_load_checkpoint(state_dict[prefix + "state_dict"])

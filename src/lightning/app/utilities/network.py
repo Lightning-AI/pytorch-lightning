@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,18 +27,62 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
+from lightning.app.core import constants
 from lightning.app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
 
+# Global record to track ports that have been allocated in this session.
+_reserved_ports = set()
+
+
 def find_free_network_port() -> int:
     """Finds a free port on localhost."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    port = s.getsockname()[1]
-    s.close()
+    if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
+        return _find_free_network_port_cloudspace()
+
+    port = None
+
+    for _ in range(10):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(("", 0))
+        port = sock.getsockname()[1]
+        sock.close()
+
+        if port not in _reserved_ports:
+            break
+
+    if port in _reserved_ports:
+        # Prevent an infinite loop, if we tried 10 times and didn't get a free port then something is wrong
+        raise RuntimeError(
+            "Couldn't find a free port. Please open an issue at `https://github.com/Lightning-AI/lightning/issues`."
+        )
+
+    _reserved_ports.add(port)
     return port
+
+
+def _find_free_network_port_cloudspace():
+    """Finds a free port in the exposed range when running in a cloudspace."""
+    for port in range(
+        constants.APP_SERVER_PORT + 1,  # constants.APP_SERVER_PORT is reserved for the app server
+        constants.APP_SERVER_PORT + constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT,
+    ):
+        if port in _reserved_ports:
+            continue
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(("", port))
+            sock.close()
+            _reserved_ports.add(port)
+            return port
+        except OSError:
+            continue
+
+    # This error should never happen. An app using this many ports would probably fail on a single machine anyway.
+    raise RuntimeError(f"All {constants.LIGHTNING_CLOUDSPACE_EXPOSED_PORT_COUNT} ports are already in use.")
 
 
 _CONNECTION_RETRY_TOTAL = 2880
@@ -92,23 +136,23 @@ def _retry_wrapper(self, func: Callable) -> Callable:
         while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
             try:
                 return func(self, *args, **kwargs)
-            except lightning_cloud.openapi.rest.ApiException as e:
+            except lightning_cloud.openapi.rest.ApiException as ex:
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
-                if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
+                if ex.status == 408 or ex.status == 409 or not str(ex.status).startswith("4"):
                     consecutive_errors += 1
                     backoff_time = _get_next_backoff_time(consecutive_errors)
                     logger.debug(
-                        f"The {func.__name__} request failed to reach the server, got a response {e.status}."
+                        f"The {func.__name__} request failed to reach the server, got a response {ex.status}."
                         f" Retrying after {backoff_time} seconds."
                     )
                     time.sleep(backoff_time)
                 else:
-                    raise e
-            except urllib3.exceptions.HTTPError as e:
+                    raise ex
+            except urllib3.exceptions.HTTPError as ex:
                 consecutive_errors += 1
                 backoff_time = _get_next_backoff_time(consecutive_errors)
                 logger.debug(
-                    f"The {func.__name__} request failed to reach the server, got a an error {str(e)}."
+                    f"The {func.__name__} request failed to reach the server, got a an error {str(ex)}."
                     f" Retrying after {backoff_time} seconds."
                 )
                 time.sleep(backoff_time)
@@ -137,11 +181,11 @@ class LightningClient(GridRestClient):
 
 
 class CustomRetryAdapter(HTTPAdapter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         self.timeout = kwargs.pop("timeout", _DEFAULT_REQUEST_TIMEOUT)
         super().__init__(*args, **kwargs)
 
-    def send(self, request, **kwargs):
+    def send(self, request, **kwargs: Any):
         kwargs["timeout"] = kwargs.get("timeout", self.timeout)
         return super().send(request, **kwargs)
 
@@ -164,7 +208,7 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
-def _response(r, *args, **kwargs):
+def _response(r, *args: Any, **kwargs: Any):
     return r.raise_for_status()
 
 
@@ -219,7 +263,7 @@ class HTTPClient:
         url = urljoin(self.base_url, path)
         return self.session.delete(url)
 
-    def log_function(self, message: str, *args, **kwargs):
+    def log_function(self, message: str, *args, **kwargs: Any):
         """This function is used to log the messages in the client, it can be overridden by caller to customise the
         logging logic.
 

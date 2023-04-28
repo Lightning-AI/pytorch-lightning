@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ from lightning.fabric.utilities.types import _PATH
 
 class CheckpointIO(ABC):
     """Interface to save/load checkpoints as they are saved through the ``Strategy``.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIO`` but may
     require particular handling depending on the plugin.

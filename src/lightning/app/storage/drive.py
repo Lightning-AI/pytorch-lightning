@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -330,7 +330,7 @@ class Drive:
 
 
 def _maybe_create_drive(component_name: str, state: Dict) -> Union[Dict, Drive]:
-    if Drive.__IDENTIFIER__ == state.get("type", None):
+    if state.get("type", None) == Drive.__IDENTIFIER__:
         drive = Drive.from_dict(state)
         drive.component_name = component_name
         return drive

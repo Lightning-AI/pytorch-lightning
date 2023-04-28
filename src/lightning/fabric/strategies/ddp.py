@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from typing import Any, Dict, Generator, List, Literal, Optional, Union
 
@@ -29,9 +29,9 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
 from lightning.fabric.utilities.distributed import (
-    _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -95,7 +95,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -114,7 +114,12 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-        return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if torch.cuda.is_available() else nullcontext()
+        with ctx:
+            return DistributedDataParallel(
+                module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs
+            )
 
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
@@ -138,7 +143,7 @@ class DDPStrategy(ParallelStrategy):
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_available():
+        if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
@@ -146,11 +151,10 @@ class DDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_available():
+        if not torch.distributed.is_initialized():
             return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
@@ -160,7 +164,7 @@ class DDPStrategy(ParallelStrategy):
         return super().get_module_state_dict(module)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
             ("ddp", "popen"),
             ("ddp_spawn", "spawn"),
@@ -177,7 +181,6 @@ class DDPStrategy(ParallelStrategy):
 
     def _setup_distributed(self) -> None:
         self._set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
@@ -186,16 +189,15 @@ class DDPStrategy(ParallelStrategy):
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def _set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
+        # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
+        rank_zero_only.rank = self.global_rank
 
     def _determine_ddp_device_ids(self) -> Optional[List[int]]:
-        if self.root_device.type == "cpu":
-            return None
-        return [self.root_device.index]
+        return None if self.root_device.type == "cpu" else [self.root_device.index]
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
@@ -209,5 +211,5 @@ class _DDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `DistributedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():  # type: ignore[operator]
+        with module.no_sync():
             yield

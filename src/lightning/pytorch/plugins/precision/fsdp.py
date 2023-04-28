@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,15 +28,18 @@ else:
 
 
 class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """AMP for Fully Sharded Data Parallel (FSDP) Training."""
+    """AMP for Fully Sharded Data Parallel (FSDP) Training.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    """
 
     def __init__(
-        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
+        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional[ShardedGradScaler] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
         super().__init__(
-            precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16" else None)
+            precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16-mixed" else None)
         )
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
@@ -52,9 +55,9 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     @property
     def mixed_precision_config(self) -> Optional[MixedPrecision]:
         assert MixedPrecision is not None
-        if self.precision == "16":
+        if self.precision == "16-mixed":
             dtype = torch.float16
-        elif self.precision == "bf16":
+        elif self.precision == "bf16-mixed":
             dtype = torch.bfloat16
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")

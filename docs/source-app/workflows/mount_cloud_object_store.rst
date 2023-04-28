@@ -14,17 +14,17 @@ Mounting Public AWS S3 Buckets
 Add Mount to a Work
 ===================
 
-To mount data from a cloud bucket to your app compute, initialize a :class:`~lightning_app.storage.mount.Mount`
+To mount data from a cloud bucket to your app compute, initialize a :class:`~lightning.app.storage.mount.Mount`
 object with the source path of the s3 bucket and the absolute directory path where it should be mounted and
-pass the :class:`~lightning_app.storage.mount.Mount` to the :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute`
-of the :class:`~lightning_app.core.work.LightningWork` it should be mounted on.
+pass the :class:`~lightning.app.storage.mount.Mount` to the :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute`
+of the :class:`~lightning.app.core.work.LightningWork` it should be mounted on.
 
 In this example, we will mount an S3 bucket: ``s3://ryft-public-sample-data/esRedditJson/`` to ``/content/esRedditJson/``.
 
 .. code-block:: python
 
-    from lightning_app import CloudCompute
-    from lightning_app.storage import Mount
+    from lightning.app import CloudCompute
+    from lightning.app.storage import Mount
 
     self.my_work = MyWorkClass(
         cloud_compute=CloudCompute(
@@ -42,13 +42,13 @@ You can also pass multiple mounts to a single work by passing a ``List[Mount(...
 
     * Mounts supported up to 1 Million files, 5GB per file. Need larger mounts? Contact support@lightning.ai
     * When adding multiple mounts, each one should have a unique ``mount_path``.
-    * A maximum of 10 :class:`~lightning_app.storage.mount.Mount`\s can be added to a :class:`~lightning_app.core.work.LightningWork`.
+    * A maximum of 10 :class:`~lightning.app.storage.mount.Mount`\s can be added to a :class:`~lightning.app.core.work.LightningWork`.
 
 =======================
 Read Files From a Mount
 =======================
 
-Once a :class:`~lightning_app.storage.mount.Mount` object is passed to :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute`,
+Once a :class:`~lightning.app.storage.mount.Mount` object is passed to :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute`,
 you can access, list, or read any file from the mount under the specified ``mount_path``, just like you would if it
 was on your local machine.
 
@@ -83,8 +83,8 @@ See the Full Example
     import os
 
     import lightning as L
-    from lightning_app import CloudCompute
-    from lightning_app.storage import Mount
+    from lightning.app import CloudCompute
+    from lightning.app.storage import Mount
 
     class ReadMount(L.LightningWork):
        def run(self):
@@ -115,8 +115,8 @@ See the Full Example
 
 .. note::
 
-    When running a Lighting App on your local machine, any :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute`
-    configuration (including a :class:`~lightning_app.storage.mount.Mount`) is ignored at runtime. If you need access to
+    When running a Lighting App on your local machine, any :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute`
+    configuration (including a :class:`~lightning.app.storage.mount.Mount`) is ignored at runtime. If you need access to
     these files on your local disk, you should download a copy of them to your machine.
 
 .. note::

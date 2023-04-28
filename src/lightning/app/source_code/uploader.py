@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,18 +40,19 @@ class FileUploader:
     workers: int = 8
     retries: int = 10000
     disconnect_retry_wait_seconds: int = 5
-
     progress = Progress(
         TextColumn("[bold blue]{task.description}", justify="left"),
         BarColumn(bar_width=None),
         "[self.progress.percentage]{task.percentage:>3.1f}%",
     )
 
-    def __init__(self, presigned_url: str, source_file: str, total_size: int, name: str):
+    def __init__(self, presigned_url: str, source_file: str, total_size: int, name: str, use_progress: bool = True):
         self.presigned_url = presigned_url
         self.source_file = source_file
         self.total_size = total_size
         self.name = name
+        self.use_progress = use_progress
+        self.task_id = None
 
     def upload_data(self, url: str, data: bytes, retries: int, disconnect_retry_wait_seconds: int) -> str:
         """Send data to url.
@@ -93,12 +94,16 @@ class FileUploader:
 
     def upload(self) -> None:
         """Upload files from source dir into target path in S3."""
-        task_id = self.progress.add_task("upload", filename=self.name, total=self.total_size)
-        self.progress.start()
+        no_task = self.task_id is None
+        if self.use_progress and no_task:
+            self.task_id = self.progress.add_task("upload", filename=self.name, total=self.total_size)
+            self.progress.start()
         try:
             with open(self.source_file, "rb") as f:
                 data = f.read()
             self.upload_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
-            self.progress.update(task_id, advance=len(data))
+            if self.use_progress:
+                self.progress.update(self.task_id, advance=len(data))
         finally:
-            self.progress.stop()
+            if self.use_progress and no_task:
+                self.progress.stop()

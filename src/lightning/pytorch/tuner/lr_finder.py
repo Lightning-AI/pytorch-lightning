@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ import uuid
 from copy import deepcopy
 from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
-import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
@@ -184,8 +183,9 @@ class _LRFinder:
             The suggested initial learning rate to use, or `None` if a suggestion is not possible due to too few
             loss samples.
         """
-        losses = np.array(self.results["loss"][skip_begin:-skip_end])
-        losses = losses[np.isfinite(losses)]
+        losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
+        losses = losses[torch.isfinite(losses)]
+
         if len(losses) < 2:
             # computing np.gradient requires at least 2 points
             log.error(
@@ -197,7 +197,9 @@ class _LRFinder:
 
         # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
         #   incorrectly shifted by an offset
-        min_grad = np.gradient(losses).argmin()
+        gradients = torch.gradient(losses)[0]  # Unpack the tuple
+        min_grad = torch.argmin(gradients).item()
+
         self._optimal_idx = min_grad + skip_begin
         return self.results["lr"][self._optimal_idx]
 
@@ -320,7 +322,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     # No logging
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     # Max step set to number of iterations starting at current number of iterations
-    trainer.fit_loop.max_steps = num_training + trainer.global_step
+    trainer.fit_loop.epoch_loop.max_steps = num_training + trainer.global_step
     trainer.limit_val_batches = num_training
 
 
@@ -329,10 +331,10 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
     trainer.loggers = params["loggers"]
-    trainer.fit_loop.max_steps = params["max_steps"]
+    loop = trainer.fit_loop
+    loop.epoch_loop.max_steps = params["max_steps"]
     trainer.limit_val_batches = params["limit_val_batches"]
 
-    loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
     trainer.should_stop = False
@@ -403,11 +405,14 @@ class _LRCallback(Callback):
         smoothed_loss = self.avg_loss / (1 - self.beta ** (current_step + 1))
 
         # Check if we diverging
-        if self.early_stop_threshold is not None:
-            if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.should_stop = True  # stop signal
-                if self.progress_bar:
-                    self.progress_bar.close()
+        if (
+            self.early_stop_threshold is not None
+            and current_step > 1
+            and smoothed_loss > self.early_stop_threshold * self.best_loss
+        ):
+            trainer.should_stop = True  # stop signal
+            if self.progress_bar:
+                self.progress_bar.close()
 
         trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
@@ -444,7 +449,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         if self.last_epoch > 0:
             val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         else:
-            val = [base_lr for base_lr in self.base_lrs]
+            val = list(self.base_lrs)
         self._lr = val
         return val
 
@@ -479,7 +484,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         if self.last_epoch > 0:
             val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:
-            val = [base_lr for base_lr in self.base_lrs]
+            val = list(self.base_lrs)
         self._lr = val
         return val
 

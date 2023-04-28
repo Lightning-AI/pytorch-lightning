@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
@@ -396,16 +396,7 @@ class Strategy(ABC):
             assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
+    def process_dataloader(self, dataloader: object) -> object:
         """Wraps the dataloader if necessary.
 
         Args:
@@ -415,11 +406,11 @@ class Strategy(ABC):
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
-        requires all the setup hooks to run before loading checkpoint.
+        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful
+        when the strategy requires all the setup hooks to run before loading checkpoint.
 
         Returns:
-            If true, restore checkpoint after pre_dispatch.
+            If ``True``, restore checkpoint after strategy setup.
         """
         return False
 
@@ -481,7 +472,7 @@ class Strategy(ABC):
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
         if self.lightning_module is not None:
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            log.debug(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
         assert self.accelerator is not None
@@ -489,7 +480,7 @@ class Strategy(ABC):
         self.checkpoint_io.teardown()
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         pass
 
     def on_train_start(self) -> None:
@@ -528,9 +519,9 @@ class Strategy(ABC):
         """Called in the training loop before anything happens for that batch."""
         pass
 
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.precision_plugin.dispatch(trainer)
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the trainer execution is interrupted by an exception."""
+        pass
 
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled

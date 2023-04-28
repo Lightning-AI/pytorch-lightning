@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,9 @@ class SingleDeviceStrategy(Strategy):
         precision: Precision | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
-        self._root_device = torch.device(device)
+        if not isinstance(device, torch.device):
+            device = torch.device(device)
+        self._root_device = device
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1

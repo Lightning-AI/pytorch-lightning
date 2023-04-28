@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -211,12 +211,12 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
         # Delete the app!
         app_manager = _AppManager()
         app_manager.delete(app_id=selected_app_instance_id)
-    except Exception as e:
+    except Exception as ex:
         console.print(
             f'[b][red]An issue occurred while deleting app "{app_name}. If the issue persists, please '
             "reach out to us at [link=mailto:support@lightning.ai]support@lightning.ai[/link][/b][/red]."
         )
-        raise click.ClickException(str(e))
+        raise click.ClickException(str(ex))
 
     console.print(f'[b][green]App "{app_name}" has been successfully deleted from cluster "{cluster_id}"![/green][/b]')
     return

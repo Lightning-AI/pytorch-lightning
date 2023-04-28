@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ def test_determine_root_gpu_device(devices, expected_root_gpu):
 @pytest.mark.parametrize(
     ["devices", "expected_gpu_ids"],
     [
-        (None, None),
         (0, None),
         ([], None),
         (1, [0]),
@@ -62,20 +61,20 @@ def test_parse_gpu_ids(_, devices, expected_gpu_ids):
 @pytest.mark.parametrize("devices", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
 def test_parse_gpu_fail_on_unsupported_inputs(_, devices):
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises((TypeError, MisconfigurationException)):
         device_parser._parse_gpu_ids(devices, include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [[1, 2, 19], -1, "-1"])
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_parse_gpu_fail_on_non_existent_id(_, devices):
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises((TypeError, MisconfigurationException)):
         device_parser._parse_gpu_ids(devices, include_cuda=True)
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
 def test_parse_gpu_fail_on_non_existent_id_2(_):
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises((TypeError, MisconfigurationException)):
         device_parser._parse_gpu_ids([1, 2, 19], include_cuda=True)
 
 

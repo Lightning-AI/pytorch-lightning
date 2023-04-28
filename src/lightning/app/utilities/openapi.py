@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ def string2dict(text):
     try:
         js = json.loads(text, object_pairs_hook=_duplicate_checker)
         return js
-    except ValueError as e:
-        raise ValueError(f"Unable to load JSON: {str(e)}.")
+    except ValueError as ex:
+        raise ValueError(f"Unable to load JSON: {str(ex)}.")
 
 
 def is_openapi(obj):

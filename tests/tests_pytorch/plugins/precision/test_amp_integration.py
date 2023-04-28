@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ def test_amp_fused_optimizer_parity(tmpdir):
             default_root_dir=tmpdir,
             accelerator="cuda",
             devices=1,
-            precision=16,
+            precision="16-mixed",
             max_steps=5,
             logger=False,
             enable_checkpointing=False,

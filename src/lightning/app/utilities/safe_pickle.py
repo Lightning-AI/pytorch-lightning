@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +56,6 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
             └── bar
                 └── app.py
     """
-
     # If the work object not taken from the app ref, there is a thread lock reference
     # somewhere thats preventing it from being pickled. Investigate it later. We
     # shouldn't be fetching the work object from the app ref. TODO @sherin
@@ -90,9 +89,8 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
         fake_module.__dict__["__name__"] = expected_module_name
         sys.modules[expected_module_name] = fake_module
         for k, v in fake_module.__dict__.items():
-            if not k.startswith("__") and hasattr(v, "__module__"):
-                if "_main__" in v.__module__:
-                    v.__module__ = expected_module_name
+            if not k.startswith("__") and hasattr(v, "__module__") and "_main__" in v.__module__:
+                v.__module__ = expected_module_name
     return copied_work
 
 

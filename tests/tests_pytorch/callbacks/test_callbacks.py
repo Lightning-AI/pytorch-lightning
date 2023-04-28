@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 def test_callbacks_configured_in_model(tmpdir):
     """Test the callback system with callbacks added through the model hook."""
-
     model_callback_mock = Mock(spec=Callback, model=Callback())
     trainer_callback_mock = Mock(spec=Callback, model=Callback())
 
@@ -34,9 +33,12 @@ def test_callbacks_configured_in_model(tmpdir):
             return [model_callback_mock]
 
     model = TestModel()
-    trainer_options = dict(
-        default_root_dir=tmpdir, enable_checkpointing=False, fast_dev_run=True, enable_progress_bar=False
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_checkpointing": False,
+        "fast_dev_run": True,
+        "enable_progress_bar": False,
+    }
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
         # assert that the rest of calls are the same as for trainer callbacks

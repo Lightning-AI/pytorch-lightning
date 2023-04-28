@@ -47,7 +47,6 @@ def test_max_epochs_not_set_warning():
     match = "`max_epochs` was not set. Setting it to 1000 epochs."
 
     model = CustomModel()
-    model.training_epoch_end = None
     trainer = Trainer(max_epochs=None, limit_train_batches=1)
     with pytest.warns(PossibleUserWarning, match=match):
         trainer.fit(model)

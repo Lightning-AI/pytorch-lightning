@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
@@ -132,23 +132,6 @@ class DataDirDataModule(BoringDataModule):
         self.data_dir = data_dir
 
 
-def test_dm_add_argparse_args(tmpdir):
-    parser = ArgumentParser()
-    parser = DataDirDataModule.add_argparse_args(parser)
-    args = parser.parse_args(["--data_dir", str(tmpdir)])
-    assert args.data_dir == str(tmpdir)
-
-
-def test_dm_init_from_argparse_args(tmpdir):
-    parser = ArgumentParser()
-    parser = DataDirDataModule.add_argparse_args(parser)
-    args = parser.parse_args(["--data_dir", str(tmpdir)])
-    dm = DataDirDataModule.from_argparse_args(args)
-    dm.prepare_data()
-    dm.setup("fit")
-    assert dm.data_dir == args.data_dir == str(tmpdir)
-
-
 def test_dm_pickle_after_init():
     dm = BoringDataModule()
     pickle.dumps(dm)
@@ -162,11 +145,7 @@ def test_train_loop_only(tmpdir):
     model = ClassificationModel()
 
     model.validation_step = None
-    model.validation_step_end = None
-    model.validation_epoch_end = None
     model.test_step = None
-    model.test_step_end = None
-    model.test_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
@@ -184,8 +163,6 @@ def test_train_val_loop_only(tmpdir):
     model = ClassificationModel()
 
     model.validation_step = None
-    model.validation_step_end = None
-    model.validation_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
@@ -241,7 +218,7 @@ def test_full_loop(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic="warn")
 
     # fit model
     trainer.fit(model, dm)
@@ -277,11 +254,7 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model = BoringModel()
 
     model.validation_step = None
-    model.validation_step_end = None
-    model.validation_epoch_end = None
     model.test_step = None
-    model.test_step_end = None
-    model.test_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
     trainer.fit(model, dm)

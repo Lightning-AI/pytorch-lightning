@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class CloudBackend(Backend):
-    def __init__(self, entrypoint_file, queue_id: Optional[str] = None, status_update_interval: int = None):
+    def __init__(self, entrypoint_file, queue_id: Optional[str] = None, status_update_interval: Optional[int] = None):
         super().__init__(entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id=queue_id)
         self.client = LightningClient()
 

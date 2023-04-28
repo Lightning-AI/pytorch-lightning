@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,11 +36,12 @@ log = logging.getLogger(__name__)
 
 
 class ExperimentWriter(_FabricExperimentWriter):
-    r"""
-    Experiment writer for CSVLogger.
+    r"""Experiment writer for CSVLogger.
 
     Currently, supports to log hyperparameters and metrics in YAML and CSV
     format, respectively.
+
+    This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
     Args:
         log_dir: Directory for the experiment logs
@@ -64,8 +65,7 @@ class ExperimentWriter(_FabricExperimentWriter):
 
 
 class CSVLogger(Logger, FabricCSVLogger):
-    r"""
-    Log to local file system in yaml and CSV format.
+    r"""Log to local file system in yaml and CSV format.
 
     Logs are saved to ``os.path.join(save_dir, name, version)``.
 
@@ -154,6 +154,6 @@ class CSVLogger(Logger, FabricCSVLogger):
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        self._fs.makedirs(self.root_dir, exist_ok=True)
         self._experiment = ExperimentWriter(log_dir=self.log_dir)
         return self._experiment

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -131,7 +131,6 @@ def vanilla_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
     epoch_losses = []
     # as the first run is skipped, no need to run it long
     for epoch in range(num_epochs if idx > 0 else 1):
-
         # run through full training set
         for j, batch in enumerate(dl):
             batch = [x.to(device) for x in batch]
@@ -161,7 +160,7 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         accelerator="gpu" if device_type == "cuda" else "cpu",
         devices=1,
         logger=False,
-        replace_sampler_ddp=False,
+        use_distributed_sampler=False,
         benchmark=False,
     )
     trainer.fit(model)

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import runpy
 import sys
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 
 def get_default_args(func):
@@ -31,7 +31,7 @@ def wrap_fn(fn, cls, method_name, trace, stack_level=1, pre_fn=None, post_fn=Non
     class_name = cls.__qualname__
 
     @functools.wraps(fn)
-    def fn_with_tracing(self, *args, **kwargs):
+    def fn_with_tracing(self, *args: Any, **kwargs: Any):
         if class_name not in trace:
             trace[class_name] = {}
 
@@ -75,10 +75,7 @@ def wrap_fn(fn, cls, method_name, trace, stack_level=1, pre_fn=None, post_fn=Non
 
         trace_entry["call"] = {"start": time.time_ns()}
 
-        if not is_class_method:
-            ret = fn(self, *args, **kwargs)
-        else:
-            ret = fn(*args, **kwargs)
+        ret = fn(self, *args, **kwargs) if not is_class_method else fn(*args, **kwargs)
 
         trace_entry["call"]["end"] = time.time_ns()
 
@@ -162,7 +159,7 @@ class Tracer:
                 out[class_name].append(out_instance)
         self.res = out
 
-    def trace(self, *args, init_globals=None) -> Optional[dict]:
+    def trace(self, *args: Any, init_globals=None) -> Optional[dict]:
         """Execute the command-line arguments in args after instrumenting for tracing.
 
         Restore the classes to their initial state after tracing.

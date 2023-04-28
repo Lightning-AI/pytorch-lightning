@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,16 +13,20 @@
 # limitations under the License.
 import platform
 from functools import lru_cache
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import torch
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 class MPSAccelerator(Accelerator):
-    """Accelerator for Metal Apple Silicon GPU devices."""
+    """Accelerator for Metal Apple Silicon GPU devices.
+
+    .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+    """
 
     def setup_device(self, device: torch.device) -> None:
         """
@@ -66,7 +70,7 @@ class MPSAccelerator(Accelerator):
         )
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "mps",
             cls,

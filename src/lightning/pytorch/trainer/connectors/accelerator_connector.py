@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,16 +15,17 @@
 import logging
 import os
 from collections import Counter
-from typing import cast, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import torch
-from typing_extensions import get_args
 
+from lightning.fabric.connector import _convert_precision_to_unified_args, _PRECISION_INPUT, _PRECISION_INPUT_STR
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
+    MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
@@ -33,67 +34,58 @@ from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.accelerators.hpu import HPUAccelerator
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
-    ColossalAIPrecisionPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
-    HPUPrecisionPlugin,
-    IPUPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from lightning.pytorch.plugins.environments import BaguaEnvironment
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
-    ColossalAIStrategy,
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    HPUParallelStrategy,
-    IPUStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-    SingleHPUStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
-    TPUSpawnStrategy,
+    XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _IPU_AVAILABLE
+from lightning.pytorch.utilities.imports import (
+    _LIGHTNING_BAGUA_AVAILABLE,
+    _LIGHTNING_COLOSSALAI_AVAILABLE,
+    _LIGHTNING_GRAPHCORE_AVAILABLE,
+    _LIGHTNING_HABANA_AVAILABLE,
+)
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
 _LITERAL_WARN = Literal["warn"]
-_PRECISION_INPUT_INT = Literal[64, 32, 16]
-_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
-class AcceleratorConnector:
+class _AcceleratorConnector:
     def __init__(
         self,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        accelerator: Union[str, Accelerator] = "auto",
+        strategy: Union[str, Strategy] = "auto",
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        precision: _PRECISION_INPUT = 32,
+        precision: _PRECISION_INPUT = "32-true",
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
-        replace_sampler_ddp: bool = True,
+        use_distributed_sampler: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
@@ -107,8 +99,6 @@ class AcceleratorConnector:
             B. strategy flag could be :
                 1. strategy class
                 2. strategy str registered with StrategyRegistry
-                3. strategy str in _strategy_type enum which listed in each strategy as
-                   backend (registed these too, and _strategy_type could be deprecated)
 
             C. plugins flag could be:
                 1. List of str, which could contain:
@@ -125,32 +115,20 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
         """
-        if deterministic:
-            if benchmark is None:
-                # Set benchmark to False to ensure determinism
-                benchmark = False
-            elif benchmark:
-                rank_zero_warn(
-                    "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
-                    " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
-                )
-        # TODO: move to gpu accelerator
-        if benchmark is not None:
-            torch.backends.cudnn.benchmark = benchmark
-        self.benchmark = torch.backends.cudnn.benchmark
-        self.replace_sampler_ddp = replace_sampler_ddp
-        self._init_deterministic(deterministic)
+        self.use_distributed_sampler = use_distributed_sampler
+        _set_torch_flags(deterministic=deterministic, benchmark=benchmark)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
+        _register_external_accelerators_and_strategies()
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        self._strategy_flag: Optional[Union[Strategy, str]] = None
-        self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: _PRECISION_INPUT_STR = "32"
+        self._strategy_flag: Union[Strategy, str] = "auto"
+        self._accelerator_flag: Union[Accelerator, str] = "auto"
+        self._precision_flag: _PRECISION_INPUT_STR = "32-true"
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -164,11 +142,10 @@ class AcceleratorConnector:
             plugins=plugins,
             sync_batchnorm=sync_batchnorm,
         )
-        # 2. Instantiate Accelerator
-        self._set_accelerator_if_ipu_strategy_is_passed()
 
+        # 2. Instantiate Accelerator
         # handle `auto`, `None` and `gpu`
-        if self._accelerator_flag == "auto" or self._accelerator_flag is None:
+        if self._accelerator_flag == "auto":
             self._accelerator_flag = self._choose_auto_accelerator()
         elif self._accelerator_flag == "gpu":
             self._accelerator_flag = self._choose_gpu_accelerator_backend()
@@ -180,7 +157,7 @@ class AcceleratorConnector:
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
 
         # 4. Instantiate Strategy - Part 1
-        if self._strategy_flag is None:
+        if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
@@ -192,18 +169,10 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: Optional[Union[bool, _LITERAL_WARN]]) -> None:
-        self.deterministic = deterministic or False  # default to False if not set
-        if deterministic == "warn":
-            torch.use_deterministic_algorithms(True, warn_only=True)
-        if self.deterministic:
-            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
-            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-
     def _check_config_and_set_final_flags(
         self,
-        strategy: Optional[Union[str, Strategy]],
-        accelerator: Optional[Union[str, Accelerator]],
+        strategy: Union[str, Strategy],
+        accelerator: Union[str, Accelerator],
         precision: _PRECISION_INPUT,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         sync_batchnorm: bool,
@@ -225,35 +194,36 @@ class AcceleratorConnector:
         if isinstance(strategy, str):
             strategy = strategy.lower()
 
-        if strategy is not None:
-            self._strategy_flag = strategy
-            if strategy == "ddp_cpu":
-                raise MisconfigurationException(
-                    "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
-                    " you can use `Trainer(strategy='ddp'|'ddp_spawn'|'ddp_fork', accelerator='cpu')` instead."
-                )
-            if strategy == "tpu_spawn":
-                raise MisconfigurationException(
-                    "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
-                    " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
-                )
+        self._strategy_flag = strategy
+
+        if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
+            raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
+
+        if strategy == "bagua" and not _LIGHTNING_BAGUA_AVAILABLE:
+            raise ModuleNotFoundError(str(_LIGHTNING_BAGUA_AVAILABLE))
+
+        if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+            raise ValueError(
+                f"You selected an invalid strategy name: `strategy={strategy!r}`."
+                " It must be either a string or an instance of `lightning.pytorch.strategies.Strategy`."
+                " Example choices: auto, ddp, ddp_spawn, deepspeed, ..."
+                " Find a complete list of options in our documentation at https://lightning.ai"
+            )
 
         if (
-            accelerator is not None
-            and accelerator not in self._accelerator_types
+            accelerator not in self._accelerator_types
             and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
-                f" Available names are: {', '.join(self._accelerator_types)}."
+                f" Available names are: auto, {', '.join(self._accelerator_types)}."
             )
 
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
-        is_dp_str = isinstance(strategy, str) and "dp" in strategy
         is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
-        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_deepspeed_str
         is_mps_accelerator = MPSAccelerator.is_available() and (
             accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
         )
@@ -265,12 +235,7 @@ class AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
-        if precision not in supported_precision:
-            raise MisconfigurationException(
-                f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}"
-            )
-        self._precision_flag = cast(_PRECISION_INPUT_STR, str(precision))
+        self._precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -310,7 +275,7 @@ class AcceleratorConnector:
         # TODO: improve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
-                if self._accelerator_flag:
+                if self._accelerator_flag != "auto":
                     raise MisconfigurationException(
                         "accelerator set through both strategy class and accelerator flag, choose one"
                     )
@@ -337,27 +302,26 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            if hasattr(self._strategy_flag, "parallel_devices"):
-                if self._strategy_flag.parallel_devices:
-                    if self._strategy_flag.parallel_devices[0].type == "cpu":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
-                            raise MisconfigurationException(
-                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-                            )
-                        self._accelerator_flag = "cpu"
-                    if self._strategy_flag.parallel_devices[0].type == "cuda":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
-                            raise MisconfigurationException(
-                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-                            )
-                        self._accelerator_flag = "cuda"
-                    self._parallel_devices = self._strategy_flag.parallel_devices
+            if hasattr(self._strategy_flag, "parallel_devices") and self._strategy_flag.parallel_devices:
+                if self._strategy_flag.parallel_devices[0].type == "cpu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                        raise MisconfigurationException(
+                            f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "cpu"
+                if self._strategy_flag.parallel_devices[0].type == "cuda":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
+                        raise MisconfigurationException(
+                            f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "cuda"
+                self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(
         self,
-        devices: Optional[Union[List[int], str, int]],
+        devices: Union[List[int], str, int],
         num_nodes: int,
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
@@ -374,31 +338,24 @@ class AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-        if self._devices_flag == "auto" and self._accelerator_flag is None:
-            raise MisconfigurationException(
-                f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu'|'mps')` for the devices mapping."
-            )
-
-    def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
-        # current logic only apply to object config
-        # TODO this logic should apply to both str and object config
-        if isinstance(self._strategy_flag, IPUStrategy):
-            self._accelerator_flag = "ipu"
-
     def _choose_auto_accelerator(self) -> str:
-        """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if self._accelerator_flag == "auto":
-            if TPUAccelerator.is_available():
-                return "tpu"
-            if _IPU_AVAILABLE:
+        """Choose the accelerator type (str) based on availability."""
+        if TPUAccelerator.is_available():
+            return "tpu"
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            if IPUAccelerator.is_available():
                 return "ipu"
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import HPUAccelerator
+
             if HPUAccelerator.is_available():
                 return "hpu"
-            if MPSAccelerator.is_available():
-                return "mps"
-            if CUDAAccelerator.is_available():
-                return "cuda"
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
         return "cpu"
 
     @staticmethod
@@ -407,14 +364,12 @@ class AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
-
         raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
-            assert self._accelerator_flag is not None
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
         accelerator_cls = self.accelerator.__class__
 
@@ -437,7 +392,7 @@ class AcceleratorConnector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or self._devices_flag is None:
+        if self._devices_flag == "auto":
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
@@ -445,31 +400,57 @@ class AcceleratorConnector:
             return self._cluster_environment_flag
         for env_type in (
             SLURMEnvironment,
-            BaguaEnvironment,
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
+            MPIEnvironment,
         ):
             if env_type.detect():
                 return env_type()
+        if _LIGHTNING_BAGUA_AVAILABLE:
+            from lightning_bagua import BaguaEnvironment
+
+            if BaguaEnvironment.detect():
+                return BaguaEnvironment()
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
+            # TODO: Why would we block someone from using a IPU capable machine without graphcore?
+            #  Don't these machines also have a regular CPU?
+
+            if not _LIGHTNING_GRAPHCORE_AVAILABLE:
+                raise ImportError(
+                    "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
+                    " Please run `pip install lightning-graphcore` or check out"
+                    " https://github.com/Lightning-AI/lightning-Graphcore for instructions"
+                )
+            from lightning_graphcore import IPUStrategy
+
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
+            if not _LIGHTNING_HABANA_AVAILABLE:
+                raise ImportError(
+                    "You have asked for HPU but you miss install related integration."
+                    " Please run `pip install lightning-habana` or see for further instructions"
+                    " in https://github.com/Lightning-AI/lightning-Habana/."
+                )
             if self._parallel_devices and len(self._parallel_devices) > 1:
+                from lightning_habana import HPUParallelStrategy
+
                 return HPUParallelStrategy.strategy_name
             else:
+                from lightning_habana import SingleHPUStrategy
+
                 return SingleHPUStrategy(device=torch.device("hpu"))
-        if self._accelerator_flag == "tpu":
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
-                return TPUSpawnStrategy.strategy_name
+                return XLAStrategy.strategy_name
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
+                return SingleTPUStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
-            return DDPStrategy.strategy_name
+            return "ddp"
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
@@ -480,12 +461,9 @@ class AcceleratorConnector:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
-        if len(self._parallel_devices) > 1:
-            if _IS_INTERACTIVE:
-                return "ddp_fork"
-            return "ddp_spawn"
-
-        return DDPStrategy.strategy_name
+        if len(self._parallel_devices) > 1 and _IS_INTERACTIVE:
+            return "ddp_fork"
+        return "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
         """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
@@ -494,16 +472,6 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
-            TorchElasticEnvironment.detect()
-            or KubeflowEnvironment.detect()
-            or SLURMEnvironment.detect()
-            or LSFEnvironment.detect()
-        ):
-            strategy_flag = "ddp"
-        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
-            rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
-            strategy_flag = "ddp"
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
@@ -520,69 +488,83 @@ class AcceleratorConnector:
 
     def _init_strategy(self) -> None:
         """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
+        # The validation of `_strategy_flag` already happened earlier on in the connector
+        assert isinstance(self._strategy_flag, (str, Strategy))
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
-        elif isinstance(self._strategy_flag, Strategy):
-            # TODO(fabric): remove ignore after merging Fabric and PL strategies
-            self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
-            raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
+            self.strategy = self._strategy_flag
 
     def _check_and_init_precision(self) -> PrecisionPlugin:
         self._validate_precision_choice()
         if isinstance(self._precision_plugin_flag, PrecisionPlugin):
             return self._precision_plugin_flag
 
-        if isinstance(self.accelerator, IPUAccelerator):
-            return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
-        if isinstance(self.accelerator, HPUAccelerator):
-            return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator, IPUPrecision
+
+            # TODO: For the strategies that have a fixed precision class, we don't really need this logic
+            #  in the accelerator. Since the strategy owns the precision plugin, the strategy.precision_plugin
+            #  could be a no-op and then we wouldn't need this.
+
+            if isinstance(self.accelerator, IPUAccelerator):
+                return IPUPrecision(self._precision_flag)
+
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
+
+            if isinstance(self.accelerator, HPUAccelerator):
+                return HPUPrecisionPlugin(self._precision_flag)
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == "32":
+            if self._precision_flag == "32-true":
                 return TPUPrecisionPlugin()
-            elif self._precision_flag in ("16", "bf16"):
-                if self._precision_flag == "16":
+            elif self._precision_flag in ("16-mixed", "bf16-mixed"):
+                if self._precision_flag == "16-mixed":
                     rank_zero_warn(
-                        "You passed `Trainer(accelerator='tpu', precision=16)` but AMP"
-                        " is not supported with TPUs. Using `precision='bf16'` instead."
+                        "You passed `Trainer(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
+                        " is not supported on TPUs. Using `precision='bf16-mixed'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
 
-        if isinstance(self.strategy, ColossalAIStrategy):
-            return ColossalAIPrecisionPlugin(self._precision_flag)
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag)
+        if _LIGHTNING_COLOSSALAI_AVAILABLE:
+            from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
 
-        if self._precision_flag == "32":
+            if isinstance(self.strategy, ColossalAIStrategy):
+                return ColossalAIPrecisionPlugin(self._precision_flag)
+
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
+
+        if self._precision_flag == "32-true":
             return PrecisionPlugin()
-        if self._precision_flag == "64":
+        if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
 
-        if self._precision_flag == "16" and self._accelerator_flag == "cpu":
+        if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Trainer(accelerator='cpu', precision=16)` but AMP is not supported on CPU."
-                " Using `precision='bf16'` instead."
+                "You passed `Trainer(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
+                "CPU. Using `precision='bf16-mixed'` instead."
             )
-            self._precision_flag = "bf16"
+            self._precision_flag = "bf16-mixed"
 
-        if self._precision_flag in ("16", "bf16"):
+        if self._precision_flag in ("16-mixed", "bf16-mixed"):
             rank_zero_info(
-                f"Using {'16bit' if self._precision_flag == 16 else 'bfloat16'} Automatic Mixed Precision (AMP)"
+                f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPMixedPrecisionPlugin(self._precision_flag, device)
-            return MixedPrecisionPlugin(self._precision_flag, device)
+                return FSDPMixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
+            return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == "64":
+            if self._precision_flag == "64-true":
                 raise MisconfigurationException(
-                    "`Trainer(accelerator='tpu', precision=64)` is not implemented."
+                    "`Trainer(accelerator='tpu', precision='64-true')` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
@@ -593,8 +575,14 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
-        if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in ("16", "bf16", "32"):
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import HPUAccelerator
+
+            if isinstance(self.accelerator, HPUAccelerator) and self._precision_flag not in (
+                "16-mixed",
+                "bf16-mixed",
+                "32-true",
+            ):
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
@@ -607,14 +595,16 @@ class AcceleratorConnector:
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
-            self.strategy.cluster_environment = self.cluster_environment
+            if self.strategy.cluster_environment is None:
+                self.strategy.cluster_environment = self.cluster_environment
+            self.cluster_environment = self.strategy.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
             if self.strategy.parallel_devices:
                 self._parallel_devices = self.strategy.parallel_devices
             else:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
-            self.strategy._num_nodes = self._num_nodes_flag
+            self.strategy.num_nodes = self._num_nodes_flag
         if hasattr(self.strategy, "_layer_sync"):
             self.strategy._layer_sync = self._layer_sync
         if hasattr(self.strategy, "set_world_ranks"):
@@ -623,9 +613,9 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
+                f" `Fabric(strategy='dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
@@ -633,37 +623,101 @@ class AcceleratorConnector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, TPUSpawnStrategy)
+            self.strategy, (SingleTPUStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
+                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 
-        if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
-            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
-        ):
-            raise ValueError(
-                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
-                f" found {self.strategy.__class__.__name__}."
-            )
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
+
+            if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
+                self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
+            ):
+                raise ValueError(
+                    "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
+                    f" found {self.strategy.__class__.__name__}."
+                )
 
     @property
     def is_distributed(self) -> bool:
-        # TODO: deprecate this property
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = (
+        distributed_strategies = [
             DDPStrategy,
             FSDPStrategy,
-            DDPSpawnStrategy,
             DeepSpeedStrategy,
-            TPUSpawnStrategy,
-            HPUParallelStrategy,
-        )
-        is_distributed = isinstance(self.strategy, distributed_strategy)
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed
+            XLAStrategy,
+        ]
+        if _LIGHTNING_HABANA_AVAILABLE:
+            from lightning_habana import HPUParallelStrategy
+
+            distributed_strategies.append(HPUParallelStrategy)
+        if isinstance(self.strategy, tuple(distributed_strategies)):
+            return True
+        if hasattr(self.strategy, "is_distributed"):
+            # Used for custom plugins. They should implement this property
+            return self.strategy.is_distributed
+        return False
+
+
+def _set_torch_flags(
+    *, deterministic: Optional[Union[bool, _LITERAL_WARN]] = None, benchmark: Optional[bool] = None
+) -> None:
+    if deterministic:
+        if benchmark is None:
+            # Set benchmark to False to ensure determinism
+            benchmark = False
+        elif benchmark:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+            )
+    if benchmark is not None:
+        torch.backends.cudnn.benchmark = benchmark
+
+    if deterministic == "warn":
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    elif isinstance(deterministic, bool):
+        # do not call this if deterministic wasn't passed
+        torch.use_deterministic_algorithms(deterministic)
+    if deterministic:
+        # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+
+def _register_external_accelerators_and_strategies() -> None:
+    """Registers all known strategies in other packages."""
+    if _LIGHTNING_COLOSSALAI_AVAILABLE:
+        from lightning_colossalai import ColossalAIStrategy
+
+        # TODO: Prevent registering multiple times
+        if "colossalai" not in StrategyRegistry:
+            ColossalAIStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_BAGUA_AVAILABLE:
+        from lightning_bagua import BaguaStrategy
+
+        # TODO: Prevent registering multiple times
+        if "bagua" not in StrategyRegistry:
+            BaguaStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_HABANA_AVAILABLE:
+        from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
+
+        # TODO: Prevent registering multiple times
+        if "hpu" not in AcceleratorRegistry:
+            HPUAccelerator.register_accelerators(AcceleratorRegistry)
+        if "hpu_parallel" not in StrategyRegistry:
+            HPUParallelStrategy.register_strategies(StrategyRegistry)
+        if "hpu_single" not in StrategyRegistry:
+            SingleHPUStrategy.register_strategies(StrategyRegistry)
+
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        from lightning_graphcore import IPUAccelerator, IPUStrategy
+
+        # TODO: Prevent registering multiple times
+        if "ipu" not in AcceleratorRegistry:
+            IPUAccelerator.register_accelerators(AcceleratorRegistry)
+        if "ipu_strategy" not in StrategyRegistry:
+            IPUStrategy.register_strategies(StrategyRegistry)

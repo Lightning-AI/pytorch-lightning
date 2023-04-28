@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,26 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
-import operator
 import sys
 
 import torch
-from lightning_utilities.core.imports import compare_version, package_available, RequirementCache
+from lightning_utilities.core.imports import package_available, RequirementCache
 
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
-# duplicated from fabric because HPU is patching it below
-_TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
+_PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
+_TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # using new API with task
 
-_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
-_PSUTIL_AVAILABLE = package_available("psutil")
-_RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
-_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
+_LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
+_LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
+_LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
+_LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
 
 if _POPTORCH_AVAILABLE:
     import poptorch
@@ -40,11 +39,11 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
-if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
 
-    _HPU_AVAILABLE = is_habana_avaialble()
-    if _HPU_AVAILABLE:
-        _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
+_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
+if _HABANA_FRAMEWORK_AVAILABLE:
+    from habana_frameworks.torch.utils.library_loader import is_habana_available
+
+    _HPU_AVAILABLE = is_habana_available()
 else:
     _HPU_AVAILABLE = False

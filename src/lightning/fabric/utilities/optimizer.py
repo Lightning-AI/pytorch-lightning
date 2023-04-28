@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,4 +31,4 @@ def _optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> N
 def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
     for p, v in optimizer.state.items():
-        optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device)
+        optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device, allow_frozen=True)

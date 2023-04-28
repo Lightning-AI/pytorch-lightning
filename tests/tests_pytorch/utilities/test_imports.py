@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,32 +23,17 @@ import pytest
 from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
-from lightning.pytorch.strategies.bagua import _BAGUA_AVAILABLE
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
+from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
-    try:
-        import bagua  # noqa
-    except ModuleNotFoundError:
-        assert not _BAGUA_AVAILABLE
-    else:
-        assert _BAGUA_AVAILABLE
-
     try:
         import omegaconf  # noqa
     except ModuleNotFoundError:
         assert not _OMEGACONF_AVAILABLE
     else:
         assert _OMEGACONF_AVAILABLE
-
-    try:
-        import poptorch  # noqa
-    except ModuleNotFoundError:
-        assert not _POPTORCH_AVAILABLE
-    else:
-        assert _POPTORCH_AVAILABLE
 
 
 def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
@@ -100,7 +85,7 @@ def clean_import():
         ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
+            _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
             "lightning.pytorch.loggers.neptune",
         ),
         (
@@ -133,7 +118,14 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+
+        # pretend torch.distributed not available
+        for name in list(torch.distributed.__dict__.keys()):
+            if not name.startswith("__"):
+                delattr(torch.distributed, name)
+
+        torch.distributed.is_available = lambda: False
+
         import lightning.pytorch
         """
     )

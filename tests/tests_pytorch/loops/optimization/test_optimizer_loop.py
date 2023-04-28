@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,7 +59,3 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
 
     with pytest.raises(MisconfigurationException, match=match):
         trainer.fit(model)
-
-
-class CustomException(Exception):
-    pass

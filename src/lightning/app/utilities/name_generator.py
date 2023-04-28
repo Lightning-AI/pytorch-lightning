@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1354,5 +1354,5 @@ def get_unique_name():
     >>> get_unique_name()
     'truthful-dijkstra-2286'
     """
-    adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)
+    adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)  # noqa: S311
     return f"{adjective}-{surname}-{i}"

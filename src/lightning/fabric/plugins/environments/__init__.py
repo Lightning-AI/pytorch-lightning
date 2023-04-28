@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@ from lightning.fabric.plugins.environments.cluster_environment import ClusterEnv
 from lightning.fabric.plugins.environments.kubeflow import KubeflowEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.lightning import LightningEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.lsf import LSFEnvironment  # noqa: F401
+from lightning.fabric.plugins.environments.mpi import MPIEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.torchelastic import TorchElasticEnvironment  # noqa: F401
 from lightning.fabric.plugins.environments.xla import XLAEnvironment  # noqa: F401

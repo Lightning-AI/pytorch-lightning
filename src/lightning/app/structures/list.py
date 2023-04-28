@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -173,4 +173,4 @@ class List(t.List[T]):
 
     def __len__(self):
         """Returns the number of elements within this List."""
-        return len([v for v in self])
+        return sum(1 for _ in self)

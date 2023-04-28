@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,12 @@
 import os
 from typing import Dict, Optional
 
+import torch
+
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
@@ -30,7 +33,7 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
     def __init__(
         self,
-        device: int,
+        device: _DEVICE,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -38,6 +41,9 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     ):
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        if isinstance(device, torch.device):
+            # unwrap the `torch.device` in favor of `xla_device`
+            device = device.index
         import torch_xla.core.xla_model as xm
 
         super().__init__(
@@ -60,10 +66,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
-
-    @property
-    def is_distributed(self) -> bool:
-        return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.model, "self.model must be set before find_shared_parameters(self.model)"

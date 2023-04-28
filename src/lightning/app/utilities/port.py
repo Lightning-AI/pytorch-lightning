@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -125,7 +125,6 @@ def enable_port() -> V1NetworkConfig:
 
 def disable_port(port: int, ignore_disabled: bool = True) -> None:
     """Make a request to the cloud controlplane to close a port of the flow."""
-
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
 

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,10 @@
 # limitations under the License.
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
-from lightning.pytorch.plugins.io.hpu_plugin import HPUCheckpointIO
 
-__all__ = ["AsyncCheckpointIO", "CheckpointIO", "HPUCheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]
+__all__ = [
+    "AsyncCheckpointIO",
+    "CheckpointIO",
+    "TorchCheckpointIO",
+    "XLACheckpointIO",
+]

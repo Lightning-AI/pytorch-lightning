@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,14 @@
 # limitations under the License.
 
 import multiprocessing
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import lightning.app
+from lightning.app.core import constants
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.runners.backends.backend import Backend, WorkManager
 from lightning.app.utilities.enum import WorkStageStatus
-from lightning.app.utilities.network import _check_service_url_is_ready
+from lightning.app.utilities.network import _check_service_url_is_ready, find_free_network_port
 from lightning.app.utilities.port import disable_port, enable_port
 from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
 
@@ -76,6 +77,12 @@ class MultiProcessingBackend(Backend):
         super().__init__(entrypoint_file=entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id="0")
 
     def create_work(self, app, work) -> None:
+        if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
+            # Override the port if set by the user
+            work._port = find_free_network_port()
+            work._host = "0.0.0.0"  # noqa: S104
+            work._future_url = f"https://{work.port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+
         app.processes[work.name] = MultiProcessWorkManager(app, work)
         app.processes[work.name].start()
         self.resolve_url(app)
@@ -107,14 +114,14 @@ class MultiProcessingBackend(Backend):
 
 
 class CloudMultiProcessingBackend(MultiProcessingBackend):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         # Note: Track the open ports to close them on termination.
         self.ports = []
 
     def create_work(self, app, work) -> None:
-        work._host = "0.0.0.0"
+        work._host = "0.0.0.0"  # noqa: S104
         nc = enable_port()
         self.ports.append(nc.port)
         work._port = nc.port

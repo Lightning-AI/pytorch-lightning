@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
@@ -25,14 +25,13 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.progress import BaseProgress
-from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.loops.progress import _BaseProgress
 
 
 def test_restarting_loops_recursive():
     class MyLoop(_Loop):
         def __init__(self, loop=None):
-            super().__init__()
+            super().__init__(Mock())
             self.child = loop
 
     loop = MyLoop(MyLoop(MyLoop()))
@@ -52,8 +51,8 @@ class CustomException(Exception):
 
 def test_loop_restore():
     class Simple(_Loop):
-        def __init__(self, dataset: Iterator):
-            super().__init__()
+        def __init__(self, trainer, dataset: Iterator):
+            super().__init__(trainer)
             self.iteration_count = 0
             self.dataset = dataset
 
@@ -95,16 +94,14 @@ def test_loop_restore():
     trainer = Trainer()
 
     data = range(10)
-    loop = Simple(data)
-    loop.trainer = trainer
+    loop = Simple(trainer, data)
     try:
         loop.run()
         state_dict = {}
     except CustomException:
         state_dict = loop.state_dict()
 
-    loop = Simple(data)
-    loop.trainer = trainer
+    loop = Simple(trainer, data)
     loop.load_state_dict(state_dict)
     loop.restarting = True
     loop.run()
@@ -115,12 +112,12 @@ def test_loop_restore():
 
 def test_loop_hierarchy():
     @dataclass
-    class SimpleProgress(BaseProgress):
+    class SimpleProgress(_BaseProgress):
         increment: int = 0
 
     class Simple(_Loop):
-        def __init__(self, a):
-            super().__init__()
+        def __init__(self, trainer, a):
+            super().__init__(trainer)
             self.a = a
             self.progress = SimpleProgress()
 
@@ -146,13 +143,10 @@ def test_loop_hierarchy():
         def on_load_checkpoint(self, state_dict: Dict) -> None:
             self.a = state_dict["a"]
 
-    loop_parent = Simple(1)
-    loop_child = Simple(2)
+    trainer = Trainer()
+    loop_parent = Simple(trainer, 1)
+    loop_child = Simple(trainer, 2)
     loop_parent.loop_child = loop_child
-
-    # check the trainer reference is propagated
-    loop_parent.trainer = Trainer()
-    assert loop_child.trainer is loop_parent.trainer
 
     state_dict = loop_parent.state_dict()
     assert state_dict == {
@@ -184,8 +178,8 @@ def test_loop_hierarchy():
     assert loop_parent_copy.on_save_checkpoint() == state_dict["state_dict"]
     assert loop_parent_copy.loop_child.on_save_checkpoint() == state_dict["loop_child.state_dict"]
 
-    loop_parent = Simple(1)
-    loop_child = Simple(2)
+    loop_parent = Simple(trainer, 1)
+    loop_child = Simple(trainer, 2)
     loop_parent.loop_child = loop_child
     loop_parent.load_state_dict(state_dict)
     assert loop_parent.progress.increment == 1
@@ -216,7 +210,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             return [super(ValidationModel, self).val_dataloader() for _ in range(n_dataloaders)]
 
     model = ValidationModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -233,13 +226,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     ckpt_path = str(tmpdir / "on_exception.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
-    total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
-    expected = {
-        "total": {"ready": total_dataloader + 1, "completed": total_dataloader},
-        "current": {"ready": stop_dataloader + 1, "completed": stop_dataloader},
-    }
-    assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
-
     trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
@@ -255,14 +241,14 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             "completed": total_val_batch,
         },
         "current": {
-            "ready": stop_batch + 1,
-            "started": stop_batch + 1,
-            "processed": stop_batch,
-            "completed": stop_batch,
+            "ready": total_val_batch + 1,
+            "started": total_val_batch + 1,
+            "processed": total_val_batch,
+            "completed": total_val_batch,
         },
         "is_last_batch": False,
     }
-    assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
+    assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.state_dict() == expected
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
@@ -279,7 +265,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -395,9 +380,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             },
         },
         "epoch_loop.val_loop.state_dict": ANY,
-        "epoch_loop.val_loop.dataloader_progress": ANY,
-        "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
-        "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        "epoch_loop.val_loop.batch_progress": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -446,7 +429,6 @@ def test_loop_state_on_complete_run(tmpdir):
             return DataLoader(RandomDataset(32, n_batches))
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -536,9 +518,7 @@ def test_loop_state_on_complete_run(tmpdir):
             },
         },
         "epoch_loop.val_loop.state_dict": ANY,
-        "epoch_loop.val_loop.dataloader_progress": ANY,
-        "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
-        "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        "epoch_loop.val_loop.batch_progress": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -684,19 +664,19 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     }
 
     val_per_epoch = int(1 // val_check_interval)
-    assert state_dict["epoch_loop.val_loop.dataloader_progress"] == {
-        "total": {"ready": n_val_dataloaders * val_per_epoch, "completed": n_val_dataloaders * val_per_epoch},
-        "current": {"ready": n_val_dataloaders, "completed": n_val_dataloaders},
-    }
-
-    assert state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"] == {
+    assert state_dict["epoch_loop.val_loop.batch_progress"] == {
         "total": {
             "ready": n_val_dataloaders * val_per_epoch * n_batches,
             "started": n_val_dataloaders * val_per_epoch * n_batches,
             "processed": n_val_dataloaders * val_per_epoch * n_batches,
             "completed": n_val_dataloaders * val_per_epoch * n_batches,
         },
-        "current": {"ready": n_batches, "completed": n_batches, "started": n_batches, "processed": n_batches},
+        "current": {
+            "ready": n_val_dataloaders * n_batches,
+            "started": n_val_dataloaders * n_batches,
+            "processed": n_val_dataloaders * n_batches,
+            "completed": n_val_dataloaders * n_batches,
+        },
         "is_last_batch": True,
     }
 
@@ -733,7 +713,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         "is_last_batch": val_check_interval == 1,
     }
 
-    val_batch_progress = "epoch_loop.val_loop.epoch_loop.batch_progress"
+    val_batch_progress = "epoch_loop.val_loop.batch_progress"
     # "nb_": non-breaking
     nb_total_val_batch = stop_dataloader * n_batches
     assert checkpoint[val_batch_progress] == {
@@ -744,10 +724,10 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
             "completed": nb_total_val_batch + stop_batch,
         },
         "current": {
-            "ready": stop_batch + 1,
-            "started": stop_batch + 1,
-            "processed": stop_batch,
-            "completed": stop_batch,
+            "ready": nb_total_val_batch + stop_batch + 1,
+            "started": nb_total_val_batch + stop_batch + 1,
+            "processed": nb_total_val_batch + stop_batch,
+            "completed": nb_total_val_batch + stop_batch,
         },
         "is_last_batch": False,
     }
@@ -771,44 +751,16 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     assert state_dict_after_restart["epoch_loop.batch_progress"] == expected["epoch_loop.batch_progress"]
 
-    val_dl_progress = "epoch_loop.val_loop.dataloader_progress"
-    expected[val_dl_progress]["total"]["ready"] += 1
-    assert state_dict_after_restart[val_dl_progress] == expected[val_dl_progress]
-
     expected[val_batch_progress]["total"]["ready"] += 1
     expected[val_batch_progress]["total"]["started"] += 1
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
 
 
 @pytest.mark.parametrize("should_fail", [False, True])
-@pytest.mark.parametrize("persistent_workers", [pytest.param(False, marks=RunIf(slow=True)), True])
+@pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
-
-    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
-        def __init__(self, *args, dataloader, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.dataloader = dataloader
-
-        def _shutdown_workers(self):
-            self.dataloader.count_shutdown_workers += 1
-            super()._shutdown_workers()
-
-    class TestDataLoader(DataLoader):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.count_shutdown_workers = 0
-
-        def _get_iterator(self):
-            if self.num_workers == 0:
-                return super()._get_iterator()
-            else:
-                self.check_worker_number_rationality()
-                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
-
-    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
-    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
     class TestCallback(Callback):
         def on_train_epoch_end(self, trainer, *_):
@@ -824,7 +776,35 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         limit_val_batches=2,
         max_epochs=max_epochs,
         callbacks=TestCallback() if should_fail else None,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
     )
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def __init__(self, *args, dataloader, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dataloader = dataloader
+
+        def _shutdown_workers(self):
+            self.dataloader.shutdown_workers_epochs.append(trainer.current_epoch)
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.shutdown_workers_epochs = []
+
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
     if should_fail:
         with pytest.raises(CustomException):
@@ -832,8 +812,52 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     else:
         trainer.fit(model, train_dataloader, val_dataloader)
 
-    assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
-    # on sanity checking end, the workers are being deleted too.
-    assert val_dataloader.count_shutdown_workers == 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
-    assert train_dataloader._iterator is None
-    assert val_dataloader._iterator is None
+    if persistent_workers:
+        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+    elif should_fail:
+        expected = [
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            # teardown
+            1,
+        ]
+    else:
+        expected = [
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            2,
+            # teardown
+            3,
+        ]
+    assert train_dataloader.shutdown_workers_epochs == expected
+
+    if persistent_workers:
+        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+    elif should_fail:
+        expected = [
+            # sanity check
+            0,
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            # teardown
+            1,
+        ]
+    else:
+        expected = [
+            # sanity check
+            0,
+            # iterable check
+            0,
+            # epoch ends
+            1,
+            2,
+            # teardown
+            3,
+        ]
+    assert val_dataloader.shutdown_workers_epochs == expected

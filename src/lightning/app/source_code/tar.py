@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -157,7 +157,8 @@ def _tar_path_python(source_path: str, target_file: str, compression: bool = Fal
             tar.add(str(source_path), arcname=".")
         elif os.path.isfile(source_path):
             file_info = tarfile.TarInfo(os.path.basename(str(source_path)))
-            tar.addfile(file_info, open(source_path))
+            with open(source_path) as fo:
+                tar.addfile(file_info, fo)
 
 
 def _tar_path_subprocess(source_path: str, target_file: str, compression: bool = False) -> None:

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 def test_strategy_registry_with_new_strategy():
     class TestStrategy:
-
         strategy_name = "test_strategy"
 
         def __init__(self, param1, param2):
@@ -55,7 +54,6 @@ def test_available_strategies_in_registry():
         "ddp_fork",
         "ddp_notebook",
         "single_tpu",
-        "tpu_spawn",
         "xla",
         "dp",
     }

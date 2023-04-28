@@ -273,7 +273,6 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
 def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
     """.lightningignore behaves similarly to the gitignore standard."""
-
     lorem_ipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 
     cache_path = tmp_path / "cache"

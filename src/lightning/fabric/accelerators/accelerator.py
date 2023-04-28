@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 import torch
+
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 
 
 class Accelerator(ABC):
     """The Accelerator base class.
 
     An Accelerator is meant to deal with one type of hardware.
+
+    .. warning::  Writing your own accelerator is an :ref:`experimental <versioning:Experimental API>` feature.
     """
 
     @abstractmethod
@@ -52,5 +56,5 @@ class Accelerator(ABC):
         """Detect if the hardware is available."""
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         pass

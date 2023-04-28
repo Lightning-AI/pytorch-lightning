@@ -26,28 +26,28 @@ Distributed Storage
 
 When running your application in a fully-distributed setting, the data available on one machine won't necessarily be available on another.
 
-To solve this problem, Lightning introduces the :class:`~lightning_app.storage.Path` object.
+To solve this problem, Lightning introduces the :class:`~lightning.app.storage.Path` object.
 This ensures that your code can run both locally and in the cloud.
 
-The :class:`~lightning_app.storage.Path` object keeps track of the work which creates
+The :class:`~lightning.app.storage.Path` object keeps track of the work which creates
 the path. This enables Lightning to transfer the files correctly in a distributed setting.
 
 Instead of passing a string representing a file or directory, Lightning simply wraps
-them into a :class:`~lightning_app.storage.Path` object and makes them an attribute of your LightningWork.
+them into a :class:`~lightning.app.storage.Path` object and makes them an attribute of your LightningWork.
 
 Without doing this conscientiously for every single path, your application will fail in the cloud.
 
 In the example below, a file written by **SourceFileWork** is being transferred by the flow
 to the **DestinationFileAndServeWork** work. The Path object is the reference to the file.
 
-.. literalinclude:: ../examples/app_boring/app.py
+.. literalinclude:: ../../examples/app/boring/app.py
     :emphasize-lines: 5, 22, 28, 48
 
 In the ``scripts/serve.py`` file, we are creating a **FastApi Service** running on port ``1111``
 that returns the content of the file received from **SourceFileWork** when
 a post request is sent to ``/file``.
 
-.. literalinclude:: ../examples/app_boring/scripts/serve.py
+.. literalinclude:: ../../examples/app/boring/scripts/serve.py
     :emphasize-lines: 21, 23-26
 
 ----
@@ -64,14 +64,14 @@ In order to assemble them, you need to do two things:
 
 Here's how to expose the port:
 
-.. literalinclude:: ../examples/app_boring/app.py
+.. literalinclude:: ../../examples/app/boring/app.py
     :emphasize-lines: 8
     :lines: 33-44
 
 
 And here's how to expose your services within the ``configure_layout`` flow hook:
 
-.. literalinclude:: ../examples/app_boring/app.py
+.. literalinclude:: ../../examples/app/boring/app.py
     :emphasize-lines: 5
     :lines: 53-57
 
@@ -79,7 +79,7 @@ In this example, we're appending ``/file`` to our **FastApi Service** url.
 This means that our ``Boring Tab`` triggers the ``get_file_content`` from the **FastAPI Service**
 and embeds its content as an `IFrame <https://en.wikipedia.org/wiki/HTML_element#Frames>`_.
 
-.. literalinclude:: ../examples/app_boring/scripts/serve.py
+.. literalinclude:: ../../examples/app/boring/scripts/serve.py
     :lines: 23-26
 
 
@@ -96,10 +96,10 @@ Step 2: Scalable Application
 *****************************
 
 The benefit of defining long-running code inside a
-:class:`~lightning_app.core.work.LightningWork`
+:class:`~lightning.app.core.work.LightningWork`
 component is that you can run it on different hardware
-by providing :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute` to
-the ``__init__`` method of your :class:`~lightning_app.core.work.LightningWork`.
+by providing :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute` to
+the ``__init__`` method of your :class:`~lightning.app.core.work.LightningWork`.
 
 By adapting the :ref:`quick_start` example as follows, you can easily run your component on multiple GPUs:
 

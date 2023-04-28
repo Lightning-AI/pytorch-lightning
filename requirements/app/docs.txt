@@ -1,6 +1,3 @@
 -r ../docs.txt
 
-ipython[notebook]
-ipython_genutils
-
 lai-sphinx-theme

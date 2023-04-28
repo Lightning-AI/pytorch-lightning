@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, T
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.storage import Path
 from lightning.app.storage.copier import _Copier, _copy_files
@@ -78,7 +79,6 @@ def unwrap(fn):
 def _send_data_to_caller_queue(
     proxy, work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str
 ) -> Dict:
-
     proxy.has_sent = True
 
     if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
@@ -120,7 +120,7 @@ class ProxyWorkRun:
     def __post_init__(self):
         self.work_state = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         self.has_sent = False
 
         self._validate_call_args(args, kwargs)
@@ -134,22 +134,16 @@ class ProxyWorkRun:
 
         data = {"args": args, "kwargs": kwargs, "call_hash": call_hash}
 
-        # The if/else conditions are left un-compressed to simplify readability
-        # for the readers.
-        if self.work.cache_calls:
-            if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
-            else:
-                if returned:
-                    return
+        # The if/else conditions are left un-compressed to simplify readability for the readers.
+        if not entered or stopped_on_sigterm:
+            _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         else:
-            if not entered or stopped_on_sigterm:
+            if self.work.cache_calls and returned:
+                return
+            elif returned or stopped_on_sigterm:
+                # the previous task has completed and we can re-queue the next one.
+                # overriding the return value for next loop iteration.
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
-            else:
-                if returned or stopped_on_sigterm:
-                    # the previous task has completed and we can re-queue the next one.
-                    # overriding the return value for next loop iteration.
-                    _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
@@ -303,10 +297,10 @@ class WorkStateObserver(Thread):
                 try:
                     with _state_observer_lock:
                         self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))
-                except Exception as e:
+                except Exception as ex:
                     print(traceback.print_exc())
-                    self._error_queue.put(e)
-                    raise e
+                    self._error_queue.put(ex)
+                    raise ex
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -421,19 +415,19 @@ class WorkRunner:
                         self.state_observer.join(0)
                     self.state_observer = None
                 self.copier.join(0)
-            except LightningSigtermStateException as e:
+            except LightningSigtermStateException as ex:
                 logger.debug("Exiting")
-                os._exit(e.exit_code)
-            except Exception as e:
+                os._exit(ex.exit_code)
+            except Exception as ex:
                 # Inform the flow the work failed. This would fail the entire application.
-                self.error_queue.put(e)
+                self.error_queue.put(ex)
                 # Terminate the threads
                 if self.state_observer:
                     if self.state_observer.started:
                         self.state_observer.join(0)
                     self.state_observer = None
                 self.copier.join(0)
-                raise e
+                raise ex
 
     def setup(self):
         from lightning.app.utilities.state import AppState
@@ -500,7 +494,8 @@ class WorkRunner:
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
-        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
+        default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"  # noqa: S104
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", default_internal_ip)
 
         # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
@@ -530,9 +525,9 @@ class WorkRunner:
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
             ret = self.run_executor_cls(self.work, work_run, self.delta_queue)(*args, **kwargs)
-        except LightningSigtermStateException as e:
-            raise e
-        except BaseException as e:
+        except LightningSigtermStateException as ex:
+            raise ex
+        except BaseException as ex:
             # 10.2 Send failed delta to the flow.
             reference_state = deepcopy(self.work.state)
             exp, val, tb = sys.exc_info()
@@ -564,16 +559,15 @@ class WorkRunner:
                     id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2))
                 )
             )
-            self.work.on_exception(e)
+            self.work.on_exception(ex)
             print("########## CAPTURED EXCEPTION ###########")
             print(traceback.print_exc())
             print("########## CAPTURED EXCEPTION ###########")
             return
 
         # 13. Destroy the state observer.
-        if self.run_executor_cls.enable_start_observer:
-            if self.state_observer.started:
-                self.state_observer.join(0)
+        if self.run_executor_cls.enable_start_observer and self.state_observer.started:
+            self.state_observer.join(0)
         self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
@@ -611,15 +605,16 @@ class WorkRunner:
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)
             )
-            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
-            self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # kill the thread as the job is going to be terminated.
-        self.copier.join(0)
         if self.state_observer:
             if self.state_observer.started:
                 self.state_observer.join(0)
             self.state_observer = None
+        delta = Delta(DeepDiff(state, deepcopy(self.work.state), verbose_level=2))
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+
+        self.copier.join(0)
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):

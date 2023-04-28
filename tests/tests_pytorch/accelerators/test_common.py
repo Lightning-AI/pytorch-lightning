@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.strategies import DDPStrategy
 
 
-def test_pluggable_accelerator():
+def test_pluggable_accelerator(mps_count_0, cuda_count_2):
     class TestAccelerator(Accelerator):
         def setup_device(self, device: torch.device) -> None:
             pass

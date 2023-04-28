@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.strategy import Strategy, TBroadcast
@@ -38,7 +39,9 @@ class SingleDeviceStrategy(Strategy):
         precision_plugin: PrecisionPlugin | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
-        self._root_device = torch.device(device)
+        if not isinstance(device, torch.device):
+            device = torch.device(device)
+        self._root_device = device
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1
@@ -84,9 +87,9 @@ class SingleDeviceStrategy(Strategy):
         return obj
 
     @classmethod
-    def register_strategies(cls, strategy_registry: dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
 from typing import Any
 
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE, TPUAccelerator
@@ -39,15 +38,13 @@ class XLAEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        import torch_xla.core.xla_env_vars as xenv
-
-        return os.environ[xenv.TPU_MESH_CTLER_ADDR]
+        # unused by lightning
+        raise NotImplementedError
 
     @property
     def main_port(self) -> int:
-        import torch_xla.core.xla_env_vars as xenv
-
-        return int(os.environ[xenv.TPU_MESH_CTLER_PORT])
+        # unused by lightning
+        raise NotImplementedError
 
     @staticmethod
     def detect() -> bool:
@@ -76,5 +73,6 @@ class XLAEnvironment(ClusterEnvironment):
 
     def node_rank(self) -> int:
         import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.utils.utils import getenv_as
 
-        return int(os.environ.get(xenv.HOST_ORDINAL, 0))
+        return getenv_as(xenv.HOST_ORDINAL, int, 0)

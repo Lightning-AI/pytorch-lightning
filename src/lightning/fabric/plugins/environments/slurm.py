@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -91,9 +91,9 @@ class SLURMEnvironment(ClusterEnvironment):
         """Returns ``True`` if the current process was launched on a SLURM cluster.
 
         It is possible to use the SLURM scheduler to request resources and then launch processes manually using a
-        different environment. For this, the user can set the job name in SLURM to 'bash' (``SLURM_JOB_NAME=bash``).
-        This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
-        automatically.
+        different environment. For this, the user can set the job name in SLURM to 'bash' or 'interactive' (srun --job-
+        name=interactive). This will then avoid the detection of ``SLURMEnvironment`` and another environment can be
+        detected automatically.
         """
         SLURMEnvironment._validate_srun_used()
         return _is_srun_used()
@@ -105,8 +105,7 @@ class SLURMEnvironment(ClusterEnvironment):
     @staticmethod
     def job_id() -> Optional[int]:
         # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = SLURMEnvironment.job_name() == "bash"
-        if in_slurm_interactive_mode:
+        if _is_slurm_interactive_mode():
             return None
 
         job_id = os.environ.get("SLURM_JOB_ID")
@@ -174,8 +173,9 @@ class SLURMEnvironment(ClusterEnvironment):
         """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
         message.
 
-        Right now, we only check for the most common user errors. See `the srun docs
-        <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
+        Right now, we only check for the most common user errors. See
+        `the srun docs <https://slurm.schedmd.com/srun.html>`_
+        for a complete list of supported srun variables.
         """
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
         if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:
@@ -186,4 +186,8 @@ class SLURMEnvironment(ClusterEnvironment):
 
 
 def _is_srun_used() -> bool:
-    return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
+    return "SLURM_NTASKS" in os.environ and not _is_slurm_interactive_mode()
+
+
+def _is_slurm_interactive_mode() -> bool:
+    return SLURMEnvironment.job_name() in ("bash", "interactive")

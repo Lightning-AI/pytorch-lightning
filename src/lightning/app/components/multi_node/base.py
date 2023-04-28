@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,7 +95,6 @@ class MultiNode(LightningFlow):
 
         # 2. Loop over all node machines
         for node_rank in range(len(self.ws)):
-
             # 3. Run the user code in a distributed way !
             self.ws[node_rank].run(
                 main_address=self.ws[0].internal_ip,

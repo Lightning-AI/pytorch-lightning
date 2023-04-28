@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-from tests_fabric.test_fabric import BoringModel
 
 from lightning.fabric.loggers import TensorBoardLogger
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from tests_fabric.test_fabric import BoringModel
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
@@ -169,7 +169,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     ):
         logger.log_graph(model)
 
-    model.example_input_array = dict(x=1, y=2)
+    model.example_input_array = {"x": 1, "y": 2}
     with pytest.warns(
         UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):
@@ -219,7 +219,6 @@ def test_tensorboard_with_symlink(log, tmpdir):
 
 def test_tensorboard_missing_folder_warning(tmpdir, caplog):
     """Verify that the logger throws a warning for invalid directory."""
-
     name = "fake_dir"
     logger = TensorBoardLogger(root_dir=tmpdir, name=name)
 

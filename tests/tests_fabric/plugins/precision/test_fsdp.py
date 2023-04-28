@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,19 +15,19 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.plugins import FSDPPrecision
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch("lightning.fabric.plugins.precision.fsdp._TORCH_GREATER_EQUAL_1_12", False)
 def test_fsdp_precision_support(*_):
     with pytest.raises(NotImplementedError, match="`FSDPPrecision` is supported from PyTorch v1.12.0"):
-        FSDPPrecision(precision=16, device="cuda")
+        FSDPPrecision(precision="16-mixed", device="cuda")
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
+@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
 def test_fsdp_precision_config(precision, expected):
     plugin = FSDPPrecision(precision=precision, device="cuda")
     config = plugin.mixed_precision_config

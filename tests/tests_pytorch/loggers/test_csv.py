@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 import os
 from unittest.mock import MagicMock
 
+import fsspec
 import pytest
 import torch
 
@@ -28,7 +29,6 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 def test_file_logger_automatic_versioning(tmpdir):
     """Verify that automatic versioning works."""
-
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
@@ -40,7 +40,6 @@ def test_file_logger_automatic_versioning(tmpdir):
 
 def test_file_logger_manual_versioning(tmpdir):
     """Verify that manual versioning works."""
-
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
@@ -53,7 +52,6 @@ def test_file_logger_manual_versioning(tmpdir):
 
 def test_file_logger_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"
@@ -117,6 +115,16 @@ def test_fit_csv_logger(tmpdir):
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert os.path.isfile(metrics_file)
+
+
+def test_csv_logger_remotefs():
+    logger = CSVLogger(save_dir="memory://test_fit_csv_logger_remotefs")
+    fs, _ = fsspec.core.url_to_fs("memory://test_fit_csv_logger_remotefs")
+    exp = logger.experiment
+    exp.log_metrics({"loss": 0.1})
+    exp.save()
+    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    assert fs.isfile(metrics_file)
 
 
 def test_flush_n_steps(tmpdir):

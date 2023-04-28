@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,5 +87,5 @@ class AdvancedProfiler(Profiler):
         return (
             self.__class__,
             (),
-            dict(dirpath=self.dirpath, filename=self.filename, line_count_restriction=self.line_count_restriction),
+            {"dirpath": self.dirpath, "filename": self.filename, "line_count_restriction": self.line_count_restriction},
         )

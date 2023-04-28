@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@ from lightning.fabric.plugins.precision.amp import MixedPrecision
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
+from lightning.fabric.plugins.precision.half import HalfPrecision
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.tpu import TPUPrecision
 from lightning.fabric.plugins.precision.tpu_bf16 import TPUBf16Precision
@@ -22,6 +23,7 @@ from lightning.fabric.plugins.precision.tpu_bf16 import TPUBf16Precision
 __all__ = [
     "DeepSpeedPrecision",
     "DoublePrecision",
+    "HalfPrecision",
     "MixedPrecision",
     "Precision",
     "TPUPrecision",

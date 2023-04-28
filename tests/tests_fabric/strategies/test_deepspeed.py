@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 from torch.optim import Optimizer
 
 from lightning.fabric.accelerators import CPUAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
+from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.fixture
@@ -53,7 +53,6 @@ def test_deepspeed_only_compatible_with_cuda():
 @RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
-
     with pytest.raises(
         FileNotFoundError, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
@@ -99,7 +98,6 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_config_zero_offload(deepspeed_zero_config):
     """Test the various ways optimizer-offloading can be configured."""
-
     # default config
     strategy = DeepSpeedStrategy(config=deepspeed_zero_config)
     assert "offload_optimizer" not in strategy.config["zero_optimization"]
@@ -321,3 +319,25 @@ def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_reque
         load_lr_scheduler_states=False,
         load_module_strict=True,
     )
+
+
+@RunIf(deepspeed=True)
+def test_errors_grad_clipping():
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        ),
+    ):
+        strategy.clip_gradients_norm(Mock(), Mock(), Mock(), Mock(), Mock())
+
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        ),
+    ):
+        strategy.clip_gradients_value(Mock(), Mock(), Mock())

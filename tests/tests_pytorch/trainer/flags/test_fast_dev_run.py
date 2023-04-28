@@ -14,7 +14,6 @@ from lightning.pytorch.tuner.tuning import Tuner
 
 def test_skip_on_fast_dev_run_tuner(tmpdir):
     """Test that tuner algorithms are skipped if fast dev run is enabled."""
-
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
     model.batch_size = 8
@@ -40,9 +39,9 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
         def __init__(self):
             super().__init__()
             self.training_step_call_count = 0
-            self.training_epoch_end_call_count = 0
+            self.on_train_epoch_end_call_count = 0
             self.validation_step_call_count = 0
-            self.validation_epoch_end_call_count = 0
+            self.on_validation_epoch_end_call_count = 0
             self.test_step_call_count = 0
 
         def training_step(self, batch, batch_idx):
@@ -51,17 +50,15 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
             self.training_step_call_count += 1
             return super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs):
-            self.training_epoch_end_call_count += 1
-            super().training_epoch_end(outputs)
+        def on_train_epoch_end(self):
+            self.on_train_epoch_end_call_count += 1
 
         def validation_step(self, batch, batch_idx):
             self.validation_step_call_count += 1
             return super().validation_step(batch, batch_idx)
 
-        def validation_epoch_end(self, outputs):
-            self.validation_epoch_end_call_count += 1
-            super().validation_epoch_end(outputs)
+        def on_validation_epoch_end(self):
+            self.on_validation_epoch_end_call_count += 1
 
         def test_step(self, batch, batch_idx):
             self.test_step_call_count += 1
@@ -71,21 +68,21 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     checkpoint_callback.save_checkpoint = Mock()
     early_stopping_callback = EarlyStopping(monitor="foo")
     early_stopping_callback._evaluate_stopping_criteria = Mock()
-    trainer_config = dict(
-        default_root_dir=tmpdir,
-        fast_dev_run=fast_dev_run,
-        val_check_interval=2,
-        logger=TensorBoardLogger(tmpdir),
-        log_every_n_steps=1,
-        callbacks=[checkpoint_callback, early_stopping_callback],
-    )
+    trainer_config = {
+        "default_root_dir": tmpdir,
+        "fast_dev_run": fast_dev_run,
+        "val_check_interval": 2,
+        "logger": TensorBoardLogger(tmpdir),
+        "log_every_n_steps": 1,
+        "callbacks": [checkpoint_callback, early_stopping_callback],
+    }
 
     def _make_fast_dev_run_assertions(trainer, model):
         # check the call count for train/val/test step/epoch
         assert model.training_step_call_count == fast_dev_run
-        assert model.training_epoch_end_call_count == 1
+        assert model.on_train_epoch_end_call_count == 1
         assert model.validation_step_call_count == 0 if model.validation_step is None else fast_dev_run
-        assert model.validation_epoch_end_call_count == 0 if model.validation_step is None else 1
+        assert model.on_validation_epoch_end_call_count == 0 if model.validation_step is None else 1
         assert model.test_step_call_count == fast_dev_run
 
         # check trainer arguments

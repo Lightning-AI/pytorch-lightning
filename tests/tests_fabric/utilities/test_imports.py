@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,14 @@ def test_import_fabric_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
-        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+
+        # pretend torch.distributed not available
+        for name in list(torch.distributed.__dict__.keys()):
+            if not name.startswith("__"):
+                delattr(torch.distributed, name)
+
+        torch.distributed.is_available = lambda: False
+
         import lightning.fabric
         """
     )

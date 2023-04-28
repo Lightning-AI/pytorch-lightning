@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ def download_frontend(root: str = _PROJECT_ROOT):
 
     shutil.rmtree(frontend_dir, ignore_errors=True)
 
-    response = urllib.request.urlopen(LIGHTNING_FRONTEND_RELEASE_URL)
+    response = urllib.request.urlopen(LIGHTNING_FRONTEND_RELEASE_URL)  # noqa: S310
 
     file = tarfile.open(fileobj=response, mode="r|gz")
     file.extractall(path=download_dir)

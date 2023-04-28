@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
 import pytest
 import torch
 import torch.nn as nn
-from tests_fabric.helpers.models import BoringFabric
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric import Fabric, seed_everything
+from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 
 class MixedPrecisionModule(nn.Module):
@@ -39,7 +39,6 @@ class MixedPrecisionModule(nn.Module):
 
 
 class MixedPrecisionBoringFabric(BoringFabric):
-
     expected_dtype: torch.dtype
 
     def get_model(self):
@@ -54,21 +53,21 @@ class MixedPrecisionBoringFabric(BoringFabric):
         loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
         return loss
 
-    def after_backward(self, model):
+    def after_backward(self, model, optimizer):
         assert model.layer.weight.grad.dtype == torch.float32
 
 
 @pytest.mark.parametrize(
     "accelerator, precision, expected_dtype",
     [
-        ("cpu", 16, torch.bfloat16),
-        ("cpu", "bf16", torch.bfloat16),
-        pytest.param("cuda", 16, torch.float16, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("cuda", "bf16", torch.bfloat16, marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
+        ("cpu", "16-mixed", torch.bfloat16),
+        ("cpu", "bf16-mixed", torch.bfloat16),
+        pytest.param("cuda", "16-mixed", torch.float16, marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("cuda", "bf16-mixed", torch.bfloat16, marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
     ],
 )
 def test_amp(accelerator, precision, expected_dtype):
-    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
+    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
     fabric.expected_dtype = expected_dtype
     fabric.run()
 
@@ -79,7 +78,7 @@ def test_amp_fused_optimizer_parity():
         seed_everything(1234)
         fabric = Fabric(accelerator="cuda", precision=16, devices=1)
 
-        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_model call
+        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_module call
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
 
         model, optimizer = fabric.setup(model, optimizer)

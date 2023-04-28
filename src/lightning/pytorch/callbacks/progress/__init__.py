@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,6 @@ Progress Bars
 Use or override one of the progress bar callbacks.
 
 """
-from lightning.pytorch.callbacks.progress.base import ProgressBarBase  # noqa: F401
+from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar  # noqa: F401
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBar  # noqa: F401
 from lightning.pytorch.callbacks.progress.tqdm_progress import TQDMProgressBar  # noqa: F401

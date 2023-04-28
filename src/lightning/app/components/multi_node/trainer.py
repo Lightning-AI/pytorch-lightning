@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
             try:
                 pkg = importlib.import_module(pkg_name)
                 trainers.append(pkg.Trainer)
-                strategies.append(pkg.strategies.DDPSpawnStrategy)
+                strategies.append(pkg.strategies.DDPStrategy)
                 mps_accelerators.append(pkg.accelerators.MPSAccelerator)
             except (ImportError, ModuleNotFoundError):
                 continue
@@ -70,7 +70,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["TORCHELASTIC_RUN_ID"] = "1"
 
         # Used to pass information to the Trainer directly.
-        def pre_fn(trainer, *args, **kwargs):
+        def pre_fn(trainer, *args: Any, **kwargs: Any):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
             if any(acc.is_available() for acc in mps_accelerators):

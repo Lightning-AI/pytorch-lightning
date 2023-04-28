@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,13 +31,7 @@ logger = Logger(__name__)
 def load_requirements(
     path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
 ) -> List[str]:
-    """Load requirements from a file.
-
-    >>> from lightning.app import _PROJECT_ROOT
-    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
-    >>> load_requirements(path_req, "docs.txt")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE +SKIP
-    ['sphinx>=4.0', ...]
-    """
+    """Load requirements from a file."""
     path = os.path.join(path_dir, file_name)
     if not os.path.isfile(path):
         return []
@@ -196,7 +190,7 @@ class BuildConfig:
         return {"__build_config__": asdict(self)}
 
     @classmethod
-    def from_dict(cls, d: Dict) -> Self:  # type: ignore[valid-type]
+    def from_dict(cls, d: Dict) -> Self:
         return cls(**d["__build_config__"])
 
 

@@ -29,6 +29,8 @@ hardware and distributed training or clusters.
 Create a Custom Accelerator
 ---------------------------
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 Here is how you create a new Accelerator.
 Let's pretend we want to integrate the fictional XPU accelerator and we have access to its hardware through a library
 ``xpulib``.
@@ -39,7 +41,7 @@ Let's pretend we want to integrate the fictional XPU accelerator and we have acc
 
 
     class XPUAccelerator(Accelerator):
-        """Experimental support for XPU, optimized for large-scale machine learning."""
+        """Support for a hypothetical XPU, optimized for large-scale machine learning."""
 
         @staticmethod
         def parse_devices(devices: Any) -> Any:
@@ -70,7 +72,7 @@ Finally, add the XPUAccelerator to the Trainer:
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
 
     accelerator = XPUAccelerator()
     trainer = Trainer(accelerator=accelerator, devices=2)
@@ -84,7 +86,7 @@ Finally, add the XPUAccelerator to the Trainer:
 Registering Accelerators
 ------------------------
 
-If you wish to switch to a custom accelerator from the CLI without code changes, you can implement the :meth:`~pytorch_lightning.accelerators.accelerator.Accelerator.register_accelerators` class method to register your new accelerator under a shorthand name like so:
+If you wish to switch to a custom accelerator from the CLI without code changes, you can implement the :meth:`~lightning.pytorch.accelerators.accelerator.Accelerator.register_accelerators` class method to register your new accelerator under a shorthand name like so:
 
 .. code-block:: python
 
@@ -117,7 +119,7 @@ Or if you are using the Lightning CLI, for example:
 Accelerator API
 ---------------
 
-.. currentmodule:: pytorch_lightning.accelerators
+.. currentmodule:: lightning.pytorch.accelerators
 
 .. autosummary::
     :nosignatures:
@@ -126,7 +128,5 @@ Accelerator API
     Accelerator
     CPUAccelerator
     CUDAAccelerator
-    HPUAccelerator
-    IPUAccelerator
     MPSAccelerator
     TPUAccelerator

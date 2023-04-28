@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,6 +39,8 @@ class _MNIST(Dataset):
 
     We cannot import the tests as they are not distributed with the package.
     See https://github.com/Lightning-AI/lightning/pull/7614#discussion_r671183652 for more context.
+
+    .. warning::  This is meant for testing/debugging and is experimental.
     """
 
     RESOURCES = (
@@ -96,7 +98,7 @@ class _MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
@@ -110,7 +112,7 @@ class _MNIST(Dataset):
             # todo: specify the possible exception
             except Exception as ex:
                 exception = ex
-                time.sleep(delta * random.random())
+                time.sleep(delta * random.random())  # noqa: S311
             else:
                 break
         assert res is not None
@@ -133,8 +135,8 @@ def MNIST(*args: Any, **kwargs: Any) -> Dataset:
             from torchvision.datasets import MNIST
 
             MNIST(_DATASETS_PATH, download=True)
-        except HTTPError as e:
-            print(f"Error {e} downloading `torchvision.datasets.MNIST`")
+        except HTTPError as ex:
+            print(f"Error {ex} downloading `torchvision.datasets.MNIST`")
             torchvision_mnist_available = False
     if not torchvision_mnist_available:
         print("`torchvision.datasets.MNIST` not available. Using our hosted version")
@@ -159,8 +161,6 @@ class MNISTDataModule(LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        *args: Any,
-        **kwargs: Any,
     ) -> None:
         """
         Args:
@@ -171,7 +171,7 @@ class MNISTDataModule(LightningDataModule):
             seed: starting seed for RNG.
             batch_size: desired batch size.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         if num_workers and _IS_WINDOWS:
             # see: https://stackoverflow.com/a/59680818
             warn(
@@ -198,7 +198,7 @@ class MNISTDataModule(LightningDataModule):
 
     def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
-        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         assert isinstance(dataset, Sized)
         train_length = len(dataset)
@@ -230,7 +230,7 @@ class MNISTDataModule(LightningDataModule):
 
     def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
-        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
         loader = DataLoader(
             dataset,

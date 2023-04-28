@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@ from typing import Any, Dict, Optional
 
 from torch import Tensor
 
+import lightning.pytorch as pl
 from lightning.pytorch.core.optimizer import do_nothing_closure
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.optimization.closure import OutputResult
-from lightning.pytorch.loops.progress import Progress, ReadyCompletedTracker
+from lightning.pytorch.loops.progress import _Progress, _ReadyCompletedTracker
+from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
@@ -47,8 +49,7 @@ class ManualResult(OutputResult):
             extra = {"loss": training_step_output}
         elif training_step_output is not None:
             raise MisconfigurationException(
-                "In manual optimization, `training_step` must either return a Tensor, "
-                "a dict with extras to pass to `training_epoch_end` or have no return."
+                "In manual optimization, `training_step` must either return a Tensor or have no return."
             )
 
         if "loss" in extra:
@@ -75,11 +76,11 @@ class _ManualOptimization(_Loop):
 
     output_result_cls = ManualResult
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, trainer: "pl.Trainer") -> None:
+        super().__init__(trainer)
         # since manual optimization does not track lr scheduler or optimizer frequencies, we use a simpler progress than
-        # `OptimizationProgress`
-        self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)
+        # `_OptimizationProgress`
+        self.optim_step_progress = _Progress.from_defaults(_ReadyCompletedTracker)
 
         self._output: _OUTPUTS_TYPE = {}
 
@@ -102,15 +103,12 @@ class _ManualOptimization(_Loop):
         Args:
             kwargs: The kwargs passed down to the hooks.
         """
+        trainer = self.trainer
+
         # manually capture logged metrics
-        training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
+        training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         del kwargs  # release the batch from memory
         self.trainer.strategy.post_training_step()
-
-        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-        strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
-        training_step_output = strategy_output if model_output is None else model_output
-
         result = self.output_result_cls.from_training_step_output(training_step_output)
 
         self._output = result.asdict()

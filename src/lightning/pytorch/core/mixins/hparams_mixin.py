@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@ import types
 from argparse import Namespace
 from typing import Any, List, MutableMapping, Optional, Sequence, Union
 
-from lightning.pytorch.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from lightning.pytorch.utilities.parsing import AttributeDict, save_hyperparameters
+
+_PRIMITIVE_TYPES = (bool, int, float, str)
+_ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 
 class HyperparametersMixin:
-
     __jit_unused_properties__: List[str] = ["hparams", "hparams_initial"]
 
     def __init__(self) -> None:
@@ -123,9 +124,9 @@ class HyperparametersMixin:
             hp = vars(hp)
         if isinstance(hp, dict):
             hp = AttributeDict(hp)
-        elif isinstance(hp, PRIMITIVE_TYPES):
-            raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
-        elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
+        elif isinstance(hp, _PRIMITIVE_TYPES):
+            raise ValueError(f"Primitives {_PRIMITIVE_TYPES} are not allowed.")
+        elif not isinstance(hp, _ALLOWED_CONFIG_TYPES):
             raise ValueError(f"Unsupported config type of {type(hp)}.")
         return hp
 

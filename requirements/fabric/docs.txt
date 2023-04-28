@@ -1,0 +1,4 @@
+-r ../docs.txt
+
+pt-lightning-sphinx-theme @ https://github.com/Lightning-AI/lightning_sphinx_theme/archive/master.zip
+tensorboard

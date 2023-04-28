@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ class _BasePayload(ABC):
         if self._origin is None:
             return None
         contents = f"{self.origin_name}/{self.consumer_name}/{self.name}"
-        return hashlib.sha1(contents.encode("utf-8")).hexdigest()
+        return hashlib.sha1(contents.encode("utf-8")).hexdigest()  # noqa: S324
 
     @property
     def origin_name(self) -> str:
@@ -203,12 +203,12 @@ class _BasePayload(ABC):
 
     def to_dict(self) -> dict:
         """Serialize this Path to a dictionary."""
-        return dict(
-            name=self.name,
-            origin_name=self.origin_name,
-            consumer_name=self.consumer_name,
-            metadata=self._metadata,
-        )
+        return {
+            "name": self.name,
+            "origin_name": self.origin_name,
+            "consumer_name": self.consumer_name,
+            "metadata": self._metadata,
+        }
 
     @classmethod
     def from_dict(cls, content: dict) -> "_BasePayload":
@@ -251,8 +251,8 @@ class _BasePayload(ABC):
             response.size = source_path.stat().st_size
             _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
-        except Exception as e:
-            response.exception = e
+        except Exception as ex:
+            response.exception = ex
         return response
 
 

@@ -1,4 +1,4 @@
-name: Integration of flagship Apps
+name: Call integration of flagship Apps
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -8,10 +8,6 @@ on:
         description: 'Lightning environment'
         required: false
         default: 'PROD'
-        type: string
-      checkout:
-        description: 'Git branch or tag to checkout'
-        required: true
         type: string
   workflow_dispatch:
     inputs:
@@ -23,11 +19,6 @@ on:
         options:
         - PROD
         - STAGING
-      checkout:
-        description: 'Git branch or tag to checkout'
-        required: false
-        type: string
-        default: 'release/stable'
 
 defaults:
   run:
@@ -38,7 +29,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright/python:v1.29.1-focal
+      image: mcr.microsoft.com/playwright/python:v1.30.0-focal
     strategy:
       fail-fast: false
       matrix:
@@ -67,8 +58,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.checkout }}
 
       - name: basic setup
         run: |

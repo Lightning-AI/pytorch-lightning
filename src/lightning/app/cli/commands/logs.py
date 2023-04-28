@@ -1,3 +1,17 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import List
 
 import click
@@ -17,23 +31,21 @@ logger = Logger(__name__)
 @click.argument("components", nargs=-1, required=False)
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def logs(app_name: str, components: List[str], follow: bool) -> None:
-    """Show cloud application logs. By default prints logs for all currently available components.
+    """Show cloud application logs. By default, prints logs for all currently available components.
 
     Example uses:
 
-        Print all application logs:
+    Print all application logs:
 
-            $ lightning show logs my-application
+    $ lightning show logs my-application
 
+    Print logs only from the flow (no work):
 
-        Print logs only from the flow (no work):
+    $ lightning show logs my-application flow
 
-            $ lightning show logs my-application flow
+    Print logs only from selected works:
 
-
-        Print logs only from selected works:
-
-            $ lightning show logs my-application root.work_a root.work_b
+    $ lightning show logs my-application root.work_a root.work_b
     """
     _show_logs(app_name, components, follow)
 
@@ -43,7 +55,7 @@ def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
     project = _get_project(client)
 
     apps = {
-        app.name: app
+        getattr(app, "display_name", None) or app.name: app
         for app in client.lightningapp_instance_service_list_lightningapp_instances(
             project_id=project.project_id
         ).lightningapps
@@ -56,12 +68,13 @@ def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
 
     if not app_name:
         raise click.ClickException(
-            f"You have not specified any Lightning App. Please select one of available: [{', '.join(apps.keys())}]"
+            f"You have not specified any Lightning App. Please select one of the following: [{', '.join(apps.keys())}]."
         )
 
     if app_name not in apps:
         raise click.ClickException(
-            f"The Lightning App '{app_name}' does not exist. Please select one of following: [{', '.join(apps.keys())}]"
+            f"The Lightning App '{app_name}' does not exist. "
+            f"Please select one of the following: [{', '.join(apps.keys())}]."
         )
 
     # Fetch all lightning works from given application

@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
@@ -43,7 +44,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class DeepSpeedStrategy(DDPStrategy):
         billion parameter models. `For more information: https://pytorch-
         lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
-        .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
@@ -127,8 +128,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision=16` or
-                `precision="bf16"`.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision="16-mixed"` or
+                `precision="bf16-mixed"`.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
@@ -326,7 +327,6 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup_distributed(self) -> None:
         reset_seed()
         self.set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
@@ -441,13 +441,6 @@ class DeepSpeedStrategy(DDPStrategy):
                 f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
             )
 
-        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
-            )
-
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         model = _LightningModuleWrapperBase(forward_module=self.model)
 
@@ -512,9 +505,9 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision_plugin.precision == "16":
+            if self.precision_plugin.precision == "16-mixed":
                 dtype = torch.float16
-            elif self.precision_plugin.precision == "bf16":
+            elif self.precision_plugin.precision == "bf16-mixed":
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -551,6 +544,8 @@ class DeepSpeedStrategy(DDPStrategy):
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
             inference_config.update({"fp16": self.config["fp16"]})
+        if "bf16" in self.config:
+            inference_config.update({"bf16": self.config["bf16"]})
         if self.zero_stage_3:
             inference_config.update(
                 {
@@ -573,7 +568,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -599,7 +594,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
@@ -629,12 +624,12 @@ class DeepSpeedStrategy(DDPStrategy):
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
         batch_size = 1
-        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
-        if train_dl_source.is_defined():
+        data_source = self.lightning_module.trainer.fit_loop._data_source
+        if data_source.is_defined():
             try:
-                train_dataloader = train_dl_source.dataloader()
+                train_dataloader = data_source.dataloader()
                 if hasattr(train_dataloader, "batch_sampler"):
-                    batch_size = train_dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
+                    batch_size = train_dataloader.batch_sampler.batch_size
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
             # to have been called before
             except Exception:
@@ -648,7 +643,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == "16":
+        if self.precision_plugin.precision == "16-mixed":
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -660,7 +655,7 @@ class DeepSpeedStrategy(DDPStrategy):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16":
+        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16-mixed":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
@@ -767,7 +762,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
                 "If a single file is required after training, "
-                "see https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#"
+                "see https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#"
                 "deepspeed-zero-stage-3-single-file for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
@@ -830,7 +825,6 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-
             missing_keys: List[str] = []
             unexpected_keys: List[str] = []
             error_msgs: List[str] = []
@@ -869,7 +863,7 @@ class DeepSpeedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)

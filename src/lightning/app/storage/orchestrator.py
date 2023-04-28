@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -176,7 +176,6 @@ class StorageOrchestrator(Thread):
         # It is possible to have multiple destination targeting
         # the same source concurrently.
         if work_name in self.waiting_for_response.values():
-
             # check if the current work has responses for file transfers to other works.
             copy_response_queue = self.copy_response_queues[work_name]
             try:

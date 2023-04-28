@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import tarfile
 
 def clean_tarfile(file_path: str, mode: str) -> None:
     """This utility removes all files extracted from a tarfile."""
-
     if not os.path.exists(file_path):
         return None
 

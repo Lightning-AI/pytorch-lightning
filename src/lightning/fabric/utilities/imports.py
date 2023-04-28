@@ -1,4 +1,4 @@
-# Copyright The Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,3 +28,5 @@ _IS_INTERACTIVE = hasattr(sys, "ps1") or bool(sys.flags.interactive)
 _TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
 _TORCH_GREATER_EQUAL_2_0 = compare_version("torch", operator.ge, "2.0.0", use_base_version=True)
+_TORCH_GREATER_EQUAL_2_1 = compare_version("torch", operator.ge, "2.1.0", use_base_version=True)
+_TORCH_EQUAL_2_0 = _TORCH_GREATER_EQUAL_2_0 and not _TORCH_GREATER_EQUAL_2_1
