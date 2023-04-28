@@ -15,7 +15,6 @@ from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 from lightning.pytorch.strategies.fsdp import FSDPStrategy
-from lightning.pytorch.strategies.ipu import IPUStrategy  # noqa: F401
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 from lightning.pytorch.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
