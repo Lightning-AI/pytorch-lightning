@@ -66,19 +66,23 @@ save the config in a logger. An example of this is:
     .. code:: python
 
         class LoggerSaveConfigCallback(SaveConfigCallback):
-            def extra_save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+            def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
                 if isinstance(trainer.logger, Logger):
-                    config = self.parser.dump(self.config)  # Required for proper reproducibility
+                    config = self.parser.dump(self.config, skip_none=False)  # Required for proper reproducibility
                     trainer.logger.log_hyperparams({"config": config})
 
 
         cli = LightningCLI(..., save_config_callback=LoggerSaveConfigCallback)
 
--- note::
+-- tip::
 
-    The ``extra_save_config`` method is only run on rank zero. If you need to broadcast to other ranks, then implement
-    the ``save_config`` method instead. In this case you need to take care that only one of the ranks saves the config
-    and avoid race conditions.
+    If you want to disable the standard behavior of saving the config to the ``log_dir``, then you can either implement
+    ``__init__`` and call ``super().__init__(*args, save_to_log_dir=False, **kwargs)`` or instantiate the
+    ``LightningCLI`` as:
+
+    .. code:: python
+
+        cli = LightningCLI(..., save_config_kwargs={"save_to_log_dir": False})
 
 
 ----

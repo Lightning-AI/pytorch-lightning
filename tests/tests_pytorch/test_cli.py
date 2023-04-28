@@ -313,9 +313,21 @@ def test_lightning_cli_save_config_only_once(cleandir):
     cli.trainer.test(cli.model)  # Should not fail because config already saved
 
 
-def test_lightning_cli_extra_save_config(cleandir):
-    class ExtraSaveConfigCallback(SaveConfigCallback):
-        def extra_save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+def test_save_to_log_dir_false_error():
+    with pytest.raises(ValueError):
+        SaveConfigCallback(
+            LightningArgumentParser(),
+            Namespace(),
+            save_to_log_dir=False,
+        )
+
+
+def test_lightning_cli_logger_save_config(cleandir):
+    class LoggerSaveConfigCallback(SaveConfigCallback):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, save_to_log_dir=False, **kwargs)
+
+        def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             nonlocal config
             config = self.parser.dump(self.config)
             trainer.logger.log_hyperparams({"config": config})
@@ -331,8 +343,11 @@ def test_lightning_cli_extra_save_config(cleandir):
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = LightningCLI(
             BoringModel,
-            save_config_callback=ExtraSaveConfigCallback,
+            save_config_callback=LoggerSaveConfigCallback,
         )
+
+    assert os.path.isdir(cli.trainer.log_dir)
+    assert not os.path.isfile(os.path.join(cli.trainer.log_dir, "config.yaml"))
 
     events_file = glob.glob(os.path.join(cli.trainer.log_dir, "events.out.tfevents.*"))
     assert len(events_file) == 1
