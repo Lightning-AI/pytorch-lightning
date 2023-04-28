@@ -68,16 +68,11 @@ jobs:
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
-      run: |
-        pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip list
+      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
       if: inputs.pl_version == ''
 
     - name: Install PL version
-      run: |
-        pip install "pytorch-lightning==${{ inputs.pl_version }}" \
-          -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip list
+      run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f https://download.pytorch.org/whl/cpu/torch_stable.html
       if: inputs.pl_version != ''
 
     - name: Pull legacy checkpoints
@@ -86,12 +81,10 @@ jobs:
 
     - name: Decide PL version to create a PR with
       id: decide-version
-      run: |
-        python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
+      run: python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
 
     - name: Generate checkpoints
-      run: |
-        bash generate_checkpoints.sh ${{ inputs.pl_version }}
+      run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
     - name: Keep artifact
       id: keep-artifact
