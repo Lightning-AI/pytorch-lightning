@@ -635,7 +635,7 @@ class CloudRuntime(Runtime):
             if cluster_id not in cluster_ids:
                 raise ValueError(
                     f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
-                    " Found {list_clusters_resp}"
+                    f" Found {list_clusters_resp}"
                 )
 
             _ensure_cluster_project_binding(self.backend.client, project_id, cluster_id)
