@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from multiprocessing import Process, Queue
-from typing import Any, Callable, List, Union
+from typing import Any, List, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -70,11 +69,15 @@ class XLAAccelerator(Accelerator):
     @functools.lru_cache(maxsize=1)
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
+        if not _XLA_AVAILABLE:
+            return 0
         import torch_xla.core.xla_env_vars as xenv
         from torch_xla.experimental import pjrt, tpu
         from torch_xla.utils.utils import getenv_as
 
         if pjrt.using_pjrt():
+            if _XLA_GREATER_EQUAL_2_1:
+                return tpu.num_available_devices()
             device_count_on_version = {2: 8, 3: 8, 4: 4}
             return device_count_on_version.get(tpu.version(), 8)
         else:
@@ -83,57 +86,16 @@ class XLAAccelerator(Accelerator):
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        if not _XLA_AVAILABLE:
-            return False
-        queue: Queue = Queue()
-        proc = Process(target=_inner_f, args=(queue, _has_tpu_device))
-        proc.start()
-        proc.join(TPU_CHECK_TIMEOUT)
-        if proc.is_alive():
-            proc.terminate()
-            proc.join()
-            # if the timeout is triggered, fail to avoid silently running on a different accelerator
-            raise TimeoutError(
-                "Timed out waiting to check whether a TPU is available. You can increase the TPU_CHECK_TIMEOUT value."
-                f" Currently {TPU_CHECK_TIMEOUT}"
-            )
-        return queue.get_nowait()
+        return XLAAccelerator.auto_device_count() > 0
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
 
 
-# define TPU availability timeout in seconds
-TPU_CHECK_TIMEOUT = 60
-
-
-def _inner_f(queue: Queue, func: Callable) -> None:
-    res = func()
-    queue.put(res)
-
-
-def _has_tpu_device() -> bool:
-    """Check if TPU devices are available.
-
-    Return:
-        A boolean value indicating if TPU devices are available
-    """
-    if not _XLA_AVAILABLE:
-        return False
-    import torch_xla.core.xla_model as xm
-    from torch_xla.experimental import pjrt
-
-    if pjrt.using_pjrt():
-        return bool(xm.get_xla_supported_devices("TPU"))
-    # For the TPU Pod training process, for example, if we have TPU v3-32 with 4 VMs, the world size would be 4 and as
-    # we would have to use `torch_xla.distributed.xla_dist` for multiple VMs and TPU_CONFIG won't be available, running
-    # `xm.get_xla_supported_devices("TPU")` won't be possible.
-    return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
-
-
 # PJRT support requires this minimum version
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
+_XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
 
 
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:

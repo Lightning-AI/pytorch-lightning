@@ -14,7 +14,7 @@
 
 import pytest
 
-from lightning.fabric.accelerators.xla import XLAAccelerator
+from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE, XLAAccelerator
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -25,9 +25,10 @@ def test_auto_device_count():
     assert XLAAccelerator.auto_device_count() > 1
 
 
-@RunIf(tpu=True)
-def test_availability():
-    assert XLAAccelerator.is_available()
+@pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
+def test_tpu_device_absence():
+    """Check `is_available` returns True when TPU is available."""
+    assert not XLAAccelerator.is_available()
 
 
 @pytest.mark.parametrize("devices", (1, 8))
