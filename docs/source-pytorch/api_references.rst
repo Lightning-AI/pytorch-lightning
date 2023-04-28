@@ -13,7 +13,6 @@ accelerators
     Accelerator
     CPUAccelerator
     CUDAAccelerator
-    IPUAccelerator
     TPUAccelerator
 
 callbacks
@@ -116,7 +115,6 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
-    IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
     TPUBf16PrecisionPlugin
@@ -212,7 +210,6 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
-    IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleTPUStrategy
