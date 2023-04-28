@@ -493,6 +493,9 @@ class CloudRuntime(Runtime):
         self, cluster_id: Optional[str], project_id: str, existing_cloudspaces: List[V1CloudSpace]
     ) -> Optional[str]:
         """If cloudspaces exist and cluster is None, mimic cluster selection logic to choose a default."""
+        if cluster_id is None:
+            cluster_id = os.getenv("CLUSTER_ID", None)
+
         if cluster_id is None and len(existing_cloudspaces) > 0:
             # Determine the cluster ID
             cluster_id = _get_default_cluster(self.backend.client, project_id)
@@ -630,7 +633,10 @@ class CloudRuntime(Runtime):
             list_clusters_resp = self.backend.client.cluster_service_list_clusters()
             cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
             if cluster_id not in cluster_ids:
-                raise ValueError(f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist.")
+                raise ValueError(
+                    f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
+                    f" Found {list_clusters_resp} with project_id: {project_id}"
+                )
 
             _ensure_cluster_project_binding(self.backend.client, project_id, cluster_id)
 
