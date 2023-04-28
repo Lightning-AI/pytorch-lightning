@@ -33,7 +33,7 @@ def _RunIf(
     sklearn: bool = False,
     onnx: bool = False,
     **kwargs: Any
-) -> Tuple[List[str], Dict]:
+) -> Tuple[List[str], Dict[str, bool]]:
     """
     Args:
         rich: Require that willmcgugan/rich is installed.

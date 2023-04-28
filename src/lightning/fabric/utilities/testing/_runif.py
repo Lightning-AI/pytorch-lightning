@@ -40,7 +40,7 @@ def _RunIf(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
-) -> Tuple[List[str], Dict]:
+) -> Tuple[List[str], Dict[str, bool]]:
     """
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
