@@ -1,6 +1,6 @@
 import pytest
 
-from lightning.fabric.utilities.testing import _RunIf as RunIf
+from tests.tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(min_torch="99")
