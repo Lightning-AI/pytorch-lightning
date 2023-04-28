@@ -15,7 +15,7 @@ import operator
 
 import torch
 import torch.nn.functional as F
-from lightning_utilities import compare_version
+from lightning_utilities.core.imports import compare_version
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
 
