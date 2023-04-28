@@ -14,7 +14,7 @@
 
 import pytest
 
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE, XLAAccelerator
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
 from tests_fabric.helpers.runif import RunIf
 
 
