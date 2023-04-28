@@ -11,13 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
+
 import torch
 import torch.nn.functional as F
+from lightning_utilities import compare_version
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
 
 from lightning.pytorch import LightningModule
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+
+_TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")  # using new API with task
 
 
 class ClassificationModel(LightningModule):
