@@ -1,0 +1,19 @@
+# syntax - https://github.com/redhat-plumbers-in-action/advanced-issue-labeler#policy
+---
+
+policy:
+  - section:
+    - id: ['versions']
+      label:
+        - name: "ver: 1.6.x"
+          keys: ['v1_6']
+        - name: "ver: 1.7.x"
+          keys: ['v1_7']
+        - name: "ver: 1.8.x"
+          keys: ['v1_8']
+        - name: "ver: 1.9.x"
+          keys: ['v1_9']
+        - name: "ver: 2.0.x"
+          keys: ['v2_0']
+        - name: "ver: 2.1.x"
+          keys: ['master']
