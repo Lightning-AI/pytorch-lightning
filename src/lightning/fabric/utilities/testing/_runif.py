@@ -150,5 +150,8 @@ def _RunIf(
         reasons.append("torch.dynamo")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
-    assert "condition" not in kwargs
-    return pytest.mark.skipif(*args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
+    kwargs.pop("condition", None)
+    kwargs.pop("reason", None)
+    return pytest.mark.skipif(  # type: ignore[misc]
+        *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
+    )
