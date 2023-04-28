@@ -86,56 +86,56 @@ Learn to scale up your models and enable collaborative model development at acad
 .. displayitem::
    :header: Level 7: Interactive cloud development
    :description: Learn how to access GPUs and TPUs on the cloud.
-   :button_link: levels/intermediate_level_7.html
+   :button_link: intermediate_level_7.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 9: Modularize your projects
+   :header: Level 8: Modularize your projects
    :description: Create DataModules to enable dataset reusability.
    :col_css: col-md-6
-   :button_link: levels/intermediate_level_9.html
+   :button_link: intermediate_level_8.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 10: Understand your model
+   :header: Level 9: Understand your model
    :description: Use advanced visuals to find the best performing model.
    :col_css: col-md-6
-   :button_link: levels/intermediate_level_10.html
+   :button_link: intermediate_level_9.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 11: Explore SOTA scaling techniques
+   :header: Level 10: Explore SOTA scaling techniques
    :description: Explore SOTA techniques to help convergence, stability and scalability.
    :col_css: col-md-6
-   :button_link: levels/intermediate_level_11.html
+   :button_link: intermediate_level_10.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 12: Deploy your models
+   :header: Level 11: Deploy your models
    :description: Learn how to deploy your models with optimizations like ONNX and torchscript.
    :col_css: col-md-6
-   :button_link: levels/intermediate_level_12.html
+   :button_link: intermediate_level_11.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 13: Optimize training speed
+   :header: Level 12: Optimize training speed
    :description: Use advanced profilers to mixed precision to train bigger models, faster.
    :col_css: col-md-6
-   :button_link: levels/intermediate_level_13.html
+   :button_link: intermediate_level_12.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 14: Run on on-prem clusters
+   :header: Level 13: Run on on-prem clusters
    :description: Run on a custom on-prem cluster or SLURM cluster.
    :col_css: col-md-6
-   :button_link: levels/intermediate_level_14.html
+   :button_link: intermediate_level_13.html
    :height: 150
    :tag: intermediate
 
@@ -158,66 +158,66 @@ Configure all aspects of Lightning for advanced usecases.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 15: Customize configs to run in production
+   :header: Level 14: Customize configs to run in production
    :description: Enable composable YAMLs
    :col_css: col-md-6
-   :button_link: levels/advanced_level_15.html
+   :button_link: advanced_level_14.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 16: Customize the trainer
+   :header: Level 15: Customize the trainer
    :description: Inject custom code into the trainer and modify the progress bar.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_16.html
+   :button_link: advanced_level_15.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 17: Own the training loop
+   :header: Level 16: Own the training loop
    :description: Learn all the ways of owning your raw PyTorch loops with Lighting.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_17.html
+   :button_link: advanced_level_16.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 18: Enable advanced checkpointing
+   :header: Level 17: Enable advanced checkpointing
    :description: Enable composable or cloud based checkpoints.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_18.html
+   :button_link: advanced_level_17.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 19: Explore IPUs
+   :header: Level 18: Explore IPUs
    :description: Explore Intelligence Processing Unit (IPU) for model scaling.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_19.html
+   :button_link: advanced_level_18.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 20: Explore HPUs
-   :description: Explore Havana Gaudi Processing Unit (HPU) for model scaling.
+   :header: Level 19: Explore HPUs
+   :description: Explore Habana Gaudi Processing Unit (HPU) for model scaling.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_20.html
+   :button_link: advanced_level_19.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 21: Master TPUs
+   :header: Level 20: Master TPUs
    :description: Master TPUs and run on cloud TPUs.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_21.html
+   :button_link: advanced_level_20.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 22: Reach 1 trillion parameters on GPUs
+   :header: Level 21: Reach 1 trillion parameters on GPUs
    :description: Scale to 1 trillion params on GPUs.
    :col_css: col-md-6
-   :button_link: levels/advanced_level_22.html
+   :button_link: advanced_level_21.html
    :height: 150
    :tag: advanced
 
@@ -240,34 +240,34 @@ Customize and extend Lightning for things like custom hardware or distributed st
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 23: Extend the Lightning CLI
+   :header: Level 22: Extend the Lightning CLI
    :description: Extend the functionality of the Lightning CLI.
    :col_css: col-md-6
-   :button_link: levels/expert_level_23.html
+   :button_link: expert_level_23.html
    :height: 150
    :tag: expert
 
 .. displayitem::
-   :header: Level 24: Integrate a custom cluster
+   :header: Level 23: Integrate a custom cluster
    :description: Integrate a custom cluster into Lightning.
    :col_css: col-md-6
-   :button_link: levels/expert_level_24.html
+   :button_link: ../clouds/cluster_expert.html
    :height: 150
    :tag: expert
 
 .. displayitem::
-   :header: Level 26: Make your own profiler
+   :header: Level 24: Make your own profiler
    :description: Make your own profiler.
    :col_css: col-md-6
-   :button_link: tuning/profiler_expert.html
+   :button_link: ../tuning/profiler_expert.html
    :height: 150
    :tag: expert
 
 .. displayitem::
-   :header: Level 27: Add a new accelerator or Strategy
+   :header: Level 25: Add a new accelerator or Strategy
    :description: Integrate a new accelerator or distributed strategy.
    :col_css: col-md-6
-   :button_link: levels/expert_level_27.html
+   :button_link: expert_level_25.html
    :height: 150
    :tag: expert
 
