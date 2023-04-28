@@ -1171,13 +1171,13 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     assert set(os.listdir(tmpdir)) == expected
 
 
-def test_ckpt_overwriting_enabled_after_rerun_new_trainer(tmpdir):
+def test_ckpt_version_counter_disabled_after_rerun_new_trainer(tmpdir):
     """Check that previous checkpoints get overwritten and no suffixes are generated when new trainer instances are
     used."""
     epochs = 2
     for i in range(epochs):
         mc = ModelCheckpoint(
-            dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}", overwrite_existing=True
+            dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}", enable_version_counter=False
         )
         trainer = Trainer(
             max_epochs=epochs,
@@ -1200,10 +1200,10 @@ def test_ckpt_overwriting_enabled_after_rerun_new_trainer(tmpdir):
     assert actual == {"epoch=0.ckpt", "epoch=1.ckpt"}
 
 
-def test_ckpt_overwriting_enabled_after_rerun_same_trainer(tmpdir):
+def test_ckpt_version_counter_disabled_after_rerun_same_trainer(tmpdir):
     """Check that previous checkpoints get overwritten and no suffixes are generated when the same trainer instance
     is used."""
-    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test", overwrite_existing=True)
+    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test", enable_version_counter=False)
     mc.STARTING_VERSION = 9
     trainer = Trainer(
         max_epochs=2,
@@ -1373,6 +1373,23 @@ def test_save_last_versioning(tmpdir):
         )
         trainer.fit(model)
     assert {"last.ckpt", "last-v1.ckpt"} == set(os.listdir(tmpdir))
+
+
+def test_save_last_versioning_disabled(tmpdir):
+    model = BoringModel()
+    for _ in range(2):
+        mc = ModelCheckpoint(dirpath=tmpdir,  save_top_k=0, save_last=True, enable_version_counter=False)
+        trainer = Trainer(
+            max_epochs=2,
+            callbacks=mc,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+        )
+        trainer.fit(model)
+    assert {"last.ckpt"} == set(os.listdir(tmpdir))
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
