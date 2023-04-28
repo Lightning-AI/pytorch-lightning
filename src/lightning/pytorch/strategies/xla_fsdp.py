@@ -11,50 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
-import os
 import logging
+import os
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
 import lightning.pytorch as pl
-
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
-from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.strategies.xla_fsdp import (
-    _optimizer_has_flat_params,
-)
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-)
+from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
-from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.xla import XLAStrategy
-from lightning.pytorch.strategies.launchers.xla import _XLALauncher
-from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
+
     _distributed_available = True
 
 else:
     MpDeviceLoader = None
 
 from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel
-from torch_xla.distributed.fsdp.wrap import _wrap
 
 log = logging.getLogger(__name__)
 
@@ -85,7 +69,7 @@ class XLAFSDPStrategy(XLAStrategy):
         )
         self.kwargs = kwargs
 
-    def _setup_model(self, model: torch.nn.Module) -> XlaFullyShardedDataParallel: 
+    def _setup_model(self, model: torch.nn.Module) -> XlaFullyShardedDataParallel:
         """Wraps the model into a
         :class:`~torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParalle` module."""
         # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
@@ -146,9 +130,11 @@ class XLAFSDPStrategy(XLAStrategy):
             super().setup_optimizers(trainer)
         except ValueError as e:
             if "optimizer got an empty parameter list" in str(e):
-                raise ValueError("The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
-                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
-                " `configure_optimizers()` hook.")
+                raise ValueError(
+                    "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                    " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                    " `configure_optimizers()` hook."
+                )
             else:
                 raise e
 
@@ -157,8 +143,8 @@ class XLAFSDPStrategy(XLAStrategy):
         optimizer: Optimizer,
         **kwargs: Any,
     ) -> Any:
-        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
-        Performs the actual optimizer step.
+        """Overrides default tpu optimizer_step since FSDP should not call
+        `torch_xla.core.xla_model.optimizer_step`. Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
@@ -214,7 +200,9 @@ class XLAFSDPStrategy(XLAStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register("xla_fsdp_debug", cls, description="XLA FSDP strategy with `debug` as True", debug=True)
+        strategy_registry.register(
+            "xla_fsdp_debug", cls, description="XLA FSDP strategy with `debug` as True", debug=True
+        )
         strategy_registry.register(
             cls.strategy_name,
             cls,

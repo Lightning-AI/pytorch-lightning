@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
 from pathlib import Path
+from typing import Any, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -26,13 +25,10 @@ from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
-from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
-from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import XLAStrategy
-from lightning.fabric.strategies.launchers.xla import _XLALauncher
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
+from lightning.fabric.strategies.strategy import _BackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -136,8 +132,8 @@ class XLAFSDPStrategy(XLAStrategy):
         optimizer: Optimizer,
         **kwargs: Any,
     ) -> Any:
-        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
-        Performs the actual optimizer step.
+        """Overrides default tpu optimizer_step since FSDP should not call
+        `torch_xla.core.xla_model.optimizer_step`. Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
@@ -211,6 +207,7 @@ class XLAFSDPStrategy(XLAStrategy):
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
+
         The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
         it creates a a consolidated checkpoint combining all of the sharded checkpoints.
         """
@@ -229,7 +226,6 @@ class XLAFSDPStrategy(XLAStrategy):
         if path.is_dir() and os.listdir(path):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
 
-        from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
 
         modules = [module for module in state.values() if isinstance(module, XLAFSDP)]
         if len(modules) == 0:
@@ -246,18 +242,23 @@ class XLAFSDPStrategy(XLAStrategy):
             )
 
         import torch_xla.core.xla_model as xm
+
         rank = xm.get_ordinal()
         world_size = xm.xrt_world_size()
 
         state = self._convert_stateful_objects_in_state(state)
 
-        self.checkpoint_io.save_checkpoint(state, f'{path}_rank-{rank}-of-{world_size}.pth', storage_options=storage_options)
+        self.checkpoint_io.save_checkpoint(
+            state, f"{path}_rank-{rank}-of-{world_size}.pth", storage_options=storage_options
+        )
 
         from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
+
         if xm.is_master_ordinal(local=False):
             consolidate_sharded_model_checkpoints(
-                ckpt_prefix='/tmp/mnist-fsdp-fabric/final_ckpt', ckpt_suffix="_rank-*-of-*.pth")
-        xm.rendezvous('ckpt_consolidation')
+                ckpt_prefix="/tmp/mnist-fsdp-fabric/final_ckpt", ckpt_suffix="_rank-*-of-*.pth"
+            )
+        xm.rendezvous("ckpt_consolidation")
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -266,6 +267,7 @@ class XLAFSDPStrategy(XLAStrategy):
             filepath: Path to checkpoint
         """
         import torch_xla.core.xla_model as xm
+
         rank = xm.get_ordinal()
         world_size = xm.xrt_world_size()
 
@@ -273,11 +275,11 @@ class XLAFSDPStrategy(XLAStrategy):
         filepath = Path(self.broadcast(filepath))
         if filepath.is_file():
             raise NotImplementedError(
-                f"The `XLAFSDPStrategy` requires specifying the directory where to remove checkpoints."
+                "The `XLAFSDPStrategy` requires specifying the directory where to remove checkpoints."
             )
 
-        self.checkpoint_io.remove_checkpoint(f'{filepath}_rank-{rank}-of-{world_size}.pth')
-        self.checkpoint_io.remove_checkpoint(f'{filepath}_consolidated.pth')
+        self.checkpoint_io.remove_checkpoint(f"{filepath}_rank-{rank}-of-{world_size}.pth")
+        self.checkpoint_io.remove_checkpoint(f"{filepath}_consolidated.pth")
 
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
@@ -325,15 +327,15 @@ class XLAFSDPStrategy(XLAStrategy):
         _, module = list(modules.items())[0]
 
         import torch_xla.core.xla_model as xm
+
         rank = xm.get_ordinal()
         world_size = xm.xrt_world_size()
 
-        sharded_ckpt = torch.load(f'{path}_rank-{rank}-of-{world_size}.pth')
+        sharded_ckpt = torch.load(f"{path}_rank-{rank}-of-{world_size}.pth")
 
-        module.load_state_dict(sharded_ckpt['model'])
+        module.load_state_dict(sharded_ckpt["model"])
         for opt_key, opt in optimizers.items():
             opt.load_state_dict(sharded_ckpt[opt_key])
-
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

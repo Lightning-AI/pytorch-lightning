@@ -57,8 +57,8 @@ from lightning.pytorch.strategies import (
     SingleDeviceXLAStrategy,
     Strategy,
     StrategyRegistry,
-    XLAStrategy,
     XLAFSDPStrategy,
+    XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -485,7 +485,8 @@ class _AcceleratorConnector:
                 f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
             )
         if (
-            strategy_flag in XLAFSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, XLAFSDPStrategy)
+            strategy_flag in XLAFSDPStrategy.get_registered_strategies()
+            or isinstance(self._strategy_flag, XLAFSDPStrategy)
         ) and self._accelerator_flag not in ("tpu"):
             raise MisconfigurationException(
                 f"You selected strategy to be `{XLAFSDPStrategy.strategy_name}`, but TPU accelerator is not used."

@@ -55,6 +55,7 @@ class EmptyParametersModel(BoringModelTPU):
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=1e-2)
 
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_fsdp_strategy_debug_state():
@@ -89,17 +90,15 @@ def test_xla_fsdp_strategy():
     assert isinstance(trainer.strategy, XLAFSDPStrategy)
     trainer.fit(model)
 
-    
+
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_invalid_parameters_in_optimizer():
     trainer = Trainer(
         strategy=XLAFSDPStrategy(),
         fast_dev_run=True,
     )
-    error_context = (
-        pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
-    )
+    error_context = pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
 
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, XLAFSDPStrategy)
@@ -110,15 +109,15 @@ def test_xla_fsdp_invalid_parameters_in_optimizer():
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_basic_checkpointing():
-    trainer = Trainer(strategy='xla_fsdp', enable_checkpointing=True, max_epochs=1)
+    trainer = Trainer(strategy="xla_fsdp", enable_checkpointing=True, max_epochs=1)
     model = BoringModelTPU()
     trainer.fit(model)
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_automatic_strategy_selection():
-    trainer = Trainer(strategy='fsdp')
+    trainer = Trainer(strategy="fsdp")
     assert isinstance(trainer.strategy, XLAFSDPStrategy)

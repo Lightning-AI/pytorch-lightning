@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
 import lightning as L
-
 from lightning.fabric.accelerators import TPUAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
@@ -159,7 +158,7 @@ def test_tpu_all_gather():
 
 @RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
-@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
@@ -191,9 +190,8 @@ def test_xla_fsdp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
-    ):
-        with strategy._backward_sync_control.no_backward_sync(Mock()):
-            pass
+    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+        pass
 
     module = MagicMock(spec=XlaFullyShardedDataParallel)
     with strategy._backward_sync_control.no_backward_sync(module):
@@ -214,8 +212,9 @@ def test_xla_fsdp_grad_clipping_value_error():
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
+
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {'PJRT_DEVICE': 'TPU'}, clear=True)
+@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_automatic_strategy_selection():
-    fabric = L.Fabric(strategy='fsdp')
+    fabric = L.Fabric(strategy="fsdp")
     assert isinstance(fabric.strategy, XLAFSDPStrategy)
