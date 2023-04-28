@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning.fabric.accelerators import TPUAccelerator
+from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
@@ -37,10 +37,10 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     strategy = XLAStrategy(
         accelerator=accelerator,
-        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
     )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
