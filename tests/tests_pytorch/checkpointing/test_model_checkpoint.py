@@ -1378,7 +1378,7 @@ def test_save_last_versioning(tmpdir):
 def test_save_last_versioning_disabled(tmpdir):
     model = BoringModel()
     for _ in range(2):
-        mc = ModelCheckpoint(dirpath=tmpdir,  save_top_k=0, save_last=True, enable_version_counter=False)
+        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True, enable_version_counter=False)
         trainer = Trainer(
             max_epochs=2,
             callbacks=mc,
