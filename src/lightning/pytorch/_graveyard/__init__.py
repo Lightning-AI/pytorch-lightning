@@ -13,4 +13,5 @@
 # limitations under the License.
 import lightning.pytorch._graveyard.hpu
 import lightning.pytorch._graveyard.ipu
-import lightning.pytorch._graveyard.legacy_import_unpickler  # noqa: F401
+import lightning.pytorch._graveyard.legacy_import_unpickler
+import lightning.pytorch._graveyard.tpu  # noqa: F401
