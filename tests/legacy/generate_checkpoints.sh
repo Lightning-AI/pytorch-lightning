@@ -35,7 +35,7 @@ do
   python -m venv $ENV_PATH
   source $ENV_PATH/bin/activate
 
-  python -m pip install "pytorch_lightning==$pl_ver" "lightning-utilities" -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
+  python -m pip install "pytorch_lightning==$pl_ver" -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
   create_and_save_checkpoint
 
