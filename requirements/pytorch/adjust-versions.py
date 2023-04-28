@@ -5,13 +5,13 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
-    dict(torch="2.1.0", torchvision="0.16.0"),  # nightly
-    dict(torch="2.0.0", torchvision="0.15.1"),  # stable
-    dict(torch="1.13.1", torchvision="0.14.1"),
-    dict(torch="1.13.0", torchvision="0.14.0"),
-    dict(torch="1.12.1", torchvision="0.13.1"),
-    dict(torch="1.12.0", torchvision="0.13.0"),
-    dict(torch="1.11.0", torchvision="0.12.0"),
+    {"torch": "2.1.0", "torchvision": "0.16.0"},  # nightly
+    {"torch": "2.0.0", "torchvision": "0.15.1"},  # stable
+    {"torch": "1.13.1", "torchvision": "0.14.1"},
+    {"torch": "1.13.0", "torchvision": "0.14.0"},
+    {"torch": "1.12.1", "torchvision": "0.13.1"},
+    {"torch": "1.12.0", "torchvision": "0.13.0"},
+    {"torch": "1.11.0", "torchvision": "0.12.0"},
 ]
 
 
@@ -35,7 +35,7 @@ def replace(req: str, torch_version: Optional[str] = None) -> str:
         import torch
 
         torch_version = torch.__version__
-    assert torch_version, f"invalid torch: {torch_version}"
+    assert torch_version, f"invalid torch: {torch_version}"  # noqa: S101
 
     # remove comments and strip whitespace
     req = re.sub(rf"\s*#.*{os.linesep}", os.linesep, req).strip()

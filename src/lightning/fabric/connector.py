@@ -22,14 +22,15 @@ from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
-from lightning.fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
+    HalfPrecision,
     MixedPrecision,
     Precision,
-    TPUBf16Precision,
-    TPUPrecision,
+    XLABf16Precision,
+    XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
@@ -53,7 +54,7 @@ from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-    SingleTPUStrategy,
+    SingleDeviceXLAStrategy,
     Strategy,
     STRATEGY_REGISTRY,
     XLAStrategy,
@@ -108,7 +109,6 @@ class _Connector:
         precision: _PRECISION_INPUT = "32-true",
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
-
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
         strategy = self._argument_from_env("strategy", strategy, default="auto")
@@ -283,23 +283,22 @@ class _Connector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            if hasattr(self._strategy_flag, "parallel_devices"):
-                if self._strategy_flag.parallel_devices:
-                    if self._strategy_flag.parallel_devices[0].type == "cpu":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
-                            raise ValueError(
-                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-                            )
-                        self._accelerator_flag = "cpu"
-                    if self._strategy_flag.parallel_devices[0].type == "cuda":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
-                            raise ValueError(
-                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-                            )
-                        self._accelerator_flag = "cuda"
-                    self._parallel_devices = self._strategy_flag.parallel_devices
+            if hasattr(self._strategy_flag, "parallel_devices") and self._strategy_flag.parallel_devices:
+                if self._strategy_flag.parallel_devices[0].type == "cpu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                        raise ValueError(
+                            f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "cpu"
+                if self._strategy_flag.parallel_devices[0].type == "cuda":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
+                        raise ValueError(
+                            f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "cuda"
+                self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
@@ -318,7 +317,7 @@ class _Connector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if TPUAccelerator.is_available():
+        if XLAAccelerator.is_available():
             return "tpu"
         if MPSAccelerator.is_available():
             return "mps"
@@ -380,12 +379,12 @@ class _Connector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
             else:
-                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])
+                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_xla"
+                return SingleDeviceXLAStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
@@ -441,19 +440,21 @@ class _Connector:
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
 
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "32-true":
-                return TPUPrecision()
+                return XLAPrecision()
             elif self._precision_input in ("16-mixed", "bf16-mixed"):
                 if self._precision_input == "16-mixed":
                     rank_zero_warn(
                         "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
                         " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
-                return TPUBf16Precision()
+                return XLABf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
+        if self._precision_input in ("16-true", "bf16-true"):
+            return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":
@@ -475,23 +476,23 @@ class _Connector:
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)
-            return MixedPrecision(precision=self._precision_input, device=device)
+                return FSDPPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
+            return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "64-true":
                 raise NotImplementedError(
                     "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
-            if self._precision_instance and not isinstance(self._precision_instance, (TPUPrecision, TPUBf16Precision)):
+            if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
                 raise ValueError(
-                    f"The `TPUAccelerator` can only be used with a `TPUPrecision` plugin,"
+                    f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
                     f" found: {self._precision_instance}."
                 )
 

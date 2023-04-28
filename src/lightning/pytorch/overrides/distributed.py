@@ -90,54 +90,58 @@ def _register_ddp_comm_hook(
             as FP16 compression as wrapper, which could be combined with
             ddp_comm_hook
 
-    Examples:
+    Examples::
 
-        >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
-        ...     default_hooks as default,
-        ...     powerSGD_hook as powerSGD,
-        ...     post_localSGD_hook as post_localSGD,
-        ... )
-        >>> # fp16_compress_hook for compress gradients
-        >>> ddp_model = ...
-        >>> _register_ddp_comm_hook( # doctest: +SKIP
-        ...     model=ddp_model,
-        ...     ddp_comm_hook=default.fp16_compress_hook,
-        ... )
-        >>> # powerSGD_hook
-        >>> ddp_model = ...
-        >>> _register_ddp_comm_hook( # doctest: +SKIP
-        ...     model=ddp_model,
-        ...     ddp_comm_state=powerSGD.PowerSGDState(
-        ...         process_group=None,
-        ...         matrix_approximation_rank=1,
-        ...         start_powerSGD_iter=5000,
-        ...     ),
-        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
-        ... )
-        >>> # post_localSGD_hook
-        >>> subgroup, _ = torch.distributed.new_subgroups() # doctest: +SKIP
-        >>> ddp_model = ...
-        >>> _register_ddp_comm_hook( # doctest: +SKIP
-        ...     model=ddp_model,
-        ...     state=post_localSGD.PostLocalSGDState(
-        ...         process_group=None,
-        ...         subgroup=subgroup,
-        ...         start_localSGD_iter=1_000,
-        ...     ),
-        ...     ddp_comm_hook=post_localSGD.post_localSGD_hook,
-        ... )
-        >>> # fp16_compress_wrapper combined with other communication hook
-        >>> ddp_model = ...
-        >>> _register_ddp_comm_hook( # doctest: +SKIP
-        ...     model=ddp_model,
-        ...     ddp_comm_state=powerSGD.PowerSGDState(
-        ...         process_group=None,
-        ...         matrix_approximation_rank=1,
-        ...         start_powerSGD_iter=5000,
-        ...     ),
-        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
-        ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
-        ... )
+        from torch.distributed.algorithms.ddp_comm_hooks import (
+            default_hooks as default,
+            powerSGD_hook as powerSGD,
+            post_localSGD_hook as post_localSGD,
+        )
+
+        # fp16_compress_hook for compress gradients
+        ddp_model = ...
+        _register_ddp_comm_hook(
+            model=ddp_model,
+            ddp_comm_hook=default.fp16_compress_hook,
+        )
+
+        # powerSGD_hook
+        ddp_model = ...
+        _register_ddp_comm_hook(
+            model=ddp_model,
+            ddp_comm_state=powerSGD.PowerSGDState(
+                process_group=None,
+                matrix_approximation_rank=1,
+                start_powerSGD_iter=5000,
+            ),
+            ddp_comm_hook=powerSGD.powerSGD_hook,
+        )
+
+        # post_localSGD_hook
+        subgroup, _ = torch.distributed.new_subgroups()
+        ddp_model = ...
+        _register_ddp_comm_hook(
+            model=ddp_model,
+            state=post_localSGD.PostLocalSGDState(
+                process_group=None,
+                subgroup=subgroup,
+                start_localSGD_iter=1_000,
+            ),
+            ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        )
+
+        # fp16_compress_wrapper combined with other communication hook
+        ddp_model = ...
+        _register_ddp_comm_hook(
+            model=ddp_model,
+            ddp_comm_state=powerSGD.PowerSGDState(
+                process_group=None,
+                matrix_approximation_rank=1,
+                start_powerSGD_iter=5000,
+            ),
+            ddp_comm_hook=powerSGD.powerSGD_hook,
+            ddp_comm_wrapper=default.fp16_compress_wrapper,
+        )
     """
     if ddp_comm_hook is None:
         return
@@ -194,8 +198,8 @@ class UnrepeatedDistributedSampler(DistributedSampler):
     one of the processes runs one fewer batch. During prediction, buffers are only synced on the first batch, so
     this is safe to use as long as each process runs at least one batch. We verify this in an assert.
 
-    Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py
-    and https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
+    Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py and
+    https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

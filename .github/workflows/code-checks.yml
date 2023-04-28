@@ -44,8 +44,7 @@ jobs:
       env:
         FREEZE_REQUIREMENTS: 1
       run: |
-        # todo: adjust requirements for both code-bases
-        pip install -e '.[extra,ui,cloud]' -r requirements/typing.txt
+        pip install -e '.[all]' -r requirements/typing.txt
         pip list
 
     - name: Check typing

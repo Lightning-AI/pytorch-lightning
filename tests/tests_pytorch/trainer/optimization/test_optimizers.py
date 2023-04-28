@@ -33,7 +33,6 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_optimizer_with_scheduling(tmpdir):
     """Verify that learning rate scheduling is working."""
-
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2, val_check_interval=0.5

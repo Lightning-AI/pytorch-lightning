@@ -17,7 +17,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import torch.multiprocessing as mp
 
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -27,8 +27,8 @@ if TYPE_CHECKING:
 
 
 class _XLALauncher(_Launcher):
-    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
-    end.
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at
+    the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.
@@ -67,11 +67,8 @@ class _XLALauncher(_Launcher):
 
         using_pjrt = pjrt.using_pjrt()
         return_queue: Union[queue.Queue, mp.SimpleQueue]
-        if using_pjrt:
-            # pjrt requires that the queue is serializable
-            return_queue = mp.Manager().Queue()
-        else:
-            return_queue = mp.get_context(self._start_method).SimpleQueue()
+        # pjrt requires that the queue is serializable
+        return_queue = mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
 
         import torch_xla.distributed.xla_multiprocessing as xmp
 

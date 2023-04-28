@@ -1,5 +1,6 @@
 import os
 from contextlib import nullcontext
+from datetime import timedelta
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
@@ -9,6 +10,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -192,7 +194,6 @@ def test_fsdp_custom_mixed_precision(tmpdir):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 def test_fsdp_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
-
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -307,7 +308,6 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
-
     ck = ModelCheckpoint(save_last=True)
 
     strategy_cfg = strategy_cfg or {}
@@ -429,3 +429,20 @@ def test_fsdp_use_orig_params():
         assert strategy.kwargs["use_orig_params"]
         strategy = FSDPStrategy(use_orig_params=False)
         assert not strategy.kwargs["use_orig_params"]
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(init_process_group_mock):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    strategy = FSDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+    process_group_backend = strategy._get_process_group_backend()
+    global_rank = strategy.cluster_environment.global_rank()
+    world_size = strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )

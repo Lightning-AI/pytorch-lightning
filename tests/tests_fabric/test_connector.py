@@ -24,13 +24,13 @@ from lightning_utilities.test.warning import no_warning_call
 
 import lightning.fabric
 from lightning.fabric import Fabric
-from lightning.fabric.accelerators import TPUAccelerator
+from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, MixedPrecision, Precision, XLAPrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -45,7 +45,7 @@ from lightning.fabric.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
-    SingleTPUStrategy,
+    SingleDeviceXLAStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
@@ -68,13 +68,13 @@ def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch
     monkeypatch.setattr(torch, "device", DeviceMock())
 
     connector = _Connector(accelerator=accelerator, devices=devices)
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     if devices == "auto" or (isinstance(devices, int) and devices > 1):
         assert isinstance(connector.strategy, XLAStrategy)
         assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
         assert isinstance(connector.cluster_environment, XLAEnvironment)
     else:
-        assert isinstance(connector.strategy, SingleTPUStrategy)
+        assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
@@ -277,7 +277,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
-@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         _Connector(accelerator=accelerator, strategy=strategy)
@@ -314,10 +314,10 @@ def test_cuda_accelerator_can_not_run_on_system(_):
         _Connector(accelerator="cuda", devices=1)
 
 
-@pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
-@mock.patch("lightning.fabric.accelerators.tpu._XLA_AVAILABLE", True)
+@pytest.mark.skipif(XLAAccelerator.is_available(), reason="test requires missing TPU")
+@mock.patch("lightning.fabric.accelerators.xla._XLA_AVAILABLE", True)
 def test_tpu_accelerator_can_not_run_on_system():
-    with pytest.raises(RuntimeError, match="TPUAccelerator` can not run on your system"):
+    with pytest.raises(RuntimeError, match="XLAAccelerator` can not run on your system"):
         _Connector(accelerator="tpu", devices=8)
 
 
@@ -645,19 +645,21 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
+    with pytest.raises(
+        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
+    ), pytest.warns(
         UserWarning, match=r"accelerator='tpu', precision='16-mixed'\)` but AMP with fp16 is not supported"
     ):
         _Connector(accelerator="tpu", precision="16-mixed", strategy="ddp")
 
     # wrong precision plugin type
-    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision=Precision())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecision` plugin"):
+    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecision` plugin"):
         _Connector(strategy=strategy)
 
     # wrong strategy type
-    strategy = DDPStrategy(accelerator=TPUAccelerator(), precision=TPUPrecision())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision())
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         _Connector(strategy=strategy)
 
 
@@ -665,10 +667,10 @@ def test_unsupported_tpu_choice(_, tpu_available):
 def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
 
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     connector = _Connector(accelerator=accelerator, devices=1)
     assert connector.accelerator is accelerator
-    assert isinstance(connector.strategy, SingleTPUStrategy)
+    assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
 
     connector = _Connector(accelerator=accelerator)
     assert connector.accelerator is accelerator
@@ -765,6 +767,22 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
         _Connector(strategy=strategy)
 
 
+@pytest.mark.parametrize(
+    "precision_str,precision_cls",
+    [
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("bf16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+        ("bf16-mixed", MixedPrecision),
+    ],
+)
+def test_precision_selection(precision_str, precision_cls):
+    connector = _Connector(precision=precision_str)
+    assert isinstance(connector.precision, precision_cls)
+
+
 def test_precision_selection_16_on_cpu_warns():
     with pytest.warns(
         UserWarning,
@@ -856,25 +874,30 @@ def test_devices_from_environment(*_):
 
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
-    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
-        with pytest.raises(ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"):
-            _Connector(accelerator="cuda")
+    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}), pytest.raises(
+        ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"
+    ):
+        _Connector(accelerator="cuda")
 
-    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}):
-        with pytest.raises(ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"):
-            _Connector(strategy="ddp_spawn")
+    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}), pytest.raises(
+        ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"
+    ):
+        _Connector(strategy="ddp_spawn")
 
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}):
-        with pytest.raises(ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"):
-            _Connector(devices=3)
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}), pytest.raises(
+        ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"
+    ):
+        _Connector(devices=3)
 
-    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
-        with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
-            _Connector(num_nodes=2)
+    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}), pytest.raises(
+        ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"
+    ):
+        _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}):
-        with pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"):
-            _Connector(precision="64-true")
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}), pytest.raises(
+        ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"
+    ):
+        _Connector(precision="64-true")
 
 
 @RunIf(min_torch="1.12")
@@ -958,11 +981,11 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     # single TPU
     with no_cuda, no_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, True)
-        monkeypatch.setattr(lightning.fabric.accelerators.TPUAccelerator, "auto_device_count", lambda *_: 1)
+        monkeypatch.setattr(lightning.fabric.accelerators.XLAAccelerator, "auto_device_count", lambda *_: 1)
         monkeypatch.setattr(torch, "device", DeviceMock())
         connector = _Connector()
-    assert isinstance(connector.accelerator, TPUAccelerator)
-    assert isinstance(connector.strategy, SingleTPUStrategy)
+    assert isinstance(connector.accelerator, XLAAccelerator)
+    assert isinstance(connector.strategy, SingleDeviceXLAStrategy)
     assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
@@ -972,7 +995,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     with no_cuda, no_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, True)
         connector = _Connector()
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
@@ -983,7 +1006,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     with multi_cuda, no_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, True)
         connector = _Connector()
-    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.accelerator, XLAAccelerator)
     assert isinstance(connector.strategy, XLAStrategy)
     assert connector._devices_flag == 8
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -18,8 +20,11 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
@@ -56,9 +61,8 @@ def test_ddp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
-    ):
-        with strategy._backward_sync_control.no_backward_sync(Mock()):
-            pass
+    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+        pass
 
     module = MagicMock(spec=DistributedDataParallel)
     with strategy._backward_sync_control.no_backward_sync(module):
@@ -120,9 +124,48 @@ def test_ddp_module_state_dict():
 )
 @RunIf(standalone=True)
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
-    if clip_type == "norm":
-        clipping_test_cls = _MyFabricGradNorm
-    else:
-        clipping_test_cls = _MyFabricGradVal
+    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
     fabric.run()
+
+
+@RunIf(min_cuda_gpus=2)
+@pytest.mark.parametrize(
+    "precision,expected_dtype",
+    [
+        (Precision(), torch.float32),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+        (DoublePrecision(), torch.float64),
+    ],
+)
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
+def test_module_init_context(precision, expected_dtype):
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+    parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
+    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+
+    strategy = DDPStrategy(
+        parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
+    )
+    assert strategy.local_rank == 1
+    with strategy.module_init_context():
+        module = torch.nn.Linear(2, 2)
+    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(init_process_group_mock):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    strategy = DDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+    process_group_backend = strategy._get_process_group_backend()
+    global_rank = strategy.cluster_environment.global_rank()
+    world_size = strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )

@@ -150,7 +150,7 @@ class AuthServer:
     @staticmethod
     def get_auth_url(port: int) -> str:
         redirect_uri = f"http://localhost:{port}/login-complete"
-        params = urlencode(dict(redirectTo=redirect_uri))
+        params = urlencode({"redirectTo": redirect_uri})
         return f"{get_lightning_cloud_url()}/sign-in?{params}"
 
     def login_with_browser(self, auth: Auth) -> None:
@@ -161,13 +161,13 @@ class AuthServer:
         try:
             # check if server is reachable or catch any network errors
             requests.head(url)
-        except requests.ConnectionError as e:
+        except requests.ConnectionError as ex:
             raise requests.ConnectionError(
-                f"No internet connection available. Please connect to a stable internet connection \n{e}"  # E501
+                f"No internet connection available. Please connect to a stable internet connection \n{ex}"  # E501
             )
-        except requests.RequestException as e:
+        except requests.RequestException as ex:
             raise requests.RequestException(
-                f"An error occurred with the request. Please report this issue to Lightning Team \n{e}"  # E501
+                f"An error occurred with the request. Please report this issue to Lightning Team \n{ex}"  # E501
             )
 
         logger.info(
@@ -200,7 +200,7 @@ class AuthServer:
             logger.info("Login Successful")
 
             # Include the credentials in the redirect so that UI will also be logged in
-            params = urlencode(dict(token=token, key=key, userID=user_id))
+            params = urlencode({"token": token, "key": key, "userID": user_id})
 
             return RedirectResponse(
                 url=f"{get_lightning_cloud_url()}/cli-login-successful?{params}",
