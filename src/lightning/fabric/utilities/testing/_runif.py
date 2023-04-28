@@ -58,11 +58,10 @@ def _RunIf(
         dynamo: Require that `torch.dynamo` is supported.
     """
     reasons = []
-    kwargs = {}
+    kwargs = {}  # used in conftest.py::pytest_collection_modifyitems
 
     if min_cuda_gpus and num_cuda_devices() < min_cuda_gpus:
         reasons.append(f"GPUs>={min_cuda_gpus}")
-        # used in conftest.py::pytest_collection_modifyitems
         kwargs["min_cuda_gpus"] = True
 
     # set use_base_version for nightly support
@@ -96,7 +95,6 @@ def _RunIf(
 
     if tpu and not TPUAccelerator.is_available():
         reasons.append("TPU")
-        # used in conftest.py::pytest_collection_modifyitems
         kwargs["tpu"] = True
 
     if mps is not None:
@@ -107,7 +105,6 @@ def _RunIf(
 
     if standalone and os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
         reasons.append("Standalone execution")
-        # used in conftest.py::pytest_collection_modifyitems
         kwargs["standalone"] = True
 
     if deepspeed and not _DEEPSPEED_AVAILABLE:
