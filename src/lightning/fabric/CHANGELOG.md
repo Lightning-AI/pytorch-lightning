@@ -39,7 +39,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `lightning.fabric.strategies.Strategy.init_context()` context manager to control the model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
   * Calls `lightning.fabric.plugins.Precision.init_context()`
-  * Initializes empty weights on the meta device with the FSDP strategy, or on the root device for otherwise
+  * Initializes empty weights on the root device.
 
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
 

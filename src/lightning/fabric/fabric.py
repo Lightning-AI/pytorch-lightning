@@ -832,7 +832,7 @@ class Fabric:
         if isinstance(self._strategy, FSDPStrategy) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
+                " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
                 " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
             )
 

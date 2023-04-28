@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import os
-from contextlib import _GeneratorContextManager, contextmanager, nullcontext
+from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -46,7 +46,6 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
@@ -247,18 +246,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def init_context(self) -> Generator[None, None, None]:
-        if not _TORCH_GREATER_EQUAL_2_0 and self.root_device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly with"
-                " PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
-            device_context = nullcontext()
-        else:
-            # this could check whether we are sharding and then select meta only in that case
-            device_context = torch.device("meta")  # type: ignore[assignment]
-        with device_context, self.precision.init_context():
+        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
+        # is resolved. For now, the module will get moved to the device in `setup_module`.
+        with self.precision.module_init_context():
             yield
 
     @contextmanager

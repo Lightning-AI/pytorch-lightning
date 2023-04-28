@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -152,3 +153,19 @@ def test_init_context(precision, expected_dtype):
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(init_process_group_mock):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    strategy = DDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+    process_group_backend = strategy._get_process_group_backend()
+    global_rank = strategy.cluster_environment.global_rank()
+    world_size = strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )
