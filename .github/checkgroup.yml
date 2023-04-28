@@ -79,31 +79,6 @@ subprojects:
     checks:
       - "pytorch-lightning.Benchmark"
 
-  # TODO: enable IPU again once machine is ready
-  #- id: "pytorch_lightning: Azure IPU"
-  #  paths:
-  #    - ".actions/**"
-  #    - ".azure/ipu-tests.yml"
-  #    - "requirements/fabric/**"
-  #    - "src/lightning/__about__.py"
-  #    - "src/lightning/__init__.py"
-  #    - "src/lightning/__main__.py"
-  #    - "src/lightning/__setup__.py"
-  #    - "src/lightning/__version__.py"
-  #    - "src/lightning/fabric/**"
-  #    - "src/lightning_fabric/*"
-  #    - "requirements/pytorch/**"
-  #    - "src/lightning/pytorch/**"
-  #    - "src/pytorch_lightning/*"
-  #    - "tests/tests_pytorch/**"
-  #    - "pyproject.toml"  # includes pytest config
-  #    - "!requirements/docs.txt"
-  #    - "!requirements/*/docs.txt"
-  #    - "!*.md"
-  #    - "!**/*.md"
-  #  checks:
-  #    - "pytorch-lightning (IPUs)"
-
   - id: "pytorch-lightning: TPU workflow"
     paths:
       # tpu CI availability is very limited, so we only require tpu tests
@@ -164,7 +139,6 @@ subprojects:
       - "build-cuda (3.9, 1.12, 11.6.1)"
       - "build-cuda (3.9, 1.13, 11.7.1)"
       - "build-cuda (3.10, 2.0, 11.7.1)"
-      - "build-ipu (3.8, 1.13)"
       - "build-NGC"
       - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.6.1)"
