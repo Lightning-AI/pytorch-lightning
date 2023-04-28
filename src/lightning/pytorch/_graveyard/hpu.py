@@ -14,7 +14,6 @@ def _patch_sys_modules() -> None:
 
 
 class HPUAccelerator:
-
     auto_device_count = ...
     get_parallel_devices = ...
     is_available = ...
@@ -32,8 +31,6 @@ class HPUAccelerator:
 
 
 class HPUParallelStrategy:
-    """Strategy for distributed training on multiple HPU devices."""
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUParallelStrategy` class has been moved to an external package."
@@ -50,8 +47,6 @@ class HPUParallelStrategy:
 
 
 class SingleHPUStrategy:
-    """Strategy for training on single HPU device."""
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `SingleHPUStrategy` class has been moved to an external package."
@@ -62,8 +57,6 @@ class SingleHPUStrategy:
 
 
 class HPUCheckpointIO:
-    """CheckpointIO to save checkpoints for HPU training strategies."""
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUCheckpointIO` class has been moved to an external package."
@@ -74,8 +67,6 @@ class HPUCheckpointIO:
 
 
 class HPUPrecisionPlugin:
-    """Plugin that enables bfloat/half support on HPUs."""
-
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "The `HPUPrecisionPlugin` class has been moved to an external package."

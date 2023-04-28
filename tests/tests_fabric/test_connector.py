@@ -30,7 +30,7 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, MixedPrecision, Precision, TPUPrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -277,7 +277,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
-@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         _Connector(accelerator=accelerator, strategy=strategy)
@@ -763,6 +763,22 @@ def test_gpu_accelerator_no_gpu_backend_found_error(*_):
 def test_ddp_fork_on_unsupported_platform(_, __, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         _Connector(strategy=strategy)
+
+
+@pytest.mark.parametrize(
+    "precision_str,precision_cls",
+    [
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("bf16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+        ("bf16-mixed", MixedPrecision),
+    ],
+)
+def test_precision_selection(precision_str, precision_cls):
+    connector = _Connector(precision=precision_str)
+    assert isinstance(connector.precision, precision_cls)
 
 
 def test_precision_selection_16_on_cpu_warns():

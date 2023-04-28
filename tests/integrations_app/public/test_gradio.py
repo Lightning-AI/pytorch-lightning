@@ -6,11 +6,9 @@ from unittest.mock import ANY
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "1"})
 @mock.patch("lightning.app.components.serve.gradio_server.gradio")
 def test_serve_gradio(gradio_mock):
-
     from lightning.app.components.serve.gradio_server import ServeGradio
 
     class MyGradioServe(ServeGradio):
-
         inputs = gradio_mock.inputs.Image(type="pil")
         outputs = gradio_mock.outputs.Image(type="pil")
         examples = [["./examples/app/components/serve/gradio/beyonce.png"]]

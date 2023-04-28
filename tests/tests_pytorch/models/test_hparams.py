@@ -482,7 +482,6 @@ class AnotherArgModel(BoringModel):
 
 class OtherArgsModel(BoringModel):
     def __init__(self, arg1, arg2):
-
         super().__init__()
         self.save_hyperparameters(arg1, arg2)
 
@@ -590,7 +589,6 @@ class NoArgsSubClassBoringModel(CustomBoringModel):
 @pytest.mark.parametrize("cls", [BoringModel, NoArgsSubClassBoringModel])
 def test_model_nohparams_train_test(tmpdir, cls):
     """Test models that do not take any argument in init."""
-
     model = cls()
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
 
@@ -813,7 +811,6 @@ def test_hparams_name_from_container(tmpdir):
 
 @dataclass
 class DataClassModel(BoringModel):
-
     mandatory: int
     optional: str = "optional"
     ignore_me: bool = False

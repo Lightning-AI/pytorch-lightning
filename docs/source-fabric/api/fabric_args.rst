@@ -123,13 +123,19 @@ This can result in improved performance, achieving significant speedups on moder
     # the same as:
     fabric = Fabric(precision="32", devices=1)
 
-    # 16-bit (mixed) precision
+    # 16-bit mixed precision (model weights remain in torch.float32)
     fabric = Fabric(precision="16-mixed", devices=1)
 
-    # 16-bit bfloat precision
+    # 16-bit bfloat mixed precision (model weights remain in torch.float32)
     fabric = Fabric(precision="bf16-mixed", devices=1)
 
-    # 64-bit (double) precision
+    # 16-bit precision (model weights get cast to torch.float16)
+    fabric = Fabric(precision="16-true", devices=1)
+
+    # 16-bit bfloat precision (model weights get cast to torch.bfloat16)
+    fabric = Fabric(precision="bf16-true", devices=1)
+
+    # 64-bit (double) precision (model weights get cast to torch.float64)
     fabric = Fabric(precision="64-true", devices=1)
 
 See also: :doc:`../fundamentals/precision`

@@ -32,7 +32,7 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import IPUAccelerator, TPUAccelerator
+from lightning.pytorch.accelerators import TPUAccelerator
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
@@ -43,7 +43,6 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
-    IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     XLAStrategy,
@@ -52,9 +51,12 @@ from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_HABANA_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
+
+if _LIGHTNING_GRAPHCORE_AVAILABLE:
+    from lightning_graphcore import IPUAccelerator, IPUStrategy
 
 if _LIGHTNING_HABANA_AVAILABLE:
     from lightning_habana import HPUAccelerator, SingleHPUStrategy
@@ -380,7 +382,6 @@ def test_device_type_when_strategy_instance_gpu_passed(cuda_count_2, mps_count_0
 
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
-
     with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
@@ -556,17 +557,12 @@ def test_unsupported_tpu_choice(tpu_available):
 
 
 def mock_ipu_available(monkeypatch, value=True):
-    monkeypatch.setattr(lightning.pytorch.accelerators.ipu, "_IPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.ipu, "_IPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.trainer.setup, "_IPU_AVAILABLE", value)
-
-
-def test_unsupported_ipu_choice(monkeypatch):
-    mock_ipu_available(monkeypatch)
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16-mixed'\)` is not supported"):
-        Trainer(accelerator="ipu", precision="bf16-mixed")
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64-true'\)` is not supported"):
-        Trainer(accelerator="ipu", precision="64-true")
+    try:
+        import lightning_graphcore
+    except ModuleNotFoundError:
+        return
+    monkeypatch.setattr(lightning_graphcore.accelerator, "_IPU_AVAILABLE", value)
+    monkeypatch.setattr(lightning_graphcore.strategy, "_IPU_AVAILABLE", value)
 
 
 def mock_hpu_available(monkeypatch, value=True):
@@ -583,6 +579,7 @@ def mock_hpu_available(monkeypatch, value=True):
 
 
 def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
+    mock_hpu_available(monkeypatch, False)
     mock_ipu_available(monkeypatch, False)
     mock_xla_available(monkeypatch, False)
     trainer = Trainer(accelerator="auto", devices="auto")
@@ -703,7 +700,7 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
         Trainer(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu", "ipu"))
+@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu"))
 @pytest.mark.parametrize("devices", ("0", 0, []))
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
@@ -930,17 +927,18 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher.is_interactive_compatible
 
     # Single/Multi IPU: strategy is the same
-    with monkeypatch.context():
-        mock_cuda_count(monkeypatch, 0)
-        mock_mps_count(monkeypatch, 0)
-        mock_tpu_available(monkeypatch, False)
-        mock_ipu_available(monkeypatch, True)
-        connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, IPUAccelerator)
-    assert isinstance(connector.strategy, IPUStrategy)
-    assert connector._devices_flag == 4
-    assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
-    assert connector.strategy.launcher is None
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        with monkeypatch.context():
+            mock_cuda_count(monkeypatch, 0)
+            mock_mps_count(monkeypatch, 0)
+            mock_tpu_available(monkeypatch, False)
+            mock_ipu_available(monkeypatch, True)
+            connector = _AcceleratorConnector()
+        assert isinstance(connector.accelerator, IPUAccelerator)
+        assert isinstance(connector.strategy, IPUStrategy)
+        assert connector._devices_flag == 4
+        assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+        assert connector.strategy.launcher is None
 
     # Single HPU
     if _LIGHTNING_HABANA_AVAILABLE:
