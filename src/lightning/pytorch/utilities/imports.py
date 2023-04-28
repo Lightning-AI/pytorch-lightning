@@ -30,11 +30,3 @@ _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 _LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
 _LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
-
-_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
-if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_available
-
-    _HPU_AVAILABLE = is_habana_available()
-else:
-    _HPU_AVAILABLE = False
