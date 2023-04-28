@@ -184,4 +184,3 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
-
