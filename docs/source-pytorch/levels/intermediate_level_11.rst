@@ -1,10 +1,10 @@
 :orphan:
 
-#########################################
-Level 11: Explore SOTA scaling techniques
-#########################################
+############################
+Level 11: Deploy your models
+############################
 
-In this level you'll explore SOTA techniques to help convergence, stability and scalability.
+In this level you'll learn a few options for deploying models into production.
 
 ----
 
@@ -16,20 +16,29 @@ In this level you'll explore SOTA techniques to help convergence, stability and 
 .. Add callout items below this line
 
 .. displayitem::
-   :header: 1: Half precision training
-   :description: Enable your models to train faster and save memory with different floating-point precision settings.
-   :col_css: col-md-6
-   :button_link: ../common/precision_basic.html
-   :height: 150
-   :tag: basic
+   :header: Deploy with ONNX
+   :description: Optimize models for enterprise-scale production environments with ONNX.
+   :col_css: col-md-4
+   :button_link: ../deploy/production_advanced.html
+   :height: 180
+   :tag: advanced
 
 .. displayitem::
-   :header: 2: SOTA scaling techniques
-   :description: Enable techniques to help scaling and convergence.
-   :col_css: col-md-6
-   :button_link: ../advanced/training_tricks.html
-   :height: 150
-   :tag: basic
+   :header: Deploy with torchscript
+   :description: Optimize models for enterprise-scale production environments with torchscript.
+   :col_css: col-md-4
+   :button_link: ../deploy/production_advanced_2.html
+   :height: 180
+   :tag: advanced
+
+.. displayitem::
+   :header: Compress models for fast inference
+   :description: Compress model size for deployment with Quantization and Pruning.
+   :col_css: col-md-4
+   :button_link: ../advanced/pruning_quantization.html
+   :height: 180
+   :tag: advanced
+
 
 .. raw:: html
 

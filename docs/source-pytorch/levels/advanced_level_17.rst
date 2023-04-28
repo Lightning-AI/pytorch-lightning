@@ -1,10 +1,10 @@
 :orphan:
 
-###############################
-Level 17: Own the training loop
-###############################
+#######################################
+Level 17: Enable advanced checkpointing
+#######################################
 
-Learn all the ways of owning your raw PyTorch loops with Lighting.
+This level shows you how to enable composable and/or cloud based checkpoints.
 
 ----
 
@@ -16,10 +16,18 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Enable manual optimization
-   :description: Gain control of the training loop with manual optimization and LightningModule methods.
-   :col_css: col-md-4
-   :button_link: ../model/build_model_advanced.html
+   :header: Enable composable and cloud checkpoints
+   :description: Enable cloud-based checkpointing and composable checkpoints.
+   :col_css: col-md-6
+   :button_link: ../common/checkpointing_advanced.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Explore remote filesystems
+   :description: Explore advanced cloud checkpointing features.
+   :col_css: col-md-6
+   :button_link: ../common/remote_fs.html
    :height: 150
    :tag: advanced
 

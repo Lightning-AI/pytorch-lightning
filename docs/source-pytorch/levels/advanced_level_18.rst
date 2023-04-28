@@ -1,10 +1,10 @@
 :orphan:
 
-#######################################
-Level 18: Enable advanced checkpointing
-#######################################
+######################
+Level 18: Explore IPUs
+######################
 
-This level shows you how to enable composable and/or cloud based checkpoints.
+Explore Intelligence Processing Unit (IPU) for model scaling.
 
 ----
 
@@ -16,20 +16,28 @@ This level shows you how to enable composable and/or cloud based checkpoints.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Enable composable and cloud checkpoints
-   :description: Enable cloud-based checkpointing and composable checkpoints.
-   :col_css: col-md-6
-   :button_link: ../common/checkpointing_advanced.html
+   :header: Prepare your code (Optional)
+   :description: Prepare your code to run on any hardware.
+   :col_css: col-md-4
+   :button_link: ../accelerators/accelerator_prepare.html
    :height: 150
-   :tag: advanced
+   :tag: basic
 
 .. displayitem::
-   :header: Explore remote filesystems
-   :description: Explore advanced cloud checkpointing features.
-   :col_css: col-md-6
-   :button_link: ../common/remote_fs.html
+   :header: Train models on IPUs
+   :description: Learn the basics of single and multi-IPU training.
+   :col_css: col-md-4
+   :button_link: ../accelerators/ipu_basic.html
    :height: 150
-   :tag: advanced
+   :tag: basic
+
+.. displayitem::
+   :header: Optimize models training on IPUs
+   :description: Tune model performance with mix-precision and the performance analyser.
+   :col_css: col-md-4
+   :button_link: ../accelerators/ipu_intermediate.html
+   :height: 150
+   :tag: intermediate
 
 .. raw:: html
 

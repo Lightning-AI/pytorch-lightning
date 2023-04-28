@@ -1,10 +1,10 @@
 :orphan:
 
-############################
-Level 12: Deploy your models
-############################
+#################################
+Level 12: Optimize training speed
+#################################
 
-In this level you'll learn a few options for deploying models into production.
+In this level you'll use advanced profilers and mixed precision techniques to train bigger models faster.
 
 ----
 
@@ -16,29 +16,28 @@ In this level you'll learn a few options for deploying models into production.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Deploy with ONNX
-   :description: Optimize models for enterprise-scale production environments with ONNX.
+   :header: Explore advanced mixed precision settings
+   :description: Enable state-of-the-art scaling with advanced mix-precision settings.
    :col_css: col-md-4
-   :button_link: ../deploy/production_advanced.html
-   :height: 180
-   :tag: advanced
+   :button_link: ../common/precision_intermediate.html
+   :height: 150
+   :tag: intermediate
 
 .. displayitem::
-   :header: Deploy with torchscript
-   :description: Optimize models for enterprise-scale production environments with torchscript.
+   :header: Enable advanced profilers
+   :description: Tune model performance with profilers.
    :col_css: col-md-4
-   :button_link: ../deploy/production_advanced_2.html
-   :height: 180
-   :tag: advanced
+   :button_link: ../tuning/profiler_basic.html
+   :height: 150
+   :tag: intermediate
 
 .. displayitem::
-   :header: Compress models for fast inference
-   :description: Compress model size for deployment with Quantization and Pruning.
+   :header: Profile PyTorch operations
+   :description: Learn to find bottlenecks in PyTorch operations.
    :col_css: col-md-4
-   :button_link: ../advanced/pruning_quantization.html
-   :height: 180
-   :tag: advanced
-
+   :button_link: ../tuning/profiler_intermediate.html
+   :height: 150
+   :tag: intermediate
 
 .. raw:: html
 

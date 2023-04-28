@@ -1,10 +1,10 @@
 :orphan:
 
-#################################
-Level 9: Modularize your projects
-#################################
+###############################
+Level 9: Understand your model
+###############################
 
-This module teaches you how to setup complex projects that can be controlled via the CLI.
+Find the best model using advanced visualizations for deeper insights.
 
 ----
 
@@ -16,28 +16,28 @@ This module teaches you how to setup complex projects that can be controlled via
 .. Add callout items below this line
 
 .. displayitem::
-   :header: 1: Modularize your datasets
-   :description: Reuse datasets across models by using DataModules
+   :header: 1: Alter checkpoint behavior
+   :description: Learn to monitor metrics and enable checkpointing by condition.
    :col_css: col-md-4
-   :button_link: ../data/datamodule.html
+   :button_link: ../common/checkpointing_intermediate.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: 2: Control it all from the CLI
-   :description: Learn to control a LightningModule and LightningDataModule from the CLI
+   :header: 2: Visualize more than metrics
+   :description: Use advanced visualization techniques provided by experiment managers.
    :col_css: col-md-4
-   :button_link: ../cli/lightning_cli_intermediate.html
+   :button_link: ../visualize/logging_intermediate.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: 3: Mix models and datasets
-   :description: Register models, datasets, optimizers and learning rate schedulers
+   :header: 3: Granular control of logging
+   :description: Gain granular control over logging to optimize for speed.
    :col_css: col-md-4
-   :button_link: ../cli/lightning_cli_intermediate_2.html
+   :button_link: ../visualize/logging_advanced.html
    :height: 150
-   :tag: intermediate
+   :tag: advanced
 
 .. raw:: html
 

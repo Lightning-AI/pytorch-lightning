@@ -1,10 +1,10 @@
 :orphan:
 
 ###############################
-Level 16: Customize the trainer
+Level 16: Own the training loop
 ###############################
 
-In this level, you'll learn to modify the Trainer behavior.
+Learn all the ways of owning your raw PyTorch loops with Lighting.
 
 ----
 
@@ -16,18 +16,10 @@ In this level, you'll learn to modify the Trainer behavior.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Create and use Callbacks
-   :description: Modify Trainer behavior with reusable, self-contained code.
-   :col_css: col-md-6
-   :button_link: ../extensions/callbacks.html
-   :height: 150
-   :tag: advanced
-
-.. displayitem::
-   :header: Customize the progress bar
-   :description: Create beautiful custom progress bars.
-   :col_css: col-md-6
-   :button_link: ../common/progress_bar.html
+   :header: Enable manual optimization
+   :description: Gain control of the training loop with manual optimization and LightningModule methods.
+   :col_css: col-md-4
+   :button_link: ../model/build_model_advanced.html
    :height: 150
    :tag: advanced
 

@@ -1,10 +1,10 @@
 :orphan:
 
-###############################
-Level 10: Understand your model
-###############################
+#########################################
+Level 10: Explore SOTA scaling techniques
+#########################################
 
-Find the best model using advanced visualizations for deeper insights.
+In this level you'll explore SOTA techniques to help convergence, stability and scalability.
 
 ----
 
@@ -16,28 +16,20 @@ Find the best model using advanced visualizations for deeper insights.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: 1: Alter checkpoint behavior
-   :description: Learn to monitor metrics and enable checkpointing by condition.
-   :col_css: col-md-4
-   :button_link: ../common/checkpointing_intermediate.html
+   :header: 1: Half precision training
+   :description: Enable your models to train faster and save memory with different floating-point precision settings.
+   :col_css: col-md-6
+   :button_link: ../common/precision_basic.html
    :height: 150
-   :tag: intermediate
+   :tag: basic
 
 .. displayitem::
-   :header: 2: Visualize more than metrics
-   :description: Use advanced visualization techniques provided by experiment managers.
-   :col_css: col-md-4
-   :button_link: ../visualize/logging_intermediate.html
+   :header: 2: SOTA scaling techniques
+   :description: Enable techniques to help scaling and convergence.
+   :col_css: col-md-6
+   :button_link: ../advanced/training_tricks.html
    :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: 3: Granular control of logging
-   :description: Gain granular control over logging to optimize for speed.
-   :col_css: col-md-4
-   :button_link: ../visualize/logging_advanced.html
-   :height: 150
-   :tag: advanced
+   :tag: basic
 
 .. raw:: html
 

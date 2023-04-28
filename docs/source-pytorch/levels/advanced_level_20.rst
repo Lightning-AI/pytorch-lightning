@@ -1,10 +1,10 @@
 :orphan:
 
-######################
-Level 19: Explore HPUs
-######################
+#####################
+Level 20: Master TPUs
+#####################
 
-Explore Intel Habana Processing Unit (HPU) for model scaling.
+Master cloud TPU training with profiling and scaling techniques.
 
 ----
 
@@ -16,20 +16,28 @@ Explore Intel Habana Processing Unit (HPU) for model scaling.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Train models on HPUs
-   :description: Learn the basics of single and multi-HPU core training.
-   :col_css: col-md-6
-   :button_link: ../accelerators/hpu_basic.html
-   :height: 150
-   :tag: basic
+   :header: Run on cloud TPUs
+   :description: Scale massive models using cloud TPUs.
+   :col_css: col-md-4
+   :button_link: ../accelerators/tpu_intermediate.html
+   :height: 180
+   :tag: intermediate
 
 .. displayitem::
-   :header: Optimize models training on HPUs
-   :description: Enable state-of-the-art scaling with advanced mix-precision settings.
-   :col_css: col-md-6
-   :button_link: ../accelerators/hpu_intermediate.html
-   :height: 150
-   :tag: intermediate
+   :header: Explore advanced TPU scaling techniques
+   :description: Dive into XLA and advanced techniques to optimize TPU-powered models.
+   :col_css: col-md-4
+   :button_link: ../accelerators/tpu_advanced.html
+   :height: 180
+   :tag: advanced
+
+.. displayitem::
+   :header: Profile TPU code
+   :description: Learn to profile TPU code.
+   :col_css: col-md-4
+   :button_link: ../tuning/profiler_advanced.html
+   :height: 180
+   :tag: advanced
 
 .. raw:: html
 
