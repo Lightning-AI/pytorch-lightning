@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import os
-from contextlib import _GeneratorContextManager, contextmanager, nullcontext
+from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -246,8 +246,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
-        device_context = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.module_init_context(), self.module_sharded_context():
+        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
+        # is resolved. For now, the module will get moved to the device in `setup_module`.
+        with self.precision.module_init_context(), self.module_sharded_context():
             yield
 
     @contextmanager
