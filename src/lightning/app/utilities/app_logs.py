@@ -55,7 +55,7 @@ def _push_log_events_to_read_queue_callback(component_name: str, read_queue: que
     def callback(ws_app: WebSocketApp, msg: str):
         # We strongly trust that the contract on API will hold atm :D
         event_dict = json.loads(msg)
-        labels = _LogEventLabels(**event_dict["labels"])
+        labels = _LogEventLabels(**event_dict.get("labels", {}))
 
         if "message" in event_dict:
             message = event_dict["message"]
