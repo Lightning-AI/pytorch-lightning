@@ -14,9 +14,8 @@
 import operator
 import os
 import sys
-from typing import Any, Optional
+from typing import Dict, List, Optional, Tuple
 
-import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
@@ -29,7 +28,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
 def _RunIf(
-    *args: Any,
+    *,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,
     max_torch: Optional[str] = None,
@@ -41,19 +40,9 @@ def _RunIf(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
-    **kwargs: Any,
-) -> Any:  # not the real return because it would require that pytest is available
-    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
-
-    Example::
-
-        @RunIf(min_torch="0.0")
-        @pytest.mark.parametrize("arg1", [1, 2.0])
-        def test_wrapper(arg1):
-            assert arg1 > 0.0
-
+) -> Tuple[List[str], Dict]:
+    """
     Args:
-        *args: Any :class:`pytest.mark.skipif` arguments.
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
@@ -67,31 +56,27 @@ def _RunIf(
             This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
         deepspeed: Require that microsoft/DeepSpeed is installed.
         dynamo: Require that `torch.dynamo` is supported.
-        **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
     """
-    conditions = []
     reasons = []
+    kwargs = {}
 
-    if min_cuda_gpus:
-        conditions.append(num_cuda_devices() < min_cuda_gpus)
+    if min_cuda_gpus and num_cuda_devices() < min_cuda_gpus:
         reasons.append(f"GPUs>={min_cuda_gpus}")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["min_cuda_gpus"] = True
 
-    if min_torch:
-        # set use_base_version for nightly support
-        conditions.append(compare_version("torch", operator.lt, min_torch, use_base_version=True))
+    # set use_base_version for nightly support
+    if min_torch and compare_version("torch", operator.lt, min_torch, use_base_version=True):
         reasons.append(f"torch>={min_torch}, {torch.__version__} installed")
 
-    if max_torch:
-        # set use_base_version for nightly support
-        conditions.append(compare_version("torch", operator.ge, max_torch, use_base_version=True))
+    # set use_base_version for nightly support
+    if max_torch and compare_version("torch", operator.ge, max_torch, use_base_version=True):
         reasons.append(f"torch<{max_torch}, {torch.__version__} installed")
 
     if min_python:
         py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-        conditions.append(Version(py_version) < Version(min_python))
-        reasons.append(f"python>={min_python}")
+        if Version(py_version) < Version(min_python):
+            reasons.append(f"python>={min_python}")
 
     if bf16_cuda:
         try:
@@ -103,37 +88,29 @@ def _RunIf(
             if is_unrelated:
                 raise ex
             cond = True
+        if cond:
+            reasons.append("CUDA device bf16")
 
-        conditions.append(cond)
-        reasons.append("CUDA device bf16")
-
-    if skip_windows:
-        conditions.append(sys.platform == "win32")
+    if skip_windows and sys.platform == "win32":
         reasons.append("unimplemented on Windows")
 
-    if tpu:
-        conditions.append(not TPUAccelerator.is_available())
+    if tpu and not TPUAccelerator.is_available():
         reasons.append("TPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["tpu"] = True
 
     if mps is not None:
-        if mps:
-            conditions.append(not MPSAccelerator.is_available())
+        if mps and not MPSAccelerator.is_available():
             reasons.append("MPS")
-        else:
-            conditions.append(MPSAccelerator.is_available())
+        elif not mps and MPSAccelerator.is_available():
             reasons.append("not MPS")
 
-    if standalone:
-        env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
-        conditions.append(env_flag != "1")
+    if standalone and os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
         reasons.append("Standalone execution")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["standalone"] = True
 
-    if deepspeed:
-        conditions.append(not _DEEPSPEED_AVAILABLE)
+    if deepspeed and not _DEEPSPEED_AVAILABLE:
         reasons.append("Deepspeed")
 
     if dynamo:
@@ -143,15 +120,9 @@ def _RunIf(
             cond = not is_dynamo_supported()
         else:
             cond = sys.platform == "win32" or sys.version_info >= (3, 11)
-
         # set use_base_version for nightly support
         cond |= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
-        conditions.append(cond)
-        reasons.append("torch.dynamo")
+        if cond:
+            reasons.append("torch.dynamo")
 
-    reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
-    kwargs.pop("condition", None)
-    kwargs.pop("reason", None)
-    return pytest.mark.skipif(  # type: ignore[misc]
-        *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
-    )
+    return reasons, kwargs
