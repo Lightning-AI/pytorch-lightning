@@ -21,6 +21,7 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from packaging.version import Version
 
 from lightning.fabric.accelerators.cuda import num_cuda_devices
+from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
@@ -40,6 +41,7 @@ def _RunIf(
     min_python: Optional[str] = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
+    xla: bool = False,
     ipu: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
@@ -67,7 +69,8 @@ def _RunIf(
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
         bf16_cuda: Require that CUDA device supports bf16.
-        tpu: Require that TPU is available.
+        tpu: Require that a TPU device is available.
+        xla: Require that torch/XLA is installed.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
@@ -131,6 +134,12 @@ def _RunIf(
         reasons.append("TPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["tpu"] = True
+
+    if xla:
+        conditions.append(not _XLA_AVAILABLE)
+        reasons.append("XLA")
+        # used in conftest.py::pytest_collection_modifyitems
+        kwargs["xla"] = True
 
     if ipu:
         conditions.append(not _IPU_AVAILABLE)

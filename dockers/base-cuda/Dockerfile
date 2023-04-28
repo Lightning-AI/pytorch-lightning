@@ -97,7 +97,12 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" && \
+    if [ "$PYTHON_VERSION" = "3.8" ]; then \
+      # XLA only provides wheel for python 3.8
+      pip install \
+        "https://storage.googleapis.com/tpu-pytorch/wheels/cuda/${CUDA_VERSION_MM//'.'/''}/torch_xla-${PYTORCH_VERSION}-cp38-cp38-linux_x86_64.whl" \
+    fi
 
 RUN \
     # Show what we have

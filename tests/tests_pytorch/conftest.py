@@ -189,6 +189,9 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
 @pytest.fixture(scope="function")
@@ -202,9 +205,6 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
-    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
 @pytest.fixture(scope="function")
@@ -282,18 +282,19 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     filtered, skipped = 0, 0
 
     options = {
-        "standalone": "PL_RUN_STANDALONE_TESTS",
-        "min_cuda_gpus": "PL_RUN_CUDA_TESTS",
-        "tpu": "PL_RUN_TPU_TESTS",
+        # if $key is set, we only run the tests that have at least one of $values
+        "PL_RUN_STANDALONE_TESTS": ("standalone",),
+        "PL_RUN_CUDA_TESTS": ("min_cuda_gpus", "xla"),
+        "PL_RUN_TPU_TESTS": ("tpu", "xla"),
     }
-    if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
+    if os.getenv("PL_RUN_STANDALONE_TESTS") == "1" and os.getenv("PL_RUN_CUDA_TESTS") == "1":
         # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.
         # by deleting the key, we avoid filtering out the CPU tests
-        del options["min_cuda_gpus"]
+        del options["PL_RUN_CUDA_TESTS"]
 
-    for kwarg, env_var in options.items():
+    for env_var, runif_kwargs in options.items():
         # this will compute the intersection of all tests selected per environment variable
-        if os.getenv(env_var, "0") == "1":
+        if os.getenv(env_var) == "1":
             conditions.append(env_var)
             for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
                 already_skipped = any(marker.name == "skip" for marker in test.own_markers)
@@ -303,7 +304,8 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
                     skipped += 1
                     continue
                 has_runif_with_kwarg = any(
-                    marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
+                    marker.name == "skipif" and any(kwarg in marker.kwargs for kwarg in runif_kwargs)
+                    for marker in test.own_markers
                 )
                 if not has_runif_with_kwarg:
                     # the test has `@RunIf(kwarg=True)`, filter it out
