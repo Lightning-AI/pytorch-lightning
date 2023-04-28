@@ -130,7 +130,7 @@ def _RunIf(
         reasons.append("unimplemented on Windows")
 
     if tpu:
-        conditions.append(not TPUAccelerator.is_available())
+        conditions.append(not _XLA_AVAILABLE or TPUAccelerator._device_type() != "TPU")
         reasons.append("TPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["tpu"] = True

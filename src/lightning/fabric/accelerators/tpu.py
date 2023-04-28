@@ -87,6 +87,13 @@ class TPUAccelerator(Accelerator):
     def is_available() -> bool:
         return TPUAccelerator.auto_device_count() > 0
 
+    @staticmethod
+    def _device_type() -> str:
+        import torch_xla.core.xla_env_vars as xenv
+        from torch_xla.utils.utils import getenv_as
+
+        return getenv_as(xenv.PJRT_DEVICE, "TPU")
+
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
