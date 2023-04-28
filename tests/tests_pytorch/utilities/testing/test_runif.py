@@ -1,6 +1,6 @@
 import pytest
 
-from tests.tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_torch="99")

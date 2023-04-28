@@ -1,6 +1,6 @@
 import pytest
 
-from tests.tests_fabric.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(min_torch="99")
