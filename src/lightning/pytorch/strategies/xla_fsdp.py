@@ -152,6 +152,20 @@ class XLAFSDPStrategy(XLAStrategy):
             else:
                 raise e
 
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        **kwargs: Any,
+    ) -> Any:
+        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
+        Performs the actual optimizer step.
+
+        Args:
+            optimizer: the optimizer performing the step
+            **kwargs: Any extra arguments to ``optimizer.step``
+        """
+        return optimizer.step(**kwargs)
+
     def reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
     ) -> Tensor:
