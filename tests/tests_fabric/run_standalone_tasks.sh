@@ -27,7 +27,7 @@ do
   python -m parity.test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02
   if [ $? -eq 0 ]; then break; fi
 done
-if [ $? -ne 0 ]; then exit 1; fi
+if [ $? -ne 0 ]; then echo "failed"; exit 1; fi
 
 
 #for i in {1..3}
