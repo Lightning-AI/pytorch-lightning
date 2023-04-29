@@ -230,6 +230,7 @@ def _unwrap_objects(collection: Any) -> Any:
     types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
     if _TORCH_GREATER_EQUAL_2_0:
         from torch._dynamo import OptimizedModule
+
         types.append(OptimizedModule)
 
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
