@@ -413,7 +413,7 @@ def test_unwrap_objects(compile):
         "wrapped_optimizer": wrapped_optimizer,
         "dataloader": dataloader,
         "wrapped_dataloader": wrapped_dataloader,
-        # "nested": [module, wrapped_module, optimizer, wrapped_optimizer, dataloader, wrapped_dataloader],
+        "nested": [module, wrapped_module, optimizer, wrapped_optimizer, dataloader, wrapped_dataloader],
     }
     expected = {
         "int": 1,
@@ -423,7 +423,7 @@ def test_unwrap_objects(compile):
         "wrapped_optimizer": optimizer,
         "dataloader": dataloader,
         "wrapped_dataloader": dataloader,
-        # "nested": [module, wrapped_module._forward_module, optimizer, optimizer, dataloader, dataloader],
+        "nested": [module, wrapped_module._forward_module, optimizer, optimizer, dataloader, dataloader],
     }
     assert _unwrap_objects(container) == expected
 
