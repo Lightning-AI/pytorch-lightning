@@ -24,7 +24,7 @@ from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped, _unwrap_objects
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -389,6 +389,43 @@ def test_is_wrapped():
     assert not is_wrapped(dataloader)
     wrapped = _FabricDataLoader(dataloader)
     assert is_wrapped(wrapped)
+
+
+@pytest.mark.parametrize("compile", [False, pytest.param(True, marks=RunIf(dynamo=True))])
+def test_unwrap_objects(compile):
+    # empty container
+    assert _unwrap_objects({}) == {}
+
+    # container with pure objects and wrapped objects
+    module = torch.nn.Linear(1, 1)
+    wrapped_module = _FabricModule(module, Mock())
+    if compile:
+        wrapped_module = torch.compile(wrapped_module)
+    optimizer = torch.optim.Adam(module.parameters())
+    wrapped_optimizer = _FabricOptimizer(optimizer, Mock())
+    dataloader = DataLoader([1, 2, 3])
+    wrapped_dataloader = _FabricDataLoader(dataloader)
+    container = {
+        "int": 1,
+        "module": module,
+        "wrapped_module": wrapped_module,
+        "optimizer": optimizer,
+        "wrapped_optimizer": wrapped_optimizer,
+        "dataloader": dataloader,
+        "wrapped_dataloader": wrapped_dataloader,
+        # "nested": [module, wrapped_module, optimizer, wrapped_optimizer, dataloader, wrapped_dataloader],
+    }
+    expected = {
+        "int": 1,
+        "module": module,
+        "wrapped_module": wrapped_module._forward_module,
+        "optimizer": optimizer,
+        "wrapped_optimizer": optimizer,
+        "dataloader": dataloader,
+        "wrapped_dataloader": dataloader,
+        # "nested": [module, wrapped_module._forward_module, optimizer, optimizer, dataloader, dataloader],
+    }
+    assert _unwrap_objects(container) == expected
 
 
 def test_step_method_redirection():

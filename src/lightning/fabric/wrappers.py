@@ -219,8 +219,7 @@ def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        obj = _unwrap_compiled(obj)  # the _FabricModule may be wrapped in an OptimizedModule
-        if isinstance(obj, _FabricModule):
+        if isinstance(_unwrap_compiled(obj), _FabricModule):
             return obj._forward_module
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
@@ -228,7 +227,12 @@ def _unwrap_objects(collection: Any) -> Any:
             return obj._dataloader
         return obj
 
-    return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
+    types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch._dynamo import OptimizedModule
+        types.append(OptimizedModule)
+
+    return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
 def _unwrap_compiled(obj: Any) -> Any:
