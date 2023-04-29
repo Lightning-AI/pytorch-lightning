@@ -98,7 +98,7 @@ def test_upgrade_checkpoint_map_location(_, __, load_mock, tmp_path):
     file.touch()
     with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]):
         upgrade_main()
-    assert load_mock.call_args[1]["map_location"] == None
+    assert load_mock.call_args[1]["map_location"] is None
     load_mock.reset_mock()
     with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file), "--map-to-cpu"]):
         upgrade_main()
