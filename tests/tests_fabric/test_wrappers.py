@@ -359,7 +359,8 @@ def test_fabric_optimizer_zero_grad_kwargs():
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
 
 
-def test_is_wrapped():
+@pytest.mark.parametrize("compile", [False, pytest.param(True, marks=RunIf(dynamo=True))])
+def test_is_wrapped(compile):
     """Test that the `is_wrapped` utility recognizes when an object was wrapped by Fabric."""
     assert not is_wrapped(None)
 
@@ -370,7 +371,7 @@ def test_is_wrapped():
     assert is_wrapped(wrapped)
 
     # _FabricModule inside an OptimizedModule
-    if _TORCH_GREATER_EQUAL_2_0:
+    if compile:
         from torch._dynamo import OptimizedModule
 
         module = torch.nn.Linear(2, 2)
