@@ -16,7 +16,7 @@ import os
 from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union, Literal
+from typing import Any, Dict, Generator, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -49,7 +49,6 @@ from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.api import StateDictType
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
