@@ -22,6 +22,7 @@ echo "Run parity tests manually"
 
 for i in {1..3}
 do
+  echo "Run attempt: $i"
   python -m parity.test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02
   if [ $? -eq 0 ]; then break; fi
 done
@@ -29,6 +30,7 @@ done
 
 for i in {1..3}
 do
+  echo "Run attempt: $i"
   python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01
   if [ $? -eq 0 ]; then break; fi
 done
