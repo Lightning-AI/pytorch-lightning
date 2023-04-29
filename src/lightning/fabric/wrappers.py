@@ -220,7 +220,7 @@ def _unwrap_objects(collection: Any) -> Any:
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
         if isinstance(_unwrap_compiled(obj), _FabricModule):
-            return obj._forward_module
+            return obj._forward_module  # type: ignore[union-attr]
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
