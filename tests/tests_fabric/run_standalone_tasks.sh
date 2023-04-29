@@ -29,6 +29,6 @@ done
 
 for i in {1..3}
 do
-  python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01 && break
+  python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01
   if [ $? -eq 0 ]; then break; fi
 done
