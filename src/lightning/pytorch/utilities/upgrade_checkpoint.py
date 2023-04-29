@@ -74,7 +74,11 @@ def main() -> None:
             " This will also save a backup of the original files."
         )
     )
-    parser.add_argument("path", type=str, help="Path to a checkpoint file or a directory with checkpoints to upgrade")
+    parser.add_argument(
+        "path",
+        type=str,
+        help="Path to a checkpoint file or a directory with checkpoints to upgrade",
+    )
     parser.add_argument(
         "--extension",
         "-e",
