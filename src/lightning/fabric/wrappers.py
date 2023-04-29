@@ -27,8 +27,8 @@ from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 
@@ -232,8 +232,9 @@ def _unwrap_objects(collection: Any) -> Any:
 
 
 def _unwrap_compiled(obj: Any) -> Any:
-    """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped. Use this function
-    before instance checks against e.g. :class:`_FabricModule`.
+    """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
+
+    Use this function before instance checks against e.g. :class:`_FabricModule`.
     """
     if not _TORCH_GREATER_EQUAL_2_0:
         return obj
