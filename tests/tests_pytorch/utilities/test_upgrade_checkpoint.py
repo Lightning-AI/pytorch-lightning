@@ -17,6 +17,7 @@ from unittest import mock
 from unittest.mock import ANY
 
 import pytest
+import torch
 
 from lightning.pytorch.utilities.upgrade_checkpoint import main as upgrade_main
 
@@ -87,3 +88,18 @@ def test_upgrade_checkpoint_directory(migrate_mock, load_mock, save_mock, tmp_pa
         tmp_path / "subdir0" / "nested0.ckpt",
         tmp_path / "subdir1" / "nested2.ckpt",
     }
+
+
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.load")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.torch.save")
+@mock.patch("lightning.pytorch.utilities.upgrade_checkpoint.migrate_checkpoint")
+def test_upgrade_checkpoint_map_location(_, __, load_mock, tmp_path):
+    file = tmp_path / "checkpoint.ckpt"
+    file.touch()
+    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]):
+        upgrade_main()
+    assert load_mock.call_args[1]["map_location"] == None
+    load_mock.reset_mock()
+    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file), "--map-to-cpu"]):
+        upgrade_main()
+    assert load_mock.call_args[1]["map_location"] == torch.device("cpu")

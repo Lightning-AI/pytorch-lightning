@@ -88,7 +88,6 @@ def main() -> None:
     )
     parser.add_argument(
         "--map-to-cpu",
-        type=bool,
         action="store_true",
         help=(
             "Map all tensors in the checkpoint to CPU. Enable this option if you are converting a GPU checkpoint"
