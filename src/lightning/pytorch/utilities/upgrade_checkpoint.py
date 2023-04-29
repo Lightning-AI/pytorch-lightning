@@ -60,7 +60,7 @@ def _upgrade(args: Namespace) -> None:
     _log.info("Upgrading checkpoints ...")
     for file in tqdm(files):
         with pl_legacy_patch():
-            checkpoint = torch.load(file)
+            checkpoint = torch.load(file, map_location=(torch.device("cpu") if args.map_to_cpu else None))
         migrate_checkpoint(checkpoint)
         torch.save(checkpoint, file)
 
@@ -81,6 +81,15 @@ def main() -> None:
         type=str,
         default=".ckpt",
         help="The file extension to look for when searching for checkpoint files in a directory.",
+    )
+    parser.add_argument(
+        "--map-to-cpu",
+        type=bool,
+        action="store_true",
+        help=(
+            "Map all tensors in the checkpoint to CPU. Enable this option if you are converting a GPU checkpoint"
+            " on a machine without GPUs."
+        ),
     )
     args = parser.parse_args()
     _upgrade(args)
