@@ -24,6 +24,7 @@ from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -367,6 +368,15 @@ def test_is_wrapped():
     assert not is_wrapped(module)
     wrapped = _FabricModule(module, Mock())
     assert is_wrapped(wrapped)
+
+    # _FabricModule inside an OptimizedModule
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch._dynamo import OptimizedModule
+
+        module = torch.nn.Linear(2, 2)
+        wrapped = torch.compile(_FabricModule(module, Mock()))
+        assert isinstance(wrapped, OptimizedModule)
+        assert is_wrapped(wrapped)
 
     # _FabricOptimizer
     optimizer = torch.optim.Adam(module.parameters())

@@ -27,6 +27,7 @@ from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -218,6 +219,7 @@ def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
+        obj = _unwrap_compiled(obj)  # the _FabricModule may be wrapped in an OptimizedModule
         if isinstance(obj, _FabricModule):
             return obj._forward_module
         if isinstance(obj, _FabricOptimizer):
@@ -227,6 +229,19 @@ def _unwrap_objects(collection: Any) -> Any:
         return obj
 
     return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
+
+
+def _unwrap_compiled(obj: Any) -> Any:
+    """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped. Use this function
+    before instance checks against e.g. :class:`_FabricModule`.
+    """
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return obj
+    from torch._dynamo import OptimizedModule
+
+    if isinstance(obj, OptimizedModule):
+        return obj._orig_mod
+    return obj
 
 
 def is_wrapped(obj: object) -> bool:
@@ -239,4 +254,5 @@ def is_wrapped(obj: object) -> bool:
     Args:
         obj: The object to test.
     """
+    obj = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

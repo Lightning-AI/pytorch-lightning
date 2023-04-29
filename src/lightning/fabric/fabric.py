@@ -48,7 +48,7 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects, _unwrap_compiled
 
 
 def _do_nothing(*_: Any) -> None:
@@ -547,6 +547,7 @@ class Fabric:
             enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
                 skip.
         """
+        module = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
@@ -638,7 +639,8 @@ class Fabric:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
-                if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+                obj = _unwrap_compiled(state[k])
+                if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]
         return remainder
