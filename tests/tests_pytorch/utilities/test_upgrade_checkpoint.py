@@ -51,7 +51,7 @@ def test_upgrade_checkpoint_single_file(migrate_mock, load_mock, save_mock, tmp_
     with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]):
         upgrade_main()
 
-    load_mock.assert_called_once_with(Path(file))
+    load_mock.assert_called_once_with(Path(file), map_location=None)
     migrate_mock.assert_called_once()
     save_mock.assert_called_once_with(ANY, Path(file))
 
