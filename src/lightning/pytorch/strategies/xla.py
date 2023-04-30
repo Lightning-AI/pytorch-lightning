@@ -26,7 +26,6 @@ from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
@@ -92,11 +91,6 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    def connect(self, model: "pl.LightningModule") -> None:
-        # this is called in the spawned process, so no need to use `xmp.MpModelWrapper`
-        self.wrapped_model = _LightningModuleWrapperBase(model)
-        return super().connect(model)
-
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
@@ -146,7 +140,7 @@ class XLAStrategy(DDPStrategy):
         pass
 
     def model_to_device(self) -> None:
-        self.model = self.wrapped_model.to(self.root_device)
+        self.model = self.model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
