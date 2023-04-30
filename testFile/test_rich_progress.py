@@ -1,4 +1,5 @@
 import random
+import time
 from time import sleep
 from rich.progress import Progress
 
@@ -18,7 +19,7 @@ with Progress() as progress:
             progress.update(task_id, advance=1)
 
             # Calculate elapsed time and remaining time (for illustration purposes)
-            elapsed_time = progress.tasks[task_id].elapsed_time
+            elapsed_time = time.time() - progress.tasks[task_id].start_time
             remaining_time = (num_batches - batch - 1) * elapsed_time / (batch + 1)
 
             # Randomly generate processing speed (items per second)
