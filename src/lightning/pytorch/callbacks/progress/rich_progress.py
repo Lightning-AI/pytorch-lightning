@@ -192,36 +192,36 @@ class RichProgressBarTheme:
 
     https://rich.readthedocs.io/en/stable/style.html
     """
+
     @staticmethod
     def detect_terminal_bg() -> str:
-        console = Console() 
+        console = Console()
         if console.color_system == "truecolor":
             # Check if the terminal background color environment variable is set
             bg_color = os.environ.get("TERMINAL_BG_COLOR", "dark").lower()
             return bg_color
-        else: 
+        else:
             # If the terminal does not support truecolor, assume it is dark theme
             return "dark"
-        
+
     terminal_bg = detect_terminal_bg.__func__()
-    
-    if terminal_bg == "light": 
+
+    if terminal_bg == "light":
         default_description = "black"
         default_progress_bar = "blue"
         default_batch_progress = "black"
         default_time = "grey20"
         default_processing_speed = "grey40"
         default_metrics = "black"
-        
-    else: 
-        
+
+    else:
         default_description = "bright_white"
         default_progress_bar = "bright_blue"
         default_batch_progress = "bright_white"
         default_time = "bright_cyan"
-        default_processing_speed  = "bright_yellow"
+        default_processing_speed = "bright_yellow"
         default_metrics = "bright_white"
-        
+
     description: Union[str, Style] = default_description
     progress_bar: Union[str, Style] = default_progress_bar
     progress_bar_finished: Union[str, Style] = default_progress_bar
@@ -230,12 +230,6 @@ class RichProgressBarTheme:
     time: Union[str, Style] = default_time
     processing_speed: Union[str, Style] = default_processing_speed
     metrics: Union[str, Style] = default_metrics
-
-            
-    
-    
-
-   
 
 
 class RichProgressBar(ProgressBar):
