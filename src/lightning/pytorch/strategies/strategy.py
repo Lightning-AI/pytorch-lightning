@@ -34,10 +34,7 @@ from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.types import (
-    LRSchedulerConfig,
-    STEP_OUTPUT,
-)
+from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
