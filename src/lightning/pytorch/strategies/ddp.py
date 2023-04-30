@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from contextlib import nullcontext
 from datetime import timedelta
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
@@ -25,6 +26,7 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -181,7 +183,10 @@ class DDPStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        with ctx:
+            return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
@@ -228,11 +233,7 @@ class DDPStrategy(ParallelStrategy):
                 optimizer = optimizer._optimizer
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
-            if (
-                is_distributed_optimizer
-                or isinstance(optimizer, ZeroRedundancyOptimizer)
-                or isinstance(optimizer, PostLocalSGDOptimizer)
-            ):
+            if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
                 raise ValueError(
                     f"Currently model averaging cannot work with a distributed optimizer of type "
                     f"{optimizer.__class__.__name__}."
@@ -334,7 +335,7 @@ class DDPStrategy(ParallelStrategy):
             self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
             ("ddp", "popen"),
             ("ddp_spawn", "spawn"),

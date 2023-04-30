@@ -383,7 +383,7 @@ class LightningWork:
     def num_successes(self) -> int:
         """Returns the number of successful runs."""
         # FIXME: Resolve this within  single process runtime.
-        run_keys = [key for key in self._calls.keys() if key.startswith("run:")]
+        run_keys = [key for key in self._calls if key.startswith("run:")]
         if not run_keys:
             return 0
 
@@ -483,18 +483,17 @@ class LightningWork:
     def __getattribute__(self, name: str) -> Any:
         try:
             attr = object.__getattribute__(self, name)
-        except AttributeError as e:
-            if str(e).endswith("'_state'"):
+        except AttributeError as ex:
+            if str(ex).endswith("'_state'"):
                 raise AttributeError(f"Did you forget to call super().__init__() in {self}")
-            raise e
+            raise ex
 
         if isinstance(attr, ProxyWorkRun):
             return attr
 
-        if callable(attr) and getattr(attr, "__name__", "") == "run":
+        if callable(attr) and getattr(attr, "__name__", "") == "run" and getattr(self, "_cache_calls", False):
             # disable while building the class.
-            if getattr(self, "_cache_calls", False):
-                return self._wrap_run_for_caching(attr)
+            return self._wrap_run_for_caching(attr)
         return attr
 
     def __getattr__(self, item: str) -> Any:

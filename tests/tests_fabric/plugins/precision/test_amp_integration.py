@@ -39,7 +39,6 @@ class MixedPrecisionModule(nn.Module):
 
 
 class MixedPrecisionBoringFabric(BoringFabric):
-
     expected_dtype: torch.dtype
 
     def get_model(self):
@@ -79,7 +78,7 @@ def test_amp_fused_optimizer_parity():
         seed_everything(1234)
         fabric = Fabric(accelerator="cuda", precision=16, devices=1)
 
-        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_model call
+        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_module call
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
 
         model, optimizer = fabric.setup(model, optimizer)

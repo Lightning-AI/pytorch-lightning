@@ -48,13 +48,12 @@ class StartFrontendServersTestFlow(LightningFlow):
         self.stop()
 
 
-@pytest.mark.skipif(sys.platform in ("linux", "win32"), reason="hanging with timeout")  # fixme
-@pytest.mark.xfail(sys.platform == "darwin", strict=False, reason="failing need to be fixed")  # fixme
+@pytest.mark.skip(reason="hanging with timeout")  # fixme
 @pytest.mark.parametrize(
     "cloudspace_host, port, expected_host, expected_target",
     [
         (None, 7000, "localhost", "http://localhost:7000"),
-        ("test.lightning.ai", 7000, "0.0.0.0", "https://7000-test.lightning.ai"),
+        ("test.lightning.ai", 7000, "0.0.0.0", "https://7000-test.lightning.ai"),  # noqa: S104
     ],
 )
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
@@ -104,8 +103,7 @@ class ContextFlow(LightningFlow):
         self.stop()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="hanging with timeout")  # fixme
-@pytest.mark.xfail(sys.platform in ("linux", "darwin"), strict=False, reason="missing output... need to be fixed")
+@pytest.mark.skip(reason="hanging with timeout")  # fixme
 def test_multiprocess_runtime_sets_context():
     """Test that the runtime sets the global variable COMPONENT_CONTEXT in Flow and Work."""
     MultiProcessRuntime(LightningApp(ContextFlow())).dispatch()

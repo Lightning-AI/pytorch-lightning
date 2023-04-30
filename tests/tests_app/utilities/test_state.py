@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 import requests
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceStatus
 
 import lightning.app
 from lightning.app import LightningApp, LightningFlow, LightningWork
@@ -14,7 +15,6 @@ from lightning.app.utilities.state import AppState
 
 @mock.patch("lightning.app.utilities.state._configure_session", return_value=requests)
 def test_app_state_not_connected(_):
-
     """Test an error message when a disconnected AppState tries to access attributes."""
     state = AppState(port=8000)
     with pytest.raises(AttributeError, match="Failed to connect and fetch the app state"):
@@ -249,7 +249,6 @@ class MockResponse:
 
 
 def test_get_send_request(monkeypatch):
-
     app = LightningApp(Flow())
     monkeypatch.setattr(lightning.app.utilities.state, "_configure_session", mock.MagicMock())
 
@@ -266,13 +265,29 @@ def test_get_send_request(monkeypatch):
     state.w.counter = 1
 
 
-@mock.patch("lightning.app.utilities.state.APP_SERVER_HOST", "https://lightning-cloud.com")
-@mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "https://lightning-cloud.com"})
-def test_app_state_with_env_var(**__):
+@mock.patch.dict(
+    os.environ,
+    {
+        "LIGHTNING_APP_STATE_URL": "https://lightning-cloud.com",
+        "LIGHTNING_CLOUD_PROJECT_ID": "test-project-id",
+        "LIGHTNING_CLOUD_APP_ID": "test-app-id",
+    },
+)
+@mock.patch("lightning.app.utilities.state.LightningClient")
+def test_app_state_with_env_var(mock_client):
+    mock_client().lightningapp_instance_service_get_lightningapp_instance.return_value = Externalv1LightningappInstance(
+        status=V1LightningappInstanceStatus(ip_address="test-ip"),
+    )
     state = AppState()
-    assert state._host == "https://lightning-cloud.com"
+    url = state._url
+
+    mock_client().lightningapp_instance_service_get_lightningapp_instance.assert_called_once_with(
+        "test-project-id",
+        "test-app-id",
+    )
+
+    assert url == "http://test-ip:8080"
     assert not state._port
-    assert state._url == "https://lightning-cloud.com"
 
 
 @mock.patch.dict(os.environ, {})

@@ -19,6 +19,7 @@ __all__ = [
     "NeptuneLogger",
 ]
 
+import contextlib
 import logging
 import os
 from argparse import Namespace
@@ -43,16 +44,18 @@ if _NEPTUNE_AVAILABLE:
     import neptune
     from neptune import Run
     from neptune.handler import Handler
+    from neptune.types import File
     from neptune.utils import stringify_unsupported
 elif _NEPTUNE_CLIENT_AVAILABLE:
     # <1.0 package structure
     import neptune.new as neptune
     from neptune.new import Run
     from neptune.new.handler import Handler
+    from neptune.new.types import File
     from neptune.new.utils import stringify_unsupported
 else:
     # needed for tests, mocks and function signatures
-    neptune, Run, Handler, stringify_unsupported = None, None, None, None
+    neptune, Run, Handler, File, stringify_unsupported = None, None, None, None, None
 
 log = logging.getLogger(__name__)
 
@@ -60,8 +63,7 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
 class NeptuneLogger(Logger):
-    r"""
-    Log using `Neptune <https://neptune.ai>`_.
+    r"""Log using `Neptune <https://neptune.ai>`_.
 
     Install it with pip:
 
@@ -281,10 +283,8 @@ class NeptuneLogger(Logger):
     def _neptune_init_args(self) -> Dict:
         args: Dict = {}
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             args = self._neptune_run_kwargs
-        except AttributeError:
-            pass
 
         if self._project_name is not None:
             args["project"] = self._project_name
@@ -296,11 +296,9 @@ class NeptuneLogger(Logger):
             args["run"] = self._run_short_id
 
         # Backward compatibility in case of previous version retrieval
-        try:
+        with contextlib.suppress(AttributeError):
             if self._run_name is not None:
                 args["name"] = self._run_name
-        except AttributeError:
-            pass
 
         return args
 
@@ -383,8 +381,7 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
-        r"""
-        Log hyperparameters to the run.
+        r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
 
@@ -488,11 +485,12 @@ class NeptuneLogger(Logger):
         if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
             model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
             file_names.add(model_last_name)
-            self.run[f"{checkpoints_namespace}/{model_last_name}"].upload(checkpoint_callback.last_model_path)
+            with open(checkpoint_callback.last_model_path, "rb") as fp:
+                self.run[f"{checkpoints_namespace}/{model_last_name}"] = File.from_stream(fp)
 
         # save best k models
         if hasattr(checkpoint_callback, "best_k_models"):
-            for key in checkpoint_callback.best_k_models.keys():
+            for key in checkpoint_callback.best_k_models:
                 model_name = self._get_full_model_name(key, checkpoint_callback)
                 file_names.add(model_name)
                 self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)
@@ -503,7 +501,8 @@ class NeptuneLogger(Logger):
 
             model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
             file_names.add(model_name)
-            self.run[f"{checkpoints_namespace}/{model_name}"].upload(checkpoint_callback.best_model_path)
+            with open(checkpoint_callback.best_model_path, "rb") as fp:
+                self.run[f"{checkpoints_namespace}/{model_name}"] = File.from_stream(fp)
 
         # remove old models logged to experiment if they are not part of best k models at this point
         if self.run.exists(checkpoints_namespace):

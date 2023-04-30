@@ -29,6 +29,7 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -244,6 +245,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
+        # is resolved. For now, the module will get moved to the device in `setup_module`.
+        with self.precision.module_init_context(), self.module_sharded_context():
+            yield
+
+    @contextmanager
     def module_sharded_context(self) -> Generator:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
@@ -449,7 +457,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return metadata
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
             return
 

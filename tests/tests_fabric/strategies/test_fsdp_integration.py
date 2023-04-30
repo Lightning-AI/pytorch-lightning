@@ -191,3 +191,40 @@ def test_compile(compile_after_setup):
 
     for _ in range(3):
         model(torch.rand(2, 32, device=fabric.device)).sum().backward()
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize(
+    "precision,expected_dtype",
+    [
+        ("32-true", torch.float32),
+        ("16-true", torch.float16),
+        pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+        ("64-true", torch.float64),
+    ],
+)
+def test_module_init_context(precision, expected_dtype):
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+    fabric = Fabric(
+        accelerator="cuda",
+        devices=2,
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        precision=precision,
+    )
+    fabric.launch()
+
+    with fabric.init_module():
+        model = torch.nn.Linear(100, 100, bias=False)
+
+    # The model is on the CPU until `.setup()``
+    # TODO: Support initialization on meta device
+    expected_device = torch.device("cpu")
+    assert model.weight.device == expected_device
+    assert model.weight.dtype == expected_dtype
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+
+    # Parameters get sharded in `.setup()` and moved to the target device
+    assert model.weight.device == torch.device("cuda", fabric.local_rank)
+    assert model.weight.dtype == expected_dtype

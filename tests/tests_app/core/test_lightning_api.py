@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import multiprocessing as mp
 import os
@@ -192,7 +193,6 @@ def test_update_publish_state_and_maybe_refresh_ui():
     - receives the state from the `publish_state_queue` and populates the app_state_store
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
     """
-
     app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
@@ -241,7 +241,6 @@ async def test_start_server(x_lightning_type, monkeypatch):
     headers = headers_for({"type": x_lightning_type})
 
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
-
         with pytest.raises(Exception, match="X-Lightning-Session-UUID"):
             await client.get("/api/v1/spec")
 
@@ -524,7 +523,8 @@ def test_configure_api():
             time_left -= 0.1
 
     # Test Upload File
-    files = {"uploaded_file": open(__file__, "rb")}
+    with open(__file__, "rb") as fo:
+        files = {"uploaded_file": fo}
 
     response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
     assert response.json() == "Successfully uploaded 'test' to the Drive"
@@ -550,10 +550,8 @@ def test_configure_api():
     assert response.status_code == 200
 
     # Stop the Application
-    try:
+    with contextlib.suppress(Exception):
         response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
-    except Exception:
-        pass
 
     # Teardown
     time_left = 5

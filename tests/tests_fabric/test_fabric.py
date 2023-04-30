@@ -56,7 +56,6 @@ def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
     class RunFabric(Fabric):
-
         run_args = ()
         run_kwargs = {}
 
@@ -136,6 +135,11 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
 
     assert fabric_model.device == expected_device
     assert fabric.device == target_device
+
+    # edge case: model has no parameters
+    model = nn.Sequential()
+    fabric_model = setup_method(model, move_to_device=move_to_device)
+    assert fabric_model.device == target_device if move_to_device else torch.device("cpu")
 
 
 @RunIf(min_cuda_gpus=1)
@@ -611,17 +615,17 @@ def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
     fabric = Fabric(devices=1)
     model = nn.Linear(3, 3)
-    with pytest.raises(TypeError, match="You need to set up the model first"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.raises(TypeError, match="You need to set up the model first"), fabric.no_backward_sync(model):
+        pass
 
     model = fabric.setup(model)
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.warns(
+        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
+    ), fabric.no_backward_sync(model):
+        pass
 
     # for single-device strategies, it becomes a no-op without warning
     fabric._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
@@ -643,11 +647,10 @@ def test_no_backward_sync():
 
 def test_launch_without_function():
     """Test the various ways `Fabric.launch()` can be called."""
-
     # default: no launcher, single process
     fabric = Fabric()
-    with mock.patch("lightning.fabric.fabric._do_nothing") as nothing:
-        fabric.launch()
+    nothing = Mock()
+    fabric.launch(nothing)
     nothing.assert_called()
 
     # with a launcher on the strategy
@@ -664,7 +667,7 @@ def test_launch_with_function():
         pass
 
     fabric = Fabric()
-    with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
+    with pytest.raises(TypeError, match="needs to take at least one argument"):
         fabric.launch(fn_without_args)
 
     def fn_with_one_arg(arg):
@@ -675,11 +678,24 @@ def test_launch_with_function():
     fabric.launch(fn_with_one_arg)
     assert fn_with_one_arg.called
 
+    # common user mistake
+    fabric = Fabric()
+    with pytest.raises(TypeError, match="needs to be a callable"):
+        fabric.launch(fn_with_one_arg(fabric))
+
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
     fabric = Fabric(devices=1)
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
+        fabric.launch()
+
+
+@RunIf(mps=False)
+@pytest.mark.parametrize("strategy", ("xla", "ddp_spawn"))
+def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
+    fabric = Fabric(strategy=strategy)
+    with pytest.raises(TypeError, match=r"launch\(\)` needs to be called with a function"):
         fabric.launch()
 
 
@@ -698,14 +714,34 @@ def test_module_sharding_context():
     otherwise."""
     fabric = Fabric()
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_called_once()
+
+
+def test_init_module_context(monkeypatch):
+    """Test that the stratey returns the context manager for initializing the module."""
+    import lightning.fabric
+
+    fabric = Fabric(accelerator="cpu")
+    strategy = MagicMock(spec=Strategy, module_init_context=MagicMock(), root_device=torch.device("cuda", 0))
+    fabric._strategy = strategy
+    with fabric.init_module():
+        pass
+    strategy.module_init_context.assert_called_once()
+    strategy.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
+        with fabric.init_module():
+            pass
+    strategy.module_init_context.assert_called_once()
 
 
 def test_callbacks_input():
@@ -776,7 +812,6 @@ def test_loggers_input():
 
 def test_log():
     """Test that `fabric.log` sends the metrics to each logger."""
-
     logger0 = Mock()
     logger1 = Mock()
     fabric = Fabric(loggers=[logger0, logger1])
@@ -792,7 +827,6 @@ def test_log():
 
 def test_log_dict():
     """Test that `fabric.log_dict` sends the metrics dict to each logger."""
-
     logger0 = Mock()
     logger1 = Mock()
     fabric = Fabric(loggers=[logger0, logger1])

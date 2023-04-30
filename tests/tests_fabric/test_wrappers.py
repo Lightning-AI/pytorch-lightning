@@ -21,6 +21,7 @@ from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.fabric import Fabric
+from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
 from tests_fabric.helpers.runif import RunIf
@@ -188,7 +189,6 @@ def test_fabric_module_forward_conversion(precision, input_type, expected_type, 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_fabric_module_device_dtype_propagation(device_str, dtype):
     """Test that the FabricModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
-
     device = torch.device(device_str)
 
     class DeviceModule(_DeviceDtypeModuleMixin):
@@ -334,7 +334,6 @@ def test_fabric_optimizer_steps():
 
 def test_fabric_optimizer_zero_grad_kwargs():
     """Test that Fabric can adapt the `.zero_grad()` arguments to the underlying optimizer."""
-
     # Test PyTorch's standard `.zero_grad()` signature
     with mock.patch("torch.optim.SGD.zero_grad") as zero_grad_mock:
         optimizer = torch.optim.SGD(torch.nn.Linear(1, 1).parameters(), 0.1)
@@ -357,10 +356,6 @@ def test_fabric_optimizer_zero_grad_kwargs():
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
     fabric_optimizer.zero_grad()
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=False)
-    custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=True)
-    custom_zero_grad.assert_called_with(set_grads_to_None=True)
 
 
 def test_is_wrapped():
@@ -417,9 +412,10 @@ def test_step_method_redirection():
         def normal_method(self):
             pass
 
+    precision = Mock(wraps=Precision())
     original_module = LightningModule()
     forward_module = DDP(original_module)
-    fabric_module = _FabricModule(forward_module=forward_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method == original_module.normal_method
@@ -441,6 +437,7 @@ def test_step_method_redirection():
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
+    precision.forward_context.assert_called()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"

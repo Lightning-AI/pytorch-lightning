@@ -17,7 +17,7 @@ from unittest import mock
 import torch
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import XLAStrategy
 from tests_pytorch.helpers.runif import RunIf
@@ -45,7 +45,7 @@ def test_xla_strategy_debug_state():
         # only XRT supports XLA with a single process
         trainer_kwargs["devices"] = 1
     trainer = Trainer(fast_dev_run=True, strategy=XLAStrategy(debug=True), **trainer_kwargs)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ

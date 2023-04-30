@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pathlib
@@ -1822,7 +1823,7 @@ def test_load_app_from_file():
     app = CloudRuntime.load_app_from_file(
         os.path.join(test_script_dir, "app_with_env.py"),
     )
-    assert app.works[0].cloud_compute.name == "default"
+    assert app.works[0].cloud_compute.name == "cpu-small"
 
     app = CloudRuntime.load_app_from_file(
         os.path.join(test_script_dir, "app_with_env.py"),
@@ -1850,7 +1851,7 @@ def test_load_app_from_file():
                         "userRequestedComputeConfig": {
                             "count": 1,
                             "diskSize": 0,
-                            "name": "default",
+                            "name": "cpu-small",
                             "preemptible": "*",
                             "shmSize": 0,
                         },
@@ -1874,7 +1875,7 @@ def test_load_app_from_file():
                         "user_requested_compute_config": {
                             "count": 1,
                             "disk_size": 0,
-                            "name": "default",
+                            "name": "cpu-small",
                             "preemptible": "*",
                             "shm_size": 0,
                         },
@@ -1903,18 +1904,14 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
     cloud.LIGHTNING_CLOUD_PRINT_SPECS = print_format
 
     try:
-        with caplog.at_level(logging.INFO):
-            try:
-                cloud_runtime.dispatch()
-            except SystemExit:
-                # Expected behaviour
-                pass
+        with caplog.at_level(logging.INFO), contextlib.suppress(SystemExit):
+            cloud_runtime.dispatch()
 
         lines = caplog.text.split("\n")
 
         expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
         expected = "INFO(.*)works: " + expected
-        assert any([re.fullmatch(expected, line) for line in lines])
+        assert any(re.fullmatch(expected, line) for line in lines)
     finally:
         cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 
@@ -1933,6 +1930,8 @@ def test_incompatible_cloud_compute_and_build_config(monkeypatch):
         def __init__(self):
             super().__init__()
             self.cloud_compute = CloudCompute(name="default")
+            # TODO: Remove me
+            self.cloud_compute.name = "default"
             self.cloud_build_config = BuildConfig(image="custom")
 
         def run(self):

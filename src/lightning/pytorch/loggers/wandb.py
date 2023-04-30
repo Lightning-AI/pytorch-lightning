@@ -46,8 +46,7 @@ _WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
-    r"""
-    Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
+    r"""Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
 
     **Installation and set-up**
 
@@ -281,7 +280,6 @@ class WandbLogger(Logger):
             If required WandB package is not installed on the device.
         MisconfigurationException:
             If both ``log_model`` and ``offline`` is set to ``True``.
-
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -479,7 +477,7 @@ class WandbLogger(Logger):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)
 
