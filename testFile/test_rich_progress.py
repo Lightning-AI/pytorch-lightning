@@ -2,7 +2,7 @@ import random
 import time
 from time import sleep
 from rich.progress import Progress
-from src.lightning.pytorch.callbacks.progress import RichProgressBarTheme
+from lightning.pytorch.callbacks.progress import RichProgressBarTheme
 
 custom_theme = RichProgressBarTheme(
     description="yellow",
