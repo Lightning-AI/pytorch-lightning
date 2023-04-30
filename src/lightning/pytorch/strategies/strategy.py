@@ -350,14 +350,17 @@ class Strategy(ABC):
             optimizer.load_state_dict(opt_state)
             _optimizer_to_device(optimizer, self.root_device)
 
-    def _redirection_through_forward(self, method_name: str, *args, **kwargs) -> STEP_OUTPUT:
+    def _redirection_through_forward(self, method_name: str, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        assert self.lightning_module is not None
         assert method_name != "forward"
         original_forward = self.lightning_module.forward
 
         def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
+            assert self.model is not None
+            assert self.lightning_module is not None
             # Unpatch ourselves immediately before calling the method `method_name`
             # because itself may want to call the real `forward`
-            self.lightning_module.forward = original_forward
+            self.lightning_module.forward = original_forward  # type: ignore[assignment]
             # Call the actual method e.g. `.training_step(...)`
             method = getattr(self.lightning_module, method_name)
             out = method(*_args, **_kwargs)
@@ -372,7 +375,7 @@ class Strategy(ABC):
             return out
 
         # Patch the original_module's forward so we can redirect the arguments back to the real method
-        self.lightning_module.forward = wrapped_forward
+        self.lightning_module.forward = wrapped_forward  # type: ignore[assignment]
         assert self.model is not None
         return self.model(*args, **kwargs)
 
@@ -381,6 +384,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
         """
+        assert self.lightning_module is not None
         with self.precision_plugin.train_step_context():
             if self.model != self.lightning_module:
                 return self._redirection_through_forward("training_step", *args, **kwargs)
@@ -394,6 +398,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
         """
+        assert self.lightning_module is not None
         with self.precision_plugin.val_step_context():
             if self.model != self.lightning_module:
                 return self._redirection_through_forward("validation_step", *args, **kwargs)
@@ -404,6 +409,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
         """
+        assert self.lightning_module is not None
         with self.precision_plugin.test_step_context():
             if self.model != self.lightning_module:
                 return self._redirection_through_forward("test_step", *args, **kwargs)
@@ -414,6 +420,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
         """
+        assert self.lightning_module is not None
         with self.precision_plugin.predict_step_context():
             if self.model != self.lightning_module:
                 return self._redirection_through_forward("predict_step", *args, **kwargs)

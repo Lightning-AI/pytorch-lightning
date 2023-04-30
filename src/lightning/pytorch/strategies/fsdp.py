@@ -252,10 +252,10 @@ class FSDPStrategy(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
+        assert self.model is not None
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
-            assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.

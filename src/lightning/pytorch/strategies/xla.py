@@ -140,6 +140,7 @@ class XLAStrategy(DDPStrategy):
         pass
 
     def model_to_device(self) -> None:
+        assert self.model is not None
         self.model = self.model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
