@@ -35,42 +35,6 @@ TRAIN_DATALOADERS = Any  # any iterable or collection of iterables
 EVAL_DATALOADERS = Any  # any iterable or collection of iterables
 
 
-@runtime_checkable
-class TrainingStep(Protocol):
-    """This class is used to detect if an object implements the `training_step` hook using `isinstance(model,
-    TrainingStep)`."""
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        ...
-
-
-@runtime_checkable
-class ValidationStep(Protocol):
-    """This class is used to detect if an object implements the `validation_step` hook using `isinstance(model,
-    ValidationStep)`."""
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        ...
-
-
-@runtime_checkable
-class TestStep(Protocol):
-    """This class is used to detect if an object implements the `test_step` hook using `isinstance(model,
-    TestStep)`."""
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        ...
-
-
-@runtime_checkable
-class PredictStep(Protocol):
-    """This class is used to detect if an object implements the `predict_step` hook using `isinstance(model,
-    PredictStep)`."""
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        ...
-
-
 # Inferred from `torch.nn.parallel.distributed.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
