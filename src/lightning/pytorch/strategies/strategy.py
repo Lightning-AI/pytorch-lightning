@@ -35,11 +35,7 @@ from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
-    PredictStep,
     STEP_OUTPUT,
-    TestStep,
-    TrainingStep,
-    ValidationStep,
 )
 
 TBroadcast = TypeVar("TBroadcast")
