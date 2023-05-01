@@ -74,7 +74,7 @@ save the config in a logger. An example of this is:
 
         cli = LightningCLI(..., save_config_callback=LoggerSaveConfigCallback)
 
--- tip::
+.. tip::
 
     If you want to disable the standard behavior of saving the config to the ``log_dir``, then you can either implement
     ``__init__`` and call ``super().__init__(*args, save_to_log_dir=False, **kwargs)`` or instantiate the
