@@ -154,8 +154,6 @@ def run_parity_test(accelerator: str = "cpu", devices: int = 2, tolerance: float
     # Compare the time per iteration
     assert all(fabric.all_gather(is_timing_close(timings_torch, timings_fabric, rtol=tolerance, atol=tolerance)))
 
-    assert False
-
     # Compare memory usage
     if accelerator == "cuda":
         assert all(fabric.all_gather(is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])))
