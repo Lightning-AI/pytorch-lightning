@@ -43,7 +43,7 @@ from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sy
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
-from lightning.pytorch.strategies.strategy import TBroadcast
+from lightning.pytorch.strategies.strategy import TBroadcast, _ForwardRedirection
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
@@ -90,6 +90,7 @@ class DDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         log.debug(f"{self.__class__.__name__}: initializing DDP plugin")
+        self._forward_redirection = _DDPForwardRedirection()
         self._num_nodes = 1
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
@@ -328,12 +329,6 @@ class DDPStrategy(ParallelStrategy):
             tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def post_training_step(self) -> None:
-        assert self.lightning_module is not None
-        if not self.lightning_module.automatic_optimization:
-            assert self.model is not None
-            self.model.require_backward_grad_sync = True  # type: ignore[assignment]
-
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
@@ -406,3 +401,15 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+
+class _DDPForwardRedirection(_ForwardRedirection):
+    def on_after_inner_forward(self, wrapper_module: DistributedDataParallel, original_module: pl.LightningModule):
+        # In manual_optimization, we need to prevent DDP reducer as
+        # it is done manually in `LightningModule.manual_backward`
+        if not original_module.automatic_optimization:
+            wrapper_module.require_backward_grad_sync = False
+
+    def on_after_outer_forward(self, wrapper_module: DistributedDataParallel, original_module: pl.LightningModule):
+        if not original_module.automatic_optimization:
+            wrapper_module.require_backward_grad_sync = True

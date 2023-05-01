@@ -57,6 +57,7 @@ class Strategy(ABC):
         self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
+        self._forward_redirection: _ForwardRedirection = _ForwardRedirection()
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: List[LightningOptimizer] = []
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
@@ -350,35 +351,6 @@ class Strategy(ABC):
             optimizer.load_state_dict(opt_state)
             _optimizer_to_device(optimizer, self.root_device)
 
-    def _redirection_through_forward(self, method_name: str, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.lightning_module is not None
-        assert method_name != "forward"
-        original_forward = self.lightning_module.forward
-
-        def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
-            assert self.model is not None
-            assert self.lightning_module is not None
-            # Unpatch ourselves immediately before calling the method `method_name`
-            # because itself may want to call the real `forward`
-            self.lightning_module.forward = original_forward  # type: ignore[assignment]
-            # Call the actual method e.g. `.training_step(...)`
-            method = getattr(self.lightning_module, method_name)
-            out = method(*_args, **_kwargs)
-
-            # In manual_optimization, we need to prevent DDP reducer as
-            # it is done manually in `LightningModule.manual_backward`
-            # `require_backward_grad_sync` will be reset in the
-            # ddp_strategy `post_training_step` hook
-            if not self.lightning_module.automatic_optimization:
-                self.model.require_backward_grad_sync = False  # type: ignore[assignment]
-
-            return out
-
-        # Patch the original_module's forward so we can redirect the arguments back to the real method
-        self.lightning_module.forward = wrapped_forward  # type: ignore[assignment]
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual training step.
 
@@ -387,10 +359,11 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         with self.precision_plugin.train_step_context():
             if self.model != self.lightning_module:
-                return self._redirection_through_forward("training_step", *args, **kwargs)
+                return self._forward_redirection(self.model, self.lightning_module, "training_step", *args, **kwargs)
             return self.lightning_module.training_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
+        """This hook is deprecated. Override :meth:`training_step` instead."""
         pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -401,7 +374,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         with self.precision_plugin.val_step_context():
             if self.model != self.lightning_module:
-                return self._redirection_through_forward("validation_step", *args, **kwargs)
+                return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
             return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -412,7 +385,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         with self.precision_plugin.test_step_context():
             if self.model != self.lightning_module:
-                return self._redirection_through_forward("test_step", *args, **kwargs)
+                return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
             return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
@@ -423,7 +396,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         with self.precision_plugin.predict_step_context():
             if self.model != self.lightning_module:
-                return self._redirection_through_forward("predict_step", *args, **kwargs)
+                return self._forward_redirection(self.model, self.lightning_module, "predict_step", *args, **kwargs)
             return self.lightning_module.predict_step(*args, **kwargs)
 
     def process_dataloader(self, dataloader: object) -> object:
@@ -562,3 +535,41 @@ class Strategy(ABC):
     def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
         self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
+
+
+class _ForwardRedirection:
+
+    def __call__(
+        self,
+        wrapper_module: Module,
+        original_module: pl.LightningModule,
+        method_name: str,
+        *args: Any,
+        **kwargs: Any
+    ) -> STEP_OUTPUT:
+
+        assert method_name != "forward"
+        original_forward = original_module.forward
+
+        def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
+            # Unpatch ourselves immediately before calling the method `method_name`
+            # because itself may want to call the real `forward`
+            self.lightning_module.forward = original_forward  # type: ignore[assignment]
+            # Call the actual method e.g. `.training_step(...)`
+            method = getattr(original_module, method_name)
+            out = method(*_args, **_kwargs)
+            self.on_after_inner_forward(wrapper_module, original_module)
+            return out
+
+        # Patch the original_module's forward so we can redirect the arguments back to the real method
+        self.lightning_module.forward = wrapped_forward  # type: ignore[assignment]
+
+        wrapper_output = wrapper_module(*args, **kwargs)
+        self.on_after_outer_forward(wrapper_module, original_module)
+        return wrapper_output
+
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: pl.LightningModule):
+        pass
+
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: pl.LightningModule):
+        pass
