@@ -23,6 +23,7 @@ def test_template_react_ui_example_cloud() -> None:
             if button.all_text_contents() == ["Start Printing"]:
                 button.click()
                 return True
+            return None
 
         wait_for(view_page, click_button)
 

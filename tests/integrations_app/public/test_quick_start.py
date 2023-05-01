@@ -65,5 +65,6 @@ def test_quick_start_example_cloud() -> None:
             locator.wait_for(timeout=10 * 1000)
             if len(locator.all_text_contents()) > 0:
                 return True
+            return None
 
         wait_for(view_page, check_examples)

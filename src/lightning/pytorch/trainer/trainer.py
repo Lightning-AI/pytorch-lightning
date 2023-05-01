@@ -1207,6 +1207,7 @@ class Trainer:
     def distributed_sampler_kwargs(self) -> Optional[Dict[str, Any]]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
+        return None
 
     @property
     def enable_validation(self) -> bool:
@@ -1429,6 +1430,7 @@ class Trainer:
         """The training dataloader(s) used during ``trainer.fit()``."""
         if (combined_loader := self.fit_loop._combined_loader) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
@@ -1437,18 +1439,21 @@ class Trainer:
             combined_loader := self.validate_loop._combined_loader
         ) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def test_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The test dataloader(s) used during ``trainer.test()``."""
         if (combined_loader := self.test_loop._combined_loader) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def predict_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The prediction dataloader(s) used during ``trainer.predict()``."""
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def num_training_batches(self) -> Union[int, float]:
@@ -1504,6 +1509,7 @@ class Trainer:
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+        return None
 
     """
     Logging properties
@@ -1575,6 +1581,7 @@ class Trainer:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
+        return None
 
     """
     Other

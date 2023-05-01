@@ -799,9 +799,9 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         def _get_iterator(self):
             if self.num_workers == 0:
                 return super()._get_iterator()
-            else:
-                self.check_worker_number_rationality()
-                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+            self.check_worker_number_rationality()
+            return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
 
     train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
     val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)

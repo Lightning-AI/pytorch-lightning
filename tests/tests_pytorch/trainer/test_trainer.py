@@ -1343,7 +1343,7 @@ def test_trainer_predict_no_return(tmpdir):
     class CustomBoringModel(BoringModel):
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             if (batch_idx + 1) % 2 == 0:
-                return
+                return None
 
             return super().predict_step(batch, batch_idx, dataloader_idx)
 

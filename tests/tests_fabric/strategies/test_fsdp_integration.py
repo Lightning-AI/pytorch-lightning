@@ -55,8 +55,7 @@ class _MyFabric(BoringFabric):
             assert original_module[layer_num].mixed_precision.buffer_dtype == precision
 
         output = model(batch)
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
 
 class _MyFabricManualWrapping(_MyFabric):

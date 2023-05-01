@@ -30,6 +30,7 @@ def test_wrongly_implemented_transferable_data_type(should_return):
             # simulate a user forgets to return self
             if self.should_return:
                 return self
+            return None
 
     tensor = torch.tensor(0.1)
     obj = TensorObject(tensor, should_return)

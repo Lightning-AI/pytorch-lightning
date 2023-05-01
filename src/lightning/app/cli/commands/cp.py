@@ -76,12 +76,14 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False, z
             if zip:
                 return _error_and_exit("Zipping uploads isn't supported yet. Please, open a Github issue.")
             _upload_files(live, client, src_path, dst_path, pwd)
-        elif src_remote and not dst_remote:
+            return None
+        if src_remote and not dst_remote:
             if zip:
                 return _zip_files(live, src_path, dst_path)
             _download_files(live, client, src_path, dst_path, pwd)
-        else:
-            return _error_and_exit("Moving files locally isn't supported yet. Please, open a Github issue.")
+            return None
+
+        return _error_and_exit("Moving files locally isn't supported yet. Please, open a Github issue.")
 
 
 def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str, pwd: str) -> str:
@@ -135,7 +137,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     if not upload_paths:
         print("There were no files to upload.")
-        return
+        return None
 
     progress = _get_progress_bar()
 
@@ -155,6 +157,8 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     exception = next((e for e in results if isinstance(e, Exception)), None)
     if exception:
         _error_and_exit("We detected errors in uploading your files.")
+        return None
+    return None
 
 
 def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: TaskID) -> Optional[Exception]:
@@ -206,6 +210,7 @@ def _zip_files(live: Live, remote_src: str, local_dst: str) -> None:
     progress.stop()
 
     click.echo(f"Downloaded to {local_dst}")
+    return None
 
 
 def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
@@ -343,3 +348,4 @@ def _cluster_from_lit_resource(
     for cluster in clusters.clusters:
         if cluster.id == clusters.default_cluster:
             return cluster
+    return None

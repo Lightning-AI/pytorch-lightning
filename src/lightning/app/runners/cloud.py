@@ -113,9 +113,9 @@ def _to_clean_dict(swagger_object, map_attributes):
                 key = attribute_map[key] if map_attributes else key
                 result[key] = value
         return result
-    elif isinstance(swagger_object, list):
+    if isinstance(swagger_object, list):
         return [_to_clean_dict(x, map_attributes) for x in swagger_object]
-    elif isinstance(swagger_object, dict):
+    if isinstance(swagger_object, dict):
         return {key: _to_clean_dict(value, map_attributes) for key, value in swagger_object.items()}
     return swagger_object
 
@@ -561,12 +561,10 @@ class CloudRuntime(Runtime):
 
     def _resolve_cloudspace(self, project_id: str, cloudspace_id: str) -> Optional[V1CloudSpace]:
         """Returns a cloudspace by project_id and cloudspace_id, if exists."""
-        existing_cloudspace = self.backend.client.cloud_space_service_get_cloud_space(
+        return self.backend.client.cloud_space_service_get_cloud_space(
             project_id=project_id,
             id=cloudspace_id,
         )
-
-        return existing_cloudspace
 
     def _resolve_queue_server_type(self) -> V1QueueServerType:
         """Resolve the cloud queue type from the environment."""

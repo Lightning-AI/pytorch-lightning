@@ -247,7 +247,7 @@ class LearningRateMonitor(Callback):
                 return f"{name}/pg{param_group_index+1}"
             pg_name = param_groups[param_group_index].get("name", f"pg{param_group_index+1}")
             return f"{name}/{pg_name}"
-        elif use_names:
+        if use_names:
             pg_name = param_groups[param_group_index].get("name")
             return f"{name}/{pg_name}" if pg_name else name
         return name
@@ -326,6 +326,4 @@ class LearningRateMonitor(Callback):
             )
 
         name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
-        name_list = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
-
-        return name_list
+        return [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]

@@ -399,7 +399,7 @@ class Fabric:
         if clip_val is not None:
             self.strategy.clip_gradients_value(_unwrap_objects(module), _unwrap_objects(optimizer), clip_val=clip_val)
             return None
-        elif max_norm is not None:
+        if max_norm is not None:
             return self.strategy.clip_gradients_norm(
                 _unwrap_objects(module),
                 _unwrap_objects(optimizer),

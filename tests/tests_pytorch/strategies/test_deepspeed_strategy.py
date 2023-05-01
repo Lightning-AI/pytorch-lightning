@@ -581,8 +581,7 @@ class ModelParallelClassificationModel(LightningModule):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch

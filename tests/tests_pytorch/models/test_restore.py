@@ -281,7 +281,9 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-        trainer_args = {
+        assert checkpoint.best_model_path == ""
+        assert checkpoint.best_model_score is None
+        return {
             "default_root_dir": tmpdir,
             "limit_train_batches": 1,
             "limit_val_batches": 2,
@@ -289,9 +291,6 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
             "logger": False,
             "callbacks": [checkpoint, callback_capture],
         }
-        assert checkpoint.best_model_path == ""
-        assert checkpoint.best_model_score is None
-        return trainer_args
 
     # initial training
     trainer = Trainer(**get_trainer_args())

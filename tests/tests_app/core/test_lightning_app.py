@@ -485,8 +485,7 @@ def test_lightning_app_aggregation_empty():
 
     class SlowQueue(MultiProcessQueue):
         def get(self, timeout):
-            out = super().get(timeout)
-            return out
+            return super().get(timeout)
 
     app = LightningApp(EmptyFlow())
     app.delta_queue = SlowQueue("api_delta_queue", 0)
