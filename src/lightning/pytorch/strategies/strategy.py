@@ -555,7 +555,7 @@ class _ForwardRedirection:
         def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
             # Unpatch ourselves immediately before calling the method `method_name`
             # because itself may want to call the real `forward`
-            self.lightning_module.forward = original_forward  # type: ignore[assignment]
+            original_module.forward = original_forward  # type: ignore[assignment]
             # Call the actual method e.g. `.training_step(...)`
             method = getattr(original_module, method_name)
             out = method(*_args, **_kwargs)
@@ -563,7 +563,7 @@ class _ForwardRedirection:
             return out
 
         # Patch the original_module's forward so we can redirect the arguments back to the real method
-        self.lightning_module.forward = wrapped_forward  # type: ignore[assignment]
+        original_module.forward = wrapped_forward  # type: ignore[assignment]
 
         wrapper_output = wrapper_module(*args, **kwargs)
         self.on_after_outer_forward(wrapper_module, original_module)
