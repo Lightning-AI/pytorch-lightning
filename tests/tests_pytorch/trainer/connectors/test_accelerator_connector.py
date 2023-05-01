@@ -419,7 +419,9 @@ def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_coun
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
-@pytest.mark.parametrize(("job_name", "expected_env"), [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
+@pytest.mark.parametrize(
+    ("job_name", "expected_env"), [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)]
+)
 @pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_env):
     if strategy and not isinstance(strategy, str):

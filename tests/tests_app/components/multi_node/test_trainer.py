@@ -42,7 +42,9 @@ def check_lightning_pytorch_and_mps():
 
 
 @pytest.mark.skipif(not check_lightning_pytorch_and_mps(), reason="pytorch_lightning and mps are required")
-@pytest.mark.parametrize(("accelerator_given", "accelerator_expected"), [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
+@pytest.mark.parametrize(
+    ("accelerator_given", "accelerator_expected"), [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")]
+)
 def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
         r"Forcing accelerator=cpu as other accelerators \(specifically MPS\) are not supported "

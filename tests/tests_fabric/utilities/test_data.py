@@ -335,7 +335,17 @@ def test_replace_dunder_methods_restore_methods():
 
 
 @pytest.mark.parametrize(
-    ("args", "kwargs", "default_kwargs", "arg_names", "replace_key", "replace_value", "expected_status", "expected_args", "expected_kwargs"),
+    (
+        "args",
+        "kwargs",
+        "default_kwargs",
+        "arg_names",
+        "replace_key",
+        "replace_value",
+        "expected_status",
+        "expected_args",
+        "expected_kwargs",
+    ),
     [
         pytest.param((), {}, {}, [], "a", 1, False, (), {}, id="empty"),
         pytest.param((1,), {}, {}, ["a"], "a", 2, True, (2,), {}, id="simple1"),

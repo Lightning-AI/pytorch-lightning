@@ -529,7 +529,9 @@ def test_strategy_choice_ddp_spawn(*_):
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-@pytest.mark.parametrize(("job_name", "expected_env"), [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
+@pytest.mark.parametrize(
+    ("job_name", "expected_env"), [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)]
+)
 @pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
     if strategy and not isinstance(strategy, str):

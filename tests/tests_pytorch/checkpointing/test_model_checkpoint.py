@@ -330,7 +330,9 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     assert d == best_k
 
 
-@pytest.mark.parametrize(("logger_version", "expected"), [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
+@pytest.mark.parametrize(
+    ("logger_version", "expected"), [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")]
+)
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
     model = LogInTwoMethods()
