@@ -363,7 +363,10 @@ class Strategy(ABC):
             return self.lightning_module.training_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
-        """This hook is deprecated. Override :meth:`training_step` instead."""
+        """This hook is deprecated.
+
+        Override :meth:`training_step` instead.
+        """
         pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -538,7 +541,6 @@ class Strategy(ABC):
 
 
 class _ForwardRedirection:
-
     def __call__(
         self,
         wrapper_module: Module,
@@ -547,7 +549,6 @@ class _ForwardRedirection:
         *args: Any,
         **kwargs: Any
     ) -> STEP_OUTPUT:
-
         assert method_name != "forward"
         original_forward = original_module.forward
 
