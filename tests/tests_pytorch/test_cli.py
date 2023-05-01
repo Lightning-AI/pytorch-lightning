@@ -70,10 +70,10 @@ def mock_subclasses(baseclass, *subclasses):
         yield None
 
 
-@pytest.fixture
+@pytest.fixture()
 def cleandir(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    yield
+    return
 
 
 @pytest.fixture(autouse=True)
@@ -118,7 +118,7 @@ def _trainer_builder(
     return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
 
 
-@pytest.mark.parametrize(["trainer_class", "model_class"], [(Trainer, Model), (_trainer_builder, _model_builder)])
+@pytest.mark.parametrize(("trainer_class", "model_class"), [(Trainer, Model), (_trainer_builder, _model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
     expected_model = {"model_param": 7}
@@ -146,7 +146,8 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
 
     with mock.patch("sys.argv", ["any.py", "fit", "--model.model_param=7", "--trainer.limit_train_batches=100"]):
         cli = LightningCLI(model_class, trainer_class=trainer_class, save_config_callback=SaveConfigCallback)
-        assert hasattr(cli.trainer, "ran_asserts") and cli.trainer.ran_asserts
+        assert hasattr(cli.trainer, "ran_asserts")
+        assert cli.trainer.ran_asserts
 
 
 def test_lightning_cli_args_callbacks(cleandir):
@@ -245,7 +246,8 @@ def test_lightning_cli_args(cleandir):
 
     cli_config = cli.config["fit"].as_dict()
     assert cli_config["seed_everything"] == 1234
-    assert "model" not in loaded_config and "model" not in cli_config  # no arguments to include
+    assert "model" not in loaded_config
+    assert "model" not in cli_config
     assert loaded_config["data"] == cli_config["data"]
     assert loaded_config["trainer"] == cli_config["trainer"]
 
@@ -1519,7 +1521,7 @@ def test_pytorch_profiler_init_args():
 
 
 @pytest.mark.parametrize(
-    ["args"],
+    "args",
     [
         (["--trainer.logger=False", "--model.foo=456"],),
         ({"trainer": {"logger": False}, "model": {"foo": 456}},),

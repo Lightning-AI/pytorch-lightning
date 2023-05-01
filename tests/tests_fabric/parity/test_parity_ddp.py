@@ -128,7 +128,7 @@ def train_fabric_ddp(fabric):
 @RunIf(standalone=True)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
-    "accelerator, devices, tolerance",
+    ("accelerator", "devices", "tolerance"),
     [
         ("cpu", 2, 0.02),
         pytest.param("cuda", 2, 0.01, marks=RunIf(min_cuda_gpus=2)),

@@ -126,7 +126,7 @@ def test_fabric_module_state_dict_access():
 
 
 @pytest.mark.parametrize(
-    "precision, input_type, expected_type, accelerator, device_str",
+    ("precision", "input_type", "expected_type", "accelerator", "device_str"),
     [
         pytest.param(32, torch.float16, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float32, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -227,7 +227,7 @@ def test_fabric_dataloader_iterator():
 
 
 @pytest.mark.parametrize(
-    "src_device_str, dest_device_str",
+    ("src_device_str", "dest_device_str"),
     [
         ("cpu", "cpu"),
         pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),

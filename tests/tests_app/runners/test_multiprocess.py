@@ -50,7 +50,7 @@ class StartFrontendServersTestFlow(LightningFlow):
 
 @pytest.mark.skip(reason="hanging with timeout")  # fixme
 @pytest.mark.parametrize(
-    "cloudspace_host, port, expected_host, expected_target",
+    ("cloudspace_host", "port", "expected_host", "expected_target"),
     [
         (None, 7000, "localhost", "http://localhost:7000"),
         ("test.lightning.ai", 7000, "0.0.0.0", "https://7000-test.lightning.ai"),  # noqa: S104
@@ -110,7 +110,7 @@ def test_multiprocess_runtime_sets_context():
 
 
 @pytest.mark.parametrize(
-    "env,expected_url",
+    ("env", "expected_url"),
     [
         ({}, "http://127.0.0.1:7501/view"),
         ({"APP_SERVER_HOST": "http://test"}, "http://test"),
