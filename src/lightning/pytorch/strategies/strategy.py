@@ -542,12 +542,7 @@ class Strategy(ABC):
 
 class _ForwardRedirection:
     def __call__(
-        self,
-        wrapper_module: Module,
-        original_module: "pl.LightningModule",
-        method_name: str,
-        *args: Any,
-        **kwargs: Any
+        self, wrapper_module: Module, original_module: "pl.LightningModule", method_name: str, *args: Any, **kwargs: Any
     ) -> STEP_OUTPUT:
         assert method_name != "forward"
         original_forward = original_module.forward
