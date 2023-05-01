@@ -13,12 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_fabric DIRECTORY
-
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
-
 
 MAX_RETRIES=3
 
