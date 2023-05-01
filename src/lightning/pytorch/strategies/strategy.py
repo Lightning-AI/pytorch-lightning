@@ -542,7 +542,7 @@ class _ForwardRedirection:
     def __call__(
         self,
         wrapper_module: Module,
-        original_module: pl.LightningModule,
+        original_module: "pl.LightningModule",
         method_name: str,
         *args: Any,
         **kwargs: Any
@@ -568,8 +568,8 @@ class _ForwardRedirection:
         self.on_after_outer_forward(wrapper_module, original_module)
         return wrapper_output
 
-    def on_after_inner_forward(self, wrapper_module: Module, original_module: pl.LightningModule):
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule"):
         pass
 
-    def on_after_outer_forward(self, wrapper_module: Module, original_module: pl.LightningModule):
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule"):
         pass
