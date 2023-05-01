@@ -19,20 +19,28 @@
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 
-echo "Run parity tests manually"
 
-for i in {1..3}
-do
-  echo "Run attempt: $i"
-  python -m parity.test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02
-  if [ $? -eq 0 ]; then break; fi
-done
-if [ $? -ne 0 ]; then echo "failed"; exit 1; fi
+MAX_RETRIES=3
 
+retry_command() {
+  local command="$@"
+  local exit_code=1
+  for ((i=1; i<=$MAX_RETRIES; i++))
+  do
+    echo "Run attempt: $i"
+    eval $command
+    exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+      echo "Successfully ran: $command"
+      break
+    fi
+    echo "Attempt $i failed."
+  done
+  if [ $exit_code -ne 0 ]; then
+    echo "Failed after $MAX_RETRIES attempts: $command"
+  fi
+  return $exit_code
+}
 
-#for i in {1..3}
-#do
-#  echo "Run attempt: $i"
-#  python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01
-#  if [ $? -eq 0 ]; then break; fi
-#done
+retry_command "python -m parity.test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02"
+retry_command "python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01"
