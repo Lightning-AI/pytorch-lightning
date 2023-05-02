@@ -4,7 +4,7 @@
 Level 16: Own the training loop
 ###############################
 
-Learn all the ways of owning your raw PyTorch loops with Lighting.
+Learn all the ways of owning your raw PyTorch loops with Lightning.
 
 ----
 
