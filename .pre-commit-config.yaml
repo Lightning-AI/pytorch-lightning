@@ -22,7 +22,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.3.2
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
@@ -62,7 +62,7 @@ repos:
           - flake8-simplify
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.260
+    rev: v0.0.263
     hooks:
       - id: ruff
         args: ["--fix"]
