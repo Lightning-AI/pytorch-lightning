@@ -58,7 +58,7 @@ There's also [GitHub discussions](https://github.com/Lightning-AI/lightning/disc
 ## Applying
 
 There are no precise targets for becoming a core contributor. In the past, community members have become core after fitting the previous expectations consistently.
-We are on the lookout for new people to join, however, if you feel like you meet the expectations already and we haven't reached out to you yet, feel free to ping us privately on [Discord](https://discord.gg/VptPCZkGNa).
+We are on the lookout for new people to join, however, if you feel like you meet the expectations already and we haven't reached out to you yet, feel free to ping us privately on [Discord](https://discord.gg/XbUZ3xbdQk).
 
 ## Employment
 
