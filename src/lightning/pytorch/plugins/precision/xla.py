@@ -15,14 +15,14 @@ from functools import partial
 from typing import Any, Callable
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-class TPUPrecisionPlugin(PrecisionPlugin):
-    """Precision plugin for TPU integration."""
+class XLAPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin with XLA."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not _XLA_AVAILABLE:
@@ -54,7 +54,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         if model.automatic_optimization and skipped_backward:
             # we lack coverage here so disable this - something to explore if there's demand
             raise MisconfigurationException(
-                "Skipping backward by returning `None` from your `training_step` is not implemented for TPUs."
+                "Skipping backward by returning `None` from your `training_step` is not implemented with XLA."
                 " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                 " requesting this feature."
             )
