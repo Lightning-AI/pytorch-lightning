@@ -25,7 +25,7 @@ Learn all the ways of owning your raw PyTorch loops with Lightning.
 
 .. displayitem::
    :header: Use Lightning Fabric
-   :description:Write your own training loops using lightning Fabric.
+   :description: Write your own training loops using lightning Fabric.
    :col_css: col-md-4
    :button_link: https://lightning.ai/docs/fabric/stable/
    :height: 150
