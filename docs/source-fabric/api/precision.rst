@@ -20,6 +20,6 @@ Precision
     Precision
     DoublePrecision
     MixedPrecision
-    TPUPrecision
-    TPUBf16Precision
+    XLAPrecision
+    XLABf16Precision
     FSDPPrecision

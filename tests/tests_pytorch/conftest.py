@@ -181,10 +181,10 @@ def mps_count_4(monkeypatch):
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
@@ -198,10 +198,10 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
