@@ -39,7 +39,7 @@ def main_train(dir_path, max_epochs: int = 20):
     )
 
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = ClassificationModel(num_features=24, num_classes=3, lr=0.01)
     trainer.fit(model, datamodule=dm)
     res = trainer.test(model, datamodule=dm)
     assert res[0]["test_loss"] <= 0.85, str(res[0]["test_loss"])
