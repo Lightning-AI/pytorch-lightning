@@ -6,13 +6,13 @@ policy:
     - id: ['versions']
       label:
         - name: "ver: 1.6.x"
-          keys: ['v1_6']
+          keys: ['v1.6']
         - name: "ver: 1.7.x"
-          keys: ['v1_7']
+          keys: ['v1.7']
         - name: "ver: 1.8.x"
-          keys: ['v1_8']
+          keys: ['v1.8']
         - name: "ver: 1.9.x"
-          keys: ['v1_9']
+          keys: ['v1.9']
         - name: "ver: 2.0.x"
           keys: ['v2_0']
         - name: "ver: 2.1.x"
