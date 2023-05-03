@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import random
-
 from functools import partial
 from unittest import mock
 from unittest.mock import MagicMock
@@ -22,11 +21,11 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
+from lightning.fabric.utilities.seed import seed_everything
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
@@ -38,7 +37,7 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
     return fn(*args, **kwargs)
 
 
-def xla_launch(fn, strategy = None):
+def xla_launch(fn, strategy=None):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
     if not strategy:
         accelerator = XLAAccelerator()
@@ -160,22 +159,24 @@ def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)
     if broadcast_master_params:
-        for t in gathered: assert gathered[0] == t
+        for t in gathered:
+            assert gathered[0] == t
     else:
         with pytest.raises(AssertionError):
-            for t in gathered: assert gathered[0] == t
+            for t in gathered:
+                assert gathered[0] == t
 
 
 @RunIf(tpu=True)
 @pytest.mark.parametrize("broadcast_master_params", [True, False])
 @mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_tpu_broadcast_master_params(broadcast_master_params):
-    """Test pjrt's broadcast_master_params"""
+    """Test pjrt's broadcast_master_params."""
     accelerator = XLAAccelerator()
     strategy = XLAStrategy(
         accelerator=accelerator,
         parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
-        broadcast_master_params=broadcast_master_params
+        broadcast_master_params=broadcast_master_params,
     )
     partial_fn = partial(tpu_broadcast_master_params_fn, broadcast_master_params)
     xla_launch(partial_fn, strategy)
