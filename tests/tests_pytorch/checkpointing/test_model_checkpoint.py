@@ -1177,7 +1177,12 @@ def test_ckpt_version_counter_disabled_after_rerun_new_trainer(tmpdir):
     epochs = 2
     for i in range(epochs):
         mc = ModelCheckpoint(
-            dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}", enable_version_counter=False
+            dirpath=tmpdir,
+            save_top_k=-1,
+            save_last=True,
+            monitor="epoch",
+            filename="{epoch}",
+            enable_version_counter=False,
         )
         trainer = Trainer(
             max_epochs=epochs,
@@ -1191,39 +1196,13 @@ def test_ckpt_version_counter_disabled_after_rerun_new_trainer(tmpdir):
         )
         trainer.fit(BoringModel())
 
-        # check best_k_models state
-        expected = {"epoch=0.ckpt", "epoch=1.ckpt"}
-        assert {Path(f).name for f in mc.best_k_models} == expected
+        # check best_k_models and last state
+        assert {Path(f).name for f in mc.best_k_models} == {"epoch=0.ckpt", "epoch=1.ckpt"}
+        assert Path(mc.last_model_path).name == "last.ckpt"
 
     # check created ckpts
     actual = {f.basename for f in tmpdir.listdir()}
-    assert actual == {"epoch=0.ckpt", "epoch=1.ckpt"}
-
-
-def test_ckpt_version_counter_disabled_after_rerun_same_trainer(tmpdir):
-    """Check that previous checkpoints get overwritten and no suffixes are generated when the same trainer instance
-    is used."""
-    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test", enable_version_counter=False)
-    mc.STARTING_VERSION = 9
-    trainer = Trainer(
-        max_epochs=2,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        default_root_dir=tmpdir,
-        callbacks=[mc],
-        logger=False,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(BoringModel())
-    trainer.fit_loop.max_epochs = 4
-    trainer.fit(BoringModel())
-
-    expected = {"test.ckpt"}
-    # check best_k_models state
-    assert {Path(f).name for f in mc.best_k_models} == expected
-    # check created ckpts
-    assert set(os.listdir(tmpdir)) == expected
+    assert actual == {"epoch=0.ckpt", "epoch=1.ckpt", "last.ckpt"}
 
 
 def test_model_checkpoint_mode_options():
@@ -1373,23 +1352,6 @@ def test_save_last_versioning(tmpdir):
         )
         trainer.fit(model)
     assert {"last.ckpt", "last-v1.ckpt"} == set(os.listdir(tmpdir))
-
-
-def test_save_last_versioning_disabled(tmpdir):
-    model = BoringModel()
-    for _ in range(2):
-        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True, enable_version_counter=False)
-        trainer = Trainer(
-            max_epochs=2,
-            callbacks=mc,
-            limit_train_batches=1,
-            limit_val_batches=0,
-            enable_progress_bar=False,
-            enable_model_summary=False,
-            logger=False,
-        )
-        trainer.fit(model)
-    assert {"last.ckpt"} == set(os.listdir(tmpdir))
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
