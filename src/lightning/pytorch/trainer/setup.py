@@ -162,21 +162,21 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         from lightning_graphcore import IPUAccelerator
 
         num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
-        available = IPUAccelerator.is_available()
+        ipu_available = IPUAccelerator.is_available()
     else:
         num_ipus = 0
-        available = False
-    rank_zero_info(f"IPU available: {available}, using: {num_ipus} IPUs")
+        ipu_available = False
+    rank_zero_info(f"IPU available: {ipu_available}, using: {num_ipus} IPUs")
 
     if _LIGHTNING_HABANA_AVAILABLE:
         from lightning_habana import HPUAccelerator
 
         num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
-        available = HPUAccelerator.is_available
+        hpu_available = HPUAccelerator.is_available
     else:
         num_hpus = 0
-        available = False
-    rank_zero_info(f"HPU available: {available}, using: {num_hpus} HPUs")
+        hpu_available = False
+    rank_zero_info(f"HPU available: {hpu_available}, using: {num_hpus} HPUs")
 
     if (
         CUDAAccelerator.is_available()
