@@ -60,8 +60,9 @@ def _RunIf(
     reasons = []
     kwargs = {}  # used in conftest.py::pytest_collection_modifyitems
 
-    if min_cuda_gpus and num_cuda_devices() < min_cuda_gpus:
-        reasons.append(f"GPUs>={min_cuda_gpus}")
+    if min_cuda_gpus:
+        if num_cuda_devices() < min_cuda_gpus:
+            reasons.append(f"GPUs>={min_cuda_gpus}")
         kwargs["min_cuda_gpus"] = True
 
     # set use_base_version for nightly support
@@ -93,8 +94,9 @@ def _RunIf(
     if skip_windows and sys.platform == "win32":
         reasons.append("unimplemented on Windows")
 
-    if tpu and not XLAAccelerator.is_available():
-        reasons.append("TPU")
+    if tpu:
+        if not XLAAccelerator.is_available():
+            reasons.append("TPU")
         kwargs["tpu"] = True
 
     if mps is not None:
@@ -103,8 +105,9 @@ def _RunIf(
         elif not mps and MPSAccelerator.is_available():
             reasons.append("not MPS")
 
-    if standalone and os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
-        reasons.append("Standalone execution")
+    if standalone:
+        if os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
+            reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
     if deepspeed and not _DEEPSPEED_AVAILABLE:
