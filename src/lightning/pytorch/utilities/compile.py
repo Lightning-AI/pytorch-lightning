@@ -43,6 +43,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     orig_module = model._orig_mod
 
     if not isinstance(orig_module, pl.LightningModule):
+        _check_mixed_imports(model)
         raise ValueError(
             f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
         )
@@ -115,6 +116,7 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
 def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
     if not _TORCH_GREATER_EQUAL_2_0:
         if not isinstance(model, pl.LightningModule):
+            _check_mixed_imports(model)
             raise TypeError(f"`model` must be a `LightningModule`, got `{type(model).__qualname__}`")
         return model
     from torch._dynamo import OptimizedModule
