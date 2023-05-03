@@ -172,7 +172,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         from lightning_habana import HPUAccelerator
 
         num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
-        hpu_available = HPUAccelerator.is_available
+        hpu_available = HPUAccelerator.is_available()
     else:
         num_hpus = 0
         hpu_available = False
