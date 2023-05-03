@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from typing import Any, Dict, List, Union
+from typing import Any, List, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.utilities.device_parser import _check_data_type
 
 
-class TPUAccelerator(Accelerator):
-    """Accelerator for TPU devices.
+class XLAAccelerator(Accelerator):
+    """Accelerator for XLA devices, normally TPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
     """
@@ -85,15 +86,11 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        return TPUAccelerator.auto_device_count() > 0
+        return XLAAccelerator.auto_device_count() > 0
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        accelerator_registry.register(
-            "tpu",
-            cls,
-            description=cls.__class__.__name__,
-        )
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
 
 
 # PJRT support requires this minimum version
@@ -122,7 +119,7 @@ def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[i
 
 
 def _check_tpu_devices_valid(devices: object) -> None:
-    device_count = TPUAccelerator.auto_device_count()
+    device_count = XLAAccelerator.auto_device_count()
     if (
         # support number of devices
         isinstance(devices, int)

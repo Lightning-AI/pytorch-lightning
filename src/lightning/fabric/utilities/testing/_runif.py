@@ -16,24 +16,20 @@ import os
 import sys
 from typing import Any, Optional
 
+import pytest
 import torch
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
+from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
-from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.xla import XLAAccelerator
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.core.module import _ONNX_AVAILABLE
-from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-
-_SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
+from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
 def _RunIf(
+    *args: Any,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,
     max_torch: Optional[str] = None,
@@ -44,23 +40,20 @@ def _RunIf(
     skip_windows: bool = False,
     standalone: bool = False,
     deepspeed: bool = False,
-    rich: bool = False,
-    omegaconf: bool = False,
-    psutil: bool = False,
-    sklearn: bool = False,
-    onnx: bool = False,
     dynamo: bool = False,
+    **kwargs: Any,
 ) -> Any:  # not the real return because it would require that pytest is available
-    """Wrapper around ``pytest.mark.skipif`` with specific conditions.
+    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
-    Example:
+    Example::
 
-        @RunIf(min_python="3.6")
+        @RunIf(min_torch="0.0")
         @pytest.mark.parametrize("arg1", [1, 2.0])
         def test_wrapper(arg1):
             assert arg1 > 0.0
 
     Args:
+        *args: Any :class:`pytest.mark.skipif` arguments.
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
@@ -73,18 +66,11 @@ def _RunIf(
         standalone: Mark the test as standalone, our CI will run it in a separate process.
             This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
         deepspeed: Require that microsoft/DeepSpeed is installed.
-        rich: Require that willmcgugan/rich is installed.
-        omegaconf: Require that omry/omegaconf is installed.
-        psutil: Require that psutil is installed.
-        sklearn: Require that scikit-learn is installed.
-        onnx: Require that onnx is installed.
         dynamo: Require that `torch.dynamo` is supported.
+        **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
     """
-    import pytest
-
     conditions = []
     reasons = []
-    kwargs: dict = {}  # It's required for our CI to run under the different PL_RUN_X_TESTS
 
     if min_cuda_gpus:
         conditions.append(num_cuda_devices() < min_cuda_gpus)
@@ -150,26 +136,6 @@ def _RunIf(
         conditions.append(not _DEEPSPEED_AVAILABLE)
         reasons.append("Deepspeed")
 
-    if rich:
-        conditions.append(not _RICH_AVAILABLE)
-        reasons.append("Rich")
-
-    if omegaconf:
-        conditions.append(not _OMEGACONF_AVAILABLE)
-        reasons.append("omegaconf")
-
-    if psutil:
-        conditions.append(not _PSUTIL_AVAILABLE)
-        reasons.append("psutil")
-
-    if sklearn:
-        conditions.append(not _SKLEARN_AVAILABLE)
-        reasons.append("scikit-learn")
-
-    if onnx:
-        conditions.append(_TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE)
-        reasons.append("onnx")
-
     if dynamo:
         if _TORCH_GREATER_EQUAL_2_1:
             from torch._dynamo.eval_frame import is_dynamo_supported
@@ -186,4 +152,6 @@ def _RunIf(
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
     kwargs.pop("condition", None)
     kwargs.pop("reason", None)
-    return pytest.mark.skipif(condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
+    return pytest.mark.skipif(  # type: ignore[misc]
+        *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
+    )

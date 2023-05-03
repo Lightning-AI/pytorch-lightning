@@ -155,6 +155,21 @@ def test_module_init_context(precision, expected_dtype):
     assert module.weight.dtype == module.bias.dtype == expected_dtype
 
 
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "0"})
+@mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
+@mock.patch("torch.cuda.Stream")
+@mock.patch("torch.cuda.stream")
+def test_setup_with_cuda_stream(cuda_stream_mock, *_):
+    model = torch.nn.Linear(2, 2)
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu")], cluster_environment=LightningEnvironment())
+    strategy.setup_module(model)
+    cuda_stream_mock.assert_not_called()
+
+    strategy = DDPStrategy(parallel_devices=[torch.device("cuda", 0)], cluster_environment=LightningEnvironment())
+    strategy.setup_module(model)
+    cuda_stream_mock.assert_called_once()
+
+
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
