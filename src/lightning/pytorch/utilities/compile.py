@@ -18,6 +18,7 @@ import torch
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
+from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
 
 
 def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
@@ -122,6 +123,7 @@ def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
         return from_compiled(model)
     if isinstance(model, pl.LightningModule):
         return model
+    _check_mixed_imports(model)
     raise TypeError(
         f"`model` must be a `LightningModule` or `torch._dynamo.OptimizedModule`, got `{type(model).__qualname__}`"
     )
