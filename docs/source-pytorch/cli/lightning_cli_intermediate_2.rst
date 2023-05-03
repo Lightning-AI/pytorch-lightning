@@ -193,13 +193,15 @@ Standard learning rate schedulers from ``torch.optim.lr_scheduler``  work out of
 
 .. code:: bash
 
-    python main.py fit --lr_scheduler CosineAnnealingLR
+    python main.py fit --optimizer=Adam --lr_scheduler CosineAnnealingLR
+
+Please note that ``--optimizer`` must be added for ``--lr_scheduler`` to have an effect.
 
 If the scheduler you want needs other arguments, add them via the CLI (no need to change your code)!
 
 .. code:: bash
 
-    python main.py fit --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
+    python main.py fit --optimizer=Adam --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
 
 Furthermore, any custom subclass of ``torch.optim.lr_scheduler.LRScheduler`` can be used as learning rate scheduler:
 
@@ -224,7 +226,7 @@ Now you can choose between any learning rate scheduler at runtime:
 .. code:: bash
 
     # LitLRScheduler
-    python main.py fit --lr_scheduler LitLRScheduler
+    python main.py fit --optimizer=Adam --lr_scheduler LitLRScheduler
 
 
 ----
