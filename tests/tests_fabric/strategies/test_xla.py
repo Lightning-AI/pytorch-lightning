@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import random
+
 from functools import partial
 from unittest import mock
 from unittest.mock import MagicMock
@@ -20,6 +22,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
@@ -35,13 +38,14 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
     return fn(*args, **kwargs)
 
 
-def xla_launch(fn):
+def xla_launch(fn, strategy = None):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
-    accelerator = XLAAccelerator()
-    strategy = XLAStrategy(
-        accelerator=accelerator,
-        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
-    )
+    if not strategy:
+        accelerator = XLAAccelerator()
+        strategy = XLAStrategy(
+            accelerator=accelerator,
+            parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
+        )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)
@@ -148,3 +152,30 @@ def tpu_all_gather_fn(strategy):
 def test_tpu_all_gather():
     """Test the all_gather operation on TPU."""
     xla_launch(tpu_all_gather_fn)
+
+
+def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
+    seed_everything(random.seed())
+    model = torch.nn.Linear(1, 1).to(strategy.root_device)
+    model = strategy.setup_module(model)
+    gathered = strategy.all_gather(model.weight)
+    if broadcast_master_params:
+        for t in gathered: assert gathered[0] == t
+    else:
+        with pytest.raises(AssertionError):
+            for t in gathered: assert gathered[0] == t
+
+
+@RunIf(tpu=True)
+@pytest.mark.parametrize("broadcast_master_params", [True, False])
+@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
+def test_tpu_broadcast_master_params(broadcast_master_params):
+    """Test pjrt's broadcast_master_params"""
+    accelerator = XLAAccelerator()
+    strategy = XLAStrategy(
+        accelerator=accelerator,
+        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
+        broadcast_master_params=broadcast_master_params
+    )
+    partial_fn = partial(tpu_broadcast_master_params_fn, broadcast_master_params)
+    xla_launch(partial_fn, strategy)
