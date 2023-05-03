@@ -46,7 +46,13 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
+from lightning.fabric.wrappers import (
+    _FabricDataLoader,
+    _FabricModule,
+    _FabricOptimizer,
+    _unwrap_compiled,
+    _unwrap_objects,
+)
 
 
 class Fabric:
@@ -542,6 +548,7 @@ class Fabric:
             enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
                 skip.
         """
+        module = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
