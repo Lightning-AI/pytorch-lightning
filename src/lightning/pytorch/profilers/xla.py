@@ -14,7 +14,7 @@
 import logging
 from typing import Dict
 
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.pytorch.profilers.profiler import Profiler
 
 log = logging.getLogger(__name__)
