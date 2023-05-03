@@ -38,7 +38,7 @@ def main_train(dir_path, max_epochs: int = 20):
         deterministic=True,
     )
 
-    dm = ClassifDataModule(num_features=24, length=800, num_classes=3)
+    dm = ClassifDataModule(num_features=24, length=6000, num_classes=3, batch_size=128)
     model = ClassificationModel(num_features=24, num_classes=3, lr=0.01)
     trainer.fit(model, datamodule=dm)
     res = trainer.test(model, datamodule=dm)
