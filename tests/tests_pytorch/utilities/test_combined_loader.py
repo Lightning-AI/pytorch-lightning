@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+import pickle
 from typing import Any, get_args, NamedTuple, Sequence
 
 import pytest
@@ -25,7 +26,6 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import (
     _LITERAL_SUPPORTED_MODES,
     _MaxSize,
@@ -400,8 +400,6 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
     trainer = Trainer(use_distributed_sampler=use_distributed_sampler, strategy="ddp", accelerator="cpu", devices=2)
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
-    trainer.state.fn = "fit"
-    trainer.state.stage = RunningStage.TRAINING
     trainer.fit_loop.setup_data()
 
     samplers_flattened = tree_flatten(combined_loader.sampler)[0]
@@ -430,8 +428,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
     )
     trainer.strategy.connect(model)
-    trainer.state.fn = "fit"
-    trainer.state.stage = RunningStage.TRAINING
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
@@ -525,8 +521,6 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
         if use_distributed_sampler
         else expected_length_before_ddp
     )
-    trainer.state.fn = "fit"
-    trainer.state.stage = RunningStage.TRAINING
     trainer.fit_loop.setup_data()
     assert trainer.train_dataloader is not None
     assert isinstance(trainer.fit_loop._combined_loader, CombinedLoader)
@@ -536,3 +530,22 @@ def test_combined_dataloader_for_training_with_ddp(use_distributed_sampler, mode
 
 def test_supported_modes():
     assert set(_SUPPORTED_MODES) == set(get_args(_LITERAL_SUPPORTED_MODES))
+
+
+def test_combined_loader_can_be_pickled():
+    dataloader = DataLoader([0, 1, 2, 3])
+
+    # sanity check that and error would be raised. if this ever changes, `_ModeIterator.__getstate__` should be updated
+    iterator = iter(dataloader)
+    with pytest.raises(NotImplementedError, match="cannot be pickled"):
+        pickle.dumps(iterator)
+
+    numbers = list(range(10))
+    cl = CombinedLoader([dataloader, numbers])
+    iter(cl)
+
+    iterator = cl._iterator
+    assert iterator.__getstate__() == {"iterables": [dataloader, numbers], "iterators": [None, iterator.iterators[1]]}
+
+    # no error
+    pickle.dumps(cl)

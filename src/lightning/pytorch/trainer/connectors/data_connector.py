@@ -27,7 +27,6 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
@@ -35,6 +34,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -141,11 +141,8 @@ class _DataConnector:
         trainer.fit_loop.epoch_loop.val_loop._data_source.instance = (
             val_dataloaders if val_dataloaders is not None else model
         )
-        trainer.fit_loop.epoch_loop.val_loop._data_source.name = "val_dataloader"
         trainer.validate_loop._data_source.instance = val_dataloaders if val_dataloaders is not None else model
-        trainer.validate_loop._data_source.name = "val_dataloader"
         trainer.test_loop._data_source.instance = test_dataloaders if test_dataloaders is not None else model
-        trainer.test_loop._data_source.name = "test_dataloader"
         trainer.predict_loop._data_source.instance = predict_dataloaders if predict_dataloaders is not None else model
 
     def attach_datamodule(
@@ -160,24 +157,27 @@ class _DataConnector:
         trainer = self.trainer
         trainer.fit_loop._data_source.instance = datamodule
         trainer.fit_loop.epoch_loop.val_loop._data_source.instance = datamodule
-        trainer.fit_loop.epoch_loop.val_loop._data_source.name = "val_dataloader"
         trainer.validate_loop._data_source.instance = datamodule
-        trainer.validate_loop._data_source.name = "val_dataloader"
         trainer.test_loop._data_source.instance = datamodule
-        trainer.test_loop._data_source.name = "test_dataloader"
         trainer.predict_loop._data_source.instance = datamodule
 
         trainer.datamodule = datamodule
         datamodule.trainer = trainer
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            # `DistributedSampler` is never used with `poptorch.DataLoader`
+            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
+        else:
+            is_ipu = False
         return (
             self.trainer._accelerator_connector.use_distributed_sampler
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
-            and not isinstance(self.trainer.accelerator, IPUAccelerator)
+            and not is_ipu
         )
 
     def _prepare_dataloader(self, dataloader: object, shuffle: bool, mode: RunningStage) -> object:
@@ -190,11 +190,17 @@ class _DataConnector:
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
+            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
+        else:
+            is_ipu = False
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
-            or isinstance(self.trainer.accelerator, IPUAccelerator)
+            or is_ipu
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
@@ -465,12 +471,9 @@ def _parse_num_batches(
     return num_batches
 
 
-def _process_dataloader(trainer: "pl.Trainer", dataloader: object) -> object:
-    trainer_fn = trainer.state.fn
-    stage = trainer.state.stage
-    if trainer_fn is None or stage is None:
-        raise RuntimeError("Unexpected state")
-
+def _process_dataloader(
+    trainer: "pl.Trainer", trainer_fn: TrainerFn, stage: RunningStage, dataloader: object
+) -> object:
     if stage != RunningStage.TRAINING:
         is_shuffled = _is_dataloader_shuffled(dataloader)
         # limit this warning only for samplers assigned automatically when shuffle is set

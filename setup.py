@@ -62,7 +62,7 @@ _PACKAGE_MAPPING = {
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
-_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
+_FREEZE_REQUIREMENTS = os.environ.get("FREEZE_REQUIREMENTS", "0").lower() in ("1", "true")
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -87,7 +87,11 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
-        lines = ["include src/lightning/version.info\n", "include requirements/base.txt\n"]
+        lines = [
+            "include src/lightning/version.info\n",
+            "include src/lightning/py.typed\n",
+            "include requirements/base.txt\n",
+        ]
         # load manifest and aggregated all manifests
         for pkg in mapping.values():
             pkg_manifest = os.path.join(_PATH_SRC, pkg, "MANIFEST.in")

@@ -57,7 +57,6 @@ def test_error_with_multiple_optimizers(tmpdir):
 
 def test_model_reset_correctly(tmpdir):
     """Check that model weights are correctly reset after _lr_find()"""
-
     model = BoringModel()
     model.lr = 0.1
 
@@ -70,7 +69,7 @@ def test_model_reset_correctly(tmpdir):
 
     after_state_dict = model.state_dict()
 
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after learning rate finder"
@@ -80,7 +79,6 @@ def test_model_reset_correctly(tmpdir):
 
 def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after lr_find()"""
-
     model = BoringModel()
     model.lr = 0.1
 
@@ -131,10 +129,7 @@ def test_tuner_lr_find(tmpdir, use_hparams):
     tuner = Tuner(trainer)
     tuner.lr_find(model, update_attr=True)
 
-    if use_hparams:
-        after_lr = model.hparams.lr
-    else:
-        after_lr = model.lr
+    after_lr = model.hparams.lr if use_hparams else model.lr
 
     assert after_lr is not None
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
@@ -162,10 +157,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
     tuner = Tuner(trainer)
     tuner.lr_find(model, update_attr=True, attr_name="my_fancy_lr")
-    if use_hparams:
-        after_lr = model.hparams.my_fancy_lr
-    else:
-        after_lr = model.my_fancy_lr
+    after_lr = model.hparams.my_fancy_lr if use_hparams else model.my_fancy_lr
 
     assert after_lr is not None
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
@@ -366,7 +358,7 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     assert all(
         all_res[0][k] == curr_lr_finder[k] and len(curr_lr_finder[k]) > 10
         for curr_lr_finder in all_res[1:]
-        for k in all_res[0].keys()
+        for k in all_res[0]
     )
 
 
@@ -425,7 +417,6 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
 
 def test_lr_finder_callback_restarting(tmpdir):
     """Test that `LearningRateFinder` does not set restarting=True when loading checkpoint."""
-
     num_lr_steps = 100
 
     class MyBoringModel(BoringModel):

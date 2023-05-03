@@ -18,7 +18,6 @@
 # WE FAVOR READABILITY OVER ENGINEERING-CONSTRUCTS BY DESIGN
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
-
 """Trainer to automate the training."""
 import logging
 import math
@@ -130,8 +129,7 @@ class Trainer:
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
     ) -> None:
-        r"""
-        Customize every aspect of training via flags.
+        r"""Customize every aspect of training via flags.
 
         Args:
             accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
@@ -155,7 +153,7 @@ class Trainer:
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger`` if it is installed, otherwise ``CSVLogger``.
                 ``False`` will disable logging. If multiple loggers are provided, local files
-                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of he first logger.
+                (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
 
             callbacks: Add a callback or list of callbacks.
@@ -280,7 +278,6 @@ class Trainer:
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
                 :meth:`~lightning.pytorch.core.module.LightningModule.log`,
                 :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
-
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
@@ -293,6 +290,14 @@ class Trainer:
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+        Raises:
+            TypeError:
+                If ``gradient_clip_val`` is not an int or float.
+
+            MisconfigurationException:
+                If ``gradient_clip_algorithm`` is invalid.
+                If ``track_grad_norm`` is not a positive number or inf.
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -410,8 +415,10 @@ class Trainer:
         # init loops
         self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
         self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = _EvaluationLoop(self, inference_mode=inference_mode)
-        self.test_loop = _EvaluationLoop(self, inference_mode=inference_mode)
+        self.validate_loop = _EvaluationLoop(
+            self, TrainerFn.VALIDATING, RunningStage.VALIDATING, inference_mode=inference_mode
+        )
+        self.test_loop = _EvaluationLoop(self, TrainerFn.TESTING, RunningStage.TESTING, inference_mode=inference_mode)
         self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -452,6 +459,11 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
 
+        if detect_anomaly:
+            rank_zero_info(
+                "You have turned on `Trainer(detect_anomaly=True)`. This will significantly slow down compute speed and"
+                " is recommended only for model debugging."
+            )
         self._detect_anomaly: bool = detect_anomaly
 
         setup._log_device_info(self)
@@ -494,8 +506,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[str] = None,
     ) -> None:
-        r"""
-        Runs the full optimization routine.
+        r"""Runs the full optimization routine.
 
         Args:
             model: Model to fit.
@@ -510,8 +521,15 @@ class Trainer:
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
                 If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
+            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
+        Raises:
+            TypeError:
+                If ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` for torch version less than
+                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` or
+                :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
         """
@@ -570,8 +588,7 @@ class Trainer:
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""
-        Perform one evaluation epoch over the validation set.
+        r"""Perform one evaluation epoch over the validation set.
 
         Args:
             model: The model to validate.
@@ -596,6 +613,17 @@ class Trainer:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
             like :meth:`~lightning.pytorch.LightningModule.validation_step` etc.
             The length of the list corresponds to the number of validation dataloaders used.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -666,9 +694,8 @@ class Trainer:
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""
-        Perform one evaluation epoch over the test set.
-        It's separated from fit to make sure you never run on your test set until you want to.
+        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on
+        your test set until you want to.
 
         Args:
             model: The model to test.
@@ -693,6 +720,17 @@ class Trainer:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
             like :meth:`~lightning.pytorch.LightningModule.test_step` etc.
             The length of the list corresponds to the number of test dataloaders used.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -763,10 +801,8 @@ class Trainer:
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
-        r"""
-        Run inference on your data.
-        This will call the model forward function to compute predictions. Useful to perform distributed
-        and batched predictions. Logging is disabled in the predict hooks.
+        r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
+        perform distributed and batched predictions. Logging is disabled in the predict hooks.
 
         Args:
             model: The model to predict with.
@@ -790,6 +826,17 @@ class Trainer:
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+
+        Raises:
+            TypeError:
+                If no ``model`` is passed and there was no ``LightningModule`` passed in the previous run.
+                If ``model`` passed is not `LightningModule` or `torch._dynamo.OptimizedModule`.
+
+            MisconfigurationException:
+                If both ``dataloaders`` and ``datamodule`` are passed. Pass only one of these.
+
+            RuntimeError:
+                If a compiled ``model`` is passed and the strategy is not supported.
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
@@ -1034,8 +1081,7 @@ class Trainer:
 
     @property
     def strategy(self) -> Strategy:
-        # TODO(fabric): remove ignore after merging Fabric and PL strategies
-        return self._accelerator_connector.strategy  # type: ignore[return-value]
+        return self._accelerator_connector.strategy
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -1245,21 +1291,25 @@ class Trainer:
     def save_checkpoint(
         self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
     ) -> None:
-        r"""
-        Runs routine to create a checkpoint.
+        r"""Runs routine to create a checkpoint.
 
         Args:
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
+        Raises:
+            AttributeError:
+                If the model is not attached to the Trainer before calling this method.
         """
         if self.model is None:
             raise AttributeError(
                 "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
                 " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
             )
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
+        checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
+        self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+        self.strategy.barrier("Trainer.save_checkpoint")
 
     """
     State properties
@@ -1383,9 +1433,9 @@ class Trainer:
     @property
     def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``."""
-        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None:
-            return combined_loader.iterables
-        elif (combined_loader := self.validate_loop._combined_loader) is not None:
+        if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None or (
+            combined_loader := self.validate_loop._combined_loader
+        ) is not None:
             return combined_loader.iterables
 
     @property
@@ -1406,14 +1456,18 @@ class Trainer:
         return self.fit_loop.max_batches
 
     @property
-    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+    def num_sanity_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of validation batches that will be used during the sanity-checking part of
         ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
-        return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
+        # re-compute the `min` in case this is called outside of the sanity-checking stage
+        sanity_val_steps = self.num_sanity_val_steps
+        if isinstance(max_batches, list):
+            return [min(sanity_val_steps, batches) for batches in max_batches]
+        return min(sanity_val_steps, max_batches)
 
     @property
-    def num_val_batches(self) -> List[Union[int, float]]:
+    def num_val_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of validation batches that will be used during ``trainer.fit()`` or
         ``trainer.validate()``."""
         if self.state.fn == TrainerFn.VALIDATING:
@@ -1423,7 +1477,7 @@ class Trainer:
         return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
-    def num_test_batches(self) -> List[Union[int, float]]:
+    def num_test_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of test batches that will be used during ``trainer.test()``."""
         return self.test_loop.max_batches
 
@@ -1541,6 +1595,11 @@ class Trainer:
                 stepping_batches = self.trainer.estimated_stepping_batches
                 scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
                 return [optimizer], [scheduler]
+
+        Raises:
+            MisconfigurationException:
+                If estimated stepping batches cannot be computed due to different `accumulate_grad_batches`
+                at different epochs.
         """
         # infinite training
         if self.max_epochs == -1:
@@ -1548,11 +1607,7 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            state = self.state
-            self.state.fn = TrainerFn.FITTING
-            self.training = True
             self.fit_loop.setup_data()
-            self.state = state
 
         total_batches = self.num_training_batches
 

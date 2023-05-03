@@ -70,6 +70,8 @@ read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-we
 
 ----------
 
+.. _batch_size_finder:
+
 *****************
 Batch Size Finder
 *****************

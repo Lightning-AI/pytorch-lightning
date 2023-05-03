@@ -7,7 +7,6 @@ from lightning.app.cli.lightning_cli import run_app
 
 
 def test_core_features_app_example():
-
     runner = CliRunner()
     result = runner.invoke(
         run_app,

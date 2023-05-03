@@ -151,7 +151,6 @@ def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
-
     with pytest.raises(
         MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
@@ -349,6 +348,32 @@ def test_deepspeed_custom_precision_params(tmpdir):
         trainer.fit(model)
 
 
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+@pytest.mark.parametrize("precision", ["fp16", "bf16"])
+def test_deepspeed_inference_precision_during_inference(precision, tmpdir):
+    """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains
+    these changes."""
+
+    class TestCB(Callback):
+        def on_validation_start(self, trainer, pl_module) -> None:
+            assert trainer.strategy.config[precision]
+            raise SystemExit()
+
+    model = BoringModel()
+    strategy = DeepSpeedStrategy(config={precision: {"enabled": True}})
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy=strategy,
+        accelerator="cuda",
+        devices=1,
+        callbacks=[TestCB()],
+        barebones=True,
+    )
+    with pytest.raises(SystemExit):
+        trainer.validate(model)
+
+
 @RunIf(deepspeed=True)
 def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     """Ensure if we modify the activation checkpointing parameters, the deepspeed config contains these changes."""
@@ -400,7 +425,6 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off offload_optimizer, that this is set to False within the config."""
-
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
@@ -662,10 +686,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
-    if automatic_optimization:
-        model = ModelParallelClassificationModel()
-    else:
-        model = ManualModelParallelClassificationModel()
+    model = ModelParallelClassificationModel() if automatic_optimization else ManualModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
@@ -686,10 +707,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results == results
 
-    if automatic_optimization:
-        model = ModelParallelClassificationModel()
-    else:
-        model = ManualModelParallelClassificationModel()
+    model = ModelParallelClassificationModel() if automatic_optimization else ManualModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
@@ -821,13 +839,15 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     verification_callback = VerificationCallback()
+    strategy = DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer)
+    strategy.config["zero_force_ds_cpu_optimizer"] = False
     trainer = Trainer(
         default_root_dir=tmpdir,
         # TODO: this test fails with max_epochs >1 as there are leftover batches per epoch.
         # there's divergence in how Lightning handles the last batch of the epoch with how DeepSpeed does it.
         # we step the optimizers on the last batch but DeepSpeed keeps the accumulation for the next epoch
         max_epochs=1,
-        strategy=DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer),
+        strategy=strategy,
         accelerator="gpu",
         devices=2,
         limit_train_batches=5,
@@ -880,7 +900,7 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
             return self.layer(x)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(
@@ -907,7 +927,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
             self.rnn = torch.nn.GRU(32, 32)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(
@@ -953,7 +973,6 @@ def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()
 
     # carry out the check only on rank 0
     if trainer.is_global_zero:

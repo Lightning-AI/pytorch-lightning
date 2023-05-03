@@ -226,7 +226,7 @@ Next steps
     :col_css: col-md-4
     :button_link: ../fundamentals/precision.html
     :height: 160
-    :tag: intermediate
+    :tag: basic
 
 .. displayitem::
     :header: Distributed Communication

@@ -13,39 +13,39 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import MagicMock
 
-import pytest
 import torch
-from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.accelerators import XLAAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import XLAStrategy
-from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
-
-
-def test_error_process_iterable_dataloader(xla_available):
-    strategy = XLAStrategy(MagicMock())
-    loader_no_len = CustomNotImplementedErrorDataloader(DataLoader(RandomDataset(32, 64)))
-    with pytest.raises(TypeError, match="TPUs do not currently support"):
-        strategy.process_dataloader(loader_no_len)
 
 
 class BoringModelTPU(BoringModel):
     def on_train_start(self) -> None:
+        from torch_xla.experimental import pjrt
+
+        index = 0 if pjrt.using_pjrt() else 1
         # assert strategy attributes for device setting
-        assert self.device == torch.device("xla", index=1)
+        assert self.device == torch.device("xla", index=index)
         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_tpu_one_core():
+def test_xla_strategy_debug_state():
     """Tests if device/debug flag is set correctly when training and after teardown for XLAStrategy."""
     model = BoringModelTPU()
-    trainer = Trainer(accelerator="tpu", devices=1, fast_dev_run=True, strategy=XLAStrategy(debug=True))
+    from torch_xla.experimental import pjrt
+
+    trainer_kwargs = {}
+    if not pjrt.using_pjrt():
+        # only XRT supports XLA with a single process
+        trainer_kwargs["devices"] = 1
+    trainer = Trainer(fast_dev_run=True, strategy=XLAStrategy(debug=True), **trainer_kwargs)
+    assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ

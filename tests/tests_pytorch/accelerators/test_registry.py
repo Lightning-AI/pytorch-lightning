@@ -15,4 +15,8 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 
 
 def test_available_accelerators_in_registry():
-    assert AcceleratorRegistry.available_accelerators() == ["cpu", "cuda", "hpu", "ipu", "mps", "tpu"]
+    """Tests the accelerators available by default, not including external, third-party accelerators."""
+    available = set(AcceleratorRegistry.available_accelerators())
+    expected = {"cpu", "cuda", "mps", "tpu"}
+    # Note: the registry is global, other tests may register new strategies as a side effect
+    assert expected.issubset(available)

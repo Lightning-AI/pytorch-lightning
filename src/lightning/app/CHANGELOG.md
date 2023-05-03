@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [UnReleased] - 2023-MM-DD
+
+### Added
+
+- Allow customize `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
+
+
+### Changed
+
+-
+
+
+### Deprecated
+
+-
+
+
+### Removed
+
+-
+
+
+### Fixed
+
+-
+
+
+## [2.0.1.post0] - 2023-04-11
+
+### Fixed
+
+- Fix frontend hosts when running with multi-process in the cloud ([#17324](https://github.com/Lightning-AI/lightning/pull/17324))
+
+
+## [2.0.1] - 2023-03-30
+
+No changes
+
+
 ## [2.0.0] - 2023-03-15
 
 ### Added

@@ -19,10 +19,9 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBar(Callback):
-    r"""
-    The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback`
-    that keeps track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
-    You should implement your highly custom progress bars with this as the base class.
+    r"""The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback` that
+    keeps track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`. You should
+    implement your highly custom progress bars with this as the base class.
 
     Example::
 
@@ -43,7 +42,6 @@ class ProgressBar(Callback):
 
         bar = LitProgressBar()
         trainer = Trainer(callbacks=[bar])
-
     """
 
     def __init__(self) -> None:
@@ -92,11 +90,11 @@ class ProgressBar(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
-        assert self._current_eval_dataloader_idx is not None
-        if self.trainer.sanity_checking:
-            return self.trainer.num_sanity_val_batches[self._current_eval_dataloader_idx]
-
-        return self.trainer.num_val_batches[self._current_eval_dataloader_idx]
+        batches = self.trainer.num_sanity_val_batches if self.trainer.sanity_checking else self.trainer.num_val_batches
+        if isinstance(batches, list):
+            assert self._current_eval_dataloader_idx is not None
+            return batches[self._current_eval_dataloader_idx]
+        return batches
 
     @property
     def total_test_batches_current_dataloader(self) -> Union[int, float]:
@@ -105,8 +103,11 @@ class ProgressBar(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
         """
-        assert self._current_eval_dataloader_idx is not None
-        return self.trainer.num_test_batches[self._current_eval_dataloader_idx]
+        batches = self.trainer.num_test_batches
+        if isinstance(batches, list):
+            assert self._current_eval_dataloader_idx is not None
+            return batches[self._current_eval_dataloader_idx]
+        return batches
 
     @property
     def total_predict_batches_current_dataloader(self) -> Union[int, float]:
@@ -125,7 +126,13 @@ class ProgressBar(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
-        return sum(self.trainer.num_val_batches) if self.trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+        if not self.trainer.fit_loop.epoch_loop._should_check_val_epoch():
+            return 0
+        return (
+            sum(self.trainer.num_val_batches)
+            if isinstance(self.trainer.num_val_batches, list)
+            else self.trainer.num_val_batches
+        )
 
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
         old_dataloader_idx = self._current_eval_dataloader_idx
@@ -160,9 +167,8 @@ class ProgressBar(Callback):
     def get_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
-        r"""
-        Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
-        Implement this to override the items displayed in the progress bar.
+        r"""Combines progress bar metrics collected from the trainer with standard metrics from
+        get_standard_metrics. Implement this to override the items displayed in the progress bar.
 
         Here is an example of how to override the defaults:
 
@@ -191,9 +197,8 @@ class ProgressBar(Callback):
 
 
 def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
-    r"""
-    Returns the standard metrics displayed in the progress bar.
-    Currently, it only includes the version of the experiment when using a logger.
+    r"""Returns the standard metrics displayed in the progress bar. Currently, it only includes the version of the
+    experiment when using a logger.
 
     .. code-block::
 

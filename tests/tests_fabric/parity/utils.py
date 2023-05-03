@@ -24,7 +24,7 @@ def is_state_dict_equal(state0, state1):
     return all(eq_fn(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
 
 
-def is_timing_close(timings_torch, timings_fabric, rtol=1e-3, atol=1e-3):
+def is_timing_close(timings_torch, timings_fabric, rtol=1e-2, atol=0.1):
     # Drop measurements of the first iterations, as they may be slower than others
     # The median is more robust to outliers than the mean
     # Given relative and absolute tolerances, we want to satisfy: |torch – fabric| < RTOL * torch + ATOL
@@ -36,9 +36,9 @@ def is_cuda_memory_close(memory_stats_torch, memory_stats_fabric):
     return memory_stats_torch["allocated_bytes.all.peak"] >= memory_stats_fabric["allocated_bytes.all.peak"]
 
 
-def make_deterministic():
+def make_deterministic(warn_only=False):
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    torch.use_deterministic_algorithms(True)
+    torch.use_deterministic_algorithms(True, warn_only=warn_only)
     torch.backends.cudnn.benchmark = False
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)

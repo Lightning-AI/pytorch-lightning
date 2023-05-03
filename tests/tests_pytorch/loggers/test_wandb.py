@@ -277,6 +277,78 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         },
     )
 
+    # Test wandb artifact with checkpoint_callback top_k logging latest
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=3,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        callbacks=[ModelCheckpoint(monitor="step", save_top_k=2)],
+    )
+    trainer.fit(model)
+    wandb.Artifact.assert_called_with(
+        name="model-1",
+        type="model",
+        metadata={
+            "score": 6,
+            "original_filename": "epoch=1-step=6-v5.ckpt",
+            "ModelCheckpoint": {
+                "monitor": "step",
+                "mode": "min",
+                "save_last": None,
+                "save_top_k": 2,
+                "save_weights_only": False,
+                "_every_n_train_steps": 0,
+            },
+        },
+    )
+    wandb.init().log_artifact.assert_called_with(wandb.Artifact(), aliases=["latest"])
+
+    # Test wandb artifact with checkpoint_callback top_k logging latest and best
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=3,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        callbacks=[
+            ModelCheckpoint(
+                monitor="step",
+            )
+        ],
+    )
+    trainer.fit(model)
+    wandb.Artifact.assert_called_with(
+        name="model-1",
+        type="model",
+        metadata={
+            "score": 3,
+            "original_filename": "epoch=0-step=3-v1.ckpt",
+            "ModelCheckpoint": {
+                "monitor": "step",
+                "mode": "min",
+                "save_last": None,
+                "save_top_k": 1,
+                "save_weights_only": False,
+                "_every_n_train_steps": 0,
+            },
+        },
+    )
+    wandb.init().log_artifact.assert_called_with(wandb.Artifact(), aliases=["latest", "best"])
+
 
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
@@ -316,7 +388,6 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_media(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-
     wandb.run = None
 
     # test log_text with columns and data
@@ -393,7 +464,6 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_download_artifact(wandb, tmpdir):
     """Test that download_artifact works."""
-
     wandb.run = wandb.init()
     logger = WandbLogger()
     logger.download_artifact("test_artifact", str(tmpdir), "model", True)

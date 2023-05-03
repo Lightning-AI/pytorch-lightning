@@ -78,7 +78,7 @@ Configure the devices to run on. Can be of type:
     # int: run on two GPUs
     fabric = Fabric(devices=2, accelerator="gpu")
 
-    # list: run on GPUs 1, 4 (by bus ordering)
+    # list: run on the 2nd (idx 1) and 5th (idx 4) GPUs (by bus ordering)
     fabric = Fabric(devices=[1, 4], accelerator="gpu")
     fabric = Fabric(devices="1, 4", accelerator="gpu")  # equivalent
 
@@ -123,13 +123,19 @@ This can result in improved performance, achieving significant speedups on moder
     # the same as:
     fabric = Fabric(precision="32", devices=1)
 
-    # 16-bit (mixed) precision
+    # 16-bit mixed precision (model weights remain in torch.float32)
     fabric = Fabric(precision="16-mixed", devices=1)
 
-    # 16-bit bfloat precision
+    # 16-bit bfloat mixed precision (model weights remain in torch.float32)
     fabric = Fabric(precision="bf16-mixed", devices=1)
 
-    # 64-bit (double) precision
+    # 16-bit precision (model weights get cast to torch.float16)
+    fabric = Fabric(precision="16-true", devices=1)
+
+    # 16-bit bfloat precision (model weights get cast to torch.bfloat16)
+    fabric = Fabric(precision="bf16-true", devices=1)
+
+    # 64-bit (double) precision (model weights get cast to torch.float64)
     fabric = Fabric(precision="64-true", devices=1)
 
 See also: :doc:`../fundamentals/precision`

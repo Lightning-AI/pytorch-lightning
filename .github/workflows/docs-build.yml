@@ -31,7 +31,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-  PYPI_CACHE: "_pip-wheels"
+  PYPI_CACHE_DIR: "_pip-wheels"
 
 jobs:
   make-doctest:
@@ -55,20 +55,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
         with:
-          path: ${{ env.PYPI_CACHE }}
+          path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
-      - name: Install package
+      - name: Install package & dependencies
         run: |
-          mkdir -p $PYPI_CACHE
-          ls -lh $PYPI_CACHE
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
+          mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
+          ls -lh $PYPI_CACHE_DIR
+          mkdir -p pypi_pkgs  # in case template is not pulled
+          pip install .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f pypi_pkgs/ -f $PYPI_CACHE_DIR -f ${TORCH_URL}
           pip list
 
       - name: Test Documentation
@@ -101,21 +103,23 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
         with:
-          path: ${{ env.PYPI_CACHE }}
+          path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
       - name: Install package & dependencies
         run: |
-          mkdir -p $PYPI_CACHE
-          ls -lh $PYPI_CACHE
+          mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
+          ls -lh $PYPI_CACHE_DIR
+          mkdir -p pypi_pkgs  # in case template is not pulled
           pip --version
-          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi -f ${TORCH_URL}
+          pip install . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f pypi_pkgs/ -f $PYPI_CACHE_DIR -f ${TORCH_URL}
           pip list
         shell: bash
 
@@ -123,7 +127,7 @@ jobs:
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
-      - name: Check External Links in Sphinx Documentation (Optional)
+      - name: Check External Links (Optional)
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make linkcheck
         continue-on-error: true
@@ -139,6 +143,14 @@ jobs:
           path: docs/build/html/
           retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
+      - name: Dump handy wheels
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        continue-on-error: true
+        uses: ./.github/actions/pip-wheels
+        with:
+          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
+          torch-url: ${{ env.TORCH_URL }}
+          cache-key: "pypi_wheels"
 
   deploy-docs:
     needs: [make-doctest, make-html]
@@ -177,4 +189,4 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
         if: startsWith(github.ref, 'refs/tags/')
-        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}"
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}

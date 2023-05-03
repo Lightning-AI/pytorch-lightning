@@ -16,6 +16,14 @@ Examples
     :tag: basic
 
 .. displayitem::
+    :header: Transformer Language Model
+    :description: A simple language model that learns to predict the next word in a sentence
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/language_model
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
     :header: GAN
     :description: Train a GAN that generates realistic human faces
     :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan

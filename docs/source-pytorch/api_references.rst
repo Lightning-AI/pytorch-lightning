@@ -13,9 +13,7 @@ accelerators
     Accelerator
     CPUAccelerator
     CUDAAccelerator
-    HPUAccelerator
-    IPUAccelerator
-    TPUAccelerator
+    XLAAccelerator
 
 callbacks
 ---------
@@ -82,6 +80,8 @@ core
     ~optimizer.LightningOptimizer
 
 
+.. _loggers-api-references:
+
 loggers
 -------
 
@@ -115,12 +115,10 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
-    HPUPrecisionPlugin
-    IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    TPUBf16PrecisionPlugin
-    TPUPrecisionPlugin
+    XLABf16PrecisionPlugin
+    XLAPrecisionPlugin
 
 environments
 """"""""""""
@@ -153,7 +151,6 @@ io
 
     AsyncCheckpointIO
     CheckpointIO
-    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 
@@ -213,12 +210,9 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
-    HPUParallelStrategy
-    IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
-    SingleHPUStrategy
-    SingleTPUStrategy
+    SingleDeviceXLAStrategy
     Strategy
     XLAStrategy
 
@@ -246,7 +240,6 @@ utilities
     combined_loader
     data
     deepspeed
-    distributed
     memory
     model_summary
     parsing

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import ast
+import contextlib
 import csv
 import inspect
 import logging
@@ -21,7 +22,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, Union
 from warnings import warn
 
 import yaml
@@ -56,8 +57,6 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
-    if map_location is None:
-        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -87,7 +86,14 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        return _load_state(cls, checkpoint, strict=strict, **kwargs)
+        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        state_dict = checkpoint["state_dict"]
+        if not state_dict:
+            raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
+        map_location = list(state_dict.values())[0].device
+        assert isinstance(storage, pl.LightningModule)
+        return storage.to(map_location)
+
     raise NotImplementedError(f"Unsupported {cls}")
 
 
@@ -107,7 +113,6 @@ def _load_state(
     cls_kwargs_loaded = {}
     # pass in the values we saved automatically
     if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-
         if issubclass(cls, pl.LightningModule):
             # TODO: make this a migration:
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
@@ -267,12 +272,9 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     with fs.open(config_yaml, "r") as fp:
         hparams = yaml.full_load(fp)
 
-    if _OMEGACONF_AVAILABLE:
-        if use_omegaconf:
-            try:
-                return OmegaConf.create(hparams)
-            except (UnsupportedValueType, ValidationError):
-                pass
+    if _OMEGACONF_AVAILABLE and use_omegaconf:
+        with contextlib.suppress(UnsupportedValueType, ValidationError):
+            return OmegaConf.create(hparams)
     return hparams
 
 

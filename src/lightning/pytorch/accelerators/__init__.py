@@ -15,10 +15,8 @@ from lightning.fabric.accelerators.registry import _AcceleratorRegistry, call_re
 from lightning.pytorch.accelerators.accelerator import Accelerator  # noqa: F401
 from lightning.pytorch.accelerators.cpu import CPUAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator  # noqa: F401
-from lightning.pytorch.accelerators.hpu import HPUAccelerator  # noqa: F401
-from lightning.pytorch.accelerators.ipu import IPUAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.mps import MPSAccelerator  # noqa: F401
-from lightning.pytorch.accelerators.tpu import TPUAccelerator  # noqa: F401
+from lightning.pytorch.accelerators.xla import XLAAccelerator  # noqa: F401
 
 ACCELERATORS_BASE_MODULE = "lightning.pytorch.accelerators"
 AcceleratorRegistry = _AcceleratorRegistry()

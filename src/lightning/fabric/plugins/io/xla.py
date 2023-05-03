@@ -14,10 +14,11 @@
 import os
 from typing import Any, Dict, Optional
 
+import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _PATH
@@ -61,4 +62,5 @@ class XLACheckpointIO(TorchCheckpointIO):
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         import torch_xla.core.xla_model as xm
 
-        xm.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, path)
+        cpu_data = xm._maybe_convert_to_cpu(checkpoint, convert=True)
+        torch.save(cpu_data, path)

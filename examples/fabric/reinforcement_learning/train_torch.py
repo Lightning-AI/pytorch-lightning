@@ -21,127 +21,47 @@ import argparse
 import os
 import random
 import time
-from typing import Dict, Tuple
+from datetime import datetime
+from typing import Dict
 
 import gymnasium as gym
-import numpy as np
 import torch
 import torch.distributed as distributed
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import layer_init, make_env, parse_args
-from torch.distributions.categorical import Categorical
+from rl.agent import PPOAgent
+from rl.loss import entropy_loss, policy_loss, value_loss
+from rl.utils import linear_annealing, make_env, parse_args, test
+from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 from torch.utils.tensorboard import SummaryWriter
-
-
-class PPOAgent(torch.nn.Module):
-    def __init__(self, envs: gym.vector.SyncVectorEnv, act_fun: str = "relu", ortho_init: bool = False) -> None:
-        super().__init__()
-        if act_fun.lower() == "relu":
-            act_fun = torch.nn.ReLU()
-        elif act_fun.lower() == "tanh":
-            act_fun = torch.nn.Tanh()
-        else:
-            raise ValueError("Unrecognized activation function: `act_fun` must be either `relu` or `tanh`")
-        self.critic = torch.nn.Sequential(
-            layer_init(
-                torch.nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64), ortho_init=ortho_init
-            ),
-            act_fun,
-            layer_init(torch.nn.Linear(64, 64), ortho_init=ortho_init),
-            act_fun,
-            layer_init(torch.nn.Linear(64, 1), std=1.0, ortho_init=ortho_init),
-        )
-        self.actor = torch.nn.Sequential(
-            layer_init(
-                torch.nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64), ortho_init=ortho_init
-            ),
-            act_fun,
-            layer_init(torch.nn.Linear(64, 64), ortho_init=ortho_init),
-            act_fun,
-            layer_init(torch.nn.Linear(64, envs.single_action_space.n), std=0.01, ortho_init=ortho_init),
-        )
-
-    def get_action(
-        self, x: torch.Tensor, action: torch.Tensor = None
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        logits = self.actor(x)
-        distribution = Categorical(logits=logits)
-        if action is None:
-            action = distribution.sample()
-        return action, distribution.log_prob(action), distribution.entropy()
-
-    def get_greedy_action(self, x: torch.Tensor) -> torch.Tensor:
-        logits = self.actor(x)
-        probs = F.softmax(logits, dim=-1)
-        return torch.argmax(probs, dim=-1)
-
-    def get_value(self, x: torch.Tensor) -> torch.Tensor:
-        return self.critic(x)
-
-    def get_action_and_value(
-        self, x: torch.Tensor, action: torch.Tensor = None
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        action, log_prob, entropy = self.get_action(x, action)
-        value = self.get_value(x)
-        return action, log_prob, entropy, value
-
-    def forward(
-        self, x: torch.Tensor, action: torch.Tensor = None
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return self.get_action_and_value(x, action)
-
-    @torch.no_grad()
-    def estimate_returns_and_advantages(
-        self,
-        rewards: torch.Tensor,
-        values: torch.Tensor,
-        dones: torch.Tensor,
-        next_obs: torch.Tensor,
-        next_done: torch.Tensor,
-        num_steps: int,
-        gamma: float,
-        gae_lambda: float,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        next_value = self.get_value(next_obs).reshape(1, -1)
-        advantages = torch.zeros_like(rewards)
-        lastgaelam = 0
-        for t in reversed(range(num_steps)):
-            if t == num_steps - 1:
-                nextnonterminal = 1.0 - next_done
-                nextvalues = next_value
-            else:
-                nextnonterminal = 1.0 - dones[t + 1]
-                nextvalues = values[t + 1]
-            delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
-            advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
-        returns = advantages + values
-        return returns, advantages
 
 
 def train(
     agent: PPOAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, torch.Tensor],
+    data: Dict[str, Tensor],
     logger: SummaryWriter,
     global_step: int,
     args: argparse.Namespace,
 ):
-    sampler = DistributedSampler(
-        list(range(data["obs"].shape[0])),
-        num_replicas=distributed.get_world_size(),
-        rank=distributed.get_rank(),
-        shuffle=True,
-        seed=args.seed,
-    )
+    indexes = list(range(data["obs"].shape[0]))
+    if args.share_data:
+        sampler = DistributedSampler(
+            indexes,
+            num_replicas=distributed.get_world_size(),
+            rank=distributed.get_rank(),
+            shuffle=True,
+            seed=args.seed,
+        )
+    else:
+        sampler = RandomSampler(indexes)
     sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
     per_epoch_losses = torch.tensor([0.0, 0.0, 0.0], device=data["obs"].device)
     for epoch in range(args.update_epochs):
-        sampler.sampler.set_epoch(epoch)
+        if args.share_data:
+            sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
             _, newlogprob, entropy, newvalue = agent(data["obs"][batch_idxes], data["actions"].long()[batch_idxes])
             logratio = newlogprob - data["logprobs"][batch_idxes]
@@ -188,27 +108,6 @@ def train(
         per_epoch_losses.fill_(0)
 
 
-@torch.no_grad()
-def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: argparse.Namespace):
-    env = make_env(args.env_id, args.seed, 0, args.capture_video, logger.log_dir, "test")()
-    step = 0
-    done = False
-    cumulative_rew = 0
-    next_obs = torch.Tensor(env.reset(seed=args.seed)[0]).to(device)
-    while not done:
-        # Act greedly through the environment
-        action = agent.module.get_greedy_action(next_obs)
-
-        # Single environment step
-        next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
-        done = np.logical_or(done, truncated)
-        cumulative_rew += reward
-        next_obs = torch.Tensor(next_obs).to(device)
-        step += 1
-    logger.add_scalar("Test/cumulative_reward", cumulative_rew, 0)
-    env.close()
-
-
 def main(args: argparse.Namespace):
     # Init distributed environment
     is_cuda_available = torch.cuda.is_available() and args.cuda
@@ -223,7 +122,6 @@ def main(args: argparse.Namespace):
 
     # Seed everything
     random.seed(args.seed)
-    np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     torch.backends.cudnn.deterministic = args.torch_deterministic
@@ -233,7 +131,7 @@ def main(args: argparse.Namespace):
     logger = None
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
     if global_rank == 0:
-        log_dir = os.path.join("logs", "torch_logs", run_name)
+        log_dir = os.path.join("logs", "torch_logs", datetime.today().strftime("%Y-%m-%d_%H-%M-%S"), run_name)
         logger = SummaryWriter(log_dir=log_dir)
 
     # Log hyperparameters
@@ -246,8 +144,15 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + global_rank, global_rank, args.capture_video, log_dir, "train")
-            for _ in range(args.per_rank_num_envs)
+            make_env(
+                args.env_id,
+                args.seed + global_rank * args.num_envs + i,
+                global_rank,
+                args.capture_video,
+                logger.log_dir if global_rank == 0 else None,
+                "train",
+            )
+            for i in range(args.num_envs)
         ]
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
@@ -262,36 +167,34 @@ def main(args: argparse.Namespace):
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-4)
 
     # Local data
-    obs = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_observation_space.shape, device=device)
-    actions = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_action_space.shape, device=device)
-    logprobs = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
-    rewards = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
-    dones = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
-    values = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
-    local_rew = 0
-    local_ep_len = 0
-    local_num_episodes = 0
+    obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape, device=device)
+    actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape, device=device)
+    logprobs = torch.zeros((args.num_steps, args.num_envs), device=device)
+    rewards = torch.zeros((args.num_steps, args.num_envs), device=device)
+    dones = torch.zeros((args.num_steps, args.num_envs), device=device)
+    values = torch.zeros((args.num_steps, args.num_envs), device=device)
+    local_rew = 0.0
+    local_ep_len = 0.0
+    local_num_episodes = 0.0
 
     # Global variables
     global_step = 0
     start_time = time.time()
-    single_global_step = int(args.per_rank_num_envs * args.num_steps * world_size)
+    single_global_step = int(args.num_envs * args.num_steps * world_size)
     num_updates = args.total_timesteps // single_global_step
 
     # Get the first environment observation and start the optimization
-    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0]).to(device)
-    next_done = torch.zeros(args.per_rank_num_envs, device=device)
+    next_obs = torch.tensor(envs.reset(seed=args.seed)[0], device=device)
+    next_done = torch.zeros(args.num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing
+        if args.anneal_lr:
+            linear_annealing(optimizer, update, num_updates, args.learning_rate)
         if global_rank == 0:
             logger.add_scalar("Info/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        if args.anneal_lr:
-            frac = 1.0 - (update - 1.0) / num_updates
-            lrnow = frac * args.learning_rate
-            optimizer.param_groups[0]["lr"] = lrnow
 
         for step in range(0, args.num_steps):
-            global_step += args.per_rank_num_envs * world_size
+            global_step += args.num_envs * world_size
             obs[step] = next_obs
             dones[step] = next_done
 
@@ -304,23 +207,26 @@ def main(args: argparse.Namespace):
 
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
-            done = np.logical_or(done, truncated)
+            done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+            next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
-            if global_rank == 0 and "final_info" in info:
-                for agent_id, agent_final_info in enumerate(info["final_info"]):
+            if "final_info" in info:
+                for i, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        if agent_id == 0:
-                            print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
+                        if global_rank == 0:
+                            print(
+                                f"Rank-0: global_step={global_step}, "
+                                f"reward_env_{i}={agent_final_info['episode']['r'][0]}"
+                            )
                         local_num_episodes += 1
                         local_rew += agent_final_info["episode"]["r"][0]
                         local_ep_len += agent_final_info["episode"]["l"][0]
 
         # Sync the metrics
-        global_stats = torch.tensor([local_rew, local_ep_len, local_num_episodes], device=device)
+        global_stats = torch.tensor([local_rew, local_ep_len, local_num_episodes], device=device, dtype=torch.float32)
         distributed.reduce(global_stats, dst=0)
-        if global_rank == 0:
+        if global_rank == 0 and global_stats[2] != 0.0:
             logger.add_scalar("Rewards/rew_avg", global_stats[0] / global_stats[2], global_step)
             logger.add_scalar("Game/ep_len_avg", global_stats[1] / global_stats[2], global_step)
 
@@ -344,15 +250,18 @@ def main(args: argparse.Namespace):
             "values": values.reshape(-1),
         }
 
-        # Gather all the tensors from all the world, concat and reshape them
-        gathered_data = [None for _ in range(world_size)]
-        distributed.all_gather_object(gathered_data, local_data)
-        processed_gathered_data = gathered_data[0]
-        for i in range(1, len(gathered_data)):
-            for k in processed_gathered_data.keys():
-                processed_gathered_data[k] = torch.cat(
-                    (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
-                )
+        if args.share_data:
+            # Gather all the tensors from all the world, concat and reshape them
+            gathered_data = [None for _ in range(world_size)]
+            distributed.all_gather_object(gathered_data, local_data)
+            processed_gathered_data = gathered_data[0]
+            for i in range(1, len(gathered_data)):
+                for k in processed_gathered_data:
+                    processed_gathered_data[k] = torch.cat(
+                        (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
+                    )
+        else:
+            processed_gathered_data = local_data
 
         # Train the agent
         train(agent, optimizer, processed_gathered_data, logger, global_step, args)
@@ -361,7 +270,7 @@ def main(args: argparse.Namespace):
 
     envs.close()
     if global_rank == 0:
-        test(agent, device, logger, args)
+        test(agent.module, device, logger, args)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import pickle
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from unittest import mock
 
 import pytest
@@ -67,7 +67,7 @@ def result_reduce_ddp_fn(strategy):
     metric_b = metric_b.to(f"cuda:{rank}")
     metric_c = metric_c.to(f"cuda:{rank}")
 
-    result = _ResultCollection(True, torch.device(f"cuda:{rank}"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -107,7 +107,7 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -148,7 +148,6 @@ def test_result_metric_integration():
     assert repr(result) == (
         "{"
         "True, "
-        "device(type='cpu'), "
         "{'h.a': _ResultMetric('a', value=DummyMetric()), "
         "'h.b': _ResultMetric('b', value=DummyMetric()), "
         "'h.c': _ResultMetric('c', value=DummyMetric())"
@@ -157,7 +156,7 @@ def test_result_metric_integration():
 
 
 def test_result_collection_simple_loop():
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     current_fx_name = None
     batch_idx = None
 
@@ -205,7 +204,7 @@ def my_sync_dist(x, *_, **__):
 def test_result_collection_restoration(tmpdir):
     """This test make sure metrics are properly reloaded on failure."""
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     metric_a = DummyMetric()
     metric_b = DummyMetric()
     metric_c = DummyMetric()
@@ -221,11 +220,9 @@ def test_result_collection_restoration(tmpdir):
         current_fx_name = fx
 
     for epoch in range(2):
-
         cumulative_sum = 0
 
         for i in range(3):
-
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
@@ -592,11 +589,14 @@ def test_logger_sync_dist(distributed_env, log_val):
     result_metric.update(log_val, 10)
 
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
+    patch_ctx = (
+        mock.patch("torch.distributed.is_initialized", return_value=distributed_env)
+        if isinstance(log_val, Tensor)
+        else nullcontext()
+    )
 
-    with mock.patch(
-        "lightning.pytorch.trainer.connectors.logger_connector.result._distributed_available",
-        return_value=distributed_env,
-    ):
-        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
-            value = _ResultCollection._get_cache(result_metric, on_step=False)
-        assert value == 0.5
+    with warning_ctx(
+        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
+    ), patch_ctx:
+        value = _ResultCollection._get_cache(result_metric, on_step=False)
+    assert value == 0.5

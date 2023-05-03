@@ -136,23 +136,23 @@ def _retry_wrapper(self, func: Callable) -> Callable:
         while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
             try:
                 return func(self, *args, **kwargs)
-            except lightning_cloud.openapi.rest.ApiException as e:
+            except lightning_cloud.openapi.rest.ApiException as ex:
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
-                if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
+                if ex.status == 408 or ex.status == 409 or not str(ex.status).startswith("4"):
                     consecutive_errors += 1
                     backoff_time = _get_next_backoff_time(consecutive_errors)
                     logger.debug(
-                        f"The {func.__name__} request failed to reach the server, got a response {e.status}."
+                        f"The {func.__name__} request failed to reach the server, got a response {ex.status}."
                         f" Retrying after {backoff_time} seconds."
                     )
                     time.sleep(backoff_time)
                 else:
-                    raise e
-            except urllib3.exceptions.HTTPError as e:
+                    raise ex
+            except urllib3.exceptions.HTTPError as ex:
                 consecutive_errors += 1
                 backoff_time = _get_next_backoff_time(consecutive_errors)
                 logger.debug(
-                    f"The {func.__name__} request failed to reach the server, got a an error {str(e)}."
+                    f"The {func.__name__} request failed to reach the server, got a an error {str(ex)}."
                     f" Retrying after {backoff_time} seconds."
                 )
                 time.sleep(backoff_time)

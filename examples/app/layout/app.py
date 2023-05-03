@@ -74,8 +74,8 @@ class C2(L.LightningFlow):
 
     def configure_layout(self):
         return [
-            dict(name="one", content=self.c21),
-            dict(name="two", content=self.c22),
+            {"name": "one", "content": self.c21},
+            {"name": "two", "content": self.c22},
         ]
 
 
@@ -91,9 +91,9 @@ class Root(L.LightningFlow):
 
     def configure_layout(self):
         return [
-            dict(name="one", content=self.c1.c11),
-            dict(name="two", content=self.c2),
-            dict(name="three", content="https://lightning.ai"),
+            {"name": "one", "content": self.c1.c11},
+            {"name": "two", "content": self.c2},
+            {"name": "three", "content": "https://lightning.ai"},
         ]
 
 
