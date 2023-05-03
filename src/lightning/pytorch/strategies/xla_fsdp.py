@@ -17,13 +17,12 @@ from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
-from lightning.fabric.utilities.types import _PATH, ReduceOp, Optimizable
+from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.xla import XLAStrategy
 from lightning.pytorch.trainer.states import TrainerFn

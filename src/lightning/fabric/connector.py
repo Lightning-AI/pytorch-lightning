@@ -57,7 +57,6 @@ from lightning.fabric.strategies import (
     SingleDeviceXLAStrategy,
     Strategy,
     STRATEGY_REGISTRY,
-    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES

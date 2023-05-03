@@ -31,7 +31,7 @@ from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.strategy import _BackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
-from lightning.fabric.utilities.types import _PATH, ReduceOp, Optimizable
+from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -225,7 +225,6 @@ class XLAFSDPStrategy(XLAStrategy):
         path = Path(self.broadcast(path))
         if path.is_dir() and os.listdir(path):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
-
 
         modules = [module for module in state.values() if isinstance(module, XLAFSDP)]
         if len(modules) == 0:

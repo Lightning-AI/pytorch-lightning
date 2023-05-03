@@ -57,7 +57,6 @@ from lightning.pytorch.strategies import (
     SingleDeviceXLAStrategy,
     Strategy,
     StrategyRegistry,
-    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
