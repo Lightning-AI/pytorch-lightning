@@ -20,9 +20,7 @@ def _list_sys_modules(pattern: str) -> str:
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-@pytest.mark.skipif(
-    not module_available("lightning_pytorch"), reason="This test is ONLY relevant for the STANDALONE package"
-)
+@pytest.mark.skipif(module_available("lightning"), reason="This test is ONLY relevant for the STANDALONE package")
 def test_imports_standalone(pl_version: str):
     assert any(
         key.startswith("pytorch_lightning") for key in sys.modules
