@@ -106,6 +106,7 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     mock_xla_available(monkeypatch, value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "_device_type", lambda *_: "TPU")
 
 
 @pytest.fixture(scope="function")
