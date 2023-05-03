@@ -24,14 +24,14 @@ from torch.utils.data import DataLoader
 from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.strategy import _BackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
-from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.fabric.utilities.types import _PATH, ReduceOp, Optimizable
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -91,7 +91,7 @@ class XLAFSDPStrategy(XLAStrategy):
 
         from torch_xla.experimental import pjrt
 
-        pjrt.broadcast_master_param(wrapped_module)
+        pjrt.broadcast_master_param(module)
 
         wrapped_module = XLAFSDP(
             module=module,
@@ -129,7 +129,7 @@ class XLAFSDPStrategy(XLAStrategy):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         """Overrides default tpu optimizer_step since FSDP should not call

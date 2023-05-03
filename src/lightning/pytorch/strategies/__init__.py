@@ -21,6 +21,7 @@ from lightning.pytorch.strategies.single_xla import SingleDeviceXLAStrategy  # n
 from lightning.pytorch.strategies.strategy import Strategy
 from lightning.pytorch.strategies.utils import _call_register_strategies
 from lightning.pytorch.strategies.xla import XLAStrategy  # noqa: F401
+from lightning.pytorch.strategies.xla_fsdp import XLAFSDPStrategy  # noqa: F401
 
 _STRATEGIES_BASE_MODULE = "lightning.pytorch.strategies"
 StrategyRegistry = _StrategyRegistry()

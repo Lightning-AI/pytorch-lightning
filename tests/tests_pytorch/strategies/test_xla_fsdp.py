@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import XLAFSDPStrategy
 from tests_pytorch.helpers.runif import RunIf
@@ -68,7 +68,7 @@ def test_xla_fsdp_strategy_debug_state():
         # only XRT supports XLA with a single process
         trainer_kwargs["devices"] = 1
     trainer = Trainer(fast_dev_run=True, strategy=XLAFSDPStrategy(debug=True), **trainer_kwargs)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAFSDPStrategy)
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
@@ -86,7 +86,7 @@ def test_xla_fsdp_strategy():
         # only XRT supports XLA with a single process
         trainer_kwargs["devices"] = 1
     trainer = Trainer(fast_dev_run=True, strategy=XLAFSDPStrategy(), **trainer_kwargs)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAFSDPStrategy)
     trainer.fit(model)
 
@@ -100,7 +100,7 @@ def test_xla_fsdp_invalid_parameters_in_optimizer():
     )
     error_context = pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
 
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAFSDPStrategy)
 
     model = EmptyParametersModel()

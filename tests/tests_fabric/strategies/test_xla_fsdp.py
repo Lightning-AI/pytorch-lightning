@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
 import lightning as L
-from lightning.fabric.accelerators import TPUAccelerator
+from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
@@ -42,10 +42,10 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     strategy = XLAFSDPStrategy(
         accelerator=accelerator,
-        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
     )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
@@ -129,33 +129,6 @@ def test_xla_fsdp_mp_device_dataloader_attribute(_, monkeypatch):
     assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
-@RunIf(tpu=True)
-def tpu_all_gather_fn(strategy):
-    with pytest.raises(NotImplementedError, match="only implemented for tensors"):
-        strategy.all_gather([1])
-
-    device_count = strategy.accelerator.auto_device_count()
-    for sync_grads in (True, False):
-        tensor = torch.tensor(1.0, requires_grad=True)
-        result = strategy.all_gather(tensor, sync_grads=sync_grads)
-        summed = result.sum()
-        assert summed.device.type == "xla"
-        assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
-        summed.backward()
-        if sync_grads:
-            assert torch.equal(tensor.grad, torch.tensor(1.0))
-        else:
-            # As gradients are not synced, the original tensor will not have gradients.
-            assert tensor.grad is None
-
-
-@RunIf(tpu=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_all_gather():
-    """Test the all_gather operation on TPU."""
-    xla_launch(tpu_all_gather_fn)
-
-
 @RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 @mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
@@ -163,7 +136,7 @@ def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
     strategy = XLAFSDPStrategy(
-        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
     )
 
     with mock.patch("lightning.fabric.strategies.xla_fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):

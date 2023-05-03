@@ -13,16 +13,17 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
-from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.fabric.utilities.types import _PATH, ReduceOp, Optimizable
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.xla import XLAStrategy
 from lightning.pytorch.trainer.states import TrainerFn
@@ -140,7 +141,9 @@ class XLAFSDPStrategy(XLAStrategy):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Optimizable,
+        closure: Callable[[], Any],
+        model: "pl.LightningModule" = None,
         **kwargs: Any,
     ) -> Any:
         """Overrides default tpu optimizer_step since FSDP should not call
@@ -150,7 +153,7 @@ class XLAFSDPStrategy(XLAStrategy):
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return optimizer.step(**kwargs)
+        return optimizer.step(closure=closure, **kwargs)
 
     def reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None

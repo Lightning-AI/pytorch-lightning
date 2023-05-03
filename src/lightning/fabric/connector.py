@@ -156,10 +156,6 @@ class _Connector:
         if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
 
-        # Change fsdp to xla_fsdp if using TPU
-        if self._strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
-            self._strategy_flag = "xla_fsdp"
-
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
         self._init_strategy()
@@ -408,6 +404,9 @@ class _Connector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
+        # Change fsdp to xla_fsdp if using TPU
+        if strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
+            strategy_flag = "xla_fsdp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
@@ -529,11 +528,11 @@ class _Connector:
 
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
-        if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy, XLAFSDPStrategy)
+        if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy`, `XLAStrategy`, or `XLAFSDPStrategy`,"
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`, `XLAStrategy`, or `XLAFSDPStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 
