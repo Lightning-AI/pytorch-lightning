@@ -14,7 +14,7 @@
 import logging
 from typing import Any
 
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE, TPUAccelerator
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 
 log = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class XLAEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        return TPUAccelerator.is_available()
+        return XLAAccelerator.is_available()
 
     def world_size(self) -> int:
         import torch_xla.core.xla_model as xm
