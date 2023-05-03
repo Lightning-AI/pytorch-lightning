@@ -23,13 +23,12 @@ from packaging.version import Version
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _IPU_AVAILABLE, _OMEGACONF_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
@@ -69,7 +68,6 @@ def _RunIf(
         min_python: Require that Python is greater or equal than this version.
         bf16_cuda: Require that CUDA device supports bf16.
         tpu: Require that TPU is available.
-        ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
@@ -129,7 +127,7 @@ def _RunIf(
         reasons.append("unimplemented on Windows")
 
     if tpu:
-        conditions.append(not TPUAccelerator.is_available())
+        conditions.append(not XLAAccelerator.is_available())
         reasons.append("TPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["tpu"] = True
