@@ -10,9 +10,9 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
-
+# limitations under the License."
 import pytest
+from lightning_utilities import module_available
 
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -33,6 +33,7 @@ def test_is_overridden():
     assert is_overridden("train_dataloader", datamodule)
 
 
+@pytest.mark.skipif(not module_available("lightning"), reason="This test is ONLY relevant for the UNIFIED package")
 def test_mixed_imports_unified():
     from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized as new_unwrap
     from lightning.pytorch.utilities.model_helpers import is_overridden as new_is_overridden
