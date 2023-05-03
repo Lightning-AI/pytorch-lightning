@@ -32,6 +32,7 @@ do
 
   # Don't install/update anything before activating venv
   # to avoid breaking any existing environment.
+  rm -rf $ENV_PATH
   python -m venv $ENV_PATH
   source $ENV_PATH/bin/activate
 
