@@ -161,7 +161,6 @@ jobs:
       if: ${{ matrix.type != 'slow' }}
       run: |
         bash tests/legacy/generate_checkpoints.sh
-        mv tests/legacy/checkpoints/*/ tests/legacy/checkpoints/local/
         bash .actions/pull_legacy_checkpoints.sh
 
     - name: Testing Warnings
