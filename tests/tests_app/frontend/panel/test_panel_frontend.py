@@ -138,7 +138,7 @@ def test_open_close_log_files():
 
 
 @pytest.mark.parametrize(
-    ["value", "expected"],
+    ("value", "expected"),
     (
         ("Yes", True),
         ("yes", True),

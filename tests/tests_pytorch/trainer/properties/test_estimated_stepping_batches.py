@@ -93,7 +93,7 @@ def test_num_stepping_batches_with_max_steps(max_steps):
     assert trainer.estimated_stepping_batches == max_steps
 
 
-@pytest.mark.parametrize("accumulate_grad_batches,expected_steps", [(2, 32), (3, 22)])
+@pytest.mark.parametrize(("accumulate_grad_batches", "expected_steps"), [(2, 32), (3, 22)])
 def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expected_steps):
     """Test the total stepping batches when accumulation grad batches is configured."""
     trainer = Trainer(max_epochs=1, accumulate_grad_batches=accumulate_grad_batches)
@@ -105,7 +105,7 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
 
 @RunIf(mps=False)
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "estimated_steps"],
+    ("trainer_kwargs", "estimated_steps"),
     [
         ({"strategy": "ddp", "num_nodes": 1}, 10),
         ({"strategy": "ddp", "num_nodes": 2}, 5),

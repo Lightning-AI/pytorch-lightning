@@ -284,7 +284,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator,device",
+    ("accelerator", "device"),
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),

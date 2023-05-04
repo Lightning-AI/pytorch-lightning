@@ -76,7 +76,7 @@ def test_unsupported_attribute_types(cls, attribute):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("x", 1),
         ("f", EmptyFlow()),
@@ -100,7 +100,7 @@ def test_unsupported_attribute_declaration_outside_init_or_run(name, value):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("x", 1),
         ("f", EmptyFlow()),
@@ -163,7 +163,7 @@ def test_name_gets_removed_from_state_when_defined_as_flow_works(value):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("_name", "name"),
         ("_changes", {"change": 1}),
@@ -244,7 +244,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
 
 
 @pytest.mark.parametrize(
-    "attribute,update_fn,expected",
+    ("attribute", "update_fn", "expected"),
     (
         (1, lambda x: x + 1, 2),
         (0.5, lambda x: x + 0.5, 1.0),

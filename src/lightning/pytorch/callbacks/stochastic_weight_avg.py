@@ -207,7 +207,8 @@ class StochasticWeightAveraging(Callback):
 
             # We assert that there is only one optimizer on fit start
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler)
-            assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
+            assert default_scheduler_cfg.interval == "epoch"
+            assert default_scheduler_cfg.frequency == 1
 
             if trainer.lr_scheduler_configs:
                 scheduler_cfg = trainer.lr_scheduler_configs[0]
