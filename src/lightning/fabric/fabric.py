@@ -834,7 +834,10 @@ class Fabric:
 
     def _validate_launched(self) -> None:
         if not self._launched and not isinstance(self._strategy, SingleDeviceStrategy):
-            raise RuntimeError("To use Fabric with more than one device, you must call `.launch()`.")
+            raise RuntimeError(
+                "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
+                " `lightning run model --help`."
+            )
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         self._validate_launched()
