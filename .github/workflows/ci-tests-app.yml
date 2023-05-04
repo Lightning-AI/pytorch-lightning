@@ -124,7 +124,7 @@ jobs:
         AWS_DEFAULT_REGION: us-east-1
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --durations=50 --random-order-seed=42
+          -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --durations=50
 
     - name: Statistics
       if: success()
