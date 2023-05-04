@@ -118,7 +118,7 @@ def test__validation_step__epoch_end__log(tmpdir):
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
-@pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
+@pytest.mark.parametrize(("batches", "log_interval", "max_epochs"), [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     class TestModel(BoringModel):
         def on_validation_epoch_end(self):
@@ -210,7 +210,7 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 
-@pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
+@pytest.mark.parametrize(("batches", "log_interval", "max_epochs"), [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     """Tests that on_test_epoch_end can be used to log, and we return them in the results."""
 
@@ -828,7 +828,7 @@ expected4 = ""
 
 
 @pytest.mark.parametrize(
-    ["inputs", "expected"],
+    ("inputs", "expected"),
     [
         pytest.param(inputs0, expected0, id="case0"),
         pytest.param(inputs1, expected1, id="case1"),
@@ -922,7 +922,7 @@ expected3 = """
 
 
 @pytest.mark.parametrize(
-    ["inputs", "expected"],
+    ("inputs", "expected"),
     [
         pytest.param(inputs0, expected0, id="case0"),
         pytest.param(inputs1, expected1, id="case1"),

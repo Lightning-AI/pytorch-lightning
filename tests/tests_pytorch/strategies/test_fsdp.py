@@ -164,7 +164,7 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
+@pytest.mark.parametrize(("precision", "expected"), [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
     plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
@@ -243,7 +243,7 @@ else:
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
-    "model, strategy, strategy_cfg",
+    ("model", "strategy", "strategy_cfg"),
     [
         pytest.param(TestFSDPModel(), "fsdp", None, id="manually_wrapped"),
         pytest.param(
