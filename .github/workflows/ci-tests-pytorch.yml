@@ -157,11 +157,13 @@ jobs:
           --source_import="pytorch_lightning,lightning_fabric" \
           --target_import="lightning.pytorch,lightning.fabric"
 
-    - name: Pull legacy checkpoints
+    - name: Get legacy checkpoints
       if: ${{ matrix.type != 'slow' }}
       run: |
-        bash tests/legacy/generate_checkpoints.sh
         bash .actions/pull_legacy_checkpoints.sh
+        cd tests/legacy
+        bash generate_checkpoints.sh
+        ls -l checkpoints/
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7

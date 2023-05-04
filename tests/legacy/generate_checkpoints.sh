@@ -7,7 +7,7 @@
 set -e
 
 LEGACY_PATH=$(cd $(dirname $0); pwd -P)
-ENV_PATH="$LEGACY_PATH/vEnv"
+ENV_PATH=$LEGACY_PATH/vEnv
 export PYTHONPATH=$(dirname $LEGACY_PATH)  # for `import tests_pytorch`
 print "LEGACY_PATH: $LEGACY_PATH"
 print "ENV_PATH: $ENV_PATH"
