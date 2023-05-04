@@ -707,15 +707,15 @@ def test_filesystem(monkeypatch):
 class TestSharedStoragePath(TestCase):
     @mock.patch.dict(os.environ, {"LIGHTNING_STORAGE_PATH": "test-bucket/lightningapps/test-project/test-app"})
     def test_shared_storage_path_storage_path_set(self):
-        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-project/test-app"), _shared_storage_path())
+        assert pathlib.Path("test-bucket/lightningapps/test-project/test-app") == _shared_storage_path()
 
     @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "test-app", "LIGHTNING_BUCKET_NAME": "test-bucket"})
     def test_shared_storage_path_bucket_and_app_id_set(self):
-        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-app"), _shared_storage_path())
+        assert pathlib.Path("test-bucket/lightningapps/test-app") == _shared_storage_path()
 
     @mock.patch.dict(os.environ, {"SHARED_MOUNT_DIRECTORY": "test-app/.shared"})
     def test_shared_storage_path_mount_directory_set(self):
-        self.assertTrue(_shared_storage_path().match("*/test-app/.shared"))
+        assert _shared_storage_path().match("*/test-app/.shared")
 
     def test_shared_storage_path_no_envvars_set(self):
-        self.assertTrue(_shared_storage_path().match("*/.shared"))
+        assert _shared_storage_path().match("*/.shared")

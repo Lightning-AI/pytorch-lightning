@@ -8,7 +8,7 @@ from lightning.app.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.parametrize(
-    "filename,expected_commands,expected_line_numbers",
+    ("filename", "expected_commands", "expected_line_numbers"),
     [
         ("single_command.txt", ['echo "foo"'], [1]),
         ("multiple_commands.txt", ['echo "foo"', 'echo "bar"'], [1, 2]),

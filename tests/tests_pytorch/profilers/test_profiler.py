@@ -47,13 +47,13 @@ def _sleep_generator(durations):
         yield duration
 
 
-@pytest.fixture
+@pytest.fixture()
 def simple_profiler():
     return SimpleProfiler()
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(("action", "expected"), [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     for duration in expected:
@@ -256,13 +256,13 @@ def test_simple_profiler_summary(tmpdir, extended):
     assert expected_text == summary
 
 
-@pytest.fixture
+@pytest.fixture()
 def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(("action", "expected"), [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
     for duration in expected:
         with advanced_profiler.profile(action):
@@ -315,7 +315,7 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
-@pytest.fixture
+@pytest.fixture()
 def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
@@ -409,7 +409,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
         assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
 
 
-@pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
+@pytest.mark.parametrize(("fn", "step_name"), [("test", "test"), ("validate", "validation"), ("predict", "predict")])
 @pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
 def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
@@ -547,7 +547,7 @@ def test_pytorch_profiler_deepcopy(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["profiler", "expected"],
+    ("profiler", "expected"),
     [
         (None, PassThroughProfiler),
         (SimpleProfiler(), SimpleProfiler),
@@ -574,7 +574,7 @@ def test_trainer_profiler_incorrect_str_arg():
 
 @pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
 @pytest.mark.parametrize(
-    ["trainer_config", "trainer_fn"],
+    ("trainer_config", "trainer_fn"),
     [
         ({"limit_train_batches": 4, "limit_val_batches": 7}, "fit"),
         ({"limit_train_batches": 7, "limit_val_batches": 4, "num_sanity_val_steps": 0}, "fit"),

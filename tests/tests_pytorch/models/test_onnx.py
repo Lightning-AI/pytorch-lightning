@@ -59,7 +59,7 @@ def test_model_saves_on_gpu(tmpdir, accelerator):
 
 
 @pytest.mark.parametrize(
-    ["modelclass", "input_sample"],
+    ("modelclass", "input_sample"),
     [
         (BoringModel, torch.randn(1, 32)),
         (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10))),

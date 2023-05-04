@@ -7,7 +7,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 @pytest.mark.parametrize(
-    ["min_epochs", "max_epochs", "min_steps", "max_steps"],
+    ("min_epochs", "max_epochs", "min_steps", "max_steps"),
     [
         (None, 3, None, -1),
         (None, None, None, 20),

@@ -530,7 +530,7 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert total.dtype == torch.double
 
 
-@pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
+@pytest.mark.parametrize(("reduce_fx", "expected"), [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
