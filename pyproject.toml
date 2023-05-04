@@ -111,7 +111,6 @@ ignore-init-module-imports = true
     "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
     "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
-    "PT013",  # todo: Found incorrect import of pytest, use simple `import pytest` instead
     "PT015",  # todo: Assertion always fails, replace with `pytest.fail()`
     "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
 ]
