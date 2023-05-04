@@ -22,7 +22,7 @@ from lightning.pytorch.utilities import grad_norm
 
 
 @pytest.mark.parametrize(
-    "norm_type,expected",
+    ("norm_type", "expected"),
     [
         (
             1,

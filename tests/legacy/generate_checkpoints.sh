@@ -32,11 +32,13 @@ do
 
   # Don't install/update anything before activating venv
   # to avoid breaking any existing environment.
+  rm -rf $ENV_PATH
   python -m venv $ENV_PATH
   source $ENV_PATH/bin/activate
 
-  python -m pip install pytorch_lightning==$pl_ver -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
+  python -m pip install "pytorch_lightning==$pl_ver" -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
+  rm -rf $LEGACY_PATH/checkpoints/$pl_ver
   create_and_save_checkpoint
 
   deactivate

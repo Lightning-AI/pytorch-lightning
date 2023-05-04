@@ -58,7 +58,7 @@ class FlowWithWorkWithUrl(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "flow,expected_layout,expected_frontends",
+    ("flow", "expected_layout", "expected_frontends"),
     [
         (FlowWithFrontend, {}, [("root", StaticWebFrontend)]),
         (FlowWithWorkWithFrontend, {}, [("root", StaticWebFrontend)]),
@@ -122,7 +122,7 @@ class FlowWithMultipleWorksWithFrontends(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "flow,error_type,match",
+    ("flow", "error_type", "match"),
     [
         (FlowWithBadLayout, TypeError, "is an unsupported layout format"),
         (FlowWithBadLayoutDict, ValueError, "missing a key 'content'."),
