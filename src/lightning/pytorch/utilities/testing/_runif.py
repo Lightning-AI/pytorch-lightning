@@ -29,7 +29,7 @@ from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.pytorch.utilities.imports import _IPU_AVAILABLE, _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
@@ -42,7 +42,6 @@ def _RunIf(
     bf16_cuda: bool = False,
     tpu: bool = False,
     xla: bool = False,
-    ipu: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
@@ -140,12 +139,6 @@ def _RunIf(
         reasons.append("XLA")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["xla"] = True
-
-    if ipu:
-        conditions.append(not _IPU_AVAILABLE)
-        reasons.append("IPU")
-        # used in conftest.py::pytest_collection_modifyitems
-        kwargs["ipu"] = True
 
     if mps is not None:
         if mps:

@@ -381,7 +381,8 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
     assert len(calls) == 1
     score = calls[0][1]["metadata"]["score"]
     # model checkpoint monitors scalar tensors, but wandb can't serializable them - expect Python scalars in metadata
-    assert isinstance(score, int) and score == 3
+    assert isinstance(score, int)
+    assert score == 3
 
 
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)

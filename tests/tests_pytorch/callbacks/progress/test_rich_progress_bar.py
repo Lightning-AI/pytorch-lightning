@@ -212,7 +212,7 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 
 @RunIf(rich=True)
 @pytest.mark.parametrize(
-    "refresh_rate,train_batches,val_batches,expected_call_count",
+    ("refresh_rate", "train_batches", "val_batches", "expected_call_count"),
     [
         # note: there is always one extra update at the very end (+1)
         (3, 6, 6, 2 + 2 + 1),

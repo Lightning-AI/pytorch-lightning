@@ -78,7 +78,7 @@ def mock_training_epoch_loop(trainer):
 
 
 @pytest.mark.parametrize(
-    "validation_step_none,val_dataloaders_none,monitor",
+    ("validation_step_none", "val_dataloaders_none", "monitor"),
     [(False, False, "val_log"), (True, False, "train_log_epoch"), (False, True, "val_log")],
 )
 @pytest.mark.parametrize("reduce_lr_on_plateau", [False, True])
@@ -184,7 +184,7 @@ def test_model_checkpoint_score_and_ckpt(
 
 
 @pytest.mark.parametrize(
-    "val_check_interval,reduce_lr_on_plateau,epoch_aligned",
+    ("val_check_interval", "reduce_lr_on_plateau", "epoch_aligned"),
     [(0.25, True, True), (0.25, False, True), (0.42, False, False)],
 )
 def test_model_checkpoint_score_and_ckpt_val_check_interval(
@@ -330,7 +330,9 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     assert d == best_k
 
 
-@pytest.mark.parametrize("logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
+@pytest.mark.parametrize(
+    ("logger_version", "expected"), [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")]
+)
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
     model = LogInTwoMethods()
@@ -1169,6 +1171,40 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     assert {Path(f).name for f in mc.best_k_models} == expected
     # check created ckpts
     assert set(os.listdir(tmpdir)) == expected
+
+
+def test_ckpt_version_counter_disabled_after_rerun_new_trainer(tmpdir):
+    """Check that previous checkpoints get overwritten and no suffixes are generated when new trainer instances are
+    used."""
+    epochs = 2
+    for i in range(epochs):
+        mc = ModelCheckpoint(
+            dirpath=tmpdir,
+            save_top_k=-1,
+            save_last=True,
+            monitor="epoch",
+            filename="{epoch}",
+            enable_version_counter=False,
+        )
+        trainer = Trainer(
+            max_epochs=epochs,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            default_root_dir=tmpdir,
+            callbacks=[mc],
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(BoringModel())
+
+        # check best_k_models and last state
+        assert {Path(f).name for f in mc.best_k_models} == {"epoch=0.ckpt", "epoch=1.ckpt"}
+        assert Path(mc.last_model_path).name == "last.ckpt"
+
+    # check created ckpts
+    actual = {f.basename for f in tmpdir.listdir()}
+    assert actual == {"epoch=0.ckpt", "epoch=1.ckpt", "last.ckpt"}
 
 
 def test_model_checkpoint_mode_options():
