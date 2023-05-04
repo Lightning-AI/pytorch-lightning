@@ -48,7 +48,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg",
+    ("min_epochs", "min_steps", "current_epoch", "global_step", "early_stop", "epoch_loop_done", "raise_info_msg"),
     [
         (None, None, 1, 4, True, True, False),
         (None, None, 1, 10, True, True, False),
@@ -80,7 +80,7 @@ def test_should_stop_early_stopping_conditions_not_met(
     assert trainer.fit_loop._can_stop_early is early_stop
 
 
-@pytest.mark.parametrize("min_epochs,min_steps,val_count", [(3, None, 3), (None, 3, 2)])
+@pytest.mark.parametrize(("min_epochs", "min_steps", "val_count"), [(3, None, 3), (None, 3, 2)])
 def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, tmp_path):
     """Regression test for issue #15708.
 

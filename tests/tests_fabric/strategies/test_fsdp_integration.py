@@ -194,7 +194,7 @@ def test_compile(compile_after_setup):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
-    "precision,expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("32-true", torch.float32),
         ("16-true", torch.float16),

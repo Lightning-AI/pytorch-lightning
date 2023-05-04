@@ -171,7 +171,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
 
 @pytest.mark.parametrize(
-    ["accumulate_grad_batches", "limit_train_batches"],
+    ("accumulate_grad_batches", "limit_train_batches"),
     [
         (3, 1.0),
         (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
@@ -287,11 +287,12 @@ def test_loading_yaml(tmpdir):
     hparams_path = os.path.join(path_expt_dir, "hparams.yaml")
     tags = load_hparams_from_yaml(hparams_path)
 
-    assert tags["batch_size"] == 32 and tags["optimizer_name"] == "adam"
+    assert tags["batch_size"] == 32
+    assert tags["optimizer_name"] == "adam"
 
 
 @pytest.mark.parametrize(
-    "save_top_k,save_last,expected_files",
+    ("save_top_k", "save_last", "expected_files"),
     [
         pytest.param(-1, False, [f"epoch={i}.ckpt" for i in range(5)], id="CASE K=-1  (all)"),
         pytest.param(1, False, {"epoch=4.ckpt"}, id="CASE K=1 (2.5, epoch 4)"),
@@ -495,7 +496,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "max_epochs,max_steps,incorrect_variable",
+    ("max_epochs", "max_steps", "incorrect_variable"),
     [
         (-100, -1, "max_epochs"),
         (1, -2, "max_steps"),
@@ -511,7 +512,7 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
 
 
 @pytest.mark.parametrize(
-    "max_epochs,max_steps,is_done,correct_trainer_epochs",
+    ("max_epochs", "max_steps", "is_done", "correct_trainer_epochs"),
     [
         (None, -1, False, None),
         (-1, -1, False, -1),
@@ -1223,7 +1224,7 @@ def test_trainer_setup_call(tmpdir, stage):
     assert model.stage == stage
 
 
-@pytest.mark.parametrize("train_batches, max_steps, log_interval", [(10, 10, 1), (3, 10, 1), (3, 10, 5)])
+@pytest.mark.parametrize(("train_batches", "max_steps", "log_interval"), [(10, 10, 1), (3, 10, 1), (3, 10, 5)])
 @patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
     class TestModel(BoringModel):
@@ -1441,7 +1442,7 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
         assert preds[0].dtype == (torch.float64 if precision == "64-true" else torch.float32)
 
 
-@pytest.mark.parametrize(["max_steps", "max_epochs", "global_step"], [(10, 5, 10), (20, None, 20)])
+@pytest.mark.parametrize(("max_steps", "max_epochs", "global_step"), [(10, 5, 10), (20, None, 20)])
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
     """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`,
     and disabled if the limit is reached."""
@@ -1620,7 +1621,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,devices", [("auto", 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
+    ("strategy", "devices"), [("auto", 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
@@ -1859,7 +1860,7 @@ def test_detect_anomaly_nan(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"],
+    ("trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"),
     [
         ({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1),
         pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
@@ -1968,7 +1969,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
 
 
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_device_ids"],
+    ("trainer_kwargs", "expected_device_ids"),
     [
         ({}, [0]),
         ({"devices": 1}, [0]),

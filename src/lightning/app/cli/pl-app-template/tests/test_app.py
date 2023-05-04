@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.skip
+@pytest.mark.skip()
 def test_is_running_in_cloud(monkeypatch):
     from app import Main
 

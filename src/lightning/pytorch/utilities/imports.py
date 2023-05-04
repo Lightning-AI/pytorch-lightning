@@ -25,25 +25,8 @@ _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # u
 
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
-_POPTORCH_AVAILABLE = package_available("poptorch")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 _LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
 _LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
-
-if _POPTORCH_AVAILABLE:
-    import poptorch
-
-    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
-else:
-    _IPU_AVAILABLE = False
-
-
-_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
-if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_available
-
-    _HPU_AVAILABLE = is_habana_available()
-else:
-    _HPU_AVAILABLE = False

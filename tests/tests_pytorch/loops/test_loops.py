@@ -192,7 +192,7 @@ def test_loop_hierarchy():
 
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
-@pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
+@pytest.mark.parametrize(("n_dataloaders", "stop_dataloader"), [(2, 0), (2, 1), (3, 2)])
 def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
     n_epochs = 3
@@ -605,7 +605,7 @@ def test_fit_loop_reset(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["train_datasets", "val_datasets"],
+    ("train_datasets", "val_datasets"),
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])

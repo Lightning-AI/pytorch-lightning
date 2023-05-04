@@ -160,7 +160,7 @@ def test_single_device_grad_clipping(clip_type, precision):
     ],
 )
 @pytest.mark.parametrize(
-    "precision,dtype",
+    ("precision", "dtype"),
     [
         (Precision(), torch.float32),
         (HalfPrecision("16-true"), torch.float16),

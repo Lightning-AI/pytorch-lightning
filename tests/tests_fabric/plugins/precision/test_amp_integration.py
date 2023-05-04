@@ -57,7 +57,7 @@ class MixedPrecisionBoringFabric(BoringFabric):
 
 
 @pytest.mark.parametrize(
-    "accelerator, precision, expected_dtype",
+    ("accelerator", "precision", "expected_dtype"),
     [
         ("cpu", "16-mixed", torch.bfloat16),
         ("cpu", "bf16-mixed", torch.bfloat16),

@@ -378,7 +378,7 @@ def test_error_raised_with_float_limited_eval_batches():
 
 
 @pytest.mark.parametrize(
-    "val_dl,warns",
+    ("val_dl", "warns"),
     [
         (DataLoader(dataset=RandomDataset(32, 64), shuffle=True), True),
         (DataLoader(dataset=RandomDataset(32, 64), sampler=list(range(64))), False),
@@ -420,7 +420,7 @@ class NoDataLoaderModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "instance,available",
+    ("instance", "available"),
     [
         (None, True),
         (BoringModel().train_dataloader(), True),
@@ -528,7 +528,7 @@ def test_invalid_hook_passed_in_datahook_selector():
         dh_selector.get_instance("setup")
 
 
-@pytest.mark.parametrize("devices, warn_context", [(1, no_warning_call), (2, pytest.warns)])
+@pytest.mark.parametrize(("devices", "warn_context"), [(1, no_warning_call), (2, pytest.warns)])
 def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
     model = BoringModel()
@@ -578,7 +578,7 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
 
 
 @pytest.mark.parametrize(
-    "trainer_fn_name, dataloader_name",
+    ("trainer_fn_name", "dataloader_name"),
     [
         ("fit", "train_dataloaders"),
         ("validate", "dataloaders"),
@@ -613,7 +613,7 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
 
 
 @pytest.mark.parametrize(
-    "trainer_fn_name, dataloader_name, stage",
+    ("trainer_fn_name", "dataloader_name", "stage"),
     [
         ("fit", "train_dataloaders", RunningStage.TRAINING),
         ("validate", "dataloaders", RunningStage.VALIDATING),

@@ -8,7 +8,7 @@ from lightning.app.cli.lightning_cli import show
 from lightning.app.testing.testing import run_app_in_cloud, wait_for
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_boring_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "boring"), app_name="app_dynamic.py", debug=True) as (
         _,
@@ -30,6 +30,7 @@ def test_boring_app_example_cloud() -> None:
 
         assert result.exit_code == 0
         assert result.exception is None
+        # TODO: Resolve
         # lines = result.output.splitlines()
         # assert any("Received from root.dict.dst_w" in line for line in lines)
         print("Succeeded App!")

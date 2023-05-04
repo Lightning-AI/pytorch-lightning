@@ -180,7 +180,8 @@ def test_optimizer_return_options(tmpdir):
     # single optimizer
     model.configure_optimizers = lambda: opt_a
     opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
-    assert len(opt) == 1 and len(lr_sched) == 0
+    assert len(opt) == 1
+    assert len(lr_sched) == 0
 
     # opt tuple
     model.automatic_optimization = False
@@ -460,7 +461,7 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
     assert mocked_sched.call_count == expected_steps
 
 
-@pytest.mark.parametrize("every_n_train_steps, epoch_interval", [(None, True), (2, False), (2, True)])
+@pytest.mark.parametrize(("every_n_train_steps", "epoch_interval"), [(None, True), (2, False), (2, True)])
 def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, epoch_interval):
     batches = 2
     max_epochs = 1

@@ -147,7 +147,7 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
 
 
 @pytest.mark.parametrize(
-    "strategy_name,expected_ddp_kwargs",
+    ("strategy_name", "expected_ddp_kwargs"),
     [
         ("ddp_spawn", {}),
         pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),

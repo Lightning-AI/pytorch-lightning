@@ -7,7 +7,7 @@ from integrations_app.local import _PATH_APPS
 from lightning.app.testing.testing import run_app_in_cloud
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_collect_failures_example_cloud() -> None:
     # logs are in order
     expected_logs = [

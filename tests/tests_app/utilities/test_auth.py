@@ -6,7 +6,7 @@ from lightning.app.utilities.auth import _credential_string_to_basic_auth_params
 
 
 @pytest.mark.parametrize(
-    "credential_string, expected_parsed, exception_message",
+    ("credential_string", "expected_parsed", "exception_message"),
     [
         ("", None, "Credential string must follow the format username:password; the provided one ('') does not."),
         (":", None, "Username cannot be empty."),

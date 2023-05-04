@@ -276,7 +276,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["dataset", "limit_train_batches"],
+    ("dataset", "limit_train_batches"),
     [
         (RandomDataset(32, 128), 10),
         (RandomIterableDataset(32, 128), 10),
@@ -390,7 +390,7 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
 
 @pytest.mark.skip()
 @pytest.mark.parametrize(
-    ["limit_train_batches", "limit_val_batches", "limit_test_batches"],
+    ("limit_train_batches", "limit_val_batches", "limit_test_batches"),
     [(1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
 )
 def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
@@ -415,7 +415,7 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
     assert trainer.num_test_batches == expected_test_batches
 
 
-@pytest.mark.parametrize(["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(1, 2, 3), (1, 2, 1e50)])
+@pytest.mark.parametrize(("limit_train_batches", "limit_val_batches", "limit_test_batches"), [(1, 2, 3), (1, 2, 1e50)])
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit as number."""
     model = MultiEvalDataLoaderModel()
@@ -832,7 +832,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["mode", "num_training_batches"],
+    ("mode", "num_training_batches"),
     [("min_size", 16), ("max_size_cycle", 64), ("max_size", 64), ("sequential", 64 + 16 * 4)],
 )
 def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
@@ -954,8 +954,12 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
 
 @pytest.mark.parametrize(
     (
-        "num_sanity_val_steps, check_val_every_n_epoch, reload_dataloaders_every_n_epochs,"
-        " train_reload_epochs_expect,val_reload_epochs_expect,val_step_epochs_expect"
+        "num_sanity_val_steps",
+        "check_val_every_n_epoch",
+        "reload_dataloaders_every_n_epochs",
+        "train_reload_epochs_expect",
+        "val_reload_epochs_expect",
+        "val_step_epochs_expect",
     ),
     [
         # general case where sanity check reloads the dataloaders for validation on current_epoch=0
