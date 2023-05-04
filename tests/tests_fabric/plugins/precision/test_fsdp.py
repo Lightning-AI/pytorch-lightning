@@ -27,7 +27,7 @@ def test_fsdp_precision_support(*_):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
+@pytest.mark.parametrize(("precision", "expected"), [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
 def test_fsdp_precision_config(precision, expected):
     plugin = FSDPPrecision(precision=precision, device="cuda")
     config = plugin.mixed_precision_config

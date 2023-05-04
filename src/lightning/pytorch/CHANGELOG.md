@@ -36,7 +36,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
 
 
+- Added ``SaveConfigCallback.save_config`` to ease use cases such as saving the config to a logger ([#17475](https://github.com/Lightning-AI/lightning/pull/17475))
+
+
+- Enabled optional file versioning of model checkpoints ([#17320](hhttps://github.com/Lightning-AI/lightning/pull/17320))
+
+
 - Added the process group timeout argument `FSDPStrategy(timeout=...)` for the FSDP strategy ([#17274](https://github.com/Lightning-AI/lightning/pull/17274))
+
+
+- Added CLI option `--map-to-cpu` to the checkpoint upgrade script to enable converting GPU checkpoints on a CPU-only machine ([#17527](https://github.com/Lightning-AI/lightning/pull/17527))
 
 
 ### Changed

@@ -142,7 +142,7 @@ class SignalHandlers:
 
 
 @pytest.mark.parametrize(
-    ["handler", "expected_return"],
+    ("handler", "expected_return"),
     [
         (None, False),
         (signal.Handlers.SIG_IGN, True),

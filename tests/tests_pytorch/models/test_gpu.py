@@ -131,30 +131,38 @@ def test_single_gpu_batch_parse():
     # batch is just a tensor
     batch = torch.rand(2, 3)
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch.device.index == 0 and batch.type() == "torch.cuda.FloatTensor"
+    assert batch.device.index == 0
+    assert batch.type() == "torch.cuda.FloatTensor"
 
     # tensor list
     batch = [torch.rand(2, 3), torch.rand(2, 3)]
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0].device.index == 0 and batch[0].type() == "torch.cuda.FloatTensor"
-    assert batch[1].device.index == 0 and batch[1].type() == "torch.cuda.FloatTensor"
+    assert batch[0].device.index == 0
+    assert batch[0].type() == "torch.cuda.FloatTensor"
+    assert batch[1].device.index == 0
+    assert batch[1].type() == "torch.cuda.FloatTensor"
 
     # tensor list of lists
     batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.cuda.FloatTensor"
-    assert batch[0][1].device.index == 0 and batch[0][1].type() == "torch.cuda.FloatTensor"
+    assert batch[0][0].device.index == 0
+    assert batch[0][0].type() == "torch.cuda.FloatTensor"
+    assert batch[0][1].device.index == 0
+    assert batch[0][1].type() == "torch.cuda.FloatTensor"
 
     # tensor dict
     batch = [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)}]
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0]["a"].device.index == 0 and batch[0]["a"].type() == "torch.cuda.FloatTensor"
-    assert batch[0]["b"].device.index == 0 and batch[0]["b"].type() == "torch.cuda.FloatTensor"
+    assert batch[0]["a"].device.index == 0
+    assert batch[0]["a"].type() == "torch.cuda.FloatTensor"
+    assert batch[0]["b"].device.index == 0
+    assert batch[0]["b"].type() == "torch.cuda.FloatTensor"
 
     # tuple of tensor list and list of tensor dict
     batch = ([torch.rand(2, 3) for _ in range(2)], [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)} for _ in range(2)])
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.cuda.FloatTensor"
+    assert batch[0][0].device.index == 0
+    assert batch[0][0].type() == "torch.cuda.FloatTensor"
 
     assert batch[1][0]["a"].device.index == 0
     assert batch[1][0]["a"].type() == "torch.cuda.FloatTensor"

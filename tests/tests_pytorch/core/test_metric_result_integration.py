@@ -481,6 +481,10 @@ def test_metric_result_computed_check():
 
 @pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
 def test_metric_result_respects_dtype(floating_dtype):
+    from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
+
+    warning_cache.clear()
+
     torch.set_default_dtype(floating_dtype)
     fixed_dtype = torch.long  # default by PyTorch
 
@@ -530,7 +534,7 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert total.dtype == torch.double
 
 
-@pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
+@pytest.mark.parametrize(("reduce_fx", "expected"), [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()

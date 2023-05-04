@@ -188,7 +188,7 @@ class WorkClassRootFlow(_RootFlow):
 
 
 @pytest.mark.parametrize(
-    "flow,expected",
+    ("flow", "expected"),
     [
         (Flow, True),
         (FlowWithURLLayout, False),
