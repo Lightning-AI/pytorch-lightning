@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 
 import torch
 
@@ -50,5 +51,6 @@ def main_train(dir_path, max_epochs: int = 20):
 
 
 if __name__ == "__main__":
-    path_dir = os.path.join(PATH_LEGACY, "checkpoints", str(pl.__version__))
+    name = sys.argv[1] if len(sys.argv) > 1 else str(pl.__version__)
+    path_dir = os.path.join(PATH_LEGACY, "checkpoints", name)
     main_train(path_dir)
