@@ -154,7 +154,7 @@ def test_tpu_all_gather():
 
 
 def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
-    seed_everything(random.seed())
+    seed_everything()
     model = torch.nn.Linear(1, 1).to(strategy.root_device)
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)
@@ -169,7 +169,6 @@ def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
 
 @RunIf(tpu=True)
 @pytest.mark.parametrize("broadcast_master_params", [True, False])
-@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_tpu_broadcast_master_params(broadcast_master_params):
     """Test pjrt's broadcast_master_params."""
     accelerator = XLAAccelerator()
