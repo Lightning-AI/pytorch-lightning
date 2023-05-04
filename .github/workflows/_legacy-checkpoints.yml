@@ -123,5 +123,6 @@ jobs:
         title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
         labels: |
+          checkpointing
           tests
           pl
