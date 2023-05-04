@@ -88,7 +88,7 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
+@pytest.mark.parametrize(("accelerator", "devices"), [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
 @mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
 def test_accelerator_tpu(_, accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()

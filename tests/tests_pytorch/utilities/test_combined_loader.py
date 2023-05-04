@@ -40,7 +40,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    ["dataset_1", "dataset_2"],
+    ("dataset_1", "dataset_2"),
     [
         ([list(range(10)), list(range(20))]),
         ([range(10), range(20)]),

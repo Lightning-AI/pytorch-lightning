@@ -25,7 +25,7 @@ from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFab
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "device_str", "expected_process_group_backend"],
+    ("process_group_backend", "device_str", "expected_process_group_backend"),
     [
         pytest.param("foo", "cpu", "foo"),
         pytest.param("foo", "cuda:0", "foo"),
@@ -103,7 +103,7 @@ def test_ddp_module_state_dict():
 
 
 @pytest.mark.parametrize(
-    "clip_type,accelerator,precision",
+    ("clip_type", "accelerator", "precision"),
     [
         ("norm", "cpu", "32-true"),
         ("val", "cpu", "32-true"),

@@ -69,7 +69,7 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
     return new_fn
 
 
-@pytest.fixture
+@pytest.fixture()
 def clean_import():
     """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the
     current state of the imported modules.
@@ -88,7 +88,7 @@ def clean_import():
 
 
 @pytest.mark.parametrize(
-    ["patch_name", "new_fn", "to_import"],
+    ("patch_name", "new_fn", "to_import"),
     [
         ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
         (

@@ -48,7 +48,7 @@ def check_destroy_group():
 
 
 @pytest.mark.parametrize(
-    ["fn_name", "kwargs", "return_key"],
+    ("fn_name", "kwargs", "return_key"),
     [
         ("send", {"tensor": PASSED_TENSOR, "dst": 0, "tag": 0}, None),
         ("recv", {"tensor": PASSED_TENSOR, "src": 0, "tag": 0}, "tensor"),

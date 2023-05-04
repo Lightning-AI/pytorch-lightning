@@ -107,7 +107,7 @@ def test_deepspeed_multiple_models():
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
-    ["dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"],
+    ("dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"),
     [
         (RandomDataset, None, 1),
         (RandomDataset, 10, 10),

@@ -196,7 +196,7 @@ def test_custom_accelerator(*_):
 
 
 @pytest.mark.parametrize(
-    "env_vars,expected_environment",
+    ("env_vars", "expected_environment"),
     [
         (
             {
@@ -264,7 +264,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
 
 @RunIf(mps=True)
 @pytest.mark.parametrize(
-    ["strategy", "strategy_class"],
+    ("strategy", "strategy_class"),
     (
         ("ddp", DDPStrategy),
         ("dp", DataParallelStrategy),
@@ -282,7 +282,7 @@ def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
 
 @RunIf(mps=False)
 @pytest.mark.parametrize(
-    ["strategy", "strategy_class"],
+    ("strategy", "strategy_class"),
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPStrategy),
@@ -336,7 +336,7 @@ def test_accelerator_gpu():
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPStrategy)])
+@pytest.mark.parametrize(("devices", "strategy_class"), [(1, SingleDeviceStrategy), (5, DDPStrategy)])
 def test_accelerator_cpu_with_devices(devices, strategy_class):
     connector = _Connector(accelerator="cpu", devices=devices)
     assert connector._parallel_devices == [torch.device("cpu")] * devices
@@ -346,7 +346,7 @@ def test_accelerator_cpu_with_devices(devices, strategy_class):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPStrategy)]
+    ("devices", "strategy_class"), [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPStrategy)]
 )
 def test_accelerator_gpu_with_devices(devices, strategy_class):
     connector = _Connector(accelerator="gpu", devices=devices)
@@ -386,7 +386,7 @@ def test_invalid_strategy_choice(invalid_strategy):
 
 
 @pytest.mark.parametrize(
-    ["strategy", "strategy_class"],
+    ("strategy", "strategy_class"),
     [
         ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
@@ -399,7 +399,7 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["strategy", "strategy_class"],
+    ("strategy", "strategy_class"),
     [
         ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
@@ -432,7 +432,7 @@ def test_validate_precision_type(precision):
 
 
 @pytest.mark.parametrize(
-    "precision,expected_precision,should_warn",
+    ("precision", "expected_precision", "should_warn"),
     [
         (16, "16-mixed", True),
         ("16", "16-mixed", True),
@@ -525,7 +525,9 @@ def test_strategy_choice_ddp_spawn(*_):
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-@pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
+@pytest.mark.parametrize(
+    ("job_name", "expected_env"), [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)]
+)
 @pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy])
 def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
     if strategy and not isinstance(strategy, str):
@@ -667,7 +669,7 @@ def test_devices_auto_choice_mps():
 
 
 @pytest.mark.parametrize(
-    ["parallel_devices", "accelerator"],
+    ("parallel_devices", "accelerator"),
     [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
 )
 def test_parallel_devices_in_strategy_conflict_with_accelerator(parallel_devices, accelerator):
@@ -676,7 +678,7 @@ def test_parallel_devices_in_strategy_conflict_with_accelerator(parallel_devices
 
 
 @pytest.mark.parametrize(
-    ["plugins", "expected"],
+    ("plugins", "expected"),
     [
         ([LightningEnvironment(), SLURMEnvironment()], "ClusterEnvironment"),
         ([TorchCheckpointIO(), TorchCheckpointIO()], "CheckpointIO"),
@@ -699,7 +701,7 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
 
 
 @pytest.mark.parametrize(
-    "expected_accelerator_flag,expected_accelerator_class",
+    ("expected_accelerator_flag", "expected_accelerator_class"),
     [
         pytest.param("cuda", CUDAAccelerator, marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", MPSAccelerator, marks=RunIf(mps=True)),
@@ -759,9 +761,9 @@ class MyAMP(MixedPrecision):
 
 
 @RunIf(mps=False)
-@pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize(("strategy", "devices"), [("ddp", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
-    "is_custom_plugin,plugin_cls",
+    ("is_custom_plugin", "plugin_cls"),
     [(False, MixedPrecision), (True, MyAMP)],
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
@@ -778,7 +780,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@pytest.mark.parametrize(["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
+@pytest.mark.parametrize(("strategy", "strategy_cls"), [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
@@ -798,7 +800,7 @@ def test_precision_from_environment(_, precision):
 
 
 @pytest.mark.parametrize(
-    "accelerator, strategy, expected_accelerator, expected_strategy",
+    ("accelerator", "strategy", "expected_accelerator", "expected_strategy"),
     [
         (None, None, CPUAccelerator, SingleDeviceStrategy),
         ("cpu", None, CPUAccelerator, SingleDeviceStrategy),

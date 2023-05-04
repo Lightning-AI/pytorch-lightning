@@ -125,7 +125,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "loss_values, patience, expected_stop_epoch",
+    ("loss_values", "patience", "expected_stop_epoch"),
     [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4)],
 )
 def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expected_stop_epoch: int):
@@ -153,7 +153,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
 
 @pytest.mark.parametrize("validation_step_none", [True, False])
 @pytest.mark.parametrize(
-    "loss_values, patience, expected_stop_epoch",
+    ("loss_values", "patience", "expected_stop_epoch"),
     [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4)],
 )
 def test_early_stopping_patience_train(
@@ -216,7 +216,7 @@ def test_early_stopping_no_val_step(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "stopping_threshold,divergence_threshold,losses,expected_epoch",
+    ("stopping_threshold", "divergence_threshold", "losses", "expected_epoch"),
     [
         (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
         (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
@@ -269,7 +269,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
 
 
 @pytest.mark.parametrize(
-    "limit_train_batches,min_epochs,min_steps,stop_step",
+    ("limit_train_batches", "min_epochs", "min_steps", "stop_step"),
     [
         # IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being
         # triggered, THEN the trainer should continue until reaching `trainer.global_step == min_steps` and stop
@@ -370,7 +370,7 @@ _SPAWN_MARK = {"marks": RunIf(skip_windows=True)}
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices, dist_diverge_epoch",
+    ("callbacks", "expected_stop_epoch", "check_on_train_epoch_end", "strategy", "devices", "dist_diverge_epoch"),
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "auto", 1, None),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "auto", 1, None),
@@ -482,7 +482,7 @@ def test_early_stopping_squeezes():
 
 @pytest.mark.parametrize("trainer", [Trainer(), None])
 @pytest.mark.parametrize(
-    "log_rank_zero_only, world_size, global_rank, expected_log",
+    ("log_rank_zero_only", "world_size", "global_rank", "expected_log"),
     [
         (False, 1, 0, "bar"),
         (False, 2, 0, "[rank: 0] bar"),

@@ -78,7 +78,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "stage,mode",
+    ("stage", "mode"),
     [(RunningStage.VALIDATING, "val"), (RunningStage.TESTING, "test"), (RunningStage.PREDICTING, "predict")],
 )
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
