@@ -27,7 +27,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.loggers import Logger
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
