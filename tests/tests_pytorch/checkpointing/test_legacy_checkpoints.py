@@ -33,7 +33,7 @@ CHECKPOINT_EXTENSION = ".ckpt"
 with open(os.path.join(_PATH_LEGACY, "back-compatible-versions.txt")) as fp:
     LEGACY_BACK_COMPATIBLE_PL_VERSIONS = [ln.strip() for ln in fp.readlines()]
 # This shall be created for each CI run
-LEGACY_BACK_COMPATIBLE_PL_VERSIONS += ['local']
+LEGACY_BACK_COMPATIBLE_PL_VERSIONS += ["local"]
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
