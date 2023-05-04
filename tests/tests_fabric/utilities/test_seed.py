@@ -32,7 +32,7 @@ def test_correct_seed_with_environment_variable():
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 @mock.patch.object(seed_utils, attribute="_select_seed_randomly", return_value=123)
-def test_invalid_seed():
+def test_invalid_seed(_):
     """Ensure that we still fix the seed even if an invalid seed is given."""
     with pytest.warns(UserWarning, match="Invalid seed found"):
         seed = lightning.fabric.utilities.seed.seed_everything()
@@ -42,7 +42,7 @@ def test_invalid_seed():
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch.object(seed_utils, attribute="_select_seed_randomly", return_value=123)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
-def test_out_of_bounds_seed(seed):
+def test_out_of_bounds_seed(_, seed):
     """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
     with pytest.warns(UserWarning, match="is not in bounds"):
         actual = lightning.fabric.utilities.seed.seed_everything(seed)
