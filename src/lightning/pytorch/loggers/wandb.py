@@ -494,7 +494,7 @@ class WandbLogger(Logger):
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
-        metrics = {key: [wandb.Audio(img, **kwarg) for img, kwarg in zip(audios, kwarg_list)]}
+        metrics = {key: [wandb.Audio(audio, **kwarg) for audio, kwarg in zip(audios, kwarg_list)]}
         self.log_metrics(metrics, step)
 
     @property

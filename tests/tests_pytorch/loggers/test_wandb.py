@@ -441,6 +441,33 @@ def test_wandb_log_media(wandb, tmpdir):
     with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
         logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
+    # test log_audio
+    wandb.init().log.reset_mock()
+    logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"])
+    wandb.Audio.assert_called_with("2.mp3")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Audio(), wandb.Audio()]})
+
+    # test log_audio with step
+    wandb.init().log.reset_mock()
+    logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], step=5)
+    wandb.Audio.assert_called_with("2.mp3")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Audio(), wandb.Audio()], "trainer/global_step": 5})
+
+    # test log_audio with captions
+    wandb.init().log.reset_mock()
+    wandb.Audio.reset_mock()
+    logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1", "caption 2"])
+    wandb.Audio.assert_called_with("2.mp3", caption="caption 2")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Audio(), wandb.Audio()]})
+
+    # test log_audio without a list
+    with pytest.raises(TypeError, match="""Expected a list as "audios", found <class 'str'>"""):
+        logger.log_audio(key="samples", audios="1.mp3")
+
+    # test log_audio with wrong number of captions
+    with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
+        logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1"])
+
     # test log_table
     wandb.Table.reset_mock()
     wandb.init().log.reset_mock()
