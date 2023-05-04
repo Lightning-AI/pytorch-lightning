@@ -481,6 +481,10 @@ def test_metric_result_computed_check():
 
 @pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
 def test_metric_result_respects_dtype(floating_dtype):
+    from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
+
+    warning_cache.clear()
+
     torch.set_default_dtype(floating_dtype)
     fixed_dtype = torch.long  # default by PyTorch
 
