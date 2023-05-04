@@ -1181,7 +1181,7 @@ The metrics available to callbacks.
 
 This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
 
-..code-block:: python
+.. code-block:: python
 
     def training_step(self, batch, batch_idx):
         self.log("a_val", 2.0)
@@ -1239,9 +1239,9 @@ The first :class:`~lightning.pytorch.loggers.logger.Logger` being used.
 loggers
 ********
 
-The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
+The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
-..code-block:: python
+.. code-block:: python
 
     for logger in trainer.loggers:
         logger.log_metrics({"foo": 1.0})
@@ -1276,7 +1276,7 @@ The estimated number of batches that will ``optimizer.step()`` during training.
 This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
 dataloader if hadn't been set up already.
 
-..code-block:: python
+.. code-block:: python
 
     def configure_optimizers(self):
         optimizer = ...
