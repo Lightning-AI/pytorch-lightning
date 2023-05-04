@@ -273,7 +273,7 @@ class DummyIDS(torch.utils.data.IterableDataset):
         yield 1
 
 
-@pytest.mark.parametrize("iterable", (False, True))
+@pytest.mark.parametrize("iterable", [False, True])
 def test_dm_init_from_datasets_dataloaders(iterable):
     ds = DummyIDS if iterable else DummyDS
 

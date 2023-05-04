@@ -199,7 +199,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter, batch_idx):
@@ -230,7 +230,7 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     trainer_fn(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages_multiple_dataloaders(fn, tmp_path):
     class MyModel(BoringModel):
         def validation_step(self, dataloader_iter, batch_idx, dataloader_idx):

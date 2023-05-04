@@ -33,7 +33,7 @@ def test_almost_max_upload_parts():
     assert _get_split_size(barely_under) == math.ceil(barely_under / MAX_SPLIT_COUNT)
 
 
-@pytest.mark.parametrize("size", (1024 * 512, 1024 * 1024 * 5))
+@pytest.mark.parametrize("size", [1024 * 512, 1024 * 1024 * 5])
 def test_get_dir_size_and_count(tmpdir: Path, size):
     data = os.urandom(size)
     with open(os.path.join(tmpdir, "a"), "wb") as f:

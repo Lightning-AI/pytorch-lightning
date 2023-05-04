@@ -41,7 +41,7 @@ def test_invalid_seed():
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch.object(seed_utils, attribute="_select_seed_randomly", return_value=123)
-@pytest.mark.parametrize("seed", (10e9, -10e9))
+@pytest.mark.parametrize("seed", [10e9, -10e9])
 def test_out_of_bounds_seed(seed):
     """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
     with pytest.warns(UserWarning, match="is not in bounds"):
@@ -58,7 +58,7 @@ def test_reset_seed_no_op():
     assert "PL_GLOBAL_SEED" not in os.environ
 
 
-@pytest.mark.parametrize("workers", (True, False))
+@pytest.mark.parametrize("workers", [True, False])
 def test_reset_seed_everything(workers):
     """Test that we can reset the seed to the initial value set by seed_everything()"""
     assert "PL_GLOBAL_SEED" not in os.environ

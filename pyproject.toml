@@ -109,7 +109,6 @@ ignore-init-module-imports = true
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
     "S607",  # todo: Starting a process with a partial executable path
     "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
-    "PT007",  # todo: Wrong values type in `@pytest.mark.parametrize` expected `list` of `tuple`
     "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
     "PT013",  # todo: Found incorrect import of pytest, use simple `import pytest` instead
