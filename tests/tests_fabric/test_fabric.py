@@ -1007,3 +1007,24 @@ def test_grad_clipping(clip_val, max_norm):
         fabric.strategy.clip_gradients_norm.assert_called_once_with(
             torch_model, torch_optimizer, max_norm=max_norm, norm_type=2.0, error_if_nonfinite=True
         )
+
+
+def test_verify_launch_called():
+    """Test that the user gets an error message if they forgot to call `.launch()`."""
+    fabric = Fabric(accelerator="cpu")
+    assert not fabric._launched
+    fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DDPStrategy)
+    with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
+        fabric._validate_launched()
+
+    method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
+    for method_name in method_names:
+        method = getattr(fabric, method_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
+            method(Mock())
+
+    fabric.launch()
+    assert fabric._launched
+    fabric._validate_launched()
