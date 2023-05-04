@@ -15,9 +15,9 @@ import os
 
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything
-from pytorch_lightning.callbacks import EarlyStopping
+import lightning.pytorch as pl
+from lightning.pytorch import seed_everything
+from lightning.pytorch.callbacks import EarlyStopping
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
