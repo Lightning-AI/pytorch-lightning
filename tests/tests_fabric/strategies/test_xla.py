@@ -168,6 +168,7 @@ def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
 
 @RunIf(tpu=True)
 @pytest.mark.parametrize("broadcast_master_params", [True, False])
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_broadcast_master_params(broadcast_master_params):
     """Test pjrt's broadcast_master_params."""
     accelerator = XLAAccelerator()
