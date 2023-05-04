@@ -98,10 +98,6 @@ jobs:
       if: ${{ matrix.requires == 'oldest' }}
       run: python .actions/assistant.py replace_oldest_ver
 
-    - name: Pull legacy checkpoints
-      if: ${{ matrix.type != 'slow' }}
-      run: bash .actions/pull_legacy_checkpoints.sh
-
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
@@ -160,6 +156,13 @@ jobs:
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
           --source_import="pytorch_lightning,lightning_fabric" \
           --target_import="lightning.pytorch,lightning.fabric"
+
+    - name: Pull legacy checkpoints
+      if: ${{ matrix.type != 'slow' }}
+      run: |
+        bash tests/legacy/generate_checkpoints.sh
+        mv tests/legacy/checkpoints/*/ tests/legacy/checkpoints/local/
+        bash .actions/pull_legacy_checkpoints.sh
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
