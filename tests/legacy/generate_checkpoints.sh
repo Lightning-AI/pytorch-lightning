@@ -9,9 +9,9 @@ set -e
 LEGACY_PATH=$(cd $(dirname $0); pwd -P)
 ENV_PATH=$LEGACY_PATH/vEnv
 export PYTHONPATH=$(dirname $LEGACY_PATH)  # for `import tests_pytorch`
-print "LEGACY_PATH: $LEGACY_PATH"
-print "ENV_PATH: $ENV_PATH"
-print "PYTHONPATH: $PYTHONPATH"
+printf "LEGACY_PATH: $LEGACY_PATH"
+printf "ENV_PATH: $ENV_PATH"
+printf "PYTHONPATH: $PYTHONPATH"
 rm -rf $ENV_PATH
 
 function create_and_save_checkpoint {
@@ -29,7 +29,7 @@ function create_and_save_checkpoint {
 # iterate over all arguments assuming that each argument is version
 for pl_ver in "$@"
 do
-  print "processing version: $pl_ver"
+  printf "processing version: $pl_ver"
 
   # Don't install/update anything before activating venv to avoid breaking any existing environment.
   python -m venv $ENV_PATH
@@ -46,7 +46,7 @@ done
 
 # use the PL installed in the environment if no PL version is specified
 if [[ -z "$@" ]]; then
-  print "processing local version"
+  printf "processing local version"
 
   python -m pip install -r $LEGACY_PATH/requirements.txt
   pl_ver="local"
