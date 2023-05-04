@@ -16,8 +16,8 @@ import os
 import numpy as np
 import pytest
 import torch
-from benchmarks_pytorch.measure import measure_loops
 
+from benchmarks_pytorch.measure import measure_loops
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from tests_pytorch.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
 
