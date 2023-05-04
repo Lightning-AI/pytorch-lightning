@@ -122,6 +122,13 @@ jobs:
         pip install ".[${extra}extra,${extra}test]" -U "pytest-timeout" \
           -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
+    - name: Drop LAI from extensions
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
+      run: pip uninstall -y lightning
+    - name: Drop PL for LAI
+      if: ${{ matrix.pkg-name == 'lightning' }}
+      run: pip uninstall -y pytorch-lightning
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       continue-on-error: true
