@@ -31,7 +31,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from lightning.fabric.fabric import Fabric
-from tests_fabric.helpers.runif import RunIf
 
 
 def train_torch_ddp(
