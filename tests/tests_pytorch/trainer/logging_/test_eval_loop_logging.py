@@ -467,7 +467,7 @@ def test_log_works_in_test_callback(tmpdir):
             if func_name in key:
                 break
         else:
-            assert False, (func_name, list(callback_metrics))
+            pytest.fail(f"{func_name}, {list(callback_metrics)}")
 
     def get_expected(on_epoch, values):
         reduction = np.mean if on_epoch else np.max
