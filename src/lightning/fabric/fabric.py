@@ -27,7 +27,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.loggers import Logger
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
@@ -690,7 +689,6 @@ class Fabric:
                 f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
                 " that contains the code to launch in processes."
             )
-        self._launched = True
         return self._wrap_and_launch(function, self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
@@ -769,6 +767,7 @@ class Fabric:
         return seed_everything(seed=seed, workers=workers)
 
     def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._launched = True
         to_run = partial(self._wrap_with_setup, to_run)
         if (launcher := self._strategy.launcher) is not None:
             return launcher.launch(to_run, *args, **kwargs)
