@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_NIGHTLY: true
+  PUSH_NIGHTLY: ${{ github.event_name == 'schedule' }}
   PUSH_RELEASE: ${{ github.event_name == 'release' }}
 
 jobs:
@@ -63,6 +63,7 @@ jobs:
         timeout-minutes: 50
 
   build-cuda:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

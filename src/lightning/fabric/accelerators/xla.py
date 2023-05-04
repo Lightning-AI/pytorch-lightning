@@ -72,21 +72,32 @@ class XLAAccelerator(Accelerator):
         if not _XLA_AVAILABLE:
             return 0
         import torch_xla.core.xla_env_vars as xenv
-        from torch_xla.experimental import pjrt, tpu
+        from torch_xla.experimental import gpu, pjrt, tpu
         from torch_xla.utils.utils import getenv_as
 
         if pjrt.using_pjrt():
+            if XLAAccelerator._device_type() == "GPU":
+                return gpu.num_local_processes()
             if _XLA_GREATER_EQUAL_2_1:
                 return tpu.num_available_devices()
             device_count_on_version = {2: 8, 3: 8, 4: 4}
             return device_count_on_version.get(tpu.version(), 8)
         else:
-            return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
+            tpu_devices = getenv_as(xenv.TPU_NUM_DEVICES, int)
+            if not tpu_devices and not XLAAccelerator._device_type() == "TPU":
+                raise ValueError(
+                    "XLA is only supported for TPUs with the XRT runtime. Please set the `TPU_NUM_DEVICES` environment"
+                    " variable"
+                )
+            return tpu_devices or 8
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        return XLAAccelerator.auto_device_count() > 0
+        try:
+            return XLAAccelerator.auto_device_count() > 0
+        except (ValueError, AssertionError, OSError):
+            return False
 
     @staticmethod
     def _device_type() -> str:
