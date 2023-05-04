@@ -47,7 +47,7 @@
      - `PR16703`_
 
    * - used any function from ``pl.utilities.xla_device``
-     - switch to ``pl.accelerators.TPUAccelerator.is_available()``
+     - switch to ``pl.accelerators.XLAAccelerator.is_available()``
      - `PR14514`_ `PR14550`_
 
    * - imported functions from  ``pl.utilities.device_parser.*``

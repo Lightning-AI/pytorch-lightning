@@ -13,11 +13,12 @@
 # limitations under the License.
 import platform
 from functools import lru_cache
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import torch
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
@@ -69,7 +70,7 @@ class MPSAccelerator(Accelerator):
         )
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "mps",
             cls,

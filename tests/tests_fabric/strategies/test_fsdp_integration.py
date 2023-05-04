@@ -198,6 +198,8 @@ def test_compile(compile_after_setup):
     "precision,expected_dtype",
     [
         ("32-true", torch.float32),
+        ("16-true", torch.float16),
+        pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
         ("64-true", torch.float64),
     ],
 )
@@ -214,8 +216,9 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the meta device until `.setup()``
-    expected_device = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    # The model is on the CPU until `.setup()``
+    # TODO: Support initialization on meta device
+    expected_device = torch.device("cpu")
     assert model.weight.device == expected_device
     assert model.weight.dtype == expected_dtype
 
