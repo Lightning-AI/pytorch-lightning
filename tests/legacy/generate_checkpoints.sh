@@ -19,7 +19,7 @@ function create_and_save_checkpoint {
   python -m pip --version
   python -m pip list
 
-  python $LEGACY_PATH/simple_classif_training.py
+  python $LEGACY_PATH/simple_classif_training.py $pl_ver
 
   cp $LEGACY_PATH/simple_classif_training.py $LEGACY_PATH/checkpoints/$pl_ver
   mv $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
