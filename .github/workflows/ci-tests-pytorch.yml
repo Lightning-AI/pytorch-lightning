@@ -85,9 +85,6 @@ jobs:
       if: ${{ matrix.requires == 'oldest' }}
       run: python .actions/assistant.py replace_oldest_ver
 
-    - name: Pull legacy checkpoints
-      run: bash .actions/pull_legacy_checkpoints.sh
-
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
       run: |
@@ -156,6 +153,13 @@ jobs:
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
           --source_import="lightning.fabric,lightning.pytorch" \
           --target_import="lightning_fabric,pytorch_lightning"
+
+    - name: Get legacy checkpoints
+      run: |
+        bash .actions/pull_legacy_checkpoints.sh
+        cd tests/legacy
+        bash generate_checkpoints.sh
+        ls -l checkpoints/
 
     - name: Testing Warnings
       working-directory: tests/tests_pytorch
