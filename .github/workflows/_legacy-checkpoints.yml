@@ -93,9 +93,11 @@ jobs:
       working-directory: ${{ env.legacy_dir }}
       run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
-    - name: Keep artifact
+    - name: Keep artifact & DryRun
       id: keep-artifact
-      run: python -c "print('DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+      run: |
+        python -c "print('DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+        python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
     - name: Upload checkpoints to GitHub Actions artifact
       uses: actions/upload-artifact@v3
@@ -104,20 +106,13 @@ jobs:
         path: ${{ env.legacy_dir }}/checkpoints/
         retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
 
-    - name: Upload checkpoints to S3 (dryrun)
-      working-directory: ${{ env.legacy_dir }}
-      run: |
-        aws s3 sync --dryrun checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        zip -r checkpoints.zip checkpoints
-        aws s3 cp --dryrun checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
-
     - name: Upload checkpoints to S3
       working-directory: ${{ env.legacy_dir }}
       run: |
-        aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
-        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
-      if: inputs.push_to_s3
+        aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+
 
   add-ckpt-test:
     runs-on: ubuntu-20.04
