@@ -86,12 +86,11 @@ jobs:
     - name: Generate checkpoints
       run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
-    - name: Keep artifact
+    - name: Keep artifact & DryRun
       id: keep-artifact
       run: |
         python -c "print('DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
-        echo "${{inputs.push_to_s3}}"
-        python -c "print('AWS_RUN=' + str('--dryrun' if '${{inputs.push_to_s3}}' == 'true' else ''))" >> $GITHUB_ENV
+        python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
     - name: Upload checkpoints to GitHub Actions artifact
       uses: actions/upload-artifact@v3
