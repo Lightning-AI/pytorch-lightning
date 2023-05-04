@@ -20,7 +20,8 @@ To help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.9.1 <https://lightning.ai/docs/pytorch/1.9.1>`_,
        `1.9.2 <https://lightning.ai/docs/pytorch/1.9.2>`_,
        `1.9.3 <https://lightning.ai/docs/pytorch/1.9.3>`_,
-       `1.9.4 <https://lightning.ai/docs/pytorch/1.9.4>`_
+       `1.9.4 <https://lightning.ai/docs/pytorch/1.9.4>`_,
+       `1.9.5 <https://lightning.ai/docs/pytorch/1.9.5>`_
      - :doc:`from 1.9 to 2.0 <upgrade/from_1_9>`
 
    * - `1.8 <https://github.com/Lightning-AI/lightning/releases/tag/1.8.0>`_

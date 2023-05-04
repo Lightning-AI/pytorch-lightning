@@ -38,8 +38,10 @@ def main_train(dir_path, max_epochs: int = 20):
         deterministic=True,
     )
 
-    dm = ClassifDataModule()
-    model = ClassificationModel()
+    dm = ClassifDataModule(
+        num_features=24, length=6000, num_classes=3, batch_size=128, n_clusters_per_class=2, n_informative=int(24 / 3)
+    )
+    model = ClassificationModel(num_features=24, num_classes=3, lr=0.01)
     trainer.fit(model, datamodule=dm)
     res = trainer.test(model, datamodule=dm)
     assert res[0]["test_loss"] <= 0.85, str(res[0]["test_loss"])
