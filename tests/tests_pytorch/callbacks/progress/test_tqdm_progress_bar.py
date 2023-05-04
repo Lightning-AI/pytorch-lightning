@@ -335,7 +335,7 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "train_batches,val_batches,refresh_rate,train_updates,val_updates",
+    ("train_batches", "val_batches", "refresh_rate", "train_updates", "val_updates"),
     [
         [2, 3, 1, [0, 1, 2], [0, 1, 2, 3]],
         [0, 0, 3, None, None],
@@ -373,7 +373,9 @@ def test_train_progress_bar_update_amount(
         assert progress_bar.val_progress_bar.n_values == val_updates
 
 
-@pytest.mark.parametrize("test_batches,refresh_rate,updates", [(1, 3, [0, 1]), (3, 1, [0, 1, 2, 3]), (5, 3, [0, 3, 5])])
+@pytest.mark.parametrize(
+    ("test_batches", "refresh_rate", "updates"), [(1, 3, [0, 1]), (3, 1, [0, 1, 2, 3]), (5, 3, [0, 3, 5])]
+)
 def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, updates: list):
     """Test that test progress updates with the correct amount."""
     model = BoringModel()
@@ -415,7 +417,7 @@ def test_tensor_to_float_conversion(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "input_num, expected",
+    ("input_num", "expected"),
     [
         [1, "1"],
         [1.0, "1.000"],
@@ -553,7 +555,7 @@ def test_tqdm_progress_bar_can_be_pickled():
 
 
 @pytest.mark.parametrize(
-    ["val_check_interval", "train_progress_bar_updates", "val_progress_bar_updates"],
+    ("val_check_interval", "train_progress_bar_updates", "val_progress_bar_updates"),
     [(4, [0, 3, 6, 7], [0, 3, 6, 7]), (0.5, [0, 3, 6, 7], [0, 3, 6, 7])],
 )
 def test_progress_bar_max_val_check_interval(

@@ -69,7 +69,7 @@ repos:
         name: Unused noqa
         additional_dependencies:
           #- pep8-naming
-          #- flake8-pytest-style
+          - flake8-pytest-style
           - flake8-bandit
           - flake8-simplify
 

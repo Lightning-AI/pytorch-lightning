@@ -10,7 +10,7 @@ from lightning.app.utilities.secrets import _names_to_ids
 
 
 @pytest.mark.parametrize(
-    "secret_names, secrets, expected, expected_exception",
+    ("secret_names", "secrets", "expected", "expected_exception"),
     [
         ([], [], {}, False),
         (
