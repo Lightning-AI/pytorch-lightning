@@ -43,9 +43,9 @@ class MyAMP(MixedPrecisionPlugin):
         "SLURM_LOCALID": "0",
     },
 )
-@pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize(("strategy", "devices"), [("ddp", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
-    "custom_plugin,plugin_cls",
+    ("custom_plugin", "plugin_cls"),
     [
         (False, MixedPrecisionPlugin),
         (True, MyAMP),

@@ -30,7 +30,8 @@ class WorkStatus(BaseModel):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        assert self.timestamp > 0 and self.timestamp < (int(datetime.now().timestamp()) + 10)
+        assert self.timestamp > 0
+        assert self.timestamp < (int(datetime.now().timestamp()) + 10)
 
 
 class AppStatus(BaseModel):

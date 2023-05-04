@@ -54,7 +54,7 @@ def pytest_sessionfinish(session, exitstatus):
             t.join(0)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def cleanup():
     from lightning.app.utilities.app_helpers import _LightningAppRef
 
@@ -68,7 +68,7 @@ def cleanup():
     _set_context(None)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def clear_app_state_state_variables():
     """Resets global variables in order to prevent interference between tests."""
     yield

@@ -19,7 +19,7 @@ from lightning.app.cli.cmd_apps import _AppList, _AppManager
 
 
 @pytest.mark.parametrize(
-    "current_state,desired_state,expected",
+    ("current_state", "desired_state", "expected"),
     [
         (
             V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
