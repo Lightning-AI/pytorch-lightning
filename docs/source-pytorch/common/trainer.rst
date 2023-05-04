@@ -1186,6 +1186,7 @@ This includes metrics logged via :meth:`~lightning.pytorch.core.module.Lightning
     def training_step(self, batch, batch_idx):
         self.log("a_val", 2.0)
 
+
     callback_metrics = trainer.callback_metrics
     assert callback_metrics["a_val"] == 2.0
 

@@ -1529,7 +1529,6 @@ class Trainer:
 
             for logger in trainer.loggers:
                 logger.log_metrics({"foo": 1.0})
-
         """
         return self._loggers
 
@@ -1546,9 +1545,9 @@ class Trainer:
             def training_step(self, batch, batch_idx):
                 self.log("a_val", 2.0)
 
+
             callback_metrics = trainer.callback_metrics
             assert callback_metrics["a_val"] == 2.0
-
         """
         return self._logger_connector.callback_metrics
 
