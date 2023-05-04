@@ -84,6 +84,12 @@ save the config in a logger. An example of this is:
 
         cli = LightningCLI(..., save_config_kwargs={"save_to_log_dir": False})
 
+.. note::
+
+    The ``save_config``method is only called on rank zero. This allows to implement a custom save config without having
+    to worry about ranks or race conditions. Since it only runs on rank zero, any collective call will make the process
+    hang waiting for a broadcast. If you need to make collective calls, implement the ``setup`` method instead.
+
 
 ----
 
