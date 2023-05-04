@@ -115,7 +115,7 @@ def train_fabric(fabric):
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
 @pytest.mark.parametrize(
-    "precision, accelerator",
+    ("precision", "accelerator"),
     [
         (32, "cpu"),
         pytest.param(32, "cuda", marks=RunIf(min_cuda_gpus=1)),
