@@ -24,7 +24,7 @@ from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionM
 
 
 @pytest.mark.parametrize(
-    "data_class,model_class",
+    ("data_class", "model_class"),
     [
         (None, BoringModel),
         (None, BasicGAN),

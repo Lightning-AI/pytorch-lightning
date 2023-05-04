@@ -103,7 +103,7 @@ def test_redis_queue_read_timeout(redis_mock):
 
 
 @pytest.mark.parametrize(
-    "queue_type, queue_process_mock",
+    ("queue_type", "queue_process_mock"),
     [(QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):

@@ -37,7 +37,7 @@ def test_init_device_with_wrong_device_type():
 
 @RunIf(mps=True)
 @pytest.mark.parametrize(
-    "devices,expected",
+    ("devices", "expected"),
     [
         (1, [torch.device(_MAYBE_MPS, 0)]),
         ([0], [torch.device(_MAYBE_MPS, 0)]),

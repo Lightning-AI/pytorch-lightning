@@ -142,7 +142,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["batches", "fx", "result"], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
+    ("batches", "fx", "result"), [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """Tests that log works correctly with different tensor types."""
@@ -343,7 +343,7 @@ class LoggingSyncDistModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "devices, accelerator",
+    ("devices", "accelerator"),
     [
         (1, "cpu"),
         (2, "cpu"),
