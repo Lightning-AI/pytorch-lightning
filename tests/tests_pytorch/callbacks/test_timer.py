@@ -53,7 +53,7 @@ def test_trainer_flag(caplog):
 
 
 @pytest.mark.parametrize(
-    "duration,expected",
+    ("duration", "expected"),
     [
         (None, None),
         ("00:00:00:22", timedelta(seconds=22)),
@@ -130,7 +130,7 @@ def test_timer_zero_duration_stop(tmpdir, interval):
     assert trainer.current_epoch == 0
 
 
-@pytest.mark.parametrize("min_steps,min_epochs", [(None, 2), (3, None), (3, 2)])
+@pytest.mark.parametrize(("min_steps", "min_epochs"), [(None, 2), (3, None), (3, 2)])
 def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     model = BoringModel()
     duration = timedelta(0)
