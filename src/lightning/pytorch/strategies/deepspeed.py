@@ -896,27 +896,3 @@ class DeepSpeedStrategy(DDPStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         return super().batch_to_device(batch, device, dataloader_idx)
-
-    def training_step(self, *args: Any, **kwargs: Any):
-        assert self.lightning_module is not None
-        assert self.model != self.lightning_module
-        with self.precision_plugin.train_step_context():
-            return self._forward_redirection(self.model, self.lightning_module, "training_step", *args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any):
-        assert self.lightning_module is not None
-        assert self.model != self.lightning_module
-        with self.precision_plugin.train_step_context():
-            return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any):
-        assert self.lightning_module is not None
-        assert self.model != self.lightning_module
-        with self.precision_plugin.train_step_context():
-            return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any):
-        assert self.lightning_module is not None
-        assert self.model != self.lightning_module
-        with self.precision_plugin.train_step_context():
-            return self._forward_redirection(self.model, self.lightning_module, "predict_step", *args, **kwargs)
