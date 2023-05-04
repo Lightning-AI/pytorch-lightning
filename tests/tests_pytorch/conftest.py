@@ -37,7 +37,7 @@ def datadir():
     return Path(_PATH_DATASETS)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
     from lightning.pytorch.utilities.rank_zero import rank_zero_only
@@ -48,7 +48,7 @@ def preserve_global_rank_variable():
         setattr(rank_zero_only, "rank", rank)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def restore_env_variables():
     """Ensures that environment variables set during the test do not leak out."""
     env_backup = os.environ.copy()
@@ -89,7 +89,7 @@ def restore_env_variables():
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def restore_signal_handlers():
     """Ensures that signal handlers get restored before the next test runs.
 
@@ -106,7 +106,7 @@ def restore_signal_handlers():
             signal.signal(signum, handler)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
@@ -114,7 +114,7 @@ def teardown_process_group():
         torch.distributed.destroy_process_group()
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
@@ -126,22 +126,22 @@ def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def cuda_count_0(monkeypatch):
     mock_cuda_count(monkeypatch, 0)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def cuda_count_1(monkeypatch):
     mock_cuda_count(monkeypatch, 1)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def cuda_count_2(monkeypatch):
     mock_cuda_count(monkeypatch, 2)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def cuda_count_4(monkeypatch):
     mock_cuda_count(monkeypatch, 4)
 
@@ -159,60 +159,60 @@ def mock_mps_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def mps_count_0(monkeypatch):
     mock_mps_count(monkeypatch, 0)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def mps_count_1(monkeypatch):
     mock_mps_count(monkeypatch, 1)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def mps_count_2(monkeypatch):
     mock_mps_count(monkeypatch, 2)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def mps_count_4(monkeypatch):
     mock_mps_count(monkeypatch, 4)
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_tpu, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_xla_available(monkeypatch)
 
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def tpu_available(monkeypatch) -> None:
     mock_tpu_available(monkeypatch)
 
 
-@pytest.fixture
+@pytest.fixture()
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
@@ -239,7 +239,7 @@ def caplog(caplog):
         logging.getLogger(name).propagate = propagate
 
 
-@pytest.fixture
+@pytest.fixture()
 def tmpdir_server(tmpdir):
     Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
     from http.server import ThreadingHTTPServer
@@ -253,7 +253,7 @@ def tmpdir_server(tmpdir):
         server.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 def single_process_pg():
     """Initialize the default process group with only the current process for testing purposes.
 

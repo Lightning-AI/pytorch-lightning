@@ -363,7 +363,7 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "skip_begin,skip_end,losses,expected_error",
+    ("skip_begin", "skip_end", "losses", "expected_error"),
     [
         (0, 0, [], True),
         (10, 1, [], True),

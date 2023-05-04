@@ -33,7 +33,7 @@ def reload_package(package):
     return reload_recursive_ex(package)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def lit_home(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp_dirname:
         monkeypatch.setattr(Path, "home", lambda: tmp_dirname)

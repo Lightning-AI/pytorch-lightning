@@ -22,7 +22,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    "strategy_name, init_params",
+    ("strategy_name", "init_params"),
     [
         ("deepspeed", {}),
         ("deepspeed_stage_1", {"stage": 1}),
@@ -70,7 +70,7 @@ def test_fsdp_strategy_registry(cuda_count_1):
 
 
 @pytest.mark.parametrize(
-    "strategy_name, strategy, expected_init_params",
+    ("strategy_name", "strategy", "expected_init_params"),
     [
         (
             "ddp_find_unused_parameters_false",

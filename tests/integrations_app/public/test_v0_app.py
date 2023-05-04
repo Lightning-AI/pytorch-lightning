@@ -59,7 +59,7 @@ def run_v0_app(fetch_logs, view_page):
         sleep(1)
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 @pytest.mark.skipif(
     os.environ.get("LIGHTNING_BYOC_CLUSTER_ID") is None,
     reason="missing LIGHTNING_BYOC_CLUSTER_ID environment variable",
@@ -72,7 +72,7 @@ def test_v0_app_example_byoc_cloud() -> None:
         run_v0_app(fetch_logs, view_page)
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_v0_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "v0")) as (
         _,

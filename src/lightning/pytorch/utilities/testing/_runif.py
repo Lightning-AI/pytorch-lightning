@@ -24,11 +24,11 @@ from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.pytorch.utilities.imports import _IPU_AVAILABLE, _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
@@ -40,7 +40,6 @@ def _RunIf(
     min_python: Optional[str] = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
-    ipu: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
@@ -127,16 +126,10 @@ def _RunIf(
         reasons.append("unimplemented on Windows")
 
     if tpu:
-        conditions.append(not TPUAccelerator.is_available())
+        conditions.append(not XLAAccelerator.is_available())
         reasons.append("TPU")
         # used in conftest.py::pytest_collection_modifyitems
         kwargs["tpu"] = True
-
-    if ipu:
-        conditions.append(not _IPU_AVAILABLE)
-        reasons.append("IPU")
-        # used in conftest.py::pytest_collection_modifyitems
-        kwargs["ipu"] = True
 
     if mps is not None:
         if mps:

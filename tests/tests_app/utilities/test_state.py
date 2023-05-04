@@ -24,7 +24,7 @@ def test_app_state_not_connected(_):
 
 
 @pytest.mark.parametrize(
-    "my_affiliation,global_affiliation,expected",
+    ("my_affiliation", "global_affiliation", "expected"),
     [
         (None, (), ()),
         ((), (), ()),
