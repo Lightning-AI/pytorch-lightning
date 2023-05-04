@@ -29,6 +29,7 @@ def test_boring_app_example_cloud() -> None:
 
         assert result.exit_code == 0
         assert result.exception is None
+        # TODO: Resolve
         # lines = result.output.splitlines()
         # assert any("Received from root.dict.dst_w" in line for line in lines)
         print("Succeeded App!")
