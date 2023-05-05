@@ -103,10 +103,9 @@ def test_wandb_logger_init(wandb, monkeypatch):
     wandb.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    logger.log_hyperparams({"test": None, "nested": {"a": 1}, "b": [2, 3, 4]})
-    wandb.init().config.update.assert_called_once_with(
-        {"test": None, "nested/a": 1, "b": [2, 3, 4]}, allow_val_change=True
-    )
+    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    logger.log_hyperparams(hparams)
+    wandb.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
