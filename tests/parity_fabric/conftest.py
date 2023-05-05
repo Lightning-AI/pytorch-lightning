@@ -17,7 +17,7 @@ import pytest
 import torch.distributed
 
 
-@pytest.fixture
+@pytest.fixture()
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield

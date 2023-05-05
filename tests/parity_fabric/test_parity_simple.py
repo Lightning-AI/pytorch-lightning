@@ -20,6 +20,7 @@ import torch
 import torch.distributed
 import torch.nn.functional
 
+from lightning.fabric.fabric import Fabric
 from parity_fabric.models import ConvNet
 from parity_fabric.utils import (
     cuda_reset,
@@ -29,7 +30,6 @@ from parity_fabric.utils import (
     is_timing_close,
     make_deterministic,
 )
-from lightning.fabric.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
 
 

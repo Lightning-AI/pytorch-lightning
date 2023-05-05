@@ -22,6 +22,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
+from lightning.fabric.fabric import Fabric
 from parity_fabric.models import ConvNet
 from parity_fabric.utils import (
     cuda_reset,
@@ -30,7 +31,6 @@ from parity_fabric.utils import (
     is_timing_close,
     make_deterministic,
 )
-from lightning.fabric.fabric import Fabric
 
 
 def train_torch_ddp(
