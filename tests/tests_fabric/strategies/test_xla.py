@@ -24,6 +24,7 @@ from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
+from lightning.fabric.utilities.seed import seed_everything
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
@@ -35,13 +36,14 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
     return fn(*args, **kwargs)
 
 
-def xla_launch(fn):
+def xla_launch(fn, strategy=None):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
-    accelerator = XLAAccelerator()
-    strategy = XLAStrategy(
-        accelerator=accelerator,
-        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
-    )
+    if not strategy:
+        accelerator = XLAAccelerator()
+        strategy = XLAStrategy(
+            accelerator=accelerator,
+            parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
+        )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)
@@ -148,3 +150,32 @@ def tpu_all_gather_fn(strategy):
 def test_tpu_all_gather():
     """Test the all_gather operation on TPU."""
     xla_launch(tpu_all_gather_fn)
+
+
+def tpu_sync_module_states_fn(sync_module_states, strategy):
+    seed_everything()
+    model = torch.nn.Linear(1, 1).to(strategy.root_device)
+    model = strategy.setup_module(model)
+    gathered = strategy.all_gather(model.weight)
+    if sync_module_states:
+        for t in gathered:
+            assert gathered[0] == t
+    else:
+        with pytest.raises(AssertionError):
+            for t in gathered:
+                assert gathered[0] == t
+
+
+@RunIf(tpu=True)
+@pytest.mark.parametrize("sync_module_states", [True, False])
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_tpu_sync_module_states(sync_module_states):
+    """Test sync_module_states."""
+    accelerator = XLAAccelerator()
+    strategy = XLAStrategy(
+        accelerator=accelerator,
+        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
+        sync_module_states=sync_module_states,
+    )
+    partial_fn = partial(tpu_sync_module_states_fn, sync_module_states)
+    xla_launch(partial_fn, strategy)
