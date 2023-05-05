@@ -15,7 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning_utilities import module_available
 
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
@@ -147,9 +146,8 @@ class _MyFabricGradVal(BoringFabric):
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 def test_single_device_grad_clipping(clip_type, precision):
-    if module_available("torch_xla"):
-        # hacky workaround to https://github.com/pytorch/xla/issues/2884
-        # undo xla patching on import
+    if hasattr(torch.nn.utils.clip_grad_norm_, "_orig"):
+        # hacky workaround to https://github.com/pytorch/xla/issues/2884: undo xla patching on import
         torch.nn.utils.clip_grad_norm_ = torch.nn.utils.clip_grad_norm_._orig
     clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator="auto", devices=1, precision=precision)

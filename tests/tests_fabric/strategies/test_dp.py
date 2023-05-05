@@ -16,7 +16,6 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-from lightning_utilities import module_available
 
 from lightning.fabric.strategies import DataParallelStrategy
 from tests_fabric.helpers.runif import RunIf
@@ -85,9 +84,8 @@ def test_dp_module_state_dict():
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 @RunIf(min_cuda_gpus=2)
 def test_dp_grad_clipping(clip_type, precision):
-    if module_available("torch_xla"):
-        # hacky workaround to https://github.com/pytorch/xla/issues/2884
-        # undo xla patching on import
+    if hasattr(torch.nn.utils.clip_grad_norm_, "_orig"):
+        # hacky workaround to https://github.com/pytorch/xla/issues/2884: undo xla patching on import
         torch.nn.utils.clip_grad_norm_ = torch.nn.utils.clip_grad_norm_._orig
     clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator="cuda", devices=2, precision=precision, strategy="dp")
