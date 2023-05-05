@@ -15,7 +15,6 @@ import importlib
 from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
 
-from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.utilities.registry import _is_register_method_overridden
 
 
@@ -82,7 +81,7 @@ class _StrategyRegistry(dict):
 
         return do_register
 
-    def get(self, name: str, default: Optional[Strategy] = None) -> Strategy:  # type: ignore[override]
+    def get(self, name: str, default: Optional[Any] = None) -> Any:
         """Calls the registered strategy with the required parameters and returns the strategy object.
 
         Args:
@@ -113,6 +112,8 @@ class _StrategyRegistry(dict):
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
     module = importlib.import_module(base_module)
+    from lightning.fabric.strategies.strategy import Strategy
+
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
             mod.register_strategies(registry)

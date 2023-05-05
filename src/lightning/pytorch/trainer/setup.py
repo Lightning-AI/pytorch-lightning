@@ -17,8 +17,7 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import CUDAAccelerator, IPUAccelerator, MPSAccelerator, TPUAccelerator
-from lightning.pytorch.accelerators.ipu import _IPU_AVAILABLE
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,
@@ -29,7 +28,7 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _HPU_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
@@ -156,19 +155,28 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator))
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
-    num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
-    rank_zero_info(f"TPU available: {TPUAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
+    num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, XLAAccelerator) else 0
+    rank_zero_info(f"TPU available: {XLAAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
-    num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
-    rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        from lightning_graphcore import IPUAccelerator
+
+        num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
+        ipu_available = IPUAccelerator.is_available()
+    else:
+        num_ipus = 0
+        ipu_available = False
+    rank_zero_info(f"IPU available: {ipu_available}, using: {num_ipus} IPUs")
 
     if _LIGHTNING_HABANA_AVAILABLE:
         from lightning_habana import HPUAccelerator
 
         num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
+        hpu_available = HPUAccelerator.is_available()
     else:
         num_hpus = 0
-    rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+        hpu_available = False
+    rank_zero_info(f"HPU available: {hpu_available}, using: {num_hpus} HPUs")
 
     if (
         CUDAAccelerator.is_available()
@@ -181,20 +189,17 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
             category=PossibleUserWarning,
         )
 
-    if TPUAccelerator.is_available() and not isinstance(trainer.accelerator, TPUAccelerator):
+    if XLAAccelerator.is_available() and not isinstance(trainer.accelerator, XLAAccelerator):
         rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
-    if _IPU_AVAILABLE and not isinstance(trainer.accelerator, IPUAccelerator):
-        rank_zero_warn("IPU available but not used. You can set it by doing `Trainer(accelerator='ipu')`.")
+    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        from lightning_graphcore import IPUAccelerator
 
-    if _HPU_AVAILABLE:
-        if not _LIGHTNING_HABANA_AVAILABLE:
-            raise ModuleNotFoundError(
-                "You are running on HPU machine but you have not installed `lightning-habana`"
-                f" extension is  {str(_LIGHTNING_HABANA_AVAILABLE)}."
-            )
+        if IPUAccelerator.is_available() and not isinstance(trainer.accelerator, IPUAccelerator):
+            rank_zero_warn("IPU available but not used. You can set it by doing `Trainer(accelerator='ipu')`.")
 
+    if _LIGHTNING_HABANA_AVAILABLE:
         from lightning_habana import HPUAccelerator
 
-        if not isinstance(trainer.accelerator, HPUAccelerator):
+        if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
             rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")

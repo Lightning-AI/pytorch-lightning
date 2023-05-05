@@ -32,10 +32,9 @@ def test_disabled_checkpointing(tmpdir):
 
 @mock.patch("torch.save")
 @pytest.mark.parametrize(
-    ["epochs", "val_check_interval", "expected"], [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)]
+    ("epochs", "val_check_interval", "expected"), [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)]
 )
 def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
-
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -53,9 +52,9 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
 
 @mock.patch("torch.save")
 @pytest.mark.parametrize(
-    ["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 1.0, 2), (2, 1, 0.25, 4), (2, 2, 0.3, 6)]
+    ("k", "epochs", "val_check_interval", "expected"), [(1, 1, 1.0, 1), (2, 2, 1.0, 2), (2, 1, 0.25, 4), (2, 2, 0.3, 6)]
 )
-@pytest.mark.parametrize("save_last", (False, True))
+@pytest.mark.parametrize("save_last", [False, True])
 def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float, expected: int, save_last: bool):
     class TestModel(BoringModel):
         def __init__(self):
@@ -88,7 +87,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
 @mock.patch("torch.save")
 @RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.parametrize(["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
+@pytest.mark.parametrize(("k", "epochs", "val_check_interval", "expected"), [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

@@ -143,7 +143,7 @@ class _SignalConnector:
         """
         if _PYTHON_GREATER_EQUAL_3_8_0:
             return signal.valid_signals()
-        elif _IS_WINDOWS:
+        if _IS_WINDOWS:
             # supported signals on Windows: https://docs.python.org/3/library/signal.html#signal.signal
             return {
                 signal.SIGABRT,

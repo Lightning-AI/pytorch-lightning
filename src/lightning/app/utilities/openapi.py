@@ -35,8 +35,8 @@ def string2dict(text):
     try:
         js = json.loads(text, object_pairs_hook=_duplicate_checker)
         return js
-    except ValueError as e:
-        raise ValueError(f"Unable to load JSON: {str(e)}.")
+    except ValueError as ex:
+        raise ValueError(f"Unable to load JSON: {str(ex)}.")
 
 
 def is_openapi(obj):
@@ -71,5 +71,4 @@ def create_openapi_object(json_obj: Dict, target: Any):
         # TODO(sherin) - specifically process list and dict and do the validation. Also do the
         #  verification for enum types
 
-    new_target = target.__class__(**target_attribs)
-    return new_target
+    return target.__class__(**target_attribs)

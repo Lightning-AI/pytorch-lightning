@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import ast
+import contextlib
 import csv
 import inspect
 import logging
@@ -112,7 +113,6 @@ def _load_state(
     cls_kwargs_loaded = {}
     # pass in the values we saved automatically
     if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-
         if issubclass(cls, pl.LightningModule):
             # TODO: make this a migration:
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
@@ -227,9 +227,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
 
     with fs.open(tags_csv, "r", newline="") as fp:
         csv_reader = csv.reader(fp, delimiter=",")
-        tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
-
-    return tags
+        return {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
 
 
 def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
@@ -273,10 +271,8 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
         hparams = yaml.full_load(fp)
 
     if _OMEGACONF_AVAILABLE and use_omegaconf:
-        try:
+        with contextlib.suppress(UnsupportedValueType, ValidationError):
             return OmegaConf.create(hparams)
-        except (UnsupportedValueType, ValidationError):
-            pass
     return hparams
 
 

@@ -72,12 +72,11 @@ class ConvNet(ParityModel):
         inputs = torch.rand(dataset_size, 3, 32, 32)
         labels = torch.randint(0, 10, (dataset_size,))
         dataset = TensorDataset(inputs, labels)
-        dataloader = DataLoader(
+        return DataLoader(
             dataset,
             batch_size=self.batch_size,
             num_workers=2,
         )
-        return dataloader
 
     def get_loss_function(self):
         return F.cross_entropy

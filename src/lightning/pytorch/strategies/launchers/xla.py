@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional, Union
 import torch.multiprocessing as mp
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
@@ -31,8 +31,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_debug
 
 
 class _XLALauncher(_MultiProcessingLauncher):
-    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
-    end.
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at
+    the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.
