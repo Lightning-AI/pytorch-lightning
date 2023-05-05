@@ -47,7 +47,7 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 
 
 @pytest.mark.parametrize(
-    ["accumulate_grad_batches", "expected_call_count"],
+    ("accumulate_grad_batches", "expected_call_count"),
     [
         ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
         ({0: 2, 2: 1}, 5 + 5 + 10 + 10),

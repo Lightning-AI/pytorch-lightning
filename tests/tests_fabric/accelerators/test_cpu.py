@@ -32,7 +32,7 @@ def test_init_device_with_wrong_device_type():
 
 
 @pytest.mark.parametrize(
-    "devices,expected",
+    ("devices", "expected"),
     [
         (1, [torch.device("cpu")]),
         (2, [torch.device("cpu")] * 2),

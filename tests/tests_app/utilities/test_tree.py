@@ -36,7 +36,7 @@ class MixedTree(EmptyFlow):
 
 
 @pytest.mark.parametrize(
-    "input_tree, types,expected_sequence",
+    ("input_tree", "types", "expected_sequence"),
     [
         (LeafFlow(), (LightningFlow,), ["root"]),
         (LeafWork(), (LightningFlow,), []),

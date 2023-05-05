@@ -104,7 +104,7 @@ def test_setup_compiled_module(setup_method):
 
 
 @pytest.mark.parametrize(
-    "accelerator, initial_device, target_device",
+    ("accelerator", "initial_device", "target_device"),
     [
         ("cpu", "cpu", "cpu"),
         pytest.param("cpu", "cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
@@ -513,7 +513,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 
 
 @pytest.mark.parametrize(
-    "accelerator, expected",
+    ("accelerator", "expected"),
     [
         ("cpu", "cpu"),
         pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -980,7 +980,7 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
-@pytest.mark.parametrize("clip_val,max_norm", [(1e-3, None), (None, 1)])
+@pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
     fabric = Fabric(devices=1)
 

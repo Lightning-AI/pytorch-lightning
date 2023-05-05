@@ -30,7 +30,7 @@ from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFab
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "device_str", "expected_process_group_backend"],
+    ("process_group_backend", "device_str", "expected_process_group_backend"),
     [
         pytest.param("foo", "cpu", "foo"),
         pytest.param("foo", "cuda:0", "foo"),
@@ -108,7 +108,7 @@ def test_ddp_module_state_dict():
 
 
 @pytest.mark.parametrize(
-    "clip_type,accelerator,precision",
+    ("clip_type", "accelerator", "precision"),
     [
         ("norm", "cpu", "32-true"),
         ("val", "cpu", "32-true"),
@@ -131,7 +131,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    "precision,expected_dtype",
+    ("precision", "expected_dtype"),
     [
         (Precision(), torch.float32),
         (HalfPrecision("16-true"), torch.float16),

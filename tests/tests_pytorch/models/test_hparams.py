@@ -487,7 +487,7 @@ class OtherArgsModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "cls,config", [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
+    ("cls", "config"), [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
 )
 def test_single_config_models_fail(tmpdir, cls, config):
     """Test fail on passing unsupported config type."""

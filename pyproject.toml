@@ -60,9 +60,11 @@ select = [
 extend-select = [
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
+#    "PT",  # see: https://pypi.org/project/flake8-pytest-style
 ]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
+    "S108",
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [

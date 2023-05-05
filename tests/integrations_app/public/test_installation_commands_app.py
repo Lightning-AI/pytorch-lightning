@@ -6,7 +6,7 @@ from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.testing.testing import run_app_in_cloud
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_installation_commands_app_example_cloud() -> None:
     # This is expected to pass, since the "setup" flag is passed
     with run_app_in_cloud(

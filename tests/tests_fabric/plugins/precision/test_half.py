@@ -18,7 +18,7 @@ from lightning.fabric.plugins.precision import HalfPrecision
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -31,7 +31,7 @@ def test_selected_dtype(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -46,7 +46,7 @@ def test_module_init_context(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -61,7 +61,7 @@ def test_forward_context(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),

@@ -85,7 +85,7 @@ def test_forgot_to_call_init():
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("x", 1),
         ("f", EmptyFlow()),
@@ -102,7 +102,7 @@ def test_unsupported_attribute_declaration_outside_init(name, value):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("_name", "name"),
         ("_changes", {"change": 1}),

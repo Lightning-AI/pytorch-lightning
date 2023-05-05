@@ -111,7 +111,7 @@ def test_unpublished_component_url_parsing():
 
 @pytest.mark.skip(reason="need to figure out how to authorize pip install from the private repo")
 @pytest.mark.parametrize(
-    "real_component, test_component_pip_name",
+    ("real_component", "test_component_pip_name"),
     [
         ("lightning/lit-slack-messenger", "lit-slack"),
         (
@@ -353,7 +353,7 @@ def test_private_component_registry():
 @mock.patch("lightning.app.cli.cmd_install.subprocess")
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @pytest.mark.parametrize(
-    "source_url, git_url, git_sha",
+    ("source_url", "git_url", "git_sha"),
     [
         (
             "https://github.com/PyTorchLightning/lightning-quick-start",

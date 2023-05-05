@@ -493,9 +493,12 @@ class CloudRuntime(Runtime):
         self, cluster_id: Optional[str], project_id: str, existing_cloudspaces: List[V1CloudSpace]
     ) -> Optional[str]:
         """If cloudspaces exist and cluster is None, mimic cluster selection logic to choose a default."""
+        # 1. Use the environement variables
         if cluster_id is None:
-            cluster_id = os.getenv("CLUSTER_ID", None)
+            cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
 
+        # 2. Use the project bindings
+        # TODO: Use the user prefered cluster.
         if cluster_id is None and len(existing_cloudspaces) > 0:
             # Determine the cluster ID
             cluster_id = _get_default_cluster(self.backend.client, project_id)
