@@ -258,7 +258,7 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
-@pytest.mark.parametrize("use_batch_sampler", (False, True))
+@pytest.mark.parametrize("use_batch_sampler", [False, True])
 def test_fabric_dataloader_distributed_sampler_set_epoch(use_batch_sampler):
     """Test that the FabricDataLoader calls `set_epoch()` on the wrapped sampler if applicable."""
     dataset = range(3)

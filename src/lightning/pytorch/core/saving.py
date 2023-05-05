@@ -227,9 +227,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
 
     with fs.open(tags_csv, "r", newline="") as fp:
         csv_reader = csv.reader(fp, delimiter=",")
-        tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
-
-    return tags
+        return {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
 
 
 def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:

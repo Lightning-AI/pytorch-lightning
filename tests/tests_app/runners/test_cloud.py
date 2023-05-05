@@ -1457,10 +1457,7 @@ class TestOpen:
 
     @pytest.mark.parametrize(
         ("path", "expected_root", "entries", "expected_filtered_entries"),
-        [
-            [".", ".", ["a.py", "b.ipynb"], ["a.py", "b.ipynb"]],
-            ["a.py", ".", ["a.py", "b.ipynb"], ["a.py"]],
-        ],
+        [(".", ".", ["a.py", "b.ipynb"], ["a.py", "b.ipynb"]), ("a.py", ".", ["a.py", "b.ipynb"], ["a.py"])],
     )
     def test_open_repo(self, tmpdir, monkeypatch, path, expected_root, entries, expected_filtered_entries):
         """Tests that the local source code repo is set up with the correct path and ignore functions."""
@@ -1606,18 +1603,18 @@ class TestCloudspaceDispatch:
     @pytest.mark.parametrize(
         ("custom_env_sync_path_value", "cloudspace"),
         [
-            [None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())],
-            [
+            (None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())),
+            (
                 Path("/tmp/sys-customizations-sync"),
                 V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig()),
-            ],
-            [
+            ),
+            (
                 Path("/tmp/sys-customizations-sync"),
                 V1CloudSpace(
                     id="test_id",
                     code_config=V1CloudSpaceInstanceConfig(data_connection_mounts=[V1DataConnectionMount(id="test")]),
                 ),
-            ],
+            ),
         ],
     )
     def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, cloudspace, monkeypatch):

@@ -52,13 +52,13 @@ def test_deferred_init_with_lightning_module():
 @pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
 @pytest.mark.parametrize(
     "trainer_kwargs",
-    (
+    [
         {"accelerator": "auto", "devices": 1},
         pytest.param(
             {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": "16-mixed"},
             marks=RunIf(min_cuda_gpus=2, deepspeed=True),
         ),
-    ),
+    ],
 )
 def test_deferred_init_with_trainer(tmpdir, trainer_kwargs):
     from torchdistx.deferred_init import deferred_init

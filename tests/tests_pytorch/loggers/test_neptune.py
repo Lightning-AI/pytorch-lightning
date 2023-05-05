@@ -29,7 +29,7 @@ from lightning.pytorch.loggers import NeptuneLogger
 def fetchable_paths(value):
     if value == "sys/id":
         return MagicMock(fetch=MagicMock(return_value="TEST-1"))
-    elif value == "sys/name":
+    if value == "sys/name":
         return MagicMock(fetch=MagicMock(return_value="Run test name"))
     return MagicMock()
 
@@ -37,8 +37,7 @@ def fetchable_paths(value):
 def create_run_mock(mode="async", **kwargs):
     if mode == "offline":
         return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False))
-    else:
-        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
+    return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
 
 
 def create_neptune_mock():
@@ -67,10 +66,10 @@ class Run:
     def __getitem__(self, item):
         if item == "sys/name":
             return MagicMock(fetch=MagicMock(return_value="Test name"))
-        elif item == "sys/id":
+        if item == "sys/id":
             return MagicMock(fetch=MagicMock(return_value="TEST-42"))
 
-        assert False, f"Unexpected call '{item}'"
+        pytest.fail(f"Unexpected call '{item}'")
 
     def __getstate__(self):
         raise pickle.PicklingError("Runs are unpickleable")

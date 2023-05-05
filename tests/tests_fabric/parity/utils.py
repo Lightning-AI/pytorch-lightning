@@ -47,9 +47,9 @@ def make_deterministic(warn_only=False):
 def get_model_input_dtype(precision):
     if precision in ("16-mixed", "16", 16):
         return torch.float16
-    elif precision in ("bf16-mixed", "bf16"):
+    if precision in ("bf16-mixed", "bf16"):
         return torch.bfloat16
-    elif precision in ("64-true", "64", 64):
+    if precision in ("64-true", "64", 64):
         return torch.double
     return torch.float32
 

@@ -233,8 +233,7 @@ class AttributeDict(Dict):
         max_key_length = max(len(str(k)) for k in self)
         tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
         rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
-        out = "\n".join(rows)
-        return out
+        return "\n".join(rows)
 
 
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:

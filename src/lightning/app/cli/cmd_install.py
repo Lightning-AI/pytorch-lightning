@@ -90,8 +90,8 @@ def _install_app_command(name: str, yes: bool, version: str, overwrite: bool = F
                 f"The provided version ({version}) will be ignored."
             )
         return non_gallery_app(name, yes, overwrite=overwrite)
-    else:
-        return gallery_app(name, yes, version, overwrite=overwrite)
+
+    return gallery_app(name, yes, version, overwrite=overwrite)
 
 
 def _install_component_command(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
@@ -102,8 +102,8 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
                 f"The provided version ({version}) will be ignored."
             )
         return non_gallery_component(name, yes)
-    else:
-        return gallery_component(name, yes, version)
+
+    return gallery_component(name, yes, version)
 
 
 def gallery_apps_and_components(
@@ -126,7 +126,7 @@ def gallery_apps_and_components(
 
         return os.path.join(os.getcwd(), *entry["appEntrypointFile"].split("/"))
 
-    elif kind == "component":
+    if kind == "component":
         # give the user the chance to do a manual install
         source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
             entry, app_or_component, org, yes_arg, resource_type="component"
@@ -486,8 +486,8 @@ def _resolve_resource(
     if len(entries) == 0:
         if raise_error:
             raise SystemExit(f"{resource_type}: '{name}' is not available on ⚡ Lightning AI ⚡")
-        else:
-            return None
+
+        return None
 
     entry = None
     if version_arg == "latest":
@@ -503,8 +503,7 @@ def _resolve_resource(
                 f"{resource_type}: 'Version {version_arg} for {name}' is not available on ⚡ Lightning AI ⚡. "
                 f"Here is the list of all availables versions:{os.linesep}{os.linesep.join(all_versions)}"
             )
-        else:
-            return None
+        return None
 
     return entry
 
@@ -592,8 +591,7 @@ def _install_app_from_source(
             {source_url}
             """
             )
-        else:
-            raise Exception(ex)
+        raise Exception(ex)
 
     # step into the repo folder
     os.chdir(f"{folder_name}")
@@ -651,10 +649,8 @@ def _install_component_from_source(git_url: str) -> None:
 
 
 def _resolve_app_registry() -> str:
-    registry = os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
-    return registry
+    return os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
 
 
 def _resolve_component_registry() -> str:
-    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
-    return registry
+    return os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
