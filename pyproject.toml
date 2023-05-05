@@ -110,6 +110,7 @@ ignore-init-module-imports = true
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
     "S607",  # todo: Starting a process with a partial executable path
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
     "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
