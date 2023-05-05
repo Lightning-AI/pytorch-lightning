@@ -127,7 +127,7 @@ class Auth:
                 self.save("", self.user_id, self.api_key, self.user_id)
                 logger.info("Credentials loaded from environment variables")
                 return self.auth_header
-            elif self.api_key or self.user_id:
+            if self.api_key or self.user_id:
                 raise ValueError(
                     "To use env vars for authentication both "
                     f"{Keys.USER_ID.value} and {Keys.API_KEY.value} should be set."
@@ -137,7 +137,7 @@ class Auth:
             self._run_server()
             return self.auth_header
 
-        elif self.user_id and self.api_key:
+        if self.user_id and self.api_key:
             return self.auth_header
 
         raise ValueError(
