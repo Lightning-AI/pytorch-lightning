@@ -84,8 +84,10 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
       run: |
+        pip install -q wget
+        python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
         for fpath in `ls requirements/**/*.txt`; do \
-          python ./requirements/pytorch/adjust-versions.py $fpath ${{ matrix.pytorch-version }}; \
+          python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
         done
         cat requirements/fabric/base.txt
 
