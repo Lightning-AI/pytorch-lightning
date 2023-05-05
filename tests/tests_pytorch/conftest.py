@@ -72,7 +72,6 @@ def restore_env_variables():
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
@@ -84,6 +83,8 @@ def restore_env_variables():
         "TF_CPP_MIN_LOG_LEVEL",
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
+        "PJRT_DEVICE",
+        "TPU_ML_PLATFORM",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -181,6 +182,9 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+    import torch_xla.core.xla_env_vars as xla_env_vars
+
+    xla_env_vars.PJRT_DEVICE = "PJRT_DEVICE"
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
