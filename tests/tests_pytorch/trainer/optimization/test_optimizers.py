@@ -252,7 +252,7 @@ def test_configure_optimizer_from_dict(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
     """Test that optimizers is an empty list during evaluation and prediction."""
 
@@ -499,7 +499,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
     assert model.on_save_checkpoint_called
 
 
-@pytest.mark.parametrize("save_on_train_epoch_end", (False, True))
+@pytest.mark.parametrize("save_on_train_epoch_end", [False, True])
 def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on_train_epoch_end):
     batches = 4
     trainer = Trainer(
@@ -616,7 +616,7 @@ def test_invalid_scheduler_missing_state_dict():
         _init_optimizers_and_lr_schedulers(model)
 
 
-@pytest.mark.parametrize("override", (False, True))
+@pytest.mark.parametrize("override", [False, True])
 def test_invalid_lr_scheduler_with_custom_step_method(override):
     """Test that custom lr scheduler raises an error if it doesn't follow PyTorch LR Scheduler API."""
 

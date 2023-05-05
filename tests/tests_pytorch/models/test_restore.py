@@ -635,8 +635,8 @@ class ShouldStopModel(ExceptionModel):
         return super().training_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("stop_in_the_middle", (True, False))
-@pytest.mark.parametrize("model_cls", (ExceptionModel, ShouldStopModel))
+@pytest.mark.parametrize("stop_in_the_middle", [True, False])
+@pytest.mark.parametrize("model_cls", [ExceptionModel, ShouldStopModel])
 def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_cls):
     """Test that a warning is raised if training is restarted from mid-epoch."""
     limit_train_batches = 8

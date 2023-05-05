@@ -571,7 +571,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
 
 
-@pytest.mark.parametrize("logger", (False, True))
+@pytest.mark.parametrize("logger", [False, True])
 def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

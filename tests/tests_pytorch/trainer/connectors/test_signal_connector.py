@@ -71,7 +71,7 @@ def test_sigterm_handler_can_be_added(tmpdir):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("auto_requeue", (True, False))
+@pytest.mark.parametrize("auto_requeue", [True, False])
 @pytest.mark.parametrize("requeue_signal", [signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP] if not _IS_WINDOWS else [])
 def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue, requeue_signal=requeue_signal)])

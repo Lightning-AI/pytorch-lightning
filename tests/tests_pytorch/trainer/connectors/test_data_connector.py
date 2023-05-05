@@ -35,7 +35,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("mode", (1, 2))
+@pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):

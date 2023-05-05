@@ -69,7 +69,7 @@ class Run:
         if item == "sys/id":
             return MagicMock(fetch=MagicMock(return_value="TEST-42"))
 
-        assert False, f"Unexpected call '{item}'"
+        pytest.fail(f"Unexpected call '{item}'")
 
     def __getstate__(self):
         raise pickle.PicklingError("Runs are unpickleable")

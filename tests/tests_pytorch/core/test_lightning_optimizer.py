@@ -24,7 +24,7 @@ from lightning.pytorch.loops.optimization.automatic import Closure
 from lightning.pytorch.tuner.tuning import Tuner
 
 
-@pytest.mark.parametrize("auto", (True, False))
+@pytest.mark.parametrize("auto", [True, False])
 def test_lightning_optimizer(tmpdir, auto):
     """Test that optimizer are correctly wrapped by our LightningOptimizer."""
 
