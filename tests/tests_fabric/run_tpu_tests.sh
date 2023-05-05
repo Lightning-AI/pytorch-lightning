@@ -13,7 +13,7 @@ fi
 
 echo "--- Install packages ---"
 # set particular PyTorch version
-pip install -q wget
+pip install -q wget packaging
 python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
 for fpath in `ls requirements/**/*.txt`; do
   python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
