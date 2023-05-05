@@ -349,14 +349,17 @@ class WandbLogger(Logger):
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
-        # start wandb run (to create an attach_id for distributed modes)
+        self._checkpoint_name = checkpoint_name
+
+    def __getstate__(self) -> Dict[str, Any]:
+        # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
+        # We create an experiment here in the main process, and attach to it in the worker process.
+        # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
+        # are made.
         if _WANDB_GREATER_EQUAL_0_12_10:
             wandb.require("service")
             _ = self.experiment
 
-        self._checkpoint_name = checkpoint_name
-
-    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # args needed to reload correct experiment
         if self._experiment is not None:
