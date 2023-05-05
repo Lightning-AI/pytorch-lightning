@@ -140,8 +140,11 @@ class _Connector:
         self._check_device_config_and_set_final_flags(devices=devices, num_nodes=num_nodes)
 
         # 2. Instantiate Accelerator
-        if isinstance(self._accelerator_flag, str):
-            self._accelerator_flag = self._choose_string_accelerator()
+        # handle `auto`, `None` and `gpu`
+        if self._accelerator_flag == "auto":
+            self._accelerator_flag = self._choose_auto_accelerator()
+        elif self._accelerator_flag == "gpu":
+            self._accelerator_flag = self._choose_gpu_accelerator_backend()
 
         self._set_parallel_devices_and_init_accelerator()
 
@@ -197,7 +200,7 @@ class _Connector:
 
         if (
             accelerator not in self._registered_accelerators
-            and accelerator not in ("auto", "gpu", "tpu")
+            and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
@@ -306,38 +309,23 @@ class _Connector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_string_accelerator(self) -> str:
-        """Choose the accelerator type (str) based on availability."""
-        flag = self._accelerator_flag
-        assert isinstance(flag, str)
-        if flag == "gpu":
-            if XLAAccelerator.is_available() and XLAAccelerator._device_type().lower() == "gpu":
-                # if XLA is installed (not common), it is selected over CUDA
-                return "xla"
-            if MPSAccelerator.is_available():
-                return "mps"
-            if CUDAAccelerator.is_available():
-                return "cuda"
-            raise RuntimeError("No supported gpu backend found!")
-        elif flag in ("xla", "tpu"):
-            if (
-                XLAAccelerator.is_available()
-                and flag == "xla"
-                or isinstance(device_type := XLAAccelerator._device_type(), str)
-                and device_type.lower() == flag
-            ):
-                return "xla"
-            raise RuntimeError(f"No supported {flag} backend found!")
-        elif flag in "auto":
-            if MPSAccelerator.is_available():
-                return "mps"
-            if CUDAAccelerator.is_available():
-                return "cuda"
-            if XLAAccelerator.is_available():
-                # if XLA is installed (not common), it is selected over CPU
-                return "xla"
-            return "cpu"
-        return flag
+    def _choose_auto_accelerator(self) -> str:
+        """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
+        if XLAAccelerator.is_available():
+            return "tpu"
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
+        return "cpu"
+
+    @staticmethod
+    def _choose_gpu_accelerator_backend() -> str:
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
+        raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
@@ -385,7 +373,7 @@ class _Connector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "xla" or isinstance(self._accelerator_flag, XLAAccelerator):
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
             else:
@@ -452,8 +440,8 @@ class _Connector:
             elif self._precision_input in ("16-mixed", "bf16-mixed"):
                 if self._precision_input == "16-mixed":
                     rank_zero_warn(
-                        "You passed `Fabric(accelerator='tpu'|'xla', precision='16-mixed')` but AMP with fp16"
-                        " is not supported with XLA. Using `precision='bf16-mixed'` instead."
+                        "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
+                        " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
                 return XLABf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -491,7 +479,11 @@ class _Connector:
         """Validate the combination of choices for precision, and accelerator."""
         if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "64-true":
-                raise NotImplementedError("`Fabric(accelerator='tpu'|'xla', precision='64-true')` is not supported.")
+                raise NotImplementedError(
+                    "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
+                    " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
+                    " requesting this feature."
+                )
             if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
                 raise ValueError(
                     f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"

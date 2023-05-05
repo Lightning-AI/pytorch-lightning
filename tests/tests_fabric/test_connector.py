@@ -314,9 +314,10 @@ def test_cuda_accelerator_can_not_run_on_system(_):
         _Connector(accelerator="cuda", devices=1)
 
 
-@pytest.mark.skipif(XLAAccelerator._device_type() == "TPU", reason="test requires missing TPU")
-def test_tpu_accelerator_can_not_run_on_system(xla_available):
-    with pytest.raises(RuntimeError, match="No supported tpu backend"):
+@pytest.mark.skipif(XLAAccelerator.is_available(), reason="test requires missing TPU")
+@mock.patch("lightning.fabric.accelerators.xla._XLA_AVAILABLE", True)
+def test_tpu_accelerator_can_not_run_on_system():
+    with pytest.raises(RuntimeError, match="XLAAccelerator` can not run on your system"):
         _Connector(accelerator="tpu", devices=8)
 
 
@@ -642,9 +643,7 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_unsupported_tpu_choice(_, tpu_available):
-    with pytest.raises(
-        NotImplementedError, match=r"accelerator='tpu'|'xla', precision='64-true'\)` is not implemented"
-    ):
+    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
         _Connector(accelerator="tpu", precision="64-true")
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
