@@ -233,8 +233,7 @@ def _fetch_app_by_name(client, project_id, name):
     ]
     if not len(lit_apps) == 1:
         raise ValueError(f"Expected to find just one app, found {len(lit_apps)}")
-    app = lit_apps[0]
-    return app
+    return lit_apps[0]
 
 
 @requires("playwright")
@@ -294,6 +293,12 @@ def run_app_in_cloud(
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         stdout_path = get_logfile(f"run_app_in_cloud_{name}")
+
+        cmd_extra_args = []
+
+        if "staging.gridai.dev" in os.getenv("LIGHTNING_CLOUD_URL", ""):
+            cmd_extra_args = ["--cluster-id", "staging"]
+
         with open(stdout_path, "w") as stdout:
             cmd = [
                 sys.executable,
@@ -307,7 +312,9 @@ def run_app_in_cloud(
                 name,
                 "--open-ui",
                 "false",
+                *cmd_extra_args,
             ]
+            print(f"Command: {cmd}")
             process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
             process.wait()
 
@@ -448,6 +455,8 @@ def run_app_in_cloud(
             browser.close()
             Popen("lightning disconnect", shell=True).wait()
 
+            delete_cloud_lightning_apps(name=name)
+
 
 def wait_for(page, callback: Callable, *args: Any, **kwargs: Any) -> Any:
     import playwright
@@ -493,7 +502,7 @@ def _delete_cloud_space(client, project_id, cloud_space_id, app_name):
         print(f"Failed to delete {app_name}. Exception {ex}")
 
 
-def delete_cloud_lightning_apps():
+def delete_cloud_lightning_apps(name=None):
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
@@ -507,25 +516,25 @@ def delete_cloud_lightning_apps():
         # Failed when the PR is running master or 'PR_NUMBER' isn't defined.
         pr_number = ""
 
-    app_name = os.getenv("TEST_APP_NAME", "")
+    app_name = os.getenv("TEST_APP_NAME", "").replace("_", "-")
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project_id = _get_project(client).project_id
     list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
 
+    if pr_number and app_name:
+        for lit_app in list_apps.lightningapps:
+            if name == lit_app.name or (str(pr_number) in lit_app.name and app_name in lit_app.name):
+                _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
+                _delete_cloud_space(
+                    client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
+                )
+
+    print("deleting apps that were created more than 20 minutes ago.")
+
     for lit_app in list_apps.lightningapps:
-        if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
-            continue
-        _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
-        _delete_cloud_space(
-            client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name
-        )
-
-    print("deleting apps that were created more than 1 hour ago.")
-
-    for lit_app in list_apps.lightningapps:
-
-        if lit_app.created_at < datetime.datetime.now(lit_app.created_at.tzinfo) - datetime.timedelta(hours=1):
+        time_diff = datetime.datetime.now(lit_app.created_at.tzinfo) - lit_app.created_at
+        if time_diff > datetime.timedelta(minutes=20):
             _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
             _delete_cloud_space(
                 client, project_id=project_id, cloud_space_id=lit_app.spec.cloud_space_id, app_name=lit_app.name

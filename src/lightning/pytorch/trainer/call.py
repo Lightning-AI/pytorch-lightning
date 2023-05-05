@@ -28,9 +28,8 @@ log = logging.getLogger(__name__)
 
 
 def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
-    r"""
-    Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
-    as all errors should funnel through them
+    r"""Error handling, intended to be used only for main trainer function entry points (fit, validate, test,
+    predict) as all errors should funnel through them.
 
     Args:
         trainer_fn: one of (fit, validate, test, predict)
@@ -40,8 +39,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
     try:
         if trainer.strategy.launcher is not None:
             return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
-        else:
-            return trainer_fn(*args, **kwargs)
+        return trainer_fn(*args, **kwargs)
 
     except _TunerExitException:
         _call_teardown_hook(trainer)
@@ -133,7 +131,7 @@ def _call_lightning_module_hook(
 
     fn = getattr(pl_module, hook_name)
     if not callable(fn):
-        return
+        return None
 
     prev_fx_name = pl_module._current_fx_name
     pl_module._current_fx_name = hook_name
@@ -160,6 +158,7 @@ def _call_lightning_datamodule_hook(
     if callable(fn):
         with trainer.profiler.profile(f"[LightningDataModule]{trainer.datamodule.__class__.__name__}.{hook_name}"):
             return fn(*args, **kwargs)
+    return None
 
 
 def _call_callback_hooks(
@@ -282,7 +281,7 @@ def _call_strategy_hook(
 
     fn = getattr(trainer.strategy, hook_name)
     if not callable(fn):
-        return
+        return None
 
     with trainer.profiler.profile(f"[Strategy]{trainer.strategy.__class__.__name__}.{hook_name}"):
         output = fn(*args, **kwargs)

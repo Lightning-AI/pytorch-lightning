@@ -49,8 +49,7 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        return F.log_softmax(x, dim=1)
 
 
 def run(hparams):
@@ -75,7 +74,6 @@ def run(hparams):
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):
-
         # TRAINING LOOP
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):

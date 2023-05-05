@@ -109,7 +109,6 @@ class ScheduledDAG(L.LightningFlow):
 
     def run(self):
         """Example of scheduling an infinite number of DAG runs continuously."""
-
         # Step 1: Every minute, create and launch a new DAG.
         if self.schedule("* * * * *"):
             print("Launching a new DAG")

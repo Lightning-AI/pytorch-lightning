@@ -48,4 +48,4 @@ def _get_default_cluster(client: LightningClient, project_id: str) -> str:
     if len(clusters) == 0:
         raise RuntimeError(f"No clusters found on `{client.api_client.configuration.host}`.")
 
-    return random.choice(clusters).id
+    return random.choice(clusters).id  # noqa: S311

@@ -216,7 +216,6 @@ class ScheduleWrapper:
 
 
 class PyTorchProfiler(Profiler):
-
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
@@ -382,6 +381,7 @@ class PyTorchProfiler(Profiler):
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
+        return None
 
     def _default_activities(self) -> List["ProfilerActivity"]:
         activities: List["ProfilerActivity"] = []

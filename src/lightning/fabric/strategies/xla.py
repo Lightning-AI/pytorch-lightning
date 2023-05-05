@@ -21,12 +21,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies import ParallelStrategy
+from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
 from lightning.fabric.utilities.rank_zero import rank_zero_only
@@ -92,7 +92,7 @@ class XLAStrategy(ParallelStrategy):
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
-                " Try using all devices or the `SingleTPUStrategy` strategy"
+                " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
 
         self._launched = True
@@ -234,5 +234,5 @@ class XLAStrategy(ParallelStrategy):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)

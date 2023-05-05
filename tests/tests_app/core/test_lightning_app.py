@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pickle
@@ -36,7 +37,6 @@ logger = logging.getLogger()
 
 def test_lightning_app_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
-
     with pytest.raises(
         TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
     ):
@@ -427,7 +427,7 @@ class EmptyFlow(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "queue_type_cls, default_timeout",
+    ("queue_type_cls", "default_timeout"),
     [
         (MultiProcessQueue, STATE_UPDATE_TIMEOUT),
         pytest.param(
@@ -438,7 +438,7 @@ class EmptyFlow(LightningFlow):
     ],
 )
 @pytest.mark.parametrize(
-    "sleep_time, expect",
+    ("sleep_time", "expect"),
     [
         (1, 0),
         pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
@@ -446,7 +446,6 @@ class EmptyFlow(LightningFlow):
 )
 @pytest.mark.flaky(reruns=5)
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
-
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
 
@@ -486,8 +485,7 @@ def test_lightning_app_aggregation_empty():
 
     class SlowQueue(MultiProcessQueue):
         def get(self, timeout):
-            out = super().get(timeout)
-            return out
+            return super().get(timeout)
 
     app = LightningApp(EmptyFlow())
     app.delta_queue = SlowQueue("api_delta_queue", 0)
@@ -508,7 +506,6 @@ class SimpleFlow2(LightningFlow):
 
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
-
     app = LightningApp(SimpleFlow2())
     app.delta_queue = MultiProcessQueue("a", 0)
     assert app._has_updated
@@ -558,12 +555,11 @@ class CheckpointLightningApp(LightningApp):
 
 
 def test_snap_shotting():
-    try:
+    with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
         app.checkpointing = True
         MultiProcessRuntime(app, start_server=False).dispatch()
-    except SuccessException:
-        pass
+
     checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     checkpoints = os.listdir(checkpoint_dir)
     assert len(checkpoints) == 1
@@ -605,7 +601,7 @@ class WaitForAllFlow(LightningFlow):
 
         expected = 1 if self.use_same_args else next_c
 
-        if not all([w.num_successes == (expected if w.cache_calls else next_c) for w in self.works()]):
+        if not all(w.num_successes == (expected if w.cache_calls else next_c) for w in self.works()):
             return
 
         self.c += 1
@@ -1167,7 +1163,6 @@ class FlowValue(LightningFlow):
 
 def test_lightning_flow_properties():
     """Validates setting properties to the LightningFlow properly calls property.fset."""
-
     flow = FlowValue()
     assert flow._value is None
     flow.run()
@@ -1180,6 +1175,5 @@ class SimpleWork2(LightningWork):
 
 
 def test_lightning_work_stopped():
-
     app = LightningApp(SimpleWork2())
     MultiProcessRuntime(app, start_server=False).dispatch()

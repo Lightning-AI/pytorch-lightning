@@ -282,6 +282,6 @@ def _get_linked_output_dir(src_dir: str):
 
     if version_folder_name == "latest":
         return str(PurePath(src_dir).parent.joinpath("version_latest"))
-    else:
-        replaced_ver = version_folder_name.replace(".", "_")
-        return str(PurePath(src_dir).parent.joinpath(f"version_{replaced_ver}"))
+
+    replaced_ver = version_folder_name.replace(".", "_")
+    return str(PurePath(src_dir).parent.joinpath(f"version_{replaced_ver}"))

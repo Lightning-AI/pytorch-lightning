@@ -25,9 +25,8 @@ from lightning.pytorch.callbacks import Checkpoint
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version
-    else:
-        # Concatenate versions together, removing duplicates and preserving order
-        return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
+    # Concatenate versions together, removing duplicates and preserving order
+    return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
 def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
@@ -37,7 +36,6 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
     """
-
     # get checkpoints to be saved with associated score
     checkpoints = {}
     if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):

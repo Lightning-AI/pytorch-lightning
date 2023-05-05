@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 
 from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringDoubleModule(nn.Module):
@@ -43,13 +44,13 @@ class DoublePrecisionBoringFabric(BoringFabric):
         assert batch.dtype == torch.float32
         output = model(batch)
         assert output.dtype == torch.float32
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
     def after_backward(self, model, optimizer):
         assert model.layer.weight.grad.dtype == torch.float64
 
 
+@RunIf(mps=False)  # MPS doesn't support float64
 def test_double_precision():
     fabric = DoublePrecisionBoringFabric(devices=1, precision="64-true")
     fabric.run()

@@ -166,8 +166,8 @@ class AppState:
             try:
                 # TODO: Send the delta directly to the REST API.
                 response = self._session.post(app_url, json=data, headers=headers)
-            except ConnectionError as e:
-                raise AttributeError("Failed to connect and send the app state. Is the app running?") from e
+            except ConnectionError as ex:
+                raise AttributeError("Failed to connect and send the app state. Is the app running?") from ex
 
             if response and response.status_code != 200:
                 raise Exception(f"The response from the server was {response.status_code}. Your inputs were rejected.")
@@ -186,8 +186,8 @@ class AppState:
             sleep(0.5)
             try:
                 response = self._session.get(app_url, headers=headers, timeout=1)
-            except ConnectionError as e:
-                raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from e
+            except ConnectionError as ex:
+                raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from ex
 
             self._authorized = response.status_code
             if self._authorized != 200:
@@ -211,12 +211,12 @@ class AppState:
                 return _maybe_create_drive("root." + ".".join(self._my_affiliation), value)
             return value
 
-        elif name in self._state.get("works", {}):
+        if name in self._state.get("works", {}):
             return AppState(
                 self._host, self._port, last_state=self._last_state["works"][name], state=self._state["works"][name]
             )
 
-        elif name in self._state.get("flows", {}):
+        if name in self._state.get("flows", {}):
             return AppState(
                 self._host,
                 self._port,
@@ -224,7 +224,7 @@ class AppState:
                 state=self._state["flows"][name],
             )
 
-        elif name in self._state.get("structures", {}):
+        if name in self._state.get("structures", {}):
             return AppState(
                 self._host,
                 self._port,

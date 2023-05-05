@@ -74,12 +74,12 @@ def _load_objects_from_file(
                 with _add_to_env(env_vars), _patch_sys_argv():
                     if mock_imports:
                         with _mock_missing_imports():
-                            exec(code, module.__dict__)
+                            exec(code, module.__dict__)  # noqa: S102
                     else:
-                        exec(code, module.__dict__)
-            except Exception as e:
+                        exec(code, module.__dict__)  # noqa: S102
+            except Exception as ex:
                 if raise_exception:
-                    raise e
+                    raise ex
                 _prettifiy_exception(filepath)
 
     return [v for v in module.__dict__.values() if isinstance(v, target_type)], module
@@ -134,7 +134,6 @@ def load_app_from_file(
 
 def _new_module(name):
     """Create a new module with the given name."""
-
     return types.ModuleType(name)
 
 

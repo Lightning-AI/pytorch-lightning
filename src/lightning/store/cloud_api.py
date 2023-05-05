@@ -189,21 +189,19 @@ def _load_model(stored, output_dir, *args: Any, **kwargs: Any):
         sys.path.insert(0, f"{output_dir}")
         model = torch.load(f"{output_dir}/{stored['model']}", *args, **kwargs)
         return model
-    else:
-        raise ValueError(
-            "Couldn't find the model when uploaded to our storage."
-            " Please check with the model owner to confirm that the models exist in the storage."
-        )
+    raise ValueError(
+        "Couldn't find the model when uploaded to our storage."
+        " Please check with the model owner to confirm that the models exist in the storage."
+    )
 
 
 def _load_weights(model, stored, output_dir, *args: Any, **kwargs: Any):
     if "weights" in stored:
         model.load_state_dict(torch.load(f"{output_dir}/{stored['weights']}", *args, **kwargs))
         return model
-    else:
-        raise ValueError(
-            "Weights were not found, please contact the model's owner to verify if the weights were stored correctly."
-        )
+    raise ValueError(
+        "Weights were not found, please contact the model's owner to verify if the weights were stored correctly."
+    )
 
 
 def _load_checkpoint(model, stored, output_dir, *args: Any, **kwargs: Any):
@@ -367,7 +365,7 @@ def load_model(
                 f" your model object to load_model({name}, {version}, model=ModelObj)"
             )
         return _load_weights(model, stored, linked_output_dir or output_dir, *args, **kwargs)
-    elif load_checkpoint:
+    if load_checkpoint:
         if not model:
             raise ValueError(
                 "You need to pass the LightningModule object (model) to be able to"

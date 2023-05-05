@@ -381,14 +381,14 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
     assert len(calls) == 1
     score = calls[0][1]["metadata"]["score"]
     # model checkpoint monitors scalar tensors, but wandb can't serializable them - expect Python scalars in metadata
-    assert isinstance(score, int) and score == 3
+    assert isinstance(score, int)
+    assert score == 3
 
 
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_media(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-
     wandb.run = None
 
     # test log_text with columns and data
@@ -465,7 +465,6 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_download_artifact(wandb, tmpdir):
     """Test that download_artifact works."""
-
     wandb.run = wandb.init()
     logger = WandbLogger()
     logger.download_artifact("test_artifact", str(tmpdir), "model", True)

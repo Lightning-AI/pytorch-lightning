@@ -107,7 +107,7 @@ def test_deepspeed_multiple_models():
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
-    ["dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"],
+    ("dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"),
     [
         (RandomDataset, None, 1),
         (RandomDataset, 10, 10),
@@ -136,7 +136,6 @@ def test_deepspeed_auto_batch_size_config_select(dataset_cls, logging_batch_size
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_configure_optimizers():
     """Test that the deepspeed strategy with default initialization wraps the optimizer correctly."""
-
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
     class RunFabric(Fabric):
@@ -220,7 +219,6 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
 
 
 class ModelParallelClassification(BoringFabric):
-
     num_blocks = 5
 
     def get_model(self):
@@ -233,8 +231,7 @@ class ModelParallelClassification(BoringFabric):
         # Ensure output is in float32 for softmax operation
         x = x.float()
         logits = F.softmax(x, dim=1)
-        loss = F.cross_entropy(logits, y)
-        return loss
+        return F.cross_entropy(logits, y)
 
     def _make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
@@ -366,7 +363,7 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
 
     checkpoint_path = fabric.broadcast(tmp_path / "deepspeed-checkpoint")
 
-    with fabric.sharded_model():
+    with fabric.init_module():
         model = BoringModel()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
@@ -390,7 +387,7 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
     # re-init all objects and resume
     fabric = Fabric(accelerator="cuda", devices=2, strategy=DeepSpeedStrategy(stage=stage), precision="bf16")
     fabric.launch()
-    with fabric.sharded_model():
+    with fabric.init_module():
         model = BoringModel()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)

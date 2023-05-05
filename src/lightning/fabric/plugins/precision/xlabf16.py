@@ -12,24 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, List, Literal, Tuple
+from typing import Any, Literal
 
-import torch.nn as nn
-from torch.optim import Optimizer
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from torch import Tensor
 
-from lightning.pytorch.plugins.precision import TPUPrecisionPlugin
+from lightning.fabric.plugins.precision import XLAPrecision
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 
 
-class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
-    """Plugin that enables bfloats on TPUs."""
+class XLABf16Precision(XLAPrecision):
+    """Plugin that enables mixed bf16 with XLA."""
 
     precision: Literal["bf16-mixed"] = "bf16-mixed"
 
-    def connect(
-        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
+    def __init__(self) -> None:
+        super().__init__()
         os.environ["XLA_USE_BF16"] = "1"
-        return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.bfloat16)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)

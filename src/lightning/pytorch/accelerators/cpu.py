@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Union
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cpu import _parse_cpu_cores
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -44,8 +45,7 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = _parse_cpu_cores(devices)
-        return devices
+        return _parse_cpu_cores(devices)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
@@ -64,11 +64,11 @@ class CPUAccelerator(Accelerator):
         return True
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
 

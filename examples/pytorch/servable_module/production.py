@@ -89,8 +89,7 @@ class ProductionReadyModel(LitModule, ServableModule):
         pil_image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode("UTF-8")
 
-        payload = {"body": {"x": img_str}}
-        return payload
+        return {"body": {"x": img_str}}
 
     def configure_serialization(self):
         return {"x": Image(224, 224).deserialize}, {"output": Top1().serialize}
