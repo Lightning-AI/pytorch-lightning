@@ -142,8 +142,8 @@ def get_cycles_per_ms() -> float:
         torch.cuda._sleep(1000000)
         end.record()
         end.synchronize()
-        cycles_per_ms = 1000000 / start.elapsed_time(end)
-        return cycles_per_ms
+        # cycles_per_ms
+        return 1000000 / start.elapsed_time(end)
 
     num = 10
     vals = []
@@ -199,7 +199,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter, batch_idx):
@@ -230,7 +230,7 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     trainer_fn(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages_multiple_dataloaders(fn, tmp_path):
     class MyModel(BoringModel):
         def validation_step(self, dataloader_iter, batch_idx, dataloader_idx):

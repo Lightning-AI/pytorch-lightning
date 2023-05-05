@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -116,12 +116,14 @@ class Fabric:
         loggers = loggers if loggers is not None else []
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
+        self._launched: bool = False
 
         self._prepare_run_method()
         if _is_using_cli():
             # when the CLI is used to launch the script, we need to set up the environment (init processes) here so
             # that the user can immediately use all functionality in strategies
             self._strategy.setup_environment()
+            self._launched = True
 
     @property
     def accelerator(self) -> Accelerator:
@@ -405,7 +407,7 @@ class Fabric:
         if clip_val is not None:
             self.strategy.clip_gradients_value(_unwrap_objects(module), _unwrap_objects(optimizer), clip_val=clip_val)
             return None
-        elif max_norm is not None:
+        if max_norm is not None:
             return self.strategy.clip_gradients_norm(
                 _unwrap_objects(module),
                 _unwrap_objects(optimizer),
@@ -469,6 +471,7 @@ class Fabric:
         will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
         cause your program to stall forever.
         """
+        self._validate_launched()
         self._strategy.barrier(name=name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
@@ -484,6 +487,7 @@ class Fabric:
         Return:
             The transferred data, the same value on every rank.
         """
+        self._validate_launched()
         return self._strategy.broadcast(obj, src=src)
 
     def all_gather(
@@ -502,6 +506,7 @@ class Fabric:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
         """
+        self._validate_launched()
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
@@ -526,6 +531,7 @@ class Fabric:
             A tensor of the same shape as the input with values reduced pointwise across processes. The same is
             applied to tensors in a collection if a collection is given as input.
         """
+        self._validate_launched()
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_reduce, group=group, reduce_op=reduce_op)
@@ -578,32 +584,28 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Shard the parameters of the model instantly when instantiating the layers.
+        """Shard the parameters of the model instantly when instantiating the layers."""
+        context = self._strategy.init_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        with context:
+            yield
 
-        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
+    @contextmanager
+    def init(self) -> Generator:
+        """Instantiate under this context manager to apply improvements based on your configuration.
+
+        The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
+        without wasting memory being allocated unnecessarily.
         """
-        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
-        with _old_sharded_model_context(self._strategy):
+        with self._strategy.init_context():
             yield
 
     @contextmanager
     def init_module(self) -> Generator:
-        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`.
 
-        The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily.
-
-        Note:
-            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        It is recommended to instantiate your modules under this.
         """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
-                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
-                " utilize the features in `init_module()`.",
-                category=PossibleUserWarning,
-            )
-        with self._strategy.module_init_context():
+        with self.init(), self.sharded_model():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -769,6 +771,7 @@ class Fabric:
         return seed_everything(seed=seed, workers=workers)
 
     def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._launched = True
         to_run = partial(self._wrap_with_setup, to_run)
         if (launcher := self._strategy.launcher) is not None:
             return launcher.launch(to_run, *args, **kwargs)
@@ -776,10 +779,11 @@ class Fabric:
 
     def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
+        # TODO: remove sharded_context from here as users are meant to enable it manually
         # apply sharded context to prevent OOM
-        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
+        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+            BatchSampler
+        ):
             return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -833,7 +837,15 @@ class Fabric:
         # wrap the run method, so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._wrap_and_launch, self.run))
 
+    def _validate_launched(self) -> None:
+        if not self._launched and not isinstance(self._strategy, SingleDeviceStrategy):
+            raise RuntimeError(
+                "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
+                " `lightning run model --help`."
+            )
+
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+        self._validate_launched()
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
@@ -848,10 +860,12 @@ class Fabric:
             )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
+        self._validate_launched()
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
+        self._validate_launched()
         if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
@@ -864,8 +878,8 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
 
-    @staticmethod
-    def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
+    def _validate_setup_dataloaders(self, dataloaders: Sequence[DataLoader]) -> None:
+        self._validate_launched()
         if not dataloaders:
             raise ValueError("`setup_dataloaders` requires at least one dataloader as input.")
 
@@ -878,12 +892,3 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
-
-
-@contextmanager
-def _old_sharded_model_context(strategy: Strategy) -> Generator:
-    if isinstance(strategy, _Sharded):
-        with strategy.module_sharded_context():
-            yield
-    else:
-        yield
