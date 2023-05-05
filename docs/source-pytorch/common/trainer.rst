@@ -1362,7 +1362,7 @@ both conditions are met. If any of these arguments is not set, it won't be consi
 sanity_checking
 ***************
 
-Indicates if the trainer is currently running a sanity checking. This property can be useful to disable some hooks,
+Indicates if the trainer is currently running sanity checking. This property can be useful to disable some hooks,
 logging or callbacks during the sanity checking.
 
 .. code-block:: python
