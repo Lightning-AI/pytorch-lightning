@@ -587,7 +587,8 @@ def test_backward():
 @RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
-    fabric = Fabric(strategy="deepspeed")
+    fabric = Fabric(strategy="deepspeed", devices=1)
+    fabric._launched = True  # pretend we have launched
 
     model0 = nn.Linear(1, 2)
     model1 = nn.Linear(1, 2)
