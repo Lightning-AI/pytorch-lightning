@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -100,11 +100,11 @@ class XLAAccelerator(Accelerator):
             return False
 
     @staticmethod
-    def _device_type() -> str:
+    def _device_type() -> Optional[str]:
         import torch_xla.core.xla_env_vars as xenv
         from torch_xla.utils.utils import getenv_as
 
-        return getenv_as(xenv.PJRT_DEVICE, "TPU")
+        return getenv_as(xenv.PJRT_DEVICE, str)
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
