@@ -171,11 +171,11 @@ def test_single_device_grad_clipping(clip_type, precision):
         pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
     ],
 )
-def test_module_init_context(device, precision, dtype):
+def test_init_context(device, precision, dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     device = torch.device(device)
     strategy = SingleDeviceStrategy(device=device, precision=precision)
-    with strategy.module_init_context():
+    with strategy.init_context():
         module = torch.nn.Linear(2, 2)
 
     expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")

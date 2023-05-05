@@ -720,35 +720,36 @@ def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
     otherwise."""
     fabric = Fabric()
-    fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
+    fabric._strategy = MagicMock(spec=DDPStrategy, init_sharded_context=Mock())
+    with fabric.sharded_model():
         pass
-    fabric._strategy.module_sharded_context.assert_not_called()
+    fabric._strategy.init_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
+    with fabric.sharded_model():
         pass
-    fabric._strategy.module_sharded_context.assert_called_once()
+    fabric._strategy.init_sharded_context.assert_called_once()
 
 
 def test_init_module_context(monkeypatch):
-    """Test that the stratey returns the context manager for initializing the module."""
+    """Test that the strategy returns the context manager for initializing the module."""
     import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
-    strategy = MagicMock(spec=Strategy, module_init_context=MagicMock(), root_device=torch.device("cuda", 0))
+    strategy = lightning.fabric.strategies.SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.init_context = Mock(wraps=strategy.init_context)
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.module_init_context.assert_called_once()
-    strategy.reset_mock()
+    strategy.init_context.assert_called_once()
+    strategy.init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    monkeypatch.setattr(lightning.fabric.strategies.strategy, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
         with fabric.init_module():
             pass
-    strategy.module_init_context.assert_called_once()
+    strategy.init_context.assert_called_once()
 
 
 def test_callbacks_input():
