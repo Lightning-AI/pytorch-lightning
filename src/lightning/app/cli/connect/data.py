@@ -106,3 +106,4 @@ def connect_data(
             _error_and_exit(f"The data connection creation failed. Message: {message}")
 
     rich.print(f"[green]Succeeded[/green]: You have created a new data connection {name}.")
+    return None

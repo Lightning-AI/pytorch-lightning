@@ -22,8 +22,7 @@ from tests_pytorch import _TEMP_PATH
 
 def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
-    logger = TensorBoardLogger(save_dir, name="lightning_logs", version=version)
-    return logger
+    return TensorBoardLogger(save_dir, name="lightning_logs", version=version)
 
 
 def get_data_path(expt_logger, path_dir=None):
@@ -56,8 +55,7 @@ def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
 
 
 def init_checkpoint_callback(logger):
-    checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
-    return checkpoint
+    return ModelCheckpoint(dirpath=logger.save_dir)
 
 
 def getattr_recursive(obj, attr):

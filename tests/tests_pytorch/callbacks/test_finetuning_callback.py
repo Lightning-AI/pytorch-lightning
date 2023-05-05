@@ -94,15 +94,13 @@ def test_finetuning_callback_warning(tmpdir):
 
         def forward(self, x):
             self.backbone.has_been_used = True
-            x = self.backbone(x)
-            return x
+            return self.backbone(x)
 
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=0.1)
 
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
@@ -322,8 +320,7 @@ class FinetuningBoringModel(BoringModel):
 
     def configure_optimizers(self):
         parameters = filter(lambda x: x.requires_grad, self.parameters())
-        optimizer = torch.optim.SGD(parameters, lr=0.1)
-        return optimizer
+        return torch.optim.SGD(parameters, lr=0.1)
 
 
 def test_callbacks_restore(tmpdir):

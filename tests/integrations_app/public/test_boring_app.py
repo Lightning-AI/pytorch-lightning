@@ -21,6 +21,7 @@ def test_boring_app_example_cloud() -> None:
             locator = view_page.frame_locator("iframe").locator('ul:has-text("Hello there!")')
             if len(locator.all_text_contents()):
                 return True
+            return None
 
         wait_for(view_page, check_hello_there)
 
