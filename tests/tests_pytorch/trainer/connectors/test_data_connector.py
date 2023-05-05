@@ -81,9 +81,10 @@ def test_replace_distributed_sampler(tmpdir, mode):
                 # with a custom batch sampler
                 batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=1, drop_last=True)
                 return CustomDataLoader(32, dataset, batch_sampler=batch_sampler)
-            elif self._mode == 2:
+            if self._mode == 2:
                 # with no batch sampler provided
                 return CustomDataLoader(32, dataset, batch_size=2, drop_last=True)
+            return None
 
         def test_dataloader(self):
             return [self.create_dataset()] * self._numbers_test_dataloaders

@@ -137,7 +137,6 @@ def _add_prefix(
     Returns:
         Dictionary with prefix and separator inserted before each key
     """
-    if prefix:
-        metrics = {f"{prefix}{separator}{k}": v for k, v in metrics.items()}
-
-    return metrics
+    if not prefix:
+        return metrics
+    return {f"{prefix}{separator}{k}": v for k, v in metrics.items()}

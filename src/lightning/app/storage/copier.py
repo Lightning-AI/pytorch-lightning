@@ -102,6 +102,7 @@ def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.s
         candidate: lightning.app.storage.Path = getattr(work, name)
         if candidate.hash == request.hash:
             return candidate
+    return None
 
 
 def _copy_files(

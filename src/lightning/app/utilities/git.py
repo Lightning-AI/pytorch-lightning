@@ -28,8 +28,7 @@ def execute_git_command(args: List[str], cwd=None) -> str:
         String combining stdout and stderr.
     """
     process = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd, check=False)
-    output = process.stdout.strip() + process.stderr.strip()
-    return output
+    return process.stdout.strip() + process.stderr.strip()
 
 
 def get_dir_name(cwd=None) -> str:

@@ -180,12 +180,12 @@ class XLAStrategy(DDPStrategy):
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
         data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
+
         import torch_xla.core.xla_model as xm
 
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
-        return obj
+        return torch.load(buffer)
 
     def reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None

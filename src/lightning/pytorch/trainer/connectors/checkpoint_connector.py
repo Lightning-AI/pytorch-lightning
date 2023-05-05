@@ -61,8 +61,8 @@ class _CheckpointConnector:
         if max_version is not None:
             if isinstance(fs, LocalFileSystem):
                 return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
-            else:
-                return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
+            return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
+        return None
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -552,5 +552,4 @@ class _CheckpointConnector:
     def hpc_save_path(folderpath: _PATH) -> str:
         max_suffix = _CheckpointConnector.__max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
-        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
-        return filepath
+        return os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")

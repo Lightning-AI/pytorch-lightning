@@ -60,6 +60,7 @@ select = [
 extend-select = [
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
+    "RET",  # see: https://pypi.org/project/flake8-return
     "PT",  # see: https://pypi.org/project/flake8-pytest-style
 ]
 ignore = [
@@ -94,6 +95,7 @@ ignore-init-module-imports = true
     "S607",  # todo: Starting a process with a partial executable path
     "S301",  # todo: `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
     "S324",  # todo: Probable use of insecure hash functions in `hashlib`
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
 ]
 "tests/**" = [
     "S101",  # Use of `assert` detected
@@ -106,6 +108,7 @@ ignore-init-module-imports = true
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell, possible injection detected
     "S607",  # todo: Starting a process with a partial executable path
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
     "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement

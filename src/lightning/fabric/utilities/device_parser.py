@@ -42,9 +42,7 @@ def _determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     assert len(gpus) > 0, "GPUs should be a non-empty list"
 
     # set root gpu
-    root_gpu = gpus[0]
-
-    return root_gpu
+    return gpus[0]
 
 
 def _parse_gpu_ids(
@@ -193,7 +191,7 @@ def _check_data_type(device_ids: Any) -> None:
 
     if device_ids is None:
         return
-    elif isinstance(device_ids, (MutableSequence, tuple)):
+    if isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
             if type(id_) is not int:
                 raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}.")

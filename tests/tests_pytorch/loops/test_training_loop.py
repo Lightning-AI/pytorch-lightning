@@ -95,6 +95,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
                 return -1
+            return None
 
     model = CurrentModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)

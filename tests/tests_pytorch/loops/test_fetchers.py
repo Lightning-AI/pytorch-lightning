@@ -142,8 +142,8 @@ def get_cycles_per_ms() -> float:
         torch.cuda._sleep(1000000)
         end.record()
         end.synchronize()
-        cycles_per_ms = 1000000 / start.elapsed_time(end)
-        return cycles_per_ms
+        # cycles_per_ms
+        return 1000000 / start.elapsed_time(end)
 
     num = 10
     vals = []
