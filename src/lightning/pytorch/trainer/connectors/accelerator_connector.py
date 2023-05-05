@@ -340,7 +340,8 @@ class _AcceleratorConnector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability."""
-        if XLAAccelerator.is_available():
+        if XLAAccelerator.is_available() and XLAAccelerator._device_type() == "TPU":
+            # XLAAccelerator with non-TPU devices is not supported yet
             return "tpu"
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
             from lightning_graphcore import IPUAccelerator
