@@ -121,6 +121,7 @@ class Timer(Callback):
         """Return the time remaining for a particular stage (in seconds)"""
         if self._duration is not None:
             return self._duration - self.time_elapsed(stage)
+        return None
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TRAINING] = time.monotonic()

@@ -354,7 +354,7 @@ def test_metrics_reset(tmpdir):
 
         def validation_step(self, batch, batch_idx, *args, **kwargs):
             if self.trainer.sanity_checking:
-                return
+                return None
             return self._step(batch)
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
@@ -455,8 +455,7 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             return DataLoader(RandomDataset(32, 64))
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=0.1)
 
         def on_train_epoch_end(self) -> None:
             self.metrics.wrapped_assertion_calls.call_count == 2

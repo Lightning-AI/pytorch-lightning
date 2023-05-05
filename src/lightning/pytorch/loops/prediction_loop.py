@@ -320,6 +320,7 @@ class _PredictionLoop(_Loop):
 
         if self.return_predictions:
             return self.predictions
+        return None
 
     def _on_predict_end(self) -> None:
         """Resets previous gradient status and calls ``on_predict_end`` hook."""

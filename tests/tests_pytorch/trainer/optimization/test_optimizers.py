@@ -245,8 +245,7 @@ def test_configure_optimizer_from_dict(tmpdir):
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
-            config = {"optimizer": optim.SGD(params=self.parameters(), lr=1e-03)}
-            return config
+            return {"optimizer": optim.SGD(params=self.parameters(), lr=1e-03)}
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)

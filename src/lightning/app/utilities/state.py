@@ -211,12 +211,12 @@ class AppState:
                 return _maybe_create_drive("root." + ".".join(self._my_affiliation), value)
             return value
 
-        elif name in self._state.get("works", {}):
+        if name in self._state.get("works", {}):
             return AppState(
                 self._host, self._port, last_state=self._last_state["works"][name], state=self._state["works"][name]
             )
 
-        elif name in self._state.get("flows", {}):
+        if name in self._state.get("flows", {}):
             return AppState(
                 self._host,
                 self._port,
@@ -224,7 +224,7 @@ class AppState:
                 state=self._state["flows"][name],
             )
 
-        elif name in self._state.get("structures", {}):
+        if name in self._state.get("structures", {}):
             return AppState(
                 self._host,
                 self._port,
