@@ -364,10 +364,6 @@ class _ResultCollection(dict):
         if not enable_graph:
             value = recursive_detach(value)
 
-        # move metrics to cpu on TPU.
-        if isinstance(value, Tensor) and value.device.type == "xla":
-            value = value.cpu()
-
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
