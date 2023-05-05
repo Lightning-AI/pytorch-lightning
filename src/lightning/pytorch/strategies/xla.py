@@ -54,6 +54,7 @@ class XLAStrategy(DDPStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
+        sync_module_states: bool = True,
         **_: Any,
     ) -> None:
         if not _XLA_AVAILABLE:
@@ -69,6 +70,7 @@ class XLAStrategy(DDPStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
+        self._sync_module_states = sync_module_states
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -108,9 +110,10 @@ class XLAStrategy(DDPStrategy):
         set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
-        from torch_xla.experimental import pjrt
+        if self._sync_module_states:
+            from torch_xla.experimental import pjrt
 
-        pjrt.broadcast_master_param(self.model)
+            pjrt.broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)

@@ -326,7 +326,7 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     @classmethod

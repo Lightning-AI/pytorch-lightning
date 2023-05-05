@@ -30,6 +30,7 @@ def test_wrongly_implemented_transferable_data_type(should_return):
             # simulate a user forgets to return self
             if self.should_return:
                 return self
+            return None
 
     tensor = torch.tensor(0.1)
     obj = TensorObject(tensor, should_return)
@@ -44,12 +45,15 @@ def test_convert_tensors_to_scalars():
 
     result = convert_tensors_to_scalars({"tensor": torch.tensor(2.0)})
     # note: `==` comparison as above is not sufficient, since `torch.tensor(x) == x` evaluates to truth
-    assert not isinstance(result["tensor"], Tensor) and result["tensor"] == 2.0
+    assert not isinstance(result["tensor"], Tensor)
+    assert result["tensor"] == 2.0
 
     data = {"tensor": torch.tensor([2.0])}
     result = convert_tensors_to_scalars(data)
-    assert not isinstance(result["tensor"], Tensor) and result["tensor"] == 2.0
-    assert isinstance(data["tensor"], Tensor) and data["tensor"] == 2.0  # does not modify the input data
+    assert not isinstance(result["tensor"], Tensor)
+    assert result["tensor"] == 2.0
+    assert isinstance(data["tensor"], Tensor)
+    assert data["tensor"] == 2.0
 
     with pytest.raises(ValueError, match="does not contain a single element"):
         convert_tensors_to_scalars({"tensor": torch.tensor([1, 2, 3])})

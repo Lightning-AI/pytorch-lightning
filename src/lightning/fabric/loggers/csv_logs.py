@@ -105,8 +105,7 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, self.name, version)
-        return log_dir
+        return os.path.join(self.root_dir, self.name, version)
 
     @property
     @rank_zero_experiment

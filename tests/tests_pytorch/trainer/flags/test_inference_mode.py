@@ -24,7 +24,7 @@ from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.utilities import _no_grad_context
 
 
-@pytest.mark.parametrize("trainer_fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
 def test_eval_inference_mode(tmp_path, trainer_fn):
     class BoringModelNoGrad(BoringModel):
         def assert_not_enabled(self):

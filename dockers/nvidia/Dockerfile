@@ -49,6 +49,10 @@ RUN \
 
 RUN pip install jupyterlab[all] -U
 
+# create jupyter_notebook_config.py
+RUN mkdir -p /root/.jupyter && \
+    echo "c.NotebookApp.contents_manager_class = 'notebook.services.contents.largefilemanager.LargeFileManager'" > /root/.jupyter/jupyter_notebook_config.py
+
 ENV PYTHONPATH="/workspace"
 
 RUN \

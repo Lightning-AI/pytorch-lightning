@@ -190,6 +190,7 @@ class FSDPStrategy(ParallelStrategy):
         plugin = self.precision_plugin
         if isinstance(plugin, FSDPMixedPrecisionPlugin):
             return plugin.mixed_precision_config
+        return None
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
@@ -295,6 +296,7 @@ class FSDPStrategy(ParallelStrategy):
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
                 " `configure_optimizers()` hook."
             )
+        return None
 
     def model_to_device(self) -> None:
         pass
@@ -346,7 +348,7 @@ class FSDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def _determine_device_ids(self) -> List[int]:

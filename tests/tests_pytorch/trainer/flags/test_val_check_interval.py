@@ -45,7 +45,7 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
     assert model.val_epoch_calls == max_epochs * denominator
 
 
-@pytest.mark.parametrize("value", (1, 1.0))
+@pytest.mark.parametrize("value", [1, 1.0])
 def test_val_check_interval_info_message(caplog, value):
     with caplog.at_level(logging.INFO):
         Trainer(val_check_interval=value)

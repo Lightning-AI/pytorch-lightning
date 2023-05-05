@@ -56,9 +56,8 @@ class XLAAccelerator(Accelerator):
 
         if isinstance(devices, int):
             return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
-        else:
-            # list of devices is not supported, just a specific index, fine to access [0]
-            return [torch.device("xla", devices[0] + device_offset)]
+        # list of devices is not supported, just a specific index, fine to access [0]
+        return [torch.device("xla", devices[0] + device_offset)]
         # we cannot create `xla_device` here because processes have not been spawned yet (this is called in the
         # accelerator connector init). However, there doesn't seem to be a problem with instantiating `torch.device`.
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
@@ -80,8 +79,7 @@ class XLAAccelerator(Accelerator):
                 return tpu.num_available_devices()
             device_count_on_version = {2: 8, 3: 8, 4: 4}
             return device_count_on_version.get(tpu.version(), 8)
-        else:
-            return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
+        return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)

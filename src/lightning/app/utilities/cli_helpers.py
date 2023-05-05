@@ -194,6 +194,7 @@ class _LightningAppOpenAPIRetriever:
                     print("The application is starting. Try in a few moments.")
                     sys.exit(0)
                 return app
+        return None
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""

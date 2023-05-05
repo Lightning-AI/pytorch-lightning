@@ -69,9 +69,10 @@ repos:
         name: Unused noqa
         additional_dependencies:
           #- pep8-naming
-          #- flake8-pytest-style
+          - flake8-pytest-style
           - flake8-bandit
           - flake8-simplify
+          - flake8-return
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
