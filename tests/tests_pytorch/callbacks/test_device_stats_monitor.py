@@ -66,7 +66,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
 
 
 @RunIf(psutil=True)
-@pytest.mark.parametrize("cpu_stats", (None, True, False))
+@pytest.mark.parametrize("cpu_stats", [None, True, False])
 @mock.patch("lightning.pytorch.accelerators.cpu.get_cpu_stats", side_effect=get_cpu_stats)
 def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""

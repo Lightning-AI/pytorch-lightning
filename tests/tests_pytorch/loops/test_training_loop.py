@@ -56,7 +56,7 @@ def test_outputs_format(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("seed_once", (True, False))
+@pytest.mark.parametrize("seed_once", [True, False])
 def test_training_starts_with_seed(tmpdir, seed_once):
     """Test the behavior of seed_everything on subsequent Trainer runs in combination with different settings of
     num_sanity_val_steps (which must not affect the random state)."""

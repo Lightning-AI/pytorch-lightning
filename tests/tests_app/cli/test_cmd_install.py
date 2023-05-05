@@ -39,12 +39,8 @@ def test_valid_unpublished_app_name():
 
     # assert warning of non official app given
     real_app = "https://github.com/Lightning-AI/install-app"
-    try:
+    with pytest.raises(subprocess.CalledProcessError, match="WARNING"):
         subprocess.check_output(f"lightning install app {real_app}", shell=True, stderr=subprocess.STDOUT)
-        # this condition should never be hit
-        assert False
-    except subprocess.CalledProcessError as ex:
-        assert "WARNING" in str(ex.output)
 
     # assert aborted install
     result = runner.invoke(lightning_cli.cmd_install.install_app, [real_app], input="q")

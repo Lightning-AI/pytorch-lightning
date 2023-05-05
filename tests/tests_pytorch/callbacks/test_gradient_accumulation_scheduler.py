@@ -30,7 +30,7 @@ else:
     ColossalAIStrategy = None
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
 def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()

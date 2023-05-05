@@ -44,7 +44,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     assert eval_epoch_end_mock.call_count == 4
 
 
-@pytest.mark.parametrize("use_batch_sampler", (False, True))
+@pytest.mark.parametrize("use_batch_sampler", [False, True])
 def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
     """Tests that set_epoch is called on the dataloader's sampler (if any) during training and validation."""
 

@@ -22,7 +22,7 @@ from lightning.pytorch.strategies.single_hpu import SingleHPUStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
-@pytest.fixture
+@pytest.fixture()
 def hmp_params(request):
     return {
         "opt_level": "O1",

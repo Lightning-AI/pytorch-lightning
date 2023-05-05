@@ -59,7 +59,7 @@ from tests_fabric.helpers.runif import RunIf
 
 @RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
-    ["accelerator", "devices"], [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+    ("accelerator", "devices"), [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_choice_tpu(accelerator, devices):
@@ -265,11 +265,11 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
 @RunIf(mps=True)
 @pytest.mark.parametrize(
     ("strategy", "strategy_class"),
-    (
+    [
         ("ddp", DDPStrategy),
         ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
-    ),
+    ],
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
@@ -316,7 +316,7 @@ def test_tpu_accelerator_can_not_run_on_system():
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-@pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
+@pytest.mark.parametrize("device_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]])
 def test_accelererator_invalid_type_devices(_, device_count):
     with pytest.raises(
         MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
@@ -693,8 +693,8 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
         _Connector(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu"))
-@pytest.mark.parametrize("devices", ("0", 0, []))
+@pytest.mark.parametrize("accelerator", ["cpu", "cuda", "mps", "tpu"])
+@pytest.mark.parametrize("devices", ["0", 0, []])
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(ValueError, match="value is not a valid input using"):
         _Connector(accelerator=accelerator, devices=devices)
@@ -888,7 +888,7 @@ def test_connector_defaults_match_fabric_defaults():
         assert connector_default == fabric_defaults[name]
 
 
-@pytest.mark.parametrize("is_interactive", (False, True))
+@pytest.mark.parametrize("is_interactive", [False, True])
 def test_connector_auto_selection(monkeypatch, is_interactive):
     no_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
     single_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)

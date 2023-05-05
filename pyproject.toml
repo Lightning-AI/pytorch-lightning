@@ -60,7 +60,7 @@ select = [
 extend-select = [
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
-#    "PT",  # see: https://pypi.org/project/flake8-pytest-style
+    "PT",  # see: https://pypi.org/project/flake8-pytest-style
 ]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
@@ -106,6 +106,10 @@ ignore-init-module-imports = true
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell, possible injection detected
     "S607",  # todo: Starting a process with a partial executable path
+    "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
+    "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
+    "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
+    "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
 ]
 
 [tool.ruff.mccabe]

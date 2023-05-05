@@ -184,7 +184,7 @@ def test_lightning_cli_single_arg_callback():
     assert not isinstance(cli.config_init.trainer, list)
 
 
-@pytest.mark.parametrize("run", (False, True))
+@pytest.mark.parametrize("run", [False, True])
 def test_lightning_cli_configurable_callbacks(cleandir, run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -517,8 +517,8 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", (False, TensorBoardLogger(".")))
-@pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
+@pytest.mark.parametrize("logger", [False, TensorBoardLogger(".")])
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp"])
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
 
@@ -568,7 +568,7 @@ def test_cli_config_filename(tmpdir):
     assert os.path.isfile(tmpdir / "name.yaml")
 
 
-@pytest.mark.parametrize("run", (False, True))
+@pytest.mark.parametrize("run", [False, True])
 def test_lightning_cli_optimizer(run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
