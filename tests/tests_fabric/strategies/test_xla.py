@@ -152,12 +152,12 @@ def test_tpu_all_gather():
     xla_launch(tpu_all_gather_fn)
 
 
-def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
+def tpu_sync_module_states_fn(sync_module_states, strategy):
     seed_everything()
     model = torch.nn.Linear(1, 1).to(strategy.root_device)
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)
-    if broadcast_master_params:
+    if sync_module_states:
         for t in gathered:
             assert gathered[0] == t
     else:
@@ -167,15 +167,15 @@ def tpu_broadcast_master_params_fn(broadcast_master_params, strategy):
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize("broadcast_master_params", [True, False])
+@pytest.mark.parametrize("sync_module_states", [True, False])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_broadcast_master_params(broadcast_master_params):
-    """Test pjrt's broadcast_master_params."""
+def test_tpu_sync_module_states(sync_module_states):
+    """Test sync_module_states."""
     accelerator = XLAAccelerator()
     strategy = XLAStrategy(
         accelerator=accelerator,
         parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
-        broadcast_master_params=broadcast_master_params,
+        sync_module_states=sync_module_states,
     )
-    partial_fn = partial(tpu_broadcast_master_params_fn, broadcast_master_params)
+    partial_fn = partial(tpu_sync_module_states_fn, sync_module_states)
     xla_launch(partial_fn, strategy)

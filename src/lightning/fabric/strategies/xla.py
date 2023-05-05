@@ -46,7 +46,7 @@ class XLAStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
-        broadcast_master_params: bool = True,
+        sync_module_states: bool = True,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
@@ -58,7 +58,7 @@ class XLAStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
-        self._broadcast_master_params = broadcast_master_params
+        self._sync_module_states = sync_module_states
 
     @property
     def root_device(self) -> torch.device:
@@ -102,7 +102,7 @@ class XLAStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
-        if self._broadcast_master_params:
+        if self._sync_module_states:
             from torch_xla.experimental import pjrt
 
             pjrt.broadcast_master_param(module)
