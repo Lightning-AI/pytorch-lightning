@@ -11,21 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional
+from typing import Optional
 
 import torch
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision import Precision
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy
 from lightning.fabric.utilities.types import _DEVICE
 
 
-class SingleTPUStrategy(SingleDeviceStrategy):
-    """Strategy for training on a single TPU device."""
+class SingleDeviceXLAStrategy(SingleDeviceStrategy):
+    """Strategy for training on a single XLA device."""
 
     def __init__(
         self,
@@ -60,5 +61,5 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         self._checkpoint_io = io
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register("single_tpu", cls, description=f"{cls.__class__.__name__}")
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
+        strategy_registry.register("single_xla", cls, description=cls.__class__.__name__)

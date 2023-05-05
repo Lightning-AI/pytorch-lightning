@@ -48,7 +48,7 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 
 # ParityModuleMNIST runs with num_workers=1
 @pytest.mark.parametrize(
-    "cls_model,max_diff_speed,max_diff_memory,num_epochs,num_runs",
+    ("cls_model", "max_diff_speed", "max_diff_memory", "num_epochs", "num_runs"),
     [
         (ParityModuleRNN, 0.05, 0.001, 4, 3),
         (ParityModuleMNIST, 0.3, 0.001, 4, 3),  # todo: lower this thr

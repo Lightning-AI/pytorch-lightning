@@ -364,7 +364,7 @@ def _clean_lightning_connection():
 
 def _scan_lightning_connections(app_name_or_id):
     if not os.path.exists(_LIGHTNING_CONNECTION):
-        return
+        return None
 
     for ppid in os.listdir(_LIGHTNING_CONNECTION):
         try:

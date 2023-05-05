@@ -30,6 +30,9 @@ from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.fabric.wrappers import is_wrapped  # noqa: E402
 
+# this import needs to go last as it will patch other modules
+import lightning.fabric._graveyard  # noqa: E402, F401  # isort: skip
+
 __all__ = ["Fabric", "seed_everything", "is_wrapped"]
 
 # for compatibility with namespace packages

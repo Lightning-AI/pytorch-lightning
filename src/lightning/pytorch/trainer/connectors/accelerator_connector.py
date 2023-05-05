@@ -35,7 +35,7 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.tpu import TPUAccelerator
+from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
@@ -43,8 +43,8 @@ from lightning.pytorch.plugins import (
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    TPUBf16PrecisionPlugin,
-    TPUPrecisionPlugin,
+    XLABf16PrecisionPlugin,
+    XLAPrecisionPlugin,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
@@ -54,7 +54,7 @@ from lightning.pytorch.strategies import (
     FSDPStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-    SingleTPUStrategy,
+    SingleDeviceXLAStrategy,
     Strategy,
     StrategyRegistry,
     XLAStrategy,
@@ -279,28 +279,24 @@ class _AcceleratorConnector:
                     raise MisconfigurationException(
                         "accelerator set through both strategy class and accelerator flag, choose one"
                     )
-                else:
-                    self._accelerator_flag = self._strategy_flag._accelerator
+                self._accelerator_flag = self._strategy_flag._accelerator
             if self._strategy_flag._precision_plugin:
                 # [RFC] handle precision plugin set up conflict?
                 if self._precision_plugin_flag:
                     raise MisconfigurationException("precision set through both strategy class and plugins, choose one")
-                else:
-                    self._precision_plugin_flag = self._strategy_flag._precision_plugin
+                self._precision_plugin_flag = self._strategy_flag._precision_plugin
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
                     raise MisconfigurationException(
                         "checkpoint_io set through both strategy class and plugins, choose one"
                     )
-                else:
-                    self.checkpoint_io = self._strategy_flag._checkpoint_io
+                self.checkpoint_io = self._strategy_flag._checkpoint_io
             if getattr(self._strategy_flag, "cluster_environment", None):
                 if self._cluster_environment_flag:
                     raise MisconfigurationException(
                         "cluster_environment set through both strategy class and plugins, choose one"
                     )
-                else:
-                    self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
+                self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
             if hasattr(self._strategy_flag, "parallel_devices") and self._strategy_flag.parallel_devices:
                 if self._strategy_flag.parallel_devices[0].type == "cpu":
@@ -340,7 +336,7 @@ class _AcceleratorConnector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability."""
-        if TPUAccelerator.is_available():
+        if XLAAccelerator.is_available():
             return "tpu"
         if _LIGHTNING_GRAPHCORE_AVAILABLE:
             from lightning_graphcore import IPUAccelerator
@@ -416,9 +412,6 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
-            # TODO: Why would we block someone from using a IPU capable machine without graphcore?
-            #  Don't these machines also have a regular CPU?
-
             if not _LIGHTNING_GRAPHCORE_AVAILABLE:
                 raise ImportError(
                     "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
@@ -439,16 +432,15 @@ class _AcceleratorConnector:
                 from lightning_habana import HPUParallelStrategy
 
                 return HPUParallelStrategy.strategy_name
-            else:
-                from lightning_habana import SingleHPUStrategy
 
-                return SingleHPUStrategy(device=torch.device("hpu"))
-        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
+            from lightning_habana import SingleHPUStrategy
+
+            return SingleHPUStrategy(device=torch.device("hpu"))
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
-            else:
-                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])
+            # TODO: lazy initialized device, then here could be self._strategy_flag = "single_xla"
+            return SingleDeviceXLAStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
@@ -515,16 +507,16 @@ class _AcceleratorConnector:
 
             if isinstance(self.accelerator, HPUAccelerator):
                 return HPUPrecisionPlugin(self._precision_flag)
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_flag == "32-true":
-                return TPUPrecisionPlugin()
-            elif self._precision_flag in ("16-mixed", "bf16-mixed"):
+                return XLAPrecisionPlugin()
+            if self._precision_flag in ("16-mixed", "bf16-mixed"):
                 if self._precision_flag == "16-mixed":
                     rank_zero_warn(
                         "You passed `Trainer(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
                         " is not supported on TPUs. Using `precision='bf16-mixed'` instead."
                     )
-                return TPUBf16PrecisionPlugin()
+                return XLABf16PrecisionPlugin()
 
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
@@ -561,7 +553,7 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_flag == "64-true":
                 raise MisconfigurationException(
                     "`Trainer(accelerator='tpu', precision='64-true')` is not implemented."
@@ -569,10 +561,10 @@ class _AcceleratorConnector:
                     " requesting this feature."
                 )
             if self._precision_plugin_flag and not isinstance(
-                self._precision_plugin_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin)
+                self._precision_plugin_flag, (XLAPrecisionPlugin, XLABf16PrecisionPlugin)
             ):
                 raise ValueError(
-                    f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                    f"The `XLAAccelerator` can only be used with a `XLAPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
         if _LIGHTNING_HABANA_AVAILABLE:
@@ -622,11 +614,11 @@ class _AcceleratorConnector:
 
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
-        if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy)
+        if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

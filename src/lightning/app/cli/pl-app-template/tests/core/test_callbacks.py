@@ -10,7 +10,7 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.loggers import TensorBoardLogger
 
 
-@pytest.mark.parametrize("rank", (0, 1))
+@pytest.mark.parametrize("rank", [0, 1])
 def test_progress_tracker_enabled(rank):
     trainer = Mock()
     trainer.global_rank = rank

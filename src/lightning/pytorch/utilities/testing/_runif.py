@@ -11,56 +11,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
-import os
-import sys
-from typing import Any, Optional
+from typing import Dict, List, Optional, Tuple
 
-import torch
-from lightning_utilities.core.imports import compare_version, RequirementCache
-from packaging.version import Version
+from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.accelerators.cuda import num_cuda_devices
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.testing import _RunIf as FabricRunIf
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.tpu import TPUAccelerator
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
-from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.pytorch.utilities.imports import _IPU_AVAILABLE, _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
 
 def _RunIf(
+    *,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,
     max_torch: Optional[str] = None,
     min_python: Optional[str] = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
-    ipu: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
     deepspeed: bool = False,
+    dynamo: bool = False,
     rich: bool = False,
     omegaconf: bool = False,
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
-    dynamo: bool = False,
-) -> Any:  # not the real return because it would require that pytest is available
-    """Wrapper around ``pytest.mark.skipif`` with specific conditions.
-
-    Example:
-
-        @RunIf(min_python="3.6")
-        @pytest.mark.parametrize("arg1", [1, 2.0])
-        def test_wrapper(arg1):
-            assert arg1 > 0.0
-
+) -> Tuple[List[str], Dict[str, bool]]:
+    """
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
@@ -74,123 +58,41 @@ def _RunIf(
         standalone: Mark the test as standalone, our CI will run it in a separate process.
             This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
         deepspeed: Require that microsoft/DeepSpeed is installed.
+        dynamo: Require that `torch.dynamo` is supported.
         rich: Require that willmcgugan/rich is installed.
         omegaconf: Require that omry/omegaconf is installed.
         psutil: Require that psutil is installed.
         sklearn: Require that scikit-learn is installed.
         onnx: Require that onnx is installed.
-        dynamo: Require that `torch.dynamo` is supported.
     """
-    import pytest
 
-    conditions = []
-    reasons = []
-    kwargs: dict = {}  # It's required for our CI to run under the different PL_RUN_X_TESTS
+    reasons, kwargs = FabricRunIf(
+        min_cuda_gpus=min_cuda_gpus,
+        min_torch=min_torch,
+        max_torch=max_torch,
+        min_python=min_python,
+        bf16_cuda=bf16_cuda,
+        tpu=tpu,
+        mps=mps,
+        skip_windows=skip_windows,
+        standalone=standalone,
+        deepspeed=deepspeed,
+        dynamo=dynamo,
+    )
 
-    if min_cuda_gpus:
-        conditions.append(num_cuda_devices() < min_cuda_gpus)
-        reasons.append(f"GPUs>={min_cuda_gpus}")
-        # used in conftest.py::pytest_collection_modifyitems
-        kwargs["min_cuda_gpus"] = True
-
-    if min_torch:
-        # set use_base_version for nightly support
-        conditions.append(compare_version("torch", operator.lt, min_torch, use_base_version=True))
-        reasons.append(f"torch>={min_torch}, {torch.__version__} installed")
-
-    if max_torch:
-        # set use_base_version for nightly support
-        conditions.append(compare_version("torch", operator.ge, max_torch, use_base_version=True))
-        reasons.append(f"torch<{max_torch}, {torch.__version__} installed")
-
-    if min_python:
-        py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-        conditions.append(Version(py_version) < Version(min_python))
-        reasons.append(f"python>={min_python}")
-
-    if bf16_cuda:
-        try:
-            cond = not (torch.cuda.is_available() and torch.cuda.is_bf16_supported())
-        except (AssertionError, RuntimeError) as ex:
-            # AssertionError: Torch not compiled with CUDA enabled
-            # RuntimeError: Found no NVIDIA driver on your system.
-            is_unrelated = "Found no NVIDIA driver" not in str(ex) or "Torch not compiled with CUDA" not in str(ex)
-            if is_unrelated:
-                raise ex
-            cond = True
-
-        conditions.append(cond)
-        reasons.append("CUDA device bf16")
-
-    if skip_windows:
-        conditions.append(sys.platform == "win32")
-        reasons.append("unimplemented on Windows")
-
-    if tpu:
-        conditions.append(not TPUAccelerator.is_available())
-        reasons.append("TPU")
-        # used in conftest.py::pytest_collection_modifyitems
-        kwargs["tpu"] = True
-
-    if ipu:
-        conditions.append(not _IPU_AVAILABLE)
-        reasons.append("IPU")
-        # used in conftest.py::pytest_collection_modifyitems
-        kwargs["ipu"] = True
-
-    if mps is not None:
-        if mps:
-            conditions.append(not MPSAccelerator.is_available())
-            reasons.append("MPS")
-        else:
-            conditions.append(MPSAccelerator.is_available())
-            reasons.append("not MPS")
-
-    if standalone:
-        env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
-        conditions.append(env_flag != "1")
-        reasons.append("Standalone execution")
-        # used in conftest.py::pytest_collection_modifyitems
-        kwargs["standalone"] = True
-
-    if deepspeed:
-        conditions.append(not _DEEPSPEED_AVAILABLE)
-        reasons.append("Deepspeed")
-
-    if rich:
-        conditions.append(not _RICH_AVAILABLE)
+    if rich and not _RICH_AVAILABLE:
         reasons.append("Rich")
 
-    if omegaconf:
-        conditions.append(not _OMEGACONF_AVAILABLE)
+    if omegaconf and not _OMEGACONF_AVAILABLE:
         reasons.append("omegaconf")
 
-    if psutil:
-        conditions.append(not _PSUTIL_AVAILABLE)
+    if psutil and not _PSUTIL_AVAILABLE:
         reasons.append("psutil")
 
-    if sklearn:
-        conditions.append(not _SKLEARN_AVAILABLE)
+    if sklearn and not _SKLEARN_AVAILABLE:
         reasons.append("scikit-learn")
 
-    if onnx:
-        conditions.append(_TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE)
+    if onnx and _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
         reasons.append("onnx")
 
-    if dynamo:
-        if _TORCH_GREATER_EQUAL_2_1:
-            from torch._dynamo.eval_frame import is_dynamo_supported
-
-            cond = not is_dynamo_supported()
-        else:
-            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
-
-        # set use_base_version for nightly support
-        cond |= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
-        conditions.append(cond)
-        reasons.append("torch.dynamo")
-
-    reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
-    kwargs.pop("condition", None)
-    kwargs.pop("reason", None)
-    return pytest.mark.skipif(condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs)
+    return reasons, kwargs

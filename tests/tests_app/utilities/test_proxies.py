@@ -67,7 +67,7 @@ def test_lightning_work_setattr():
 
 
 @pytest.mark.parametrize(
-    ["parallel", "cache_calls"],
+    ("parallel", "cache_calls"),
     [
         (True, True),
         (True, False),
@@ -361,7 +361,7 @@ def test_path_argument_to_transfer(*_):
 
 
 @pytest.mark.parametrize(
-    "origin,exists_remote,expected_get",
+    ("origin", "exists_remote", "expected_get"),
     [
         (None, False, False),
         ("root.work", True, False),
@@ -641,7 +641,7 @@ def test_state_observer():
 
 
 @pytest.mark.parametrize(
-    "patch_constants, environment, expected_ip_addr",
+    ("patch_constants", "environment", "expected_ip_addr"),
     [
         ({}, {}, "127.0.0.1"),
         ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "0.0.0.0"),  # noqa: S104

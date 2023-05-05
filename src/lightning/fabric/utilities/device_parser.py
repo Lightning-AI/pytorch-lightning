@@ -42,9 +42,7 @@ def _determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     assert len(gpus) > 0, "GPUs should be a non-empty list"
 
     # set root gpu
-    root_gpu = gpus[0]
-
-    return root_gpu
+    return gpus[0]
 
 
 def _parse_gpu_ids(
