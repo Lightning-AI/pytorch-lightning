@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 
-from benchmarks_pytorch.measure import measure_loops
+from parity_pytorch.measure import measure_loops
 from tests_pytorch.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
 
 NUM_EPOCHS = 20

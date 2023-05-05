@@ -11,56 +11,64 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import time
 from copy import deepcopy
-from typing import Callable
 
-import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
-from benchmarks_fabric.models import ConvNet
-from benchmarks_fabric.utils import (
+from parity_fabric.models import ConvNet
+from parity_fabric.utils import (
     cuda_reset,
-    get_model_input_dtype,
     is_cuda_memory_close,
     is_state_dict_equal,
     is_timing_close,
     make_deterministic,
 )
 from lightning.fabric.fabric import Fabric
-from tests_fabric.helpers.runif import RunIf
 
 
-def train_torch(
-    move_to_device: Callable,
-    precision_context,
-    input_dtype=torch.float32,
+def train_torch_ddp(
+    rank,
+    world_size,
+    device=torch.device("cpu"),
+    backend="nccl",
 ):
-    make_deterministic(warn_only=True)
+    make_deterministic()
     memory_stats = {}
 
-    model = ConvNet()
-    model = move_to_device(model)
+    os.environ["LOCAL_RANK"] = str(rank)
+    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
+
+    model = ConvNet().to(device)
+    initial_state_dict = deepcopy(model.state_dict())
+
+    ddp_model = DistributedDataParallel(model, device_ids=([rank] if device.type == "cuda" else None))
+
     dataloader = model.get_dataloader()
+    sampler = DistributedSampler(dataloader.dataset, rank=rank, num_replicas=world_size, drop_last=False, shuffle=False)
+    dataloader = DataLoader(dataloader.dataset, sampler=sampler, batch_size=model.batch_size)
     optimizer = model.get_optimizer()
     loss_fn = model.get_loss_function()
 
     memory_stats["start"] = torch.cuda.memory_stats()
 
-    model.train()
+    ddp_model.train()
     iteration_timings = []
     iterator = iter(dataloader)
     for _ in range(model.num_steps):
         t0 = time.perf_counter()
 
         inputs, labels = next(iterator)
-        inputs, labels = move_to_device(inputs), move_to_device(labels)
+        inputs, labels = inputs.to(device), labels.to(device)
         optimizer.zero_grad()
-        with precision_context():
-            outputs = model(inputs.to(input_dtype))
-        loss = loss_fn(outputs.float(), labels)
+        outputs = ddp_model(inputs)
+        loss = loss_fn(outputs, labels)
         loss.backward()
         optimizer.step()
 
@@ -69,11 +77,14 @@ def train_torch(
 
     memory_stats["end"] = torch.cuda.memory_stats()
 
-    return model.state_dict(), torch.tensor(iteration_timings), memory_stats
+    # check that the model has changed
+    assert not is_state_dict_equal(initial_state_dict, ddp_model.module.state_dict())
+
+    return ddp_model.module.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-def train_fabric(fabric):
-    make_deterministic(warn_only=True)
+def train_fabric_ddp(fabric):
+    make_deterministic()
     memory_stats = {}
 
     model = ConvNet()
@@ -112,42 +123,44 @@ def train_fabric(fabric):
     return model.state_dict(), torch.tensor(iteration_timings), memory_stats
 
 
-@pytest.mark.flaky(reruns=3)
-@pytest.mark.usefixtures("reset_deterministic_algorithm", "reset_cudnn_benchmark")
-@pytest.mark.parametrize(
-    ("precision", "accelerator"),
-    [
-        (32, "cpu"),
-        pytest.param(32, "cuda", marks=RunIf(min_cuda_gpus=1)),
-        # pytest.param(16, "cuda", marks=RunIf(min_cuda_gpus=1)),  # TODO: requires GradScaler
-        pytest.param("bf16", "cpu", marks=RunIf(skip_windows=True)),
-        pytest.param("bf16", "cuda", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
-        pytest.param(32, "mps", marks=RunIf(mps=True)),
-    ],
-)
-def test_parity_single_device(precision, accelerator):
-    input_dtype = get_model_input_dtype(precision)
-
+def run_parity_test(accelerator: str = "cpu", devices: int = 2, tolerance: float = 0.02):
     cuda_reset()
+
+    # Launch processes with Fabric and re-use them for the PyTorch training for convenience
+    fabric = Fabric(accelerator=accelerator, strategy="ddp", devices=devices)
+    fabric.launch()
 
     # Train with Fabric
-    fabric = Fabric(precision=precision, accelerator=accelerator, devices=1)
-    state_dict_fabric, timings_fabric, memory_fabric = train_fabric(fabric)
+    state_dict_fabric, timings_fabric, memory_fabric = train_fabric_ddp(fabric)
 
+    fabric.barrier()
     cuda_reset()
+    torch.distributed.destroy_process_group()
+    # sleep for a bit to avoid race conditions, since the very first call in `train_torch_ddp`
+    # is initializing a new process group
+    time.sleep(3)
 
     # Train with raw PyTorch
-    state_dict_torch, timings_torch, memory_torch = train_torch(
-        fabric.to_device, precision_context=fabric.autocast, input_dtype=input_dtype
+    state_dict_torch, timings_torch, memory_torch = train_torch_ddp(
+        rank=fabric.global_rank,
+        world_size=fabric.world_size,
+        device=fabric.device,
+        backend=fabric.strategy._process_group_backend,
     )
 
     # Compare the final weights
-    assert is_state_dict_equal(state_dict_torch, state_dict_fabric)
+    assert all(fabric.all_gather(is_state_dict_equal(state_dict_torch, state_dict_fabric)))
 
     # Compare the time per iteration
-    assert is_timing_close(timings_torch, timings_fabric, rtol=1e-2, atol=0.1)
+    assert all(fabric.all_gather(is_timing_close(timings_torch, timings_fabric, rtol=tolerance, atol=tolerance)))
 
     # Compare memory usage
     if accelerator == "cuda":
-        assert is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])
-        assert is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])
+        assert all(fabric.all_gather(is_cuda_memory_close(memory_torch["start"], memory_fabric["start"])))
+        assert all(fabric.all_gather(is_cuda_memory_close(memory_torch["end"], memory_fabric["end"])))
+
+
+if __name__ == "__main__":
+    from jsonargparse.cli import CLI
+
+    CLI(run_parity_test)
