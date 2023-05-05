@@ -1370,6 +1370,10 @@ class Trainer:
 
     @property
     def sanity_checking(self) -> bool:
+        """Whether sanity checking is running.
+
+        Useful to disable some hooks, logging or callbacks during the sanity checking.
+        """
         return self.state.stage == RunningStage.SANITY_CHECKING
 
     @sanity_checking.setter

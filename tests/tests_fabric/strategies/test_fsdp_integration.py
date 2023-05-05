@@ -202,7 +202,7 @@ def test_compile(compile_after_setup):
         ("64-true", torch.float64),
     ],
 )
-def test_module_init_context(precision, expected_dtype):
+def test_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     fabric = Fabric(
         accelerator="cuda",
