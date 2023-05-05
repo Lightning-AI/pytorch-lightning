@@ -56,7 +56,7 @@ def test_outputs_format(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("seed_once", (True, False))
+@pytest.mark.parametrize("seed_once", [True, False])
 def test_training_starts_with_seed(tmpdir, seed_once):
     """Test the behavior of seed_everything on subsequent Trainer runs in combination with different settings of
     num_sanity_val_steps (which must not affect the random state)."""
@@ -95,6 +95,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
                 return -1
+            return None
 
     model = CurrentModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)

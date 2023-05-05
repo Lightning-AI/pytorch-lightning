@@ -76,6 +76,7 @@ def test_run_input_output():
 def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
     fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
+    fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
     setup_method = getattr(fabric, setup_method)
     fabric_model = setup_method(model)
@@ -262,6 +263,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
     """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
     independently."""
     fabric = Fabric()
+    fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
     fabric._strategy = Mock(spec=strategy_cls)
@@ -394,6 +396,7 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     sampler."""
     fabric = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=2)
     # no fabric.launch(): pretend we are on rank 0 now
+    fabric._launched = True
 
     dataset = TensorDataset(torch.arange(8))
 
@@ -422,6 +425,7 @@ def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     torch.manual_seed(1)
     fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
     # no fabric.launch(): pretend we are on rank 0 now
+    fabric._launched = True
 
     dataset = torch.arange(10)
     torch_dataloader = DataLoader(
@@ -484,6 +488,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 
     # explicitly asking to replace when a custom sampler is already configured raises an exception
     fabric = Fabric(accelerator="cpu", strategy=strategy, devices=2)
+    fabric._launched = True  # pretend we have launched multiple processes
     if hasattr(fabric.strategy, "distributed_sampler_kwargs"):
         with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
             fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
@@ -507,6 +512,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Fabric replaces the default samplers with DistributedSampler automatically."""
     fabric = Fabric(accelerator="cpu", strategy=strategy, devices=2)
+    fabric._launched = True  # pretend we have launched multiple processes
     is_distributed = hasattr(fabric.strategy, "distributed_sampler_kwargs")
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
     assert not is_distributed or isinstance(fabric_dataloader.sampler, DistributedSampler)
@@ -581,7 +587,8 @@ def test_backward():
 @RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
-    fabric = Fabric(strategy="deepspeed")
+    fabric = Fabric(strategy="deepspeed", devices=1)
+    fabric._launched = True  # pretend we have launched
 
     model0 = nn.Linear(1, 2)
     model1 = nn.Linear(1, 2)
@@ -692,7 +699,7 @@ def test_launch_and_cli_not_allowed():
 
 
 @RunIf(mps=False)
-@pytest.mark.parametrize("strategy", ("xla", "ddp_spawn"))
+@pytest.mark.parametrize("strategy", ["xla", "ddp_spawn"])
 def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
     fabric = Fabric(strategy=strategy)
     with pytest.raises(TypeError, match=r"launch\(\)` needs to be called with a function"):
@@ -926,6 +933,7 @@ def test_barrier():
     """Test that `Fabric.barrier()` calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock()
+    fabric._launched = True
     fabric.barrier("test")
     fabric._strategy.barrier.assert_called_once_with(name="test")
 
@@ -934,6 +942,7 @@ def test_broadcast():
     """Test that `Fabric.broadcast()` calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock()
+    fabric._launched = True
     fabric.broadcast(torch.tensor(1), src=2)
     fabric._strategy.broadcast.assert_called_once_with(torch.tensor(1), src=2)
 
@@ -942,6 +951,7 @@ def test_all_gather():
     """Test that `Fabric.all_gather()` applies itself to collections and calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock(root_device=torch.device("cpu"))
+    fabric._launched = True
     defaults = {"group": None, "sync_grads": False}
 
     # single tensor
@@ -963,6 +973,7 @@ def test_all_reduce():
     """Test that `Fabric.all_reduce()` applies itself to collections and calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock(root_device=torch.device("cpu"))
+    fabric._launched = True
     defaults = {"group": None, "reduce_op": "mean"}
 
     # single tensor
@@ -1008,3 +1019,24 @@ def test_grad_clipping(clip_val, max_norm):
         fabric.strategy.clip_gradients_norm.assert_called_once_with(
             torch_model, torch_optimizer, max_norm=max_norm, norm_type=2.0, error_if_nonfinite=True
         )
+
+
+def test_verify_launch_called():
+    """Test that the user gets an error message if they forgot to call `.launch()`."""
+    fabric = Fabric(accelerator="cpu")
+    assert not fabric._launched
+    fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DDPStrategy)
+    with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
+        fabric._validate_launched()
+
+    method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
+    for method_name in method_names:
+        method = getattr(fabric, method_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
+            method(Mock())
+
+    fabric.launch()
+    assert fabric._launched
+    fabric._validate_launched()

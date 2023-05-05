@@ -231,8 +231,7 @@ class ModelParallelClassification(BoringFabric):
         # Ensure output is in float32 for softmax operation
         x = x.float()
         logits = F.softmax(x, dim=1)
-        loss = F.cross_entropy(logits, y)
-        return loss
+        return F.cross_entropy(logits, y)
 
     def _make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())

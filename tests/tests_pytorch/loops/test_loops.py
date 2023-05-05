@@ -190,8 +190,8 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("stop_epoch", [1, 2])
+@pytest.mark.parametrize("stop_batch", [1, 2])
 @pytest.mark.parametrize(("n_dataloaders", "stop_dataloader"), [(2, 0), (2, 1), (3, 2)])
 def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
@@ -251,9 +251,9 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.state_dict() == expected
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
+@pytest.mark.parametrize("stop_epoch", [1, 2])
+@pytest.mark.parametrize("stop_batch", [1, 2])
 def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, tmpdir):
     n_epochs = 3
     n_batches = 3
@@ -799,9 +799,9 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         def _get_iterator(self):
             if self.num_workers == 0:
                 return super()._get_iterator()
-            else:
-                self.check_worker_number_rationality()
-                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+            self.check_worker_number_rationality()
+            return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
 
     train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
     val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
