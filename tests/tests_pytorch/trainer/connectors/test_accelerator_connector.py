@@ -258,7 +258,7 @@ def test_accelerator_cpu(cuda_count_0):
         Trainer(accelerator="cuda")
 
 
-@pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
+@pytest.mark.parametrize("device_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]])
 def test_accelererator_invalid_type_devices(cuda_count_2, device_count):
     with pytest.raises(
         MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
@@ -311,7 +311,7 @@ def test_set_devices_if_none_cpu():
 
 @pytest.mark.parametrize(
     ("strategy", "strategy_class"),
-    (
+    [
         ("ddp_spawn", DDPStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp_spawn_find_unused_parameters_true", DDPStrategy),
@@ -319,7 +319,7 @@ def test_set_devices_if_none_cpu():
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_find_unused_parameters_true", DDPStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
-    ),
+    ],
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
@@ -606,7 +606,7 @@ def test_deterministic_init(deterministic):
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
 
 
-@pytest.mark.parametrize("cudnn_benchmark", (False, True))
+@pytest.mark.parametrize("cudnn_benchmark", [False, True])
 @pytest.mark.parametrize(
     ("benchmark_", "deterministic", "expected"),
     [
@@ -696,8 +696,8 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
         Trainer(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu", "ipu"))
-@pytest.mark.parametrize("devices", ("0", 0, []))
+@pytest.mark.parametrize("accelerator", ["cpu", "cuda", "mps", "tpu", "ipu"])
+@pytest.mark.parametrize("devices", ["0", 0, []])
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
@@ -804,7 +804,7 @@ def test_bagua_external_strategy(monkeypatch):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
-@pytest.mark.parametrize("is_interactive", (False, True))
+@pytest.mark.parametrize("is_interactive", [False, True])
 def test_connector_auto_selection(monkeypatch, is_interactive):
     import lightning.fabric  # avoid breakage with standalone package
 

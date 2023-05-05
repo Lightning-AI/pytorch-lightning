@@ -302,7 +302,7 @@ def test_warning_if_tpus_not_used(tpu_available):
 
 @RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
-    ["devices", "expected_device_ids"],
+    ("devices", "expected_device_ids"),
     [
         (1, [0]),
         (8, list(range(8))),

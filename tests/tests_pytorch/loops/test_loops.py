@@ -190,8 +190,8 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("stop_epoch", [1, 2])
+@pytest.mark.parametrize("stop_batch", [1, 2])
 @pytest.mark.parametrize(("n_dataloaders", "stop_dataloader"), [(2, 0), (2, 1), (3, 2)])
 def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
@@ -251,9 +251,9 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.state_dict() == expected
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
+@pytest.mark.parametrize("stop_epoch", [1, 2])
+@pytest.mark.parametrize("stop_batch", [1, 2])
 def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, tmpdir):
     n_epochs = 3
     n_batches = 3

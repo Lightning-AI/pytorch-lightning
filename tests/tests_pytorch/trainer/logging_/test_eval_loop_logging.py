@@ -233,7 +233,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     assert results[0] == {"c": torch.tensor(2), "d/e/f": 2}
 
 
-@pytest.mark.parametrize("suffix", (False, True))
+@pytest.mark.parametrize("suffix", [False, True])
 def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     class TestModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx=0):
@@ -467,7 +467,7 @@ def test_log_works_in_test_callback(tmpdir):
             if func_name in key:
                 break
         else:
-            assert False, (func_name, list(callback_metrics))
+            pytest.fail(f"{func_name}, {list(callback_metrics)}")
 
     def get_expected(on_epoch, values):
         reduction = np.mean if on_epoch else np.max
@@ -941,7 +941,7 @@ def test_rich_print_results(inputs, expected):
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
-@pytest.mark.parametrize("num_dataloaders", (1, 2))
+@pytest.mark.parametrize("num_dataloaders", [1, 2])
 def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""
 

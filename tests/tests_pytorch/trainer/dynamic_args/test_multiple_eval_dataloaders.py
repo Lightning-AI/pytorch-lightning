@@ -43,7 +43,7 @@ class RandomDatasetB(Dataset):
         return self.len
 
 
-@pytest.mark.parametrize("seq_type", (tuple, list))
+@pytest.mark.parametrize("seq_type", [tuple, list])
 def test_multiple_eval_dataloaders_seq(tmpdir, seq_type):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):

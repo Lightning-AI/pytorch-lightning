@@ -27,7 +27,7 @@ def test_availability():
 
 
 @pytest.mark.parametrize(
-    "devices,expected",
+    ("devices", "expected"),
     [
         (0, []),  # TODO(fabric): This should raise an exception
         (1, [0]),
