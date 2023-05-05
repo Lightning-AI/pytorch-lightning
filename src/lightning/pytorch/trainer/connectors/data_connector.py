@@ -197,7 +197,7 @@ class _DataConnector:
             or isinstance(self.trainer.accelerator, IPUAccelerator)
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
-            dataloader = _update_dataloader(dataloader, sampler, mode=mode)
+            return _update_dataloader(dataloader, sampler, mode=mode)
 
         return dataloader
 
@@ -246,8 +246,7 @@ def _get_distributed_sampler(
     kwargs["shuffle"] = shuffle and not overfit_batches
     kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
     cls = UnrepeatedDistributedSamplerWrapper if mode == RunningStage.PREDICTING else DistributedSamplerWrapper
-    sampler = cls(dataloader.sampler, **kwargs)
-    return sampler
+    return cls(dataloader.sampler, **kwargs)
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:

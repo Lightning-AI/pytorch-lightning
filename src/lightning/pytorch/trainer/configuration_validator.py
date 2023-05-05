@@ -97,7 +97,7 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
     if stage == "predict":
         if model.predict_step is None:
             raise MisconfigurationException("`predict_step` cannot be None to run `Trainer.predict`")
-        elif not has_step and not is_overridden("forward", model):
+        if not has_step and not is_overridden("forward", model):
             raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
     else:
         # verify minimum evaluation requirements

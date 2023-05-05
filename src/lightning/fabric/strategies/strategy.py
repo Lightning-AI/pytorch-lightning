@@ -277,7 +277,7 @@ class Strategy(ABC):
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue
-            elif isinstance(obj, _Stateful):
+            if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
                     # TODO(fabric): Make strict loading configurable
                     obj.load_state_dict(checkpoint.pop(name), strict=True)

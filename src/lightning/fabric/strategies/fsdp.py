@@ -145,6 +145,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return self.mixed_precision
         if isinstance(self.precision, FSDPPrecision):
             return self.precision.mixed_precision_config
+        return None
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -233,7 +234,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
@@ -352,7 +353,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     _FSDP_FLATTENED = "_fsdp_flattened"
     if _TORCH_GREATER_EQUAL_1_13:
         return any(getattr(param, _FSDP_FLATTENED, False) for param in optimizer.param_groups[0]["params"])
-    else:
-        from torch.distributed.fsdp import FlatParameter
 
-        return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
+    from torch.distributed.fsdp import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])

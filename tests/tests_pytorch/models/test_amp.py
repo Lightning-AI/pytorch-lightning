@@ -31,8 +31,7 @@ class AMPTestModel(BoringModel):
         output = self(batch)
         is_bfloat16 = self.trainer.precision_plugin.precision == "bf16-mixed"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
-        loss = self.loss(output)
-        return loss
+        return self.loss(output)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()

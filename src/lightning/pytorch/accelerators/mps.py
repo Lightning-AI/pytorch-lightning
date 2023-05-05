@@ -49,8 +49,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        parsed_devices = _parse_gpu_ids(devices, include_mps=True)
-        return parsed_devices
+        return _parse_gpu_ids(devices, include_mps=True)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:

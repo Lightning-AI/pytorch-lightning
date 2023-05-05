@@ -150,8 +150,7 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
         monkeypatch.setattr(pl.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
 
     def custom_method(self, batch, *_, **__):
-        batch = batch + 1
-        return batch
+        return batch + 1
 
     trainer = Trainer(default_root_dir=tmpdir, **trainer_kwargs)
 

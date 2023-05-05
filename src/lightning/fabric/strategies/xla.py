@@ -175,8 +175,7 @@ class XLAStrategy(ParallelStrategy):
 
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
-        return obj
+        return torch.load(buffer)
 
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None

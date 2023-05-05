@@ -45,8 +45,7 @@ class BoringFabric(Fabric):
 
     def step(self, model: Module, batch: Any) -> Tensor:
         output = model(batch)
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
     def after_backward(self, model: Module, optimizer: Optimizer) -> None:
         pass

@@ -53,7 +53,7 @@ class ModelSummary(Callback):
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._max_depth:
-            return None
+            return
 
         model_summary = self._summary(trainer, pl_module)
         summary_data = model_summary._get_summary_data()

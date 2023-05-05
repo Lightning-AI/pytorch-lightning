@@ -285,6 +285,7 @@ async def post_delta(
     body: Dict = await request.json()
     assert api_app_delta_queue is not None
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(body["delta"])))
+    return None
 
 
 @fastapi_service.post("/api/v1/state")
@@ -323,6 +324,7 @@ async def post_state(
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
     assert api_app_delta_queue is not None
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(deep_diff)))
+    return None
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")

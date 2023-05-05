@@ -120,8 +120,7 @@ def test_tuner_lr_find(tmpdir, use_hparams):
             self.lr = lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.lr if use_hparams else self.lr)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.hparams.lr if use_hparams else self.lr)
 
     before_lr = 1e-2
     model = CustomBoringModel(lr=before_lr)
@@ -147,10 +146,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
             self.my_fancy_lr = my_fancy_lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(
-                self.parameters(), lr=self.hparams.my_fancy_lr if use_hparams else self.my_fancy_lr
-            )
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.hparams.my_fancy_lr if use_hparams else self.my_fancy_lr)
 
     before_lr = 1e-2
     model = CustomBoringModel(my_fancy_lr=before_lr)
@@ -174,12 +170,11 @@ def test_call_to_trainer_method(tmpdir, opt):
             self.save_hyperparameters()
 
         def configure_optimizers(self):
-            optimizer = (
+            return (
                 torch.optim.Adagrad(self.parameters(), lr=self.hparams.lr)
                 if opt == "Adagrad"
                 else torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
             )
-            return optimizer
 
     before_lr = 1e-2
     model = CustomBoringModel(1e-2)
@@ -248,8 +243,7 @@ def test_suggestion_parameters_work(tmpdir):
             self.lr = lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     # logger file to get meta
     model = CustomBoringModel(lr=1e-2)
@@ -274,8 +268,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
             self.lr = lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     model = CustomBoringModel(lr=1e-2)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)

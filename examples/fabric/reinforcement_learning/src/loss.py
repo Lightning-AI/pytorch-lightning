@@ -5,8 +5,7 @@ import torch.nn.functional as F
 def policy_loss(advantages: torch.Tensor, ratio: torch.Tensor, clip_coef: float) -> torch.Tensor:
     pg_loss1 = -advantages * ratio
     pg_loss2 = -advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-    pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-    return pg_loss
+    return torch.max(pg_loss1, pg_loss2).mean()
 
 
 def value_loss(

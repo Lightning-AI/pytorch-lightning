@@ -119,8 +119,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
-        return log_dir
+        return os.path.join(self.root_dir, version)
 
     @property
     def save_dir(self) -> str:

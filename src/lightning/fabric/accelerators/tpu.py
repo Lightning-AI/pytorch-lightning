@@ -169,9 +169,7 @@ def _tpu_devices_valid(devices: Any) -> bool:
     if isinstance(devices, (list, tuple, set)):
         has_1_tpu_idx = len(devices) == 1
         is_valid_tpu_idx = 1 <= list(devices)[0] <= 8
-
-        is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
-        return is_valid_tpu_core_choice
+        return has_1_tpu_idx and is_valid_tpu_idx
 
     return False
 

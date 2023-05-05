@@ -103,8 +103,7 @@ def parse_args():
     parser.add_argument("--ent-coef", type=float, default=0.0, help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=1.0, help="coefficient of the value function")
     parser.add_argument("--max-grad-norm", type=float, default=0.5, help="the maximum norm for the gradient clipping")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def layer_init(layer: torch.nn.Module, std: float = np.sqrt(2), bias_const: float = 0.0, ortho_init: bool = True):
