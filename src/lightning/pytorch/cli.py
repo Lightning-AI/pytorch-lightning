@@ -90,9 +90,7 @@ class LightningArgumentParser(ArgumentParser):
             default_env: Whether to parse environment variables.
         """
         if not _JSONARGPARSE_SIGNATURES_AVAILABLE:
-            raise ModuleNotFoundError(
-                f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
-            )
+            raise ModuleNotFoundError(f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}")
         super().__init__(*args, description=description, env_prefix=env_prefix, default_env=default_env, **kwargs)
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
