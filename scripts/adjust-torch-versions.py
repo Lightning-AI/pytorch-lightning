@@ -8,8 +8,6 @@ import re
 import sys
 from typing import Dict, Optional
 
-from packaging.version import Version
-
 VERSIONS = [
     {"torch": "2.0.1", "torchvision": "0.15.2", "torchtext": "0.15.2"},  # stable
     {"torch": "2.0.0", "torchvision": "0.15.1", "torchtext": "0.15.1"},
@@ -28,7 +26,6 @@ VERSIONS = [
     {"torch": "1.8.1", "torchvision": "0.9.1", "torchtext": "0.9.1"},
     {"torch": "1.8.0", "torchvision": "0.9.0", "torchtext": "0.9.0"},
 ]
-VERSIONS.sort(key=lambda v: Version(v["torch"]), reverse=True)
 
 
 def find_latest(ver: str) -> Dict[str, str]:
