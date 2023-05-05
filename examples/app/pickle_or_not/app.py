@@ -10,10 +10,9 @@ class PickleChecker(L.LightningWork):
         parsed = self.parse_image(pickle_image)
         if parsed == b"it is a pickle":
             return True
-        elif parsed == b"it is not a pickle":
+        if parsed == b"it is not a pickle":
             return False
-        else:
-            raise Exception("Couldn't parse the image")
+        raise Exception("Couldn't parse the image")
 
     @staticmethod
     def parse_image(image_str: bytes):

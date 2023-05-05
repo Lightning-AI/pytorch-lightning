@@ -21,7 +21,7 @@ def create_boring_checkpoint(tmp_path, model, accelerator="cuda"):
 
 
 @pytest.mark.parametrize(
-    "map_location", (None, "cpu", torch.device("cpu"), lambda storage, loc: storage, {"cpu": "cpu"})
+    "map_location", [None, "cpu", torch.device("cpu"), lambda storage, loc: storage, {"cpu": "cpu"}]
 )
 def test_load_from_checkpoint_map_location_cpu(tmp_path, map_location):
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
@@ -31,7 +31,7 @@ def test_load_from_checkpoint_map_location_cpu(tmp_path, map_location):
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
-    "map_location", (None, "cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"})
+    "map_location", [None, "cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"}]
 )
 def test_load_from_checkpoint_map_location_gpu(tmp_path, map_location):
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cuda")
@@ -40,7 +40,7 @@ def test_load_from_checkpoint_map_location_gpu(tmp_path, map_location):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("map_location", ("cpu", torch.device("cpu"), lambda storage, loc: storage, {"cuda": "cpu"}))
+@pytest.mark.parametrize("map_location", ["cpu", torch.device("cpu"), lambda storage, loc: storage, {"cuda": "cpu"}])
 def test_load_from_checkpoint_map_location_gpu_to_cpu(tmp_path, map_location):
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
     model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", map_location=map_location)
@@ -49,7 +49,7 @@ def test_load_from_checkpoint_map_location_gpu_to_cpu(tmp_path, map_location):
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
-    "map_location", ("cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"})
+    "map_location", ["cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"}]
 )
 def test_load_from_checkpoint_map_location_cpu_to_gpu(tmp_path, map_location):
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")

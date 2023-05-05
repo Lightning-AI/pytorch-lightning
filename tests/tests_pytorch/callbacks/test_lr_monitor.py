@@ -118,8 +118,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     class CustomBoringModel(BoringModel):
         def configure_optimizers(self):
-            optimizer = optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return optim.SGD(self.parameters(), lr=0.1)
 
     model = CustomBoringModel()
 
@@ -603,8 +602,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
                 {"params": list(self.linear_a.parameters())},
                 {"params": list(self.linear_b.parameters())},
             ]
-            optimizer = torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
-            return optimizer
+            return torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(

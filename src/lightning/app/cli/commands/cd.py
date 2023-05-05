@@ -64,44 +64,44 @@ def cd(path: Optional[Union[Tuple[str], str]], verify: bool = True) -> None:
             print(f"cd {root}")
 
             return root
-        else:
-            # read from saved cd
-            with open(_CD_FILE) as f:
-                lines = f.readlines()
-                root = lines[0].replace("\n", "")
 
-            if verify:
-                if path.startswith("/"):
-                    paths = [os.path.join(path, p) for p in ls.ls(path, print=False, use_live=False)]
-                else:
-                    paths = [os.path.join(root, p) for p in ls.ls(root, print=False, use_live=False)]
+        # read from saved cd
+        with open(_CD_FILE) as f:
+            lines = f.readlines()
+            root = lines[0].replace("\n", "")
 
-            # generate new root
-            if root == "/":
-                if path == "/":
-                    root = "/"
-                elif not path.startswith(".."):
-                    if not path.startswith("/"):
-                        path = "/" + path
-                    root = path
-                else:
-                    root = _apply_double_dots(root, path)
+        if verify:
+            if path.startswith("/"):
+                paths = [os.path.join(path, p) for p in ls.ls(path, print=False, use_live=False)]
             else:
-                if path.startswith(".."):
-                    root = _apply_double_dots(root, path)
-                elif path.startswith("~"):
-                    root = path[2:]
-                else:
-                    root = os.path.join(root, path)
+                paths = [os.path.join(root, p) for p in ls.ls(root, print=False, use_live=False)]
 
-            if verify and root != "/" and not any(p.startswith(root) or root.startswith(p) for p in paths):
-                _error_and_exit(f"no such file or directory: {path}")
+        # generate new root
+        if root == "/":
+            if path == "/":
+                root = "/"
+            elif not path.startswith(".."):
+                if not path.startswith("/"):
+                    path = "/" + path
+                root = path
+            else:
+                root = _apply_double_dots(root, path)
+        else:
+            if path.startswith(".."):
+                root = _apply_double_dots(root, path)
+            elif path.startswith("~"):
+                root = path[2:]
+            else:
+                root = os.path.join(root, path)
 
-            os.remove(_CD_FILE)
+        if verify and root != "/" and not any(p.startswith(root) or root.startswith(p) for p in paths):
+            _error_and_exit(f"no such file or directory: {path}")
 
-            # store new root
-            with open(_CD_FILE, "w") as f:
-                f.write(root + "\n")
+        os.remove(_CD_FILE)
+
+        # store new root
+        with open(_CD_FILE, "w") as f:
+            f.write(root + "\n")
 
         live.stop()
 

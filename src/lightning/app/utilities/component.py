@@ -83,8 +83,7 @@ def _state_to_json(state: Dict[str, Any]) -> Dict[str, Any]:
     from lightning.app.storage.payload import _BasePayload
 
     state_paths_cleaned = apply_to_collection(state, dtype=(Path, _BasePayload), function=lambda x: x.to_dict())
-    state_diff_cleaned = apply_to_collection(state_paths_cleaned, dtype=type(NotPresent), function=lambda x: None)
-    return state_diff_cleaned
+    return apply_to_collection(state_paths_cleaned, dtype=type(NotPresent), function=lambda x: None)
 
 
 def _set_context(name: Optional[str]) -> None:

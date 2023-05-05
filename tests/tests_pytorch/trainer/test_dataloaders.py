@@ -162,7 +162,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
 
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
-@pytest.mark.parametrize("n", (1, 2))
+@pytest.mark.parametrize("n", [1, 2])
 def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
     """Verify that dataloaders can be passed."""
     train_dataloaders = DataLoader(RandomDataset(32, 64))
@@ -534,8 +534,8 @@ def test_warning_on_zero_len_dataloader():
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
-@pytest.mark.parametrize("stage", ("train", "test", "val"))
+@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
+@pytest.mark.parametrize("stage", ["train", "test", "val"])
 @patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
@@ -563,8 +563,8 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
-@pytest.mark.parametrize("stage", ("train", "test", "val"))
+@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
+@pytest.mark.parametrize("stage", ["train", "test", "val"])
 @patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
@@ -730,7 +730,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     trainer.predict(model, dataloaders=dataloader)
 
 
-@pytest.mark.parametrize("yield_at_all", (False, True))
+@pytest.mark.parametrize("yield_at_all", [False, True])
 def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     """Test that the training loop skips execution if the iterator is empty from the start."""
 
@@ -1132,7 +1132,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     assert tracker.mock_calls == expected_calls
 
 
-@pytest.mark.parametrize("sanity_check", (False, True))
+@pytest.mark.parametrize("sanity_check", [False, True])
 def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity_check):
     model = BoringModel()
     train_dataloader = model.train_dataloader()

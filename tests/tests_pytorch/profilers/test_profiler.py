@@ -521,7 +521,7 @@ def test_register_record_function(tmpdir):
     assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
-@pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
+@pytest.mark.parametrize("cls", [SimpleProfiler, AdvancedProfiler, PyTorchProfiler])
 def test_profiler_teardown(tmpdir, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 

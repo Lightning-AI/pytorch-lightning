@@ -86,9 +86,9 @@ def test_eval_limit_batches(mode, limit_batches):
 
 @pytest.mark.parametrize(
     "argument",
-    ("limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches", "overfit_batches"),
+    ["limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches", "overfit_batches"],
 )
-@pytest.mark.parametrize("value", (1, 1.0))
+@pytest.mark.parametrize("value", [1, 1.0])
 def test_limit_batches_info_message(caplog, argument, value):
     with caplog.at_level(logging.INFO):
         Trainer(**{argument: value})

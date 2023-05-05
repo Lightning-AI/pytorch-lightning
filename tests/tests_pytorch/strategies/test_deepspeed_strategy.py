@@ -100,7 +100,7 @@ def deepspeed_zero_config(deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("strategy", ("deepspeed", DeepSpeedStrategy))
+@pytest.mark.parametrize("strategy", ["deepspeed", DeepSpeedStrategy])
 def test_deepspeed_strategy_string(tmpdir, strategy):
     """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly
     set."""
@@ -581,8 +581,7 @@ class ModelParallelClassificationModel(LightningModule):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch

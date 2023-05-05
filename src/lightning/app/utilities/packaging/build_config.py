@@ -163,6 +163,7 @@ class BuildConfig:
         dockerfile = os.path.join(dirname, filename)
         if os.path.isfile(dockerfile):
             return dockerfile
+        return None
 
     def _prepare_requirements(self) -> None:
         requirements = []

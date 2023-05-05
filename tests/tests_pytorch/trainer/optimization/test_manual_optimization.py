@@ -406,8 +406,7 @@ def test_step_with_optimizer_closure(tmpdir):
                 x = F.dropout(x, 0.1)
                 predictions = self(x)
                 predictions = F.dropout(predictions, 0.1)
-                loss = self.loss(predictions)
-                return loss
+                return self.loss(predictions)
 
             def optimizer_closure():
                 # emulate bayesian optimization.
@@ -513,8 +512,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 x = F.dropout(x, 0.1)
                 predictions = self(x)
                 predictions = F.dropout(predictions, 0.1)
-                loss = self.loss(predictions)
-                return loss
+                return self.loss(predictions)
 
             def gen_closure():
                 loss_gen = compute_loss()

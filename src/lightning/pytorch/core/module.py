@@ -292,7 +292,7 @@ class LightningModule(
         """Reference to the list of loggers in the Trainer."""
         if self._fabric is not None:
             return self._fabric.loggers
-        elif self._trainer is not None:
+        if self._trainer is not None:
             return self._trainer.loggers
         return []  # type: ignore[return-value]
 
@@ -308,9 +308,8 @@ class LightningModule(
                 trainer_method = call._call_lightning_datamodule_hook
 
             return trainer_method(trainer, hook_name, *args)
-        else:
-            hook = getattr(self, hook_name)
-            return hook(*args)
+        hook = getattr(self, hook_name)
+        return hook(*args)
 
     def _on_before_batch_transfer(self, batch: Any, dataloader_idx: int = 0) -> Any:
         return self._call_batch_hook("on_before_batch_transfer", batch, dataloader_idx)
@@ -579,6 +578,7 @@ class LightningModule(
                 batch_size=batch_size,
                 rank_zero_only=rank_zero_only,
             )
+        return None
 
     def _log_dict_through_fabric(self, dictionary: Mapping[str, Any], logger: Optional[bool] = None) -> None:
         if logger is False:
