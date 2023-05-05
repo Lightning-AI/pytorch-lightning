@@ -203,7 +203,7 @@ class _DataConnector:
             or is_ipu
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
-            dataloader = _update_dataloader(dataloader, sampler, mode=mode)
+            return _update_dataloader(dataloader, sampler, mode=mode)
 
         return dataloader
 

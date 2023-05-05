@@ -57,10 +57,9 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
     fetcher.setup(loader)
 
     def generate():
-        generated = [(fetcher.fetched, data, fetcher.done) for data in fetcher]
         assert fetcher.fetched == 3
         assert fetcher.done
-        return generated
+        return [(fetcher.fetched, data, fetcher.done) for data in fetcher]
 
     # we can only know the last batch with sized iterables or when we prefetch
     is_last_batch = [False, False, prefetch_batches > 0 or dataset_cls is SizedDataset]
