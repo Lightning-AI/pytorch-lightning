@@ -51,9 +51,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Change `Trainer.log_dir` to `logger.log_dir` when using `CSVLogger` ([#17174](https://github.com/Lightning-AI/lightning/pull/17174))
 
 
-- Disable `torch.inference_mode` with `torch.compile` in PyTorch 2.0 ([#17215](https://github.com/Lightning-AI/lightning/pull/17215))
-
-
 - Allow using iterable-style datasets with TPUs ([#17331](https://github.com/Lightning-AI/lightning/pull/17331))
 
 
