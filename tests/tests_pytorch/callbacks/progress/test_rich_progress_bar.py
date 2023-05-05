@@ -258,7 +258,7 @@ def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize("limit_val_batches", (1, 5))
+@pytest.mark.parametrize("limit_val_batches", [1, 5])
 def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
     model = BoringModel()
 
