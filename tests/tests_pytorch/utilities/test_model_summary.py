@@ -382,12 +382,10 @@ def test_summary_data_output(example_input):
 
 @pytest.mark.parametrize("example_input", [None, torch.ones(2, 2)])
 def test_summary_data_with_non_layer_params(example_input):
-    class TestModel(NonLayerParamsModel):
-        @property
-        def example_input_array(self) -> Any:
-            return example_input
+    model = NonLayerParamsModel()
+    model.example_input_array = example_input
 
-    summary = summarize(TestModel())
+    summary = summarize(model)
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data["Name"][-1] == LEFTOVER_PARAMS_NAME
     assert summary_data["Type"][-1] == NOT_APPLICABLE
