@@ -315,8 +315,10 @@ class ModelSummary:
         layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
         layer_summaries["Type"].append(NOT_APPLICABLE)
         layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
-        layer_summaries["In sizes"].append(NOT_APPLICABLE)
-        layer_summaries["Out sizes"].append(NOT_APPLICABLE)
+        if "In sizes" in layer_summaries:
+            layer_summaries["In sizes"].append(NOT_APPLICABLE)
+        if "Out sizes" in layer_summaries:
+            layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 
     def __str__(self) -> str:
         arrays = self._get_summary_data()
