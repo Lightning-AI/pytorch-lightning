@@ -23,7 +23,7 @@ from lightning.pytorch.callbacks import (
     Checkpoint,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBarBase,
+    ProgressBar,
     RichProgressBar,
     TQDMProgressBar,
 )
@@ -40,7 +40,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info
 _log = logging.getLogger(__name__)
 
 
-class CallbackConnector:
+class _CallbackConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
 
@@ -115,7 +115,7 @@ class CallbackConnector:
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
-        progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
+        progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBar)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
                 "You added multiple progress bar callbacks to the Trainer, but currently only one"
@@ -181,7 +181,7 @@ class CallbackConnector:
         # remove all callbacks with a type that occurs in model callbacks
         all_callbacks = [c for c in trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
-        all_callbacks = CallbackConnector._reorder_callbacks(all_callbacks)
+        all_callbacks = _CallbackConnector._reorder_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
         trainer.callbacks = all_callbacks
 
@@ -226,10 +226,11 @@ def _configure_external_callbacks() -> List[Callback]:
     if _PYTHON_GREATER_EQUAL_3_8_0:
         from importlib.metadata import entry_points
 
-        if _PYTHON_GREATER_EQUAL_3_10_0:
-            factories = entry_points(group=group)
-        else:
-            factories = entry_points().get(group, {})  # type: ignore[arg-type]
+        factories = (
+            entry_points(group=group)
+            if _PYTHON_GREATER_EQUAL_3_10_0
+            else entry_points().get(group, {})  # type: ignore[arg-type]
+        )
     else:
         from pkg_resources import iter_entry_points
 

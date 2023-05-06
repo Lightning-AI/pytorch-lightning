@@ -15,10 +15,10 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from tests_fabric.helpers.runif import RunIf
 
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.utilities.types import Steppable
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_invalid_precision_with_deepspeed_precision():
@@ -47,5 +47,5 @@ def test_deepspeed_engine_is_steppable(engine):
 def test_deepspeed_precision_optimizer_step():
     precision = DeepSpeedPrecision(precision="32-true")
     optimizer = model = Mock()
-    precision.optimizer_step(optimizer, lr_kwargs=dict())
-    model.step.assert_called_once_with(lr_kwargs=dict())
+    precision.optimizer_step(optimizer, lr_kwargs={})
+    model.step.assert_called_once_with(lr_kwargs={})

@@ -104,7 +104,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), "hyper_parameters missing from checkpoints"
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
@@ -306,7 +306,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
-        open(filepath, "a").close()
+        open(filepath, "a").close()  # noqa: SIM115
 
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
@@ -882,7 +882,6 @@ def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 
     class CurrentModel(BoringModel):
-
         training_step_invoked = False
 
         def training_step(self, *args, **kwargs):
@@ -891,14 +890,14 @@ def test_disabled_training(tmpdir):
 
     model = CurrentModel()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=0.0,
-        limit_val_batches=0.2,
-        fast_dev_run=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 0.0,
+        "limit_val_batches": 0.2,
+        "fast_dev_run": False,
+    }
 
     before_state_dict = deepcopy(model.state_dict())
 
@@ -907,7 +906,7 @@ def test_disabled_training(tmpdir):
 
     after_state_dict = model.state_dict()
 
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     # check that limit_train_batches=0 turns off training
@@ -925,7 +924,7 @@ def test_disabled_training(tmpdir):
 
     after_state_dict = model.state_dict()
 
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -937,7 +936,6 @@ def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
     class CurrentModel(BoringModel):
-
         validation_step_invoked = False
 
         def validation_step(self, *args, **kwargs):
@@ -946,14 +944,14 @@ def test_disabled_validation(tmpdir):
 
     model = CurrentModel()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=0.4,
-        limit_val_batches=0.0,
-        fast_dev_run=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 2,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.0,
+        "fast_dev_run": False,
+    }
 
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
@@ -976,7 +974,6 @@ def test_disabled_validation(tmpdir):
 
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
-
     model = BoringModel()
 
     class InterruptCallback(Callback):
@@ -1262,7 +1259,6 @@ class TestLightningDataModule(LightningDataModule):
 
 
 class CustomPredictionWriter(BasePredictionWriter):
-
     write_on_batch_end_called = False
     write_on_epoch_end_called = False
 
@@ -1326,10 +1322,7 @@ def predict(
         with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, datamodule=dm, return_predictions=True)
 
-    if datamodule:
-        results = trainer.predict(model, datamodule=dm)
-    else:
-        results = trainer.predict(model, dataloaders=dataloaders)
+    results = trainer.predict(model, datamodule=dm) if datamodule else trainer.predict(model, dataloaders=dataloaders)
 
     if not isinstance(trainer.strategy.launcher, _MultiProcessingLauncher):
         if use_callbacks:
@@ -1407,7 +1400,6 @@ def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
 def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
-
     ds = dataset_cls(32, 8)
     loader = DataLoader(ds)
     is_iterable_dataset = isinstance(ds, IterableDataset)
@@ -1491,7 +1483,6 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     ],
 )
 def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
-
     """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
 
     class TestModel(BoringModel):
@@ -1528,14 +1519,14 @@ def test_train_loop_system(tmpdir):
     """
     called_methods = []
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        enable_progress_bar=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 5,
+        "limit_val_batches": 1,
+        "limit_test_batches": 1,
+        "enable_progress_bar": False,
+    }
 
     class TestOptimizer(SGD):
         def step(self, *args, **kwargs):
@@ -1598,7 +1589,6 @@ def test_train_loop_system(tmpdir):
 
 
 def test_check_val_every_n_epoch_exception(tmpdir):
-
     with pytest.raises(MisconfigurationException, match="should be an integer."):
         Trainer(default_root_dir=tmpdir, max_epochs=1, check_val_every_n_epoch=1.2)
 
@@ -1673,7 +1663,6 @@ class CustomCallbackOnLoadCheckpoint(Callback):
 
 def test_on_load_checkpoint_missing_callbacks(tmpdir):
     """Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming."""
-
     model = BoringModel()
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
@@ -1730,15 +1719,15 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     initial = current_memory()
 
     model = TestModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        accelerator="gpu",
-        devices=1,
-        strategy="ddp",
-        enable_progress_bar=False,
-        callbacks=Check(),
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "fast_dev_run": True,
+        "accelerator": "gpu",
+        "devices": 1,
+        "strategy": "ddp",
+        "enable_progress_bar": False,
+        "callbacks": Check(),
+    }
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
@@ -1864,11 +1853,10 @@ def test_detect_anomaly_nan(tmpdir):
 
     model = NanModel()
     trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
-    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
-        with pytest.warns(
-            UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
-        ):
-            trainer.fit(model)
+    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."), pytest.warns(
+        UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+    ):
+        trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -1961,13 +1949,10 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
 
     trainer.state.stage = running_stage
     if running_stage == "train":
-        trainer.state.fn = "fit"
         fn = trainer.fit_loop.setup_data
     elif running_stage == "validate":
-        trainer.state.fn = "validate"
         fn = trainer.validate_loop.setup_data
     elif running_stage == "test":
-        trainer.state.fn = "test"
         fn = trainer.test_loop.setup_data
     else:
         fn = trainer.predict_loop.setup_data
@@ -2052,7 +2037,8 @@ def test_trainer_calls_strategy_on_exception(exception_type):
             raise exception
 
     trainer = Trainer()
-    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock:
-        with suppress(Exception):
-            trainer.fit(ExceptionModel())
+    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
+        Exception
+    ):
+        trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)

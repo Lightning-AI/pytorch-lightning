@@ -4,8 +4,8 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-from integrations_app.public import _PATH_EXAMPLES
 
+from integrations_app.public import _PATH_EXAMPLES
 from lightning.app import LightningApp
 from lightning.app.cli.lightning_cli import run_app
 from lightning.app.testing.helpers import _RunIf
@@ -29,7 +29,6 @@ class QuickStartApp(LightningApp):
 @_RunIf(pl=True, skip_windows=True, skip_linux=True)
 def test_quick_start_example(caplog, monkeypatch):
     """This test ensures the Quick Start example properly train and serve PyTorch Lightning."""
-
     monkeypatch.setattr("logging.getLogger", mock.MagicMock(return_value=logging.getLogger()))
 
     with caplog.at_level(logging.INFO):

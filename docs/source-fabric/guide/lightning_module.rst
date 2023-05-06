@@ -1,5 +1,3 @@
-:orphan:
-
 ##################
 Organize Your Code
 ##################
@@ -7,7 +5,7 @@ Organize Your Code
 Any raw PyTorch can be converted to Fabric with zero refactoring required, giving maximum flexibility in how you want to organize your projects.
 
 However, when developing a project in a team or sharing the code publicly, it can be beneficial to conform to a standard format of how core pieces of the code are organized.
-This is what the :class:`pytorch_lightning.core.module.LightningModule` was made for!
+This is what the `LightningModule <https://lightning.ai/docs/pytorch/stable/common/lightning_module.html>`_ was made for!
 
 Here is how you can neatly separate the research code (model, loss, optimization, etc.) from the "trainer" code (training loop, checkpointing, logging, etc.).
 
@@ -62,7 +60,7 @@ Take these main ingredients and put them in a LightningModule:
             ...
 
 
-This is a minimal :class:`pytorch_lightning.LightningModule`, but there are `many other useful hooks <https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html#hooks>`_ you can use.
+This is a minimal LightningModule, but there are `many other useful hooks <https://lightning.ai/docs/pytorch/stable/common/lightning_module.html#hooks>`_ you can use.
 
 
 ----
@@ -119,3 +117,32 @@ Your code is now modular. You can switch out the entire LightningModule implemen
   + model = DopeModel()
 
     ...
+
+
+----
+
+
+************************************
+Access Fabric inside LightningModule
+************************************
+
+You can access the Fabric instance in any of the LightningModule hooks via ``self.fabric``, provided that you called
+``fabric.setup()`` on the module.
+
+.. code-block:: python
+
+    import lightning as L
+
+
+    class LitModel(L.LightningModule):
+        def on_train_start(self):
+            # Access Fabric and its attributes
+            print(self.fabric.world_size)
+
+
+    fabric = L.Fabric()
+    model = fabric.setup(LitModel())
+    model.on_train_start()
+
+To maximize compatibility with LightningModules written for the Lightning Trainer, ``self.trainer`` is also available and will
+reroute to ``self.fabric``.

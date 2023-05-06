@@ -88,7 +88,7 @@ def test_hpc_restore_attempt(_, tmpdir):
 
 
 def test_hpc_max_ckpt_version(tmpdir):
-    """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
+    """Test that the _CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
     trainer.fit(model)
@@ -106,8 +106,7 @@ def test_hpc_max_ckpt_version(tmpdir):
 
 
 def test_ckpt_for_fsspec():
-    """Test that the CheckpointConnector is able to write to fsspec file systems."""
-
+    """Test that the _CheckpointConnector is able to write to fsspec file systems."""
     model = BoringModel()
     # hardcoding dir since `tmpdir` can be windows path
     trainer = Trainer(
@@ -133,15 +132,15 @@ def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-        callbacks=[checkpoint_callback],
-        num_sanity_val_steps=0,
-    )
+    trainer_args = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "logger": False,
+        "callbacks": [checkpoint_callback],
+        "num_sanity_val_steps": 0,
+    }
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 

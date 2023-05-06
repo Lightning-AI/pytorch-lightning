@@ -32,7 +32,11 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCH_GREATER_EQUAL_2_0,
+)
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
@@ -44,7 +48,6 @@ from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -52,17 +55,17 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
 if _fsdp_available:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import (
-        BackwardPrefetch,
+    from torch.distributed.fsdp import (
         CPUOffload,
+        FullStateDictConfig,
         FullyShardedDataParallel,
         MixedPrecision,
+        StateDictType,
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
     FullyShardedDataParallel = None  # type: ignore[misc,assignment]
     MixedPrecision = None  # type: ignore[misc,assignment]
-    BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
 
 if _distributed_available:
@@ -74,40 +77,28 @@ log = logging.getLogger(__name__)
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can
-        bring breaking changes and new features with the next release of PyTorch.
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
     at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
     to ZeRO-Stage 3.
 
-    For more information `check out <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
+    For more information check out
+    `this blogpost <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
 
     Defaults have been set and options have been exposed, but may require configuration
     based on your level of memory/speed efficiency. We suggest having a look at
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
-            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
-            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default: no offoading
-        backward_prefetch:
-            This is an experimental feature that is subject to change in the
-            the near future. It allows users to enable two different backward_prefetch
-            algorithms to help backward communication and computation overlapping.
-            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-        mixed_precision:
-            Mixed Precision config. By default, Lightning will enable FP16 if ``precision="16-mixed"``
-            or BF16 if ``precision="bf16-mixed"`` unless a config is passed in.
-            This is only available in PyTorch 1.12 and later.
+        cpu_offload: See ``cpu_offload`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+        mixed_precision: See ``mixed_precision`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
         activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
-        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
-
+        \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
     """
 
     strategy_name = "fsdp"
@@ -122,7 +113,6 @@ class FSDPStrategy(ParallelStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
-        backward_prefetch: Optional[BackwardPrefetch] = None,
         mixed_precision: Optional[MixedPrecision] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         **kwargs: Any,
@@ -141,7 +131,6 @@ class FSDPStrategy(ParallelStrategy):
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
         self.cpu_offload = _init_cpu_offload(cpu_offload)
-        self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
             raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
@@ -150,6 +139,26 @@ class FSDPStrategy(ParallelStrategy):
             [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
         )
         self.kwargs = kwargs
+        if _TORCH_GREATER_EQUAL_2_0:
+            # Avoids the need for user to reference params in `configure_optimizers` via
+            # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
+            self.kwargs.setdefault("use_orig_params", True)
+
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        """Gathers the full state dict by unsharding all the parameters.
+
+        To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
+        dict.
+        """
+        assert self.model is not None
+
+        with FullyShardedDataParallel.state_dict_type(
+            module=self.model,
+            state_dict_type=StateDictType.FULL_STATE_DICT,
+            state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
+        ):
+            state_dict = self.model.state_dict()
+            return _strip_prefix_from_state_dict(state_dict, prefix="_forward_module.")
 
     @property
     def root_device(self) -> torch.device:
@@ -181,7 +190,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     def setup_environment(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
@@ -189,9 +198,6 @@ class FSDPStrategy(ParallelStrategy):
 
         # determine which process we are and world size
         self.set_world_ranks()
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
@@ -202,11 +208,12 @@ class FSDPStrategy(ParallelStrategy):
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
+        # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
+        rank_zero_only.rank = self.global_rank
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -229,7 +236,6 @@ class FSDPStrategy(ParallelStrategy):
             module=model,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
-            backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
             **self.kwargs,
@@ -270,15 +276,19 @@ class FSDPStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        if self.kwargs.get("use_orig_params"):
+            return super().setup_optimizers(trainer)
+
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
-        except ValueError as e:
-            if "optimizer got an empty parameter list" not in str(e):
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
                 raise
             invalid_params_error = True
 
         if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
@@ -295,7 +305,6 @@ class FSDPStrategy(ParallelStrategy):
             wrapper_cls=FullyShardedDataParallel,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
-            backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
             **self.kwargs,
@@ -303,7 +312,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not _distributed_available:
+        if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -311,9 +320,10 @@ class FSDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not torch.distributed.is_initialized():
+            return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
@@ -402,3 +412,8 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
+
+
+def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
+    prefix_len = len(prefix)
+    return {k[prefix_len:]: v for k, v in state_dict.items()}

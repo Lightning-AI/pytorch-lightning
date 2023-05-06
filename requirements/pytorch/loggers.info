@@ -1,6 +1,6 @@
 # all supported loggers. this list is here as a reference, but they are not installed in CI
-neptune>=1.0.0
+neptune
 comet-ml
-mlflow>=1.0.0
+mlflow >=1.0.0
 wandb
-tensorboard>=2.9.1
+tensorboard >=2.9.1

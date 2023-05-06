@@ -87,7 +87,7 @@ def _copytree(
 
     errors = []
 
-    entries = [dr for dr in src.iterdir()]
+    entries = list(src.iterdir())
     for fn in ignore_functions:
         # ignore function return only the entries that are not ignored
         entries = fn(src, entries)

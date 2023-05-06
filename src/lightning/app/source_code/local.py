@@ -15,10 +15,10 @@
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from shutil import rmtree
+from shutil import copytree, rmtree
 from typing import List, Optional
 
-from lightning.app.core.constants import DOT_IGNORE_FILENAME
+from lightning.app.core.constants import DOT_IGNORE_FILENAME, SYS_CUSTOMIZATIONS_SYNC_PATH
 from lightning.app.source_code.copytree import _copytree, _IGNORE_FUNCTION
 from lightning.app.source_code.hashing import _get_hash
 from lightning.app.source_code.tar import _tar_path
@@ -103,6 +103,12 @@ class LocalSourceCodeDir:
         with self.packaging_session() as session_path:
             _tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
         return self.package_path
+
+    def prepare_sys_customizations_sync(self, sys_customizations_root: Path) -> None:
+        """Prepares files for system environment customization setup by copying conda and system environment files
+        to an app files directory."""
+        path_to_sync = Path(self.path, SYS_CUSTOMIZATIONS_SYNC_PATH)
+        copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
 
     def upload(self, url: str) -> None:
         """Uploads package to URL, usually pre-signed URL.

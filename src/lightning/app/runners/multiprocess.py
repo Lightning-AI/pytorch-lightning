@@ -51,7 +51,7 @@ class MultiProcessRuntime(Runtime):
 
             # Note: In case the runtime is used in the cloud.
             in_cloudspace = constants.LIGHTNING_CLOUDSPACE_HOST is not None
-            self.host = "0.0.0.0" if constants.APP_SERVER_IN_CLOUD or in_cloudspace else self.host
+            self.host = "0.0.0.0" if constants.APP_SERVER_IN_CLOUD or in_cloudspace else self.host  # noqa: S104
 
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
@@ -66,10 +66,17 @@ class MultiProcessRuntime(Runtime):
 
             _set_frontend_context()
             for frontend in self.app.frontends.values():
-                host = "localhost"
                 port = find_free_network_port()
-                frontend.start_server(host="localhost", port=port)
-                frontend.flow._layout["target"] = f"http://{host}:{port}/{frontend.flow.name}"
+
+                server_host = "0.0.0.0" if in_cloudspace else "localhost"  # noqa: S104
+                server_target = (
+                    f"https://{port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
+                    if in_cloudspace
+                    else f"http://localhost:{port}"
+                )
+
+                frontend.start_server(host=server_host, port=port)
+                frontend.flow._layout["target"] = f"{server_target}/{frontend.flow.name}"
 
             _set_flow_context()
 
@@ -98,17 +105,17 @@ class MultiProcessRuntime(Runtime):
                     commands = _prepare_commands(self.app)
                     apis += _commands_to_api(commands, info=self.app.info)
 
-                kwargs = dict(
-                    apis=apis,
-                    host=self.host,
-                    port=self.port,
-                    api_response_queue=self.app.api_response_queue,
-                    api_publish_state_queue=self.app.api_publish_state_queue,
-                    api_delta_queue=self.app.api_delta_queue,
-                    has_started_queue=has_started_queue,
-                    spec=extract_metadata_from_app(self.app),
-                    root_path=self.app.root_path,
-                )
+                kwargs = {
+                    "apis": apis,
+                    "host": self.host,
+                    "port": self.port,
+                    "api_response_queue": self.app.api_response_queue,
+                    "api_publish_state_queue": self.app.api_publish_state_queue,
+                    "api_delta_queue": self.app.api_delta_queue,
+                    "has_started_queue": has_started_queue,
+                    "spec": extract_metadata_from_app(self.app),
+                    "root_path": self.app.root_path,
+                }
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)
                 self.processes["server"] = server_proc
                 server_proc.start()

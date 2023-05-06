@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import os
 import sys
 from contextlib import nullcontext
@@ -40,7 +40,6 @@ logger = Logger(__name__)
 @click.argument("path", required=False)
 def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) -> List[str]:
     """List the contents of a folder in the Lightning Cloud Filesystem."""
-
     from lightning.app.cli.commands.cd import _CD_FILE
 
     if sys.platform == "win32":
@@ -53,7 +52,6 @@ def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) ->
     )
 
     with context:
-
         if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
             os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
 
@@ -108,7 +106,6 @@ def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) ->
         lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == splits[1]]
 
         if len(lit_ressources) == 0:
-
             lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == splits[1]]
 
             if len(lit_ressources) == 0:
@@ -128,7 +125,6 @@ def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) ->
         prefix = _get_prefix(prefix, lit_resource)
 
         for artifact in _collect_artifacts(client=client, project_id=project_id, prefix=prefix):
-
             if str(artifact.filename).startswith("/"):
                 artifact.filename = artifact.filename[1:]
 
@@ -191,11 +187,8 @@ def _print_names_with_colors(names: List[str], colors: List[str], padding: int =
 
     for row_index in sorted(columns):
         row = ""
-        for (name, color) in columns[row_index]:
-            if use_spacing:
-                spacing = padding
-            else:
-                spacing = max_L - len(name)
+        for name, color in columns[row_index]:
+            spacing = padding if use_spacing else max_L - len(name)
             spaces = " " * spacing
             row += _add_colors(name, color) + spaces
         rich.print(row)
@@ -228,11 +221,12 @@ def _collect_artifacts(
                 include_download_url=include_download_url,
             )
     else:
-
         if page_token in tokens:
             return
 
-        try:
+        # Note: This is triggered when the request is wrong.
+        # This is currently happening due to looping through the user clusters.
+        with contextlib.suppress(lightning_cloud.openapi.rest.ApiException):
             response = client.lightningapp_instance_service_list_project_artifacts(
                 project_id,
                 prefix=prefix,
@@ -246,7 +240,7 @@ def _collect_artifacts(
                     continue
                 yield artifact
 
-            if response.next_page_token != "":
+            if response.next_page_token:
                 tokens.append(page_token)
                 yield from _collect_artifacts(
                     client,
@@ -256,10 +250,6 @@ def _collect_artifacts(
                     page_token=response.next_page_token,
                     tokens=tokens,
                 )
-        except lightning_cloud.openapi.rest.ApiException:
-            # Note: This is triggered when the request is wrong.
-            # This is currently happening due to looping through the user clusters.
-            pass
 
 
 def _add_resource_prefix(prefix: str, resource_path: str):

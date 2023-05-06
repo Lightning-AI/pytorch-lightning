@@ -121,9 +121,8 @@ def _trainer_builder(
 @pytest.mark.parametrize(["trainer_class", "model_class"], [(Trainer, Model), (_trainer_builder, _model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
-
-    expected_model = dict(model_param=7)
-    expected_trainer = dict(limit_train_batches=100)
+    expected_model = {"model_param": 7}
+    expected_trainer = {"limit_train_batches": 100}
 
     def fit(trainer, model):
         for k, v in expected_model.items():
@@ -151,13 +150,12 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
 
 
 def test_lightning_cli_args_callbacks(cleandir):
-
     callbacks = [
-        dict(
-            class_path="lightning.pytorch.callbacks.LearningRateMonitor",
-            init_args=dict(logging_interval="epoch", log_momentum=True),
-        ),
-        dict(class_path="lightning.pytorch.callbacks.ModelCheckpoint", init_args=dict(monitor="NAME")),
+        {
+            "class_path": "lightning.pytorch.callbacks.LearningRateMonitor",
+            "init_args": {"logging_interval": "epoch", "log_momentum": True},
+        },
+        {"class_path": "lightning.pytorch.callbacks.ModelCheckpoint", "init_args": {"monitor": "NAME"}},
     ]
 
     class TestModel(BoringModel):
@@ -172,7 +170,7 @@ def test_lightning_cli_args_callbacks(cleandir):
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.callbacks={json.dumps(callbacks)}"]):
-        cli = LightningCLI(TestModel, trainer_defaults=dict(fast_dev_run=True, logger=CSVLogger(".")))
+        cli = LightningCLI(TestModel, trainer_defaults={"fast_dev_run": True, "logger": CSVLogger(".")})
 
     assert cli.trainer.ran_asserts
 
@@ -206,7 +204,7 @@ def test_lightning_cli_configurable_callbacks(cleandir, run):
 
 
 def test_lightning_cli_args_cluster_environments(cleandir):
-    plugins = [dict(class_path="lightning.fabric.plugins.environments.SLURMEnvironment")]
+    plugins = [{"class_path": "lightning.fabric.plugins.environments.SLURMEnvironment"}]
 
     class TestModel(BoringModel):
         def on_fit_start(self):
@@ -215,7 +213,7 @@ def test_lightning_cli_args_cluster_environments(cleandir):
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.plugins={json.dumps(plugins)}"]):
-        cli = LightningCLI(TestModel, trainer_defaults=dict(fast_dev_run=True))
+        cli = LightningCLI(TestModel, trainer_defaults={"fast_dev_run": True})
 
     assert cli.trainer.ran_asserts
 
@@ -278,7 +276,6 @@ def test_lightning_env_parse(cleandir):
 
 
 def test_lightning_cli_save_config_cases(cleandir):
-
     config_path = "config.yaml"
     cli_args = ["fit", "--trainer.logger=false", "--trainer.fast_dev_run=1"]
 
@@ -369,7 +366,7 @@ def test_lightning_cli_help():
     assert "--data.help" in out
 
     skip_params = {"self"}
-    for param in inspect.signature(Trainer.__init__).parameters.keys():
+    for param in inspect.signature(Trainer.__init__).parameters:
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
@@ -627,7 +624,7 @@ def test_cli_no_need_configure_optimizers(cleandir):
     from lightning.pytorch.trainer.configuration_validator import __verify_train_val_loop_configuration
 
     with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
-        "lightning.pytorch.Trainer._run_train"
+        "lightning.pytorch.Trainer._run_stage"
     ) as run, mock.patch(
         "lightning.pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
         wraps=__verify_train_val_loop_configuration,
@@ -643,8 +640,8 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
             parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
             parser.add_lr_scheduler_args((torch.optim.lr_scheduler.StepLR, torch.optim.lr_scheduler.ExponentialLR))
 
-    optimizer_arg = dict(class_path="torch.optim.Adam", init_args=dict(lr=0.01))
-    lr_scheduler_arg = dict(class_path="torch.optim.lr_scheduler.StepLR", init_args=dict(step_size=50))
+    optimizer_arg = {"class_path": "torch.optim.Adam", "init_args": {"lr": 0.01}}
+    lr_scheduler_arg = {"class_path": "torch.optim.lr_scheduler.StepLR", "init_args": {"step_size": 50}}
     cli_args = [
         "fit",
         "--trainer.max_epochs=1",
@@ -947,7 +944,6 @@ def test_lightning_cli_datamodule_short_arguments():
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_callbacks_append(use_class_path_callbacks):
-
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
         "--optimizer",
@@ -1538,8 +1534,6 @@ def test_lightning_cli_with_args_given(args):
     assert cli.model.foo == 456
 
 
-def test_lightning_cli_args_and_sys_argv_exception():
-    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.raises(
-        ValueError, match="LightningCLI's args parameter "
-    ):
+def test_lightning_cli_args_and_sys_argv_warning():
+    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(Warning, match="LightningCLI's args parameter "):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])

@@ -20,7 +20,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 
 import lightning.fabric
 from lightning.fabric.accelerators.cuda import (
@@ -30,6 +29,7 @@ from lightning.fabric.accelerators.cuda import (
     is_cuda_available,
     num_cuda_devices,
 )
+from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -68,6 +68,7 @@ def test_set_cuda_device(_, set_device_mock):
 
 
 @mock.patch("lightning.fabric.accelerators.cuda._device_count_nvml", return_value=-1)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=100)
 def test_num_cuda_devices_without_nvml(*_):
     """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
@@ -90,7 +91,6 @@ def test_force_nvml_based_cuda_check():
 @mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
 @mock.patch("torch.cuda.get_device_name", return_value="Z100")
 def test_tf32_message(_, __, caplog, monkeypatch):
-
     # for some reason, caplog doesn't work with our rank_zero_info utilities
     monkeypatch.setattr(lightning.fabric.accelerators.cuda, "rank_zero_info", logging.info)
 
@@ -124,7 +124,6 @@ def test_tf32_message(_, __, caplog, monkeypatch):
 
 def test_find_usable_cuda_devices_error_handling():
     """Test error handling for edge cases when using `find_usable_cuda_devices`."""
-
     # Asking for GPUs if no GPUs visible
     with mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0), pytest.raises(
         ValueError, match="You requested to find 2 devices but there are no visible CUDA"

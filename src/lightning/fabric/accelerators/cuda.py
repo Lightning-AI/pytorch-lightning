@@ -39,8 +39,7 @@ class CUDAAccelerator(Accelerator):
         torch.cuda.set_device(device)
 
     def teardown(self) -> None:
-        # clean up memory
-        torch.cuda.empty_cache()
+        _clear_cuda_memory()
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
@@ -332,9 +331,7 @@ def _device_count_nvml() -> int:
             for idx, val in enumerate(visible_devices):
                 if cast(int, val) >= raw_cnt:
                     return idx
-    except OSError:
-        return -1
-    except AttributeError:
+    except (OSError, AttributeError):
         return -1
     return len(visible_devices)
 
@@ -358,3 +355,10 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
         )
     # note: no need change `torch.backends.cudnn.allow_tf32` as it's enabled by default:
     # https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices
+
+
+def _clear_cuda_memory() -> None:
+    if _TORCH_GREATER_EQUAL_2_0:
+        # https://github.com/pytorch/pytorch/issues/95668
+        torch._C._cuda_clearCublasWorkspaces()
+    torch.cuda.empty_cache()

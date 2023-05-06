@@ -21,12 +21,12 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from lightning.fabric import Fabric
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -291,7 +291,6 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     ],
 )
 def test_device_placement(tmpdir, accelerator, device):
-
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
@@ -310,7 +309,7 @@ def test_device_placement(tmpdir, accelerator, device):
     assert_device(torch.device("cpu"))
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.1.0")
 def test_sharded_tensor_state_dict(single_process_pg):
     from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
@@ -348,7 +347,6 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
     """Test custom gradient clipping inside `configure_gradient_clipping` hook."""
 
     class TestModel(BoringModel):
-
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
@@ -446,8 +444,9 @@ def test_trainer_reference_recursively():
     ensemble.trainer = trainer
     # references match
     assert ensemble.trainer is inner.trainer
-    # and the trainer was weakly referenced
-    assert inner.trainer is weakref.proxy(trainer)
+    if not _TORCH_GREATER_EQUAL_2_0:
+        # and the trainer was weakly referenced
+        assert inner.trainer is weakref.proxy(trainer)
 
 
 def test_fabric_reference_recursively():
@@ -521,7 +520,7 @@ def test_fabric_log():
 
     # unsupported data type
     with pytest.raises(ValueError, match="`list` values cannot be logged"):
-        wrapped_module.log("invalid", list())
+        wrapped_module.log("invalid", [])
 
     # supported data types
     wrapped_module.log("int", 1)
@@ -559,3 +558,27 @@ def test_fabric_log_dict():
     logger.reset_mock()
     wrapped_module.log_dict({"nothing": 1}, logger=False)
     logger.log_metrics.assert_not_called()
+
+
+@pytest.mark.parametrize("algo", ["value", "norm"])
+def test_grad_clipping_lm_fabric(algo):
+    from lightning.pytorch.utilities import GradClipAlgorithmType
+
+    class DummyLM(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = nn.Linear(1, 1)
+
+    fabric = Fabric()
+    orig_model = DummyLM()
+    model = fabric.setup(orig_model)
+
+    fabric.clip_gradients = Mock()
+
+    optimizer = Mock()
+    model.clip_gradients(optimizer, gradient_clip_val=1e-3, gradient_clip_algorithm=GradClipAlgorithmType(algo))
+
+    if algo == "value":
+        fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=1e-3, max_norm=None)
+    else:
+        fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=None, max_norm=1e-3)

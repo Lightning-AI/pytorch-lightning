@@ -1,9 +1,9 @@
 import pytest
 import torch
-from tests_fabric.helpers.runif import RunIf
 from torch import nn as nn
 
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from tests_fabric.helpers.runif import RunIf
 
 
 class SubSubModule(_DeviceDtypeModuleMixin):

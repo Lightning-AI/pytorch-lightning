@@ -126,6 +126,58 @@ which generates a config like:
         # Fit your model using the edited configuration
         python main.py fit --config config.yaml
 
+Configuration items can be either simple Python objects such as int and str,
+or complex objects comprised of a ``class_path`` and ``init_args`` arguments. The ``class_path`` refers
+to the complete import path of the item class, while ``init_args`` are the arguments to be passed
+to the class constructor. For example, your model is defined as:
+
+.. code:: python
+
+    # model.py
+    class MyModel(pl.LightningModule):
+        def __init__(self, criterion: torch.nn.Module):
+            self.criterion = criterion
+
+Then the config would be:
+
+.. code:: yaml
+
+    model:
+      class_path: model.MyModel
+      init_args:
+        criterion:
+          class_path: torch.nn.CrossEntropyLoss
+          init_args:
+            reduction: mean
+        ...
+
+``LightningCLI`` uses `jsonargparse <https://github.com/omni-us/jsonargparse>`_ under the hood for parsing
+configuration files and automatic creation of objects, so you don't need to do it yourself.
+
+.. note::
+
+    Lighting automatically registers all subclasses of :class:`~lightning.pytorch.core.module.LightningModule`,
+    so the complete import path is not required for them and can be replaced by the class name.
+
+.. note::
+
+    Parsers make a best effort to determine the correct names and types that the parser should accept.
+    However, there can be cases not yet supported or cases for which it would be impossible to support.
+    To somewhat overcome these limitations, there is a special key ``dict_kwargs`` that can be used
+    to provide arguments that will not be validated during parsing, but will be used for class instantiation.
+
+    For example, then using the ``pytorch_lightning.profilers.PyTorchProfiler`` profiler,
+    the ``profile_memory`` argument has a type that is determined dynamically. As a result, it's not possible
+    to know the expected type during parsing. To account for this, your config file should be set up like this:
+
+    .. code:: yaml
+
+        trainer:
+          profiler:
+            class_path: pytorch_lightning.profilers.PyTorchProfiler
+            dict_kwargs:
+              profile_memory: true
+
 ----
 
 ********************

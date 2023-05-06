@@ -388,11 +388,9 @@ class DataHooks:
         """
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
-        """Implement one or more PyTorch DataLoaders for training.
+        """An iterable or collection of iterables specifying training samples.
 
-        Return:
-            A collection of :class:`torch.utils.data.DataLoader` specifying training samples.
-            In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
         :paramref:`~lightning.pytorch.trainer.Trainer.reload_dataloaders_every_n_epochs` to
@@ -412,55 +410,15 @@ class DataHooks:
         - :meth:`setup`
 
         Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
+            Lightning tries to add the correct sampler for distributed and arbitrary hardware.
             There is no need to set it yourself.
-
-        Example::
-
-            # single dataloader
-            def train_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(),
-                                                transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
-                                download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.batch_size,
-                    shuffle=True
-                )
-                return loader
-
-            # multiple dataloaders, return as list
-            def train_dataloader(self):
-                mnist = MNIST(...)
-                cifar = CIFAR(...)
-                mnist_loader = torch.utils.data.DataLoader(
-                    dataset=mnist, batch_size=self.batch_size, shuffle=True
-                )
-                cifar_loader = torch.utils.data.DataLoader(
-                    dataset=cifar, batch_size=self.batch_size, shuffle=True
-                )
-                # each batch will be a list of tensors: [batch_mnist, batch_cifar]
-                return [mnist_loader, cifar_loader]
-
-            # multiple dataloader, return as dict
-            def train_dataloader(self):
-                mnist = MNIST(...)
-                cifar = CIFAR(...)
-                mnist_loader = torch.utils.data.DataLoader(
-                    dataset=mnist, batch_size=self.batch_size, shuffle=True
-                )
-                cifar_loader = torch.utils.data.DataLoader(
-                    dataset=cifar, batch_size=self.batch_size, shuffle=True
-                )
-                # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
-                return {'mnist': mnist_loader, 'cifar': cifar_loader}
         """
         raise MisconfigurationException("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
-        r"""
-        Implement one or multiple PyTorch DataLoaders for testing.
+        r"""An iterable or collection of iterables specifying test samples.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         For data processing use the following pattern:
 
@@ -477,44 +435,19 @@ class DataHooks:
         - :meth:`setup`
 
         Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
+            Lightning tries to add the correct sampler for distributed and arbitrary hardware.
             There is no need to set it yourself.
-
-        Return:
-            A :class:`torch.utils.data.DataLoader` or a sequence of them specifying testing samples.
-
-        Example::
-
-            def test_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(),
-                                                transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
-                                download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.batch_size,
-                    shuffle=False
-                )
-
-                return loader
-
-            # can also return multiple dataloaders
-            def test_dataloader(self):
-                return [loader_a, loader_b, ..., loader_n]
 
         Note:
             If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
             this method.
-
-        Note:
-            In the case where you return multiple test dataloaders, the :meth:`test_step`
-            will have an argument ``dataloader_idx`` which matches the order here.
         """
         raise MisconfigurationException("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def val_dataloader(self) -> EVAL_DATALOADERS:
-        r"""
-        Implement one or multiple PyTorch DataLoaders for validation.
+        r"""An iterable or collection of iterables specifying validation samples.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
         :paramref:`~lightning.pytorch.trainer.Trainer.reload_dataloaders_every_n_epochs` to
@@ -528,44 +461,19 @@ class DataHooks:
         - :meth:`setup`
 
         Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware
+            Lightning tries to add the correct sampler for distributed and arbitrary hardware
             There is no need to set it yourself.
-
-        Return:
-            A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
-
-        Examples::
-
-            def val_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(),
-                                                transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=False,
-                                transform=transform, download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.batch_size,
-                    shuffle=False
-                )
-
-                return loader
-
-            # can also return multiple dataloaders
-            def val_dataloader(self):
-                return [loader_a, loader_b, ..., loader_n]
 
         Note:
             If you don't need a validation dataset and a :meth:`validation_step`, you don't need to
             implement this method.
-
-        Note:
-            In the case where you return multiple validation dataloaders, the :meth:`validation_step`
-            will have an argument ``dataloader_idx`` which matches the order here.
         """
         raise MisconfigurationException("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
-        r"""
-        Implement one or multiple PyTorch DataLoaders for prediction.
+        r"""An iterable or collection of iterables specifying prediction samples.
+
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 
@@ -574,15 +482,11 @@ class DataHooks:
         - :meth:`setup`
 
         Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware
+            Lightning tries to add the correct sampler for distributed and arbitrary hardware
             There is no need to set it yourself.
 
         Return:
             A :class:`torch.utils.data.DataLoader` or a sequence of them specifying prediction samples.
-
-        Note:
-            In the case where you return multiple prediction dataloaders, the :meth:`predict_step`
-            will have an argument ``dataloader_idx`` which matches the order here.
         """
         raise MisconfigurationException(
             "`predict_dataloader` must be implemented to be used with the Lightning Trainer"
@@ -721,9 +625,8 @@ class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning to restore your model.
-        If you saved something with :meth:`on_save_checkpoint` this is your chance to restore this.
+        r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this
+        is your chance to restore this.
 
         Args:
             checkpoint: Loaded checkpoint
@@ -740,9 +643,8 @@ class CheckpointHooks:
         """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning when saving a checkpoint to give you a chance to store anything
-        else you might want to save.
+        r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want
+        to save.
 
         Args:
             checkpoint: The full checkpoint dictionary before it gets dumped to a file.
@@ -758,5 +660,4 @@ class CheckpointHooks:
             Lightning saves all aspects of training (epoch, global step, etc...)
             including amp scaling.
             There is no need for you to store anything about training.
-
         """

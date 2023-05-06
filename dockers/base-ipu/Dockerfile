@@ -24,8 +24,8 @@ SHELL ["/bin/bash", "-c"]
 
 # for skipping configurations
 ENV \
-    DEBIAN_FRONTEND=noninteractive \
-    CONDA_ENV=lightning
+    DEBIAN_FRONTEND="noninteractive" \
+    CONDA_ENV="lightning"
 
 RUN apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
@@ -68,11 +68,11 @@ RUN conda create -y --name $CONDA_ENV && \
     rm environment.yml
 
 ENV \
-    PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    PATH="/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
     # if you want this environment to be the default one, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
-    MKL_THREADING_LAYER=GNU
+    MKL_THREADING_LAYER="GNU"
 
 # Disable cache
 RUN pip --version && \
@@ -89,7 +89,10 @@ RUN \
       python requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     # install PL dependencies
-    pip install --requirement requirements/pytorch/devel.txt && \
+    pip install \
+      -r requirements/pytorch/base.txt \
+      -r requirements/pytorch/extra.txt \
+      -r requirements/pytorch/test.txt && \
     cd .. && \
     rm -rf lightning && \
     rm -rf /root/.cache \

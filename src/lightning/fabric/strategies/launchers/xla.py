@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import queue
 import time
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from torch.multiprocessing import get_context
+import torch.multiprocessing as mp
 
 from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.launcher import _Launcher
@@ -27,8 +27,8 @@ if TYPE_CHECKING:
 
 
 class _XLALauncher(_Launcher):
-    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
-    end.
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at
+    the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.
@@ -63,15 +63,27 @@ class _XLALauncher(_Launcher):
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = get_context(self._start_method)
-        return_queue = context.SimpleQueue()
+        from torch_xla.experimental import pjrt
+
+        using_pjrt = pjrt.using_pjrt()
+        return_queue: Union[queue.Queue, mp.SimpleQueue]
+        # pjrt requires that the queue is serializable
+        return_queue = mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
+
         import torch_xla.distributed.xla_multiprocessing as xmp
+
+        spawn_kwargs = {}
+        nprocs = self._strategy.num_processes
+        if not using_pjrt or nprocs == 1:
+            # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
+            # otherwise it will use all devices
+            spawn_kwargs["nprocs"] = nprocs
 
         xmp.spawn(
             self._wrapping_function,
             args=(function, args, kwargs, return_queue),
-            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
+            **spawn_kwargs,
         )
         return return_queue.get()
 
@@ -83,9 +95,19 @@ class _XLALauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: SimpleQueue,
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
+        import torch_xla.core.xla_model as xm
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
+            # so when there's more than one (multithreading), objects need to be deep-copied
+            import copy
+
+            function, args, kwargs = copy.deepcopy((function, args, kwargs))
+
         results = function(*args, **kwargs)
 
         if self._strategy.local_rank == 0:

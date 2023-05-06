@@ -25,7 +25,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
+from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -85,7 +85,7 @@ def test_tqdm_progress_bar_on(tmpdir, pbar):
     """Test different ways the progress bar can be turned on."""
     trainer = Trainer(default_root_dir=tmpdir, callbacks=pbar)
 
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert len(progress_bars) == 1
     assert progress_bars[0] is trainer.progress_bar_callback
 
@@ -93,7 +93,7 @@ def test_tqdm_progress_bar_on(tmpdir, pbar):
 def test_tqdm_progress_bar_off(tmpdir):
     """Test turning the progress bar off."""
     trainer = Trainer(default_root_dir=tmpdir, enable_progress_bar=False)
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert not len(progress_bars)
 
 
@@ -211,34 +211,32 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
 
     pbar = trainer.progress_bar_callback
 
-    assert 1 == pbar.val_progress_bar.n
-    assert 1 == pbar.val_progress_bar.total
+    assert pbar.val_progress_bar.n == 1
+    assert pbar.val_progress_bar.total == 1
 
     # the train progress bar should display 1 batch
-    assert 1 == pbar.train_progress_bar.total
-    assert 1 == pbar.train_progress_bar.n
+    assert pbar.train_progress_bar.total == 1
+    assert pbar.train_progress_bar.n == 1
 
     trainer.validate(model)
 
     # the validation progress bar should display 1 batch
-    assert 1 == pbar.val_progress_bar.total
-    assert 1 == pbar.val_progress_bar.n
+    assert pbar.val_progress_bar.total == 1
+    assert pbar.val_progress_bar.n == 1
 
     trainer.test(model)
 
     # the test progress bar should display 1 batch
-    assert 1 == pbar.test_progress_bar.total
-    assert 1 == pbar.test_progress_bar.n
+    assert pbar.test_progress_bar.total == 1
+    assert pbar.test_progress_bar.n == 1
 
 
 @pytest.mark.parametrize("refresh_rate", [0, 1, 50])
 def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
-
     model = BoringModel()
 
     class CurrentProgressBar(TQDMProgressBar):
-
         train_batches_seen = 0
         val_batches_seen = 0
         test_batches_seen = 0

@@ -10,10 +10,6 @@ Anyone can build Apps for their own use cases and promote them on the `App Galle
 
 In return, you can benefit from the work of others and get started faster by re-using a ready-to-run App close to your own use case.
 
-.. join_slack::
-   :align: left
-
-----
 
 *************
 User Workflow

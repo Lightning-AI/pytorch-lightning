@@ -28,11 +28,10 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled."""
-
     try:
         pickle.dumps(obj)
         return True
-    except (pickle.PickleError, AttributeError, RuntimeError):
+    except (pickle.PickleError, AttributeError, RuntimeError, TypeError):
         return False
 
 
@@ -45,14 +44,12 @@ def clean_namespace(hparams: MutableMapping) -> None:
         del hparams[k]
 
 
-def parse_class_init_keys(
-    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]]
-) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(cls: Type) -> Tuple[str, Optional[str], Optional[str]]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
 
-        >>> class Model():
+        >>> class Model:
         ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
         ...         pass
         >>> parse_class_init_keys(Model)
@@ -96,7 +93,7 @@ def _get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any
     filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
     exclude_argnames = (*filtered_vars, "__class__", "frame", "frame_args")
     # only collect variables that appear in the signature
-    local_args = {k: local_vars[k] for k in init_parameters.keys()}
+    local_args = {k: local_vars[k] for k in init_parameters}
     # kwargs_var might be None => raised an error by mypy
     if kwargs_var:
         local_args.update(local_args.get(kwargs_var, {}))

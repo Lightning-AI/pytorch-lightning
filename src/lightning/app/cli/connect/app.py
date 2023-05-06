@@ -83,7 +83,6 @@ def connect_app(app_name_or_id: str):
             connect_app(app_name_or_id)
 
     elif app_name_or_id.startswith("localhost"):
-
         with Progress() as progress_bar:
             connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=1.0)
 
@@ -140,7 +139,6 @@ def connect_app(app_name_or_id: str):
         ).wait()
 
     elif matched_connection_path:
-
         matched_connected_file = os.path.join(matched_connection_path, "connect.txt")
         matched_commands = os.path.join(matched_connection_path, "commands")
         if os.path.isdir(matched_commands):
@@ -263,7 +261,7 @@ def _get_commands_folder() -> str:
 
 
 def _write_commands_metadata(api_commands):
-    metadata = {command_name: metadata for command_name, metadata in api_commands.items()}
+    metadata = dict(api_commands.items())
     metadata_path = os.path.join(_get_commands_folder(), ".meta.json")
     with open(metadata_path, "w") as f:
         json.dump(metadata, f)
@@ -283,7 +281,7 @@ def _list_app_commands(echo: bool = True) -> List[str]:
     metadata = _get_commands_metadata()
     metadata = {key.replace("_", " "): value for key, value in metadata.items()}
 
-    command_names = list(sorted(metadata.keys()))
+    command_names = sorted(metadata.keys())
     if not command_names:
         click.echo("The current Lightning App doesn't have commands.")
         return []
@@ -382,7 +380,7 @@ def _scan_lightning_connections(app_name_or_id):
         if not curr_app_name:
             continue
 
-        if app_name_or_id == curr_app_name or app_name_or_id == curr_app_id:
+        if app_name_or_id in (curr_app_name, curr_app_id):
             return connection_path
 
     return None

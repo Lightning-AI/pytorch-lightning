@@ -7,7 +7,7 @@ import lightning.pytorch as pl
 from lightning.app.storage import Path
 from lightning.app.utilities.app_helpers import Logger
 from lightning.pytorch import Callback
-from lightning.pytorch.callbacks.progress.base import get_standard_metrics
+from lightning.pytorch.callbacks.progress.progress_bar import get_standard_metrics
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.parsing import collect_init_args
 
@@ -158,10 +158,7 @@ class PLAppProgressTracker(Callback):
         return trainer.fit_loop.epoch_loop.batch_progress.current.processed
 
     def _val_batch_idx(self, trainer: "pl.Trainer") -> int:
-        if trainer.state.fn == "fit":
-            loop = trainer.fit_loop.epoch_loop.val_loop
-        else:
-            loop = trainer.validate_loop
+        loop = trainer.fit_loop.epoch_loop.val_loop if trainer.state.fn == "fit" else trainer.validate_loop
 
         current_batch_idx = loop.epoch_loop.batch_progress.current.processed
         return current_batch_idx

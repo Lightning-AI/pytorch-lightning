@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-Stochastic Weight Averaging Callback
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-"""
+r"""Stochastic Weight Averaging Callback ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"""
 from copy import deepcopy
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 
@@ -44,9 +41,7 @@ class StochasticWeightAveraging(Callback):
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
-        r"""
-
-        Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
+        r"""Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
 
         Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
         Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
@@ -59,7 +54,7 @@ class StochasticWeightAveraging(Callback):
         For a SWA explanation, please take a look
         `here <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`_.
 
-        .. warning:: ``StochasticWeightAveraging`` is in beta and subject to change.
+        .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
@@ -94,7 +89,6 @@ class StochasticWeightAveraging(Callback):
             device: if provided, the averaged model will be stored on the ``device``.
                 When None is provided, it will infer the `device` from ``pl_module``.
                 (default: ``"cpu"``)
-
         """
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
@@ -150,8 +144,7 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException("SWA does not currently support sharded models.")
 
         # copy the model before moving it to accelerator device.
-        with pl_module._prevent_trainer_and_dataloaders_deepcopy():
-            self._average_model = deepcopy(pl_module)
+        self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if len(trainer.optimizers) != 1:
@@ -347,7 +340,7 @@ class StochasticWeightAveraging(Callback):
         # Note that this relies on the callback state being restored before the scheduler state is
         # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
         # writing that is only True for deepspeed which is already not supported by SWA.
-        # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
+        # See https://github.com/Lightning-AI/lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
             trainer.lr_scheduler_configs.clear()

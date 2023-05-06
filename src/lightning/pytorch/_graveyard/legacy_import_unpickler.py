@@ -1,3 +1,4 @@
+import contextlib
 import pickle
 import warnings
 from typing import Any, Callable
@@ -32,15 +33,12 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
 # patching is necessary, since up to v.0.7.3 torchmetrics has a hardcoded reference to lightning.pytorch,
 # which has to be redirected to the unified package:
 # https://github.com/Lightning-AI/metrics/blob/v0.7.3/torchmetrics/metric.py#L96
-try:
+with contextlib.suppress(AttributeError):
     if hasattr(torchmetrics.utilities.imports, "_compare_version"):
         torchmetrics.utilities.imports._compare_version = compare_version  # type: ignore
-except AttributeError:
-    pass
 
-try:
+with contextlib.suppress(AttributeError):
     if hasattr(torchmetrics.metric, "_compare_version"):
-        torchmetrics.metric._compare_version = compare_version  # type: ignore
-except AttributeError:
-    pass
+        torchmetrics.metric._compare_version = compare_version
+
 pickle.Unpickler = RedirectingUnpickler  # type: ignore

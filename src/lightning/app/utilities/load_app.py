@@ -51,6 +51,7 @@ def _load_objects_from_file(
     target_type: Type,
     raise_exception: bool = False,
     mock_imports: bool = False,
+    env_vars: Dict[str, str] = {},
 ) -> Tuple[List[Any], types.ModuleType]:
     """Load all of the top-level objects of the given type from a file.
 
@@ -70,15 +71,15 @@ def _load_objects_from_file(
         code = _create_code(filepath)
         with _create_fake_main_module(filepath) as module:
             try:
-                with _patch_sys_argv():
+                with _add_to_env(env_vars), _patch_sys_argv():
                     if mock_imports:
                         with _mock_missing_imports():
-                            exec(code, module.__dict__)
+                            exec(code, module.__dict__)  # noqa: S102
                     else:
-                        exec(code, module.__dict__)
-            except Exception as e:
+                        exec(code, module.__dict__)  # noqa: S102
+            except Exception as ex:
                 if raise_exception:
-                    raise e
+                    raise ex
                 _prettifiy_exception(filepath)
 
     return [v for v in module.__dict__.values() if isinstance(v, target_type)], module
@@ -98,7 +99,12 @@ def _load_plugin_from_file(filepath: str) -> "LightningPlugin":
     raise RuntimeError(f"The provided file {filepath} does not contain a Plugin.")
 
 
-def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
+def load_app_from_file(
+    filepath: str,
+    raise_exception: bool = False,
+    mock_imports: bool = False,
+    env_vars: Dict[str, str] = {},
+) -> "LightningApp":
     """Load a LightningApp from a file.
 
     Arguments:
@@ -108,7 +114,7 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
     from lightning.app.core.app import LightningApp
 
     apps, main_module = _load_objects_from_file(
-        filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports
+        filepath, LightningApp, raise_exception=raise_exception, mock_imports=mock_imports, env_vars=env_vars
     )
 
     # TODO: Remove this, downstream code shouldn't depend on side-effects here but it does
@@ -128,7 +134,6 @@ def load_app_from_file(filepath: str, raise_exception: bool = False, mock_import
 
 def _new_module(name):
     """Create a new module with the given name."""
-
     return types.ModuleType(name)
 
 
@@ -144,8 +149,7 @@ def open_python_file(filename):
         # Open file respecting PEP263 encoding. If no encoding header is
         # found, opens as utf-8.
         return tokenize.open(filename)
-    else:
-        return open(filename, encoding="utf-8")
+    return open(filename, encoding="utf-8")  # noqa: SIM115
 
 
 def _create_code(script_path: str):
@@ -214,6 +218,19 @@ def _patch_sys_path(append):
 
 
 @contextmanager
+def _add_to_env(envs: Dict[str, str]):
+    """This function adds the given environment variables to the current environment."""
+    original_envs = dict(os.environ)
+    os.environ.update(envs)
+
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(original_envs)
+
+
+@contextmanager
 def _patch_sys_argv():
     """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed
     everything else before executing the user app script.
@@ -241,10 +258,7 @@ def _patch_sys_argv():
         matches = [
             argv_slice.index(opt) for opt in options if opt in argv_slice and argv_slice.index(opt) >= first_index
         ]
-        if not matches:
-            last_index = len(argv_slice)
-        else:
-            last_index = min(matches)
+        last_index = len(argv_slice) if not matches else min(matches)
         # 6: last_index is either the fully command or the latest match from the CLI options.
         new_argv = [argv_slice[0]] + argv_slice[first_index:last_index]
 
@@ -264,11 +278,11 @@ def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
     extras = {}
 
     if isinstance(obj, LightningWork):
-        extras = dict(
-            local_build_config=obj.local_build_config.to_dict(),
-            cloud_build_config=obj.cloud_build_config.to_dict(),
-            cloud_compute=obj.cloud_compute.to_dict(),
-        )
+        extras = {
+            "local_build_config": obj.local_build_config.to_dict(),
+            "cloud_build_config": obj.cloud_build_config.to_dict(),
+            "cloud_compute": obj.cloud_compute.to_dict(),
+        }
 
     return dict(
         affiliation=obj.name.split("."),
@@ -282,4 +296,4 @@ def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
 def extract_metadata_from_app(app: "LightningApp") -> List:
     metadata = {flow.name: component_to_metadata(flow) for flow in app.flows}
     metadata.update({work.name: component_to_metadata(work) for work in app.works})
-    return list(metadata[key] for key in sorted(metadata.keys()))
+    return [metadata[key] for key in sorted(metadata.keys())]

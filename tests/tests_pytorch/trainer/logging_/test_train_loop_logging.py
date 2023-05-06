@@ -34,6 +34,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, R
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -211,7 +212,6 @@ def test_log_works_in_train_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -351,7 +351,6 @@ class LoggingSyncDistModel(BoringModel):
     ],
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
-
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -512,7 +511,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
-            self.val_acc = Accuracy()
+            self.val_acc = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
@@ -549,7 +548,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 @pytest.mark.parametrize(
     "value",
-    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
+    [None, {"a": None}, {"a": 1}, {"a": {"b": None}}, {"a": {"b": 1}}, "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
 def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):
@@ -599,7 +598,7 @@ def test_logging_raises(tmpdir):
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
@@ -608,10 +607,10 @@ def test_logging_raises(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.bar = Accuracy()
+            self.bar = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
     model = TestModel()
     with pytest.raises(

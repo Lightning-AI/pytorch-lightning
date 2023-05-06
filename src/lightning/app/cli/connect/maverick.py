@@ -102,9 +102,9 @@ def connect_maverick(name: str, project_name: str = "") -> None:
     with Live(Spinner("point", text=Text("Registering maverick...", style="white")), transient=True) as live:
         try:
             register_to_cloud(name, project_name)
-        except Exception as e:
+        except Exception as ex:
             live.stop()
-            rich.print(f"[red]Failed[/red]: Registering maverick failed with error {e}")
+            rich.print(f"[red]Failed[/red]: Registering maverick failed with error {ex}")
             return
 
         live.update(Spinner("point", text=Text("Setting up ...", style="white")))
@@ -112,11 +112,10 @@ def connect_maverick(name: str, project_name: str = "") -> None:
         # run network creation in the background
         out = subprocess.run(CMD_CREATE_NETWORK, shell=True, capture_output=True)
         error = out.stderr
-        if error:
-            if "already exists" not in str(error):
-                live.stop()
-                rich.print(f"[red]Failed[/red]: network creation failed with error: {str(error)}")
-                return
+        if error and "already exists" not in str(error):
+            live.stop()
+            rich.print(f"[red]Failed[/red]: network creation failed with error: {str(error)}")
+            return
 
         # if code server is already running, ignore.
         # If not, but container exists, remove it and run. Otherwise, run.
@@ -201,10 +200,7 @@ def connect_maverick(name: str, project_name: str = "") -> None:
 
             # Sleeping for 0.5 seconds
             time.sleep(0.5)
-    rich.print(
-        f"[green]Succeeded[/green]: maverick {name} has been connected to lightning. \n "
-        f"Go to https://{name}.{CLOUD_PROXY_HOST} to access the maverick."
-    )
+    rich.print(f"[green]Succeeded[/green]: maverick {name} has been connected to lightning.")
 
 
 @click.argument("name", required=True)
@@ -213,8 +209,8 @@ def disconnect_maverick(name: str) -> None:
     with Live(Spinner("point", text=Text("disconnecting maverick...", style="white")), transient=True):
         try:
             deregister_from_cloud(name)
-        except Exception as e:
-            rich.print(f"[red]Failed[/red]: Disconnecting machine failed with error: {e}")
+        except Exception as ex:
+            rich.print(f"[red]Failed[/red]: Disconnecting machine failed with error: {ex}")
             return
         subprocess.run(f"docker stop {CODE_SERVER_CONTAINER}", shell=True, capture_output=True)
         subprocess.run(f"docker stop {LIGHTNING_DAEMON_CONTAINER}", shell=True, capture_output=True)

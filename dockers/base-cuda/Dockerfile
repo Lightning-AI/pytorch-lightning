@@ -18,18 +18,18 @@ ARG CUDA_VERSION=11.7.1
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
-ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.13
+ARG PYTHON_VERSION=3.10
+ARG PYTORCH_VERSION=2.0
 ARG MAX_ALLOWED_NCCL=2.16.2
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
 ENV \
-    DEBIAN_FRONTEND=noninteractive \
-    TZ=Europe/Prague \
+    DEBIAN_FRONTEND="noninteractive" \
+    TZ="Etc/UTC" \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
-    MKL_THREADING_LAYER=GNU \
+    MKL_THREADING_LAYER="GNU" \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
 
@@ -43,7 +43,7 @@ RUN \
     echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
-    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
     TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
@@ -76,38 +76,28 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements/pytorch/ ./requirements/pytorch/
-COPY ./.actions/assistant.py assistant.py
+COPY requirements/pytorch/ requirements/pytorch/
+COPY requirements/_integrations/ requirements/_integrations/
 
-ENV \
-    PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages \
-    TORCH_URL=https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
+ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
-    pip install -q fire && \
     # Disable cache \
-    export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
     for fpath in `ls requirements/**/*.txt`; do \
       python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
-
-    # Install base requirements \
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links ${TORCH_URL} && \
-    rm assistant.py
-
-
-RUN \
-    # install rest of strategies
-    cat requirements/pytorch/strategies.txt && \
-    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links ${TORCH_URL}
-
-COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
-COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
+    CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
+    pip install \
+      -r requirements/pytorch/base.txt \
+      -r requirements/pytorch/extra.txt \
+      -r requirements/pytorch/test.txt \
+      -r requirements/pytorch/strategies.txt \
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 RUN \
     # Show what we have

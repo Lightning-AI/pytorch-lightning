@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Allow customize `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
 
 
 ### Changed
@@ -24,13 +24,46 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
+-
 
-- Removed implicit ui testing with `testing.run_app_in_cloud` in favor of headless login and app selection ([#16741](https://github.com/Lightning-AI/lightning/pull/16741))
 
 ### Fixed
 
 -
+
+
+## [2.0.1.post0] - 2023-04-11
+
+### Fixed
+
+- Fix frontend hosts when running with multi-process in the cloud ([#17324](https://github.com/Lightning-AI/lightning/pull/17324))
+
+
+## [2.0.1] - 2023-03-30
+
+No changes
+
+
+## [2.0.0] - 2023-03-15
+
+### Added
+
+- Added `--zip` option to the `lightning cp` command to copy content from the Cloud Platform Filesystem as a zipfile
+
+### Changed
+
+- Changed minimum supported version of `rich` from `10.14.0` to `12.13.0` ([#16798](https://github.com/Lightning-AI/lightning/pull/16798))
+
+### Removed
+
+- Removed support for Python 3.7 ([#16579](https://github.com/Lightning-AI/lightning/pull/16579))
+
+
+## [1.9.4] - 2023-03-01
+
+### Removed
+
+- Removed implicit ui testing with `testing.run_app_in_cloud` in favor of headless login and app selection ([#16741](https://github.com/Lightning-AI/lightning/pull/16741))
 
 
 ## [1.9.3] - 2023-02-21

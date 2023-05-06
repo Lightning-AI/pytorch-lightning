@@ -60,7 +60,8 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
-def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, mps_count_0, tmpdir):
+@mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
+def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):

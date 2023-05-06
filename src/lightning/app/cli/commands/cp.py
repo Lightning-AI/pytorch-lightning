@@ -13,19 +13,27 @@
 # limitations under the License.
 
 import concurrent
+import contextlib
 import os
 import sys
 from functools import partial
 from multiprocessing.pool import ApplyResult
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from textwrap import dedent
+from typing import Any, Optional, Tuple, Union
 
 import click
 import requests
 import urllib3
-from lightning_cloud.openapi import Externalv1LightningappInstance, ProjectIdStorageBody, V1CloudSpace
+from lightning_cloud.openapi import (
+    Externalv1Cluster,
+    Externalv1LightningappInstance,
+    ProjectIdStorageBody,
+    V1CloudSpace,
+    V1GetClusterResponse,
+)
 from rich.live import Live
-from rich.progress import BarColumn, DownloadColumn, Progress, Task, TextColumn
+from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TextColumn
 from rich.spinner import Spinner
 from rich.text import Text
 
@@ -33,6 +41,7 @@ from lightning.app.cli.commands.ls import _collect_artifacts, _get_prefix
 from lightning.app.cli.commands.pwd import _pwd
 from lightning.app.source_code import FileUploader
 from lightning.app.utilities.app_helpers import Logger
+from lightning.app.utilities.auth import _AuthTokenGetter
 from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
 
@@ -43,19 +52,15 @@ logger = Logger(__name__)
 @click.argument("dst_path", required=True)
 @click.option("-r", required=False, hidden=True)
 @click.option("--recursive", required=False, hidden=True)
-def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -> None:
+@click.option("--zip", required=False, is_flag=True, default=False)
+def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False, zip: bool = False) -> None:
     """Copy files between your local filesystem and the Lightning Cloud filesystem."""
-
     if sys.platform == "win32":
         print("`cp` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True) as live:
-
         pwd = _pwd()
-
-        if pwd == "/" or len(pwd.split("/")) == 1:
-            return _error_and_exit("Uploading files at the project level isn't allowed yet.")
 
         client = LightningClient(retry=False)
 
@@ -66,8 +71,14 @@ def cp(src_path: str, dst_path: str, r: bool = False, recursive: bool = False) -
             return _error_and_exit("Moving files remotely isn't supported yet. Please, open a Github issue.")
 
         if not src_remote and dst_remote:
+            if dst_path == "/" or len(dst_path.split("/")) == 1:
+                return _error_and_exit("Uploading files at the project level isn't allowed yet.")
+            if zip:
+                return _error_and_exit("Zipping uploads isn't supported yet. Please, open a Github issue.")
             _upload_files(live, client, src_path, dst_path, pwd)
         elif src_remote and not dst_remote:
+            if zip:
+                return _zip_files(live, src_path, dst_path)
             _download_files(live, client, src_path, dst_path, pwd)
         else:
             return _error_and_exit("Moving files locally isn't supported yet. Please, open a Github issue.")
@@ -109,10 +120,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     for upload_path in upload_paths:
         for cluster in clusters.clusters:
             filename = str(upload_path).replace(str(os.getcwd()), "")[1:]
-            if lit_resource:
-                filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource)
-            else:
-                filename = "/" + filename
+            filename = _get_prefix(os.path.join(remote_dst, filename), lit_resource) if lit_resource else "/" + filename
 
             response = client.lightningapp_instance_service_upload_project_artifact(
                 project_id=project_id,
@@ -149,7 +157,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
         _error_and_exit("We detected errors in uploading your files.")
 
 
-def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: Task) -> Optional[Exception]:
+def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, task_id: TaskID) -> Optional[Exception]:
     source_file = Path(source_file)
     file_uploader = FileUploader(
         presigned_url,
@@ -160,6 +168,44 @@ def _upload(source_file: str, presigned_url: ApplyResult, progress: Progress, ta
     file_uploader.progress = progress
     file_uploader.task_id = task_id
     file_uploader.upload()
+
+
+def _zip_files(live: Live, remote_src: str, local_dst: str) -> None:
+    if len(remote_src.split("/")) < 3:
+        return _error_and_exit(
+            dedent(
+                f"""
+                The source path must be at least two levels deep (e.g. r:/my-project/my-lit-resource).
+
+                The path provided was: r:{remote_src}
+                """
+            )
+        )
+
+    if os.path.isdir(local_dst):
+        local_dst = os.path.join(local_dst, os.path.basename(remote_src) + ".zip")
+
+    project_id, lit_resource = _get_project_id_and_resource(remote_src)
+
+    # /my-project/my-lit-resource/artfact-path -> cloudspace/my-lit-resource-id/artifact-path
+    artifact = "/".join(remote_src.split("/")[3:])
+    prefix = _get_prefix(artifact, lit_resource)
+
+    token = _AuthTokenGetter(LightningClient().api_client)._get_api_token()
+    endpoint = f"/v1/projects/{project_id}/artifacts/download?prefix={prefix}&token={token}"
+
+    cluster = _cluster_from_lit_resource(lit_resource)
+    url = _storage_host(cluster) + endpoint
+
+    live.stop()
+    progress = _get_progress_bar(transient=True)
+    progress.start()
+    task_id = progress.add_task("download zip", total=None)
+
+    _download_file(local_dst, url, progress, task_id)
+    progress.stop()
+
+    click.echo(f"Downloaded to {local_dst}")
 
 
 def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
@@ -204,12 +250,12 @@ def _download_files(live, client, remote_src: str, local_dst: str, pwd: str):
         _error_and_exit("There was an error downloading your files.")
 
 
-def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> None:
+def _download_file(path: str, url: str, progress: Progress, task_id: TaskID) -> None:
     # Disable warning about making an insecure request
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    try:
-        request = requests.get(url, stream=True, verify=False)
+    with contextlib.suppress(ConnectionError):
+        request = requests.get(url, stream=True, verify=False)  # noqa: S501
 
         chunk_size = 1024
 
@@ -217,18 +263,13 @@ def _download_file(path: str, url: str, progress: Progress, task_id: Task) -> No
             for chunk in request.iter_content(chunk_size=chunk_size):
                 fp.write(chunk)  # type: ignore
                 progress.update(task_id, advance=len(chunk))
-    except ConnectionError:
-        pass
 
 
 def _sanitize_path(path: str, pwd: str) -> Tuple[str, bool]:
     is_remote = _is_remote(path)
     if is_remote:
         path = _remove_remote(path)
-        if path == ".":
-            path = pwd
-        else:
-            path = os.path.join(pwd, path[1:])
+        path = pwd if path == "." else os.path.join(pwd, path)
     return path, is_remote
 
 
@@ -258,11 +299,9 @@ def _get_project_id_and_resource(pwd: str) -> Tuple[str, Union[Externalv1Lightni
     lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == resource_name]
 
     if len(lit_ressources) == 0:
-
         lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == resource_name]
 
         if len(lit_ressources) == 0:
-
             print(f"ERROR: There isn't any Lightning Ressource matching the name {resource_name}.")
             sys.exit(0)
 
@@ -276,10 +315,31 @@ def _get_project_id_from_name(project_name: str) -> str:
     return [project.project_id for project in projects.memberships if project.name == project_name][0]
 
 
-def _get_progress_bar():
+def _get_progress_bar(**kwargs: Any) -> Progress:
     return Progress(
         TextColumn("[bold blue]{task.description}", justify="left"),
         BarColumn(bar_width=None),
         "[self.progress.percentage]{task.percentage:>3.1f}%",
         DownloadColumn(),
+        **kwargs,
     )
+
+
+def _storage_host(cluster: Union[V1GetClusterResponse, Externalv1Cluster]) -> str:
+    dev_host = os.environ.get("LIGHTNING_STORAGE_HOST")
+    if dev_host:
+        return dev_host
+    return f"https://storage.{cluster.spec.driver.kubernetes.root_domain_name}"
+
+
+def _cluster_from_lit_resource(
+    lit_resource: Union[Externalv1LightningappInstance, V1CloudSpace]
+) -> Union[V1GetClusterResponse, Externalv1Cluster]:
+    client = LightningClient()
+    if isinstance(lit_resource, Externalv1LightningappInstance):
+        return client.cluster_service_get_cluster(lit_resource.spec.cluster_id)
+
+    clusters = client.cluster_service_list_clusters()
+    for cluster in clusters.clusters:
+        if cluster.id == clusters.default_cluster:
+            return cluster

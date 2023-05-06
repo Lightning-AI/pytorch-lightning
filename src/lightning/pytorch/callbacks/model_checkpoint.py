@@ -27,7 +27,6 @@ from datetime import timedelta
 from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
-import numpy as np
 import torch
 import yaml
 from torch import Tensor
@@ -391,7 +390,10 @@ class ModelCheckpoint(Checkpoint):
             return False
 
         # no validation means save on train epoch end
-        if sum(trainer.num_val_batches) == 0:
+        num_val_batches = (
+            sum(trainer.num_val_batches) if isinstance(trainer.num_val_batches, list) else trainer.num_val_batches
+        )
+        if num_val_batches == 0:
             return True
 
         # if the user runs validation multiple times per training epoch, then we run after validation
@@ -442,7 +444,7 @@ class ModelCheckpoint(Checkpoint):
         self.filename = filename
 
     def __init_monitor_mode(self, mode: str) -> None:
-        torch_inf = torch.tensor(np.Inf)
+        torch_inf = torch.tensor(torch.inf)
         mode_dict = {"min": (torch_inf, "min"), "max": (-torch_inf, "max")}
 
         if mode not in mode_dict:
@@ -456,7 +458,6 @@ class ModelCheckpoint(Checkpoint):
         every_n_epochs: Optional[int],
         train_time_interval: Optional[timedelta],
     ) -> None:
-
         # Default to running once after each validation epoch if neither
         # every_n_train_steps nor every_n_epochs is set
         if every_n_train_steps is None and every_n_epochs is None and train_time_interval is None:

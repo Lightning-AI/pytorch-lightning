@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import ast
+import contextlib
 import csv
 import inspect
 import logging
@@ -21,12 +22,11 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, Union
 from warnings import warn
 
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
-from typing_extensions import Self
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
@@ -39,8 +39,6 @@ from lightning.pytorch.utilities.parsing import AttributeDict, parse_class_init_
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
-PRIMITIVE_TYPES = (bool, int, float, str)
-ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
@@ -51,111 +49,14 @@ if _OMEGACONF_AVAILABLE:
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
-class ModelIO:
-    CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
-    CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
-    CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"
-
-    @classmethod
-    def load_from_checkpoint(
-        cls,
-        checkpoint_path: Union[_PATH, IO],
-        map_location: _MAP_LOCATION_TYPE = None,
-        hparams_file: Optional[_PATH] = None,
-        strict: bool = True,
-        **kwargs: Any,
-    ) -> Self:  # type: ignore[valid-type]
-        r"""
-        Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
-
-        Any arguments specified through \*\*kwargs will override args stored in ``"hyper_parameters"``.
-
-        Args:
-            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
-            map_location:
-                If your checkpoint saved a GPU model and you now load on CPUs
-                or a different number of GPUs, use this to map to the new setup.
-                The behaviour is the same as in :func:`torch.load`.
-            hparams_file: Optional path to a ``.yaml`` or ``.csv`` file with hierarchical structure
-                as in this example::
-
-                    drop_prob: 0.2
-                    dataloader:
-                        batch_size: 32
-
-                You most likely won't need this since Lightning will always save the hyperparameters
-                to the checkpoint.
-                However, if your checkpoint weights don't have the hyperparameters saved,
-                use this method to pass in a ``.yaml`` file with the hparams you'd like to use.
-                These will be converted into a :class:`~dict` and passed into your
-                :class:`LightningModule` for use.
-
-                If your model's ``hparams`` argument is :class:`~argparse.Namespace`
-                and ``.yaml`` file has hierarchical structure, you need to refactor your model to treat
-                ``hparams`` as :class:`~dict`.
-            strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
-                returned by this module's state dict.
-            \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
-                hyperparameter values.
-
-        Return:
-            :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
-
-        Note:
-            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
-            **class** to call it instead of the :class:`LightningModule` instance.
-
-        Example::
-
-            # load weights without mapping ...
-            model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
-
-            # or load weights mapping all weights from GPU 1 to GPU 0 ...
-            map_location = {'cuda:1':'cuda:0'}
-            model = MyLightningModule.load_from_checkpoint(
-                'path/to/checkpoint.ckpt',
-                map_location=map_location
-            )
-
-            # or load weights and hyperparameters from separate files.
-            model = MyLightningModule.load_from_checkpoint(
-                'path/to/checkpoint.ckpt',
-                hparams_file='/path/to/hparams_file.yaml'
-            )
-
-            # override some of the params with new values
-            model = MyLightningModule.load_from_checkpoint(
-                PATH,
-                num_layers=128,
-                pretrained_ckpt_path=NEW_PATH,
-            )
-
-            # predict
-            pretrained_model.eval()
-            pretrained_model.freeze()
-            y_hat = pretrained_model(x)
-        """
-        return _load_from_checkpoint(
-            cls,
-            checkpoint_path,
-            map_location,
-            hparams_file,
-            strict,
-            **kwargs,
-        )
-
-
 def _load_from_checkpoint(
-    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
+    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[_PATH, IO],
     map_location: _MAP_LOCATION_TYPE = None,
     hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
-    if map_location is None:
-        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -185,7 +86,14 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        return _load_state(cls, checkpoint, strict=strict, **kwargs)
+        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        state_dict = checkpoint["state_dict"]
+        if not state_dict:
+            raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
+        map_location = list(state_dict.values())[0].device
+        assert isinstance(storage, pl.LightningModule)
+        return storage.to(map_location)
+
     raise NotImplementedError(f"Unsupported {cls}")
 
 
@@ -205,7 +113,6 @@ def _load_state(
     cls_kwargs_loaded = {}
     # pass in the values we saved automatically
     if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-
         if issubclass(cls, pl.LightningModule):
             # TODO: make this a migration:
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
@@ -365,12 +272,9 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     with fs.open(config_yaml, "r") as fp:
         hparams = yaml.full_load(fp)
 
-    if _OMEGACONF_AVAILABLE:
-        if use_omegaconf:
-            try:
-                return OmegaConf.create(hparams)
-            except (UnsupportedValueType, ValidationError):
-                pass
+    if _OMEGACONF_AVAILABLE and use_omegaconf:
+        with contextlib.suppress(UnsupportedValueType, ValidationError):
+            return OmegaConf.create(hparams)
     return hparams
 
 

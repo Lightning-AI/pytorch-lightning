@@ -16,10 +16,6 @@ Welcome to ⚡ PyTorch Lightning
       </div>
       <div class='col-md-6'>
 
-.. join_slack::
-   :align: center
-   :margin: 0
-
 .. raw:: html
 
       </div>
@@ -44,7 +40,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 .. raw:: html
 
@@ -55,7 +51,7 @@ Conda users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 
@@ -64,7 +60,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-We are fully compatible with any stable PyTorch version v1.11 and above.
+You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 .. raw:: html
 
@@ -155,6 +151,7 @@ Current Lightning Users
 
    starter/introduction
    starter/installation
+   upgrade/migration_guide
 
 
 .. toctree::
@@ -168,7 +165,7 @@ Current Lightning Users
    levels/expert
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :name: pl_docs
    :caption: Core API
 
@@ -176,108 +173,30 @@ Current Lightning Users
    common/trainer
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :name: api
-   :caption: API Reference
+   :caption: Optional API
 
    api_references
 
 .. toctree::
    :maxdepth: 1
-   :name: Common Workflows
-   :caption: Common Workflows
-
-   Avoid overfitting <common/evaluation>
-   model/build_model.rst
-   cli/lightning_cli
-   common/progress_bar
-   deploy/production
-   advanced/training_tricks
-   tuning/profiler
-   Manage experiments <visualize/logging_intermediate>
-   Organize existing PyTorch into Lightning <starter/converting>
-   clouds/cluster
-   Save and load model progress <common/checkpointing>
-   Save memory with half-precision <common/precision>
-   advanced/model_parallel
-   Train on single or multiple GPUs <accelerators/gpu>
-   Train on single or multiple HPUs <accelerators/hpu>
-   Train on single or multiple IPUs <accelerators/ipu>
-   Train on single or multiple TPUs <accelerators/tpu>
-   Train on MPS <accelerators/mps>
-   Use a pretrained model <advanced/pretrained>
-   Inject Custom Data Iterables <data/custom_data_iterables>
-   model/own_your_loop
-
-.. toctree::
-   :maxdepth: 1
-   :name: Glossary
-   :caption: Glossary
-
-   Accelerators <extensions/accelerator>
-   Callback <extensions/callbacks>
-   Checkpointing <common/checkpointing>
-   Cluster <clouds/cluster>
-   Cloud checkpoint <common/checkpointing_advanced>
-   Console Logging <common/console_logs>
-   Debugging <debug/debugging>
-   Early stopping <common/early_stopping>
-   Experiment manager (Logger) <visualize/experiment_managers>
-   Finetuning <advanced/finetuning>
-   Flash <https://lightning-flash.readthedocs.io/en/stable/>
-   GPU <accelerators/gpu>
-   Half precision <common/precision>
-   HPU <accelerators/hpu>
-   Inference <deploy/production_intermediate>
-   IPU <accelerators/ipu>
-   Lightning CLI <cli/lightning_cli>
-   LightningDataModule <data/datamodule>
-   LightningModule <common/lightning_module>
-   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
-   Log <visualize/loggers>
-   TPU <accelerators/tpu>
-   Metrics <https://torchmetrics.readthedocs.io/en/stable/>
-   Model <model/build_model.rst>
-   Model Parallel <advanced/model_parallel>
-   Plugins <extensions/plugins>
-   Progress bar <common/progress_bar>
-   Production <deploy/production_advanced>
-   Predict <deploy/production_basic>
-   Pretrained models <advanced/pretrained>
-   Profiler <tuning/profiler>
-   Pruning and Quantization <advanced/pruning_quantization>
-   Remote filesystem and FSSPEC <common/remote_fs>
-   Strategy <extensions/strategy>
-   Strategy registry <advanced/strategy_registry>
-   Style guide <starter/style_guide>
-   SWA <advanced/training_tricks>
-   SLURM <clouds/cluster_advanced>
-   Transfer learning <advanced/transfer_learning>
-   Trainer <common/trainer>
-   Torch distributed <clouds/cluster_intermediate_2>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Hands-on Examples
-   :caption: Hands-on Examples
+   :name: Examples
+   :caption: Examples
    :glob:
 
    notebooks/**/*
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
+
 
 .. toctree::
    :maxdepth: 1
-   :name: Community
-   :caption: Community
+   :name: More
+   :caption: More
 
-   generated/CODE_OF_CONDUCT.md
-   generated/CONTRIBUTING.md
-   generated/BECOMING_A_CORE_CONTRIBUTOR.md
-   governance
-   versioning
-   generated/CHANGELOG.md
+   Community <community/index>
+   Glossary <glossary/index>
+   How to <common/index>
+
 
 .. raw:: html
 

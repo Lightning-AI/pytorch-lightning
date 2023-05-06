@@ -47,7 +47,7 @@ class LightningPlugin:
         """Override with the logic to execute on the cloudspace."""
         raise NotImplementedError
 
-    def run_job(self, name: str, app_entrypoint: str, env_vars: Optional[Dict[str, str]] = None) -> str:
+    def run_job(self, name: str, app_entrypoint: str, env_vars: Dict[str, str] = {}) -> str:
         """Run a job in the cloudspace associated with this plugin.
 
         Args:
@@ -65,7 +65,7 @@ class LightningPlugin:
 
         entrypoint_file = Path(app_entrypoint)
 
-        app = CloudRuntime.load_app_from_file(str(entrypoint_file.resolve().absolute()))
+        app = CloudRuntime.load_app_from_file(str(entrypoint_file.resolve().absolute()), env_vars=env_vars)
 
         app.stage = AppStage.BLOCKING
 
@@ -73,7 +73,7 @@ class LightningPlugin:
             app=app,
             entrypoint=entrypoint_file,
             start_server=True,
-            env_vars=env_vars if env_vars is not None else {},
+            env_vars=env_vars,
             secrets={},
             run_app_comment_commands=True,
         )
@@ -128,28 +128,28 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
 
             with open(download_path, "wb") as f:
                 f.write(response.content)
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error downloading plugin source: {str(e)}.",
+                detail=f"Error downloading plugin source: {str(ex)}.",
             )
 
         # Extract
         try:
             with tarfile.open(download_path, "r:gz") as tf:
                 tf.extractall(source_path)
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error extracting plugin source: {str(e)}.",
+                detail=f"Error extracting plugin source: {str(ex)}.",
             )
 
         # Import the plugin
         try:
             plugin = _load_plugin_from_file(os.path.join(source_path, run.plugin_entrypoint))
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(e)}."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(ex)}."
             )
 
         # Ensure that apps are dispatched from the temp directory
@@ -165,12 +165,17 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             )
             actions = plugin.run(**run.plugin_arguments) or []
             return {"actions": [action.to_spec().to_dict() for action in actions]}
-        except Exception as e:
+        except Exception as ex:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(e)}."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(ex)}."
             )
         finally:
             os.chdir(cwd)
+
+
+async def _healthz() -> Dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "ok"}
 
 
 def _start_plugin_server(host: str, port: int) -> None:
@@ -186,5 +191,6 @@ def _start_plugin_server(host: str, port: int) -> None:
     )
 
     fastapi_service.post("/v1/runs")(_run_plugin)
+    fastapi_service.get("/healthz", status_code=200)(_healthz)
 
     uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
