@@ -396,6 +396,7 @@ def test_summary_data_with_non_layer_params(example_input):
         assert summary_data["In sizes"][-1] == NOT_APPLICABLE
         assert summary_data["Out sizes"][-1] == NOT_APPLICABLE
 
+def test_summary_data_with_no_non_layer_params():
     summary = summarize(PreCalculatedModel())
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data["Name"][-1] != LEFTOVER_PARAMS_NAME
