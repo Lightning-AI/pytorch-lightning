@@ -151,7 +151,6 @@ class NonLayerParamsModel(LightningModule):
         super().__init__()
         self.param = torch.nn.Parameter(torch.ones(2, 2))
         self.layer = torch.nn.Linear(2, 2)
-        # self.example_input_array = torch.ones(2, 2)
 
     def forward(self, inp):
         self.layer(self.param @ inp)
