@@ -379,9 +379,9 @@ def test_summary_data_output(example_input):
     for column_name, entries in summary_data:
         assert all(isinstance(entry, str) for entry in entries)
 
+
 @pytest.mark.parametrize("example_input", [None, torch.ones(2, 2)])
 def test_summary_data_with_non_layer_params(example_input):
-
     class TestModel(NonLayerParamsModel):
         @property
         def example_input_array(self) -> Any:
@@ -399,4 +399,3 @@ def test_summary_data_with_non_layer_params(example_input):
     summary = summarize(PreCalculatedModel())
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data["Name"][-1] != LEFTOVER_PARAMS_NAME
-
