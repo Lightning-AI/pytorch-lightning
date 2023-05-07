@@ -585,7 +585,7 @@ class Fabric:
     @contextmanager
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers."""
-        context = self._strategy.init_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
         with context:
             yield
 
@@ -601,10 +601,21 @@ class Fabric:
 
     @contextmanager
     def init_module(self) -> Generator:
-        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`.
+        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
-        It is recommended to instantiate your modules under this.
+        The parameters get created on the device and with the right data type right away without wasting memory being
+        allocated unnecessarily.
+
+        Note:
+            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
         """
+        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
+                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
+                " utilize the features in `init_module()`.",
+                category=PossibleUserWarning,
+            )
         with self.init(), self.sharded_model():
             yield
 
