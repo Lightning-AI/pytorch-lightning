@@ -159,7 +159,6 @@ class _AcceleratorConnector:
         # 4. Instantiate Strategy - Part 1
         if self._strategy_flag == "auto":
             self._strategy_flag = self._choose_strategy()
-
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
         self._init_strategy()
@@ -622,8 +621,8 @@ class _AcceleratorConnector:
             self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`, `XLAStrategy`, or `XLAFSDPStrategy`,"
-                f" found {self.strategy.__class__.__name__}."
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`, `XLAStrategy`, or"
+                " `XLAFSDPStrategy`. Found {self.strategy.__class__.__name__}."
             )
 
         if _LIGHTNING_HABANA_AVAILABLE:

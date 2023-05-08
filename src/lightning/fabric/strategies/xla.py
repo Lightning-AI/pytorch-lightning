@@ -161,8 +161,8 @@ class XLAStrategy(ParallelStrategy):
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
             raise ValueError(
-                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
-                f" {reduce_op}"
+                f"Currently, the {type(self).__name__} only supports `sum`, `mean`, `avg` for the reduce operation,"
+                f" got: {reduce_op}"
             )
         import torch_xla.core.xla_model as xm
 

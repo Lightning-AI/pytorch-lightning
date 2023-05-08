@@ -31,7 +31,7 @@ from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.strategy import _BackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
-from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
+from lightning.fabric.utilities.types import _PATH, Optimizable
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -156,28 +156,6 @@ class XLAFSDPStrategy(XLAStrategy):
         dataloader.dataset = dataloader._loader.dataset
         dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
-
-    def all_reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-    ) -> Tensor:
-        if not isinstance(output, Tensor):
-            output = torch.tensor(output, device=self.root_device)
-
-        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if invalid_reduce_op or invalid_reduce_op_str:
-            raise ValueError(
-                "Currently, the XLAFSDPStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
-                f" {reduce_op}"
-            )
-        import torch_xla.core.xla_model as xm
-
-        output = xm.mesh_reduce("reduce", output, sum)
-
-        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-            output = output / self.world_size
-
-        return output
 
     def clip_gradients_norm(  # type: ignore[override]
         self,
@@ -304,8 +282,8 @@ class XLAFSDPStrategy(XLAStrategy):
         path = Path(self.broadcast(path))
         if path.is_file():
             raise NotImplementedError(
-                f"The path `{path}` is a file, but the `XLAFSDPStrategy` currently only supports loading from a checkpoint"
-                f" with sharded states in a directory."
+                f"The path `{path}` is a file, but the `XLAFSDPStrategy` currently only supports loading from a"
+                " checkpoint with sharded states in a directory."
             )
 
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
