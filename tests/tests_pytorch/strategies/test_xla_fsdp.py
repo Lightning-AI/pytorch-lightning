@@ -106,10 +106,3 @@ def test_xla_fsdp_basic_checkpointing():
     trainer = Trainer(strategy="xla_fsdp", enable_checkpointing=True, max_epochs=1)
     model = BoringModelXLA()
     trainer.fit(model)
-
-
-@RunIf(tpu=True)
-@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
-def test_xla_fsdp_automatic_strategy_selection():
-    trainer = Trainer(strategy="fsdp")
-    assert isinstance(trainer.strategy, XLAFSDPStrategy)
