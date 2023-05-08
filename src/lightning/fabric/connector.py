@@ -22,14 +22,15 @@ from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
-from lightning.fabric.accelerators.tpu import TPUAccelerator
+from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
+    HalfPrecision,
     MixedPrecision,
     Precision,
-    TPUBf16Precision,
-    TPUPrecision,
+    XLABf16Precision,
+    XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
@@ -53,7 +54,7 @@ from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-    SingleTPUStrategy,
+    SingleDeviceXLAStrategy,
     Strategy,
     STRATEGY_REGISTRY,
     XLAStrategy,
@@ -257,24 +258,20 @@ class _Connector:
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag != "auto":
                     raise ValueError("accelerator set through both strategy class and accelerator flag, choose one")
-                else:
-                    self._accelerator_flag = self._strategy_flag._accelerator
+                self._accelerator_flag = self._strategy_flag._accelerator
             if self._strategy_flag._precision:
                 # [RFC] handle precision plugin set up conflict?
                 if self._precision_instance:
                     raise ValueError("precision set through both strategy class and plugins, choose one")
-                else:
-                    self._precision_instance = self._strategy_flag._precision
+                self._precision_instance = self._strategy_flag._precision
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
                     raise ValueError("checkpoint_io set through both strategy class and plugins, choose one")
-                else:
-                    self.checkpoint_io = self._strategy_flag._checkpoint_io
+                self.checkpoint_io = self._strategy_flag._checkpoint_io
             if getattr(self._strategy_flag, "cluster_environment", None):
                 if self._cluster_environment_flag:
                     raise ValueError("cluster_environment set through both strategy class and plugins, choose one")
-                else:
-                    self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
+                self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
             if hasattr(self._strategy_flag, "parallel_devices") and self._strategy_flag.parallel_devices:
                 if self._strategy_flag.parallel_devices[0].type == "cpu":
@@ -310,7 +307,7 @@ class _Connector:
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if TPUAccelerator.is_available():
+        if XLAAccelerator.is_available():
             return "tpu"
         if MPSAccelerator.is_available():
             return "mps"
@@ -372,12 +369,11 @@ class _Connector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, TPUAccelerator):
+        if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
-            else:
-                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])
+            # TODO: lazy initialized device, then here could be self._strategy_flag = "single_xla"
+            return SingleDeviceXLAStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
@@ -433,19 +429,21 @@ class _Connector:
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
 
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "32-true":
-                return TPUPrecision()
-            elif self._precision_input in ("16-mixed", "bf16-mixed"):
+                return XLAPrecision()
+            if self._precision_input in ("16-mixed", "bf16-mixed"):
                 if self._precision_input == "16-mixed":
                     rank_zero_warn(
                         "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
                         " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
-                return TPUBf16Precision()
+                return XLABf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
+        if self._precision_input in ("16-true", "bf16-true"):
+            return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":
@@ -467,23 +465,23 @@ class _Connector:
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)
-            return MixedPrecision(precision=self._precision_input, device=device)
+                return FSDPPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
+            return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_input == "64-true":
                 raise NotImplementedError(
                     "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
-            if self._precision_instance and not isinstance(self._precision_instance, (TPUPrecision, TPUBf16Precision)):
+            if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
                 raise ValueError(
-                    f"The `TPUAccelerator` can only be used with a `TPUPrecision` plugin,"
+                    f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
                     f" found: {self._precision_instance}."
                 )
 
@@ -520,11 +518,11 @@ class _Connector:
 
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
-        if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
-            self.strategy, (SingleTPUStrategy, XLAStrategy)
+        if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

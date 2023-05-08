@@ -337,8 +337,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
         return list(batch.shape)
 
     if isinstance(batch, (list, tuple)):
-        shape = [parse_batch_shape(el) for el in batch]
-        return shape
+        return [parse_batch_shape(el) for el in batch]
 
     return UNKNOWN_SIZE
 

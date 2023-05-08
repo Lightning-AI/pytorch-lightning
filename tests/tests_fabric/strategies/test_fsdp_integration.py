@@ -55,8 +55,7 @@ class _MyFabric(BoringFabric):
             assert original_module[layer_num].mixed_precision.buffer_dtype == precision
 
         output = model(batch)
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
 
 class _MyFabricManualWrapping(_MyFabric):
@@ -69,7 +68,7 @@ class _MyFabricManualWrapping(_MyFabric):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
+@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
@@ -195,13 +194,15 @@ def test_compile(compile_after_setup):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
-    "precision,expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("32-true", torch.float32),
+        ("16-true", torch.float16),
+        pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
         ("64-true", torch.float64),
     ],
 )
-def test_module_init_context(precision, expected_dtype):
+def test_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     fabric = Fabric(
         accelerator="cuda",
@@ -214,8 +215,9 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the meta device until `.setup()``
-    expected_device = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    # The model is on the CPU until `.setup()``
+    # TODO: Support initialization on meta device
+    expected_device = torch.device("cpu")
     assert model.weight.device == expected_device
     assert model.weight.dtype == expected_dtype
 

@@ -201,13 +201,13 @@ def test_swa_callback_1_gpu(tmpdir, accelerator):
     train_with_swa(tmpdir, accelerator=accelerator, devices=1)
 
 
-@pytest.mark.parametrize("batchnorm", (True, False))
-@pytest.mark.parametrize("iterable_dataset", (True, False))
+@pytest.mark.parametrize("batchnorm", [True, False])
+@pytest.mark.parametrize("iterable_dataset", [True, False])
 def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
     train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
-@pytest.mark.parametrize("interval", ("epoch", "step"))
+@pytest.mark.parametrize("interval", ["epoch", "step"])
 def test_swa_callback_scheduler_step(tmpdir, interval: str):
     train_with_swa(tmpdir, interval=interval)
 

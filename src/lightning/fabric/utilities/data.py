@@ -73,8 +73,7 @@ def has_len(dataloader: object) -> TypeGuard[Sized]:
 
 def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
-    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
-    return dataloader
+    return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
 
 
 def _get_dataloader_init_args_and_kwargs(
@@ -406,7 +405,7 @@ def _replace_value_in_saved_args(
         replace_index = arg_names.index(replace_key)
         args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
         return True, args, kwargs
-    elif replace_key in kwargs or replace_key in default_kwargs:
+    if replace_key in kwargs or replace_key in default_kwargs:
         kwargs[replace_key] = replace_value
         return True, args, kwargs
 

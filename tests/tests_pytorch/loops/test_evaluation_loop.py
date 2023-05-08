@@ -45,7 +45,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     assert eval_epoch_end_mock.call_count == 4
 
 
-@pytest.mark.parametrize("use_batch_sampler", (False, True))
+@pytest.mark.parametrize("use_batch_sampler", [False, True])
 def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
     """Tests that set_epoch is called on the dataloader's sampler (if any) during training and validation."""
 
@@ -451,13 +451,13 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
 
 @pytest.mark.parametrize(
     ("mode", "expected"),
-    (
+    [
         ("max_size_cycle", [{"a": 0, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": 3}]),
         ("min_size", [{"a": 0, "b": 3}, {"a": 1, "b": 4}]),
         ("max_size", [{"a": 0, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": None}]),
-    ),
+    ],
 )
-@pytest.mark.parametrize("fn", ("validate", "test"))
+@pytest.mark.parametrize("fn", ["validate", "test"])
 def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn):
     iterables = {"a": [0, 1, 2], "b": {3, 4}}
     cl = CombinedLoader(iterables, mode)

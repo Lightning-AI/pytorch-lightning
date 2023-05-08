@@ -23,6 +23,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
@@ -479,7 +480,7 @@ class Strategy(ABC):
         self.checkpoint_io.teardown()
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         pass
 
     def on_train_start(self) -> None:

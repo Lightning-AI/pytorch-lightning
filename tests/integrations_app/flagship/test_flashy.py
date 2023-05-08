@@ -66,7 +66,7 @@ def validate_app_functionalities(app_page: "Page") -> None:
     expect(runs).to_have_count(1, timeout=120000)
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_app_cloud() -> None:
     with run_app_in_cloud(_PATH_INTEGRATIONS_DIR) as (admin_page, view_page, fetch_logs, _):
         validate_app_functionalities(view_page)

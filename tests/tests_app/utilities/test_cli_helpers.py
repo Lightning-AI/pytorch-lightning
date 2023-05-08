@@ -73,7 +73,7 @@ def test_arrow_time_callback():
 
 
 @pytest.mark.parametrize(
-    "response, current_version, newer_version",
+    ("response", "current_version", "newer_version"),
     [
         (
             {

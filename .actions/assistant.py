@@ -332,7 +332,7 @@ def copy_replace_imports(
             if not isfile(fp_new):
                 shutil.copy(fp, fp_new)
             continue
-        elif ext in (".pyc",):
+        if ext in (".pyc",):
             continue
         # Try to parse everything else
         with open(fp, encoding="utf-8") as fo:

@@ -17,7 +17,6 @@ from unittest.mock import Mock, patch
 import pytest
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import IPUAccelerator
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
@@ -30,7 +29,7 @@ else:
     ColossalAIStrategy = None
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
 def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()
@@ -48,7 +47,7 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 
 
 @pytest.mark.parametrize(
-    ["accumulate_grad_batches", "expected_call_count"],
+    ("accumulate_grad_batches", "expected_call_count"),
     [
         ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
         ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
@@ -112,17 +111,6 @@ def test_unsupported_strategies(strategy_class):
     model = BoringModel()
     trainer = Trainer()
     trainer._accelerator_connector.strategy = Mock(spec=strategy_class)
-    with pytest.raises(RuntimeError, match="does not support `accumulate_grad_batches` changing between epochs"):
-        scheduler.on_train_start(trainer, model)
-
-
-@pytest.mark.parametrize("accelerators_class", [IPUAccelerator])
-def test_unsupported_accelerators(accelerators_class):
-    """Test that an error is raised for accelerators that require the gradient accumulation factor to be fixed."""
-    scheduler = GradientAccumulationScheduler({1: 2})
-    model = BoringModel()
-    trainer = Trainer()
-    trainer._accelerator_connector.strategy = Mock(accelerator=Mock(spec=accelerators_class))
     with pytest.raises(RuntimeError, match="does not support `accumulate_grad_batches` changing between epochs"):
         scheduler.on_train_start(trainer, model)
 

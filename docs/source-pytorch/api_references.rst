@@ -13,8 +13,7 @@ accelerators
     Accelerator
     CPUAccelerator
     CUDAAccelerator
-    IPUAccelerator
-    TPUAccelerator
+    XLAAccelerator
 
 callbacks
 ---------
@@ -116,11 +115,10 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FSDPMixedPrecisionPlugin
-    IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    TPUBf16PrecisionPlugin
-    TPUPrecisionPlugin
+    XLABf16PrecisionPlugin
+    XLAPrecisionPlugin
 
 environments
 """"""""""""
@@ -212,10 +210,9 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
-    IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
-    SingleTPUStrategy
+    SingleDeviceXLAStrategy
     Strategy
     XLAStrategy
 

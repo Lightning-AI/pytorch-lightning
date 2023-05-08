@@ -265,7 +265,7 @@ def test_summary_with_scripted_modules(max_depth):
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
 @pytest.mark.parametrize(
-    ["example_input", "expected_size"],
+    ("example_input", "expected_size"),
     [
         ([], UNKNOWN_SIZE),
         ((1, 2, 3), [UNKNOWN_SIZE] * 3),

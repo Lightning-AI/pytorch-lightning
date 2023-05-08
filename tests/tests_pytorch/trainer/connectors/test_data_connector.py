@@ -35,7 +35,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("mode", (1, 2))
+@pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):
@@ -81,9 +81,10 @@ def test_replace_distributed_sampler(tmpdir, mode):
                 # with a custom batch sampler
                 batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=1, drop_last=True)
                 return CustomDataLoader(32, dataset, batch_sampler=batch_sampler)
-            elif self._mode == 2:
+            if self._mode == 2:
                 # with no batch sampler provided
                 return CustomDataLoader(32, dataset, batch_size=2, drop_last=True)
+            return None
 
         def test_dataloader(self):
             return [self.create_dataset()] * self._numbers_test_dataloaders
@@ -377,7 +378,7 @@ def test_error_raised_with_float_limited_eval_batches():
 
 
 @pytest.mark.parametrize(
-    "val_dl,warns",
+    ("val_dl", "warns"),
     [
         (DataLoader(dataset=RandomDataset(32, 64), shuffle=True), True),
         (DataLoader(dataset=RandomDataset(32, 64), sampler=list(range(64))), False),
@@ -419,7 +420,7 @@ class NoDataLoaderModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "instance,available",
+    ("instance", "available"),
     [
         (None, True),
         (BoringModel().train_dataloader(), True),
@@ -527,7 +528,7 @@ def test_invalid_hook_passed_in_datahook_selector():
         dh_selector.get_instance("setup")
 
 
-@pytest.mark.parametrize("devices, warn_context", [(1, no_warning_call), (2, pytest.warns)])
+@pytest.mark.parametrize(("devices", "warn_context"), [(1, no_warning_call), (2, pytest.warns)])
 def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
     model = BoringModel()
@@ -577,7 +578,7 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
 
 
 @pytest.mark.parametrize(
-    "trainer_fn_name, dataloader_name",
+    ("trainer_fn_name", "dataloader_name"),
     [
         ("fit", "train_dataloaders"),
         ("validate", "dataloaders"),
@@ -612,7 +613,7 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
 
 
 @pytest.mark.parametrize(
-    "trainer_fn_name, dataloader_name, stage",
+    ("trainer_fn_name", "dataloader_name", "stage"),
     [
         ("fit", "train_dataloaders", RunningStage.TRAINING),
         ("validate", "dataloaders", RunningStage.VALIDATING),

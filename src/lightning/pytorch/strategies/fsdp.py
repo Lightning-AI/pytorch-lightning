@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
+from datetime import timedelta
 from typing import Any, Dict, Generator, List, Optional, Type, Union
 
 import torch
@@ -21,6 +22,8 @@ from torch.nn import Module
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
     _init_cpu_offload,
     _optimizer_has_flat_params,
@@ -112,6 +115,7 @@ class FSDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional[MixedPrecision] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
@@ -130,6 +134,7 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group = None
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
+        self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
@@ -187,6 +192,7 @@ class FSDPStrategy(ParallelStrategy):
         plugin = self.precision_plugin
         if isinstance(plugin, FSDPMixedPrecisionPlugin):
             return plugin.mixed_precision_config
+        return None
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
@@ -201,7 +207,7 @@ class FSDPStrategy(ParallelStrategy):
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
@@ -294,6 +300,7 @@ class FSDPStrategy(ParallelStrategy):
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
                 " `configure_optimizers()` hook."
             )
+        return None
 
     def model_to_device(self) -> None:
         pass
@@ -345,7 +352,7 @@ class FSDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
@@ -395,7 +402,7 @@ class FSDPStrategy(ParallelStrategy):
         return cls._registered_strategies
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not _fsdp_available:
             return
         strategy_registry.register(

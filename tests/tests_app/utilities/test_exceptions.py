@@ -1,16 +1,16 @@
 from json import dumps
 from unittest.mock import MagicMock
 
+import pytest
 from click import ClickException, group
 from click.testing import CliRunner
 from lightning_cloud.openapi.rest import ApiException
-from pytest import fixture
 from urllib3 import HTTPResponse
 
 from lightning.app.utilities.exceptions import _ApiExceptionHandler
 
 
-@fixture
+@pytest.fixture()
 def mock_api_handled_group():
     @group(cls=_ApiExceptionHandler)
     def g():
@@ -19,7 +19,7 @@ def mock_api_handled_group():
     return g
 
 
-@fixture
+@pytest.fixture()
 def mock_subcommand(mock_api_handled_group):
     @mock_api_handled_group.command()
     def cmd():
@@ -28,7 +28,7 @@ def mock_subcommand(mock_api_handled_group):
     return cmd
 
 
-@fixture
+@pytest.fixture()
 def api_error_msg():
     return "This is an internal error message"
 

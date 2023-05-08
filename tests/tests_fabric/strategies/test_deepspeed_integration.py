@@ -107,7 +107,7 @@ def test_deepspeed_multiple_models():
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
-    ["dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"],
+    ("dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"),
     [
         (RandomDataset, None, 1),
         (RandomDataset, 10, 10),
@@ -231,8 +231,7 @@ class ModelParallelClassification(BoringFabric):
         # Ensure output is in float32 for softmax operation
         x = x.float()
         logits = F.softmax(x, dim=1)
-        loss = F.cross_entropy(logits, y)
-        return loss
+        return F.cross_entropy(logits, y)
 
     def _make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
