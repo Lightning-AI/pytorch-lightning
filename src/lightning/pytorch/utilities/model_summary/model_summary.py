@@ -310,7 +310,7 @@ class ModelSummary:
     def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int):
         """Add summary of params not associated with module or layer to model summary."""
         layer_summaries = dict(arrays)
-        layer_summaries[" "].append(str(len(self._layer_summary) + 1))
+        layer_summaries[" "].append(" ")
         layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
         layer_summaries["Type"].append(NOT_APPLICABLE)
         layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))

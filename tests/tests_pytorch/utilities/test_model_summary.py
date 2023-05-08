@@ -389,6 +389,7 @@ def test_summary_data_with_non_layer_params(example_input):
 
     summary = summarize(TestModel())
     summary_data = OrderedDict(summary._get_summary_data())
+    assert summary_data[" "][-1] == " "
     assert summary_data["Name"][-1] == LEFTOVER_PARAMS_NAME
     assert summary_data["Type"][-1] == NOT_APPLICABLE
     assert int(summary_data["Params"][-1]) == 4
