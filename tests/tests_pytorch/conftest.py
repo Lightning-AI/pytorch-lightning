@@ -182,9 +182,6 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
-    import torch_xla.core.xla_env_vars as xla_env_vars
-
-    xla_env_vars.PJRT_DEVICE = "PJRT_DEVICE"
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
