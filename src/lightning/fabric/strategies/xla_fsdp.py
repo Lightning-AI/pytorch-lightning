@@ -21,7 +21,6 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
@@ -34,7 +33,11 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
+    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
+else:
+    XLAFSDP = None
+    MpDeviceLoader = None
 
 
 class XLAFSDPStrategy(XLAStrategy):
@@ -85,6 +88,8 @@ class XLAFSDPStrategy(XLAStrategy):
         )
 
     def setup_module(self, module: Module) -> Module:
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         if "auto_wrap_policy" in self._fsdp_kwargs and any(isinstance(mod, XLAFSDP) for mod in module.modules()):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
             del self._fsdp_kwargs["auto_wrap_policy"]
@@ -159,7 +164,7 @@ class XLAFSDPStrategy(XLAStrategy):
 
     def clip_gradients_norm(  # type: ignore[override]
         self,
-        module: "XlaFullyShardedDataParallel",
+        module: "XLAFSDP",
         optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
@@ -172,13 +177,12 @@ class XLAFSDPStrategy(XLAStrategy):
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type, groups=groups)
 
     def clip_gradients_value(  # type: ignore[override]
-        self, module: "XlaFullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
+        self, module: "XLAFSDP", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         """Clip gradients by value."""
-
         raise NotImplementedError(
-            "XLAFSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
+            "XLA's FSDP strategy does not support to clip gradients by value."
+            " Consider clipping by norm instead or choose another strategy!"
         )
 
     def save_checkpoint(

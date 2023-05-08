@@ -300,7 +300,7 @@ class XLAStrategy(DDPStrategy):
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
     def _pod_progress_bar_force_stdout(self) -> None:

@@ -13,32 +13,23 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, List, Optional
 
 import torch
-from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO
+from lightning.fabric.strategies import _StrategyRegistry
+from lightning.fabric.strategies.xla_fsdp import XLAFSDP
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
-from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
+from lightning.fabric.utilities.types import _PATH, Optimizable
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.xla import XLAStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
-
-if TYPE_CHECKING and _XLA_AVAILABLE:
-    from torch_xla.distributed.parallel_loader import MpDeviceLoader
-
-    _distributed_available = True
-
-else:
-    MpDeviceLoader = None
-
-from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel
 
 log = logging.getLogger(__name__)
 
@@ -69,19 +60,21 @@ class XLAFSDPStrategy(XLAStrategy):
         )
         self.kwargs = kwargs
 
-    def _setup_model(self, model: torch.nn.Module) -> XlaFullyShardedDataParallel:
+    def _setup_model(self, model: torch.nn.Module) -> XLAFSDP:
         """Wraps the model into a
         :class:`~torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParalle` module."""
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
         assert self.lightning_module is not None
         if "auto_wrap_policy" in self.kwargs and any(
-            isinstance(mod, XlaFullyShardedDataParallel) for mod in self.lightning_module.modules()
+            isinstance(mod, XLAFSDP) for mod in self.lightning_module.modules()
         ):
             del self.kwargs["auto_wrap_policy"]
 
         log.debug(f"setting up XLA FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
 
-        wrapped_module = XlaFullyShardedDataParallel(
+        wrapped_module = XLAFSDP(
             module=model,
             **self.kwargs,
         )
@@ -135,8 +128,7 @@ class XLAFSDPStrategy(XLAStrategy):
                     " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
                     " `configure_optimizers()` hook."
                 )
-            else:
-                raise e
+            raise e
 
     def optimizer_step(
         self,
@@ -153,29 +145,6 @@ class XLAFSDPStrategy(XLAStrategy):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         return optimizer.step(closure=closure, **kwargs)
-
-    def reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-    ) -> Tensor:
-        if not isinstance(output, Tensor):
-            output = torch.tensor(output, device=self.root_device)
-
-        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if invalid_reduce_op or invalid_reduce_op_str:
-            raise ValueError(
-                "Currently, the XLAFSDPStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
-                f" {reduce_op}"
-            )
-
-        import torch_xla.core.xla_model as xm
-
-        output = xm.mesh_reduce("reduce", output, sum)
-
-        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-            output = output / self.world_size
-
-        return output
 
     def setup_distributed(self) -> None:
         from torch_xla.experimental.pjrt import using_pjrt
@@ -201,12 +170,8 @@ class XLAFSDPStrategy(XLAStrategy):
         pass
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
             "xla_fsdp_debug", cls, description="XLA FSDP strategy with `debug` as True", debug=True
         )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+        strategy_registry.register(cls.strategy_name, cls, description=cls.__class__.__name__)
