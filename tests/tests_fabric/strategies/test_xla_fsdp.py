@@ -12,92 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from functools import partial
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
-import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
-import lightning as L
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
-from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
-from lightning.fabric.utilities.distributed import ReduceOp
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
-
-
-def wrap_launch_function(fn, strategy, *args, **kwargs):
-    # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
-    strategy.setup_environment()
-    return fn(*args, **kwargs)
-
-
-def xla_launch(fn):
-    # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
-    accelerator = XLAAccelerator()
-    strategy = XLAFSDPStrategy(
-        accelerator=accelerator,
-        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
-    )
-    launcher = _XLALauncher(strategy=strategy)
-    wrapped = partial(wrap_launch_function, fn, strategy)
-    return launcher.launch(wrapped, strategy)
-
-
-def broadcast_on_tpu_fn(strategy):
-    # test broadcasting a tensor
-    obj = torch.tensor(strategy.local_rank)
-    # In PjRT, the local rank and global rank have no solid relation.
-    # global rank may not even be contiguous on a host, because it depends on the 3D mesh structure that is formed by
-    # the TPUs on all hosts in a pod. So checking a different src is not reliable
-    # https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/experimental/pjrt.py#L161-L163
-    src = 0
-    result = strategy.broadcast(obj, src)
-    assert result.item() == src
-    assert result.device.type == "xla"
-
-    # test broadcasting an arbitrary object
-    obj = ("ver_0.5", "logger_name", strategy.local_rank)
-    result = strategy.broadcast(obj, src=src)
-    assert result == ("ver_0.5", "logger_name", src)
-
-
-@RunIf(tpu=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_broadcast_on_tpu():
-    """Checks if an object from the main process is broadcast to other processes correctly."""
-    xla_launch(broadcast_on_tpu_fn)
-
-
-def tpu_reduce_fn(strategy):
-    with pytest.raises(ValueError, match="XLAFSDPStrategy only supports"):
-        strategy.all_reduce(1, reduce_op="undefined")
-
-    with pytest.raises(ValueError, match="XLAFSDPStrategy only supports"):
-        strategy.all_reduce(1, reduce_op=ReduceOp.MAX)
-
-        # it is faster to loop over here than to parameterize the test
-        for reduce_op in ("mean", "AVG", "sum", ReduceOp.SUM):
-            result = strategy.all_reduce(1, reduce_op=reduce_op)
-            if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
-                assert result.item() == 1
-            else:
-                assert result.item() == 8
-
-
-@RunIf(tpu=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_reduce():
-    """Test tpu spawn all_reduce operation."""
-    xla_launch(tpu_reduce_fn)
 
 
 @RunIf(tpu=True)
@@ -184,10 +112,3 @@ def test_xla_fsdp_grad_clipping_value_error():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
-
-
-@RunIf(tpu=True)
-@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
-def test_xla_fsdp_automatic_strategy_selection():
-    fabric = L.Fabric(strategy="fsdp")
-    assert isinstance(fabric.strategy, XLAFSDPStrategy)

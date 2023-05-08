@@ -24,34 +24,26 @@ from lightning.pytorch.strategies import XLAFSDPStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
-class BoringDebugModelTPU(BoringModel):
+class BoringModelXLA(BoringModel):
     def on_train_start(self) -> None:
         from torch_xla.experimental import pjrt
 
         index = 0 if pjrt.using_pjrt() else 1
         # assert strategy attributes for device setting
         assert self.device == torch.device("xla", index=index)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+        return optimizer
+
+
+class BoringModelXLADebug(BoringModelXLA):
+    def on_train_start(self) -> None:
+        super().on_train_start()
         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
-    def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
-        return optimizer
 
-
-class BoringModelTPU(BoringModel):
-    def on_train_start(self) -> None:
-        from torch_xla.experimental import pjrt
-
-        index = 0 if pjrt.using_pjrt() else 1
-        # assert strategy attributes for device setting
-        assert self.device == torch.device("xla", index=index)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
-        return optimizer
-
-
-class EmptyParametersModel(BoringModelTPU):
+class EmptyParametersModel(BoringModelXLA):
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=1e-2)
 
@@ -60,7 +52,7 @@ class EmptyParametersModel(BoringModelTPU):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_fsdp_strategy_debug_state():
     """Tests if device/debug flag is set correctly when training and after teardown for XLAStrategy."""
-    model = BoringDebugModelTPU()
+    model = BoringModelXLADebug()
     from torch_xla.experimental import pjrt
 
     trainer_kwargs = {}
@@ -78,7 +70,7 @@ def test_xla_fsdp_strategy_debug_state():
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_fsdp_strategy():
     """Tests basic training for XLAStrategy."""
-    model = BoringModelTPU()
+    model = BoringModelXLA()
     from torch_xla.experimental import pjrt
 
     trainer_kwargs = {}
@@ -112,7 +104,7 @@ def test_xla_fsdp_invalid_parameters_in_optimizer():
 @mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_basic_checkpointing():
     trainer = Trainer(strategy="xla_fsdp", enable_checkpointing=True, max_epochs=1)
-    model = BoringModelTPU()
+    model = BoringModelXLA()
     trainer.fit(model)
 
 
