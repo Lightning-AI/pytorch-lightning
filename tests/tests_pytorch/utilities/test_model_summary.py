@@ -151,7 +151,6 @@ class NonLayerParamsModel(LightningModule):
         super().__init__()
         self.param = torch.nn.Parameter(torch.ones(2, 2))
         self.layer = torch.nn.Linear(2, 2)
-        # self.example_input_array = torch.ones(2, 2)
 
     def forward(self, inp):
         self.layer(self.param @ inp)
@@ -382,12 +381,10 @@ def test_summary_data_output(example_input):
 
 @pytest.mark.parametrize("example_input", [None, torch.ones(2, 2)])
 def test_summary_data_with_non_layer_params(example_input):
-    class TestModel(NonLayerParamsModel):
-        @property
-        def example_input_array(self) -> Any:
-            return example_input
+    model = NonLayerParamsModel()
+    model.example_input_array = example_input
 
-    summary = summarize(TestModel())
+    summary = summarize(model)
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data[" "][-1] == " "
     assert summary_data["Name"][-1] == LEFTOVER_PARAMS_NAME
@@ -396,6 +393,7 @@ def test_summary_data_with_non_layer_params(example_input):
     if example_input is not None:
         assert summary_data["In sizes"][-1] == NOT_APPLICABLE
         assert summary_data["Out sizes"][-1] == NOT_APPLICABLE
+
 
 def test_summary_data_with_no_non_layer_params():
     summary = summarize(PreCalculatedModel())
