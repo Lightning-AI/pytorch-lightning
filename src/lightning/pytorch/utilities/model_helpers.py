@@ -31,6 +31,7 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
         elif isinstance(instance, pl.Callback):
             parent = pl.Callback
         if parent is None:
+            _check_mixed_imports(instance)
             raise ValueError("Expected a parent")
 
     from lightning_utilities.core.overrides import is_overridden as _is_overridden
@@ -51,3 +52,19 @@ def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
     if torchvision_greater_equal_0_14:
         return models.get_model(model_name, **kwargs)
     return getattr(models, model_name)(**kwargs)
+
+
+def _check_mixed_imports(instance: object) -> None:
+    old, new = "pytorch_" + "lightning", "lightning." + "pytorch"
+    klass = type(instance)
+    module = klass.__module__
+    if module.startswith(old) and __name__.startswith(new):
+        pass
+    elif module.startswith(new) and __name__.startswith(old):
+        old, new = new, old
+    else:
+        return
+    raise TypeError(
+        f"You passed a `{old}` object ({type(instance).__qualname__}) to a `{new}`"
+        " Trainer. Please switch to a single import style."
+    )

@@ -100,7 +100,7 @@ def test_pl_app_encode_icon(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "cwd, source_dir, script_path",
+    ("cwd", "source_dir", "script_path"),
     [
         ("./", "./", "train.py"),
         ("./", "./code", "./code/train.py"),

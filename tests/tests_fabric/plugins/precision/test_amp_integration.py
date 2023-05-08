@@ -50,15 +50,14 @@ class MixedPrecisionBoringFabric(BoringFabric):
         assert batch.dtype == torch.float32
         output = model(batch)
         assert output.dtype == torch.float32
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
     def after_backward(self, model, optimizer):
         assert model.layer.weight.grad.dtype == torch.float32
 
 
 @pytest.mark.parametrize(
-    "accelerator, precision, expected_dtype",
+    ("accelerator", "precision", "expected_dtype"),
     [
         ("cpu", "16-mixed", torch.bfloat16),
         ("cpu", "bf16-mixed", torch.bfloat16),

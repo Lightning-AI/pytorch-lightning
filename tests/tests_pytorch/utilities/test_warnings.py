@@ -27,7 +27,8 @@ if __name__ == "__main__":
     root_logger = logging.getLogger()
     lightning_logger = logging.getLogger("lightning.pytorch")
     # should have a `StreamHandler`
-    assert lightning_logger.hasHandlers() and len(lightning_logger.handlers) == 1
+    assert lightning_logger.hasHandlers()
+    assert len(lightning_logger.handlers) == 1
     # set our own stream for testing
     handler = lightning_logger.handlers[0]
     assert isinstance(handler, logging.StreamHandler)

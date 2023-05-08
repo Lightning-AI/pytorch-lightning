@@ -280,28 +280,24 @@ class _AcceleratorConnector:
                     raise MisconfigurationException(
                         "accelerator set through both strategy class and accelerator flag, choose one"
                     )
-                else:
-                    self._accelerator_flag = self._strategy_flag._accelerator
+                self._accelerator_flag = self._strategy_flag._accelerator
             if self._strategy_flag._precision_plugin:
                 # [RFC] handle precision plugin set up conflict?
                 if self._precision_plugin_flag:
                     raise MisconfigurationException("precision set through both strategy class and plugins, choose one")
-                else:
-                    self._precision_plugin_flag = self._strategy_flag._precision_plugin
+                self._precision_plugin_flag = self._strategy_flag._precision_plugin
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
                     raise MisconfigurationException(
                         "checkpoint_io set through both strategy class and plugins, choose one"
                     )
-                else:
-                    self.checkpoint_io = self._strategy_flag._checkpoint_io
+                self.checkpoint_io = self._strategy_flag._checkpoint_io
             if getattr(self._strategy_flag, "cluster_environment", None):
                 if self._cluster_environment_flag:
                     raise MisconfigurationException(
                         "cluster_environment set through both strategy class and plugins, choose one"
                     )
-                else:
-                    self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
+                self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
             if hasattr(self._strategy_flag, "parallel_devices") and self._strategy_flag.parallel_devices:
                 if self._strategy_flag.parallel_devices[0].type == "cpu":
@@ -417,9 +413,6 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
-            # TODO: Why would we block someone from using a IPU capable machine without graphcore?
-            #  Don't these machines also have a regular CPU?
-
             if not _LIGHTNING_GRAPHCORE_AVAILABLE:
                 raise ImportError(
                     "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
@@ -440,16 +433,15 @@ class _AcceleratorConnector:
                 from lightning_habana import HPUParallelStrategy
 
                 return HPUParallelStrategy.strategy_name
-            else:
-                from lightning_habana import SingleHPUStrategy
 
-                return SingleHPUStrategy(device=torch.device("hpu"))
+            from lightning_habana import SingleHPUStrategy
+
+            return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
-            else:
-                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_xla"
-                return SingleDeviceXLAStrategy(device=self._parallel_devices[0])
+            # TODO: lazy initialized device, then here could be self._strategy_flag = "single_xla"
+            return SingleDeviceXLAStrategy(device=self._parallel_devices[0])
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
@@ -522,7 +514,7 @@ class _AcceleratorConnector:
         if isinstance(self.accelerator, XLAAccelerator):
             if self._precision_flag == "32-true":
                 return XLAPrecisionPlugin()
-            elif self._precision_flag in ("16-mixed", "bf16-mixed"):
+            if self._precision_flag in ("16-mixed", "bf16-mixed"):
                 if self._precision_flag == "16-mixed":
                     rank_zero_warn(
                         "You passed `Trainer(accelerator='tpu', precision='16-mixed')` but AMP with fp16"

@@ -438,7 +438,7 @@ class LightningWork:
                     f"such as ``LightningWork`` or ``LightningFlow``. Found {value}."
                 )
 
-            elif isinstance(value, Path):
+            if isinstance(value, Path):
                 value._attach_work(work=self)
                 value._attach_queues(self._request_queue, self._response_queue)  # type: ignore[arg-type]
                 value._name = name

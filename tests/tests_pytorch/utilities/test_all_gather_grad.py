@@ -114,8 +114,7 @@ def test_all_gather_sync_grads(tmpdir):
             tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
             gathered_tensor = self.all_gather(tensor, sync_grads=True)
             assert gathered_tensor.shape == torch.Size([2, 2, 2])
-            loss = gathered_tensor.sum()
-            return loss
+            return gathered_tensor.sum()
 
     model = TestModel()
     trainer = Trainer(

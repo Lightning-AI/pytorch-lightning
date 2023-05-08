@@ -197,12 +197,13 @@ def _upload(name: str, prefix: str, obj: Any) -> Optional[str]:
         from s3fs import S3FileSystem
 
         if not isinstance(fs, S3FileSystem):
-            return
+            return None
 
         source_file = str(inspect.getfile(obj.__class__))
         remote_url = str(_shared_storage_path() / "artifacts" / filepath)
         fs.put(source_file, remote_url)
         return filepath
+    return None
 
 
 def _prepare_commands(app) -> List:
@@ -251,6 +252,7 @@ def _process_command_requests(app, request: _CommandRequest):
                     logger.error(traceback.print_exc())
                     response = _RequestResponse(status_code=500)
                 return {"response": response, "id": request.id}
+    return None
 
 
 def _process_requests(app, requests: List[Union[_APIRequest, _CommandRequest]]) -> None:
