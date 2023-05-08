@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -19,7 +18,6 @@ import pytest
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
@@ -57,9 +55,8 @@ def test_xla_fsdp_mp_device_dataloader_attribute(_, monkeypatch):
     assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
-@RunIf(min_torch="1.12")
+@RunIf(tpu=True)
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
-@mock.patch.dict(os.environ, {"PJRT_DEVICE": "TPU"}, clear=True)
 def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
@@ -91,8 +88,10 @@ def test_xla_fsdp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+    ), strategy._backward_sync_control.no_backward_sync(object()):
         pass
+
+    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel
 
     module = MagicMock(spec=XlaFullyShardedDataParallel)
     with strategy._backward_sync_control.no_backward_sync(module):
@@ -104,11 +103,5 @@ def test_xla_fsdp_no_backward_sync():
 @RunIf(tpu=True)
 def test_xla_fsdp_grad_clipping_value_error():
     strategy = XLAFSDPStrategy()
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            "XLAFSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
-        ),
-    ):
+    with pytest.raises(NotImplementedError, match="does not support to clip gradients by value"):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())

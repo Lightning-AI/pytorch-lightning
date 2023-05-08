@@ -328,6 +328,7 @@ class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
     def no_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the
         :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` wrapper."""
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         if not isinstance(module, XLAFSDP):
             raise TypeError(
