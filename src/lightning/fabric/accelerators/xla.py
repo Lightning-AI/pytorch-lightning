@@ -84,7 +84,10 @@ class XLAAccelerator(Accelerator):
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        return XLAAccelerator.auto_device_count() > 0
+        try:
+            return XLAAccelerator.auto_device_count() > 0
+        except (ValueError, AssertionError, OSError):
+            return False
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:

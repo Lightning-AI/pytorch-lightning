@@ -41,6 +41,7 @@ from lightning.pytorch.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
@@ -1002,3 +1003,14 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 def test_connector_sets_num_nodes(strategy, cuda_count_2):
     trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
     assert trainer.strategy.num_nodes == 2
+
+
+def test_xla_fsdp_automatic_strategy_selection(tpu_available):
+    trainer = Trainer(accelerator="tpu", strategy="fsdp")
+    assert isinstance(trainer.strategy, XLAFSDPStrategy)
+
+    trainer = Trainer(accelerator="auto", strategy="fsdp")
+    assert isinstance(trainer.strategy, XLAFSDPStrategy)
+
+    trainer = Trainer(accelerator="auto", strategy="xla_fsdp")
+    assert isinstance(trainer.strategy, XLAFSDPStrategy)
