@@ -41,10 +41,7 @@ class Fp8TransformerEnginePrecision(Precision):
 
     precision: Literal["8-mixed-transformer-engine"] = "8-mixed-transformer-engine"
 
-    def __init__(
-        self,
-        recipe: Optional[Union[Dict[str, Any], "DelayedScaling"]] = None,
-    ) -> None:
+    def __init__(self, recipe: Optional[Union[Dict[str, Any], "DelayedScaling"]] = None) -> None:
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))
         from transformer_engine.common.recipe import DelayedScaling

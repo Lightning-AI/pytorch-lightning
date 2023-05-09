@@ -449,7 +449,7 @@ class _Connector:
             return Precision()
         if self._precision_input == "64-true":
             return DoublePrecision()
-        if self._precision_input in ("fp8-mixed", "fp8-mixed-transformer-engine"):
+        if self._precision_input in ("8-mixed", "8-mixed-transformer-engine"):
             return Fp8TransformerEnginePrecision()
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":

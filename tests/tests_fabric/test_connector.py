@@ -1027,10 +1027,10 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
-    connector = _Connector(precision="fp8-mixed")
+    connector = _Connector(precision="8-mixed")
     assert isinstance(connector.precision, Fp8TransformerEnginePrecision)
 
-    connector = _Connector(precision="fp8-mixed-transformer-engine")
+    connector = _Connector(precision="8-mixed-transformer-engine")
     assert isinstance(connector.precision, Fp8TransformerEnginePrecision)
 
     recipe_mock.reset_mock()
