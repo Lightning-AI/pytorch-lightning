@@ -31,6 +31,9 @@ log = logging.getLogger(__name__)
 class SLURMEnvironment(ClusterEnvironment):
     """Cluster environment for training on a cluster managed by SLURM.
 
+    You can configure the `main_address` and `main_port` properties via the env variables `MASTER_ADDR` and
+    `MASTER_PORT`, respectively.
+
     Args:
         auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
             rescheduled gets determined by the owner of this plugin.
