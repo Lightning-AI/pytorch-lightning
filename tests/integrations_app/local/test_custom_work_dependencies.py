@@ -19,4 +19,5 @@ def test_custom_work_dependencies_example_cloud() -> None:
             for log in fetch_logs(["flow"]):
                 if "Custom Work Dependency checker End" in log:
                     has_logs = True
+                print(log)
             sleep(1)
