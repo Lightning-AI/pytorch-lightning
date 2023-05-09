@@ -13,6 +13,7 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -40,6 +41,7 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
+from lightning.fabric.plugins.precision.fp8_transformer_engine import Fp8TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -1014,3 +1016,31 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy.launcher._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+def test_connector_fp8_transformer_engine(monkeypatch):
+    monkeypatch.setattr(
+        lightning.fabric.plugins.precision.fp8_transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
+    )
+    monkeypatch.setitem(sys.modules, "transformer_engine", Mock())
+    monkeypatch.setitem(sys.modules, "transformer_engine.common", Mock())
+    recipe_mock = Mock()
+    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
+
+    connector = _Connector(precision="fp8-mixed")
+    assert isinstance(connector.precision, Fp8TransformerEnginePrecision)
+
+    connector = _Connector(precision="fp8-mixed-transformer-engine")
+    assert isinstance(connector.precision, Fp8TransformerEnginePrecision)
+
+    recipe_mock.reset_mock()
+    precision = Fp8TransformerEnginePrecision()
+    connector = _Connector(plugins=precision)
+    assert connector.precision is precision
+    recipe_mock.DelayedScaling.assert_called_once_with()
+
+    recipe_mock.reset_mock()
+    precision = Fp8TransformerEnginePrecision({"foo": 0, "fp8_format": "HYBRID"})
+    connector = _Connector(plugins=precision)
+    assert connector.precision is precision
+    recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)

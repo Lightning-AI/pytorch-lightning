@@ -42,6 +42,7 @@ from lightning.fabric.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning.fabric.plugins.precision.double import DoublePrecision
+from lightning.fabric.plugins.precision.fp8_transformer_engine import Fp8TransformerEnginePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT,
@@ -448,6 +449,8 @@ class _Connector:
             return Precision()
         if self._precision_input == "64-true":
             return DoublePrecision()
+        if self._precision_input in ("fp8-mixed", "fp8-mixed-transformer-engine"):
+            return Fp8TransformerEnginePrecision()
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
