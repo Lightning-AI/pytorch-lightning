@@ -14,3 +14,4 @@ pympler
 psutil <=5.9.5
 setuptools <67.7.0
 requests-mock <=1.10.0
+streamlit
