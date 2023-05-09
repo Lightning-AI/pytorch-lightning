@@ -53,9 +53,12 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
-        root_node = self.resolve_root_node_address(nodelist)
-        os.environ["MASTER_ADDR"] = root_node
+        root_node = os.environ.get("MASTER_ADDR")
+        if root_node is None:
+            nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
+            root_node = self.resolve_root_node_address(nodelist)
+            os.environ["MASTER_ADDR"] = root_node
+
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
