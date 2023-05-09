@@ -485,6 +485,7 @@ class FlowAPI(LightningFlow):
         assert request.body()
         assert request.json()
         assert request.headers
+        assert request.method
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
