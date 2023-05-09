@@ -50,8 +50,8 @@ def _get_device():
 
     if _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64"):
         return torch.device("mps", local_rank)
-    else:
-        return torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
+
+    return torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
 
 
 class _DefaultInputData(BaseModel):
@@ -296,7 +296,7 @@ class PythonServer(LightningWork, abc.ABC):
             logger.warn(
                 "Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`"
             )
-            return
+            return None
 
         class_name = self.__class__.__name__
         url = f"{self.url}/predict"

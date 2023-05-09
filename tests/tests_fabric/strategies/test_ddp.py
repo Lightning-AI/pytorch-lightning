@@ -30,7 +30,7 @@ from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFab
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "device_str", "expected_process_group_backend"],
+    ("process_group_backend", "device_str", "expected_process_group_backend"),
     [
         pytest.param("foo", "cpu", "foo"),
         pytest.param("foo", "cuda:0", "foo"),
@@ -108,7 +108,7 @@ def test_ddp_module_state_dict():
 
 
 @pytest.mark.parametrize(
-    "clip_type,accelerator,precision",
+    ("clip_type", "accelerator", "precision"),
     [
         ("norm", "cpu", "32-true"),
         ("val", "cpu", "32-true"),
@@ -131,7 +131,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    "precision,expected_dtype",
+    ("precision", "expected_dtype"),
     [
         (Precision(), torch.float32),
         (HalfPrecision("16-true"), torch.float16),
@@ -140,7 +140,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
     ],
 )
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_module_init_context(precision, expected_dtype):
+def test_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
     expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
@@ -149,7 +149,7 @@ def test_module_init_context(precision, expected_dtype):
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
-    with strategy.module_init_context():
+    with strategy.init_context():
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype

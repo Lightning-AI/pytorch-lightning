@@ -283,8 +283,7 @@ class DQNLightning(LightningModule):
         Returns:
             q values
         """
-        output = self.net(x)
-        return output
+        return self.net(x)
 
     def dqn_mse_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         """Calculates the mse loss using a mini batch from the replay buffer.
@@ -353,8 +352,7 @@ class DQNLightning(LightningModule):
     def __dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences."""
         dataset = RLDataset(self.buffer, self.episode_length)
-        dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size, sampler=None)
-        return dataloader
+        return DataLoader(dataset=dataset, batch_size=self.batch_size, sampler=None)
 
     def train_dataloader(self) -> DataLoader:
         """Get train loader."""

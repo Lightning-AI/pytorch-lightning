@@ -78,7 +78,7 @@ def mock_training_epoch_loop(trainer):
 
 
 @pytest.mark.parametrize(
-    "validation_step_none,val_dataloaders_none,monitor",
+    ("validation_step_none", "val_dataloaders_none", "monitor"),
     [(False, False, "val_log"), (True, False, "train_log_epoch"), (False, True, "val_log")],
 )
 @pytest.mark.parametrize("reduce_lr_on_plateau", [False, True])
@@ -184,7 +184,7 @@ def test_model_checkpoint_score_and_ckpt(
 
 
 @pytest.mark.parametrize(
-    "val_check_interval,reduce_lr_on_plateau,epoch_aligned",
+    ("val_check_interval", "reduce_lr_on_plateau", "epoch_aligned"),
     [(0.25, True, True), (0.25, False, True), (0.42, False, False)],
 )
 def test_model_checkpoint_score_and_ckpt_val_check_interval(
@@ -330,7 +330,9 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     assert d == best_k
 
 
-@pytest.mark.parametrize("logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
+@pytest.mark.parametrize(
+    ("logger_version", "expected"), [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")]
+)
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
     model = LogInTwoMethods()
@@ -1377,7 +1379,7 @@ def test_last_global_step_saved():
     assert model_checkpoint._last_global_step_saved == 0
 
 
-@pytest.mark.parametrize("every_n_epochs", (0, 5))
+@pytest.mark.parametrize("every_n_epochs", [0, 5])
 def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
     """Test that `save_last` ignores `every_n_epochs`."""
     mc = ModelCheckpoint(every_n_epochs=every_n_epochs, save_last=True, save_top_k=0, save_on_train_epoch_end=True)

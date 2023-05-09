@@ -233,8 +233,7 @@ def _fetch_app_by_name(client, project_id, name):
     ]
     if not len(lit_apps) == 1:
         raise ValueError(f"Expected to find just one app, found {len(lit_apps)}")
-    app = lit_apps[0]
-    return app
+    return lit_apps[0]
 
 
 @requires("playwright")

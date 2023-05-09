@@ -138,8 +138,8 @@ def test_open_close_log_files():
 
 
 @pytest.mark.parametrize(
-    ["value", "expected"],
-    (
+    ("value", "expected"),
+    [
         ("Yes", True),
         ("yes", True),
         ("YES", True),
@@ -156,7 +156,7 @@ def test_open_close_log_files():
         ("False", False),
         ("false", False),
         ("FALSE", False),
-    ),
+    ],
 )
 def test_has_panel_autoreload(value, expected):
     """We can get and set autoreload using the environment variable PANEL_AUTORELOAD."""

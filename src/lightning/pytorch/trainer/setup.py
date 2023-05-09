@@ -28,12 +28,7 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import (
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _LIGHTNING_GRAPHCORE_AVAILABLE,
-    _LIGHTNING_HABANA_AVAILABLE,
-)
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
@@ -167,17 +162,21 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         from lightning_graphcore import IPUAccelerator
 
         num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
+        ipu_available = IPUAccelerator.is_available()
     else:
         num_ipus = 0
-    rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+        ipu_available = False
+    rank_zero_info(f"IPU available: {ipu_available}, using: {num_ipus} IPUs")
 
     if _LIGHTNING_HABANA_AVAILABLE:
         from lightning_habana import HPUAccelerator
 
         num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
+        hpu_available = HPUAccelerator.is_available()
     else:
         num_hpus = 0
-    rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+        hpu_available = False
+    rank_zero_info(f"HPU available: {hpu_available}, using: {num_hpus} HPUs")
 
     if (
         CUDAAccelerator.is_available()

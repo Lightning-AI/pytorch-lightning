@@ -89,7 +89,7 @@ def test_accelerator_cpu_when_tpu_available(tpu_available):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
+@pytest.mark.parametrize(("accelerator", "devices"), [("auto", 8), ("auto", "auto"), ("tpu", "auto")])
 def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert XLAAccelerator.is_available()
 
@@ -302,7 +302,7 @@ def test_warning_if_tpus_not_used(tpu_available):
 
 
 @pytest.mark.parametrize(
-    ["devices", "expected_device_ids"],
+    ("devices", "expected_device_ids"),
     [
         (1, [0]),
         (8, list(range(8))),
@@ -311,7 +311,7 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@pytest.mark.parametrize("runtime", ("xrt", "pjrt"))
+@pytest.mark.parametrize("runtime", ["xrt", "pjrt"])
 @RunIf(min_python="3.9")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_available, monkeypatch):
     from torch_xla.experimental import pjrt

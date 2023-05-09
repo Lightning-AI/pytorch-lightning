@@ -45,8 +45,7 @@ class MPSAccelerator(Accelerator):
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
-        parsed_devices = _parse_gpu_ids(devices, include_mps=True)
-        return parsed_devices
+        return _parse_gpu_ids(devices, include_mps=True)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
