@@ -25,6 +25,7 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     get_human_readable_count,
     LayerSummary,
     ModelSummary,
+    NOT_APPLICABLE,
 )
 
 
@@ -96,4 +97,14 @@ class DeepSpeedSummary(ModelSummary):
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
+        total_leftover_params = self.total_parameters - self.total_layer_params
+        if total_leftover_params > 0:
+            self._add_leftover_params_to_summary(arrays, total_leftover_params)
+
         return arrays
+
+    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+        """Add summary of params not associated with module or layer to model summary."""
+        super()._add_leftover_params_to_summary(arrays, total_leftover_params)
+        layer_summaries = dict(arrays)
+        layer_summaries["Params per Device"].append(NOT_APPLICABLE)
