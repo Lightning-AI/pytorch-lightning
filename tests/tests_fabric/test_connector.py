@@ -1018,7 +1018,8 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher.is_interactive_compatible
 
 
-def test_connector_fp8_transformer_engine(monkeypatch):
+@mock.patch("torch.cuda.get_device_capability", return_value=(9, 0))
+def test_connector_fp8_transformer_engine(_, monkeypatch):
     monkeypatch.setattr(
         lightning.fabric.plugins.precision.fp8_transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
     )
@@ -1044,3 +1045,17 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
+
+    class MyModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(16, 48)
+            self.l2 = torch.nn.Linear(1, 3)
+            self.l3 = torch.nn.LayerNorm(1)
+
+    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
+    model = MyModule()
+
+    precision.replace_layers = False
+    precision.convert_module(model)
+    assert isinstance(model.l1, torch.nn.Linear)
