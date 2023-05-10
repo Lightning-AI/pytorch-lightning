@@ -28,6 +28,11 @@ jobs:
       actions-ref: ${{ github.sha }}  # use local version
       artifact-name: dist-packages-${{ github.sha }}
       import-name: "lightning_utilities"
+      testing-matrix: |
+          {
+            "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
+            "python-version": ["3.7", "3.11"]
+          }
 
   check-docs:
     uses: ./.github/workflows/check-docs.yml
