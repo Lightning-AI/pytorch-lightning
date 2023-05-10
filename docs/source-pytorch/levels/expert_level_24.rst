@@ -1,7 +1,7 @@
 :orphan:
 
 ####################################
-Level 24: Integrate a custom cluster
+Level 23: Integrate a custom cluster
 ####################################
 
 Extend the functionality of the Lightning CLI.
