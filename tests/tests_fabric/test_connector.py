@@ -1059,3 +1059,16 @@ def test_connector_fp8_transformer_engine(_, monkeypatch):
     precision.replace_layers = False
     precision.convert_module(model)
     assert isinstance(model.l1, torch.nn.Linear)
+    assert isinstance(model.l3, torch.nn.LayerNorm)
+
+    precision.replace_layers = True
+    setattr_mock = Mock()
+    model.__setattr__ = setattr_mock
+    with pytest.warns(match="divisible by 16"):
+        precision.convert_module(model)
+    mock_calls = setattr_mock.mock_calls
+    assert len(mock_calls) == 2
+    assert mock_calls[0][1][0] == "l1"
+    assert mock_calls[1][1][0] == "l3"
+    assert mock_calls[0][1][1]._extract_mock_name() == "mock.pytorch.Linear()"
+    assert mock_calls[1][1][1]._extract_mock_name() == "mock.pytorch.LayerNorm()"
