@@ -1,7 +1,7 @@
 :orphan:
 
 ##################################
-Level 23: Extend the Lightning CLI
+Level 22: Extend the Lightning CLI
 ##################################
 
 Extend the functionality of the Lightning CLI.
