@@ -418,6 +418,10 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
     assert ckpt_name == "epoch=003-acc=0.03"
 
+    # one metric name is substring of another
+    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{epoch_test:03d}", {"epoch": 3, "epoch_test": 3})
+    assert ckpt_name == "epoch=003-epoch_test=003"
+
     # prefix
     char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = "@"

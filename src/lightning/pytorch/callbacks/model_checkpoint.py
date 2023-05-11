@@ -514,6 +514,10 @@ class ModelCheckpoint(Checkpoint):
 
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
+
+        # sort keys from longest to shortest to avoid replacing substring
+        # eg: if keys are "epoch" and "epoch_test", the latter must be replaced first
+        groups = sorted(groups, key=lambda x: len(x), reverse=True)
         if len(groups) >= 0:
             for group in groups:
                 name = group[1:]
