@@ -110,7 +110,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_fsdp_save_full_state_dict(tmp_path):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
-    fabric = _MyFabric(
+    fabric = BoringFabric(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
         devices=2
