@@ -30,6 +30,6 @@ def test_template_streamlit_ui_example_cloud() -> None:
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
-                if "0: Hello World!" in log:
+                if "Hello World!" in log:
                     has_logs = True
             sleep(1)

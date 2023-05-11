@@ -59,7 +59,7 @@ Community
    :header: Past PyTorch Lightning versions
    :description: Docs and upgrade guide for past versions
    :col_css: col-md-12
-   :button_link: past_versions.html
+   :button_link: ../past_versions.html
    :height: 100
 
 .. displayitem::
