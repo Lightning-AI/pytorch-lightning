@@ -360,7 +360,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
 
         module = modules[0]
-        path.mkdir(parents=True)
+
+        path.mkdir(parents=True, exist_ok=True)
 
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(module)
